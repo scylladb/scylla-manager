@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  scylla:
+    image: scylladb/scylla
+    networks:
+      cluster:
+        ipv4_address: 172.16.0.10
+
+networks:
+  cluster:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.0.0/24
