@@ -1,0 +1,93 @@
+package log
+
+import (
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
+
+// Logger logs messages.
+type Logger struct {
+	base *zap.Logger
+}
+
+// NewLogger creates a new logger backed by a zap.Logger.
+func NewLogger(base *zap.Logger) Logger {
+	return Logger{base: base}
+}
+
+// NopLogger doesn't log anything.
+var NopLogger = Logger{}
+
+// Named adds a new path segment to the logger's name. Segments are joined by
+// periods. By default, Loggers are unnamed.
+func (l Logger) Named(name string) Logger {
+	if l.base == nil {
+		return NopLogger
+	}
+	return Logger{base: l.base.Named(name)}
+}
+
+// With adds a variadic number of fields to the logging context.
+func (l Logger) With(keyvals ...interface{}) Logger {
+	if l.base == nil {
+		return NopLogger
+	}
+	return Logger{base: l.base.With(l.zapify(keyvals)...)}
+}
+
+// Debug logs a message with some additional context.
+func (l Logger) Debug(msg string, keyvals ...interface{}) {
+	l.log(zapcore.DebugLevel, msg, keyvals)
+}
+
+// Info logs a message with some additional context.
+func (l Logger) Info(msg string, keyvals ...interface{}) {
+	l.log(zapcore.InfoLevel, msg, keyvals)
+}
+
+// Error logs a message with some additional context.
+func (l Logger) Error(msg string, keyvals ...interface{}) {
+	l.log(zapcore.ErrorLevel, msg, keyvals)
+}
+
+// Fatal logs a message with some additional context, then calls os.Exit. The
+// variadic key-value pairs are treated as they are in With.
+func (l Logger) Fatal(msg string, keyvals ...interface{}) {
+	l.log(zapcore.FatalLevel, msg, keyvals)
+}
+
+func (l Logger) log(lvl zapcore.Level, msg string, context []interface{}) {
+	if l.base == nil {
+		return
+	}
+	if !l.base.Core().Enabled(lvl) {
+		return
+	}
+
+	if ce := l.base.Check(lvl, msg); ce != nil {
+		ce.Write(l.zapify(context)...)
+	}
+}
+
+func (l Logger) zapify(args []interface{}) []zapcore.Field {
+	if len(args) == 0 {
+		return nil
+	}
+	if len(args)%2 != 0 {
+		l.base.DPanic("odd number of elements")
+		return nil
+	}
+
+	fields := make([]zapcore.Field, 0, len(args)/2)
+	for i := 0; i < len(args); i += 2 {
+		// Consume this value and the next, treating them as a key-value pair.
+		key, val := args[i], args[i+1]
+		if keyStr, ok := key.(string); !ok {
+			l.base.DPanic("key not a string", zap.Any("key", key))
+			break
+		} else {
+			fields = append(fields, zap.Any(keyStr, val))
+		}
+	}
+	return fields
+}
