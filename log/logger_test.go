@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -21,15 +22,20 @@ func TestLogger(t *testing.T) {
 	}
 
 	// Common to all test cases.
-	context := []interface{}{"foo", "bar"}
+	ctx := WithTraceID(context.Background())
+	base := []interface{}{"foo", "bar"}
 	extra := []interface{}{"baz", false}
-	expectedFields := []zapcore.Field{zap.String("foo", "bar"), zap.Bool("baz", false)}
+	expectedFields := []zapcore.Field{
+		zap.String("foo", "bar"),
+		zap.Bool("baz", false),
+		zap.String("_trace_id", TraceID(ctx)),
+	}
 
 	for _, test := range table {
 		withLogger(zap.DebugLevel, nil, func(logger Logger, logs *observer.ObservedLogs) {
-			logger.With(context...).Debug(test.msg, extra...)
-			logger.With(context...).Info(test.msg, extra...)
-			logger.With(context...).Error(test.msg, extra...)
+			logger.With(base...).Debug(ctx, test.msg, extra...)
+			logger.With(base...).Info(ctx, test.msg, extra...)
+			logger.With(base...).Error(ctx, test.msg, extra...)
 
 			expected := make([]observer.LoggedEntry, 3)
 			for i, lvl := range []zapcore.Level{zap.DebugLevel, zap.InfoLevel, zap.ErrorLevel} {
@@ -62,25 +68,28 @@ func newZapLogger() *zap.Logger {
 }
 
 func BenchmarkZap(b *testing.B) {
+	t := newTraceID()
 	l := newZapLogger()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.Debug("log message", zap.Int("key0", 0), zap.String("key1", "key1"), zap.String("key2", "key2"))
+		l.Debug("log message", zap.Int("key0", 0), zap.String("key1", "key1"), zap.String("key2", "key2"), zap.String("_trace_id", t))
 	}
 }
 
 func BenchmarkZapSugared(b *testing.B) {
+	t := newTraceID()
 	l := newZapLogger().Sugar()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.Debugw("log message", "key0", 0, "key1", "key1", "key2", "key2")
+		l.Debugw("log message", "key0", 0, "key1", "key1", "key2", "key2", "_trace_id", t)
 	}
 }
 
 func BenchmarkLogger(b *testing.B) {
+	ctx := WithTraceID(context.Background())
 	l := Logger{newZapLogger()}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.Debug("log message", "key0", 0, "key1", "key1", "key2", "key2")
+		l.Debug(ctx, "log message", "key0", 0, "key1", "key1", "key2", "key2")
 	}
 }
