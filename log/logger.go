@@ -24,7 +24,7 @@ var NopLogger = Logger{}
 // periods. By default, Loggers are unnamed.
 func (l Logger) Named(name string) Logger {
 	if l.base == nil {
-		return NopLogger
+		return l
 	}
 	return Logger{base: l.base.Named(name)}
 }
@@ -32,7 +32,7 @@ func (l Logger) Named(name string) Logger {
 // With adds a variadic number of fields to the logging context.
 func (l Logger) With(keyvals ...interface{}) Logger {
 	if l.base == nil {
-		return NopLogger
+		return l
 	}
 	return Logger{base: l.base.With(l.zapify(nil, keyvals)...)}
 }
