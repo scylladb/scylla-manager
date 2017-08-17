@@ -87,7 +87,7 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 	)
 
 	if ctx != nil {
-		trace, ok = ctx.Value(traceID).(*zapcore.Field)
+		trace, ok = ctx.Value(_traceID).(*zapcore.Field)
 		if ok {
 			extraFields++
 		}

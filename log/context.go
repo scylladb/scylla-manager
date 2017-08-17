@@ -5,5 +5,5 @@ type ctxt byte
 
 // ctxt enumeration.
 const (
-	traceID ctxt = iota
+	_traceID ctxt = iota
 )
