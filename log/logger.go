@@ -1,6 +1,8 @@
 package log
 
 import (
+	"context"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -32,31 +34,31 @@ func (l Logger) With(keyvals ...interface{}) Logger {
 	if l.base == nil {
 		return NopLogger
 	}
-	return Logger{base: l.base.With(l.zapify(keyvals)...)}
+	return Logger{base: l.base.With(l.zapify(nil, keyvals)...)}
 }
 
 // Debug logs a message with some additional context.
-func (l Logger) Debug(msg string, keyvals ...interface{}) {
-	l.log(zapcore.DebugLevel, msg, keyvals)
+func (l Logger) Debug(ctx context.Context, msg string, keyvals ...interface{}) {
+	l.log(ctx, zapcore.DebugLevel, msg, keyvals)
 }
 
 // Info logs a message with some additional context.
-func (l Logger) Info(msg string, keyvals ...interface{}) {
-	l.log(zapcore.InfoLevel, msg, keyvals)
+func (l Logger) Info(ctx context.Context, msg string, keyvals ...interface{}) {
+	l.log(ctx, zapcore.InfoLevel, msg, keyvals)
 }
 
 // Error logs a message with some additional context.
-func (l Logger) Error(msg string, keyvals ...interface{}) {
-	l.log(zapcore.ErrorLevel, msg, keyvals)
+func (l Logger) Error(ctx context.Context, msg string, keyvals ...interface{}) {
+	l.log(ctx, zapcore.ErrorLevel, msg, keyvals)
 }
 
 // Fatal logs a message with some additional context, then calls os.Exit. The
 // variadic key-value pairs are treated as they are in With.
-func (l Logger) Fatal(msg string, keyvals ...interface{}) {
-	l.log(zapcore.FatalLevel, msg, keyvals)
+func (l Logger) Fatal(ctx context.Context, msg string, keyvals ...interface{}) {
+	l.log(ctx, zapcore.FatalLevel, msg, keyvals)
 }
 
-func (l Logger) log(lvl zapcore.Level, msg string, context []interface{}) {
+func (l Logger) log(ctx context.Context, lvl zapcore.Level, msg string, keyvals []interface{}) {
 	if l.base == nil {
 		return
 	}
@@ -65,23 +67,36 @@ func (l Logger) log(lvl zapcore.Level, msg string, context []interface{}) {
 	}
 
 	if ce := l.base.Check(lvl, msg); ce != nil {
-		ce.Write(l.zapify(context)...)
+		ce.Write(l.zapify(ctx, keyvals)...)
 	}
 }
 
-func (l Logger) zapify(args []interface{}) []zapcore.Field {
-	if len(args) == 0 {
+func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Field {
+	if len(keyvals) == 0 {
 		return nil
 	}
-	if len(args)%2 != 0 {
+	if len(keyvals)%2 != 0 {
 		l.base.DPanic("odd number of elements")
 		return nil
 	}
 
-	fields := make([]zapcore.Field, 0, len(args)/2)
-	for i := 0; i < len(args); i += 2 {
+	var (
+		extraFields int
+		trace       *zapcore.Field
+		ok          bool
+	)
+
+	if ctx != nil {
+		trace, ok = ctx.Value(traceID).(*zapcore.Field)
+		if ok {
+			extraFields++
+		}
+	}
+
+	fields := make([]zapcore.Field, 0, len(keyvals)/2+extraFields)
+	for i := 0; i < len(keyvals); i += 2 {
 		// Consume this value and the next, treating them as a key-value pair.
-		key, val := args[i], args[i+1]
+		key, val := keyvals[i], keyvals[i+1]
 		if keyStr, ok := key.(string); !ok {
 			l.base.DPanic("key not a string", zap.Any("key", key))
 			break
@@ -89,5 +104,10 @@ func (l Logger) zapify(args []interface{}) []zapcore.Field {
 			fields = append(fields, zap.Any(keyStr, val))
 		}
 	}
+
+	if trace != nil {
+		fields = append(fields, *trace)
+	}
+
 	return fields
 }
