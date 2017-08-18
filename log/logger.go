@@ -17,6 +17,13 @@ func NewLogger(base *zap.Logger) Logger {
 	return Logger{base: base}
 }
 
+// NewDevelopmentLogger creates a new logger that writes DebugLevel and above
+// logs to standard error in a human-friendly format.
+func NewDevelopmentLogger() Logger {
+	l, _ := zap.NewDevelopment()
+	return Logger{base: l}
+}
+
 // NopLogger doesn't log anything.
 var NopLogger = Logger{}
 
@@ -24,7 +31,7 @@ var NopLogger = Logger{}
 // periods. By default, Loggers are unnamed.
 func (l Logger) Named(name string) Logger {
 	if l.base == nil {
-		return NopLogger
+		return l
 	}
 	return Logger{base: l.base.Named(name)}
 }
@@ -32,7 +39,7 @@ func (l Logger) Named(name string) Logger {
 // With adds a variadic number of fields to the logging context.
 func (l Logger) With(keyvals ...interface{}) Logger {
 	if l.base == nil {
-		return NopLogger
+		return l
 	}
 	return Logger{base: l.base.With(l.zapify(nil, keyvals)...)}
 }
@@ -87,7 +94,7 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 	)
 
 	if ctx != nil {
-		trace, ok = ctx.Value(traceID).(*zapcore.Field)
+		trace, ok = ctx.Value(_traceID).(*zapcore.Field)
 		if ok {
 			extraFields++
 		}

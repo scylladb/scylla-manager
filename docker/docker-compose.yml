@@ -1,11 +1,18 @@
 version: '3'
 
 services:
-  scylla:
-    image: scylladb/scylla
+  scylla-seed-node:
+    image: scylladb/scylla:custom
+    command: --api-address 0.0.0.0
     networks:
       cluster:
         ipv4_address: 172.16.0.10
+
+  scylla-node:
+    image: scylladb/scylla:custom
+    command: --api-address 0.0.0.0 --seeds 172.16.0.10
+    networks:
+      - cluster
 
 networks:
   cluster:

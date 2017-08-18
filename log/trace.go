@@ -13,12 +13,12 @@ import (
 // WithTraceID ensures that the context has a trace ID, if not returns a new
 // context with a random trace ID.
 func WithTraceID(ctx context.Context) context.Context {
-	if ctx.Value(traceID) != nil {
+	if ctx.Value(_traceID) != nil {
 		return ctx
 	}
 
 	v := zap.String("_trace_id", newTraceID())
-	return context.WithValue(ctx, traceID, &v)
+	return context.WithValue(ctx, _traceID, &v)
 }
 
 // TraceID returns trace ID of the context.
@@ -26,7 +26,7 @@ func TraceID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	v, ok := ctx.Value(traceID).(*zapcore.Field)
+	v, ok := ctx.Value(_traceID).(*zapcore.Field)
 	if !ok {
 		return ""
 	}
