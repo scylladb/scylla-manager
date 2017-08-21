@@ -1,14 +1,26 @@
-CQLSH=cqlsh --cqlversion=3.3.1 172.16.0.10
+COMPOSE=source ./.env && docker-compose
+CQLSH=cqlsh --cqlversion=3.3.1 172.16.1.10
 
-# up starts a 3 node scylla cluster.
+# up-dc2 starts dc1 and dc2.
 .PHONY: up
-up:
-	docker-compose up -d --scale scylla-node=2
+up: up-dc1 up-dc2
+
+# up-dc2 starts dc1.
+.PHONY: up-dc1
+up-dc1:
+	@$(COMPOSE) up -d dc1_seed_node
+	@$(COMPOSE) up -d --scale dc1_node=2 dc1_node
+
+# up-dc2 starts dc2.
+.PHONY: up-dc2
+up-dc2:
+	@$(COMPOSE) up -d dc2_seed_node
+	@$(COMPOSE) up -d --scale dc2_node=2 dc2_node
 
 # down stops running scylla cluster.
 .PHONY: down
 down:
-	docker-compose down
+	@$(COMPOSE) down
 
 # init initialises database by running init.cql.
 .PHONY: init
@@ -18,7 +30,7 @@ init:
 
 # bash opens a bash shell in seed node.
 bash:
-	@docker-compose exec scylla-seed-node bash
+	@$(COMPOSE) exec dc1_seed_node bash
 
 # cqlsh opens a bash shell in seed node.
 cqlsh:
@@ -26,9 +38,9 @@ cqlsh:
 
 # bash opens a bash shell in seed node.
 status:
-	@docker-compose exec scylla-seed-node nodetool status
+	@$(COMPOSE) exec dc1_seed_node nodetool status
 
 # get-tools installs all the required tools for other targets.
 .PHONY: get-tools
 	sudo pip install -u cqlsh
-	sudo pip install -u docker-compose
+	sudo pip install -u COMPOSE
