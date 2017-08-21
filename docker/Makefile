@@ -14,6 +14,7 @@ down:
 .PHONY: init
 init:
 	$(CQLSH) -f init.cql
+	$(CQLSH) -f ../schema/001_initial_schema.cql
 
 # bash opens a bash shell in seed node.
 bash:
