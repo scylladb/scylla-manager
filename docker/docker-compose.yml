@@ -1,18 +1,37 @@
-version: '3'
+version: '2'
 
 services:
-  scylla-seed-node:
+  dc1_node:
     image: scylladb/scylla:custom
-    command: --api-address 0.0.0.0
-    networks:
-      cluster:
-        ipv4_address: 172.16.0.10
-
-  scylla-node:
-    image: scylladb/scylla:custom
-    command: --api-address 0.0.0.0 --seeds 172.16.0.10
+    command: --api-address 0.0.0.0 --seeds 172.16.1.10,172.16.1.20
+    volumes:
+      - ./scylla.yaml:/etc/scylla/scylla.yaml
+      - ./cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
     networks:
       - cluster
+
+  dc1_seed_node:
+    extends:
+      service: dc1_node
+    networks:
+      cluster:
+        ipv4_address: 172.16.1.10
+
+  dc2_node:
+    image: scylladb/scylla:custom
+    command: --api-address 0.0.0.0 --seeds 172.16.1.10,172.16.1.20
+    volumes:
+      - ./scylla.yaml:/etc/scylla/scylla.yaml
+      - ./cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
+    networks:
+      - cluster
+
+  dc2_seed_node:
+    extends:
+      service: dc2_node
+    networks:
+      cluster:
+        ipv4_address: 172.16.1.20
 
 networks:
   cluster:
@@ -20,4 +39,4 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.16.0.0/24
+        - subnet: 172.16.1.0/24
