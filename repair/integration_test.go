@@ -41,10 +41,10 @@ func TestService(t *testing.T) {
 		id, _ := gocql.RandomUUID()
 
 		invalid := math.MaxInt64
-		config := validConfig()
-		config.SegmentsPerShard = &invalid
+		c := validConfig()
+		c.SegmentsPerShard = &invalid
 
-		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", config); err == nil {
+		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", c); err == nil {
 			t.Fatal("expected validation error")
 		}
 	})
@@ -72,18 +72,18 @@ func TestService(t *testing.T) {
 		t.Parallel()
 		id, _ := gocql.RandomUUID()
 
-		config := validConfig()
-		config.RetryLimit = nil
-		config.RetryBackoffSeconds = nil
+		c := validConfig()
+		c.RetryLimit = nil
+		c.RetryBackoffSeconds = nil
 
-		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", config); err != nil {
+		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", c); err != nil {
 			t.Fatal(err)
 		}
 		actual, err := s.GetConfig(ctx, id, repair.UnitConfig, "id")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(actual, config); diff != "" {
+		if diff := cmp.Diff(actual, c); diff != "" {
 			t.Fatal("read write mismatch", diff)
 		}
 	})
@@ -92,15 +92,95 @@ func TestService(t *testing.T) {
 		t.Parallel()
 		id, _ := gocql.RandomUUID()
 
-		config := validConfig()
+		c := validConfig()
 
-		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", config); err != nil {
+		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", c); err != nil {
 			t.Fatal(err)
 		}
 		if err := s.DeleteConfig(ctx, id, repair.UnitConfig, "id"); err != nil {
 			t.Fatal(err)
 		}
 		_, err := s.GetConfig(ctx, id, repair.UnitConfig, "id")
+		if err != mermaid.ErrNotFound {
+			t.Fatal("expected nil")
+		}
+	})
+
+	t.Run("GetMissingUnit", func(t *testing.T) {
+		t.Parallel()
+		id, _ := gocql.RandomUUID()
+
+		u, err := s.GetUnit(ctx, id, id)
+		if err != mermaid.ErrNotFound {
+			t.Fatal("expected not found")
+		}
+		if u != nil {
+			t.Fatal("expected nil")
+		}
+	})
+
+	t.Run("PutInvalidUnit", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+		u.ID = mermaid.UUIDFromUint64(0, 1)
+
+		if err := s.PutUnit(ctx, u); err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("PutNilUnit", func(t *testing.T) {
+		t.Parallel()
+
+		if err := s.PutUnit(ctx, nil); err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("DeleteMissingUnit", func(t *testing.T) {
+		t.Parallel()
+		id, _ := gocql.RandomUUID()
+
+		err := s.DeleteUnit(ctx, id, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("PutAndGetUnit", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+		v := u.ID
+
+		if err := s.PutUnit(ctx, u); err != nil {
+			t.Fatal(err)
+		}
+		if u.ID == v {
+			t.Fatal("ID not updated")
+		}
+		actual, err := s.GetUnit(ctx, u.ClusterID, u.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(actual, u); diff != "" {
+			t.Fatal("read write mismatch", diff)
+		}
+	})
+
+	t.Run("PutAndDeleteUnit", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+
+		if err := s.PutUnit(ctx, u); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.DeleteUnit(ctx, u.ClusterID, u.ID); err != nil {
+			t.Fatal(err)
+		}
+		_, err := s.GetUnit(ctx, u.ClusterID, u.ID)
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected nil")
 		}
@@ -122,5 +202,14 @@ func validConfig() *repair.Config {
 		RetryBackoffSeconds:  &retryBackoffSeconds,
 		ParallelNodeLimit:    &parallelNodeLimit,
 		ParallelShardPercent: &parallelShardPercent,
+	}
+}
+
+func validUnit() *repair.Unit {
+	uuid, _ := gocql.RandomUUID()
+
+	return &repair.Unit{
+		ClusterID: uuid,
+		Keyspace:  "keyspace",
 	}
 }

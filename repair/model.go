@@ -2,8 +2,10 @@ package repair
 
 import (
 	"errors"
+	"sort"
 	"time"
 
+	"github.com/cespare/xxhash"
 	"github.com/scylladb/mermaid"
 )
 
@@ -58,31 +60,31 @@ func (c *Config) Validate() error {
 	if c.SegmentsPerShard != nil {
 		i = *c.SegmentsPerShard
 		if i < 1 {
-			return errors.New("invalid value for SegmentsPerShard, valid values are greater or equal 1")
+			return errors.New("invalid SegmentsPerShard value, valid values are greater or equal 1")
 		}
 	}
 	if c.RetryLimit != nil {
 		i = *c.RetryLimit
 		if i < 0 {
-			return errors.New("invalid value for RetryLimit, valid values are greater or equal 0")
+			return errors.New("invalid RetryLimit value, valid values are greater or equal 0")
 		}
 	}
 	if c.RetryBackoffSeconds != nil {
 		i = *c.RetryBackoffSeconds
 		if i < 0 {
-			return errors.New("invalid value for RetryBackoffSeconds, valid values are greater or equal 0")
+			return errors.New("invalid RetryBackoffSeconds value, valid values are greater or equal 0")
 		}
 	}
 	if c.ParallelNodeLimit != nil {
 		i = *c.ParallelNodeLimit
 		if i < -1 {
-			return errors.New("invalid value for ParallelNodeLimit, valid values are greater or equal -1")
+			return errors.New("invalid ParallelNodeLimit value, valid values are greater or equal -1")
 		}
 	}
 	if c.ParallelShardPercent != nil {
 		f = *c.ParallelShardPercent
 		if f < 0 || f > 1 {
-			return errors.New("invalid value for ParallelShardPercent, valid values are between 0 and 1")
+			return errors.New("invalid ParallelShardPercent value, valid values are between 0 and 1")
 		}
 	}
 
@@ -93,8 +95,48 @@ func (c *Config) Validate() error {
 type Unit struct {
 	ID        mermaid.UUID
 	ClusterID mermaid.UUID
-	Keyspace  string
+	Keyspace  string `db:"keyspace_name"`
 	Tables    []string
+}
+
+// Validate checks if all the fields are properly set.
+func (u *Unit) Validate() error {
+	if u == nil {
+		return errors.New("nil unit")
+	}
+	v := mermaid.UUID{}
+
+	if u.ClusterID == v {
+		return errors.New("missing ClusterID")
+	}
+	if u.Keyspace == "" {
+		return errors.New("missing Keyspace")
+	}
+	if u.ID != v && u.ID != u.genID() {
+		return errors.New("invalid ID value")
+	}
+
+	return nil
+}
+
+// genID generates unit ID based on keyspace and tables.
+func (u *Unit) genID() mermaid.UUID {
+	xx := xxhash.New()
+	xx.Write([]byte(u.Keyspace))
+	l := xx.Sum64()
+	xx.Reset()
+
+	// sort
+	sort.Strings(u.Tables)
+	// skip duplicates
+	for i, t := range u.Tables {
+		if i == 0 || u.Tables[i-1] != t {
+			xx.Write([]byte(t))
+		}
+	}
+	r := xx.Sum64()
+
+	return mermaid.UUIDFromUint64(l, r)
 }
 
 // Status specifies the status of a Run.

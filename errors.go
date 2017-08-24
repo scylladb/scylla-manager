@@ -1,10 +1,6 @@
 package mermaid
 
-import (
-	"github.com/gocql/gocql"
-)
-
-type UUID = gocql.UUID
+import "github.com/gocql/gocql"
 
 // Common errors
 var (

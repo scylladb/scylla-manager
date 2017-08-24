@@ -58,8 +58,7 @@ func (s *Service) GetConfig(ctx context.Context, clusterID mermaid.UUID, t Confi
 	return &c, nil
 }
 
-// PutConfig upserts repair configuration for a given object. If c is nil
-// the configuration is removed.
+// PutConfig upserts repair configuration for a given object.
 func (s *Service) PutConfig(ctx context.Context, clusterID mermaid.UUID, t ConfigType, externalID string, c *Config) error {
 	s.logger.Debug(ctx, "PutConfig",
 		"cluster_id", clusterID,
@@ -93,5 +92,50 @@ func (s *Service) DeleteConfig(ctx context.Context, clusterID mermaid.UUID, t Co
 		"cluster_id":  clusterID,
 		"type":        t,
 		"external_id": externalID,
+	}).ExecRelease()
+}
+
+// GetUnit returns repair unit based on ID. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetUnit(ctx context.Context, clusterID, ID mermaid.UUID) (*Unit, error) {
+	s.logger.Debug(ctx, "GetUnit", "cluster_id", clusterID, "id", ID)
+
+	stmt, names := schema.RepairUnit.Get()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"id":         ID,
+	})
+
+	var u Unit
+	if err := gocqlx.Get(&u, q.Query); err != nil {
+		return nil, err
+	}
+
+	return &u, nil
+}
+
+// PutUnit upserts repair unit, ID is generates and set on the passed unit.
+func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
+	s.logger.Debug(ctx, "PutUnit", "unit", u)
+
+	if err := u.Validate(); err != nil {
+		return err
+	}
+
+	// generate id
+	u.ID = u.genID()
+
+	stmt, names := schema.RepairUnit.Insert()
+	return gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(u).ExecRelease()
+}
+
+// DeleteUnit removes repair based on ID.
+func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID mermaid.UUID) error {
+	s.logger.Debug(ctx, "DeleteUnit", "cluster_id", clusterID, "id", ID)
+
+	stmt, names := schema.RepairUnit.Delete()
+	return gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"id":         ID,
 	}).ExecRelease()
 }
