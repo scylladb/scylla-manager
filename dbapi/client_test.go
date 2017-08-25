@@ -8,31 +8,69 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/log"
 )
 
-func TestClientTokens(t *testing.T) {
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/storage_service/tokens_endpoint" {
-			t.Fatal("wront URL path", r.URL.Path)
-		}
-
-		f, err := os.Open("test-fixtures/tokens_endpoint_0.json")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		io.Copy(w, f)
-	}))
+func TestClientDatacenterHosts(t *testing.T) {
+	t.Parallel()
+	s := mockServer(t, "test-fixtures/describe_ring_scylla_management.json")
 	defer s.Close()
+	c := testClient(s)
 
-	c := NewClient(log.NewDevelopmentLogger())
+	v, err := c.DatacenterHosts(context.Background(), "dc1", "scylla_management")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(v, []string{"172.16.1.10", "172.16.1.2", "172.16.1.3"}); diff != "" {
+		t.Fatal(diff, v)
+	}
+}
 
-	v, err := c.Tokens(context.Background(), s.Listener.Addr().String())
+func TestClientTokens(t *testing.T) {
+	t.Parallel()
+	s := mockServer(t, "test-fixtures/tokens_endpoint.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Tokens(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(v) != 768 {
 		t.Fatal("expected 3 * 256 tokens")
 	}
+}
+
+func TestClientTopologyHash(t *testing.T) {
+	t.Parallel()
+	s := mockServer(t, "test-fixtures/tokens_endpoint.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.TopologyHash(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 17979044815101246284 {
+		t.Fatal(v)
+	}
+}
+
+func mockServer(t *testing.T, file string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// emulate ScyllaDB bug
+		r.Header.Set("Content-Type", "text/plain")
+
+		f, err := os.Open(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		io.Copy(w, f)
+	}))
+}
+
+func testClient(s *httptest.Server) *Client {
+	return NewClient(log.NewDevelopmentLogger(), []string{s.Listener.Addr().String()})
 }
