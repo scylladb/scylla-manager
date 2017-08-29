@@ -42,21 +42,6 @@ func TestClientTokens(t *testing.T) {
 	}
 }
 
-func TestClientTopologyHash(t *testing.T) {
-	t.Parallel()
-	s := mockServer(t, "test-fixtures/tokens_endpoint.json")
-	defer s.Close()
-	c := testClient(s)
-
-	v, err := c.TopologyHash(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != 17979044815101246284 {
-		t.Fatal(v)
-	}
-}
-
 func mockServer(t *testing.T, file string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// emulate ScyllaDB bug
