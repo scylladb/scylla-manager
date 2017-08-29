@@ -68,4 +68,12 @@ var (
 		PartKey:  []string{"cluster_id"},
 		SortKey:  []string{"external_id", "type"},
 	}.init()
+
+	RepairUnit = Table{
+		Keyspace: "scylla_management",
+		Name:     "scylla_management.repair_unit",
+		Columns:  []string{"cluster_id", "id", "keyspace_name", "tables"},
+		PartKey:  []string{"cluster_id"},
+		SortKey:  []string{"id"},
+	}.init()
 )
