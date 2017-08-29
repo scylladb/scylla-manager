@@ -91,6 +91,25 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// ConfigSource specifies configuration target.
+type ConfigSource struct {
+	ClusterID  mermaid.UUID
+	Type       ConfigType
+	ExternalID string
+}
+
+// ConfigInfo is configuration together with source info.
+type ConfigInfo struct {
+	Config
+
+	EnabledSource              ConfigSource
+	SegmentsPerShardSource     ConfigSource
+	RetryLimitSource           ConfigSource
+	RetryBackoffSecondsSource  ConfigSource
+	ParallelNodeLimitSource    ConfigSource
+	ParallelShardPercentSource ConfigSource
+}
+
 // Unit is a set of tables in a keyspace that are repaired together.
 type Unit struct {
 	ID        mermaid.UUID

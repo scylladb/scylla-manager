@@ -23,11 +23,24 @@ func TestService(t *testing.T) {
 
 	ctx := context.Background()
 
+	t.Run("GetGlobalMergedUnitConfig", func(t *testing.T) {
+		t.Parallel()
+		id, _ := gocql.RandomUUID()
+
+		v, err := s.GetMergedUnitConfig(ctx, &repair.Unit{ID: id, ClusterID: id, Keyspace: "keyspace"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(&v.Config, validConfig()); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
 	t.Run("GetMissingConfig", func(t *testing.T) {
 		t.Parallel()
 		id, _ := gocql.RandomUUID()
 
-		c, err := s.GetConfig(ctx, id, repair.UnitConfig, "id")
+		c, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected not found")
 		}
@@ -44,7 +57,7 @@ func TestService(t *testing.T) {
 		c := validConfig()
 		c.SegmentsPerShard = &invalid
 
-		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", c); err == nil {
+		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, c); err == nil {
 			t.Fatal("expected validation error")
 		}
 	})
@@ -53,7 +66,7 @@ func TestService(t *testing.T) {
 		t.Parallel()
 		id, _ := gocql.RandomUUID()
 
-		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", nil); err == nil {
+		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, nil); err == nil {
 			t.Fatal("expected validation error")
 		}
 	})
@@ -62,7 +75,7 @@ func TestService(t *testing.T) {
 		t.Parallel()
 		id, _ := gocql.RandomUUID()
 
-		err := s.DeleteConfig(ctx, id, repair.UnitConfig, "id")
+		err := s.DeleteConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -76,10 +89,10 @@ func TestService(t *testing.T) {
 		c.RetryLimit = nil
 		c.RetryBackoffSeconds = nil
 
-		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", c); err != nil {
+		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, c); err != nil {
 			t.Fatal(err)
 		}
-		actual, err := s.GetConfig(ctx, id, repair.UnitConfig, "id")
+		actual, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -94,13 +107,13 @@ func TestService(t *testing.T) {
 
 		c := validConfig()
 
-		if err := s.PutConfig(ctx, id, repair.UnitConfig, "id", c); err != nil {
+		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, c); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.DeleteConfig(ctx, id, repair.UnitConfig, "id"); err != nil {
+		if err := s.DeleteConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}); err != nil {
 			t.Fatal(err)
 		}
-		_, err := s.GetConfig(ctx, id, repair.UnitConfig, "id")
+		_, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected nil")
 		}
@@ -192,7 +205,7 @@ func validConfig() *repair.Config {
 	segmentsPerShard := 50
 	retryLimit := 3
 	retryBackoffSeconds := 60
-	parallelNodeLimit := 0
+	parallelNodeLimit := -1
 	parallelShardPercent := float32(1)
 
 	return &repair.Config{
