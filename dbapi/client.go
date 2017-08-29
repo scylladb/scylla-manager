@@ -2,13 +2,10 @@ package dbapi
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
-	"math"
 	"net/http"
 	"strconv"
 
-	"github.com/cespare/xxhash"
 	"github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/hailocab/go-hostpool" // shipped with gocql
@@ -86,28 +83,4 @@ func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 	}
 
 	return tokens, nil
-}
-
-// TopologyHash returns hash of all tokens.
-func (c *Client) TopologyHash(ctx context.Context) (uint64, error) {
-	tokens, err := c.Tokens(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	var (
-		xx = xxhash.New()
-		b  = make([]byte, 8)
-		u  uint64
-	)
-	for _, t := range tokens {
-		if t >= 0 {
-			u = uint64(t)
-		} else {
-			u = uint64(math.MaxInt64 + t)
-		}
-		binary.LittleEndian.PutUint64(b, u)
-		xx.Write(b)
-	}
-	return xx.Sum64(), nil
 }
