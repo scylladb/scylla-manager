@@ -1,9 +1,9 @@
 package dbapi
 
 import (
-	"errors"
 	"net/http"
 
+	"github.com/hailocab/go-hostpool"
 	"github.com/scylladb/mermaid/log"
 )
 
@@ -11,16 +11,17 @@ import (
 // invokes parent RoundTriper.
 type transport struct {
 	parent http.RoundTripper
+	pool   hostpool.HostPool
 	logger log.Logger
 }
 
 func (t transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	ctx := r.Context()
 
-	h, ok := ctx.Value(_host).(string)
-	if !ok {
-		return nil, errors.New("no host in context")
-	}
+	// get host from pool
+	hpr := t.pool.Get()
+	h := hpr.Host()
+
 	r.Host = h
 	r.URL.Host = h
 
@@ -38,10 +39,13 @@ func (t transport) RoundTrip(r *http.Request) (*http.Response, error) {
 			"path", r.URL.Path,
 			"status", resp.StatusCode,
 		)
-		// Force JSON, Scylla returns "text/plain" that misleads the
+		// force JSON, Scylla returns "text/plain" that misleads the
 		// unmarshaller and breaks processing.
 		resp.Header.Set("Content-Type", "application/json")
 	}
+
+	// mark response
+	hpr.Mark(err)
 
 	return resp, err
 }
