@@ -18,26 +18,30 @@ type transport struct {
 func (t transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	ctx := r.Context()
 
+	var (
+		h   string
+		hpr hostpool.HostPoolResponse
+	)
+
+	// get host from context
+	h, ok := ctx.Value(_host).(string)
+
 	// get host from pool
-	hpr := t.pool.Get()
-	h := hpr.Host()
+	if !ok {
+		hpr = t.pool.Get()
+		h = hpr.Host()
+	}
 
 	r.Host = h
 	r.URL.Host = h
 
-	t.logger.Debug(ctx, "request",
-		"host", h,
-		"method", r.Method,
-		"path", r.URL.Path,
-	)
+	t.logger.Debug(ctx, "Request", "URL", r.URL)
 
 	resp, err := t.parent.RoundTrip(r)
 	if resp != nil {
-		t.logger.Debug(ctx, "response",
-			"host", h,
-			"method", r.Method,
-			"path", r.URL.Path,
-			"status", resp.StatusCode,
+		t.logger.Debug(ctx, "Response",
+			"URL", r.URL,
+			"StatusCode", resp.StatusCode,
 		)
 		// force JSON, Scylla returns "text/plain" that misleads the
 		// unmarshaller and breaks processing.
@@ -45,7 +49,9 @@ func (t transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 
 	// mark response
-	hpr.Mark(err)
+	if hpr != nil {
+		hpr.Mark(err)
+	}
 
 	return resp, err
 }
