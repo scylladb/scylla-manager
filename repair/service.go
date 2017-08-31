@@ -109,11 +109,13 @@ func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *Config) er
 
 	stmt, names := schema.RepairConfig.Insert()
 
-	return gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStructMap(c, qb.M{
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStructMap(c, qb.M{
 		"cluster_id":  src.ClusterID,
 		"type":        src.Type,
 		"external_id": src.ExternalID,
-	}).ExecRelease()
+	})
+
+	return q.ExecRelease()
 }
 
 // DeleteConfig removes repair configuration for a given object.
@@ -122,7 +124,9 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 
 	stmt, names := schema.RepairConfig.Delete()
 
-	return gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src).ExecRelease()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
+
+	return q.ExecRelease()
 }
 
 // GetUnit returns repair unit based on ID. If nothing was found
@@ -156,7 +160,9 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 
 	stmt, names := schema.RepairUnit.Insert()
 
-	return gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(u).ExecRelease()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(u)
+
+	return q.ExecRelease()
 }
 
 // DeleteUnit removes repair based on ID.
@@ -165,8 +171,10 @@ func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID mermaid.UUID) er
 
 	stmt, names := schema.RepairUnit.Delete()
 
-	return gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"id":         ID,
-	}).ExecRelease()
+	})
+
+	return q.ExecRelease()
 }
