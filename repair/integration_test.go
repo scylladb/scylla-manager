@@ -4,19 +4,27 @@ package repair_test
 
 import (
 	"context"
-	"math"
+	"errors"
 	"testing"
 
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/dbapi"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 )
 
-func TestService(t *testing.T) {
-	s, err := repair.NewService(mermaidtest.CreateSession(t), log.NewDevelopmentLogger())
+func TestServiceStorageIntegration(t *testing.T) {
+	s, err := repair.NewService(
+		mermaidtest.CreateSession(t),
+		func(mermaid.UUID) (*dbapi.Client, error) {
+			return nil, errors.New("not implemented")
+		},
+		log.NewDevelopmentLogger().Named("repair"),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,9 +61,9 @@ func TestService(t *testing.T) {
 		t.Parallel()
 		id, _ := gocql.RandomUUID()
 
-		invalid := math.MaxInt64
+		invalid := -1
 		c := validConfig()
-		c.SegmentsPerShard = &invalid
+		c.RetryLimit = &invalid
 
 		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, c); err == nil {
 			t.Fatal("expected validation error")
@@ -202,7 +210,7 @@ func TestService(t *testing.T) {
 
 func validConfig() *repair.Config {
 	enabled := true
-	segmentsPerShard := 50
+	segmentSizeLimit := int64(-1)
 	retryLimit := 3
 	retryBackoffSeconds := 60
 	parallelNodeLimit := -1
@@ -210,7 +218,7 @@ func validConfig() *repair.Config {
 
 	return &repair.Config{
 		Enabled:              &enabled,
-		SegmentsPerShard:     &segmentsPerShard,
+		SegmentSizeLimit:     &segmentSizeLimit,
 		RetryLimit:           &retryLimit,
 		RetryBackoffSeconds:  &retryBackoffSeconds,
 		ParallelNodeLimit:    &parallelNodeLimit,
@@ -224,5 +232,64 @@ func validUnit() *repair.Unit {
 	return &repair.Unit{
 		ClusterID: uuid,
 		Keyspace:  "keyspace",
+	}
+}
+
+func TestServiceRepairIntegration(t *testing.T) {
+	session := mermaidtest.CreateSession(t)
+	createKeyspace(t, session, "repair_test")
+
+	l := log.NewDevelopmentLogger()
+	s, err := repair.NewService(
+		session,
+		func(mermaid.UUID) (*dbapi.Client, error) {
+			c, err := dbapi.NewClient(mermaidtest.ClusterHosts, l.Named("dbapi"))
+			if err != nil {
+				return nil, err
+			}
+			config := dbapi.Config{
+				"murmur3_partitioner_ignore_msb_bits": float64(12),
+				"shard_count":                         float64(8),
+			}
+			return dbapi.WithConfig(c, config), nil
+		},
+		l.Named("repair"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		clusterID, _ = gocql.RandomUUID()
+		taskID       = gocql.TimeUUID()
+		ctx          = context.Background()
+	)
+
+	// put a unit
+	u := repair.Unit{
+		ClusterID: clusterID,
+		Keyspace:  "repair_test",
+	}
+	if err := s.PutUnit(ctx, &u); err != nil {
+		t.Fatal(err)
+	}
+
+	// repair
+	if err := s.Repair(ctx, &u, taskID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
+	var q *gocqlx.Queryx
+
+	q = gocqlx.Query(session.Query("DROP KEYSPACE IF EXISTS "+keyspace), nil)
+	if err := q.ExecRelease(); err != nil {
+		t.Fatal(err)
+	}
+
+	q = gocqlx.Query(session.Query("CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3};"), nil)
+	if err := q.ExecRelease(); err != nil {
+		t.Fatal(err)
 	}
 }

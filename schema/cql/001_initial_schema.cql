@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_config (
     type text,
     external_id text,
     enabled boolean,
-    segments_per_shard int,
+    segment_size_limit int,
     retry_limit int,
     retry_backoff_seconds int,
     parallel_node_limit int,
@@ -64,13 +64,14 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_config (
     PRIMARY KEY (cluster_id, type, external_id)
 );
 
-INSERT INTO scylla_management.repair_config (cluster_id, type,external_id, enabled, segments_per_shard, retry_limit, retry_backoff_seconds, parallel_node_limit, parallel_shard_percent)
-VALUES (00000000-0000-4000-8000-000000000000, 'tenant', '', true, 50, 3, 60, -1, 1);
+INSERT INTO scylla_management.repair_config (cluster_id, type,external_id, enabled, segment_size_limit, retry_limit, retry_backoff_seconds, parallel_node_limit, parallel_shard_percent)
+VALUES (00000000-0000-4000-8000-000000000000, 'tenant', '', true, -1, 3, 60, -1, 1);
 
 CREATE TABLE IF NOT EXISTS scylla_management.repair_run (
     cluster_id uuid,
     unit_id uuid,
     id timeuuid,
+    topology_hash uuid,
     status text,
     cause text,
     restart_count int,
@@ -89,11 +90,12 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_run_segment (
     status text,
     cause text,
     coordinator_host text,
+    shard int,
     command_id int,
     start_time timestamp,
     end_time timestamp,
     fail_count int,
-    PRIMARY KEY((cluster_id, unit_id, run_id), start_token)
+    PRIMARY KEY((cluster_id, unit_id, run_id), coordinator_host, shard, start_token)
 );
 
 -- Events

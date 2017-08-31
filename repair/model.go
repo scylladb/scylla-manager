@@ -27,10 +27,10 @@ const (
 type Config struct {
 	// Enabled specifies if repair should take place at all.
 	Enabled *bool
-	// SegmentsPerShard specifies in how many steps a shard will be repaired,
+	// SegmentSizeLimit specifies in how many steps a shard will be repaired,
 	// increasing this value decreases singe node repair command time and
 	// increases number of node repair commands.
-	SegmentsPerShard *int
+	SegmentSizeLimit *int64
 	// RetryLimit specifies how many times a failed segment should be retried
 	// before reporting an error.
 	RetryLimit *int
@@ -53,14 +53,15 @@ func (c *Config) Validate() error {
 	}
 
 	var (
-		i int
-		f float32
+		i   int
+		i64 int64
+		f   float32
 	)
 
-	if c.SegmentsPerShard != nil {
-		i = *c.SegmentsPerShard
-		if i < 1 {
-			return errors.New("invalid SegmentsPerShard value, valid values are greater or equal 1")
+	if c.SegmentSizeLimit != nil {
+		i64 = *c.SegmentSizeLimit
+		if i64 < 1 && i64 != -1 {
+			return errors.New("invalid SegmentSizeLimit value, valid values are greater or equal 1")
 		}
 	}
 	if c.RetryLimit != nil {
@@ -77,7 +78,7 @@ func (c *Config) Validate() error {
 	}
 	if c.ParallelNodeLimit != nil {
 		i = *c.ParallelNodeLimit
-		if i < -1 {
+		if i < 1 && i != -1 {
 			return errors.New("invalid ParallelNodeLimit value, valid values are greater or equal -1")
 		}
 	}
@@ -103,7 +104,7 @@ type ConfigInfo struct {
 	Config
 
 	EnabledSource              ConfigSource
-	SegmentsPerShardSource     ConfigSource
+	SegmentSizeLimitSource     ConfigSource
 	RetryLimitSource           ConfigSource
 	RetryBackoffSecondsSource  ConfigSource
 	ParallelNodeLimitSource    ConfigSource
@@ -163,11 +164,13 @@ type Status string
 
 // Status enumeration.
 const (
-	StatusRunning Status = "running"
-	StatusSuccess Status = "success"
-	StatusError   Status = "error"
-	StatusPaused  Status = "paused"
-	StatusAborted Status = "aborted"
+	StatusPending   Status = "pending"
+	StatusPreparing Status = "preparing"
+	StatusRunning   Status = "running"
+	StatusSuccess   Status = "success"
+	StatusError     Status = "error"
+	StatusPaused    Status = "paused"
+	StatusAborted   Status = "aborted"
 )
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
@@ -175,10 +178,43 @@ type Run struct {
 	ID           mermaid.UUID
 	UnitID       mermaid.UUID
 	ClusterID    mermaid.UUID
+	TopologyHash mermaid.UUID
 	Status       Status
 	Cause        string
 	RestartCount int
 	StartTime    time.Time
 	EndTime      time.Time
 	PauseTime    time.Time
+}
+
+// RunSegment is a segment together with it's location in a context of a run.
+type RunSegment struct {
+	ClusterID       mermaid.UUID
+	UnitID          mermaid.UUID
+	RunID           mermaid.UUID
+	StartToken      int64
+	EndToken        int64
+	Status          Status
+	Cause           string
+	CoordinatorHost string
+	Shard           int
+	CommandID       int64
+	StartTime       time.Time
+	EndTime         time.Time
+	FailCount       int
+}
+
+// Segment specifies token range: [StartToken, EndToken), StartToken is always
+// less then EndToken.
+type Segment struct {
+	StartToken int64
+	EndToken   int64
+}
+
+// stats holds segments statistics.
+type stats struct {
+	Size        int
+	MaxRange    int64
+	AvgRange    int64
+	AvgMaxRatio float64
 }
