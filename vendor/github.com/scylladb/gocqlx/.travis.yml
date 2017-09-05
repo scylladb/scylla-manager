@@ -1,0 +1,30 @@
+language: go
+go:
+  - 1.9
+  - 1.8
+  - 1.7
+
+env:
+  global:
+    - SCYLLA_OPTS="--network-stack posix --enable-in-memory-data-store 1 --developer-mode 1"
+    - SCYLLA_OPTS_LOG="--log-to-stdout 1 --default-log-level info"
+  matrix:
+    - DB="scylla"
+    - DB="cassandra"
+
+sudo: true
+
+dist: trusty
+addons:
+  apt:
+    packages:
+      - moreutils
+
+before_install:
+  - ./.travis_start_db.sh
+
+install:
+  - make get-deps
+
+script:
+  - make
