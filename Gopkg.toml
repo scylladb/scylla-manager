@@ -1,0 +1,70 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+
+[[constraint]]
+  name = "github.com/cespare/xxhash"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-openapi/errors"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-openapi/runtime"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-openapi/strfmt"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-openapi/swag"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-openapi/validate"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/gocql/gocql"
+
+[[constraint]]
+  name = "github.com/google/go-cmp"
+  version = "0.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hailocab/go-hostpool"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/scylladb/gocqlx"
+
+[[constraint]]
+  name = "go.uber.org/zap"
+  version = "1.6.0"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/net"
