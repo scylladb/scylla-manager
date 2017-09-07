@@ -26,7 +26,7 @@ func TestWithPort(t *testing.T) {
 func TestClientDatacenter(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "test-fixtures/snitch_datacenter.json")
+	s := mockServer(t, "testdata/snitch_datacenter.json")
 	defer s.Close()
 	c := testClient(s)
 
@@ -42,7 +42,7 @@ func TestClientDatacenter(t *testing.T) {
 func TestClientDescribeRing(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "test-fixtures/describe_ring_scylla_management.json")
+	s := mockServer(t, "testdata/describe_ring_scylla_management.json")
 	defer s.Close()
 	c := testClient(s)
 
@@ -70,7 +70,7 @@ func TestClientDescribeRing(t *testing.T) {
 func TestClientPartitioner(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "test-fixtures/storage_service_partitioner_name.json")
+	s := mockServer(t, "testdata/storage_service_partitioner_name.json")
 	defer s.Close()
 	c := testClient(s)
 
@@ -86,7 +86,7 @@ func TestClientPartitioner(t *testing.T) {
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "test-fixtures/tokens_endpoint.json")
+	s := mockServer(t, "testdata/tokens_endpoint.json")
 	defer s.Close()
 	c := testClient(s)
 
