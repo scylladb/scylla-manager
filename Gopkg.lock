@@ -26,6 +26,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/fatih/set"
+  packages = ["."]
+  revision = "57907de300222151a123d29255ed17f5ed43fad3"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/go-openapi/analysis"
   packages = ["."]
@@ -128,6 +134,12 @@
   revision = "d0303fe809921458f417bcf828397a65db30a7e4"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/scylladb/gocqlx"
   packages = [".","qb"]
@@ -184,6 +196,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ef91030c02e4f917a3924c7245777222598d865dd51263b3ba77d2164d8769ae"
+  inputs-digest = "9b7f22742a79d652f9c14b781f7674d9b0d028093dd10183f5fb1e3b938e095b"
   solver-name = "gps-cdcl"
   solver-version = 1
