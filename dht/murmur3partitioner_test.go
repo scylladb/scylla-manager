@@ -11,7 +11,7 @@ import (
 func TestZeroBased(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("test-fixtures/murmur3_tokens.json")
+	f, err := os.Open("testdata/murmur3_tokens.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestZeroBased(t *testing.T) {
 func TestMurmur3PartitionerInitZeroBasedShardStart(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("test-fixtures/murmur3_token_zero_based_shard_start.json")
+	f, err := os.Open("testdata/murmur3_token_zero_based_shard_start.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestMurmur3PartitionerInitZeroBasedShardStart(t *testing.T) {
 func TestMurmur3PartitionerShardOf(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("test-fixtures/murmur3_token_shard.json")
+	f, err := os.Open("testdata/murmur3_token_shard.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestMurmur3PartitionerPrevShard(t *testing.T) {
 func TestMurmur3PartitionerTokenForPrevShard(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("test-fixtures/murmur3_token_for_prev_shard.json")
+	f, err := os.Open("testdata/murmur3_token_for_prev_shard.json")
 	if err != nil {
 		t.Fatal(err)
 	}
