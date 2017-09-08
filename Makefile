@@ -1,15 +1,42 @@
 all: check test
 
+gofiles = find . -type f -name '*.go' \
+  -not -path './.git/*' \
+  -not -path './vendor/*' \
+  -not -path './dbapi/internal/*' \
+  -print
+
 # check does static code analysis.
 .PHONY: check
-check:
-	@go fmt ./... | ifne false
+check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check-ineffassign
+
+.PHONY: .check-copyright
+.check-copyright:
+	@for f in `$(gofiles)`; do \
+		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || (echo $$f; false); \
+	done
+
+.PHONY: .check-fmt
+.check-fmt:
+	@go fmt ./... | tee /dev/stderr | ifne false
+
+.PHONY: .check-vet
+.check-vet:
 	@go vet ./...
+
+.PHONY: .check-lint
+.check-lint:
 	@golint `go list ./...` \
-	| grep -v 'uuid.go:7:6:' ||: \
-	| ifne false
+	| grep -v 'uuid.go:9:6:' \
+	| tee /dev/stderr | ifne false
+
+.PHONY: .check-misspell
+.check-misspell:
 	@misspell ./...
-	@ineffassign ./
+
+.PHONY: .check-ineffassign
+.check-ineffassign:
+	@ineffassign `$(gofiles)`
 
 # fmt formats the source code.
 .PHONY: fmt
@@ -23,7 +50,7 @@ test: unit-test integration-test
 # unit-test runs unit tests.
 .PHONY: unit-test
 unit-test:
-	@go test -cover -race ./... | grep -v 'no test files' ||:
+	@go test -cover -race ./...
 
 # integration-test runs integration tests.
 .PHONY: integration-test
