@@ -4,12 +4,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/mermaid/dbapi"
+	"github.com/scylladb/mermaid/dht"
 )
 
 func TestMergeConfig(t *testing.T) {
 	v := &Config{
 		Enabled:              bptr(true),
-		SegmentsPerShard:     iptr(50),
+		SegmentSizeLimit:     i64ptr(50),
 		RetryLimit:           iptr(3),
 		RetryBackoffSeconds:  iptr(60),
 		ParallelNodeLimit:    iptr(0),
@@ -40,14 +42,14 @@ func TestMergeConfig(t *testing.T) {
 			E: &ConfigInfo{
 				Config: Config{
 					Enabled:              bptr(false),
-					SegmentsPerShard:     v.SegmentsPerShard,
+					SegmentSizeLimit:     v.SegmentSizeLimit,
 					RetryLimit:           v.RetryLimit,
 					RetryBackoffSeconds:  v.RetryBackoffSeconds,
 					ParallelNodeLimit:    v.ParallelNodeLimit,
 					ParallelShardPercent: v.ParallelShardPercent,
 				},
 				EnabledSource:              ConfigSource{ExternalID: "1"},
-				SegmentsPerShardSource:     ConfigSource{ExternalID: "0"},
+				SegmentSizeLimitSource:     ConfigSource{ExternalID: "0"},
 				RetryLimitSource:           ConfigSource{ExternalID: "0"},
 				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "0"},
 				ParallelNodeLimitSource:    ConfigSource{ExternalID: "0"},
@@ -61,7 +63,7 @@ func TestMergeConfig(t *testing.T) {
 			E: &ConfigInfo{
 				Config:                     *v,
 				EnabledSource:              ConfigSource{ExternalID: "2"},
-				SegmentsPerShardSource:     ConfigSource{ExternalID: "2"},
+				SegmentSizeLimitSource:     ConfigSource{ExternalID: "2"},
 				RetryLimitSource:           ConfigSource{ExternalID: "2"},
 				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "2"},
 				ParallelNodeLimitSource:    ConfigSource{ExternalID: "2"},
@@ -75,7 +77,7 @@ func TestMergeConfig(t *testing.T) {
 					Enabled: bptr(true),
 				},
 				{
-					SegmentsPerShard:    iptr(50),
+					SegmentSizeLimit:    i64ptr(50),
 					RetryLimit:          iptr(3),
 					RetryBackoffSeconds: iptr(60),
 				},
@@ -89,7 +91,7 @@ func TestMergeConfig(t *testing.T) {
 			E: &ConfigInfo{
 				Config:                     *v,
 				EnabledSource:              ConfigSource{ExternalID: "0"},
-				SegmentsPerShardSource:     ConfigSource{ExternalID: "1"},
+				SegmentSizeLimitSource:     ConfigSource{ExternalID: "1"},
 				RetryLimitSource:           ConfigSource{ExternalID: "1"},
 				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "1"},
 				ParallelNodeLimitSource:    ConfigSource{ExternalID: "2"},
@@ -114,17 +116,95 @@ func iptr(i int) *int {
 	return &i
 }
 
+func i64ptr(i int64) *int64 {
+	return &i
+}
+
 func fptr(f float32) *float32 {
 	return &f
+}
+
+func TestHostSegments(t *testing.T) {
+	t.Parallel()
+
+	trs := []*dbapi.TokenRange{
+		{
+			StartToken: 9165301526494284802,
+			EndToken:   9190445181212206709,
+			Hosts:      map[string][]string{"dc1": {"172.16.1.3", "172.16.1.2", "172.16.1.10"}, "dc2": {"172.16.1.4", "172.16.1.20", "172.16.1.5"}},
+		},
+		{
+			StartToken: 9142565851149460331,
+			EndToken:   9143747749498840635,
+			Hosts:      map[string][]string{"dc1": {"172.16.1.10", "172.16.1.2", "172.16.1.3"}, "dc2": {"172.16.1.20", "172.16.1.4", "172.16.1.5"}},
+		},
+		// start - end replaced
+		{
+			StartToken: 9138850273782950336,
+			EndToken:   9121190935171762434,
+			Hosts:      map[string][]string{"dc1": {"172.16.1.10", "172.16.1.2", "172.16.1.3"}, "dc2": {"172.16.1.20", "172.16.1.4", "172.16.1.5"}},
+		},
+	}
+
+	dc1 := map[string][]*Segment{
+		"172.16.1.3": {
+			{
+				StartToken: 9165301526494284802,
+				EndToken:   9190445181212206709,
+			},
+		},
+		"172.16.1.10": {
+			{
+				StartToken: 9142565851149460331,
+				EndToken:   9143747749498840635,
+			},
+			{
+				StartToken: dht.Murmur3MinToken,
+				EndToken:   9121190935171762434,
+			},
+			{
+				StartToken: 9138850273782950336,
+				EndToken:   dht.Murmur3MaxToken,
+			},
+		},
+	}
+
+	if diff := cmp.Diff(dc1, hostSegments("dc1", trs)); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestShardSegments(t *testing.T) {
+	t.Parallel()
+
+	for _, shardCount := range []uint{1, 2, 3, 5, 8} {
+		p := dht.NewMurmur3Partitioner(shardCount, 12)
+		s := []*Segment{
+			{
+				StartToken: dht.Murmur3MinToken,
+				EndToken:   dht.Murmur3MinToken + 1<<50,
+			},
+			{
+				StartToken: 9165301526494284802,
+				EndToken:   9190445181212206709,
+			},
+			{
+				StartToken: 9142565851149460331,
+				EndToken:   9143747749498840635,
+			},
+		}
+		v := shardSegments(s, p)
+
+		if err := validateShards(s, v, p); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func TestTopologyHash(t *testing.T) {
 	t.Parallel()
 
-	v, err := topologyHash([]int64{1})
-	if err != nil {
-		t.Fatal(err)
-	}
+	v := topologyHash([]int64{1})
 	if v.String() != "17cb299f-0000-4000-9599-a4a200000000" {
 		t.Fatal(v)
 	}

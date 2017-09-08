@@ -30,7 +30,7 @@ type Client struct {
 
 // WithConfig is a temporary solution until core exposes the configuration API.
 // https://github.com/scylladb/scylla/issues/2761
-func WithConfig(c Client, config Config) Client {
+func WithConfig(c *Client, config Config) *Client {
 	c.config = config
 	return c
 }
