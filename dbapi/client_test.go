@@ -12,24 +12,81 @@ import (
 	"github.com/scylladb/mermaid/log"
 )
 
-func TestClientDatacenterHosts(t *testing.T) {
+func TestWithPort(t *testing.T) {
 	t.Parallel()
-	s := mockServer(t, "test-fixtures/describe_ring_scylla_management.json")
+
+	if h := withPort("host"); h != "host:10000" {
+		t.Fatal(h)
+	}
+	if h := withPort("host:80"); h != "host:80" {
+		t.Fatal(h)
+	}
+}
+
+func TestClientDatacenter(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/snitch_datacenter.json")
 	defer s.Close()
 	c := testClient(s)
 
-	v, err := c.DatacenterHosts(context.Background(), "dc1", "scylla_management")
+	v, err := c.Datacenter(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(v, []string{"172.16.1.10", "172.16.1.2", "172.16.1.3"}); diff != "" {
-		t.Fatal(diff, v)
+	if v != "dc1" {
+		t.Fatal(v)
+	}
+}
+
+func TestClientDescribeRing(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/describe_ring_scylla_management.json")
+	defer s.Close()
+	c := testClient(s)
+
+	dcs, trs, err := c.DescribeRing(context.Background(), "scylla_management")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(dcs, []string{"dc1", "dc2"}); diff != "" {
+		t.Fatal(diff)
+	}
+	if len(trs) != 6*256 {
+		t.Fatal(len(trs))
+	}
+
+	expected := &TokenRange{
+		StartToken: 9170930477372008214,
+		EndToken:   9192981293347332843,
+		Hosts:      map[string][]string{"dc1": {"172.16.1.10", "172.16.1.2", "172.16.1.3"}, "dc2": {"172.16.1.4", "172.16.1.20", "172.16.1.5"}},
+	}
+	if diff := cmp.Diff(trs[0], expected); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestClientPartitioner(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_partitioner_name.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Partitioner(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != Murmur3Partitioner {
+		t.Fatal(v)
 	}
 }
 
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
-	s := mockServer(t, "test-fixtures/tokens_endpoint.json")
+
+	s := mockServer(t, "testdata/tokens_endpoint.json")
 	defer s.Close()
 	c := testClient(s)
 
@@ -37,8 +94,8 @@ func TestClientTokens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(v) != 768 {
-		t.Fatal("expected 3 * 256 tokens")
+	if len(v) != 3*256 {
+		t.Fatal(len(v))
 	}
 }
 
@@ -57,5 +114,6 @@ func mockServer(t *testing.T, file string) *httptest.Server {
 }
 
 func testClient(s *httptest.Server) *Client {
-	return NewClient(log.NewDevelopmentLogger(), []string{s.Listener.Addr().String()})
+	c, _ := NewClient([]string{s.Listener.Addr().String()}, log.NewDevelopmentLogger())
+	return c
 }
