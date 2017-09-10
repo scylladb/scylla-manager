@@ -147,7 +147,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		t.Parallel()
 
 		u := validUnit()
-		u.ID = uuid.NewFromUint64(0, 1)
+		u.ID = uuid.Nil
 
 		if err := s.PutUnit(ctx, u); err == nil {
 			t.Fatal("expected validation error")

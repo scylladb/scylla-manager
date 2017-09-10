@@ -15,6 +15,7 @@ type Table struct {
 	delete cql
 	get    cql
 	insert cql
+	list   cql
 }
 
 type cql struct {
@@ -37,6 +38,11 @@ func (t *Table) Insert() (stmt string, names []string) {
 	return t.insert.stmt, t.insert.names
 }
 
+// List returns all the sort key values.
+func (t *Table) List() (stmt string, names []string) {
+	return t.list.stmt, t.list.names
+}
+
 func (t Table) init() Table {
 	pk := make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
 	for i, c := range append(t.PartKey, t.SortKey...) {
@@ -56,6 +62,11 @@ func (t Table) init() Table {
 	// insert
 	{
 		t.insert.stmt, t.insert.names = qb.Insert(t.Name).Columns(t.Columns...).ToCql()
+	}
+
+	// list
+	{
+		t.list.stmt, t.list.names = qb.Select(t.Name).Where(pk[:len(t.PartKey)]...).Columns(t.SortKey...).ToCql()
 	}
 
 	return t

@@ -127,14 +127,14 @@ func (u *Unit) Validate() error {
 		return errors.New("nil unit")
 	}
 
+	if u.ID == uuid.Nil {
+		return errors.New("missing ID")
+	}
 	if u.ClusterID == uuid.Nil {
 		return errors.New("missing ClusterID")
 	}
 	if u.Keyspace == "" {
 		return errors.New("missing Keyspace")
-	}
-	if u.ID != uuid.Nil && u.ID != u.genID() {
-		return errors.New("invalid ID value")
 	}
 
 	return nil

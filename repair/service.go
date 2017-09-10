@@ -377,6 +377,26 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 	return q.ExecRelease()
 }
 
+// ListUnitIDs returns the UUID's of all Unit in cluster clusterID
+func (s *Service) ListUnitIDs(ctx context.Context, clusterID uuid.UUID) ([]uuid.UUID, error) {
+	s.logger.Debug(ctx, "ListUnitIDs", "ClusterID", clusterID)
+
+	stmt, names := schema.RepairUnit.List()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": clusterID,
+	})
+	if err := q.Err(); err != nil {
+		return nil, err
+	}
+
+	var ids []uuid.UUID
+	if err := gocqlx.Select(&ids, q.Query); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
 // GetUnit returns repair unit based on ID. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, error) {
@@ -388,6 +408,9 @@ func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, 
 		"cluster_id": clusterID,
 		"id":         ID,
 	})
+	if err := q.Err(); err != nil {
+		return nil, err
+	}
 
 	var u Unit
 	if err := gocqlx.Get(&u, q.Query); err != nil {
@@ -397,14 +420,25 @@ func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, 
 	return &u, nil
 }
 
-// PutUnit upserts repair unit, ID is generates and set on the passed unit.
+// PutUnit upserts a repair unit, unit instance must pass Validate() checks.
+// If u.ID == uuid.Nil a new one is generated.
 func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 	s.logger.Debug(ctx, "PutUnit", "Unit", u)
+	if u == nil {
+		return errors.New("nil unit")
+	}
+
+	if u.ID == uuid.Nil {
+		var err error
+		u.ID, err = uuid.NewRandom()
+		if err != nil {
+			return errors.Wrap(err, "couldn't generate random UUID for Unit")
+		}
+	}
 
 	if err := u.Validate(); err != nil {
 		return err
 	}
-	u.ID = u.genID()
 
 	stmt, names := schema.RepairUnit.Insert()
 
