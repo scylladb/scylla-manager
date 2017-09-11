@@ -221,8 +221,8 @@ type RunProgress struct {
 	LastCommandID  int32
 }
 
-// RunSegment is a segment together with it's location in a context of a run.
-type RunSegment struct {
+// RunError holds information about run errors.
+type RunError struct {
 	ClusterID       mermaid.UUID
 	UnitID          mermaid.UUID
 	RunID           mermaid.UUID
