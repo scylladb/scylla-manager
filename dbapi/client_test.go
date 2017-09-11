@@ -85,6 +85,23 @@ func TestClientPartitioner(t *testing.T) {
 	}
 }
 
+func TestClientTables(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/column_family_name.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Tables(context.Background(), "scylla_management")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []string{"event", "repair_run_segment", "repair_config", "scheduler_active_run_by_cluster", "scheduler_task_run", "scheduler_user_task", "repair_run", "repair_unit", "scheduler_task"}
+	if diff := cmp.Diff(v, expected); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 
