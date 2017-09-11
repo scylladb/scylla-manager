@@ -1,10 +1,6 @@
 all: check test
 
-gofiles = find . -type f -name '*.go' \
-  -not -path './.git/*' \
-  -not -path './vendor/*' \
-  -not -path './dbapi/internal/*' \
-  -print
+gofiles = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
 # check does static code analysis.
 .PHONY: check
@@ -13,7 +9,9 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 .PHONY: .check-copyright
 .check-copyright:
 	@for f in `$(gofiles)`; do \
-		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || (echo $$f; false); \
+		[[ $$f =~ /dbapi/internal/ ]] || \
+		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
+		(echo $$f; false); \
 	done
 
 .PHONY: .check-fmt
