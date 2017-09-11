@@ -1,3 +1,5 @@
+// Copyright (C) 2017 ScyllaDB
+
 package schema
 
 import "github.com/scylladb/gocqlx/qb"

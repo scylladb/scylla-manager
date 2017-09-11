@@ -1,3 +1,5 @@
+// Copyright (C) 2017 ScyllaDB
+
 // +build all integration
 
 package repair_test
