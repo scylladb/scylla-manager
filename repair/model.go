@@ -206,21 +206,6 @@ type Run struct {
 	PauseTime    time.Time
 }
 
-// RunProgress describes repair progress on per shard basis.
-type RunProgress struct {
-	ClusterID      mermaid.UUID
-	UnitID         mermaid.UUID
-	RunID          mermaid.UUID
-	Host           string
-	Shard          int
-	SegmentCount   int
-	SegmentSuccess int
-	SegmentError   int
-	LastStartToken int64
-	LastStartTime  time.Time
-	LastCommandID  int32
-}
-
 // RunError holds information about run errors.
 type RunError struct {
 	ClusterID       mermaid.UUID
@@ -237,3 +222,21 @@ type RunError struct {
 	EndTime         time.Time
 	FailCount       int
 }
+
+// RunProgress describes repair progress on per shard basis.
+type RunProgress struct {
+	ClusterID      mermaid.UUID
+	UnitID         mermaid.UUID
+	RunID          mermaid.UUID
+	Host           string
+	Shard          int
+	SegmentCount   int
+	SegmentSuccess int
+	SegmentError   int
+	LastStartToken int64
+	LastStartTime  time.Time
+	LastCommandID  int32
+}
+
+// Progress is a mapping from host to it's shards' RunProgress.
+type Progress map[string][]*RunProgress
