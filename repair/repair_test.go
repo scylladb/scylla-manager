@@ -203,6 +203,40 @@ func TestShardSegments(t *testing.T) {
 	}
 }
 
+func TestValidateTables(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		T   []string
+		A   []string
+		Err string
+	}{
+		{},
+		{
+			A: []string{"A", "B", "C", "D"},
+		},
+		{
+			T: []string{"A", "B"},
+			A: []string{"A", "B", "C", "D"},
+		},
+		{
+			T:   []string{"A", "B"},
+			A:   []string{"A", "_", "C", "D"},
+			Err: "unknown tables [B]",
+		},
+	}
+
+	for _, test := range table {
+		msg := ""
+		if err := validateTables(test.T, test.A); err != nil {
+			msg = err.Error()
+		}
+		if diff := cmp.Diff(msg, test.Err); diff != "" {
+			t.Fatal(diff)
+		}
+	}
+}
+
 func TestTopologyHash(t *testing.T) {
 	t.Parallel()
 

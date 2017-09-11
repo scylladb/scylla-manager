@@ -101,6 +101,18 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 		return fail(errors.Wrap(err, "couldn't get the cluster proxy"))
 	}
 
+	// check keyspace and tables
+	all, err := cluster.Tables(ctx, r.Keyspace)
+	if err != nil {
+		return fail(errors.Wrap(err, "couldn't get the cluster table names for keyspace"))
+	}
+	if len(all) == 0 {
+		return fail(errors.Wrapf(err, "missing or empty keyspace %q", r.Keyspace))
+	}
+	if err := validateTables(r.Tables, all); err != nil {
+		return fail(errors.Wrapf(err, "keyspace %q", r.Keyspace))
+	}
+
 	// check the cluster partitioner
 	p, err := cluster.Partitioner(ctx)
 	if err != nil {

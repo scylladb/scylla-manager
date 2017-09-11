@@ -207,6 +207,27 @@ func validateShards(segments []*Segment, shards [][]*Segment, p *dht.Murmur3Part
 	return nil
 }
 
+// validateTables checks if tables are a subset of all the tables. Empty table
+// list is always valid.
+func validateTables(tables []string, all []string) error {
+	if len(tables) == 0 {
+		return nil
+	}
+
+	s := set.NewNonTS()
+	for _, t := range tables {
+		s.Add(t)
+	}
+	for _, t := range all {
+		s.Remove(t)
+	}
+	if !s.IsEmpty() {
+		return errors.Errorf("unknown tables %s", s)
+	}
+
+	return nil
+}
+
 // topologyHash returns hash of all the tokens.
 func topologyHash(tokens []int64) mermaid.UUID {
 	var (
