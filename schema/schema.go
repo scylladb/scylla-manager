@@ -87,6 +87,14 @@ var (
 		SortKey:  []string{"unit_id", "id"},
 	}.init()
 
+	RepairRunProgress = Table{
+		Keyspace: "scylla_management",
+		Name:     "scylla_management.repair_run_progress",
+		Columns:  []string{"cluster_id", "unit_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "last_start_token", "last_start_time", "last_command_id"},
+		PartKey:  []string{"cluster_id", "unit_id", "run_id"},
+		SortKey:  []string{"host", "shard"},
+	}.init()
+
 	RepairRunSegment = Table{
 		Keyspace: "scylla_management",
 		Name:     "scylla_management.repair_run_segment",

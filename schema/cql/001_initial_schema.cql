@@ -83,6 +83,21 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_run (
     PRIMARY KEY(cluster_id, unit_id, id)
 );
 
+CREATE TABLE IF NOT EXISTS scylla_management.repair_run_progress (
+    cluster_id uuid,
+    unit_id uuid,
+    run_id uuid,
+    host text,
+    shard int,
+    segment_count int,
+    segment_success int,
+    segment_error int,
+    last_start_token bigint,
+    last_start_time timestamp,
+    last_command_id int,
+    PRIMARY KEY((cluster_id, unit_id, run_id), host, shard)
+);
+
 CREATE TABLE IF NOT EXISTS scylla_management.repair_run_segment (
     cluster_id uuid,
     unit_id uuid,

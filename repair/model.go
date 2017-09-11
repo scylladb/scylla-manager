@@ -161,6 +161,21 @@ func (u *Unit) genID() mermaid.UUID {
 	return mermaid.UUIDFromUint64(l, r)
 }
 
+// Segment specifies token range: [StartToken, EndToken), StartToken is always
+// less then EndToken.
+type Segment struct {
+	StartToken int64
+	EndToken   int64
+}
+
+// stats holds segments statistics.
+type stats struct {
+	Size        int
+	MaxRange    int64
+	AvgRange    int64
+	AvgMaxRatio float64
+}
+
 // Status specifies the status of a Run.
 type Status string
 
@@ -191,6 +206,21 @@ type Run struct {
 	PauseTime    time.Time
 }
 
+// RunProgress describes repair progress on per shard basis.
+type RunProgress struct {
+	ClusterID      mermaid.UUID
+	UnitID         mermaid.UUID
+	RunID          mermaid.UUID
+	Host           string
+	Shard          int
+	SegmentCount   int
+	SegmentSuccess int
+	SegmentError   int
+	LastStartToken int64
+	LastStartTime  time.Time
+	LastCommandID  int32
+}
+
 // RunSegment is a segment together with it's location in a context of a run.
 type RunSegment struct {
 	ClusterID       mermaid.UUID
@@ -202,23 +232,8 @@ type RunSegment struct {
 	Cause           string
 	CoordinatorHost string
 	Shard           int
-	CommandID       int64
+	CommandID       int32
 	StartTime       time.Time
 	EndTime         time.Time
 	FailCount       int
-}
-
-// Segment specifies token range: [StartToken, EndToken), StartToken is always
-// less then EndToken.
-type Segment struct {
-	StartToken int64
-	EndToken   int64
-}
-
-// stats holds segments statistics.
-type stats struct {
-	Size        int
-	MaxRange    int64
-	AvgRange    int64
-	AvgMaxRatio float64
 }
