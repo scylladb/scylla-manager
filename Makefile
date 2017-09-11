@@ -25,7 +25,6 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 .PHONY: .check-lint
 .check-lint:
 	@golint `go list ./...` \
-	| grep -v 'uuid.go:9:6:' \
 	| tee /dev/stderr | ifne false
 
 .PHONY: .check-misspell

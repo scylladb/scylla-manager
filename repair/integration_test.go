@@ -17,12 +17,13 @@ import (
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
 	s, err := repair.NewService(
 		mermaidtest.CreateSession(t),
-		func(mermaid.UUID) (*dbapi.Client, error) {
+		func(uuid.UUID) (*dbapi.Client, error) {
 			return nil, errors.New("not implemented")
 		},
 		log.NewDevelopmentLogger().Named("repair"),
@@ -35,7 +36,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("GetGlobalMergedUnitConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		v, err := s.GetMergedUnitConfig(ctx, &repair.Unit{ID: id, ClusterID: id, Keyspace: "keyspace"})
 		if err != nil {
@@ -48,7 +49,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("GetMissingConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		c, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != mermaid.ErrNotFound {
@@ -61,7 +62,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutInvalidConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		invalid := -1
 		c := validConfig()
@@ -74,7 +75,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutNilConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, nil); err == nil {
 			t.Fatal("expected validation error")
@@ -83,7 +84,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("DeleteMissingConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		err := s.DeleteConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != nil {
@@ -93,7 +94,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutAndGetConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		c := validConfig()
 		c.RetryLimit = nil
@@ -113,7 +114,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutAndDeleteConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		c := validConfig()
 
@@ -131,7 +132,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("GetMissingUnit", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		u, err := s.GetUnit(ctx, id, id)
 		if err != mermaid.ErrNotFound {
@@ -146,7 +147,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		t.Parallel()
 
 		u := validUnit()
-		u.ID = mermaid.UUIDFromUint64(0, 1)
+		u.ID = uuid.NewFromUint64(0, 1)
 
 		if err := s.PutUnit(ctx, u); err == nil {
 			t.Fatal("expected validation error")
@@ -163,7 +164,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("DeleteMissingUnit", func(t *testing.T) {
 		t.Parallel()
-		id, _ := gocql.RandomUUID()
+		id, _ := uuid.NewRandom()
 
 		err := s.DeleteUnit(ctx, id, id)
 		if err != nil {
@@ -229,7 +230,7 @@ func validConfig() *repair.Config {
 }
 
 func validUnit() *repair.Unit {
-	uuid, _ := gocql.RandomUUID()
+	uuid, _ := uuid.NewRandom()
 
 	return &repair.Unit{
 		ClusterID: uuid,
@@ -245,7 +246,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	l := log.NewDevelopmentLogger()
 	s, err := repair.NewService(
 		session,
-		func(mermaid.UUID) (*dbapi.Client, error) {
+		func(uuid.UUID) (*dbapi.Client, error) {
 			c, err := dbapi.NewClient(mermaidtest.ClusterHosts, l.Named("dbapi"))
 			if err != nil {
 				return nil, err
@@ -263,8 +264,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	var (
-		clusterID, _ = gocql.RandomUUID()
-		taskID       = gocql.TimeUUID()
+		clusterID, _ = uuid.NewRandom()
+		taskID, _    = uuid.NewRandom()
 		ctx          = context.Background()
 	)
 

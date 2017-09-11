@@ -2,7 +2,7 @@
 
 package dbapi
 
-import "github.com/scylladb/mermaid"
+import "github.com/scylladb/mermaid/uuid"
 
 // ProviderFunc is a function that returns a Client for a given cluster.
-type ProviderFunc func(clusterID mermaid.UUID) (*Client, error)
+type ProviderFunc func(clusterID uuid.UUID) (*Client, error)

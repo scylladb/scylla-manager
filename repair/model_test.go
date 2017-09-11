@@ -5,15 +5,14 @@ package repair
 import (
 	"testing"
 
-	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 func TestUnit(t *testing.T) {
 	t.Run("GetIDNilTables", func(t *testing.T) {
 		t.Parallel()
 		u := Unit{Keyspace: "a", Tables: nil}
-		v := mermaid.UUID{}
-		if u.genID() == v {
+		if u.genID() == uuid.Nil {
 			t.Fatal("empty uuid")
 		}
 	})

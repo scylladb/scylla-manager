@@ -9,9 +9,9 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/dbapi"
 	"github.com/scylladb/mermaid/dht"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 // mergeConfigs does the configuration merging for Service.GetMergedUnitConfig.
@@ -229,7 +229,7 @@ func validateTables(tables []string, all []string) error {
 }
 
 // topologyHash returns hash of all the tokens.
-func topologyHash(tokens []int64) mermaid.UUID {
+func topologyHash(tokens []int64) uuid.UUID {
 	var (
 		xx = xxhash.New()
 		b  = make([]byte, 8)
@@ -246,5 +246,5 @@ func topologyHash(tokens []int64) mermaid.UUID {
 	}
 	h := xx.Sum64()
 
-	return mermaid.UUIDFromUint64(uint64(h>>32), uint64(uint32(h)))
+	return uuid.NewFromUint64(uint64(h>>32), uint64(uint32(h)))
 }

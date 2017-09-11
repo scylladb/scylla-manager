@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash"
-	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 // ConfigType specifies a type of configuration. Configuration object is built
@@ -96,7 +96,7 @@ func (c *Config) Validate() error {
 
 // ConfigSource specifies configuration target.
 type ConfigSource struct {
-	ClusterID  mermaid.UUID
+	ClusterID  uuid.UUID
 	Type       ConfigType
 	ExternalID string
 }
@@ -115,8 +115,8 @@ type ConfigInfo struct {
 
 // Unit is a set of tables in a keyspace that are repaired together.
 type Unit struct {
-	ID        mermaid.UUID
-	ClusterID mermaid.UUID
+	ID        uuid.UUID
+	ClusterID uuid.UUID
 	Keyspace  string `db:"keyspace_name"`
 	Tables    []string
 }
@@ -126,15 +126,14 @@ func (u *Unit) Validate() error {
 	if u == nil {
 		return errors.New("nil unit")
 	}
-	v := mermaid.UUID{}
 
-	if u.ClusterID == v {
+	if u.ClusterID == uuid.Nil {
 		return errors.New("missing ClusterID")
 	}
 	if u.Keyspace == "" {
 		return errors.New("missing Keyspace")
 	}
-	if u.ID != v && u.ID != u.genID() {
+	if u.ID != uuid.Nil && u.ID != u.genID() {
 		return errors.New("invalid ID value")
 	}
 
@@ -142,7 +141,7 @@ func (u *Unit) Validate() error {
 }
 
 // genID generates unit ID based on keyspace and tables.
-func (u *Unit) genID() mermaid.UUID {
+func (u *Unit) genID() uuid.UUID {
 	xx := xxhash.New()
 	xx.Write([]byte(u.Keyspace))
 	l := xx.Sum64()
@@ -158,7 +157,7 @@ func (u *Unit) genID() mermaid.UUID {
 	}
 	r := xx.Sum64()
 
-	return mermaid.UUIDFromUint64(l, r)
+	return uuid.NewFromUint64(l, r)
 }
 
 // Segment specifies token range: [StartToken, EndToken), StartToken is always
@@ -192,10 +191,10 @@ const (
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
-	ID           mermaid.UUID
-	UnitID       mermaid.UUID
-	ClusterID    mermaid.UUID
-	TopologyHash mermaid.UUID
+	ID           uuid.UUID
+	UnitID       uuid.UUID
+	ClusterID    uuid.UUID
+	TopologyHash uuid.UUID
 	Keyspace     string `db:"keyspace_name"`
 	Tables       []string
 	Status       Status
@@ -208,9 +207,9 @@ type Run struct {
 
 // RunError holds information about run errors.
 type RunError struct {
-	ClusterID       mermaid.UUID
-	UnitID          mermaid.UUID
-	RunID           mermaid.UUID
+	ClusterID       uuid.UUID
+	UnitID          uuid.UUID
+	RunID           uuid.UUID
 	StartToken      int64
 	EndToken        int64
 	Status          Status
@@ -225,9 +224,9 @@ type RunError struct {
 
 // RunProgress describes repair progress on per shard basis.
 type RunProgress struct {
-	ClusterID      mermaid.UUID
-	UnitID         mermaid.UUID
-	RunID          mermaid.UUID
+	ClusterID      uuid.UUID
+	UnitID         uuid.UUID
+	RunID          uuid.UUID
 	Host           string
 	Shard          int
 	SegmentCount   int

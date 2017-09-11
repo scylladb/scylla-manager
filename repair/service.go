@@ -15,11 +15,12 @@ import (
 	"github.com/scylladb/mermaid/dht"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 // globalClusterID is a special value used as a cluster ID for a global
 // configuration.
-var globalClusterID = mermaid.UUID{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x40, 0x0, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}
+var globalClusterID = uuid.UUID{UUID: [16]byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x40, 0x0, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}}
 
 // Service orchestrates cluster repairs.
 type Service struct {
@@ -46,7 +47,7 @@ func NewService(session *gocql.Session, p dbapi.ProviderFunc, l log.Logger) (*Se
 }
 
 // Repair starts an asynchronous repair process.
-func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) error {
+func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	s.logger.Debug(ctx, "Repair", "Unit", u, "TaskID", taskID)
 
 	// validate a unit
@@ -241,7 +242,7 @@ func (s *Service) prepareHost(ctx context.Context, hrc *hostRunConfig) error {
 
 // GetRun returns a run based on ID, If nothing was found mermaid.ErrNotFound
 // is returned.
-func (s *Service) GetRun(ctx context.Context, u *Unit, taskID mermaid.UUID) (*Run, error) {
+func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun", "Unit", u, "TaskID", taskID)
 
 	stmt, names := schema.RepairRun.Get()
@@ -378,7 +379,7 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 
 // GetUnit returns repair unit based on ID. If nothing was found
 // mermaid.ErrNotFound is returned.
-func (s *Service) GetUnit(ctx context.Context, clusterID, ID mermaid.UUID) (*Unit, error) {
+func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, error) {
 	s.logger.Debug(ctx, "GetUnit", "ClusterID", clusterID, "ID", ID)
 
 	stmt, names := schema.RepairUnit.Get()
@@ -413,7 +414,7 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 }
 
 // DeleteUnit removes repair based on ID.
-func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID mermaid.UUID) error {
+func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error {
 	s.logger.Debug(ctx, "DeleteUnit", "ClusterID", clusterID, "ID", ID)
 
 	stmt, names := schema.RepairUnit.Delete()
