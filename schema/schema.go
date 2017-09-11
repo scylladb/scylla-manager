@@ -82,7 +82,7 @@ var (
 	RepairRun = Table{
 		Keyspace: "scylla_management",
 		Name:     "scylla_management.repair_run",
-		Columns:  []string{"cluster_id", "unit_id", "id", "topology_hash", "status", "cause", "restart_count", "start_time", "end_time", "pause_time"},
+		Columns:  []string{"cluster_id", "unit_id", "id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time", "pause_time"},
 		PartKey:  []string{"cluster_id"},
 		SortKey:  []string{"unit_id", "id"},
 	}.init()

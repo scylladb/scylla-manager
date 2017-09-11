@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_run (
     unit_id uuid,
     id timeuuid,
     topology_hash uuid,
+    keyspace_name text,
+    tables set<text>,
     status text,
     cause text,
     restart_count int,

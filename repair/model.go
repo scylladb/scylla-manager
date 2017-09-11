@@ -181,6 +181,8 @@ type Run struct {
 	UnitID       mermaid.UUID
 	ClusterID    mermaid.UUID
 	TopologyHash mermaid.UUID
+	Keyspace     string `db:"keyspace_name"`
+	Tables       []string
 	Status       Status
 	Cause        string
 	RestartCount int

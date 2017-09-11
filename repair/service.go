@@ -66,6 +66,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 		ID:        taskID,
 		UnitID:    u.ID,
 		ClusterID: u.ClusterID,
+		Keyspace:  u.Keyspace,
+		Tables:    u.Tables,
 		Status:    StatusPreparing,
 		StartTime: time.Now(),
 	}
