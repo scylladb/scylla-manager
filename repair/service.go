@@ -239,9 +239,30 @@ func (s *Service) prepareHost(ctx context.Context, hrc *hostRunConfig) error {
 	return nil
 }
 
+// GetRun returns a run based on ID, If nothing was found mermaid.ErrNotFound
+// is returned.
+func (s *Service) GetRun(ctx context.Context, u *Unit, taskID mermaid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetRun", "Unit", u, "TaskID", taskID)
+
+	stmt, names := schema.RepairRun.Get()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+		"id":         taskID,
+	})
+
+	var r Run
+	if err := gocqlx.Get(&r, q.Query); err != nil {
+		return nil, err
+	}
+
+	return &r, nil
+}
+
 // putRun upserts a repair run.
 func (s *Service) putRun(ctx context.Context, r *Run) error {
-	s.logger.Debug(ctx, "putRun", "Run", r)
+	s.logger.Debug(ctx, "PutRun", "Run", r)
 
 	stmt, names := schema.RepairRun.Insert()
 
@@ -251,7 +272,7 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 
 // putRunProgress upserts a repair run.
 func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
-	s.logger.Debug(ctx, "putRunProgress", "RunProgress", p)
+	s.logger.Debug(ctx, "PutRunProgress", "RunProgress", p)
 
 	stmt, names := schema.RepairRunProgress.Insert()
 

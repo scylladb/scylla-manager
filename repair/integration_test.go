@@ -281,6 +281,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 	if err := s.Repair(ctx, &u, taskID); err != nil {
 		t.Fatal(err)
 	}
+
+	r, err := s.GetRun(ctx, &u, taskID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.Status != repair.StatusRunning {
+		t.Fatal("wrong status", r)
+	}
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
