@@ -146,39 +146,13 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 	hostSegments := groupSegmentsByHost(dc, ring)
 
 	for host, segments := range hostSegments {
-		s.logger.Debug(ctx, "Preparing host", "Host", host)
-
-		// split host token range to shards
-		shards, err := s.shardSegments(ctx, cluster, host, segments)
-		if err != nil {
-			return fail(errors.Wrapf(err, "failed to prepare the repair for host %q", host))
-		}
-
-		for i := range shards {
-			// join adjunct segments
-			shards[i] = mergeSegments(shards[i])
-			shards[i] = splitSegments(shards[i], *c.SegmentSizeLimit)
-
-			// init shard progress
-			prog := RunProgress{
-				ClusterID:    r.ClusterID,
-				UnitID:       r.UnitID,
-				RunID:        r.ID,
-				Host:         host,
-				Shard:        i,
-				SegmentCount: len(shards[i]),
-			}
-			if err := s.putRunProgress(ctx, &prog); err != nil {
-				return fail(errors.Wrapf(err, "failed to initialise segments progress %s", &prog))
-			}
-
-			// calculate statistics
-			s.logger.Debug(ctx, "Prepared host shard",
-				"Host", host,
-				"Shard", i,
-				"Stats", segmentsStats(shards[i]),
-			)
-		}
+		s.prepareHost(ctx, &hostRunConfig{
+			run:      &r,
+			config:   &c.Config,
+			cluster:  cluster,
+			host:     host,
+			segments: segments,
+		})
 	}
 
 	// run the repair
@@ -190,39 +164,79 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 	return nil
 }
 
-func (s *Service) shardSegments(ctx context.Context, cluster *dbapi.Client, host string, segments []*Segment) ([][]*Segment, error) {
-	// get host sharding configuration
-	c, err := cluster.HostConfig(ctx, host)
-	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get host config")
-	}
+type hostRunConfig struct {
+	config   *Config
+	run      *Run
+	cluster  *dbapi.Client
+	host     string
+	segments []*Segment
+}
 
-	var (
-		shardCount, shardingIgnoreMsbBits uint
-		ok                                bool
-	)
-	if shardCount, ok = c.ShardCount(); !ok {
-		return nil, errors.Wrap(err, "config missing shard_count")
-	}
-	if shardingIgnoreMsbBits, ok = c.Murmur3PartitionerIgnoreMsbBits(); !ok {
-		return nil, errors.Wrap(err, "config missing murmur3_partitioner_ignore_msb_bits")
+func (s *Service) prepareHost(ctx context.Context, hrc *hostRunConfig) error {
+	s.logger.Debug(ctx, "Preparing host", "Host", hrc.host)
+
+	// get host sharding configuration
+	c, err := hrc.cluster.HostConfig(ctx, hrc.host)
+	if err != nil {
+		return errors.Wrap(err, "couldn't get host config")
 	}
 
 	// create partitioner
+	var (
+		shardCount            uint
+		shardingIgnoreMsbBits uint
+		ok                    bool
+	)
+	if shardCount, ok = c.ShardCount(); !ok {
+		return errors.Wrap(err, "config missing shard_count")
+	}
+	if shardingIgnoreMsbBits, ok = c.Murmur3PartitionerIgnoreMsbBits(); !ok {
+		return errors.Wrap(err, "config missing murmur3_partitioner_ignore_msb_bits")
+	}
 	partitioner := dht.NewMurmur3Partitioner(shardCount, shardingIgnoreMsbBits)
 
 	// split segments into shards
-	shards := shardSegments(segments, partitioner)
+	shards := shardSegments(hrc.segments, partitioner)
+
+	// join adjunct segments in shards
+	for i := range shards {
+		shards[i] = mergeSegments(shards[i])
+		shards[i] = splitSegments(shards[i], *hrc.config.SegmentSizeLimit)
+	}
 
 	// validate shards
-	if err := validateShards(segments, shards, partitioner); err != nil {
+	if err := validateShards(hrc.segments, shards, partitioner); err != nil {
 		s.logger.Info(ctx, "Suboptimal sharding",
-			"Host", host,
+			"Host", hrc.host,
 			"Error", err,
 		)
 	}
 
-	return shards, nil
+	// init shard progress
+	for i := range shards {
+		p := RunProgress{
+			ClusterID:    hrc.run.ClusterID,
+			UnitID:       hrc.run.UnitID,
+			RunID:        hrc.run.ID,
+			Host:         hrc.host,
+			Shard:        i,
+			SegmentCount: len(shards[i]),
+		}
+		if err := s.putRunProgress(ctx, &p); err != nil {
+			return errors.Wrapf(err, "failed to initialise segments progress %s", &p)
+		}
+	}
+
+	// calculate statistics
+	for i := range shards {
+		s.logger.Debug(ctx, "Shard stats",
+			"Host", hrc.host,
+			"Shard", i,
+			"Stats", segmentsStats(shards[i]),
+		)
+	}
+
+	return nil
 }
 
 // putRun upserts a repair run.
