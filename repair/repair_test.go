@@ -126,7 +126,7 @@ func fptr(f float32) *float32 {
 	return &f
 }
 
-func TestHostSegments(t *testing.T) {
+func TestGroupSegmentsByHost(t *testing.T) {
 	t.Parallel()
 
 	trs := []*dbapi.TokenRange{
@@ -171,7 +171,7 @@ func TestHostSegments(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(dc1, hostSegments("dc1", trs)); diff != "" {
+	if diff := cmp.Diff(dc1, groupSegmentsByHost("dc1", trs)); diff != "" {
 		t.Fatal(diff)
 	}
 }

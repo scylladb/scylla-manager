@@ -98,9 +98,9 @@ func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
 	return &m, nil
 }
 
-// hostSegments extract list of primary segments (token ranges) for every host
-// in a datacenter and returns a mapping from host to list of it's segments.
-func hostSegments(dc string, ring []*dbapi.TokenRange) map[string][]*Segment {
+// groupSegmentsByHost extract list of primary segments (token ranges) for every
+// host in a datacenter and returns a mapping from host to list of it's segments.
+func groupSegmentsByHost(dc string, ring []*dbapi.TokenRange) map[string][]*Segment {
 	m := make(map[string][]*Segment)
 
 	for _, r := range ring {

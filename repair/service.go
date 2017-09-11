@@ -143,9 +143,9 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 	s.logger.Debug(ctx, "Using DC", "dc", dc)
 
 	// split token range into coordination hosts
-	group := hostSegments(dc, ring)
+	hostSegments := groupSegmentsByHost(dc, ring)
 
-	for host, segments := range group {
+	for host, segments := range hostSegments {
 		s.logger.Debug(ctx, "Preparing host", "Host", host)
 
 		// split host token range to shards
