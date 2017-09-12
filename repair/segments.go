@@ -3,9 +3,30 @@
 package repair
 
 import (
+	"bytes"
+	"fmt"
 	"math/rand"
 	"sort"
 )
+
+// dumpSegments writes segments as a coma separated list of pairs.
+func dumpSegments(segments []*Segment) string {
+	buf := bytes.Buffer{}
+
+	first := true
+	for _, s := range segments {
+		if first {
+			first = false
+		} else {
+			buf.WriteByte(',')
+		}
+		buf.WriteString(fmt.Sprintf("%d", s.StartToken))
+		buf.WriteByte(':')
+		buf.WriteString(fmt.Sprintf("%d", s.EndToken))
+	}
+
+	return buf.String()
+}
 
 // mergeSegments joins adjunct segments.
 func mergeSegments(segments []*Segment) []*Segment {
