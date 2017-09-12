@@ -69,6 +69,23 @@ func TestClientDescribeRing(t *testing.T) {
 	}
 }
 
+func TestClientHostPendingCompactions(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/column_family_metrics_pending_compactions.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	v, err := c.HostPendingCompactions(context.Background(), h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 1 {
+		t.Fatal(v)
+	}
+}
+
 func TestClientPartitioner(t *testing.T) {
 	t.Parallel()
 
@@ -101,7 +118,7 @@ func TestClientRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	if v != 1 {
-		t.Fatal("wrong id")
+		t.Fatal(v)
 	}
 }
 
@@ -118,7 +135,7 @@ func TestClientRepairStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	if v != CommandSuccessful {
-		t.Fatal("wrong status")
+		t.Fatal(v)
 	}
 }
 
