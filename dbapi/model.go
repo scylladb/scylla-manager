@@ -2,6 +2,16 @@
 
 package dbapi
 
+// CommandStatus specifies a result of a command
+type CommandStatus string
+
+// Command statuses
+const (
+	CommandRunning    CommandStatus = "RUNNING"
+	CommandSuccessful               = "SUCCESSFUL"
+	CommandFailed                   = "FAILED"
+)
+
 // Partitioners
 const (
 	Murmur3Partitioner     = "org.apache.cassandra.dht.Murmur3Partitioner"

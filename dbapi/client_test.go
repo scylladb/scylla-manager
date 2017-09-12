@@ -85,6 +85,57 @@ func TestClientPartitioner(t *testing.T) {
 	}
 }
 
+func TestClientRepair(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_repair_async_scylla_management_0.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	v, err := c.Repair(context.Background(), h, &RepairConfig{
+		Keyspace: "scylla_management",
+		Ranges:   "100:110,120:130",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 1 {
+		t.Fatal("wrong id")
+	}
+}
+
+func TestClientRepairStatus(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_repair_async_scylla_management_1.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	v, err := c.RepairStatus(context.Background(), h, "scylla_management", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != CommandSuccessful {
+		t.Fatal("wrong status")
+	}
+}
+
+func TestClientRepairStatusForWrongID(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_repair_async_scylla_management_2.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	_, err := c.RepairStatus(context.Background(), h, "scylla_management", 5)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestClientTables(t *testing.T) {
 	t.Parallel()
 
