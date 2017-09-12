@@ -226,6 +226,3 @@ type RunProgress struct {
 	LastStartTime  time.Time
 	LastCommandID  int32
 }
-
-// Progress is a mapping from host to it's shards' RunProgress.
-type Progress map[string][]*RunProgress

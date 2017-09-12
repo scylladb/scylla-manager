@@ -239,7 +239,7 @@ func (s *Service) prepareHost(ctx context.Context, hrc *hostRunConfig) error {
 	return nil
 }
 
-// GetRun returns a run based on ID, If nothing was found mermaid.ErrNotFound
+// GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun", "Unit", u, "TaskID", taskID)
@@ -251,6 +251,9 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, 
 		"unit_id":    u.ID,
 		"id":         taskID,
 	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
 
 	var r Run
 	if err := gocqlx.Get(&r, q.Query); err != nil {
@@ -265,9 +268,33 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 	s.logger.Debug(ctx, "PutRun", "Run", r)
 
 	stmt, names := schema.RepairRun.Insert()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
+
 	return q.ExecRelease()
+}
+
+// GetProgress returns run host progress. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetProgress(ctx context.Context, u *Unit, taskID mermaid.UUID) ([]*RunProgress, error) {
+	s.logger.Debug(ctx, "GetProgress", "Unit", u, "TaskID", taskID)
+
+	stmt, names := schema.RepairRunProgress.Select()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+		"run_id":     taskID,
+	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var v []*RunProgress
+	if err := gocqlx.Select(&v, q.Query); err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 // putRunProgress upserts a repair run.
@@ -275,8 +302,8 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 	s.logger.Debug(ctx, "PutRunProgress", "RunProgress", p)
 
 	stmt, names := schema.RepairRunProgress.Insert()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(p)
+
 	return q.ExecRelease()
 }
 
@@ -337,6 +364,9 @@ func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, err
 	stmt, names := schema.RepairConfig.Get()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
 
 	var c Config
 	if err := gocqlx.Iter(q.Query).Unsafe().Get(&c); err != nil {
@@ -370,7 +400,6 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 	s.logger.Debug(ctx, "DeleteConfig", "Source", src)
 
 	stmt, names := schema.RepairConfig.Delete()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
 
 	return q.ExecRelease()
@@ -407,8 +436,8 @@ func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, 
 		"cluster_id": clusterID,
 		"id":         ID,
 	})
-	if err := q.Err(); err != nil {
-		return nil, err
+	if q.Err() != nil {
+		return nil, q.Err()
 	}
 
 	var u Unit
@@ -440,7 +469,6 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 	}
 
 	stmt, names := schema.RepairUnit.Insert()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(u)
 
 	return q.ExecRelease()
