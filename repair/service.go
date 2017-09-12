@@ -199,18 +199,17 @@ func (s *Service) prepareHost(ctx context.Context, hrc *hostRunConfig) error {
 	// split segments into shards
 	shards := shardSegments(hrc.segments, partitioner)
 
-	// join adjunct segments in shards
-	for i := range shards {
-		shards[i] = mergeSegments(shards[i])
-		shards[i] = splitSegments(shards[i], *hrc.config.SegmentSizeLimit)
-	}
-
-	// validate shards
 	if err := validateShards(hrc.segments, shards, partitioner); err != nil {
 		s.logger.Info(ctx, "Suboptimal sharding",
 			"Host", hrc.host,
 			"Error", err,
 		)
+	}
+
+	// join adjunct segments in shards
+	for i := range shards {
+		shards[i] = mergeSegments(shards[i])
+		shards[i] = splitSegments(shards[i], *hrc.config.SegmentSizeLimit)
 	}
 
 	// init shard progress
