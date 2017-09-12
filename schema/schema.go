@@ -71,27 +71,35 @@ var (
 		SortKey:  []string{"external_id", "type"},
 	}.init()
 
+	RepairRun = Table{
+		Keyspace: "scylla_management",
+		Name:     "scylla_management.repair_run",
+		Columns:  []string{"cluster_id", "unit_id", "id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time", "pause_time"},
+		PartKey:  []string{"cluster_id"},
+		SortKey:  []string{"unit_id", "id"},
+	}.init()
+
+	RepairRunError = Table{
+		Keyspace: "scylla_management",
+		Name:     "scylla_management.repair_run_error",
+		Columns:  []string{"cluster_id", "unit_id", "run_id", "start_token", "end_token", "status", "cause", "coordinator_host", "shard", "command_id", "start_time", "end_time", "fail_count"},
+		PartKey:  []string{"cluster_id", "unit_id", "run_id"},
+		SortKey:  []string{"coordinator_host", "shard", "start_token"},
+	}.init()
+
+	RepairRunProgress = Table{
+		Keyspace: "scylla_management",
+		Name:     "scylla_management.repair_run_progress",
+		Columns:  []string{"cluster_id", "unit_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "last_start_token", "last_start_time", "last_command_id"},
+		PartKey:  []string{"cluster_id", "unit_id", "run_id"},
+		SortKey:  []string{"host", "shard"},
+	}.init()
+
 	RepairUnit = Table{
 		Keyspace: "scylla_management",
 		Name:     "scylla_management.repair_unit",
 		Columns:  []string{"cluster_id", "id", "keyspace_name", "tables"},
 		PartKey:  []string{"cluster_id"},
 		SortKey:  []string{"id"},
-	}.init()
-
-	RepairRun = Table{
-		Keyspace: "scylla_management",
-		Name:     "scylla_management.repair_run",
-		Columns:  []string{"cluster_id", "unit_id", "id", "topology_hash", "status", "cause", "restart_count", "start_time", "end_time", "pause_time"},
-		PartKey:  []string{"cluster_id"},
-		SortKey:  []string{"unit_id", "id"},
-	}.init()
-
-	RepairRunSegment = Table{
-		Keyspace: "scylla_management",
-		Name:     "scylla_management.repair_run_segment",
-		Columns:  []string{"cluster_id", "unit_id", "run_id", "start_token", "end_token", "status", "cause", "coordinator_host", "shard", "command_id", "start_time", "end_time", "fail_count"},
-		PartKey:  []string{"cluster_id", "unit_id", "run_id"},
-		SortKey:  []string{"coordinator_host", "shard", "start_token"},
 	}.init()
 )

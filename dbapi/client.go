@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -146,6 +147,29 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 	}
 
 	return resp.Payload, nil
+}
+
+// Tables returns a slice of table names in a given keyspace.
+func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
+	resp, err := c.operations.GetColumnFamilyName(&operations.GetColumnFamilyNameParams{
+		Context:    ctx,
+		HTTPClient: c.client,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		prefix = keyspace + ":"
+		tables []string
+	)
+	for _, v := range resp.Payload {
+		if strings.HasPrefix(v, prefix) {
+			tables = append(tables, v[len(prefix):])
+		}
+	}
+
+	return tables, nil
 }
 
 // Tokens returns list of tokens in a cluster.

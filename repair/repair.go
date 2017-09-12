@@ -98,9 +98,9 @@ func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
 	return &m, nil
 }
 
-// hostSegments extract list of primary segments (token ranges) for every host
-// in a datacenter and returns a mapping from host to list of it's segments.
-func hostSegments(dc string, ring []*dbapi.TokenRange) map[string][]*Segment {
+// groupSegmentsByHost extract list of primary segments (token ranges) for every
+// host in a datacenter and returns a mapping from host to list of it's segments.
+func groupSegmentsByHost(dc string, ring []*dbapi.TokenRange) map[string][]*Segment {
 	m := make(map[string][]*Segment)
 
 	for _, r := range ring {
@@ -202,6 +202,27 @@ func validateShards(segments []*Segment, shards [][]*Segment, p *dht.Murmur3Part
 	})
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// validateTables checks if tables are a subset of all the tables. Empty table
+// list is always valid.
+func validateTables(tables []string, all []string) error {
+	if len(tables) == 0 {
+		return nil
+	}
+
+	s := set.NewNonTS()
+	for _, t := range tables {
+		s.Add(t)
+	}
+	for _, t := range all {
+		s.Remove(t)
+	}
+	if !s.IsEmpty() {
+		return errors.Errorf("unknown tables %s", s)
 	}
 
 	return nil

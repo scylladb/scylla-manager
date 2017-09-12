@@ -240,6 +240,7 @@ func validUnit() *repair.Unit {
 func TestServiceRepairIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 	createKeyspace(t, session, "repair_test")
+	createTable(t, session, "CREATE TABLE repair_test.test (id int PRIMARY KEY)")
 
 	l := log.NewDevelopmentLogger()
 	s, err := repair.NewService(
@@ -280,6 +281,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 	if err := s.Repair(ctx, &u, taskID); err != nil {
 		t.Fatal(err)
 	}
+
+	r, err := s.GetRun(ctx, &u, taskID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.Status != repair.StatusRunning {
+		t.Fatal("wrong status", r)
+	}
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
@@ -294,4 +304,13 @@ func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	if err := q.ExecRelease(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func createTable(t *testing.T, s *gocql.Session, table string) error {
+	if err := s.Query(table).RetryPolicy(nil).Exec(); err != nil {
+		t.Logf("error creating table table=%q err=%v\n", table, err)
+		return err
+	}
+
+	return nil
 }

@@ -126,7 +126,7 @@ func fptr(f float32) *float32 {
 	return &f
 }
 
-func TestHostSegments(t *testing.T) {
+func TestGroupSegmentsByHost(t *testing.T) {
 	t.Parallel()
 
 	trs := []*dbapi.TokenRange{
@@ -171,7 +171,7 @@ func TestHostSegments(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(dc1, hostSegments("dc1", trs)); diff != "" {
+	if diff := cmp.Diff(dc1, groupSegmentsByHost("dc1", trs)); diff != "" {
 		t.Fatal(diff)
 	}
 }
@@ -199,6 +199,40 @@ func TestShardSegments(t *testing.T) {
 
 		if err := validateShards(s, v, p); err != nil {
 			t.Fatal(err)
+		}
+	}
+}
+
+func TestValidateTables(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		T   []string
+		A   []string
+		Err string
+	}{
+		{},
+		{
+			A: []string{"A", "B", "C", "D"},
+		},
+		{
+			T: []string{"A", "B"},
+			A: []string{"A", "B", "C", "D"},
+		},
+		{
+			T:   []string{"A", "B"},
+			A:   []string{"A", "_", "C", "D"},
+			Err: "unknown tables [B]",
+		},
+	}
+
+	for _, test := range table {
+		msg := ""
+		if err := validateTables(test.T, test.A); err != nil {
+			msg = err.Error()
+		}
+		if diff := cmp.Diff(msg, test.Err); diff != "" {
+			t.Fatal(diff)
 		}
 	}
 }

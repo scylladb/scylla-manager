@@ -66,6 +66,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 		ID:        taskID,
 		UnitID:    u.ID,
 		ClusterID: u.ClusterID,
+		Keyspace:  u.Keyspace,
+		Tables:    u.Tables,
 		Status:    StatusPreparing,
 		StartTime: time.Now(),
 	}
@@ -99,6 +101,18 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 		return fail(errors.Wrap(err, "couldn't get the cluster proxy"))
 	}
 
+	// check keyspace and tables
+	all, err := cluster.Tables(ctx, r.Keyspace)
+	if err != nil {
+		return fail(errors.Wrap(err, "couldn't get the cluster table names for keyspace"))
+	}
+	if len(all) == 0 {
+		return fail(errors.Wrapf(err, "missing or empty keyspace %q", r.Keyspace))
+	}
+	if err := validateTables(r.Tables, all); err != nil {
+		return fail(errors.Wrapf(err, "keyspace %q", r.Keyspace))
+	}
+
 	// check the cluster partitioner
 	p, err := cluster.Partitioner(ctx)
 	if err != nil {
@@ -129,34 +143,16 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 	s.logger.Debug(ctx, "Using DC", "dc", dc)
 
 	// split token range into coordination hosts
-	for host, segments := range hostSegments(dc, ring) {
-		s.logger.Debug(ctx, "Preparing host", "Host", host)
+	hostSegments := groupSegmentsByHost(dc, ring)
 
-		// split host token range to shards
-		shards, err := s.shardSegments(ctx, cluster, host, segments)
-		if err != nil {
-			return fail(errors.Wrapf(err, "failed to prepare the repair for host %q", host))
-		}
-
-		// group shard segments
-		for i, shard := range shards {
-			shards[i] = splitSegments(mergeSegments(shard), *c.SegmentSizeLimit)
-		}
-
-		// register the host segments
-		if err := s.putRunSegments(ctx, &r, host, shards); err != nil {
-			return fail(errors.Wrapf(err, "failed to register segments for host %q", host))
-		}
-
-		// calculate shard segments' statistics
-		shardStats := map[int]*stats{}
-		for i, shard := range shards {
-			shardStats[i] = segmentsStats(shard)
-		}
-		s.logger.Debug(ctx, "Prepared host",
-			"Host", host,
-			"Shard stats", shardStats,
-		)
+	for host, segments := range hostSegments {
+		s.prepareHost(ctx, &hostRunConfig{
+			run:      &r,
+			config:   &c.Config,
+			cluster:  cluster,
+			host:     host,
+			segments: segments,
+		})
 	}
 
 	// run the repair
@@ -168,80 +164,120 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID mermaid.UUID) erro
 	return nil
 }
 
-func (s *Service) shardSegments(ctx context.Context, cluster *dbapi.Client, host string, segments []*Segment) ([][]*Segment, error) {
-	// get host sharding configuration
-	c, err := cluster.HostConfig(ctx, host)
-	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get host config")
-	}
+type hostRunConfig struct {
+	config   *Config
+	run      *Run
+	cluster  *dbapi.Client
+	host     string
+	segments []*Segment
+}
 
-	var (
-		shardCount, shardingIgnoreMsbBits uint
-		ok                                bool
-	)
-	if shardCount, ok = c.ShardCount(); !ok {
-		return nil, errors.Wrap(err, "config missing shard_count")
-	}
-	if shardingIgnoreMsbBits, ok = c.Murmur3PartitionerIgnoreMsbBits(); !ok {
-		return nil, errors.Wrap(err, "config missing murmur3_partitioner_ignore_msb_bits")
+func (s *Service) prepareHost(ctx context.Context, hrc *hostRunConfig) error {
+	s.logger.Debug(ctx, "Preparing host", "Host", hrc.host)
+
+	// get host sharding configuration
+	c, err := hrc.cluster.HostConfig(ctx, hrc.host)
+	if err != nil {
+		return errors.Wrap(err, "couldn't get host config")
 	}
 
 	// create partitioner
+	var (
+		shardCount            uint
+		shardingIgnoreMsbBits uint
+		ok                    bool
+	)
+	if shardCount, ok = c.ShardCount(); !ok {
+		return errors.Wrap(err, "config missing shard_count")
+	}
+	if shardingIgnoreMsbBits, ok = c.Murmur3PartitionerIgnoreMsbBits(); !ok {
+		return errors.Wrap(err, "config missing murmur3_partitioner_ignore_msb_bits")
+	}
 	partitioner := dht.NewMurmur3Partitioner(shardCount, shardingIgnoreMsbBits)
 
 	// split segments into shards
-	shards := shardSegments(segments, partitioner)
+	shards := shardSegments(hrc.segments, partitioner)
+
+	// join adjunct segments in shards
+	for i := range shards {
+		shards[i] = mergeSegments(shards[i])
+		shards[i] = splitSegments(shards[i], *hrc.config.SegmentSizeLimit)
+	}
 
 	// validate shards
-	if err := validateShards(segments, shards, partitioner); err != nil {
+	if err := validateShards(hrc.segments, shards, partitioner); err != nil {
 		s.logger.Info(ctx, "Suboptimal sharding",
-			"Host", host,
+			"Host", hrc.host,
 			"Error", err,
 		)
 	}
 
-	return shards, nil
+	// init shard progress
+	for i := range shards {
+		p := RunProgress{
+			ClusterID:    hrc.run.ClusterID,
+			UnitID:       hrc.run.UnitID,
+			RunID:        hrc.run.ID,
+			Host:         hrc.host,
+			Shard:        i,
+			SegmentCount: len(shards[i]),
+		}
+		if err := s.putRunProgress(ctx, &p); err != nil {
+			return errors.Wrapf(err, "failed to initialise segments progress %s", &p)
+		}
+	}
+
+	// calculate statistics
+	for i := range shards {
+		s.logger.Debug(ctx, "Shard stats",
+			"Host", hrc.host,
+			"Shard", i,
+			"Stats", segmentsStats(shards[i]),
+		)
+	}
+
+	return nil
+}
+
+// GetRun returns a run based on ID, If nothing was found mermaid.ErrNotFound
+// is returned.
+func (s *Service) GetRun(ctx context.Context, u *Unit, taskID mermaid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetRun", "Unit", u, "TaskID", taskID)
+
+	stmt, names := schema.RepairRun.Get()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+		"id":         taskID,
+	})
+
+	var r Run
+	if err := gocqlx.Get(&r, q.Query); err != nil {
+		return nil, err
+	}
+
+	return &r, nil
 }
 
 // putRun upserts a repair run.
 func (s *Service) putRun(ctx context.Context, r *Run) error {
-	s.logger.Debug(ctx, "putRun", "Run", r)
+	s.logger.Debug(ctx, "PutRun", "Run", r)
 
 	stmt, names := schema.RepairRun.Insert()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(&r)
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 	return q.ExecRelease()
 }
 
-// putRunSegments creates run segments for a given run and host.
-func (s *Service) putRunSegments(ctx context.Context, r *Run, host string, shards [][]*Segment) error {
-	rs := RunSegment{
-		ClusterID:       r.ClusterID,
-		UnitID:          r.UnitID,
-		RunID:           r.ID,
-		Status:          StatusPending,
-		CoordinatorHost: host,
-	}
+// putRunProgress upserts a repair run.
+func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
+	s.logger.Debug(ctx, "PutRunProgress", "RunProgress", p)
 
-	stmt, names := schema.RepairRunSegment.Insert()
+	stmt, names := schema.RepairRunProgress.Insert()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
-	defer q.Release()
-
-	for shard, segments := range shards {
-		rs.Shard = shard
-		for _, k := range segments {
-			rs.StartToken = k.StartToken
-			rs.EndToken = k.EndToken
-			q.BindStruct(&rs)
-
-			if err := q.Exec(); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(p)
+	return q.ExecRelease()
 }
 
 // GetMergedUnitConfig returns a merged configuration for a unit.
