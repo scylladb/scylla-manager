@@ -39,9 +39,6 @@ type Config struct {
 	// RetryBackoffSeconds specifies minimal time in seconds to wait before
 	// retrying a failed segment.
 	RetryBackoffSeconds *int
-	// ParallelNodeLimit specifies how many nodes can be repaired in parallel.
-	// Set to 0 for unlimited.
-	ParallelNodeLimit *int
 	// ParallelShardPercent specifies how many shards on a node can be repaired
 	// in parallel as a percent of total shards. ParallelShardPercent takes
 	// values from 0 to 1.
@@ -78,12 +75,6 @@ func (c *Config) Validate() error {
 			return errors.New("invalid RetryBackoffSeconds value, valid values are greater or equal 0")
 		}
 	}
-	if c.ParallelNodeLimit != nil {
-		i = *c.ParallelNodeLimit
-		if i < 1 && i != -1 {
-			return errors.New("invalid ParallelNodeLimit value, valid values are greater or equal -1")
-		}
-	}
 	if c.ParallelShardPercent != nil {
 		f = *c.ParallelShardPercent
 		if f < 0 || f > 1 {
@@ -109,7 +100,6 @@ type ConfigInfo struct {
 	SegmentSizeLimitSource     ConfigSource
 	RetryLimitSource           ConfigSource
 	RetryBackoffSecondsSource  ConfigSource
-	ParallelNodeLimitSource    ConfigSource
 	ParallelShardPercentSource ConfigSource
 }
 

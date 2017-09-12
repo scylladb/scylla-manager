@@ -77,7 +77,7 @@ var (
 	RepairConfig = Table{
 		Keyspace: "scylla_management",
 		Name:     "scylla_management.repair_config",
-		Columns:  []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_node_limit", "parallel_shard_percent"},
+		Columns:  []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_shard_percent"},
 		PartKey:  []string{"cluster_id"},
 		SortKey:  []string{"external_id", "type"},
 	}.init()

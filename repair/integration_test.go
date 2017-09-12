@@ -216,7 +216,6 @@ func validConfig() *repair.Config {
 	segmentSizeLimit := int64(-1)
 	retryLimit := 3
 	retryBackoffSeconds := 60
-	parallelNodeLimit := -1
 	parallelShardPercent := float32(1)
 
 	return &repair.Config{
@@ -224,7 +223,6 @@ func validConfig() *repair.Config {
 		SegmentSizeLimit:     &segmentSizeLimit,
 		RetryLimit:           &retryLimit,
 		RetryBackoffSeconds:  &retryBackoffSeconds,
-		ParallelNodeLimit:    &parallelNodeLimit,
 		ParallelShardPercent: &parallelShardPercent,
 	}
 }

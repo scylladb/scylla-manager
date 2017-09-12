@@ -71,18 +71,6 @@ func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
 		return nil, errors.New("no value for RetryBackoffSeconds")
 	}
 
-	// ParallelNodeLimit *int
-	for i, c := range all {
-		if c.ParallelNodeLimit != nil {
-			m.ParallelNodeLimit = c.ParallelNodeLimit
-			m.ParallelNodeLimitSource = src[i]
-			break
-		}
-	}
-	if m.ParallelNodeLimit == nil {
-		return nil, errors.New("no value for ParallelNodeLimit")
-	}
-
 	// ParallelShardPercent *float32
 	for i, c := range all {
 		if c.ParallelShardPercent != nil {
