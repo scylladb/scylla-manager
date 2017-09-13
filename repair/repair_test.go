@@ -171,7 +171,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 	}
 }
 
-func TestShardSegments(t *testing.T) {
+func TestSplitSegmentsToShards(t *testing.T) {
 	t.Parallel()
 
 	for _, shardCount := range []uint{1, 2, 3, 5, 8} {
@@ -190,7 +190,7 @@ func TestShardSegments(t *testing.T) {
 				EndToken:   9143747749498840635,
 			},
 		}
-		v := shardSegments(s, p)
+		v := splitSegmentsToShards(s, p)
 
 		if err := validateShards(s, v, p); err != nil {
 			t.Fatal(err)

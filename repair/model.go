@@ -170,13 +170,11 @@ type Status string
 
 // Status enumeration.
 const (
-	StatusPending   Status = "pending"
-	StatusPreparing Status = "preparing"
-	StatusRunning   Status = "running"
-	StatusSuccess   Status = "success"
-	StatusError     Status = "error"
-	StatusPaused    Status = "paused"
-	StatusAborted   Status = "aborted"
+	StatusRunning Status = "running"
+	StatusSuccess Status = "success"
+	StatusError   Status = "error"
+	StatusPaused  Status = "paused"
+	StatusAborted Status = "aborted"
 )
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.

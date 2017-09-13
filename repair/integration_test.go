@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
@@ -18,6 +19,7 @@ import (
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/zap"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
@@ -34,24 +36,30 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
-	t.Run("GetGlobalMergedUnitConfig", func(t *testing.T) {
+	t.Run("get global merged unit config", func(t *testing.T) {
 		t.Parallel()
-		id := uuid.MustRandom()
 
-		v, err := s.GetMergedUnitConfig(ctx, &repair.Unit{ID: id, ClusterID: id, Keyspace: "keyspace"})
+		c, err := s.GetMergedUnitConfig(ctx, &repair.Unit{
+			ID:        uuid.MustRandom(),
+			ClusterID: uuid.MustRandom(),
+			Keyspace:  "keyspace",
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(&v.Config, validConfig()); diff != "" {
+		if diff := cmp.Diff(&c.Config, validConfig()); diff != "" {
 			t.Fatal(diff)
 		}
 	})
 
-	t.Run("GetMissingConfig", func(t *testing.T) {
+	t.Run("get missing config", func(t *testing.T) {
 		t.Parallel()
-		id := uuid.MustRandom()
 
-		c, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
+		c, err := s.GetConfig(ctx, repair.ConfigSource{
+			ClusterID:  uuid.MustRandom(),
+			Type:       repair.UnitConfig,
+			ExternalID: "id",
+		})
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected not found")
 		}
@@ -60,81 +68,98 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("PutInvalidConfig", func(t *testing.T) {
+	t.Run("put nil config", func(t *testing.T) {
 		t.Parallel()
-		id := uuid.MustRandom()
+
+		if err := s.PutConfig(ctx, repair.ConfigSource{
+			ClusterID:  uuid.MustRandom(),
+			Type:       repair.UnitConfig,
+			ExternalID: "id",
+		}, nil); err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("put invalid config", func(t *testing.T) {
+		t.Parallel()
 
 		invalid := -1
 		c := validConfig()
 		c.RetryLimit = &invalid
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, c); err == nil {
+		if err := s.PutConfig(ctx, repair.ConfigSource{
+			ClusterID:  uuid.MustRandom(),
+			Type:       repair.UnitConfig,
+			ExternalID: "id",
+		}, c); err == nil {
 			t.Fatal("expected validation error")
 		}
 	})
 
-	t.Run("PutNilConfig", func(t *testing.T) {
+	t.Run("delete missing config", func(t *testing.T) {
 		t.Parallel()
-		id := uuid.MustRandom()
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, nil); err == nil {
-			t.Fatal("expected validation error")
-		}
-	})
-
-	t.Run("DeleteMissingConfig", func(t *testing.T) {
-		t.Parallel()
-		id := uuid.MustRandom()
-
-		err := s.DeleteConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
-		if err != nil {
+		if err := s.DeleteConfig(ctx, repair.ConfigSource{
+			ClusterID:  uuid.MustRandom(),
+			Type:       repair.UnitConfig,
+			ExternalID: "id",
+		}); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("PutAndGetConfig", func(t *testing.T) {
+	t.Run("put and get config", func(t *testing.T) {
 		t.Parallel()
-		id := uuid.MustRandom()
 
-		c := validConfig()
-		c.RetryLimit = nil
-		c.RetryBackoffSeconds = nil
+		src := repair.ConfigSource{
+			ClusterID:  uuid.MustRandom(),
+			Type:       repair.UnitConfig,
+			ExternalID: "id",
+		}
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, c); err != nil {
+		c0 := validConfig()
+		c0.RetryLimit = nil
+		c0.RetryBackoffSeconds = nil
+
+		if err := s.PutConfig(ctx, src, c0); err != nil {
 			t.Fatal(err)
 		}
-		actual, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
+		c1, err := s.GetConfig(ctx, src)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(actual, c); diff != "" {
+		if diff := cmp.Diff(c0, c1); diff != "" {
 			t.Fatal("read write mismatch", diff)
 		}
 	})
 
-	t.Run("PutAndDeleteConfig", func(t *testing.T) {
+	t.Run("put and delete config", func(t *testing.T) {
 		t.Parallel()
-		id := uuid.MustRandom()
+
+		src := repair.ConfigSource{
+			ClusterID:  uuid.MustRandom(),
+			Type:       repair.UnitConfig,
+			ExternalID: "id",
+		}
 
 		c := validConfig()
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, c); err != nil {
+		if err := s.PutConfig(ctx, src, c); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.DeleteConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}); err != nil {
+		if err := s.DeleteConfig(ctx, src); err != nil {
 			t.Fatal(err)
 		}
-		_, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
+		_, err := s.GetConfig(ctx, src)
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected nil")
 		}
 	})
 
-	t.Run("GetMissingUnit", func(t *testing.T) {
+	t.Run("get missing unit", func(t *testing.T) {
 		t.Parallel()
-		id := uuid.MustRandom()
 
-		u, err := s.GetUnit(ctx, id, id)
+		u, err := s.GetUnit(ctx, uuid.MustRandom(), uuid.MustRandom())
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected not found")
 		}
@@ -143,18 +168,28 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("PutInvalidUnit", func(t *testing.T) {
+	t.Run("get unit", func(t *testing.T) {
 		t.Parallel()
 
-		u := validUnit()
-		u.ID = uuid.Nil
+		u0 := validUnit()
+		v := u0.ID
 
-		if err := s.PutUnit(ctx, u); err == nil {
-			t.Fatal("expected validation error")
+		if err := s.PutUnit(ctx, u0); err != nil {
+			t.Fatal(err)
+		}
+		if u0.ID == v {
+			t.Fatal("ID not updated")
+		}
+		u1, err := s.GetUnit(ctx, u0.ClusterID, u0.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(u0, u1, cmp.AllowUnexported(uuid.UUID{})); diff != "" {
+			t.Fatal("read write mismatch", diff)
 		}
 	})
 
-	t.Run("PutNilUnit", func(t *testing.T) {
+	t.Run("put nil unit", func(t *testing.T) {
 		t.Parallel()
 
 		if err := s.PutUnit(ctx, nil); err == nil {
@@ -162,38 +197,41 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("DeleteMissingUnit", func(t *testing.T) {
-		t.Parallel()
-		id := uuid.MustRandom()
-
-		err := s.DeleteUnit(ctx, id, id)
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
-
-	t.Run("PutAndGetUnit", func(t *testing.T) {
+	t.Run("put invalid unit", func(t *testing.T) {
 		t.Parallel()
 
 		u := validUnit()
-		v := u.ID
+		u.ClusterID = uuid.Nil
+
+		if err := s.PutUnit(ctx, u); err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("put new unit", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+		u.ID = uuid.Nil
 
 		if err := s.PutUnit(ctx, u); err != nil {
 			t.Fatal(err)
 		}
-		if u.ID == v {
-			t.Fatal("ID not updated")
-		}
-		actual, err := s.GetUnit(ctx, u.ClusterID, u.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if diff := cmp.Diff(actual, u); diff != "" {
-			t.Fatal("read write mismatch", diff)
+		if u.ID == uuid.Nil {
+			t.Fatal("id not set")
 		}
 	})
 
-	t.Run("PutAndDeleteUnit", func(t *testing.T) {
+	t.Run("delete missing unit", func(t *testing.T) {
+		t.Parallel()
+
+		err := s.DeleteUnit(ctx, uuid.MustRandom(), uuid.MustRandom())
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("delete unit", func(t *testing.T) {
 		t.Parallel()
 
 		u := validUnit()
@@ -241,7 +279,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 	createKeyspace(t, session, "repair_test")
 	createTable(t, session, "CREATE TABLE repair_test.test (id int PRIMARY KEY)")
 
-	l := log.NewDevelopmentLogger()
+	//l := log.NewDevelopmentLogger()
+	l := prodLogger(t)
 	s, err := repair.NewService(
 		session,
 		func(uuid.UUID) (*dbapi.Client, error) {
@@ -251,7 +290,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			}
 			config := dbapi.Config{
 				"murmur3_partitioner_ignore_msb_bits": float64(12),
-				"shard_count":                         float64(8),
+				"shard_count":                         float64(2),
 			}
 			return dbapi.WithConfig(c, config), nil
 		},
@@ -289,11 +328,36 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Fatal("wrong status", r)
 	}
 
-	p, err := s.GetProgress(ctx, &u, taskID)
+	var p []*repair.RunProgress
+
+	// check initial progress
+	p, err = s.GetProgress(ctx, &u, taskID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l.Debug(ctx, "Progress", "Progress", p)
+	if len(p) != 3 {
+		t.Fatalf("%+v", p)
+	}
+
+	// wait
+	time.Sleep(5 * time.Second)
+
+	// check ongoing progress
+	p, err = s.GetProgress(ctx, &u, taskID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p) != 2+2 {
+		t.Fatalf("%+v", p)
+	}
+
+	totalDone := 0
+	for _, v := range p {
+		totalDone += v.SegmentSuccess + v.SegmentError
+	}
+	if totalDone == 0 {
+		t.Fatalf("%+v", p)
+	}
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
@@ -317,4 +381,12 @@ func createTable(t *testing.T, s *gocql.Session, table string) error {
 	}
 
 	return nil
+}
+
+func prodLogger(t *testing.T) log.Logger {
+	z, err := zap.NewProduction()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return log.NewLogger(z)
 }

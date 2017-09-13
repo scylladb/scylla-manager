@@ -106,8 +106,8 @@ func groupSegmentsByHost(dc string, ring []*dbapi.TokenRange) map[string][]*Segm
 	return m
 }
 
-// shardSegments splits the segments into shards given the partitioner.
-func shardSegments(segments []*Segment, p *dht.Murmur3Partitioner) [][]*Segment {
+// splitSegmentsToShards splits the segments into shards given the partitioner.
+func splitSegmentsToShards(segments []*Segment, p *dht.Murmur3Partitioner) [][]*Segment {
 	res := make([][]*Segment, p.ShardCount())
 
 	for _, s := range segments {
