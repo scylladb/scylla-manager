@@ -68,3 +68,7 @@
 [[constraint]]
   branch = "master"
   name = "golang.org/x/net"
+
+[[constraint]]
+  name = "github.com/go-chi/chi"
+  version = "~3.1.3"

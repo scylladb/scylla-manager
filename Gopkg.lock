@@ -44,6 +44,18 @@
   version = "v0.1.0"
 
 [[projects]]
+  name = "github.com/go-chi/chi"
+  packages = [".","middleware"]
+  revision = "25354a53cca531cb2efd3f1d3c565d90ff04d802"
+  version = "v3.1.5"
+
+[[projects]]
+  name = "github.com/go-chi/render"
+  packages = ["."]
+  revision = "9f855fadd4b8cde7773f9ef51f6b2705af239519"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/go-openapi/analysis"
   packages = ["."]
