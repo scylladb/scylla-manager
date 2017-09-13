@@ -105,10 +105,10 @@ type ConfigInfo struct {
 
 // Unit is a set of tables in a keyspace that are repaired together.
 type Unit struct {
-	ID        uuid.UUID
-	ClusterID uuid.UUID
-	Keyspace  string `db:"keyspace_name"`
-	Tables    []string
+	ID        uuid.UUID `json:"id"`
+	ClusterID uuid.UUID `json:"cluster_id"`
+	Keyspace  string    `db:"keyspace_name" json:"keyspace"`
+	Tables    []string  `json:"tables"`
 }
 
 // Validate checks if all the fields are properly set.
