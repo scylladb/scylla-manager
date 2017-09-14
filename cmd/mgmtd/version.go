@@ -2,4 +2,4 @@
 
 package main
 
-var version = "snapshot"
+var version = "Snapshot"
