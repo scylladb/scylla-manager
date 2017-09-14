@@ -1,6 +1,13 @@
-all: check test
+all: clean check test
 
+gobuild = go build -ldflags "-X main.version=`git describe --always`"
 gofiles = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
+
+# clean removes the build files.
+.PHONY: clean
+clean:
+	@rm -Rf release
+	@go clean -r
 
 # check does static code analysis.
 .PHONY: check
@@ -8,7 +15,7 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 
 .PHONY: .check-copyright
 .check-copyright:
-	@for f in `$(gofiles)`; do \
+	@set -e; for f in `$(gofiles)`; do \
 		[[ $$f =~ /dbapi/internal/ ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
 		(echo $$f; false); \
@@ -59,6 +66,12 @@ integration-test:
 gen:
 	rm -Rf dbapi/internal/*
 	swagger generate client -A scylladb -f swagger/scylla-api.json -t dbapi/internal
+
+# release creates a release built in release directory.
+release: clean
+	@mkdir -p release/linux_amd64
+	@GOOS=linux GOARCH=amd64 $(gobuild) -race -o release/linux_amd64/mgmtd-race ./cmd/mgmtd
+	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(gobuild) -o release/linux_amd64/mgmtd ./cmd/mgmtd
 
 # get-tools installs all the required tools for other targets.
 .PHONY: get-tools
