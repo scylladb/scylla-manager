@@ -14,10 +14,22 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/armon/go-radix"
+  packages = ["."]
+  revision = "1fca145dffbcaa8fe914309b1ec0cfc67500fe61"
+
+[[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
   revision = "73945b6115bfbbcc57d89b7316e28109364124e1"
   version = "v7"
+
+[[projects]]
+  name = "github.com/bgentry/speakeasy"
+  packages = ["."]
+  revision = "4aabc24848ce5fd31929f7d1e4ea74d3709c14cd"
+  version = "v0.1.0"
 
 [[projects]]
   name = "github.com/cespare/xxhash"
@@ -117,6 +129,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  revision = "83588e72410abfbe4df460eeb6f30841ae47d4c4"
+
+[[projects]]
+  branch = "master"
   name = "github.com/jmoiron/sqlx"
   packages = ["reflectx"]
   revision = "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
@@ -126,6 +150,18 @@
   name = "github.com/mailru/easyjson"
   packages = ["buffer","jlexer","jwriter"]
   revision = "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
+  version = "v0.0.2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/cli"
+  packages = ["."]
+  revision = "65fcae5817c8600da98ada9d7edf26dd1a84837b"
 
 [[projects]]
   branch = "master"
@@ -138,6 +174,12 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/posener/complete"
+  packages = [".","cmd","cmd/install","match"]
+  revision = "88e59760adaddb8276c9b15511302890690e2dae"
 
 [[projects]]
   branch = "master"
@@ -171,6 +213,12 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "062cd7e4e68206d8bab9b18396626e855c992658"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
   revision = "ab5ac5f9a8deb4855a60fab02bc61a4ec770bd49"
@@ -196,6 +244,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9b7f22742a79d652f9c14b781f7674d9b0d028093dd10183f5fb1e3b938e095b"
+  inputs-digest = "df27846ed3e957f1ca7d5ba85226e1758fa9021534ca444e8336ac4cb3a9621b"
   solver-name = "gps-cdcl"
   solver-version = 1
