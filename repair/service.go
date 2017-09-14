@@ -20,7 +20,7 @@ import (
 
 // globalClusterID is a special value used as a cluster ID for a global
 // configuration.
-var globalClusterID = uuid.UUID{UUID: [16]byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x40, 0x0, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}}
+var globalClusterID = uuid.NewFromUint64(0, 0)
 
 // Service orchestrates cluster repairs.
 type Service struct {

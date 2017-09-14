@@ -6,25 +6,44 @@ import (
 	"encoding/binary"
 
 	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
 )
 
-// Nil UUID is special form of UUID that is specified to have all
-// 128 bits set to zero.
-// https://tools.ietf.org/html/rfc4122#section-4.1.7
+// UUID reference:
+// https://tools.ietf.org/html/rfc4122
+
+// Nil UUID is special form of UUID that is specified to have all 128 bits set
+// to zero (see https://tools.ietf.org/html/rfc4122#section-4.1.7).
 var Nil UUID
 
-// UUID is a wrapper for a UUID type, currently "github.com/gocql/gocql".UUID.
+// UUID is a wrapper for a UUID type.
 type UUID struct {
-	gocql.UUID
+	uuid gocql.UUID
 }
 
-// NewRandom returns a random (Version 4) UUID Nil and error if it fails to read from it's random source.
+// NewRandom returns a random (Version 4) UUID and error if it fails to read
+// from it's random source.
 func NewRandom() (UUID, error) {
 	u, err := gocql.RandomUUID()
 	if err != nil {
 		return Nil, err
 	}
-	return UUID{UUID: u}, nil
+	return UUID{u}, nil
+}
+
+// MustRandom works like NewRandom but will panic on error.
+func MustRandom() UUID {
+	u, err := gocql.RandomUUID()
+	if err != nil {
+		panic(err)
+	}
+	return UUID{u}
+}
+
+// NewTime generates a new time based UUID (version 1) using the current
+// time as the timestamp.
+func NewTime() UUID {
+	return UUID{gocql.TimeUUID()}
 }
 
 // NewFromUint64 creates a UUID from a uint64 pair.
@@ -38,30 +57,73 @@ func NewFromUint64(l, h uint64) UUID {
 	b[8] &= 0x3F // clear variant
 	b[8] |= 0x80 // set to IETF variant
 
-	var u gocql.UUID
-	u, err := gocql.UUIDFromBytes(b[:])
-	if err != nil {
-		panic(err)
-	}
-	return UUID{UUID: u}
+	return UUID{b}
+}
+
+// Bytes returns the raw byte slice for this UUID. A UUID is always 128 bits
+// (16 bytes) long.
+func (u UUID) Bytes() []byte {
+	b := make([]byte, 16)
+	copy(b, u.uuid[:])
+	return b
 }
 
 // MarshalCQL implements gocql.Marshaler.
 func (u UUID) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
-	return u.UUID[:], nil
+	switch info.Type() {
+	case gocql.TypeUUID:
+		return u.uuid[:], nil
+	case gocql.TypeTimeUUID:
+		if u.uuid[6]&0x10 != 0x10 {
+			return nil, errors.New("not a timeuuid")
+		}
+		return u.uuid[:], nil
+	default:
+		return nil, errors.Errorf("unsupported type %q", info.Type())
+	}
 }
 
 // UnmarshalCQL implements gocql.Unmarshaler.
 func (u *UUID) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+	if info.Type() != gocql.TypeUUID && info.Type() != gocql.TypeTimeUUID {
+		return errors.Errorf("unsupported type %q", info.Type())
+	}
+
 	if len(data) == 0 {
 		*u = Nil
 		return nil
 	}
 
-	var err error
-	u.UUID, err = gocql.UUIDFromBytes(data)
-	if err != nil {
-		return err
+	if len(data) != 16 {
+		return errors.New("UUIDs must be exactly 16 bytes long")
 	}
+
+	copy(u.uuid[:], data)
 	return nil
+}
+
+// MarshalJSON implements json.Marshaller.
+func (u UUID) MarshalJSON() ([]byte, error) {
+	return u.uuid.MarshalJSON()
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (u *UUID) UnmarshalJSON(data []byte) error {
+	return u.uuid.UnmarshalJSON(data)
+}
+
+// MarshalText implements text.Marshaller.
+func (u UUID) MarshalText() ([]byte, error) {
+	return u.uuid.MarshalText()
+}
+
+// UnmarshalText implements text.Marshaller.
+func (u *UUID) UnmarshalText(text []byte) error {
+	return u.uuid.UnmarshalText(text)
+}
+
+// String returns the UUID in it's canonical form, a 32 digit hexadecimal
+// number in the form of xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
+func (u UUID) String() string {
+	return u.uuid.String()
 }
