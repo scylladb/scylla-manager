@@ -36,7 +36,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("GetGlobalMergedUnitConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		v, err := s.GetMergedUnitConfig(ctx, &repair.Unit{ID: id, ClusterID: id, Keyspace: "keyspace"})
 		if err != nil {
@@ -49,7 +49,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("GetMissingConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		c, err := s.GetConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != mermaid.ErrNotFound {
@@ -62,7 +62,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutInvalidConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		invalid := -1
 		c := validConfig()
@@ -75,7 +75,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutNilConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		if err := s.PutConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"}, nil); err == nil {
 			t.Fatal("expected validation error")
@@ -84,7 +84,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("DeleteMissingConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		err := s.DeleteConfig(ctx, repair.ConfigSource{id, repair.UnitConfig, "id"})
 		if err != nil {
@@ -94,7 +94,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutAndGetConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		c := validConfig()
 		c.RetryLimit = nil
@@ -114,7 +114,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("PutAndDeleteConfig", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		c := validConfig()
 
@@ -132,7 +132,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("GetMissingUnit", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		u, err := s.GetUnit(ctx, id, id)
 		if err != mermaid.ErrNotFound {
@@ -164,7 +164,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	t.Run("DeleteMissingUnit", func(t *testing.T) {
 		t.Parallel()
-		id, _ := uuid.NewRandom()
+		id := uuid.MustRandom()
 
 		err := s.DeleteUnit(ctx, id, id)
 		if err != nil {
@@ -230,7 +230,7 @@ func validConfig() *repair.Config {
 }
 
 func validUnit() *repair.Unit {
-	uuid, _ := uuid.NewRandom()
+	uuid := uuid.MustRandom()
 
 	return &repair.Unit{
 		ClusterID: uuid,
@@ -264,9 +264,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	var (
-		clusterID, _ = uuid.NewRandom()
-		taskID, _    = uuid.NewRandom()
-		ctx          = context.Background()
+		clusterID = uuid.MustRandom()
+		taskID    = uuid.NewTime()
+		ctx       = context.Background()
 	)
 
 	// put a unit

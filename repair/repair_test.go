@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/dbapi"
 	"github.com/scylladb/mermaid/dht"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 func TestMergeConfig(t *testing.T) {
@@ -104,7 +105,7 @@ func TestMergeConfig(t *testing.T) {
 
 	for i, test := range table {
 		c, _ := mergeConfigs(test.C, test.S)
-		if diff := cmp.Diff(c, test.E); diff != "" {
+		if diff := cmp.Diff(c, test.E, cmp.AllowUnexported(uuid.UUID{})); diff != "" {
 			t.Error(i, diff)
 		}
 	}
