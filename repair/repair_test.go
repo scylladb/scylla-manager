@@ -17,7 +17,6 @@ func TestMergeConfig(t *testing.T) {
 		SegmentSizeLimit:     i64ptr(50),
 		RetryLimit:           iptr(3),
 		RetryBackoffSeconds:  iptr(60),
-		ParallelNodeLimit:    iptr(0),
 		ParallelShardPercent: fptr(1),
 	}
 
@@ -48,14 +47,12 @@ func TestMergeConfig(t *testing.T) {
 					SegmentSizeLimit:     v.SegmentSizeLimit,
 					RetryLimit:           v.RetryLimit,
 					RetryBackoffSeconds:  v.RetryBackoffSeconds,
-					ParallelNodeLimit:    v.ParallelNodeLimit,
 					ParallelShardPercent: v.ParallelShardPercent,
 				},
 				EnabledSource:              ConfigSource{ExternalID: "1"},
 				SegmentSizeLimitSource:     ConfigSource{ExternalID: "0"},
 				RetryLimitSource:           ConfigSource{ExternalID: "0"},
 				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "0"},
-				ParallelNodeLimitSource:    ConfigSource{ExternalID: "0"},
 				ParallelShardPercentSource: ConfigSource{ExternalID: "0"},
 			},
 		},
@@ -69,7 +66,6 @@ func TestMergeConfig(t *testing.T) {
 				SegmentSizeLimitSource:     ConfigSource{ExternalID: "2"},
 				RetryLimitSource:           ConfigSource{ExternalID: "2"},
 				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "2"},
-				ParallelNodeLimitSource:    ConfigSource{ExternalID: "2"},
 				ParallelShardPercentSource: ConfigSource{ExternalID: "2"},
 			},
 		},
@@ -86,7 +82,6 @@ func TestMergeConfig(t *testing.T) {
 				},
 				{
 					RetryBackoffSeconds:  iptr(60),
-					ParallelNodeLimit:    iptr(0),
 					ParallelShardPercent: fptr(1),
 				},
 			},
@@ -97,7 +92,6 @@ func TestMergeConfig(t *testing.T) {
 				SegmentSizeLimitSource:     ConfigSource{ExternalID: "1"},
 				RetryLimitSource:           ConfigSource{ExternalID: "1"},
 				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "1"},
-				ParallelNodeLimitSource:    ConfigSource{ExternalID: "2"},
 				ParallelShardPercentSource: ConfigSource{ExternalID: "2"},
 			},
 		},
@@ -177,7 +171,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 	}
 }
 
-func TestShardSegments(t *testing.T) {
+func TestSplitSegmentsToShards(t *testing.T) {
 	t.Parallel()
 
 	for _, shardCount := range []uint{1, 2, 3, 5, 8} {
@@ -196,7 +190,7 @@ func TestShardSegments(t *testing.T) {
 				EndToken:   9143747749498840635,
 			},
 		}
-		v := shardSegments(s, p)
+		v := splitSegmentsToShards(s, p)
 
 		if err := validateShards(s, v, p); err != nil {
 			t.Fatal(err)

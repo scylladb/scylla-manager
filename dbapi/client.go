@@ -131,9 +131,22 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 	return dcs.Slice(), trs, nil
 }
 
-// HostConfig returns node configuration.
+// HostConfig returns configuration of a node.
 func (c *Client) HostConfig(ctx context.Context, host string) (Config, error) {
 	return c.config, nil
+}
+
+// HostPendingCompactions returns number of pending compactions on a host.
+func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
+	resp, err := c.operations.GetAllPendingCompactions(&operations.GetAllPendingCompactionsParams{
+		Context:    withHostPort(ctx, host),
+		HTTPClient: c.client,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Payload, nil
 }
 
 // Partitioner returns cluster partitioner name.
@@ -147,6 +160,49 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 	}
 
 	return resp.Payload, nil
+}
+
+// RepairConfig specifies what to repair.
+type RepairConfig struct {
+	Keyspace string
+	Tables   []string
+	Ranges   string
+}
+
+// Repair invokes async repair and returns the repair command ID.
+func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
+	p := operations.RepairAsyncParams{
+		Context:    withHostPort(ctx, host),
+		HTTPClient: c.client,
+		Keyspace:   config.Keyspace,
+		Ranges:     &config.Ranges,
+	}
+	if config.Tables != nil {
+		tables := strings.Join(config.Tables, ",")
+		p.ColumnFamilies = &tables
+	}
+
+	resp, err := c.operations.RepairAsync(&p)
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Payload, nil
+}
+
+// RepairStatus returns current status of a repair command.
+func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
+	resp, err := c.operations.RepairAsyncStatus(&operations.RepairAsyncStatusParams{
+		Context:    withHostPort(ctx, host),
+		HTTPClient: c.client,
+		Keyspace:   keyspace,
+		ID:         id,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return CommandStatus(resp.Payload), nil
 }
 
 // Tables returns a slice of table names in a given keyspace.

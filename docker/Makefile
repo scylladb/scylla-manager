@@ -4,7 +4,6 @@ CQLSH=cqlsh --cqlversion=3.3.1 172.16.1.10
 # up starts dc1 and dc2.
 .PHONY: up
 up:
-	@$(COMPOSE) create
 	@$(COMPOSE) up -d dc1_seed_node
 	@$(COMPOSE) up -d dc2_seed_node
 	@$(COMPOSE) up -d --scale dc1_node=2 dc1_node

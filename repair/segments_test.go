@@ -8,6 +8,29 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestDumpSegments(t *testing.T) {
+	table := []struct {
+		S []*Segment
+		E string
+	}{
+		{},
+		{
+			S: []*Segment{{0, 1}},
+			E: "0:1",
+		},
+		{
+			S: []*Segment{{0, 1}, {1, 2}, {3, 4}},
+			E: "0:1,1:2,3:4",
+		},
+	}
+
+	for _, test := range table {
+		if diff := cmp.Diff(dumpSegments(test.S), test.E); diff != "" {
+			t.Fatal(diff)
+		}
+	}
+}
+
 func TestMergeSegments(t *testing.T) {
 	table := []struct {
 		S []*Segment

@@ -71,18 +71,6 @@ func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
 		return nil, errors.New("no value for RetryBackoffSeconds")
 	}
 
-	// ParallelNodeLimit *int
-	for i, c := range all {
-		if c.ParallelNodeLimit != nil {
-			m.ParallelNodeLimit = c.ParallelNodeLimit
-			m.ParallelNodeLimitSource = src[i]
-			break
-		}
-	}
-	if m.ParallelNodeLimit == nil {
-		return nil, errors.New("no value for ParallelNodeLimit")
-	}
-
 	// ParallelShardPercent *float32
 	for i, c := range all {
 		if c.ParallelShardPercent != nil {
@@ -118,8 +106,8 @@ func groupSegmentsByHost(dc string, ring []*dbapi.TokenRange) map[string][]*Segm
 	return m
 }
 
-// shardSegments splits the segments into shards given the partitioner.
-func shardSegments(segments []*Segment, p *dht.Murmur3Partitioner) [][]*Segment {
+// splitSegmentsToShards splits the segments into shards given the partitioner.
+func splitSegmentsToShards(segments []*Segment, p *dht.Murmur3Partitioner) [][]*Segment {
 	res := make([][]*Segment, p.ShardCount())
 
 	for _, s := range segments {

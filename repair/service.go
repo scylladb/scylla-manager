@@ -12,7 +12,6 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/dbapi"
-	"github.com/scylladb/mermaid/dht"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/uuid"
@@ -58,7 +57,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	// get the unit configuration
 	c, err := s.GetMergedUnitConfig(ctx, u)
 	if err != nil {
-		return errors.Wrap(err, "couldn't get a unit configuration")
+		return errors.Wrap(err, "failed to get a unit configuration")
 	}
 	s.logger.Debug(ctx, "Using config", "Config", &c.Config)
 
@@ -69,11 +68,11 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 		ClusterID: u.ClusterID,
 		Keyspace:  u.Keyspace,
 		Tables:    u.Tables,
-		Status:    StatusPreparing,
+		Status:    StatusRunning,
 		StartTime: time.Now(),
 	}
 	if err := s.putRun(ctx, &r); err != nil {
-		errors.Wrap(err, "couldn't register the run")
+		errors.Wrap(err, "failed to register the run")
 	}
 
 	// fail updates a run and passes the error
@@ -82,7 +81,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 		r.Cause = err.Error()
 
 		if err := s.putRun(ctx, &r); err != nil {
-			s.logger.Error(ctx, "Couldn't persist the repair failure",
+			s.logger.Error(ctx, "Cannot update the run",
 				"Run", &r,
 				"Error", err,
 			)
@@ -99,13 +98,13 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	// get the cluster client
 	cluster, err := s.client(u.ClusterID)
 	if err != nil {
-		return fail(errors.Wrap(err, "couldn't get the cluster proxy"))
+		return fail(errors.Wrap(err, "failed to get the cluster proxy"))
 	}
 
 	// check keyspace and tables
 	all, err := cluster.Tables(ctx, r.Keyspace)
 	if err != nil {
-		return fail(errors.Wrap(err, "couldn't get the cluster table names for keyspace"))
+		return fail(errors.Wrap(err, "failed to get the cluster table names for keyspace"))
 	}
 	if len(all) == 0 {
 		return fail(errors.Wrapf(err, "missing or empty keyspace %q", r.Keyspace))
@@ -117,7 +116,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	// check the cluster partitioner
 	p, err := cluster.Partitioner(ctx)
 	if err != nil {
-		return fail(errors.Wrap(err, "couldn't get the cluster partitioner name"))
+		return fail(errors.Wrap(err, "failed to get the cluster partitioner name"))
 	}
 	if p != dbapi.Murmur3Partitioner {
 		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, dbapi.Murmur3Partitioner))
@@ -126,121 +125,75 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	// get the cluster topology hash
 	tokens, err := cluster.Tokens(ctx)
 	if err != nil {
-		return fail(errors.Wrap(err, "couldn't get the cluster tokens"))
+		return fail(errors.Wrap(err, "failed to get the cluster tokens"))
 	}
+
+	// update run with the topology hash
 	r.TopologyHash = topologyHash(tokens)
+	if err := s.putRun(ctx, &r); err != nil {
+		return fail(errors.Wrap(err, "failed to update the run status"))
+	}
 
 	// get the ring description
 	_, ring, err := cluster.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
-		return fail(errors.Wrap(err, "couldn't get the ring description"))
+		return fail(errors.Wrap(err, "failed to get the ring description"))
 	}
 
 	// get local datacenter name
 	dc, err := cluster.Datacenter(ctx)
 	if err != nil {
-		return fail(errors.Wrap(err, "couldn't get the local datacenter name"))
+		return fail(errors.Wrap(err, "failed to get the local datacenter name"))
 	}
 	s.logger.Debug(ctx, "Using DC", "dc", dc)
 
 	// split token range into coordination hosts
 	hostSegments := groupSegmentsByHost(dc, ring)
 
-	for host, segments := range hostSegments {
-		s.prepareHost(ctx, &hostRunConfig{
-			run:      &r,
-			config:   &c.Config,
-			cluster:  cluster,
-			host:     host,
-			segments: segments,
-		})
-	}
-
-	// run the repair
-	r.Status = StatusRunning
-	if err := s.putRun(ctx, &r); err != nil {
-		errors.Wrap(err, "couldn't update the run status")
-	}
-
-	return nil
-}
-
-type hostRunConfig struct {
-	config   *Config
-	run      *Run
-	cluster  *dbapi.Client
-	host     string
-	segments []*Segment
-}
-
-func (s *Service) prepareHost(ctx context.Context, hrc *hostRunConfig) error {
-	s.logger.Debug(ctx, "Preparing host", "Host", hrc.host)
-
-	// get host sharding configuration
-	c, err := hrc.cluster.HostConfig(ctx, hrc.host)
-	if err != nil {
-		return errors.Wrap(err, "couldn't get host config")
-	}
-
-	// create partitioner
-	var (
-		shardCount            uint
-		shardingIgnoreMsbBits uint
-		ok                    bool
-	)
-	if shardCount, ok = c.ShardCount(); !ok {
-		return errors.Wrap(err, "config missing shard_count")
-	}
-	if shardingIgnoreMsbBits, ok = c.Murmur3PartitionerIgnoreMsbBits(); !ok {
-		return errors.Wrap(err, "config missing murmur3_partitioner_ignore_msb_bits")
-	}
-	partitioner := dht.NewMurmur3Partitioner(shardCount, shardingIgnoreMsbBits)
-
-	// split segments into shards
-	shards := shardSegments(hrc.segments, partitioner)
-
-	// join adjunct segments in shards
-	for i := range shards {
-		shards[i] = mergeSegments(shards[i])
-		shards[i] = splitSegments(shards[i], *hrc.config.SegmentSizeLimit)
-	}
-
-	// validate shards
-	if err := validateShards(hrc.segments, shards, partitioner); err != nil {
-		s.logger.Info(ctx, "Suboptimal sharding",
-			"Host", hrc.host,
-			"Error", err,
-		)
-	}
-
-	// init shard progress
-	for i := range shards {
+	// init empty progress
+	for host := range hostSegments {
 		p := RunProgress{
-			ClusterID:    hrc.run.ClusterID,
-			UnitID:       hrc.run.UnitID,
-			RunID:        hrc.run.ID,
-			Host:         hrc.host,
-			Shard:        i,
-			SegmentCount: len(shards[i]),
+			ClusterID: r.ClusterID,
+			UnitID:    r.UnitID,
+			RunID:     r.ID,
+			Host:      host,
 		}
 		if err := s.putRunProgress(ctx, &p); err != nil {
-			return errors.Wrapf(err, "failed to initialise segments progress %s", &p)
+			return fail(errors.Wrapf(err, "failed to initialise segments progress %s", &p))
 		}
 	}
 
-	// calculate statistics
-	for i := range shards {
-		s.logger.Debug(ctx, "Shard stats",
-			"Host", hrc.host,
-			"Shard", i,
-			"Stats", segmentsStats(shards[i]),
-		)
-	}
+	// spawn async repair
+	wctx := log.WithTraceID(context.Background())
+	s.logger.Info(ctx, "Starting async repair",
+		"TaskID", taskID,
+		"Unit", u,
+		"WorkerTraceID", log.TraceID(wctx),
+	)
+	go s.asyncRepair(wctx, &r, &c.Config, cluster, hostSegments)
 
 	return nil
 }
 
-// GetRun returns a run based on ID, If nothing was found mermaid.ErrNotFound
+func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *dbapi.Client, hostSegments map[string][]*Segment) {
+	for host, segments := range hostSegments {
+		w := worker{
+			Run:      r,
+			Config:   c,
+			Service:  s,
+			Cluster:  cluster,
+			Host:     host,
+			Segments: segments,
+
+			logger: s.logger.Named("worker").With("TaskID", r.ID, "Host", host),
+		}
+		if err := w.exec(ctx); err != nil {
+			s.logger.Error(ctx, "Worker exec failed", "Error", err)
+		}
+	}
+}
+
+// GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun", "Unit", u, "TaskID", taskID)
@@ -252,6 +205,9 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, 
 		"unit_id":    u.ID,
 		"id":         taskID,
 	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
 
 	var r Run
 	if err := gocqlx.Get(&r, q.Query); err != nil {
@@ -266,9 +222,33 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 	s.logger.Debug(ctx, "PutRun", "Run", r)
 
 	stmt, names := schema.RepairRun.Insert()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
+
 	return q.ExecRelease()
+}
+
+// GetProgress returns run host progress. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetProgress(ctx context.Context, u *Unit, taskID uuid.UUID) ([]*RunProgress, error) {
+	s.logger.Debug(ctx, "GetProgress", "Unit", u, "TaskID", taskID)
+
+	stmt, names := schema.RepairRunProgress.Select()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+		"run_id":     taskID,
+	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var v []*RunProgress
+	if err := gocqlx.Select(&v, q.Query); err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 // putRunProgress upserts a repair run.
@@ -276,8 +256,8 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 	s.logger.Debug(ctx, "PutRunProgress", "RunProgress", p)
 
 	stmt, names := schema.RepairRunProgress.Insert()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(p)
+
 	return q.ExecRelease()
 }
 
@@ -338,6 +318,9 @@ func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, err
 	stmt, names := schema.RepairConfig.Get()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
 
 	var c Config
 	if err := gocqlx.Iter(q.Query).Unsafe().Get(&c); err != nil {
@@ -371,23 +354,22 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 	s.logger.Debug(ctx, "DeleteConfig", "Source", src)
 
 	stmt, names := schema.RepairConfig.Delete()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
 
 	return q.ExecRelease()
 }
 
-// ListUnitIDs returns the UUID's of all Unit in cluster clusterID
+// ListUnitIDs returns ids of all the Units in a given cluster.
 func (s *Service) ListUnitIDs(ctx context.Context, clusterID uuid.UUID) ([]uuid.UUID, error) {
 	s.logger.Debug(ctx, "ListUnitIDs", "ClusterID", clusterID)
 
-	stmt, names := schema.RepairUnit.List()
+	stmt, names := schema.RepairUnit.Select("id")
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": clusterID,
 	})
-	if err := q.Err(); err != nil {
-		return nil, err
+	if q.Err() != nil {
+		return nil, q.Err()
 	}
 
 	var ids []uuid.UUID
@@ -408,8 +390,8 @@ func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, 
 		"cluster_id": clusterID,
 		"id":         ID,
 	})
-	if err := q.Err(); err != nil {
-		return nil, err
+	if q.Err() != nil {
+		return nil, q.Err()
 	}
 
 	var u Unit
@@ -430,8 +412,7 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 
 	if u.ID == uuid.Nil {
 		var err error
-		u.ID, err = uuid.NewRandom()
-		if err != nil {
+		if u.ID, err = uuid.NewRandom(); err != nil {
 			return errors.Wrap(err, "couldn't generate random UUID for Unit")
 		}
 	}
@@ -441,7 +422,6 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 	}
 
 	stmt, names := schema.RepairUnit.Insert()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(u)
 
 	return q.ExecRelease()

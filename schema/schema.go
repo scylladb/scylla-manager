@@ -12,10 +12,11 @@ type Table struct {
 	PartKey  []string
 	SortKey  []string
 
+	pk     []qb.Cmp
 	delete cql
 	get    cql
 	insert cql
-	list   cql
+	sel    cql
 }
 
 type cql struct {
@@ -38,25 +39,33 @@ func (t *Table) Insert() (stmt string, names []string) {
 	return t.insert.stmt, t.insert.names
 }
 
-// List returns all the sort key values.
-func (t *Table) List() (stmt string, names []string) {
-	return t.list.stmt, t.list.names
+// Select returns select by partition key statement.
+func (t *Table) Select(columns ...string) (stmt string, names []string) {
+	if len(columns) == 0 {
+		return t.sel.stmt, t.sel.names
+	}
+
+	return qb.Select(t.Name).
+		Columns(columns...).
+		Where(t.pk[0:len(t.PartKey)]...).
+		ToCql()
 }
 
 func (t Table) init() Table {
-	pk := make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
+	// primary key comparator
+	t.pk = make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
 	for i, c := range append(t.PartKey, t.SortKey...) {
-		pk[i] = qb.Eq(c)
+		t.pk[i] = qb.Eq(c)
 	}
 
 	// delete
 	{
-		t.delete.stmt, t.delete.names = qb.Delete(t.Name).Where(pk...).ToCql()
+		t.delete.stmt, t.delete.names = qb.Delete(t.Name).Where(t.pk...).ToCql()
 	}
 
 	// get
 	{
-		t.get.stmt, t.get.names = qb.Select(t.Name).Where(pk...).ToCql()
+		t.get.stmt, t.get.names = qb.Select(t.Name).Where(t.pk...).ToCql()
 	}
 
 	// insert
@@ -64,9 +73,9 @@ func (t Table) init() Table {
 		t.insert.stmt, t.insert.names = qb.Insert(t.Name).Columns(t.Columns...).ToCql()
 	}
 
-	// list
+	// select
 	{
-		t.list.stmt, t.list.names = qb.Select(t.Name).Where(pk[:len(t.PartKey)]...).Columns(t.SortKey...).ToCql()
+		t.sel.stmt, t.sel.names = qb.Select(t.Name).Where(t.pk[0:len(t.PartKey)]...).ToCql()
 	}
 
 	return t
@@ -77,7 +86,7 @@ var (
 	RepairConfig = Table{
 		Keyspace: "scylla_management",
 		Name:     "scylla_management.repair_config",
-		Columns:  []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_node_limit", "parallel_shard_percent"},
+		Columns:  []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_shard_percent"},
 		PartKey:  []string{"cluster_id"},
 		SortKey:  []string{"external_id", "type"},
 	}.init()

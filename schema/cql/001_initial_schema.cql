@@ -59,13 +59,12 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_config (
     segment_size_limit int,
     retry_limit int,
     retry_backoff_seconds int,
-    parallel_node_limit int,
     parallel_shard_percent float,
     PRIMARY KEY (cluster_id, type, external_id)
 );
 
-INSERT INTO scylla_management.repair_config (cluster_id, type,external_id, enabled, segment_size_limit, retry_limit, retry_backoff_seconds, parallel_node_limit, parallel_shard_percent)
-VALUES (00000000-0000-4000-8000-000000000000, 'tenant', '', true, -1, 3, 60, -1, 1);
+INSERT INTO scylla_management.repair_config (cluster_id, type,external_id, enabled, segment_size_limit, retry_limit, retry_backoff_seconds, parallel_shard_percent)
+VALUES (00000000-0000-4000-8000-000000000000, 'tenant', '', true, -1, 3, 60, 1);
 
 CREATE TABLE IF NOT EXISTS scylla_management.repair_run (
     cluster_id uuid,

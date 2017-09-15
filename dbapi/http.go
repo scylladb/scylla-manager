@@ -49,9 +49,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			"URL", r.URL,
 			"StatusCode", resp.StatusCode,
 		)
-		// force JSON, Scylla returns "text/plain" that misleads the
-		// unmarshaller and breaks processing.
-		resp.Header.Set("Content-Type", "application/json")
+		fixResponse(resp)
 	}
 
 	// mark response
@@ -89,4 +87,11 @@ func cloneHeader(in http.Header) http.Header {
 		out[key] = newValues
 	}
 	return out
+}
+
+// fixResponse fixes different Scylla API bugs...
+func fixResponse(resp *http.Response) {
+	// force JSON, Scylla returns "text/plain" that misleads the
+	// unmarshaller and breaks processing.
+	resp.Header.Set("Content-Type", "application/json")
 }
