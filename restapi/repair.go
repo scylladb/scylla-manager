@@ -1,39 +1,59 @@
 // Copyright (C) 2017 ScyllaDB
 
-package repairapi
+package restapi
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"path"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
-	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/api/clusterapi"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/uuid"
 )
 
-type unitRequest struct {
+//go:generate mockgen -source repair.go -destination ../mermaidmock/repairservice_mock.go -package mermaidmock
+
+// RepairService is the repair service interface required by the repair REST API handlers.
+type RepairService interface {
+	GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*repair.Unit, error)
+	PutUnit(ctx context.Context, u *repair.Unit) error
+	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
+	ListUnitIDs(ctx context.Context, clusterID uuid.UUID) ([]uuid.UUID, error)
+}
+
+type repairHandler struct {
+	chi.Router
+	svc RepairService
+}
+
+func newRepairHandler(svc RepairService) http.Handler {
+	h := &repairHandler{
+		Router: chi.NewRouter(),
+		svc:    svc,
+	}
+
+	h.Get("/units", h.ListUnits)
+	h.Post("/units", h.CreateUnit)
+	h.Get("/unit/{unit_id}", h.LoadUnit)
+	h.Put("/unit/{unit_id}", h.UpdateUnit)
+	h.Delete("/unit/{unit_id}", h.DeleteUnit)
+
+	return h
+}
+
+type repairUnitRequest struct {
 	*repair.Unit
 
 	ProtectedID        string `json:"id,omitempty"`
 	ProtectedClusterID string `json:"cluster_id,omitempty"`
 }
 
-// ReqUnitID extracts a unit ID from a request.
-func ReqUnitID(req *http.Request) (uuid.UUID, error) {
-	var unitID uuid.UUID
-	if err := unitID.UnmarshalText([]byte(chi.URLParam(req, "unit_id"))); err != nil {
-		return uuid.Nil, errors.Wrap(err, "invalid unit ID")
-	}
-	return unitID, nil
-}
-
-func (h *handler) ListUnits(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := clusterapi.ReqClusterID(r)
+func (h *repairHandler) ListUnits(w http.ResponseWriter, r *http.Request) {
+	clusterID, err := reqClusterID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -46,15 +66,15 @@ func (h *handler) ListUnits(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, ids)
 }
 
-func (h *handler) CreateUnit(w http.ResponseWriter, r *http.Request) {
+func (h *repairHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	var err error
-	clusterID, err := clusterapi.ReqClusterID(r)
+	clusterID, err := reqClusterID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	u := new(unitRequest)
+	u := new(repairUnitRequest)
 	if err := render.DecodeJSON(r.Body, u); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -77,13 +97,13 @@ func (h *handler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *handler) LoadUnit(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := clusterapi.ReqClusterID(r)
+func (h *repairHandler) LoadUnit(w http.ResponseWriter, r *http.Request) {
+	clusterID, err := reqClusterID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	id, err := ReqUnitID(r)
+	id, err := reqUnitID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -101,19 +121,19 @@ func (h *handler) LoadUnit(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, u)
 }
 
-func (h *handler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := clusterapi.ReqClusterID(r)
+func (h *repairHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
+	clusterID, err := reqClusterID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	id, err := ReqUnitID(r)
+	id, err := reqUnitID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	u := new(unitRequest)
+	u := new(repairUnitRequest)
 	if err := render.DecodeJSON(r.Body, u); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -129,13 +149,13 @@ func (h *handler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, u.Unit)
 }
 
-func (h *handler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := clusterapi.ReqClusterID(r)
+func (h *repairHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
+	clusterID, err := reqClusterID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	id, err := ReqUnitID(r)
+	id, err := reqUnitID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
