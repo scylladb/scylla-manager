@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/dbapi"
 	"github.com/scylladb/mermaid/dht"
+	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -124,7 +124,7 @@ func fptr(f float32) *float32 {
 func TestGroupSegmentsByHost(t *testing.T) {
 	t.Parallel()
 
-	trs := []*dbapi.TokenRange{
+	trs := []*scylla.TokenRange{
 		{
 			StartToken: 9165301526494284802,
 			EndToken:   9190445181212206709,

@@ -16,7 +16,7 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 .PHONY: .check-copyright
 .check-copyright:
 	@set -e; for f in `$(gofiles)`; do \
-		[[ $$f =~ /dbapi/internal/ ]] || \
+		[[ $$f =~ /scylla/internal/ ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
 		(echo $$f; false); \
 	done
@@ -64,8 +64,8 @@ integration-test:
 # gen regenetates source code and other resources.
 .PHONY: gen
 gen:
-	rm -Rf dbapi/internal/*
-	swagger generate client -A scylladb -f swagger/scylla-api.json -t dbapi/internal
+	rm -Rf scylla/internal/*
+	swagger generate client -A scylladb -f swagger/scylla-api.json -t scylla/internal
 
 # release creates a release built in release directory.
 release: clean

@@ -14,10 +14,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/dbapi"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap"
 )
@@ -25,7 +25,7 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	s, err := repair.NewService(
 		mermaidtest.CreateSession(t),
-		func(uuid.UUID) (*dbapi.Client, error) {
+		func(uuid.UUID) (*scylla.Client, error) {
 			return nil, errors.New("not implemented")
 		},
 		log.NewDevelopmentLogger().Named("repair"),
@@ -283,16 +283,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 	l := prodLogger(t)
 	s, err := repair.NewService(
 		session,
-		func(uuid.UUID) (*dbapi.Client, error) {
-			c, err := dbapi.NewClient(mermaidtest.ClusterHosts, l.Named("dbapi"))
+		func(uuid.UUID) (*scylla.Client, error) {
+			c, err := scylla.NewClient(mermaidtest.ClusterHosts, l.Named("scylla"))
 			if err != nil {
 				return nil, err
 			}
-			config := dbapi.Config{
+			config := scylla.Config{
 				"murmur3_partitioner_ignore_msb_bits": float64(12),
 				"shard_count":                         float64(2),
 			}
-			return dbapi.WithConfig(c, config), nil
+			return scylla.WithConfig(c, config), nil
 		},
 		l.Named("repair"),
 	)
