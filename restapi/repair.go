@@ -32,15 +32,15 @@ type repairHandler struct {
 
 func newRepairHandler(svc RepairService) http.Handler {
 	h := &repairHandler{
-		Router: chi.NewRouter(),
+		Router: chi.NewRouter().With(requireClusterID),
 		svc:    svc,
 	}
 
-	h.Get("/units", h.ListUnits)
-	h.Post("/units", h.CreateUnit)
-	h.Get("/unit/{unit_id}", h.LoadUnit)
-	h.Put("/unit/{unit_id}", h.UpdateUnit)
-	h.Delete("/unit/{unit_id}", h.DeleteUnit)
+	h.Get("/units", h.listUnits)
+	h.Post("/units", h.createUnit)
+	h.Get("/unit/{unit_id}", h.loadUnit)
+	h.Put("/unit/{unit_id}", h.updateUnit)
+	h.Delete("/unit/{unit_id}", h.deleteUnit)
 
 	return h
 }
@@ -52,43 +52,43 @@ type repairUnitRequest struct {
 	ProtectedClusterID string `json:"cluster_id,omitempty"`
 }
 
-func (h *repairHandler) ListUnits(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := reqClusterID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func parseUnitRequest(r *http.Request) (repairUnitRequest, error) {
+	var u repairUnitRequest
+	if err := render.DecodeJSON(r.Body, &u); err != nil {
+		return repairUnitRequest{}, httpErrBadRequest(err)
 	}
-	ids, err := h.svc.ListUnitIDs(r.Context(), clusterID)
+	u.ClusterID = clusterIDFromCtx(r.Context())
+
+	return u, nil
+}
+
+func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
+	ids, err := h.svc.ListUnitIDs(r.Context(), clusterIDFromCtx(r.Context()))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err == mermaid.ErrNotFound {
+			render.Respond(w, r, []*repair.Unit{})
+			return
+		}
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to list units"))
 		return
 	}
 	render.Respond(w, r, ids)
 }
 
-func (h *repairHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
-	var err error
-	clusterID, err := reqClusterID(r)
+func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
+	u, err := parseUnitRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	u := new(repairUnitRequest)
-	if err := render.DecodeJSON(r.Body, u); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		render.Respond(w, r, err)
 		return
 	}
 
 	if u.ID, err = uuid.NewRandom(); err != nil {
-		http.Error(w, "failed to generate a unit ID "+err.Error(), http.StatusInternalServerError)
+		render.Respond(w, r, newHTTPError(err, http.StatusInternalServerError, "failed to generate a unit ID "))
 		return
 	}
-	u.ClusterID = clusterID
 
-	err = h.svc.PutUnit(r.Context(), u.Unit)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := h.svc.PutUnit(r.Context(), u.Unit); err != nil {
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to create unit"))
 		return
 	}
 
@@ -97,76 +97,59 @@ func (h *repairHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *repairHandler) LoadUnit(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := reqClusterID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+func (h *repairHandler) loadUnit(w http.ResponseWriter, r *http.Request) {
 	id, err := reqUnitID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		render.Respond(w, r, httpErrBadRequest(err))
 		return
 	}
 
-	u, err := h.svc.GetUnit(r.Context(), clusterID, id)
+	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), id)
 	if err != nil {
 		if err == mermaid.ErrNotFound {
-			http.Error(w, id.String(), http.StatusNotFound)
+			render.Respond(w, r, httpErrNotFound(err))
 		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load unit"))
 		}
 		return
 	}
 	render.Respond(w, r, u)
 }
 
-func (h *repairHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := reqClusterID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+func (h *repairHandler) updateUnit(w http.ResponseWriter, r *http.Request) {
 	id, err := reqUnitID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		render.Respond(w, r, httpErrBadRequest(err))
 		return
 	}
 
-	u := new(repairUnitRequest)
-	if err := render.DecodeJSON(r.Body, u); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	u, err := parseUnitRequest(r)
+	if err != nil {
+		render.Respond(w, r, err)
 		return
 	}
-
 	u.ID = id
-	u.ClusterID = clusterID
+
 	err = h.svc.PutUnit(r.Context(), u.Unit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to update unit"))
 		return
 	}
 	render.Respond(w, r, u.Unit)
 }
 
-func (h *repairHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
-	clusterID, err := reqClusterID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 	id, err := reqUnitID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		render.Respond(w, r, httpErrBadRequest(err))
 		return
 	}
 
-	err = h.svc.DeleteUnit(r.Context(), clusterID, id)
-	if err != nil {
+	if err := h.svc.DeleteUnit(r.Context(), clusterIDFromCtx(r.Context()), id); err != nil {
 		if err == mermaid.ErrNotFound {
-			http.Error(w, id.String(), http.StatusNotFound)
+			render.Respond(w, r, httpErrNotFound(err))
 		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete unit"))
 		}
 		return
 	}

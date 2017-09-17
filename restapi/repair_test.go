@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package restapi
+package restapi_test
 
 import (
 	"encoding/json"
@@ -10,12 +10,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -163,19 +163,17 @@ func TestRepairUnitAPI(t *testing.T) {
 		},
 	}
 
+	logger := log.NewDevelopmentLogger()
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			router := chi.NewRouter()
-			router.Use(render.SetContentType(render.ContentTypeJSON))
-			router.Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(tc.SetupMock(t, ctrl)))
-
+			h := restapi.New(tc.SetupMock(t, ctrl), logger)
 			req := httptest.NewRequest(tc.Method, strings.Replace(tc.Path, "{cluster_id}", tc.ClusterID.String(), 1), tc.Body)
 			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
+			h.ServeHTTP(w, req)
 			resp := w.Result()
 
 			if resp.StatusCode != tc.ExpectedStatus {
