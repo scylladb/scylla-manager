@@ -146,11 +146,7 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.DeleteUnit(r.Context(), clusterIDFromCtx(r.Context()), id); err != nil {
-		if err == mermaid.ErrNotFound {
-			render.Respond(w, r, httpErrNotFound(err))
-		} else {
-			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete unit"))
-		}
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete unit"))
 		return
 	}
 }

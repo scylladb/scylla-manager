@@ -142,17 +142,7 @@ func TestRepairUnitAPI(t *testing.T) {
 				}
 			}},
 
-		{Name: "DeleteNonExistantUnit",
-			Method: "DELETE", Path: "/api/v1/cluster/{cluster_id}/repair/unit/" + uuid3.String(), ClusterID: uuid1,
-			ExpectedStatus: http.StatusNotFound,
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
-				svc.EXPECT().DeleteUnit(gomock.Any(), uuid1, uuid3).Return(mermaid.ErrNotFound)
-				return svc
-			},
-		},
-
-		{Name: "DeleteExistingUnit",
+		{Name: "DeleteUnit",
 			Method: "DELETE", Path: "/api/v1/cluster/{cluster_id}/repair/unit/" + uuid2.String(), ClusterID: uuid1,
 			ExpectedStatus: http.StatusOK,
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
