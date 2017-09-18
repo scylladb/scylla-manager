@@ -11,9 +11,9 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/dbapi"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -24,18 +24,18 @@ var globalClusterID = uuid.NewFromUint64(0, 0)
 // Service orchestrates cluster repairs.
 type Service struct {
 	session *gocql.Session
-	client  dbapi.ProviderFunc
+	client  scylla.ProviderFunc
 	logger  log.Logger
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, p dbapi.ProviderFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, p scylla.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	if p == nil {
-		return nil, errors.New("invalid dbapi provider")
+		return nil, errors.New("invalid scylla provider")
 	}
 
 	return &Service{
@@ -118,8 +118,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the cluster partitioner name"))
 	}
-	if p != dbapi.Murmur3Partitioner {
-		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, dbapi.Murmur3Partitioner))
+	if p != scylla.Murmur3Partitioner {
+		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scylla.Murmur3Partitioner))
 	}
 
 	// get the cluster topology hash
@@ -175,7 +175,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	return nil
 }
 
-func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *dbapi.Client, hostSegments map[string][]*Segment) {
+func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *scylla.Client, hostSegments map[string][]*Segment) {
 	for host, segments := range hostSegments {
 		w := worker{
 			Run:      r,

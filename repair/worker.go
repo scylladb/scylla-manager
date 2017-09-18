@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/dbapi"
 	"github.com/scylladb/mermaid/dht"
 	"github.com/scylladb/mermaid/log"
+	"github.com/scylladb/mermaid/scylla"
 )
 
 const (
@@ -23,7 +23,7 @@ type worker struct {
 	Run      *Run
 	Config   *Config
 	Service  *Service
-	Cluster  *dbapi.Client
+	Cluster  *scylla.Client
 	Host     string
 	Segments []*Segment
 
@@ -128,7 +128,7 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 	)
 	for start < len(w.segments) {
 		// issue a repair
-		id, err := w.parent.Cluster.Repair(ctx, w.parent.Host, &dbapi.RepairConfig{
+		id, err := w.parent.Cluster.Repair(ctx, w.parent.Host, &scylla.RepairConfig{
 			Keyspace: w.parent.Run.Keyspace,
 			Tables:   w.parent.Run.Tables,
 			Ranges:   dumpSegments(w.segments[start:end]),
@@ -175,11 +175,11 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 				return err
 			}
 			switch s {
-			case dbapi.CommandRunning:
+			case scylla.CommandRunning:
 				// continue
-			case dbapi.CommandSuccessful:
+			case scylla.CommandSuccessful:
 				return nil
-			case dbapi.CommandFailed:
+			case scylla.CommandFailed:
 				return errors.New("repair failed")
 			default:
 				return errors.Errorf("unknown status %q", s)
