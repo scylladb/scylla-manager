@@ -328,22 +328,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Fatal("wrong status", r)
 	}
 
-	var p []*repair.RunProgress
-
-	// check initial progress
-	p, err = s.GetProgress(ctx, &u, taskID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(p) != 3 {
-		t.Fatalf("%+v", p)
-	}
-
 	// wait
 	time.Sleep(5 * time.Second)
 
 	// check ongoing progress
-	p, err = s.GetProgress(ctx, &u, taskID)
+	p, err := s.GetProgress(ctx, &u, taskID)
 	if err != nil {
 		t.Fatal(err)
 	}
