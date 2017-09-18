@@ -76,3 +76,7 @@
 [[constraint]]
   name = "github.com/golang/mock"
   version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/google/gops"
+  version = "0.3.2"
