@@ -206,6 +206,12 @@
   revision = "faa3a420623d3f5531aa4702ace54eee92c8062f"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/tonnerre/golang-text"
+  packages = ["."]
+  revision = "048ed3d792f7104850acbc8cfc01e5a6070f4c04"
+
+[[projects]]
   name = "go.uber.org/atomic"
   packages = ["."]
   revision = "4e336646b2ef9fc6e47be8e21594178f98e5ebcf"
@@ -262,6 +268,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "df27846ed3e957f1ca7d5ba85226e1758fa9021534ca444e8336ac4cb3a9621b"
+  inputs-digest = "99b0b5a944625ef501fef7ccb3df07c58cbf4142f4b338bf8bd76e6e375472fb"
   solver-name = "gps-cdcl"
   solver-version = 1
