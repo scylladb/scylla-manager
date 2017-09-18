@@ -5,7 +5,7 @@ services:
     image: scylladb/scylla:${SCYLLA_VERSION}
     command: --api-address 0.0.0.0 --seeds 172.16.1.10,172.16.1.20
     volumes:
-      - ./scylla.yaml:/etc/scylla/scylla.yaml
+      - ./scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
     networks:
       - cluster
@@ -21,7 +21,7 @@ services:
     image: scylladb/scylla:${SCYLLA_VERSION}
     command: --api-address 0.0.0.0 --seeds 172.16.1.10,172.16.1.20
     volumes:
-      - ./scylla.yaml:/etc/scylla/scylla.yaml
+      - ./scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
     networks:
       - cluster
