@@ -15,3 +15,8 @@ jq -M -s 'reduce .[] as $x (.[0]; .apis += $x.apis? | .models += $x.models) | .r
 | sed -e 's/#\/utils\///g' \
 | sed -e 's/"bool"/"boolean"/g' \
 | curl -f -XPOST -d @- --user ${APIMATIC_USER} --silent --output "scylla-api.json" https://apimatic.io/api/transform?format=swagger20
+
+rm -Rf ../internal
+mkdir ../internal
+
+swagger generate client -A scylladb -f scylla-api.json -t ../internal

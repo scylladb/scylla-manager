@@ -1,6 +1,6 @@
 -- Scheduler
 
-CREATE TABLE IF NOT EXISTS scylla_management.scheduler_task (
+CREATE TABLE IF NOT EXISTS scheduler_task (
     cluster_id uuid,
     type text,
     external_id text,
@@ -12,14 +12,14 @@ CREATE TABLE IF NOT EXISTS scylla_management.scheduler_task (
     PRIMARY KEY (cluster_id, type, external_id)
 );
 
-CREATE TABLE IF NOT EXISTS scylla_management.scheduler_user_task (
+CREATE TABLE IF NOT EXISTS scheduler_user_task (
     cluster_id uuid,
     type text,
     external_id text,
     PRIMARY KEY (cluster_id, type, external_id)
 );
 
-CREATE TABLE IF NOT EXISTS scylla_management.scheduler_task_run (
+CREATE TABLE IF NOT EXISTS scheduler_task_run (
     cluster_id uuid,
     type text,
     external_id text,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS scylla_management.scheduler_task_run (
     PRIMARY KEY (cluster_id, type, external_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS scylla_management.scheduler_active_run_by_cluster (
+CREATE TABLE IF NOT EXISTS scheduler_active_run_by_cluster (
     cluster_id uuid,
     type text,
     external_id text,
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS scylla_management.scheduler_active_run_by_cluster (
 
 -- Repair
 
-CREATE TABLE IF NOT EXISTS scylla_management.repair_unit (
+CREATE TABLE IF NOT EXISTS repair_unit (
     cluster_id uuid,
     id uuid,
     keyspace_name text,
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_unit (
     PRIMARY KEY (cluster_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS scylla_management.repair_config (
+CREATE TABLE IF NOT EXISTS repair_config (
     cluster_id uuid,
     type text,
     external_id text,
@@ -63,10 +63,10 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_config (
     PRIMARY KEY (cluster_id, type, external_id)
 );
 
-INSERT INTO scylla_management.repair_config (cluster_id, type,external_id, enabled, segment_size_limit, retry_limit, retry_backoff_seconds, parallel_shard_percent)
+INSERT INTO repair_config (cluster_id, type,external_id, enabled, segment_size_limit, retry_limit, retry_backoff_seconds, parallel_shard_percent)
 VALUES (00000000-0000-4000-8000-000000000000, 'tenant', '', true, -1, 3, 60, 1);
 
-CREATE TABLE IF NOT EXISTS scylla_management.repair_run (
+CREATE TABLE IF NOT EXISTS repair_run (
     cluster_id uuid,
     unit_id uuid,
     id timeuuid,
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_run (
     PRIMARY KEY(cluster_id, unit_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS scylla_management.repair_run_progress (
+CREATE TABLE IF NOT EXISTS repair_run_progress (
     cluster_id uuid,
     unit_id uuid,
     run_id uuid,
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_run_progress (
     PRIMARY KEY((cluster_id, unit_id, run_id), host, shard)
 );
 
-CREATE TABLE IF NOT EXISTS scylla_management.repair_run_error (
+CREATE TABLE IF NOT EXISTS repair_run_error (
     cluster_id uuid,
     unit_id uuid,
     run_id uuid,
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS scylla_management.repair_run_error (
 
 -- Events
 
-CREATE TABLE IF NOT EXISTS scylla_management.event (
+CREATE TABLE IF NOT EXISTS event (
     external_id text,
     type text,
     event_time timestamp,

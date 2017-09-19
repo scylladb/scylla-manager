@@ -39,7 +39,7 @@ var initOnce sync.Once
 
 // CreateSession recreates the database and returns a new gocql.Session.
 func CreateSession(tb testing.TB) *gocql.Session {
-	return createSessionFromCluster(createCluster(), tb)
+	return createSessionFromCluster(tb, createCluster())
 }
 
 func createCluster() *gocql.ClusterConfig {
@@ -56,16 +56,18 @@ func createCluster() *gocql.ClusterConfig {
 	return cluster
 }
 
-func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) *gocql.Session {
+func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocql.Session {
 	initOnce.Do(func() {
-		createKeyspace(tb, cluster, "scylla_management")
+		createKeyspace(tb, cluster, "test_scylla_management")
 	})
 
-	cluster.Keyspace = "scylla_management"
+	cluster.Keyspace = "test_scylla_management"
 	session, err := cluster.CreateSession()
 	if err != nil {
 		tb.Fatal("createSession:", err)
 	}
+
+	createTables(tb, session)
 
 	return session
 }
@@ -86,7 +88,9 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 		'class' : 'SimpleStrategy',
 		'replication_factor' : %d
 	}`, keyspace, *flagRF))
+}
 
+func createTables(tb testing.TB, session *gocql.Session) {
 	files, err := filepath.Glob("../schema/cql/*.cql")
 	if err != nil {
 		tb.Fatal(err)
@@ -108,7 +112,7 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 	}
 }
 
-func loadCql(tb testing.TB, s *gocql.Session, r io.Reader) {
+func loadCql(tb testing.TB, session *gocql.Session, r io.Reader) {
 	var lines []string
 	b := bufio.NewReader(r)
 	for {
@@ -132,7 +136,7 @@ func loadCql(tb testing.TB, s *gocql.Session, r io.Reader) {
 
 		// if all, execute
 		if strings.HasSuffix(l, ";") {
-			mustExec(tb, s, strings.Join(lines, " "))
+			mustExec(tb, session, strings.Join(lines, " "))
 			lines = nil
 		}
 	}

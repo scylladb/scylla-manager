@@ -1,0 +1,27 @@
+# Scylla management config YAML
+
+# Bind REST API to the specified TCP address using HTTP protocol.
+http: 127.0.0.1:80
+
+# Bind REST API to the specified TCP address using HTTPS protocol.
+# https: 127.0.0.1:443
+
+# TLS certificate file to use for HTTPS.
+# tls_cert_file:
+
+# TLS key file to use for HTTPS.
+# tls_key_file:
+
+# Scylla management database, used to store management data.
+database:
+  hosts:
+    - 127.0.0.1
+#   user: user
+#   password: password
+
+# List of managed clusters.
+# clusters:
+#   - uuid: a3f1b32b-ed5b-438d-81a7-c82eb7bde800
+#     hosts:
+#       - 172.16.1.10
+#       - 172.16.1.20

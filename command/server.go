@@ -33,6 +33,7 @@ type clusterConfig struct {
 
 type dbConfig struct {
 	Hosts    []string `yaml:"hosts"`
+	Keyspace string   `yaml:"keyspace"`
 	User     string   `yaml:"user"`
 	Password string   `yaml:"password"`
 }
@@ -86,7 +87,7 @@ type ServerCommand struct {
 // InitFlags sets the command flags.
 func (cmd *ServerCommand) InitFlags() {
 	f := cmd.BaseCommand.NewFlagSet(cmd)
-	f.StringVar(&cmd.configFile, "config-file", "mgmtd.yaml", "Path to a YAML file to read configuration from.")
+	f.StringVar(&cmd.configFile, "config-file", "/etc/scylla-mgmt/scylla-mgmt.yaml", "Path to a YAML file to read configuration from.")
 	f.BoolVar(&cmd.debug, "debug", false, "")
 
 	cmd.HideFlags("debug")
@@ -281,6 +282,9 @@ func (cmd *ServerCommand) readConfig(file string) (*serverConfig, error) {
 func (cmd *ServerCommand) defaultConfig() *serverConfig {
 	return &serverConfig{
 		HTTP: "localhost:80",
+		Database: dbConfig{
+			Keyspace: "scylla_management",
+		},
 	}
 }
 
@@ -289,6 +293,7 @@ func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConf
 
 	// overwrite the default settings
 	c.Consistency = gocql.LocalQuorum
+	c.Keyspace = config.Database.Keyspace
 
 	// authentication
 	if config.Database.User != "" {

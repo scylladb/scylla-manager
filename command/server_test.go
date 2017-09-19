@@ -13,7 +13,7 @@ func TestServerReadConfig(t *testing.T) {
 	t.Parallel()
 
 	s := ServerCommand{}
-	c, err := s.readConfig("testdata/mgmtd.yml")
+	c, err := s.readConfig("testdata/scylla-mgmt.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,6 +28,7 @@ func TestServerReadConfig(t *testing.T) {
 		TLSKeyFile:  "tls.key",
 		Database: dbConfig{
 			Hosts:    []string{"172.16.1.10", "172.16.1.20"},
+			Keyspace: "scylla_management",
 			User:     "user",
 			Password: "password",
 		},

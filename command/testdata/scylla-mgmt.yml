@@ -1,13 +1,18 @@
-# bind to the specified TCP address using HTTP protocol
-http: 127.0.0.1:8080
+http: 127.0.0.1:80
 
-# management database configuration
+https: 127.0.0.1:443
+
+tls_cert_file: tls.cert
+
+tls_key_file: tls.key
+
 database:
   hosts:
     - 172.16.1.10
     - 172.16.1.20
+  user: user
+  password: password
 
-# cluster settings
 clusters:
   - uuid: a3f1b32b-ed5b-438d-81a7-c82eb7bde800
     hosts:

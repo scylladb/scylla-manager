@@ -6,11 +6,10 @@ import "github.com/scylladb/gocqlx/qb"
 
 // Table represents a table in a database and it's metadata.
 type Table struct {
-	Keyspace string
-	Name     string
-	Columns  []string
-	PartKey  []string
-	SortKey  []string
+	Name    string
+	Columns []string
+	PartKey []string
+	SortKey []string
 
 	pk     []qb.Cmp
 	delete cql
@@ -84,42 +83,37 @@ func (t Table) init() Table {
 // Tables listing
 var (
 	RepairConfig = Table{
-		Keyspace: "scylla_management",
-		Name:     "scylla_management.repair_config",
-		Columns:  []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_shard_percent"},
-		PartKey:  []string{"cluster_id"},
-		SortKey:  []string{"external_id", "type"},
+		Name:    "repair_config",
+		Columns: []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_shard_percent"},
+		PartKey: []string{"cluster_id"},
+		SortKey: []string{"external_id", "type"},
 	}.init()
 
 	RepairRun = Table{
-		Keyspace: "scylla_management",
-		Name:     "scylla_management.repair_run",
-		Columns:  []string{"cluster_id", "unit_id", "id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time", "pause_time"},
-		PartKey:  []string{"cluster_id"},
-		SortKey:  []string{"unit_id", "id"},
+		Name:    "repair_run",
+		Columns: []string{"cluster_id", "unit_id", "id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time", "pause_time"},
+		PartKey: []string{"cluster_id"},
+		SortKey: []string{"unit_id", "id"},
 	}.init()
 
 	RepairRunError = Table{
-		Keyspace: "scylla_management",
-		Name:     "scylla_management.repair_run_error",
-		Columns:  []string{"cluster_id", "unit_id", "run_id", "start_token", "end_token", "status", "cause", "coordinator_host", "shard", "command_id", "start_time", "end_time", "fail_count"},
-		PartKey:  []string{"cluster_id", "unit_id", "run_id"},
-		SortKey:  []string{"coordinator_host", "shard", "start_token"},
+		Name:    "repair_run_error",
+		Columns: []string{"cluster_id", "unit_id", "run_id", "start_token", "end_token", "status", "cause", "coordinator_host", "shard", "command_id", "start_time", "end_time", "fail_count"},
+		PartKey: []string{"cluster_id", "unit_id", "run_id"},
+		SortKey: []string{"coordinator_host", "shard", "start_token"},
 	}.init()
 
 	RepairRunProgress = Table{
-		Keyspace: "scylla_management",
-		Name:     "scylla_management.repair_run_progress",
-		Columns:  []string{"cluster_id", "unit_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "last_start_token", "last_start_time", "last_command_id"},
-		PartKey:  []string{"cluster_id", "unit_id", "run_id"},
-		SortKey:  []string{"host", "shard"},
+		Name:    "repair_run_progress",
+		Columns: []string{"cluster_id", "unit_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "last_start_token", "last_start_time", "last_command_id"},
+		PartKey: []string{"cluster_id", "unit_id", "run_id"},
+		SortKey: []string{"host", "shard"},
 	}.init()
 
 	RepairUnit = Table{
-		Keyspace: "scylla_management",
-		Name:     "scylla_management.repair_unit",
-		Columns:  []string{"cluster_id", "id", "keyspace_name", "tables"},
-		PartKey:  []string{"cluster_id"},
-		SortKey:  []string{"id"},
+		Name:    "repair_unit",
+		Columns: []string{"cluster_id", "id", "keyspace_name", "tables"},
+		PartKey: []string{"cluster_id"},
+		SortKey: []string{"id"},
 	}.init()
 )
