@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -35,7 +36,7 @@ func TestServerReadConfig(t *testing.T) {
 		Clusters: []*clusterConfig{{UUID: u, Hosts: []string{"172.16.1.10", "172.16.1.20"}}},
 	}
 
-	if diff := cmp.Diff(c, e, cmp.AllowUnexported(uuid.UUID{})); diff != "" {
+	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {
 		t.Fatal(diff)
 	}
 }

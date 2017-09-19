@@ -72,15 +72,15 @@ func (mr *MockRepairServiceMockRecorder) DeleteUnit(ctx, clusterID, ID interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnit", reflect.TypeOf((*MockRepairService)(nil).DeleteUnit), ctx, clusterID, ID)
 }
 
-// ListUnitIDs mocks base method
-func (m *MockRepairService) ListUnitIDs(ctx context.Context, clusterID uuid.UUID) ([]uuid.UUID, error) {
-	ret := m.ctrl.Call(m, "ListUnitIDs", ctx, clusterID)
-	ret0, _ := ret[0].([]uuid.UUID)
+// ListUnits mocks base method
+func (m *MockRepairService) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*repair.Unit, error) {
+	ret := m.ctrl.Call(m, "ListUnits", ctx, clusterID)
+	ret0, _ := ret[0].([]*repair.Unit)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListUnitIDs indicates an expected call of ListUnitIDs
-func (mr *MockRepairServiceMockRecorder) ListUnitIDs(ctx, clusterID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnitIDs", reflect.TypeOf((*MockRepairService)(nil).ListUnitIDs), ctx, clusterID)
+// ListUnits indicates an expected call of ListUnits
+func (mr *MockRepairServiceMockRecorder) ListUnits(ctx, clusterID interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnits", reflect.TypeOf((*MockRepairService)(nil).ListUnits), ctx, clusterID)
 }

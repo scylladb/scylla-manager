@@ -7,6 +7,7 @@ package repair_test
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
@@ -184,7 +185,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(u0, u1, cmp.AllowUnexported(uuid.UUID{})); diff != "" {
+		if diff := cmp.Diff(u0, u1, mermaidtest.UUIDComparer()); diff != "" {
 			t.Fatal("read write mismatch", diff)
 		}
 	})
@@ -245,6 +246,50 @@ func TestServiceStorageIntegration(t *testing.T) {
 		_, err := s.GetUnit(ctx, u.ClusterID, u.ID)
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected nil")
+		}
+	})
+
+	t.Run("list empty units", func(t *testing.T) {
+		t.Parallel()
+
+		units, err := s.ListUnits(ctx, uuid.MustRandom())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(units) != 0 {
+			t.Fatal("expected 0 len result")
+		}
+	})
+
+	t.Run("list units", func(t *testing.T) {
+		t.Parallel()
+
+		expected := make([]*repair.Unit, 3)
+		u0 := validUnit()
+		ctx := context.Background()
+		for i := range expected {
+			u := &repair.Unit{
+				ID:        uuid.NewTime(),
+				ClusterID: u0.ClusterID,
+				Keyspace:  "keyspace" + strconv.Itoa(i),
+				Tables: []string{
+					"table" + strconv.Itoa(2*i),
+					"table" + strconv.Itoa(2*i+1),
+				},
+			}
+			if err := s.PutUnit(ctx, u); err != nil {
+				t.Fatal(err)
+			}
+			expected[i] = u
+		}
+
+		units, err := s.ListUnits(ctx, u0.ClusterID)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(units, expected, mermaidtest.UUIDComparer()); diff != "" {
+			t.Fatal(diff)
 		}
 	})
 }

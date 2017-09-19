@@ -359,11 +359,11 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 	return q.ExecRelease()
 }
 
-// ListUnitIDs returns ids of all the Units in a given cluster.
-func (s *Service) ListUnitIDs(ctx context.Context, clusterID uuid.UUID) ([]uuid.UUID, error) {
-	s.logger.Debug(ctx, "ListUnitIDs", "ClusterID", clusterID)
+// ListUnits returns all the Units in a given cluster.
+func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*Unit, error) {
+	s.logger.Debug(ctx, "ListUnits", "ClusterID", clusterID)
 
-	stmt, names := schema.RepairUnit.Select("id")
+	stmt, names := schema.RepairUnit.Select()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": clusterID,
@@ -372,11 +372,14 @@ func (s *Service) ListUnitIDs(ctx context.Context, clusterID uuid.UUID) ([]uuid.
 		return nil, q.Err()
 	}
 
-	var ids []uuid.UUID
-	if err := gocqlx.Select(&ids, q.Query); err != nil {
+	var units []*Unit
+	if err := gocqlx.Select(&units, q.Query); err != nil {
+		if err == gocql.ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
-	return ids, nil
+	return units, nil
 }
 
 // GetUnit returns repair unit based on ID. If nothing was found

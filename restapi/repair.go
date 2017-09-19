@@ -22,7 +22,7 @@ type RepairService interface {
 	GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*repair.Unit, error)
 	PutUnit(ctx context.Context, u *repair.Unit) error
 	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
-	ListUnitIDs(ctx context.Context, clusterID uuid.UUID) ([]uuid.UUID, error)
+	ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*repair.Unit, error)
 }
 
 type repairHandler struct {
@@ -63,7 +63,7 @@ func parseUnitRequest(r *http.Request) (repairUnitRequest, error) {
 }
 
 func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
-	ids, err := h.svc.ListUnitIDs(r.Context(), clusterIDFromCtx(r.Context()))
+	ids, err := h.svc.ListUnits(r.Context(), clusterIDFromCtx(r.Context()))
 	if err != nil {
 		if err == mermaid.ErrNotFound {
 			render.Respond(w, r, []*repair.Unit{})

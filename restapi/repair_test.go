@@ -79,8 +79,12 @@ func TestRepairUnitAPI(t *testing.T) {
 			ExpectedStatus: http.StatusOK,
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
 				svc := mermaidmock.NewMockRepairService(ctrl)
-				svc.EXPECT().ListUnitIDs(gomock.Any(), uuid1).Return(
-					[]uuid.UUID{uuid1, uuid2, createdUnitID}, nil)
+				svc.EXPECT().ListUnits(gomock.Any(), uuid1).Return(
+					[]*repair.Unit{
+						{ID: uuid1, ClusterID: uuid1, Keyspace: "keyspace0", Tables: []string{"table1", "table2"}},
+						{ID: uuid2, ClusterID: uuid1, Keyspace: "keyspace1", Tables: []string{"table4", "table5"}},
+						{ID: createdUnitID, ClusterID: uuid1, Keyspace: "keyspace0", Tables: []string{"table5", "table6"}},
+					}, nil)
 				return svc
 			},
 			Check: func(t *testing.T, resp *http.Response) {
@@ -91,17 +95,17 @@ func TestRepairUnitAPI(t *testing.T) {
 				expecting[createdUnitID] = 1
 
 				dec := json.NewDecoder(resp.Body)
-				result := make([]uuid.UUID, 0, len(expecting))
+				result := make([]*repair.Unit, 0, len(expecting))
 				if err := dec.Decode(&result); err != nil {
 					t.Log("json decode failed:", err)
 					t.Fatal()
 				}
-				for _, uuid := range result {
-					if _, ok := expecting[uuid]; !ok {
-						t.Log("unexpected result:", uuid)
+				for _, u := range result {
+					if _, ok := expecting[u.ID]; !ok {
+						t.Log("unexpected result:", u.ID)
 						t.Fail()
 					}
-					expecting[uuid]--
+					expecting[u.ID]--
 				}
 				for uuid, count := range expecting {
 					if count != 0 {
