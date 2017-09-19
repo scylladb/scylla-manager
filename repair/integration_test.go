@@ -276,8 +276,8 @@ func validUnit() *repair.Unit {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
-	createKeyspace(t, session, "repair_test")
-	createTable(t, session, "CREATE TABLE repair_test.test (id int PRIMARY KEY)")
+	createKeyspace(t, session, "test_repair")
+	createTable(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
 	//l := log.NewDevelopmentLogger()
 	l := prodLogger(t)
@@ -309,7 +309,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// put a unit
 	u := repair.Unit{
 		ClusterID: clusterID,
-		Keyspace:  "repair_test",
+		Keyspace:  "test_repair",
 	}
 	if err := s.PutUnit(ctx, &u); err != nil {
 		t.Fatal(err)
