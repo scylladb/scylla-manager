@@ -17,6 +17,7 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 .check-copyright:
 	@set -e; for f in `$(gofiles)`; do \
 		[[ $$f =~ /scylla/internal/ ]] || \
+		[[ $$f =~ .*_mock[.]go ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
 		(echo $$f; false); \
 	done
@@ -66,6 +67,7 @@ integration-test:
 gen:
 	rm -Rf scylla/internal/*
 	swagger generate client -A scylladb -f swagger/scylla-api.json -t scylla/internal
+	go generate ./...
 
 # release creates a release built in release directory.
 release: clean
@@ -78,6 +80,7 @@ release: clean
 get-tools:
 	go get -u github.com/golang/dep/cmd/dep
 	go get -u github.com/golang/lint/golint
+	go get -u github.com/golang/mock/mockgen
 
 	go get -u github.com/client9/misspell/cmd/misspell
 	go get -u github.com/gordonklaus/ineffassign
