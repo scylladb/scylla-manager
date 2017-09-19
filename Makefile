@@ -65,8 +65,6 @@ integration-test:
 # gen regenetates source code and other resources.
 .PHONY: gen
 gen:
-	rm -Rf scylla/internal/*
-	swagger generate client -A scylladb -f swagger/scylla-api.json -t scylla/internal
 	go generate ./...
 
 # release creates a release built in release directory.
