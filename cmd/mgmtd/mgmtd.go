@@ -9,11 +9,10 @@ import (
 	"os"
 
 	"github.com/mitchellh/cli"
-	"github.com/scylladb/mermaid/lib"
 )
 
 func init() {
-	lib.SeedMathRand()
+	seedMathRand()
 }
 
 func main() {
