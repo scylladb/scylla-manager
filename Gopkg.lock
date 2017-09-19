@@ -140,6 +140,12 @@
   version = "v0.1.0"
 
 [[projects]]
+  name = "github.com/google/gops"
+  packages = ["agent","internal","signal"]
+  revision = "57e77c5c37da1f4e1af49f9d1fe760f146c1579e"
+  version = "v0.3.2"
+
+[[projects]]
   branch = "master"
   name = "github.com/hailocab/go-hostpool"
   packages = ["."]
@@ -162,6 +168,12 @@
   name = "github.com/jmoiron/sqlx"
   packages = ["reflectx"]
   revision = "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kardianos/osext"
+  packages = ["."]
+  revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
 
 [[projects]]
   branch = "master"
@@ -204,6 +216,12 @@
   name = "github.com/scylladb/gocqlx"
   packages = [".","qb"]
   revision = "faa3a420623d3f5531aa4702ace54eee92c8062f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/tonnerre/golang-text"
+  packages = ["."]
+  revision = "048ed3d792f7104850acbc8cfc01e5a6070f4c04"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -262,6 +280,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "df27846ed3e957f1ca7d5ba85226e1758fa9021534ca444e8336ac4cb3a9621b"
+  inputs-digest = "61d26a939e28fe0069024545e6e890d5d62056b52414c9af1a6326a2c62b0110"
   solver-name = "gps-cdcl"
   solver-version = 1
