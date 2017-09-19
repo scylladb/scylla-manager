@@ -39,7 +39,7 @@ func TestRepairUnitAPI(t *testing.T) {
 		Body           io.Reader
 		ExpectedStatus int
 		SetupMock      func(*testing.T, *gomock.Controller) *mermaidmock.MockRepairService
-		Check          func(*http.Response)
+		Check          func(*testing.T, *http.Response)
 	}{
 		{Name: "CreateUnit",
 			Method: "POST", Path: "/api/v1/cluster/{cluster_id}/repair/units", ClusterID: uuid1,
@@ -60,7 +60,7 @@ func TestRepairUnitAPI(t *testing.T) {
 
 				return svc
 			},
-			Check: func(resp *http.Response) {
+			Check: func(t *testing.T, resp *http.Response) {
 				location := resp.Header.Get("Location")
 				prefix := "/api/v1/cluster/" + uuid1.String() + "/repair/unit/"
 				if !strings.HasPrefix(location, prefix) {
@@ -83,7 +83,7 @@ func TestRepairUnitAPI(t *testing.T) {
 					[]uuid.UUID{uuid1, uuid2, createdUnitID}, nil)
 				return svc
 			},
-			Check: func(resp *http.Response) {
+			Check: func(t *testing.T, resp *http.Response) {
 				expecting := map[uuid.UUID]int{
 					uuid1: 1,
 					uuid2: 1,
@@ -129,7 +129,7 @@ func TestRepairUnitAPI(t *testing.T) {
 					&repair.Unit{ID: uuid1, ClusterID: uuid2, Keyspace: "keyspace0", Tables: []string{"tbl1", "tbl2"}}, nil)
 				return svc
 			},
-			Check: func(resp *http.Response) {
+			Check: func(t *testing.T, resp *http.Response) {
 				dec := json.NewDecoder(resp.Body)
 				var u repair.Unit
 				if err := dec.Decode(&u); err != nil {
@@ -171,7 +171,7 @@ func TestRepairUnitAPI(t *testing.T) {
 				t.Fatal()
 			}
 			if tc.Check != nil {
-				tc.Check(resp)
+				tc.Check(t, resp)
 			}
 		})
 	}
