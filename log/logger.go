@@ -46,6 +46,15 @@ func (l Logger) With(keyvals ...interface{}) Logger {
 	return Logger{base: l.base.With(l.zapify(nil, keyvals)...)}
 }
 
+// Sync flushes any buffered log entries. Applications should take care to call
+// Sync before exiting.
+func (l Logger) Sync() error {
+	if l.base == nil {
+		return nil
+	}
+	return l.base.Sync()
+}
+
 // Debug logs a message with some additional context.
 func (l Logger) Debug(ctx context.Context, msg string, keyvals ...interface{}) {
 	l.log(ctx, zapcore.DebugLevel, msg, keyvals)
