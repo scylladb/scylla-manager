@@ -22,7 +22,7 @@ func main() {
 func realMain() int {
 	log.SetOutput(ioutil.Discard)
 
-	cli := cli.NewCLI("mgmtd", version)
+	cli := cli.NewCLI("scylla-mgmt", version)
 	cli.Args = os.Args[1:]
 	cli.Commands = commands()
 

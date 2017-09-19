@@ -13,7 +13,7 @@ func TestServerReadConfig(t *testing.T) {
 	t.Parallel()
 
 	s := ServerCommand{}
-	c, err := s.readConfig("testdata/mgmtd.yml")
+	c, err := s.readConfig("testdata/scylla-mgmt.yml")
 	if err != nil {
 		t.Fatal(err)
 	}

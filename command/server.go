@@ -86,7 +86,7 @@ type ServerCommand struct {
 // InitFlags sets the command flags.
 func (cmd *ServerCommand) InitFlags() {
 	f := cmd.BaseCommand.NewFlagSet(cmd)
-	f.StringVar(&cmd.configFile, "config-file", "mgmtd.yaml", "Path to a YAML file to read configuration from.")
+	f.StringVar(&cmd.configFile, "config-file", "/etc/scylla-mgmt/scylla-mgmt.yaml", "Path to a YAML file to read configuration from.")
 	f.BoolVar(&cmd.debug, "debug", false, "")
 
 	cmd.HideFlags("debug")

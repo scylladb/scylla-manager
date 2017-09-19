@@ -70,8 +70,8 @@ gen:
 # release creates a release built in release directory.
 release: clean
 	@mkdir -p release/linux_amd64
-	@GOOS=linux GOARCH=amd64 $(gobuild) -race -o release/linux_amd64/mgmtd-race ./cmd/mgmtd
-	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(gobuild) -o release/linux_amd64/mgmtd ./cmd/mgmtd
+	@GOOS=linux GOARCH=amd64 $(gobuild) -race -o release/linux_amd64/scylla-mgmt-race ./cmd/scylla-mgmt
+	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(gobuild) -o release/linux_amd64/scylla-mgmt ./cmd/scylla-mgmt
 
 # get-tools installs all the required tools for other targets.
 .PHONY: get-tools
