@@ -1,13 +1,10 @@
-# bind to the specified TCP address using HTTP protocol
 http: 127.0.0.1:8080
 
-# management database configuration
 database:
   hosts:
     - 172.16.1.10
     - 172.16.1.20
 
-# cluster settings
 clusters:
   - uuid: a3f1b32b-ed5b-438d-81a7-c82eb7bde800
     hosts:
