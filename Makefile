@@ -73,6 +73,11 @@ release: clean
 	@GOOS=linux GOARCH=amd64 $(gobuild) -race -o release/linux_amd64/scylla-mgmt-race ./cmd/scylla-mgmt
 	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(gobuild) -o release/linux_amd64/scylla-mgmt ./cmd/scylla-mgmt
 
+# logs shows scylla-mgmt logs.
+.PHONY: logs
+logs:
+	journalctl -t scylla-mgmt --since "5 seconds ago" -f
+
 # get-tools installs all the required tools for other targets.
 .PHONY: get-tools
 get-tools:
