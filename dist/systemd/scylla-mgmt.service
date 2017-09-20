@@ -1,0 +1,14 @@
+[Unit]
+Description=Scylla Management Server
+After=network-online.target
+
+[Service]
+Type=simple
+User=scylla
+Group=scylla
+ExecStart=/usr/bin/scylla-mgmt server
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

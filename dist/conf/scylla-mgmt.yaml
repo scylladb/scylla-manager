@@ -1,7 +1,7 @@
 # Scylla management config YAML
 
 # Bind REST API to the specified TCP address using HTTP protocol.
-http: 127.0.0.1:80
+http: 127.0.0.1:9090
 
 # Bind REST API to the specified TCP address using HTTPS protocol.
 # https: 127.0.0.1:443

@@ -4,10 +4,12 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -63,9 +65,6 @@ func (c *serverConfig) validate() error {
 		return errors.New("missing database.hosts")
 	}
 
-	if len(c.Clusters) == 0 {
-		return errors.New("no clusters configured")
-	}
 	for _, cluster := range c.Clusters {
 		if len(cluster.Hosts) == 0 {
 			errors.Errorf("no hosts for clusters %s", cluster.UUID)
@@ -96,32 +95,37 @@ func (cmd *ServerCommand) InitFlags() {
 func (cmd *ServerCommand) Run(args []string) int {
 	// parse command line arguments
 	if err := cmd.Parse(args); err != nil {
-		cmd.UI.Error(errors.Wrap(err, "flags").Error())
+		cmd.UI.Error(fmt.Sprintf("Command line error: %s", err))
 		return 1
+	}
+
+	// try to make absolute path
+	if absp, err := filepath.Abs(cmd.configFile); err == nil {
+		cmd.configFile = absp
 	}
 
 	// read configuration
 	config, err := cmd.readConfig(cmd.configFile)
 	if err != nil {
-		cmd.UI.Error(errors.Wrap(err, "failed to read configuration").Error())
+		cmd.UI.Error(fmt.Sprintf("Configuration error %s: %s", cmd.configFile, err))
 		return 1
 	}
 	if err := config.validate(); err != nil {
-		cmd.UI.Error(errors.Wrap(err, "invalid configuration").Error())
+		cmd.UI.Error(fmt.Sprintf("Configuration error %s: %s", cmd.configFile, err))
 		return 1
 	}
 
 	// create logger
 	logger, err := cmd.logger()
 	if err != nil {
-		cmd.UI.Error(errors.Wrap(err, "failed to create logger").Error())
+		cmd.UI.Error(fmt.Sprintf("Logger error: %s", err))
 		return 1
 	}
 
 	// create database session
 	session, err := cmd.clusterConfig(config).CreateSession()
 	if err != nil {
-		cmd.UI.Error(errors.Wrap(err, "failed to create database session").Error())
+		cmd.UI.Error(fmt.Sprintf("Database error: %s", err))
 		return 1
 	}
 	defer session.Close()
@@ -131,7 +135,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 	for _, c := range config.Clusters {
 		client, err := scylla.NewClient(c.Hosts, logger.Named("scylla"))
 		if err != nil {
-			cmd.UI.Error(errors.Wrap(err, "failed to create scylla api client").Error())
+			cmd.UI.Error(fmt.Sprintf("API client error: %s", err))
 			return 1
 		}
 		m[c.UUID] = client
@@ -148,7 +152,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 	// create repair service
 	repairSvc, err := repair.NewService(session, provider, logger.Named("repair"))
 	if err != nil {
-		cmd.UI.Error(errors.Wrap(err, "service init error").Error())
+		cmd.UI.Error(fmt.Sprintf("Repair service error: %s", err))
 		return 1
 	}
 
@@ -158,8 +162,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 	// in debug mode launch gops agent
 	if cmd.debug {
 		if err := agent.Listen(nil); err != nil {
-			cmd.UI.Error(errors.Wrap(err, "failed to run debug agent").Error())
-			return 1
+			cmd.UI.Error(fmt.Sprintf("Debug agent startup error: %s", err))
 		}
 	}
 
@@ -171,6 +174,10 @@ func (cmd *ServerCommand) Run(args []string) int {
 		ctx   = context.Background()
 		errCh = make(chan error, 2)
 	)
+
+	if len(config.Clusters) == 0 {
+		logger.Info(ctx, "No clusters configured")
+	}
 
 	if config.HTTP != "" {
 		httpServer = &http.Server{
@@ -280,7 +287,6 @@ func (cmd *ServerCommand) readConfig(file string) (*serverConfig, error) {
 
 func (cmd *ServerCommand) defaultConfig() *serverConfig {
 	return &serverConfig{
-		HTTP: "localhost:80",
 		Database: dbConfig{
 			Keyspace: "scylla_management",
 		},

@@ -1,6 +1,6 @@
 all: clean check test
 
-GO_FILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
+GOFILES := go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
 # clean removes the build files.
 .PHONY: clean
@@ -13,7 +13,7 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 
 .PHONY: .check-copyright
 .check-copyright:
-	@set -e; for f in `$(GO_FILES)`; do \
+	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ /scylla/internal/ ]] || \
 		[[ $$f =~ .*_mock[.]go ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
@@ -39,7 +39,7 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 
 .PHONY: .check-ineffassign
 .check-ineffassign:
-	@ineffassign `$(GO_FILES)`
+	@ineffassign `$(GOFILES)`
 
 # fmt formats the source code.
 .PHONY: fmt
