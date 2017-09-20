@@ -1,7 +1,7 @@
 all: clean check test
 
 gobuild = go build -ldflags "-X main.version=`git describe --always`"
-gofiles = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
+gofiles = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
 # clean removes the build files.
 .PHONY: clean
