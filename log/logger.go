@@ -19,13 +19,6 @@ func NewLogger(base *zap.Logger) Logger {
 	return Logger{base: base}
 }
 
-// NewDevelopmentLogger creates a new logger that writes DebugLevel and above
-// logs to standard error in a human-friendly format.
-func NewDevelopmentLogger() Logger {
-	l, _ := zap.NewDevelopment()
-	return Logger{base: l}
-}
-
 // NopLogger doesn't log anything.
 var NopLogger = Logger{}
 
