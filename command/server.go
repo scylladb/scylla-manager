@@ -186,7 +186,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 		}
 
 		go func() {
-			logger.Info(ctx, "Starting HTTP", "Address", httpServer.Addr)
+			logger.Info(ctx, "Starting HTTP", "address", httpServer.Addr)
 			if err := httpServer.ListenAndServe(); err != nil {
 				errCh <- err
 			}
@@ -200,7 +200,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 		}
 
 		go func() {
-			logger.Info(ctx, "Starting HTTPS", "Address", httpsServer.Addr)
+			logger.Info(ctx, "Starting HTTPS", "address", httpsServer.Addr)
 			if err := httpsServer.ListenAndServeTLS(config.TLSCertFile, config.TLSKeyFile); err != nil {
 				errCh <- err
 			}
@@ -213,11 +213,11 @@ func (cmd *ServerCommand) Run(args []string) int {
 	select {
 	case err := <-errCh:
 		if err != nil {
-			logger.Error(ctx, "Server error", "Error", err)
+			logger.Error(ctx, "Server error", "error", err)
 		}
 	case sig := <-signalCh:
 		{
-			logger.Info(ctx, "Received signal", "Signal", sig)
+			logger.Info(ctx, "Received signal", "signal", sig)
 		}
 	}
 
@@ -235,7 +235,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 		go func() {
 			defer wg.Done()
 			if err := httpServer.Shutdown(timeoutCtx); err != nil {
-				logger.Info(ctx, "Closing HTTP error", "Error", err)
+				logger.Info(ctx, "Closing HTTP error", "error", err)
 			}
 		}()
 	}
@@ -246,7 +246,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 		go func() {
 			defer wg.Done()
 			if err := httpsServer.Shutdown(timeoutCtx); err != nil {
-				logger.Info(ctx, "Closing HTTPS error", "Error", err)
+				logger.Info(ctx, "Closing HTTPS error", "error", err)
 			}
 		}()
 	}

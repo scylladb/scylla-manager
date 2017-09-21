@@ -46,8 +46,8 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err := t.parent.RoundTrip(r)
 	if resp != nil {
 		t.logger.Debug(ctx, "Response",
-			"URL", r.URL,
-			"StatusCode", resp.StatusCode,
+			"url", r.URL,
+			"status_code", resp.StatusCode,
 		)
 		fixResponse(resp)
 	}

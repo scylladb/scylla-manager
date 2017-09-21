@@ -55,7 +55,7 @@ func (w *worker) init(ctx context.Context) error {
 
 	shards := splitSegmentsToShards(w.Segments, p)
 	if err := validateShards(w.Segments, shards, p); err != nil {
-		w.logger.Info(ctx, "Suboptimal sharding", "Error", err)
+		w.logger.Info(ctx, "Suboptimal sharding", "error", err)
 	}
 
 	w.shards = make([]*shardWorker, len(shards))
@@ -75,7 +75,7 @@ func (w *worker) init(ctx context.Context) error {
 				Shard:        i,
 				SegmentCount: len(segments),
 			},
-			logger: w.logger.With("Shard", i),
+			logger: w.logger.With("shard", i),
 		}
 
 		if err := w.Service.putRunProgress(ctx, w.shards[i].progress); err != nil {
@@ -120,7 +120,7 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	w.logger.Info(ctx, "Starting repair")
-	w.logger.Debug(ctx, "Segment stats", "Stats", segmentsStats(w.segments))
+	w.logger.Debug(ctx, "Segment stats", "stats", segmentsStats(w.segments))
 
 	var (
 		start = 0
@@ -135,7 +135,7 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 		})
 		if err != nil {
 			// TODO limited tolerance to errors, 30m errors non stop ignore...
-			w.logger.Info(ctx, "Repair request failed", "Error", err)
+			w.logger.Info(ctx, "Repair request failed", "error", err)
 			w.progress.SegmentError += end - start
 		} else {
 			// sevepoint
@@ -145,7 +145,7 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 			w.updateProgress(ctx)
 
 			if err := w.waitCommand(ctx, id); err != nil {
-				w.logger.Info(ctx, "Repair failed", "Error", err)
+				w.logger.Info(ctx, "Repair failed", "error", err)
 				w.progress.SegmentError += end - start
 			} else {
 				w.progress.SegmentSuccess += end - start
@@ -156,7 +156,7 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 		start = end
 		end += segmentsPerRequest
 
-		w.logger.Info(ctx, "Progress", "Percent", w.percentDone())
+		w.logger.Info(ctx, "Progress", "percent", w.percentDone())
 	}
 }
 
@@ -190,7 +190,7 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 
 func (w *shardWorker) updateProgress(ctx context.Context) {
 	if err := w.parent.Service.putRunProgress(ctx, w.progress); err != nil {
-		w.logger.Error(ctx, "Cannot update the run progress", "Error", err)
+		w.logger.Error(ctx, "Cannot update the run progress", "error", err)
 	}
 }
 

@@ -3,6 +3,7 @@
 package restapi
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -54,9 +55,7 @@ type httpLogger struct {
 
 func (h httpLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	le := &httpLogEntry{
-		req: r, l: h.l.With(
-			"Method", r.Method,
-			"URL", r.URL),
+		req: r, l: h.l.With("method", r.Method, "url", r.URL),
 	}
 	return le
 }
@@ -68,16 +67,14 @@ type httpLogEntry struct {
 
 func (e *httpLogEntry) Write(status, bytes int, elapsed time.Duration) {
 	e.l.Debug(e.req.Context(), "HTTP",
-		"Status", status,
-		"Bytes", bytes,
-		"Elapsed", elapsed,
+		"status", status,
+		"bytes", bytes,
+		"duration", fmt.Sprintf("%dms", elapsed/1000000),
 	)
 }
 
 func (e *httpLogEntry) Panic(v interface{}, stack []byte) {
-	e.l.Error(e.req.Context(), "HTTP Panic",
-		"Panic", v,
-	)
+	e.l.Error(e.req.Context(), "HTTP Panic", "panic", v)
 }
 
 // AddFields appends additional log.Logger key-value pairs to the request
