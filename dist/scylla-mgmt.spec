@@ -19,10 +19,12 @@ row DB.
 %install
 mkdir -p %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/
+mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/cql
 mkdir -p %{buildroot}%{_unitdir}
 
 install -m755 scylla-mgmt %{buildroot}%{_bindir}/
 install -m644 *.yaml %{buildroot}%{_sysconfdir}/scylla-mgmt/
+install -m644 *.cql %{buildroot}%{_sysconfdir}/scylla-mgmt/cql
 install -m644 *.service %{buildroot}%{_unitdir}
 
 %pre
@@ -33,5 +35,6 @@ getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla 2
 %defattr(-,root,root)
 
 %config(noreplace) %{_sysconfdir}/scylla-mgmt/*.yaml
+%{_sysconfdir}/scylla-mgmt/cql/*.cql
 %{_bindir}/scylla-mgmt
 %{_unitdir}/*.service

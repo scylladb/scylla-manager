@@ -18,7 +18,6 @@ down:
 .PHONY: init
 init:
 	$(CQLSH) -f init.cql
-	$(CQLSH) -f ../schema/cql/001_initial_schema.cql -k scylla_management
 
 # bash opens a bash shell in seed node.
 bash:

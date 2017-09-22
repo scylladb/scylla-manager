@@ -33,6 +33,7 @@ release/rpm: release
 
 	@ln release/scylla-mgmt-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
 	@ln release/linux_amd64/scylla-mgmt $(RPMBUILD)/BUILD
+	@ln -f ../schema/cql/*.cql $(RPMBUILD)/BUILD
 
 	@rpmbuild -ba --target x86_64 --quiet \
 	--define "version $(VERSION)" \
@@ -46,3 +47,6 @@ release/rpm: release
 
 .PHONY: package
 package: release/rpm
+
+inspect:
+	@rpm -qpli release/rpm/scylla-mgmt-$(VERSION_NAME).x86_64.rpm

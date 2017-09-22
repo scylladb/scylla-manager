@@ -17,6 +17,8 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/gops/agent"
 	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
@@ -33,10 +35,13 @@ type clusterConfig struct {
 }
 
 type dbConfig struct {
-	Hosts    []string `yaml:"hosts"`
-	Keyspace string   `yaml:"keyspace"`
-	User     string   `yaml:"user"`
-	Password string   `yaml:"password"`
+	Hosts                         []string      `yaml:"hosts"`
+	Keyspace                      string        `yaml:"keyspace"`
+	User                          string        `yaml:"user"`
+	Password                      string        `yaml:"password"`
+	MigrateDir                    string        `yaml:"migrate_dir"`
+	MigrateTimeout                time.Duration `yaml:"migrate_timeout"`
+	MigrateMaxWaitSchemaAgreement time.Duration `yaml:"migrate_max_wait_schema_agreement"`
 }
 
 type serverConfig struct {
@@ -115,10 +120,26 @@ func (cmd *ServerCommand) Run(args []string) int {
 		return 1
 	}
 
+	// get a base context
+	ctx := context.Background()
+
 	// create logger
 	logger, err := cmd.logger()
 	if err != nil {
 		cmd.UI.Error(fmt.Sprintf("Logger error: %s", err))
+		return 1
+	}
+
+	// create management keyspace if needed
+	if err := cmd.ensureKeyspaceExists(config); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Database error: %s", err))
+		return 1
+	}
+
+	// migrate schema
+	logger.Info(ctx, "Migrating schema", "dir", config.Database.MigrateDir)
+	if err := cmd.migrateSchema(config); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Database migration error: %s", err))
 		return 1
 	}
 
@@ -170,9 +191,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 	var (
 		httpServer  *http.Server
 		httpsServer *http.Server
-
-		ctx   = context.Background()
-		errCh = make(chan error, 2)
+		errCh       = make(chan error, 2)
 	)
 
 	if len(config.Clusters) == 0 {
@@ -288,9 +307,62 @@ func (cmd *ServerCommand) readConfig(file string) (*serverConfig, error) {
 func (cmd *ServerCommand) defaultConfig() *serverConfig {
 	return &serverConfig{
 		Database: dbConfig{
-			Keyspace: "scylla_management",
+			Keyspace:                      "scylla_management",
+			MigrateDir:                    "/etc/scylla-mgmt/cql",
+			MigrateTimeout:                30 * time.Second,
+			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 		},
 	}
+}
+
+func (cmd *ServerCommand) logger() (log.Logger, error) {
+	if cmd.debug {
+		return log.NewDevelopment(), nil
+	}
+	return log.NewProduction("scylla-mgmt")
+}
+
+func (cmd *ServerCommand) ensureKeyspaceExists(config *serverConfig) error {
+	c := cmd.clusterConfig(config)
+	c.Consistency = gocql.Quorum
+	c.Keyspace = "system"
+	c.Timeout = config.Database.MigrateTimeout
+	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
+
+	session, err := c.CreateSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	// create keyspace if not present
+	if _, err := session.KeyspaceMetadata(config.Database.Keyspace); err != nil {
+		stmt := fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}", config.Database.Keyspace)
+		if err := gocqlx.Query(session.Query(stmt), nil).ExecRelease(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (cmd *ServerCommand) migrateSchema(config *serverConfig) error {
+	c := cmd.clusterConfig(config)
+	c.Consistency = gocql.Quorum
+	c.Timeout = config.Database.MigrateTimeout
+	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
+
+	session, err := c.CreateSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	if err := migrate.Migrate(context.Background(), session, config.Database.MigrateDir); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConfig {
@@ -309,11 +381,4 @@ func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConf
 	}
 
 	return c
-}
-
-func (cmd *ServerCommand) logger() (log.Logger, error) {
-	if cmd.debug {
-		return log.NewDevelopment(), nil
-	}
-	return log.NewProduction("scylla-mgmt")
 }

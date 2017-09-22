@@ -3,19 +3,16 @@
 package mermaidtest
 
 import (
-	"bufio"
+	"context"
 	"flag"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx/migrate"
 )
 
 var (
@@ -67,7 +64,9 @@ func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocq
 		tb.Fatal("createSession:", err)
 	}
 
-	createTables(tb, session)
+	if err := migrate.Migrate(context.Background(), session, "../schema/cql"); err != nil {
+		tb.Fatal("migrate:", err)
+	}
 
 	return session
 }
@@ -88,58 +87,6 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 		'class' : 'SimpleStrategy',
 		'replication_factor' : %d
 	}`, keyspace, *flagRF))
-}
-
-func createTables(tb testing.TB, session *gocql.Session) {
-	files, err := filepath.Glob("../schema/cql/*.cql")
-	if err != nil {
-		tb.Fatal(err)
-	}
-	sort.Strings(files)
-
-	for _, file := range files {
-		f, err := os.Open(file)
-		if err != nil {
-			tb.Fatal(err)
-		}
-		defer f.Close()
-
-		loadCql(tb, session, f)
-
-		if err := f.Close(); err != nil {
-			tb.Fatal(err)
-		}
-	}
-}
-
-func loadCql(tb testing.TB, session *gocql.Session, r io.Reader) {
-	var lines []string
-	b := bufio.NewReader(r)
-	for {
-		l, err := b.ReadString('\n')
-		if err != nil {
-			break
-		}
-		l = strings.TrimSpace(l)
-
-		// skip empty line
-		if len(l) == 0 {
-			continue
-		}
-
-		// skip comment
-		if strings.HasPrefix(l, "--") {
-			continue
-		}
-
-		lines = append(lines, l)
-
-		// if all, execute
-		if strings.HasSuffix(l, ";") {
-			mustExec(tb, session, strings.Join(lines, " "))
-			lines = nil
-		}
-	}
 }
 
 func mustExec(tb testing.TB, s *gocql.Session, stmt string) {
