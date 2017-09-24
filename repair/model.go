@@ -58,21 +58,21 @@ func (c *ConfigType) UnmarshalText(text []byte) error {
 // Config specifies how a Unit is repaired.
 type Config struct {
 	// Enabled specifies if repair should take place at all.
-	Enabled *bool
+	Enabled *bool `json:"enabled,omitempty"`
 	// SegmentSizeLimit specifies in how many steps a shard will be repaired,
 	// increasing this value decreases singe node repair command time and
 	// increases number of node repair commands.
-	SegmentSizeLimit *int64
+	SegmentSizeLimit *int64 `json:"segment_size_limit,omitempty"`
 	// RetryLimit specifies how many times a failed segment should be retried
 	// before reporting an error.
-	RetryLimit *int
+	RetryLimit *int `json:"retry_limit,omitempty"`
 	// RetryBackoffSeconds specifies minimal time in seconds to wait before
 	// retrying a failed segment.
-	RetryBackoffSeconds *int
+	RetryBackoffSeconds *int `json:"retry_backoff_seconds,omitempty"`
 	// ParallelShardPercent specifies how many shards on a node can be repaired
 	// in parallel as a percent of total shards. ParallelShardPercent takes
 	// values from 0 to 1.
-	ParallelShardPercent *float32
+	ParallelShardPercent *float32 `json:"parallel_shard_percent,omitempty"`
 }
 
 // Validate checks if all the fields are properly set.

@@ -4,12 +4,15 @@ package restapi
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/uuid"
@@ -23,6 +26,10 @@ type RepairService interface {
 	PutUnit(ctx context.Context, u *repair.Unit) error
 	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 	ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*repair.Unit, error)
+
+	GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.Config, error)
+	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error
+	DeleteConfig(ctx context.Context, src repair.ConfigSource) error
 }
 
 type repairHandler struct {
@@ -41,6 +48,13 @@ func newRepairHandler(svc RepairService) http.Handler {
 	h.Get("/unit/{unit_id}", h.loadUnit)
 	h.Put("/unit/{unit_id}", h.updateUnit)
 	h.Delete("/unit/{unit_id}", h.deleteUnit)
+
+	h.Get("/config", h.getConfig)
+	h.Get("/config/{config_type}/{external_id}", h.getConfig)
+	h.Put("/config", h.updateConfig)
+	h.Put("/config/{config_type}/{external_id}", h.updateConfig)
+	h.Delete("/config", h.deleteConfig)
+	h.Delete("/config/{config_type}/{external_id}", h.deleteConfig)
 
 	return h
 }
@@ -148,5 +162,84 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 	if err := h.svc.DeleteUnit(r.Context(), clusterIDFromCtx(r.Context()), id); err != nil {
 		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete unit"))
 		return
+	}
+}
+
+type repairConfigRequest struct {
+	*repair.Config
+	repair.ConfigSource `json:"-"`
+}
+
+func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
+	var cr repairConfigRequest
+	if err := render.DecodeJSON(r.Body, &cr.Config); err != nil {
+		if err != io.EOF {
+			return nil, httpErrBadRequest(err)
+		}
+	}
+
+	routeCtx := chi.RouteContext(r.Context())
+	if typ := routeCtx.URLParam("config_type"); typ != "" {
+		err := cr.Type.UnmarshalText([]byte(typ))
+		if err != nil {
+			return nil, httpErrBadRequest(errors.Wrap(err, "bad config type"))
+		}
+	} else {
+		cr.Type = repair.ClusterConfig
+	}
+	switch cr.Type {
+	case repair.UnitConfig, repair.KeyspaceConfig, repair.ClusterConfig:
+	default:
+		return nil, httpErrBadRequest(fmt.Errorf("config type %q not allowed", cr.Type))
+	}
+
+	if id := routeCtx.URLParam("external_id"); id != "" {
+		cr.ExternalID = id
+	}
+	cr.ClusterID = clusterIDFromCtx(r.Context())
+	return &cr, nil
+}
+
+func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
+	cr, err := parseConfigRequest(r)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+
+	c, err := h.svc.GetConfig(r.Context(), cr.ConfigSource)
+	if err != nil {
+		if err == mermaid.ErrNotFound {
+			render.Respond(w, r, httpErrNotFound(err))
+		} else {
+			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load config"))
+		}
+		return
+	}
+	render.Respond(w, r, c)
+}
+
+func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
+	cr, err := parseConfigRequest(r)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+
+	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.Config); err != nil {
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to update config"))
+		return
+	}
+}
+
+func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
+	cr, err := parseConfigRequest(r)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+
+	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete config"))
 	}
 }
