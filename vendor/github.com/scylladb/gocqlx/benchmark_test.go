@@ -1,3 +1,7 @@
+// Copyright (C) 2017 ScyllaDB
+// Use of this source code is governed by a ALv2-style
+// license that can be found in the LICENSE file.
+
 // +build all integration
 
 package gocqlx_test
@@ -35,7 +39,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.bench_person (
 var benchPersonCols = []string{"id", "first_name", "last_name", "email", "gender", "ip_address"}
 
 func loadFixtures() []*benchPerson {
-	f, err := os.Open("test-fixtures/people.json")
+	f, err := os.Open("testdata/people.json")
 	if err != nil {
 		panic(err)
 	}
