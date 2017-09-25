@@ -13,7 +13,7 @@ import (
 // NewDevelopment creates a new logger that writes DebugLevel and above
 // logs to standard error in a human-friendly format.
 func NewDevelopment() Logger {
-	l, _ := zap.NewDevelopment()
+	l, _ := zap.NewDevelopment(zap.AddCallerSkip(2))
 	return Logger{base: l}
 }
 
@@ -28,6 +28,7 @@ func NewProduction(tag string) (Logger, error) {
 	opts := []zap.Option{
 		zap.ErrorOutput(os.Stderr),
 		zap.AddStacktrace(zapcore.ErrorLevel),
+		zap.AddCallerSkip(2),
 	}
 
 	cfg := zap.NewProductionEncoderConfig()

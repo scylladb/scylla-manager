@@ -20,7 +20,6 @@ import (
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/zap"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
@@ -418,9 +417,9 @@ func createTable(t *testing.T, s *gocql.Session, table string) error {
 }
 
 func prodLogger(t *testing.T) log.Logger {
-	z, err := zap.NewProduction()
+	z, err := log.NewProduction("integration")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return log.NewLogger(z)
+	return z
 }
