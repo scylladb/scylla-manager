@@ -47,7 +47,7 @@ func NewService(session *gocql.Session, p scylla.ProviderFunc, l log.Logger) (*S
 
 // Repair starts an asynchronous repair process.
 func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
-	s.logger.Debug(ctx, "Repair", "Unit", u, "TaskID", taskID)
+	s.logger.Debug(ctx, "Repair", "unit", u, "task_id", taskID)
 
 	// validate a unit
 	if err := u.Validate(); err != nil {
@@ -59,7 +59,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get a unit configuration")
 	}
-	s.logger.Debug(ctx, "Using config", "Config", &c.Config)
+	s.logger.Debug(ctx, "Using config", "config", &c.Config)
 
 	// register a run with preparing status
 	r := Run{
@@ -82,8 +82,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 
 		if err := s.putRun(ctx, &r); err != nil {
 			s.logger.Error(ctx, "Cannot update the run",
-				"Run", &r,
-				"Error", err,
+				"run", &r,
+				"error", err,
 			)
 		}
 
@@ -166,9 +166,9 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	// spawn async repair
 	wctx := log.WithTraceID(context.Background())
 	s.logger.Info(ctx, "Starting async repair",
-		"TaskID", taskID,
-		"Unit", u,
-		"WorkerTraceID", log.TraceID(wctx),
+		"task_id", taskID,
+		"unit", u,
+		"worker_trace_id", log.TraceID(wctx),
 	)
 	go s.asyncRepair(wctx, &r, &c.Config, cluster, hostSegments)
 
@@ -185,10 +185,10 @@ func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *s
 			Host:     host,
 			Segments: segments,
 
-			logger: s.logger.Named("worker").With("TaskID", r.ID, "Host", host),
+			logger: s.logger.Named("worker").With("task_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
-			s.logger.Error(ctx, "Worker exec failed", "Error", err)
+			s.logger.Error(ctx, "Worker exec failed", "error", err)
 		}
 	}
 }
@@ -196,7 +196,7 @@ func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *s
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetRun", "Unit", u, "TaskID", taskID)
+	s.logger.Debug(ctx, "GetRun", "unit", u, "task_id", taskID)
 
 	stmt, names := schema.RepairRun.Get()
 
@@ -219,7 +219,7 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, 
 
 // putRun upserts a repair run.
 func (s *Service) putRun(ctx context.Context, r *Run) error {
-	s.logger.Debug(ctx, "PutRun", "Run", r)
+	s.logger.Debug(ctx, "PutRun", "run", r)
 
 	stmt, names := schema.RepairRun.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
@@ -230,7 +230,7 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 // GetProgress returns run host progress. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetProgress(ctx context.Context, u *Unit, taskID uuid.UUID) ([]*RunProgress, error) {
-	s.logger.Debug(ctx, "GetProgress", "Unit", u, "TaskID", taskID)
+	s.logger.Debug(ctx, "GetProgress", "unit", u, "task_id", taskID)
 
 	stmt, names := schema.RepairRunProgress.Select()
 
@@ -253,7 +253,7 @@ func (s *Service) GetProgress(ctx context.Context, u *Unit, taskID uuid.UUID) ([
 
 // putRunProgress upserts a repair run.
 func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
-	s.logger.Debug(ctx, "PutRunProgress", "RunProgress", p)
+	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
 
 	stmt, names := schema.RepairRunProgress.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(p)
@@ -266,7 +266,7 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 // disabled the resulting configuration is disabled. For other fields first
 // matching configuration is used.
 func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo, error) {
-	s.logger.Debug(ctx, "GetMergedUnitConfig", "Unit", u)
+	s.logger.Debug(ctx, "GetMergedUnitConfig", "unit", u)
 
 	order := []ConfigSource{
 		{
@@ -313,7 +313,7 @@ func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo
 // GetConfig returns repair configuration for a given object. If nothing was
 // found mermaid.ErrNotFound is returned.
 func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, error) {
-	s.logger.Debug(ctx, "GetConfig", "Source", src)
+	s.logger.Debug(ctx, "GetConfig", "source", src)
 
 	stmt, names := schema.RepairConfig.Get()
 
@@ -332,7 +332,7 @@ func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, err
 
 // PutConfig upserts repair configuration for a given object.
 func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *Config) error {
-	s.logger.Debug(ctx, "PutConfig", "Source", src, "Config", c)
+	s.logger.Debug(ctx, "PutConfig", "source", src, "config", c)
 
 	if err := c.Validate(); err != nil {
 		return err
@@ -351,7 +351,7 @@ func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *Config) er
 
 // DeleteConfig removes repair configuration for a given object.
 func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
-	s.logger.Debug(ctx, "DeleteConfig", "Source", src)
+	s.logger.Debug(ctx, "DeleteConfig", "source", src)
 
 	stmt, names := schema.RepairConfig.Delete()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
@@ -361,7 +361,7 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 
 // ListUnits returns all the Units in a given cluster.
 func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*Unit, error) {
-	s.logger.Debug(ctx, "ListUnits", "ClusterID", clusterID)
+	s.logger.Debug(ctx, "ListUnits", "cluster_id", clusterID)
 
 	stmt, names := schema.RepairUnit.Select()
 
@@ -385,7 +385,7 @@ func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*Unit, 
 // GetUnit returns repair unit based on ID. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, error) {
-	s.logger.Debug(ctx, "GetUnit", "ClusterID", clusterID, "ID", ID)
+	s.logger.Debug(ctx, "GetUnit", "cluster_id", clusterID, "id", ID)
 
 	stmt, names := schema.RepairUnit.Get()
 
@@ -408,7 +408,7 @@ func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, 
 // PutUnit upserts a repair unit, unit instance must pass Validate() checks.
 // If u.ID == uuid.Nil a new one is generated.
 func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
-	s.logger.Debug(ctx, "PutUnit", "Unit", u)
+	s.logger.Debug(ctx, "PutUnit", "unit", u)
 	if u == nil {
 		return errors.New("nil unit")
 	}
@@ -432,7 +432,7 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 
 // DeleteUnit removes repair based on ID.
 func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error {
-	s.logger.Debug(ctx, "DeleteUnit", "ClusterID", clusterID, "ID", ID)
+	s.logger.Debug(ctx, "DeleteUnit", "cluster_id", clusterID, "id", ID)
 
 	stmt, names := schema.RepairUnit.Delete()
 

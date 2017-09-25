@@ -35,8 +35,6 @@ func NewProduction(tag string) (Logger, error) {
 	// ignore level and time as they will be logged by syslog
 	cfg.LevelKey = ""
 	cfg.TimeKey = ""
-	// use short message key
-	cfg.MessageKey = "m"
 
 	l := zap.New(NewSyslogCore(
 		zapcore.NewJSONEncoder(cfg),
