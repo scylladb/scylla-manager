@@ -4,6 +4,7 @@ package repair
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"time"
 
@@ -19,11 +20,40 @@ type ConfigType string
 
 // ConfigType enumeration.
 const (
-	UnitConfig     ConfigType = "unit"
-	KeyspaceConfig            = "keyspace"
-	ClusterConfig             = "cluster"
-	tenantConfig              = "tenant"
+	UnknownConfigType ConfigType = "unknown"
+	UnitConfig        ConfigType = "unit"
+	KeyspaceConfig    ConfigType = "keyspace"
+	ClusterConfig     ConfigType = "cluster"
+	tenantConfig      ConfigType = "tenant"
 )
+
+func (c ConfigType) String() string {
+	return string(c)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (c ConfigType) MarshalText() (text []byte, err error) {
+	return []byte(c.String()), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (c *ConfigType) UnmarshalText(text []byte) error {
+	switch s := ConfigType(text); {
+	case s == UnknownConfigType:
+		*c = UnknownConfigType
+	case s == UnitConfig:
+		*c = UnitConfig
+	case s == KeyspaceConfig:
+		*c = KeyspaceConfig
+	case s == ClusterConfig:
+		*c = ClusterConfig
+	case s == tenantConfig:
+		*c = tenantConfig
+	default:
+		return fmt.Errorf("unrecognized ConfigType %q", s)
+	}
+	return nil
+}
 
 // Config specifies how a Unit is repaired.
 type Config struct {
@@ -170,12 +200,43 @@ type Status string
 
 // Status enumeration.
 const (
+	StatusUnknown Status = "unknown"
 	StatusRunning Status = "running"
 	StatusSuccess Status = "success"
 	StatusError   Status = "error"
 	StatusPaused  Status = "paused"
 	StatusAborted Status = "aborted"
 )
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s Status) MarshalText() (text []byte, err error) {
+	return []byte(s.String()), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *Status) UnmarshalText(text []byte) error {
+	switch txt := Status(text); {
+	case txt == StatusUnknown:
+		*s = StatusUnknown
+	case txt == StatusError:
+		*s = StatusError
+	case txt == StatusSuccess:
+		*s = StatusSuccess
+	case txt == StatusError:
+		*s = StatusError
+	case txt == StatusPaused:
+		*s = StatusPaused
+	case txt == StatusAborted:
+		*s = StatusAborted
+	default:
+		return fmt.Errorf("unrecognized Status %q", txt)
+	}
+	return nil
+}
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
