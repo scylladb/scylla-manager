@@ -1,3 +1,7 @@
+// Copyright (C) 2017 ScyllaDB
+// Use of this source code is governed by a ALv2-style
+// license that can be found in the LICENSE file.
+
 package gocqlx
 
 import (
@@ -77,7 +81,7 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 		return false
 	}
 	if iter.Iter.NumRows() == 0 {
-		iter.err = gocql.ErrNotFound
+		// no results or query error
 		return false
 	}
 
@@ -131,7 +135,7 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 		return false
 	}
 	if iter.Iter.NumRows() == 0 {
-		iter.err = gocql.ErrNotFound
+		// no results or query error
 		return false
 	}
 
@@ -216,7 +220,7 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 	}
 
 	if iter.Iter.NumRows() == 0 {
-		iter.err = gocql.ErrNotFound
+		// no results or query error
 		return false
 	}
 
@@ -228,7 +232,7 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 		// if we are not unsafe and are missing fields, return an error
 		if !iter.unsafe {
 			if f, err := missingFields(iter.fields); err != nil {
-				iter.err = fmt.Errorf("missing destination name %s in %T", columns[f], dest)
+				iter.err = fmt.Errorf("missing destination name %q in %T", columns[f], dest)
 				return false
 			}
 		}
@@ -257,9 +261,15 @@ func columnNames(ci []gocql.ColumnInfo) []string {
 // the query or the iteration.
 func (iter *Iterx) Close() error {
 	err := iter.Iter.Close()
-	if err != nil && iter.err == nil {
-		iter.err = err
+
+	if iter.err == nil {
+		if err != nil {
+			iter.err = err
+		} else if iter.Iter.NumRows() == 0 {
+			iter.err = gocql.ErrNotFound
+		}
 	}
+
 	return iter.err
 }
 

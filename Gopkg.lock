@@ -214,8 +214,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/scylladb/gocqlx"
-  packages = [".","qb"]
-  revision = "faa3a420623d3f5531aa4702ace54eee92c8062f"
+  packages = [".","migrate","qb"]
+  revision = "9604635e8e510365d44b260a143efc8d7768934a"
 
 [[projects]]
   branch = "master"
@@ -280,6 +280,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "61d26a939e28fe0069024545e6e890d5d62056b52414c9af1a6326a2c62b0110"
+  inputs-digest = "b7bcf9912d7c50b4bdcc1a7c714496027e62b526fb60e526310e442e7d5b024a"
   solver-name = "gps-cdcl"
   solver-version = 1

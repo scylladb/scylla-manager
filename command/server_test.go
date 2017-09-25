@@ -4,6 +4,7 @@ package command
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/mermaidtest"
@@ -28,10 +29,13 @@ func TestServerReadConfig(t *testing.T) {
 		TLSCertFile: "tls.cert",
 		TLSKeyFile:  "tls.key",
 		Database: dbConfig{
-			Hosts:    []string{"172.16.1.10", "172.16.1.20"},
-			Keyspace: "scylla_management",
-			User:     "user",
-			Password: "password",
+			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
+			Keyspace:                      "scylla_management",
+			User:                          "user",
+			Password:                      "password",
+			MigrateDir:                    "/etc/scylla-mgmt/cql",
+			MigrateTimeout:                30 * time.Second,
+			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 		},
 		Clusters: []*clusterConfig{{UUID: u, Hosts: []string{"172.16.1.10", "172.16.1.20"}}},
 	}

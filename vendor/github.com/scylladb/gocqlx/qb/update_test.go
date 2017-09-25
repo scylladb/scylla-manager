@@ -1,3 +1,7 @@
+// Copyright (C) 2017 ScyllaDB
+// Use of this source code is governed by a ALv2-style
+// license that can be found in the LICENSE file.
+
 package qb
 
 import (
@@ -31,6 +35,36 @@ func TestUpdateBuilder(t *testing.T) {
 			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Set("stars"),
 			S: "UPDATE cycling.cyclist_name SET id=?,user_uuid=?,firstname=?,stars=? WHERE id=? ",
 			N: []string{"id", "user_uuid", "firstname", "stars", "expr"},
+		},
+		// Add SET SetFunc
+		{
+			B: Update("cycling.cyclist_name").SetFunc("user_uuid", Fn("someFunc", "param_0", "param_1")).Where(w).Set("stars"),
+			S: "UPDATE cycling.cyclist_name SET user_uuid=someFunc(?,?),stars=? WHERE id=? ",
+			N: []string{"param_0", "param_1", "stars", "expr"},
+		},
+		// Add SET Add
+		{
+			B: Update("cycling.cyclist_name").Add("total").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total+? WHERE id=? ",
+			N: []string{"total", "expr"},
+		},
+		// Add SET AddNamed
+		{
+			B: Update("cycling.cyclist_name").AddNamed("total", "inc").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total+? WHERE id=? ",
+			N: []string{"inc", "expr"},
+		},
+		// Add SET Remove
+		{
+			B: Update("cycling.cyclist_name").Remove("total").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total-? WHERE id=? ",
+			N: []string{"total", "expr"},
+		},
+		// Add SET RemoveNamed
+		{
+			B: Update("cycling.cyclist_name").RemoveNamed("total", "dec").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total-? WHERE id=? ",
+			N: []string{"dec", "expr"},
 		},
 		// Add WHERE
 		{

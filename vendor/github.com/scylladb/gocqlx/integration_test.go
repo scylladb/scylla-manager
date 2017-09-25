@@ -1,3 +1,7 @@
+// Copyright (C) 2017 ScyllaDB
+// Use of this source code is governed by a ALv2-style
+// license that can be found in the LICENSE file.
+
 // +build all integration
 
 package gocqlx_test
@@ -231,7 +235,7 @@ func TestUnsafe(t *testing.T) {
 	t.Run("safe get", func(t *testing.T) {
 		var v UnsafeTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
-		if err := i.Get(&v); err == nil || err.Error() != "missing destination name testtextunbound in *gocqlx_test.UnsafeTable" {
+		if err := i.Get(&v); err == nil || err.Error() != "missing destination name \"testtextunbound\" in *gocqlx_test.UnsafeTable" {
 			t.Fatal("expected ErrNotFound", "got", err)
 		}
 	})
@@ -239,7 +243,7 @@ func TestUnsafe(t *testing.T) {
 	t.Run("safe select", func(t *testing.T) {
 		var v []UnsafeTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
-		if err := i.Select(&v); err == nil || err.Error() != "missing destination name testtextunbound in *gocqlx_test.UnsafeTable" {
+		if err := i.Select(&v); err == nil || err.Error() != "missing destination name \"testtextunbound\" in *gocqlx_test.UnsafeTable" {
 			t.Fatal("expected ErrNotFound", "got", err)
 		}
 		if cap(v) > 0 {
@@ -284,11 +288,31 @@ func TestNotFound(t *testing.T) {
 		Testtext string
 	}
 
+	t.Run("get cql error", func(t *testing.T) {
+		var v NotFoundTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table WRONG`))
+
+		err := i.Get(&v)
+		if err == nil || !strings.Contains(err.Error(), "WRONG") {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("get", func(t *testing.T) {
 		var v NotFoundTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table`))
 		if err := i.Get(&v); err != gocql.ErrNotFound {
 			t.Fatal("expected ErrNotFound", "got", err)
+		}
+	})
+
+	t.Run("select cql error", func(t *testing.T) {
+		var v []NotFoundTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table WRONG`))
+
+		err := i.Select(&v)
+		if err == nil || !strings.Contains(err.Error(), "WRONG") {
+			t.Fatal(err)
 		}
 	})
 

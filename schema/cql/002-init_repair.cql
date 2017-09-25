@@ -1,49 +1,6 @@
--- Scheduler
-
-CREATE TABLE IF NOT EXISTS scheduler_task (
-    cluster_id uuid,
-    type text,
-    external_id text,
-    tags set<text>,
-    metadata text,
-    priority smallint,
-    interval_days smallint,
-    next_activation timestamp,
-    PRIMARY KEY (cluster_id, type, external_id)
-);
-
-CREATE TABLE IF NOT EXISTS scheduler_user_task (
-    cluster_id uuid,
-    type text,
-    external_id text,
-    PRIMARY KEY (cluster_id, type, external_id)
-);
-
-CREATE TABLE IF NOT EXISTS scheduler_task_run (
-    cluster_id uuid,
-    type text,
-    external_id text,
-    id timeuuid,
-    status text,
-    cause text,
-    owner text,
-    start_time timestamp,
-    end_time timestamp,
-    pause_time timestamp,
-    PRIMARY KEY (cluster_id, type, external_id, id)
-);
-
-CREATE TABLE IF NOT EXISTS scheduler_active_run_by_cluster (
-    cluster_id uuid,
-    type text,
-    external_id text,
-    id timeuuid,
-    PRIMARY KEY (cluster_id, type, external_id, id)
-);
-
 -- Repair
 
-CREATE TABLE IF NOT EXISTS repair_unit (
+CREATE TABLE repair_unit (
     cluster_id uuid,
     id uuid,
     keyspace_name text,
@@ -51,7 +8,7 @@ CREATE TABLE IF NOT EXISTS repair_unit (
     PRIMARY KEY (cluster_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS repair_config (
+CREATE TABLE repair_config (
     cluster_id uuid,
     type text,
     external_id text,
@@ -66,7 +23,7 @@ CREATE TABLE IF NOT EXISTS repair_config (
 INSERT INTO repair_config (cluster_id, type,external_id, enabled, segment_size_limit, retry_limit, retry_backoff_seconds, parallel_shard_percent)
 VALUES (00000000-0000-4000-8000-000000000000, 'tenant', '', true, -1, 3, 60, 1);
 
-CREATE TABLE IF NOT EXISTS repair_run (
+CREATE TABLE repair_run (
     cluster_id uuid,
     unit_id uuid,
     id timeuuid,
@@ -82,7 +39,7 @@ CREATE TABLE IF NOT EXISTS repair_run (
     PRIMARY KEY(cluster_id, unit_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS repair_run_progress (
+CREATE TABLE repair_run_progress (
     cluster_id uuid,
     unit_id uuid,
     run_id uuid,
@@ -97,7 +54,7 @@ CREATE TABLE IF NOT EXISTS repair_run_progress (
     PRIMARY KEY((cluster_id, unit_id, run_id), host, shard)
 );
 
-CREATE TABLE IF NOT EXISTS repair_run_error (
+CREATE TABLE repair_run_error (
     cluster_id uuid,
     unit_id uuid,
     run_id uuid,
@@ -113,13 +70,3 @@ CREATE TABLE IF NOT EXISTS repair_run_error (
     fail_count int,
     PRIMARY KEY((cluster_id, unit_id, run_id), coordinator_host, shard, start_token)
 );
-
--- Events
-
-CREATE TABLE IF NOT EXISTS event (
-    external_id text,
-    type text,
-    event_time timestamp,
-    message text,
-    PRIMARY KEY((external_id, type), event_time)
-) WITH CLUSTERING ORDER BY (event_time DESC);
