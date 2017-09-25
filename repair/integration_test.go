@@ -29,7 +29,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		func(uuid.UUID) (*scylla.Client, error) {
 			return nil, errors.New("not implemented")
 		},
-		log.NewDevelopmentLogger().Named("repair"),
+		log.NewDevelopment().Named("repair"),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -324,7 +324,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	createKeyspace(t, session, "test_repair")
 	createTable(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
-	//l := log.NewDevelopmentLogger()
+	//l := log.NewDevelopment()
 	l := prodLogger(t)
 	s, err := repair.NewService(
 		session,

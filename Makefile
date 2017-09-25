@@ -1,7 +1,7 @@
 all: clean check test
 
 gobuild = go build -ldflags "-X main.version=`git describe --always`"
-gofiles = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
+gofiles = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
 # clean removes the build files.
 .PHONY: clean
@@ -72,6 +72,11 @@ release: clean
 	@mkdir -p release/linux_amd64
 	@GOOS=linux GOARCH=amd64 $(gobuild) -race -o release/linux_amd64/scylla-mgmt-race ./cmd/scylla-mgmt
 	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(gobuild) -o release/linux_amd64/scylla-mgmt ./cmd/scylla-mgmt
+
+# logs shows scylla-mgmt logs.
+.PHONY: logs
+logs:
+	journalctl -t scylla-mgmt --since "5 seconds ago" -f
 
 # get-tools installs all the required tools for other targets.
 .PHONY: get-tools

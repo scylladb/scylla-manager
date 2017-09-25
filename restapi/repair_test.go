@@ -157,7 +157,7 @@ func TestRepairUnitAPI(t *testing.T) {
 		},
 	}
 
-	logger := log.NewDevelopmentLogger()
+	logger := log.NewDevelopment()
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {

@@ -20,7 +20,6 @@ import (
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
@@ -307,19 +306,8 @@ func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConf
 }
 
 func (cmd *ServerCommand) logger() (log.Logger, error) {
-	var (
-		z   *zap.Logger
-		err error
-	)
 	if cmd.debug {
-		z, err = zap.NewDevelopment()
-	} else {
-		z, err = zap.NewProduction()
+		return log.NewDevelopment(), nil
 	}
-
-	if err != nil {
-		return log.NopLogger, err
-	}
-
-	return log.NewLogger(z), nil
+	return log.NewProduction("scylla-mgmt")
 }
