@@ -82,11 +82,12 @@ func parseUnitRequest(r *http.Request) (repairUnitRequest, error) {
 func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
 	ids, err := h.svc.ListUnits(r.Context(), clusterIDFromCtx(r.Context()))
 	if err != nil {
-		if err == mermaid.ErrNotFound {
-			render.Respond(w, r, []*repair.Unit{})
-			return
-		}
 		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to list units"))
+		return
+	}
+
+	if len(ids) == 0 {
+		render.Respond(w, r, []string{})
 		return
 	}
 	render.Respond(w, r, ids)

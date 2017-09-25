@@ -3,6 +3,7 @@
 package restapi_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -114,6 +115,32 @@ func TestRepairUnitAPI(t *testing.T) {
 					}
 				}
 			}},
+
+		{Name: "ListUnits/empty returns empty array",
+			Method: "GET", Path: "/api/v1/cluster/{cluster_id}/repair/units", ClusterID: uuid1,
+			ExpectedStatus: http.StatusOK,
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
+				svc := mermaidmock.NewMockRepairService(ctrl)
+				svc.EXPECT().ListUnits(gomock.Any(), uuid1).Return(nil, nil)
+				return svc
+			},
+			Check: func(t *testing.T, resp *http.Response) {
+				var (
+					buf    bytes.Buffer
+					result []*repair.Unit
+				)
+				io.Copy(&buf, resp.Body)
+				dec := json.NewDecoder(bytes.NewReader(buf.Bytes()))
+				if err := dec.Decode(&result); err != nil {
+					t.Log("json decode failed:", err)
+					t.Fatal()
+				}
+				if body := strings.TrimSpace(buf.String()); body != "[]" {
+					t.Logf("expected an empty json array, got %q", body)
+					t.Fatal()
+				}
+			}},
+
 		{Name: "GetNonExistantUnit",
 			Method: "GET", Path: "/api/v1/cluster/{cluster_id}/repair/unit/" + uuid3.String(), ClusterID: uuid1,
 			ExpectedStatus: http.StatusNotFound,
