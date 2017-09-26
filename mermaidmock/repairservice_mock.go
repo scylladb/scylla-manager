@@ -121,3 +121,15 @@ func (m *MockRepairService) DeleteConfig(ctx context.Context, src repair.ConfigS
 func (mr *MockRepairServiceMockRecorder) DeleteConfig(ctx, src interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfig", reflect.TypeOf((*MockRepairService)(nil).DeleteConfig), ctx, src)
 }
+
+// Repair mocks base method
+func (m *MockRepairService) Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error {
+	ret := m.ctrl.Call(m, "Repair", ctx, u, taskID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Repair indicates an expected call of Repair
+func (mr *MockRepairServiceMockRecorder) Repair(ctx, u, taskID interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockRepairService)(nil).Repair), ctx, u, taskID)
+}

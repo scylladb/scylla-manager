@@ -30,6 +30,8 @@ type RepairService interface {
 	GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.Config, error)
 	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error
 	DeleteConfig(ctx context.Context, src repair.ConfigSource) error
+
+	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
 }
 
 type repairHandler struct {
@@ -48,6 +50,7 @@ func newRepairHandler(svc RepairService) http.Handler {
 	h.Get("/unit/{unit_id}", h.loadUnit)
 	h.Put("/unit/{unit_id}", h.updateUnit)
 	h.Delete("/unit/{unit_id}", h.deleteUnit)
+	h.Put("/unit/{unit_id}/repair", h.triggerRepair)
 
 	h.Get("/config", h.getConfig)
 	h.Get("/config/{config_type}/{external_id}", h.getConfig)
@@ -161,6 +164,39 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.svc.DeleteUnit(r.Context(), clusterIDFromCtx(r.Context()), id); err != nil {
 		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete unit"))
+		return
+	}
+}
+
+func (h *repairHandler) triggerRepair(w http.ResponseWriter, r *http.Request) {
+	id, err := reqUnitID(r)
+	if err != nil {
+		render.Respond(w, r, httpErrBadRequest(err))
+		return
+	}
+
+	var args struct {
+		TaskID uuid.UUID `json:"task_id"`
+	}
+	if err := render.DecodeJSON(r.Body, &args); err != nil {
+		if err != io.EOF {
+			render.Respond(w, r, httpErrBadRequest(err))
+			return
+		}
+	}
+
+	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), id)
+	if err != nil {
+		if err == mermaid.ErrNotFound {
+			render.Respond(w, r, httpErrNotFound(err))
+		} else {
+			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load unit"))
+		}
+		return
+	}
+
+	if err := h.svc.Repair(r.Context(), u, args.TaskID); err != nil {
+		render.Respond(w, r, newHTTPError(err, http.StatusInternalServerError, "failed to start repair on unit: "+u.ID.String()))
 		return
 	}
 }
