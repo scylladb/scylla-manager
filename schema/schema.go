@@ -11,11 +11,11 @@ type Table struct {
 	PartKey []string
 	SortKey []string
 
-	pk     []qb.Cmp
-	delete cql
-	get    cql
-	insert cql
-	sel    cql
+	PrimaryKey []qb.Cmp
+	delete     cql
+	get        cql
+	insert     cql
+	sel        cql
 }
 
 type cql struct {
@@ -46,25 +46,25 @@ func (t *Table) Select(columns ...string) (stmt string, names []string) {
 
 	return qb.Select(t.Name).
 		Columns(columns...).
-		Where(t.pk[0:len(t.PartKey)]...).
+		Where(t.PrimaryKey[0:len(t.PartKey)]...).
 		ToCql()
 }
 
 func (t Table) init() Table {
 	// primary key comparator
-	t.pk = make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
+	t.PrimaryKey = make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
 	for i, c := range append(t.PartKey, t.SortKey...) {
-		t.pk[i] = qb.Eq(c)
+		t.PrimaryKey[i] = qb.Eq(c)
 	}
 
 	// delete
 	{
-		t.delete.stmt, t.delete.names = qb.Delete(t.Name).Where(t.pk...).ToCql()
+		t.delete.stmt, t.delete.names = qb.Delete(t.Name).Where(t.PrimaryKey...).ToCql()
 	}
 
 	// get
 	{
-		t.get.stmt, t.get.names = qb.Select(t.Name).Where(t.pk...).ToCql()
+		t.get.stmt, t.get.names = qb.Select(t.Name).Where(t.PrimaryKey...).ToCql()
 	}
 
 	// insert
@@ -74,7 +74,7 @@ func (t Table) init() Table {
 
 	// select
 	{
-		t.sel.stmt, t.sel.names = qb.Select(t.Name).Where(t.pk[0:len(t.PartKey)]...).ToCql()
+		t.sel.stmt, t.sel.names = qb.Select(t.Name).Where(t.PrimaryKey[0:len(t.PartKey)]...).ToCql()
 	}
 
 	return t

@@ -7,6 +7,7 @@ package repair_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -18,13 +19,16 @@ import (
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
+	session := mermaidtest.CreateSession(t)
+
 	s, err := repair.NewService(
-		mermaidtest.CreateSession(t),
+		session,
 		func(uuid.UUID) (*scylla.Client, error) {
 			return nil, errors.New("not implemented")
 		},
@@ -263,17 +267,17 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("list units", func(t *testing.T) {
 		t.Parallel()
 
+		id := uuid.MustRandom()
+
 		expected := make([]*repair.Unit, 3)
-		u0 := validUnit()
-		ctx := context.Background()
 		for i := range expected {
 			u := &repair.Unit{
 				ID:        uuid.NewTime(),
-				ClusterID: u0.ClusterID,
+				ClusterID: id,
 				Keyspace:  "keyspace" + strconv.Itoa(i),
 				Tables: []string{
-					"table" + strconv.Itoa(2*i),
-					"table" + strconv.Itoa(2*i+1),
+					fmt.Sprintf("table%d", 2*i),
+					fmt.Sprintf("table%d", 2*i+1),
 				},
 			}
 			if err := s.PutUnit(ctx, u); err != nil {
@@ -282,13 +286,41 @@ func TestServiceStorageIntegration(t *testing.T) {
 			expected[i] = u
 		}
 
-		units, err := s.ListUnits(ctx, u0.ClusterID)
+		units, err := s.ListUnits(ctx, id)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		if diff := cmp.Diff(units, expected, mermaidtest.UUIDComparer()); diff != "" {
 			t.Fatal(diff)
+		}
+	})
+
+	t.Run("pause run", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+
+		r := repair.Run{
+			ID:        uuid.NewTime(),
+			UnitID:    u.ID,
+			ClusterID: u.ClusterID,
+			Status:    repair.StatusRunning,
+		}
+
+		stmt, names := schema.RepairRun.Insert()
+		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := s.PauseRun(ctx, u, r.ID); err != nil {
+			t.Fatal(err)
+		}
+
+		if run, err := s.GetRun(ctx, u, r.ID); err != nil {
+			t.Fatal(err)
+		} else if run.Status != repair.StatusPausing {
+			t.Fatal(run.Status)
 		}
 	})
 }
@@ -323,8 +355,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	createKeyspace(t, session, "test_repair")
 	createTable(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
-	//l := log.NewDevelopment()
-	l := prodLogger(t)
+	l := log.NewDevelopment()
 	s, err := repair.NewService(
 		session,
 		func(uuid.UUID) (*scylla.Client, error) {
@@ -364,11 +395,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := s.GetRun(ctx, &u, taskID)
-	if err != nil {
+	if r, err := s.GetRun(ctx, &u, taskID); err != nil {
 		t.Fatal(err)
-	}
-	if r.Status != repair.StatusRunning {
+	} else if r.Status != repair.StatusRunning {
 		t.Fatal("wrong status", r)
 	}
 
@@ -390,6 +419,21 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 	if totalDone == 0 {
 		t.Fatalf("%+v", p)
+	}
+
+	// check pause
+	s.PauseRun(ctx, &u, taskID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// wait
+	time.Sleep(5 * time.Second)
+
+	if r, err := s.GetRun(ctx, &u, taskID); err != nil {
+		t.Fatal(err)
+	} else if r.Status != repair.StatusPaused {
+		t.Fatal("wrong status", r)
 	}
 }
 
@@ -414,12 +458,4 @@ func createTable(t *testing.T, s *gocql.Session, table string) error {
 	}
 
 	return nil
-}
-
-func prodLogger(t *testing.T) log.Logger {
-	z, err := log.NewProduction("integration")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return z
 }
