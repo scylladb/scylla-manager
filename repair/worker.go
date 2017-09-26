@@ -44,6 +44,8 @@ func (w *worker) exec(ctx context.Context) error {
 	}
 	wg.Wait()
 
+	w.logger.Info(ctx, "Done")
+
 	return nil
 }
 
@@ -153,11 +155,17 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		w.updateProgress(ctx)
+
 		start = end
 		end += segmentsPerRequest
+		if end > len(w.segments) {
+			end = len(w.segments)
+		}
 
 		w.logger.Info(ctx, "Progress", "percent", w.percentDone())
 	}
+
+	w.logger.Info(ctx, "Done")
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {

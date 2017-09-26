@@ -191,6 +191,8 @@ func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *s
 			s.logger.Error(ctx, "Worker exec failed", "error", err)
 		}
 	}
+
+	s.logger.Info(ctx, "Done")
 }
 
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
