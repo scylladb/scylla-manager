@@ -73,13 +73,13 @@ func (c *serverConfig) validate() error {
 
 	for _, cluster := range c.Clusters {
 		if len(cluster.Hosts) == 0 {
-			errors.Errorf("clusters %s: missing %q", cluster.UUID, "hosts")
+			errors.Errorf("cluster %s: missing %q", cluster.UUID, "hosts")
 		}
 		if cluster.ShardCount == 0 {
-			errors.Errorf("clusters %s: missing %q", cluster.UUID, "shard_count")
+			errors.Errorf("cluster %s: missing %q", cluster.UUID, "shard_count")
 		}
 		if cluster.Murmur3PartitionerIgnoreMsbBits == 0 {
-			errors.Errorf("clusters %s: missing %q", cluster.UUID, "murmur3_partitioner_ignore_msb_bits")
+			errors.Errorf("cluster %s: missing %q", cluster.UUID, "murmur3_partitioner_ignore_msb_bits")
 		}
 	}
 
