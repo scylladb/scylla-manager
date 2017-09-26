@@ -37,7 +37,14 @@ func TestServerReadConfig(t *testing.T) {
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 		},
-		Clusters: []*clusterConfig{{UUID: u, Hosts: []string{"172.16.1.10", "172.16.1.20"}}},
+		Clusters: []*clusterConfig{
+			{
+				UUID:                            u,
+				Hosts:                           []string{"172.16.1.10", "172.16.1.20"},
+				ShardCount:                      16,
+				Murmur3PartitionerIgnoreMsbBits: 12,
+			},
+		},
 	}
 
 	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {

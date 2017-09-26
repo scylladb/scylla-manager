@@ -63,7 +63,7 @@ integration-test:
 # dev-run runs development server.
 .PHONY: dev-run
 dev-run:
-	@go run ./cmd/scylla-mgmt/*.go server -config-file docker/scylla-mgmt.yml -debug
+	@go run ./cmd/scylla-mgmt/*.go server -config-file docker/scylla-mgmt.yaml -debug
 
 # gen regenetates source code and other resources.
 .PHONY: gen

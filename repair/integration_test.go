@@ -401,7 +401,7 @@ func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 		t.Fatal(err)
 	}
 
-	q = gocqlx.Query(session.Query("CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3};"), nil)
+	q = gocqlx.Query(session.Query("CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"), nil)
 	if err := q.ExecRelease(); err != nil {
 		t.Fatal(err)
 	}
