@@ -29,4 +29,4 @@ cqlsh:
 
 # bash opens a bash shell in seed node.
 status:
-	@$(COMPOSE) exec dc1_seed_node nodetool status
+	@$(COMPOSE) exec dc1_seed_node nodetool status scylla_management

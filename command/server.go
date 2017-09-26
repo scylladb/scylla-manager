@@ -17,7 +17,6 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/gops/agent"
 	"github.com/pkg/errors"
-	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/repair"
@@ -130,9 +129,12 @@ func (cmd *ServerCommand) Run(args []string) int {
 		return 1
 	}
 
-	// create management keyspace if needed
-	if err := cmd.ensureKeyspaceExists(config); err != nil {
+	// check that management keyspace exists
+	if ok, err := cmd.keyspaceExists(config); err != nil {
 		cmd.UI.Error(fmt.Sprintf("Database error: %s", err))
+		return 1
+	} else if !ok {
+		cmd.UI.Error(fmt.Sprintf("Create keyspace %q", config.Database.Keyspace))
 		return 1
 	}
 
@@ -322,7 +324,7 @@ func (cmd *ServerCommand) logger() (log.Logger, error) {
 	return log.NewProduction("scylla-mgmt")
 }
 
-func (cmd *ServerCommand) ensureKeyspaceExists(config *serverConfig) error {
+func (cmd *ServerCommand) keyspaceExists(config *serverConfig) (bool, error) {
 	c := cmd.clusterConfig(config)
 	c.Consistency = gocql.Quorum
 	c.Keyspace = "system"
@@ -331,19 +333,12 @@ func (cmd *ServerCommand) ensureKeyspaceExists(config *serverConfig) error {
 
 	session, err := c.CreateSession()
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer session.Close()
 
-	// create keyspace if not present
-	if _, err := session.KeyspaceMetadata(config.Database.Keyspace); err != nil {
-		stmt := fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}", config.Database.Keyspace)
-		if err := gocqlx.Query(session.Query(stmt), nil).ExecRelease(); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	_, err = session.KeyspaceMetadata(config.Database.Keyspace)
+	return err == nil, nil
 }
 
 func (cmd *ServerCommand) migrateSchema(config *serverConfig) error {
