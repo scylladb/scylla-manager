@@ -60,6 +60,11 @@ unit-test:
 integration-test:
 	@go test -cover -tags integration -run Integration ./repair -cluster "172.16.1.10,172.16.1.20"
 
+# dev-run runs development server.
+.PHONY: dev-run
+dev-run:
+	@go run ./cmd/scylla-mgmt/*.go server -config-file docker/scylla-mgmt.yml -debug
+
 # gen regenetates source code and other resources.
 .PHONY: gen
 gen:
