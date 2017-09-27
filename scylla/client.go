@@ -133,6 +133,9 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 
 // HostConfig returns configuration of a node.
 func (c *Client) HostConfig(ctx context.Context, host string) (Config, error) {
+	if c.config == nil {
+		return nil, errors.New("no host config")
+	}
 	return c.config, nil
 }
 

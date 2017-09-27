@@ -107,7 +107,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 		return fail(errors.Wrap(err, "failed to get the cluster table names for keyspace"))
 	}
 	if len(all) == 0 {
-		return fail(errors.Wrapf(err, "missing or empty keyspace %q", r.Keyspace))
+		return fail(errors.Errorf("missing or empty keyspace %q", r.Keyspace))
 	}
 	if err := validateTables(r.Tables, all); err != nil {
 		return fail(errors.Wrapf(err, "keyspace %q", r.Keyspace))
@@ -191,6 +191,8 @@ func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *s
 			s.logger.Error(ctx, "Worker exec failed", "error", err)
 		}
 	}
+
+	s.logger.Info(ctx, "Done")
 }
 
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound

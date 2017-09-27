@@ -44,6 +44,8 @@ func (w *worker) exec(ctx context.Context) error {
 	}
 	wg.Wait()
 
+	w.logger.Info(ctx, "Done")
+
 	return nil
 }
 
@@ -99,10 +101,10 @@ func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, erro
 		ok                    bool
 	)
 	if shardCount, ok = c.ShardCount(); !ok {
-		return nil, errors.Wrap(err, "config missing shard_count")
+		return nil, errors.New("config missing shard_count")
 	}
 	if shardingIgnoreMsbBits, ok = c.Murmur3PartitionerIgnoreMsbBits(); !ok {
-		return nil, errors.Wrap(err, "config missing murmur3_partitioner_ignore_msb_bits")
+		return nil, errors.New("config missing murmur3_partitioner_ignore_msb_bits")
 	}
 
 	return dht.NewMurmur3Partitioner(shardCount, shardingIgnoreMsbBits), nil
@@ -153,11 +155,17 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		w.updateProgress(ctx)
+
 		start = end
 		end += segmentsPerRequest
+		if end > len(w.segments) {
+			end = len(w.segments)
+		}
 
 		w.logger.Info(ctx, "Progress", "percent", w.percentDone())
 	}
+
+	w.logger.Info(ctx, "Done")
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {

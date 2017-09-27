@@ -29,8 +29,10 @@ import (
 // clusterConfig is a temporary solution and will be soon replaced by a
 // a cluster configuration service.
 type clusterConfig struct {
-	UUID  uuid.UUID `yaml:"uuid"`
-	Hosts []string  `yaml:"hosts"`
+	UUID                            uuid.UUID `yaml:"uuid"`
+	Hosts                           []string  `yaml:"hosts"`
+	ShardCount                      float64   `yaml:"shard_count"`
+	Murmur3PartitionerIgnoreMsbBits float64   `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 
 type dbConfig struct {
@@ -71,7 +73,13 @@ func (c *serverConfig) validate() error {
 
 	for _, cluster := range c.Clusters {
 		if len(cluster.Hosts) == 0 {
-			errors.Errorf("no hosts for clusters %s", cluster.UUID)
+			errors.Errorf("cluster %s: missing %q", cluster.UUID, "hosts")
+		}
+		if cluster.ShardCount == 0 {
+			errors.Errorf("cluster %s: missing %q", cluster.UUID, "shard_count")
+		}
+		if cluster.Murmur3PartitionerIgnoreMsbBits == 0 {
+			errors.Errorf("cluster %s: missing %q", cluster.UUID, "murmur3_partitioner_ignore_msb_bits")
 		}
 	}
 
@@ -154,22 +162,10 @@ func (cmd *ServerCommand) Run(args []string) int {
 	defer session.Close()
 
 	// create configuration based scylla provider
-	m := make(map[uuid.UUID]*scylla.Client, len(config.Clusters))
-	for _, c := range config.Clusters {
-		client, err := scylla.NewClient(c.Hosts, logger.Named("scylla"))
-		if err != nil {
-			cmd.UI.Error(fmt.Sprintf("API client error: %s", err))
-			return 1
-		}
-		m[c.UUID] = client
-	}
-	provider := func(clusterID uuid.UUID) (*scylla.Client, error) {
-		c, ok := m[clusterID]
-		if !ok {
-			return nil, errors.Errorf("unknown cluster %s", clusterID)
-		}
-
-		return c, nil
+	provider, err := cmd.scyllaProviderFunc(config, logger)
+	if err != nil {
+		cmd.UI.Error(fmt.Sprintf("Scylla provider error: %s", err))
+		return 1
 	}
 
 	// create repair service
@@ -376,4 +372,27 @@ func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConf
 	}
 
 	return c
+}
+
+func (cmd *ServerCommand) scyllaProviderFunc(config *serverConfig, logger log.Logger) (scylla.ProviderFunc, error) {
+	m := make(map[uuid.UUID]*scylla.Client, len(config.Clusters))
+	for _, c := range config.Clusters {
+		client, err := scylla.NewClient(c.Hosts, logger.Named("scylla"))
+		if err != nil {
+			return nil, err
+		}
+		m[c.UUID] = scylla.WithConfig(client, scylla.Config{
+			"murmur3_partitioner_ignore_msb_bits": c.Murmur3PartitionerIgnoreMsbBits,
+			"shard_count":                         c.ShardCount,
+		})
+	}
+
+	return func(clusterID uuid.UUID) (*scylla.Client, error) {
+		c, ok := m[clusterID]
+		if !ok {
+			return nil, errors.Errorf("unknown cluster %s", clusterID)
+		}
+
+		return c, nil
+	}, nil
 }
