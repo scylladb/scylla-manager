@@ -14,16 +14,20 @@ clean:
 	@rm -Rf release
 	@rm -Rf .rpmbuild.*
 
-release:
+release/scylla-mgmt-$(VERSION_NAME).tar:
+	@echo "==> Archiving..."
 	@mkdir -p release
 	@cd `git rev-parse --show-toplevel`; git archive \
 	--format tar \
 	--prefix scylla-mgmt-$(VERSION_NAME)/ \
 	-o $(PWD)/release/scylla-mgmt-$(VERSION_NAME).tar HEAD
 
+release/linux_amd64:
+	@echo "==> Compiling..."
 	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(GOBUILD) -o release/linux_amd64/scylla-mgmt $(PKG)
 
-release/rpm: release
+release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar release/linux_amd64
+	@echo "==> Building RPM..."
 	$(eval RPMBUILD := $(PWD)/$(shell mktemp -d .rpmbuild.XXXX))
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
@@ -39,7 +43,7 @@ release/rpm: release
 	--define "version $(VERSION)" \
 	--define "release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)" \
-	$(RPMBUILD)/scylla-mgmt-$(VERSION_NAME).spec
+	$(RPMBUILD)/scylla-mgmt-$(VERSION_NAME).spec > /dev/null
 
 	@mkdir -p release/rpm
 	@ln $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm

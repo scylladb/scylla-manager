@@ -148,7 +148,10 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	s.logger.Debug(ctx, "Using DC", "dc", dc)
 
 	// split token range into coordination hosts
-	hostSegments := groupSegmentsByHost(dc, ring)
+	hostSegments, err := groupSegmentsByHost(dc, ring)
+	if err != nil {
+		return fail(errors.Wrap(err, "segmentation failed"))
+	}
 
 	// init empty progress
 	for host := range hostSegments {

@@ -166,7 +166,12 @@ func TestGroupSegmentsByHost(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(dc1, groupSegmentsByHost("dc1", trs)); diff != "" {
+	hostSegments, err := groupSegmentsByHost("dc1", trs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(dc1, hostSegments); diff != "" {
 		t.Fatal(diff)
 	}
 }

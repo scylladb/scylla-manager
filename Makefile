@@ -53,31 +53,37 @@ test: unit-test integration-test
 # unit-test runs unit tests.
 .PHONY: unit-test
 unit-test:
+	@echo "==> Running tests (race)..."
 	@go test -cover -race ./...
 
 # integration-test runs integration tests.
 .PHONY: integration-test
-integration-test:
+integration-test: unit-test
+	@echo "==> Running integration tests..."
 	@go test -cover -tags integration -run Integration ./repair -cluster "172.16.1.10,172.16.1.20"
 
 # dev-run runs development server.
 .PHONY: dev-run
 dev-run:
+	@echo "==> Running development server..."
 	@go run ./cmd/scylla-mgmt/*.go server -config-file docker/scylla-mgmt.yaml -debug
 
 # gen regenetates source code and other resources.
 .PHONY: gen
 gen:
-	go generate ./...
+	@echo "==> Generating..."
+	@go generate ./...
 
 # get-tools installs all the required tools for other targets.
 .PHONY: get-tools
 get-tools:
-	go get -u github.com/golang/dep/cmd/dep
-	go get -u github.com/golang/lint/golint
-	go get -u github.com/golang/mock/mockgen
+	@echo "==> Installing tools..."
 
-	go get -u github.com/client9/misspell/cmd/misspell
-	go get -u github.com/fatih/gomodifytags
-	go get -u github.com/gordonklaus/ineffassign
-	go get -u github.com/go-swagger/go-swagger/cmd/swagger
+	@go get -u github.com/golang/dep/cmd/dep
+	@go get -u github.com/golang/lint/golint
+	@go get -u github.com/golang/mock/mockgen
+
+	@go get -u github.com/client9/misspell/cmd/misspell
+	@go get -u github.com/fatih/gomodifytags
+	@go get -u github.com/gordonklaus/ineffassign
+	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
