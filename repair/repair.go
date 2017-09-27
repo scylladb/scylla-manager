@@ -88,10 +88,14 @@ func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
 
 // groupSegmentsByHost extract list of primary segments (token ranges) for every
 // host in a datacenter and returns a mapping from host to list of it's segments.
-func groupSegmentsByHost(dc string, ring []*scylla.TokenRange) map[string][]*Segment {
+func groupSegmentsByHost(dc string, ring []*scylla.TokenRange) (map[string][]*Segment, error) {
 	m := make(map[string][]*Segment)
 
 	for _, r := range ring {
+		if len(r.Hosts[dc]) == 0 {
+			return nil, errors.Errorf("token range %d:%d not present in dc %s", r.StartToken, r.EndToken, dc)
+		}
+
 		host := r.Hosts[dc][0]
 		if r.StartToken > r.EndToken {
 			m[host] = append(m[host],
@@ -103,7 +107,7 @@ func groupSegmentsByHost(dc string, ring []*scylla.TokenRange) map[string][]*Seg
 		}
 	}
 
-	return m
+	return m, nil
 }
 
 // splitSegmentsToShards splits the segments into shards given the partitioner.
