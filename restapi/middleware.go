@@ -55,7 +55,7 @@ type httpLogger struct {
 
 func (h httpLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	le := &httpLogEntry{
-		req: r, l: h.l.With("method", r.Method, "url", r.URL),
+		req: r, l: h.l.With("method", r.Method, "uri", r.URL.RequestURI()),
 	}
 	return le
 }

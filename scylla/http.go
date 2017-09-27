@@ -3,8 +3,10 @@
 package scylla
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/hailocab/go-hostpool"
 	"github.com/scylladb/mermaid/log"
@@ -42,12 +44,16 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	r.Host = h
 	r.URL.Host = h
 
-	t.logger.Debug(ctx, "Request", "URL", r.URL)
+	start := time.Now()
 	resp, err := t.parent.RoundTrip(r)
 	if resp != nil {
-		t.logger.Debug(ctx, "Response",
-			"url", r.URL,
-			"status_code", resp.StatusCode,
+		t.logger.Debug(ctx, "HTTP",
+			"host", h,
+			"method", r.Method,
+			"uri", r.URL.RequestURI(),
+			"status", resp.StatusCode,
+			"bytes", resp.ContentLength,
+			"duration", fmt.Sprintf("%dms", time.Now().Sub(start)/1000000),
 		)
 		fixResponse(resp)
 	}
