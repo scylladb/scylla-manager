@@ -79,14 +79,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	fail := func(err error) error {
 		r.Status = StatusError
 		r.Cause = err.Error()
-
-		if err := s.putRun(ctx, &r); err != nil {
-			s.logger.Error(ctx, "Cannot update the run",
-				"run", &r,
-				"error", err,
-			)
-		}
-
+		s.putRunLogError(ctx, &r)
 		return err
 	}
 
@@ -168,19 +161,20 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 
 	// spawn async repair
 	wctx := log.WithTraceID(context.Background())
-	s.logger.Info(ctx, "Starting async repair",
-		"task_id", taskID,
+	s.logger.Info(ctx, "Starting repair",
 		"unit", u,
+		"task_id", taskID,
 		"worker_trace_id", log.TraceID(wctx),
 	)
-	go s.asyncRepair(wctx, &r, &c.Config, cluster, hostSegments)
+	go s.asyncRepair(wctx, u, &r, &c.Config, cluster, hostSegments)
 
 	return nil
 }
 
-func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *scylla.Client, hostSegments map[string][]*Segment) {
+func (s *Service) asyncRepair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scylla.Client, hostSegments map[string][]*Segment) {
 	for host, segments := range hostSegments {
 		w := worker{
+			Unit:     u,
 			Run:      r,
 			Config:   c,
 			Service:  s,
@@ -193,7 +187,23 @@ func (s *Service) asyncRepair(ctx context.Context, r *Run, c *Config, cluster *s
 		if err := w.exec(ctx); err != nil {
 			s.logger.Error(ctx, "Worker exec failed", "error", err)
 		}
+
+		paused, err := s.isPaused(ctx, u, r.ID)
+		if err != nil {
+			w.logger.Error(ctx, "Service error", "error", err)
+		}
+
+		if paused {
+			r.Status = StatusPaused
+			r.PauseTime = time.Now()
+			s.putRunLogError(ctx, r)
+			return
+		}
 	}
+
+	r.Status = StatusDone
+	r.EndTime = time.Now()
+	s.putRunLogError(ctx, r)
 
 	s.logger.Info(ctx, "Done")
 }
@@ -230,6 +240,56 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 
 	return q.ExecRelease()
+}
+
+// putRunLogError executes putRun and consumes the error.
+func (s *Service) putRunLogError(ctx context.Context, r *Run) {
+	if err := s.putRun(ctx, r); err != nil {
+		s.logger.Error(ctx, "Cannot update the run",
+			"run", &r,
+			"error", err,
+		)
+	}
+}
+
+// PauseRun marks a running repair as pausing.
+func (s *Service) PauseRun(ctx context.Context, u *Unit, taskID uuid.UUID) error {
+	s.logger.Debug(ctx, "PauseRun", "unit", u, "task_id", taskID)
+
+	r, err := s.GetRun(ctx, u, taskID)
+	if err != nil {
+		return err
+	}
+
+	if r.Status != StatusRunning {
+		return errors.New("not running")
+	}
+
+	r.Status = StatusPausing
+
+	return s.putRun(ctx, r)
+}
+
+// isPaused checks if repair is in StatusPausing or StatusPaused.
+func (s *Service) isPaused(ctx context.Context, u *Unit, taskID uuid.UUID) (bool, error) {
+	s.logger.Debug(ctx, "IsPaused", "unit", u, "task_id", taskID)
+
+	stmt, names := schema.RepairRun.Select("status")
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+		"id":         taskID,
+	})
+	if q.Err() != nil {
+		return false, q.Err()
+	}
+
+	var v Status
+	if err := q.Query.Scan(&v); err != nil {
+		return false, err
+	}
+
+	return v == StatusPausing || v == StatusPaused, nil
 }
 
 // GetProgress returns run host progress. If nothing was found

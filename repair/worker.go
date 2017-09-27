@@ -20,6 +20,7 @@ const (
 
 // worker manages shardWorkers.
 type worker struct {
+	Unit     *Unit
 	Run      *Run
 	Config   *Config
 	Service  *Service
@@ -129,6 +130,11 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 		end   = segmentsPerRequest
 	)
 	for start < len(w.segments) {
+		if w.isPaused(ctx) {
+			w.logger.Info(ctx, "Paused")
+			break
+		}
+
 		// issue a repair
 		id, err := w.parent.Cluster.Repair(ctx, w.parent.Host, &scylla.RepairConfig{
 			Keyspace: w.parent.Run.Keyspace,
@@ -166,6 +172,14 @@ func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
 	}
 
 	w.logger.Info(ctx, "Done")
+}
+
+func (w *shardWorker) isPaused(ctx context.Context) bool {
+	paused, err := w.parent.Service.isPaused(ctx, w.parent.Unit, w.parent.Run.ID)
+	if err != nil {
+		w.logger.Error(ctx, "Service error", "error", err)
+	}
+	return paused
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {

@@ -38,19 +38,19 @@ func (c ConfigType) MarshalText() (text []byte, err error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (c *ConfigType) UnmarshalText(text []byte) error {
-	switch s := ConfigType(text); {
-	case s == UnknownConfigType:
+	switch ConfigType(text) {
+	case UnknownConfigType:
 		*c = UnknownConfigType
-	case s == UnitConfig:
+	case UnitConfig:
 		*c = UnitConfig
-	case s == KeyspaceConfig:
+	case KeyspaceConfig:
 		*c = KeyspaceConfig
-	case s == ClusterConfig:
+	case ClusterConfig:
 		*c = ClusterConfig
-	case s == tenantConfig:
+	case tenantConfig:
 		*c = tenantConfig
 	default:
-		return fmt.Errorf("unrecognized ConfigType %q", s)
+		return fmt.Errorf("unrecognized ConfigType %q", text)
 	}
 	return nil
 }
@@ -202,8 +202,9 @@ type Status string
 const (
 	StatusUnknown Status = "unknown"
 	StatusRunning Status = "running"
-	StatusSuccess Status = "success"
+	StatusDone    Status = "done"
 	StatusError   Status = "error"
+	StatusPausing Status = "pausing"
 	StatusPaused  Status = "paused"
 	StatusAborted Status = "aborted"
 )
@@ -219,21 +220,21 @@ func (s Status) MarshalText() (text []byte, err error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *Status) UnmarshalText(text []byte) error {
-	switch txt := Status(text); {
-	case txt == StatusUnknown:
+	switch Status(text) {
+	case StatusUnknown:
 		*s = StatusUnknown
-	case txt == StatusError:
+	case StatusDone:
+		*s = StatusDone
+	case StatusError:
 		*s = StatusError
-	case txt == StatusSuccess:
-		*s = StatusSuccess
-	case txt == StatusError:
-		*s = StatusError
-	case txt == StatusPaused:
+	case StatusPausing:
+		*s = StatusPausing
+	case StatusPaused:
 		*s = StatusPaused
-	case txt == StatusAborted:
+	case StatusAborted:
 		*s = StatusAborted
 	default:
-		return fmt.Errorf("unrecognized Status %q", txt)
+		return fmt.Errorf("unrecognized Status %q", text)
 	}
 	return nil
 }
