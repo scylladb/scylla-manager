@@ -349,11 +349,7 @@ func (cmd *ServerCommand) migrateSchema(config *serverConfig) error {
 	}
 	defer session.Close()
 
-	if err := migrate.Migrate(context.Background(), session, config.Database.MigrateDir); err != nil {
-		return err
-	}
-
-	return nil
+	return migrate.Migrate(context.Background(), session, config.Database.MigrateDir)
 }
 
 func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConfig {
