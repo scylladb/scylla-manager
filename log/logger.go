@@ -83,9 +83,6 @@ func (l Logger) log(ctx context.Context, lvl zapcore.Level, msg string, keyvals 
 }
 
 func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Field {
-	if len(keyvals) == 0 {
-		return nil
-	}
 	if len(keyvals)%2 != 0 {
 		l.base.DPanic("odd number of elements")
 		return nil
@@ -102,6 +99,10 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 		if ok {
 			extraFields++
 		}
+	}
+
+	if len(keyvals) + extraFields == 0 {
+		return nil
 	}
 
 	fields := make([]zapcore.Field, 0, len(keyvals)/2+extraFields)

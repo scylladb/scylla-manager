@@ -74,7 +74,7 @@ func (e *httpLogEntry) Write(status, bytes int, elapsed time.Duration) {
 }
 
 func (e *httpLogEntry) Panic(v interface{}, stack []byte) {
-	e.l.Error(e.req.Context(), "HTTP Panic", "panic", v)
+	e.l.Error(e.req.Context(), "Panic", "panic", v)
 }
 
 // AddFields appends additional log.Logger key-value pairs to the request

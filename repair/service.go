@@ -79,6 +79,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	fail := func(err error) error {
 		r.Status = StatusError
 		r.Cause = err.Error()
+		r.EndTime = time.Now()
 		s.putRunLogError(ctx, &r)
 		return err
 	}
@@ -166,12 +167,20 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 		"task_id", taskID,
 		"worker_trace_id", log.TraceID(wctx),
 	)
-	go s.asyncRepair(wctx, u, &r, &c.Config, cluster, hostSegments)
+	go func() {
+		defer func() {
+			if v := recover(); v != nil {
+				s.logger.Error(wctx, "Panic", "panic", v)
+				fail(errors.Errorf("%s", v))
+			}
+		}()
+		s.repair(wctx, u, &r, &c.Config, cluster, hostSegments)
+	}()
 
 	return nil
 }
 
-func (s *Service) asyncRepair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scylla.Client, hostSegments map[string][]*Segment) {
+func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scylla.Client, hostSegments map[string][]*Segment) {
 	for host, segments := range hostSegments {
 		w := worker{
 			Unit:     u,
@@ -185,7 +194,7 @@ func (s *Service) asyncRepair(ctx context.Context, u *Unit, r *Run, c *Config, c
 			logger: s.logger.Named("worker").With("task_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
-			s.logger.Error(ctx, "Worker exec failed", "error", err)
+			s.logger.Error(ctx, "Worker exec error", "error", err)
 		}
 
 		paused, err := s.isPaused(ctx, u, r.ID)
@@ -205,7 +214,7 @@ func (s *Service) asyncRepair(ctx context.Context, u *Unit, r *Run, c *Config, c
 	r.EndTime = time.Now()
 	s.putRunLogError(ctx, r)
 
-	s.logger.Info(ctx, "Done")
+	s.logger.Info(ctx, "Done", "task_id", r.ID)
 }
 
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound

@@ -38,14 +38,30 @@ func (w *worker) exec(ctx context.Context) error {
 	}
 
 	// repair shards
-	var wg sync.WaitGroup
+	var (
+		wg sync.WaitGroup
+		ok = true
+	)
 	for _, s := range w.shards {
+		// range variable reuse
+		s := s
 		wg.Add(1)
-		go s.exec(ctx, &wg)
+		go func() {
+			defer func() {
+				wg.Done()
+				if v := recover(); v != nil {
+					s.logger.Error(ctx, "Panic", "panic", v)
+					ok = false
+				}
+			}()
+			s.exec(ctx)
+		}()
 	}
 	wg.Wait()
 
-	w.logger.Info(ctx, "Done")
+	if !ok {
+		return errors.New("shard panic")
+	}
 
 	return nil
 }
@@ -119,9 +135,7 @@ type shardWorker struct {
 	logger   log.Logger
 }
 
-func (w *shardWorker) exec(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (w *shardWorker) exec(ctx context.Context) {
 	w.logger.Info(ctx, "Starting repair")
 	w.logger.Debug(ctx, "Segment stats", "stats", segmentsStats(w.segments))
 
