@@ -447,13 +447,8 @@ func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*Unit, 
 	}
 
 	var units []*Unit
-	if err := gocqlx.Select(&units, q.Query); err != nil {
-		if err == gocql.ErrNotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return units, nil
+	err := gocqlx.Select(&units, q.Query)
+	return units, err
 }
 
 // GetUnit returns repair unit based on ID. If nothing was found
