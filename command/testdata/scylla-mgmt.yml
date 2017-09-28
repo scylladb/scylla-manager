@@ -12,6 +12,7 @@ database:
     - 172.16.1.20
   user: user
   password: password
+  consistency: ONE
 
 clusters:
   - uuid: a3f1b32b-ed5b-438d-81a7-c82eb7bde800

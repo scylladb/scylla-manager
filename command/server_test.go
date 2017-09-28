@@ -33,11 +33,12 @@ func TestServerReadConfig(t *testing.T) {
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
 			User:                          "user",
 			Keyspace:                      "scylla_management",
-			KeyspaceTplFile:               "/etc/scylla-mgmt/cql/create_keyspace.cql.tpl",
+			KeyspaceTplFile:               "/etc/scylla-mgmt/create_keyspace.cql.tpl",
 			Password:                      "password",
 			MigrateDir:                    "/etc/scylla-mgmt/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
+			Consistency:                   "ONE",
 		},
 		Clusters: []*clusterConfig{
 			{

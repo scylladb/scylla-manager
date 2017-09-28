@@ -47,6 +47,7 @@ type dbConfig struct {
 	MigrateDir                    string        `yaml:"migrate_dir"`
 	MigrateTimeout                time.Duration `yaml:"migrate_timeout"`
 	MigrateMaxWaitSchemaAgreement time.Duration `yaml:"migrate_max_wait_schema_agreement"`
+	Consistency                   string        `yaml:"consistency"`
 }
 
 type serverConfig struct {
@@ -71,8 +72,12 @@ func (c *serverConfig) validate() error {
 			return errors.New("missing tls_key_file")
 		}
 	}
+
 	if len(c.Database.Hosts) == 0 {
 		return errors.New("missing database.hosts")
+	}
+	if _, err := gocql.ParseConsistencyWrapper(c.Database.Consistency); err != nil {
+		return errors.New("invalid database.consistency")
 	}
 
 	for _, cluster := range c.Clusters {
@@ -315,6 +320,7 @@ func (cmd *ServerCommand) defaultConfig() *serverConfig {
 			MigrateDir:                    "/etc/scylla-mgmt/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
+			Consistency:                   gocql.Quorum.String(),
 		},
 	}
 }
@@ -334,7 +340,6 @@ func (cmd *ServerCommand) createKeyspace(config *serverConfig) error {
 
 	c := cmd.clusterConfig(config)
 	c.Keyspace = "system"
-	c.Consistency = gocql.Quorum
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
 
@@ -368,7 +373,6 @@ func (cmd *ServerCommand) readKeyspaceTplFile(config *serverConfig) (stmt string
 
 func (cmd *ServerCommand) migrateSchema(config *serverConfig) error {
 	c := cmd.clusterConfig(config)
-	c.Consistency = gocql.Quorum
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
 
@@ -385,7 +389,7 @@ func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConf
 	c := gocql.NewCluster(config.Database.Hosts...)
 
 	// overwrite the default settings
-	c.Consistency = gocql.LocalQuorum
+	c.Consistency = gocql.ParseConsistency(config.Database.Consistency)
 	c.Keyspace = config.Database.Keyspace
 
 	// authentication
