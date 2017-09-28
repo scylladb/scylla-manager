@@ -3,6 +3,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -12,11 +13,13 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
+	"text/template"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/google/gops/agent"
 	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/repair"
@@ -37,9 +40,10 @@ type clusterConfig struct {
 
 type dbConfig struct {
 	Hosts                         []string      `yaml:"hosts"`
-	Keyspace                      string        `yaml:"keyspace"`
 	User                          string        `yaml:"user"`
 	Password                      string        `yaml:"password"`
+	Keyspace                      string        `yaml:"keyspace"`
+	KeyspaceTplFile               string        `yaml:"keyspace_tpl_file"`
 	MigrateDir                    string        `yaml:"migrate_dir"`
 	MigrateTimeout                time.Duration `yaml:"migrate_timeout"`
 	MigrateMaxWaitSchemaAgreement time.Duration `yaml:"migrate_max_wait_schema_agreement"`
@@ -137,12 +141,13 @@ func (cmd *ServerCommand) Run(args []string) int {
 		return 1
 	}
 
-	// check that management keyspace exists
-	if ok, err := cmd.keyspaceExists(config); err != nil {
+	// create management keyspace
+	logger.Info(ctx, "Using keyspace",
+		"keyspace", config.Database.Keyspace,
+		"template", config.Database.KeyspaceTplFile,
+	)
+	if err := cmd.createKeyspace(config); err != nil {
 		cmd.UI.Error(fmt.Sprintf("Database error: %s", err))
-		return 1
-	} else if !ok {
-		cmd.UI.Error(fmt.Sprintf("Create keyspace %q", config.Database.Keyspace))
 		return 1
 	}
 
@@ -306,6 +311,7 @@ func (cmd *ServerCommand) defaultConfig() *serverConfig {
 	return &serverConfig{
 		Database: dbConfig{
 			Keyspace:                      "scylla_management",
+			KeyspaceTplFile:               "/etc/scylla-mgmt/create_keyspace.cql.tpl",
 			MigrateDir:                    "/etc/scylla-mgmt/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
@@ -320,21 +326,44 @@ func (cmd *ServerCommand) logger() (log.Logger, error) {
 	return log.NewProduction("scylla-mgmt")
 }
 
-func (cmd *ServerCommand) keyspaceExists(config *serverConfig) (bool, error) {
+func (cmd *ServerCommand) createKeyspace(config *serverConfig) error {
+	stmt, err := cmd.readKeyspaceTplFile(config)
+	if err != nil {
+		return err
+	}
+
 	c := cmd.clusterConfig(config)
-	c.Consistency = gocql.Quorum
 	c.Keyspace = "system"
+	c.Consistency = gocql.Quorum
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
 
 	session, err := c.CreateSession()
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer session.Close()
 
-	_, err = session.KeyspaceMetadata(config.Database.Keyspace)
-	return err == nil, nil
+	return gocqlx.Query(session.Query(stmt), nil).ExecRelease()
+}
+
+func (cmd *ServerCommand) readKeyspaceTplFile(config *serverConfig) (stmt string, err error) {
+	b, err := ioutil.ReadFile(config.Database.KeyspaceTplFile)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not read file %s", config.Database.KeyspaceTplFile)
+	}
+
+	t := template.New("")
+	if _, err := t.Parse(string(b)); err != nil {
+		return "", errors.Wrapf(err, "template error file %s", config.Database.KeyspaceTplFile)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := t.Execute(buf, config.Database); err != nil {
+		return "", errors.Wrapf(err, "template error file %s", config.Database.KeyspaceTplFile)
+	}
+
+	return buf.String(), err
 }
 
 func (cmd *ServerCommand) migrateSchema(config *serverConfig) error {

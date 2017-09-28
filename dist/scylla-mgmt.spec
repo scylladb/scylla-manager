@@ -36,7 +36,7 @@ getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla 2
 %defattr(-,root,root)
 
 %config(noreplace) %{_sysconfdir}/scylla-mgmt/*.yaml
-%{_sysconfdir}/scylla-mgmt/*.tpl
+%config(noreplace) %{_sysconfdir}/scylla-mgmt/*.tpl
 %{_sysconfdir}/scylla-mgmt/cql/*.cql
 %{_bindir}/scylla-mgmt
 %{_unitdir}/*.service
