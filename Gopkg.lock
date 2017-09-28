@@ -113,13 +113,13 @@
   branch = "master"
   name = "github.com/go-openapi/validate"
   packages = ["."]
-  revision = "901ab082554d18fd6a99cc3a4bde6469e58d4cf6"
+  revision = "dc8a684882cf70c9a529887104340f44e0e138e5"
 
 [[projects]]
   branch = "master"
   name = "github.com/gocql/gocql"
   packages = [".","internal/lru","internal/murmur","internal/streams"]
-  revision = "afe4fee3ded9a8e20b174f88e3d9b6ed30ad4d66"
+  revision = "1a9a53f3112390fb5296d5d4f4e626414f344566"
 
 [[projects]]
   name = "github.com/golang/mock"
@@ -184,8 +184,8 @@
 [[projects]]
   name = "github.com/mattn/go-isatty"
   packages = ["."]
-  revision = "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
-  version = "v0.0.2"
+  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
+  version = "v0.0.3"
 
 [[projects]]
   branch = "master"
@@ -215,7 +215,7 @@
   branch = "master"
   name = "github.com/scylladb/gocqlx"
   packages = [".","migrate","qb"]
-  revision = "9604635e8e510365d44b260a143efc8d7768934a"
+  revision = "04179dd2d0710b57cfe083baeaad0e209a02f459"
 
 [[projects]]
   branch = "master"
@@ -238,26 +238,26 @@
 [[projects]]
   name = "go.uber.org/zap"
   packages = [".","buffer","internal/bufferpool","internal/color","internal/exit","zapcore","zaptest","zaptest/observer"]
-  revision = "3216c4c73e8ebbafff73c456dd27143f4a7c1f94"
-  version = "v1.6.0"
+  revision = "35aad584952c3e7020db7b839f6b102de6271f89"
+  version = "v1.7.1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","idna"]
-  revision = "859d1a86bb617c0c20d154590c3c5d3fcb670b07"
+  revision = "0a9397675ba34b2845f758fe3cd68828369c6517"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "062cd7e4e68206d8bab9b18396626e855c992658"
+  revision = "314a259e304ff91bd6985da2a7149bbf91237993"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
-  revision = "ab5ac5f9a8deb4855a60fab02bc61a4ec770bd49"
+  revision = "1cbadb444a806fd9430d14ad08967ed91da4fa0a"
 
 [[projects]]
   name = "gopkg.in/inf.v0"
