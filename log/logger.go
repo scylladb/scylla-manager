@@ -101,7 +101,7 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 		}
 	}
 
-	if len(keyvals) + extraFields == 0 {
+	if len(keyvals)+extraFields == 0 {
 		return nil
 	}
 

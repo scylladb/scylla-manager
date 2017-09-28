@@ -32,12 +32,12 @@ release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar release/linux_amd64
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
 	@ln scylla-mgmt.spec $(RPMBUILD)/scylla-mgmt-$(VERSION_NAME).spec
-	@ln conf/*.yaml $(RPMBUILD)/BUILD
+	@ln etc/* $(RPMBUILD)/BUILD
 	@ln systemd/*.service $(RPMBUILD)/BUILD
 
 	@ln release/scylla-mgmt-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
 	@ln release/linux_amd64/scylla-mgmt $(RPMBUILD)/BUILD
-	@ln -f ../schema/cql/*.cql $(RPMBUILD)/BUILD
+	@ln ../schema/cql/*.cql $(RPMBUILD)/BUILD
 
 	@rpmbuild -ba --target x86_64 --quiet \
 	--define "version $(VERSION)" \

@@ -3,6 +3,7 @@
 package command
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -30,12 +31,14 @@ func TestServerReadConfig(t *testing.T) {
 		TLSKeyFile:  "tls.key",
 		Database: dbConfig{
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
-			Keyspace:                      "scylla_management",
 			User:                          "user",
+			Keyspace:                      "scylla_management",
+			KeyspaceTplFile:               "/etc/scylla-mgmt/create_keyspace.cql.tpl",
 			Password:                      "password",
 			MigrateDir:                    "/etc/scylla-mgmt/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
+			Consistency:                   "ONE",
 		},
 		Clusters: []*clusterConfig{
 			{
@@ -49,5 +52,21 @@ func TestServerReadConfig(t *testing.T) {
 
 	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestReadKeyspaceTplFile(t *testing.T) {
+	s := ServerCommand{}
+	stmt, err := s.readKeyspaceTplFile(&serverConfig{
+		Database: dbConfig{
+			Keyspace:        "keyspace",
+			KeyspaceTplFile: "../dist/etc/create_keyspace.cql.tpl",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(stmt, "CREATE KEYSPACE IF NOT EXISTS keyspace WITH replication") {
+		t.Fatal(stmt)
 	}
 }
