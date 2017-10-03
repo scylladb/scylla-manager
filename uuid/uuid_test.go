@@ -11,6 +11,8 @@ import (
 )
 
 func TestUUIDFromUint64(t *testing.T) {
+	t.Parallel()
+
 	l := uint64(11400714785074694791)&(uint64(0x0F)<<48) | (uint64(0x40) << 48)
 	h := uint64(14029467366897019727)&uint64(0x3F) | uint64(0x80)
 	u := uuid.NewFromUint64(l, h)
@@ -24,8 +26,9 @@ func TestUUIDFromUint64(t *testing.T) {
 }
 
 func TestUUIDMarshalUnmarshalCQL(t *testing.T) {
-	id0 := uuid.MustRandom()
+	t.Parallel()
 
+	id0 := uuid.MustRandom()
 	g := gocql.NewNativeType(1, gocql.TypeUUID, "")
 
 	b, err := id0.MarshalCQL(g)
@@ -44,7 +47,11 @@ func TestUUIDMarshalUnmarshalCQL(t *testing.T) {
 }
 
 func TestTimeUUIDMarshal(t *testing.T) {
+	t.Parallel()
+
 	t.Run("random as time", func(t *testing.T) {
+		t.Parallel()
+
 		id := uuid.MustRandom()
 		_, err := id.MarshalCQL(gocql.NewNativeType(1, gocql.TypeTimeUUID, ""))
 		if err == nil {
@@ -53,6 +60,8 @@ func TestTimeUUIDMarshal(t *testing.T) {
 	})
 
 	t.Run("time as random", func(t *testing.T) {
+		t.Parallel()
+
 		id := uuid.NewTime()
 		_, err := id.MarshalCQL(gocql.NewNativeType(1, gocql.TypeUUID, ""))
 		if err != nil {
@@ -62,6 +71,8 @@ func TestTimeUUIDMarshal(t *testing.T) {
 }
 
 func TestUUID_MarshalUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
 	id0, err := uuid.NewRandom()
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +94,8 @@ func TestUUID_MarshalUnmarshalJSON(t *testing.T) {
 }
 
 func TestUUID_MarshalUnmarshalText(t *testing.T) {
+	t.Parallel()
+
 	id0, err := uuid.NewRandom()
 	if err != nil {
 		t.Fatal(err)
