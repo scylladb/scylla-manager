@@ -49,6 +49,18 @@ func TestUUIDMarshalUnmarshalCQL(t *testing.T) {
 func TestTimeUUIDMarshal(t *testing.T) {
 	t.Parallel()
 
+	t.Run("nil", func(t *testing.T) {
+		t.Parallel()
+
+		b, err := uuid.Nil.MarshalCQL(gocql.NewNativeType(1, gocql.TypeUUID, ""))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b != nil {
+			t.Fatal("expected nil")
+		}
+	})
+
 	t.Run("random as time", func(t *testing.T) {
 		t.Parallel()
 
