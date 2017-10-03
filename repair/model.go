@@ -255,23 +255,6 @@ type Run struct {
 	PauseTime    time.Time
 }
 
-// RunError holds information about run errors.
-type RunError struct {
-	ClusterID       uuid.UUID
-	UnitID          uuid.UUID
-	RunID           uuid.UUID
-	StartToken      int64
-	EndToken        int64
-	Status          Status
-	Cause           string
-	CoordinatorHost string
-	Shard           int
-	CommandID       int32
-	StartTime       time.Time
-	EndTime         time.Time
-	FailCount       int
-}
-
 // RunProgress describes repair progress on per shard basis.
 type RunProgress struct {
 	ClusterID      uuid.UUID

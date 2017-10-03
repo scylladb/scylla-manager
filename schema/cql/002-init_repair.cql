@@ -53,20 +53,3 @@ CREATE TABLE repair_run_progress (
     last_command_id int,
     PRIMARY KEY((cluster_id, unit_id, run_id), host, shard)
 );
-
-CREATE TABLE repair_run_error (
-    cluster_id uuid,
-    unit_id uuid,
-    run_id uuid,
-    start_token bigint,
-    end_token bigint,
-    status text,
-    cause text,
-    coordinator_host text,
-    shard int,
-    command_id int,
-    start_time timestamp,
-    end_time timestamp,
-    fail_count int,
-    PRIMARY KEY((cluster_id, unit_id, run_id), coordinator_host, shard, start_token)
-);
