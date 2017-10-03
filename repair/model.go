@@ -200,13 +200,11 @@ type Status string
 
 // Status enumeration.
 const (
-	StatusUnknown Status = "unknown"
 	StatusRunning Status = "running"
 	StatusDone    Status = "done"
 	StatusError   Status = "error"
 	StatusPausing Status = "pausing"
 	StatusPaused  Status = "paused"
-	StatusAborted Status = "aborted"
 )
 
 func (s Status) String() string {
@@ -221,8 +219,6 @@ func (s Status) MarshalText() (text []byte, err error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *Status) UnmarshalText(text []byte) error {
 	switch Status(text) {
-	case StatusUnknown:
-		*s = StatusUnknown
 	case StatusDone:
 		*s = StatusDone
 	case StatusError:
@@ -231,8 +227,6 @@ func (s *Status) UnmarshalText(text []byte) error {
 		*s = StatusPausing
 	case StatusPaused:
 		*s = StatusPaused
-	case StatusAborted:
-		*s = StatusAborted
 	default:
 		return fmt.Errorf("unrecognized Status %q", text)
 	}
