@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid/log"
+	"github.com/scylladb/mermaid/log/gocqllog"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/scylla"
@@ -145,6 +146,9 @@ func (cmd *ServerCommand) Run(args []string) int {
 		cmd.UI.Error(fmt.Sprintf("Logger error: %s", err))
 		return 1
 	}
+
+	// set gocql logger
+	gocql.Logger = gocqllog.New(ctx, logger.Named("gocql"))
 
 	// create management keyspace
 	logger.Info(ctx, "Using keyspace",
