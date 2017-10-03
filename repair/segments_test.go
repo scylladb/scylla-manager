@@ -96,3 +96,29 @@ func TestSplitSegments(t *testing.T) {
 		}
 	}
 }
+
+func TestSegmentsContainStartToken(t *testing.T) {
+	table := []struct {
+		S []*Segment
+		T int64
+		E bool
+	}{
+		{},
+		{
+			S: []*Segment{{0, 10}},
+			T: -1,
+			E: false,
+		},
+		{
+			S: []*Segment{{0, 10}, {10, 20}, {30, 40}},
+			T: 10,
+			E: true,
+		},
+	}
+
+	for _, test := range table {
+		if test.E != segmentsContainStartToken(test.S, test.T) {
+			t.Fatal(test)
+		}
+	}
+}

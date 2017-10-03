@@ -200,11 +200,11 @@ type Status string
 
 // Status enumeration.
 const (
-	StatusRunning Status = "running"
-	StatusDone    Status = "done"
-	StatusError   Status = "error"
-	StatusPausing Status = "pausing"
-	StatusPaused  Status = "paused"
+	StatusRunning  Status = "running"
+	StatusDone     Status = "done"
+	StatusError    Status = "error"
+	StatusStopping Status = "stopping"
+	StatusStopped  Status = "stopped"
 )
 
 func (s Status) String() string {
@@ -223,10 +223,10 @@ func (s *Status) UnmarshalText(text []byte) error {
 		*s = StatusDone
 	case StatusError:
 		*s = StatusError
-	case StatusPausing:
-		*s = StatusPausing
-	case StatusPaused:
-		*s = StatusPaused
+	case StatusStopping:
+		*s = StatusStopping
+	case StatusStopped:
+		*s = StatusStopped
 	default:
 		return fmt.Errorf("unrecognized Status %q", text)
 	}
@@ -261,7 +261,6 @@ type Run struct {
 	RestartCount int
 	StartTime    time.Time
 	EndTime      time.Time
-	PauseTime    time.Time
 }
 
 // RunProgress describes repair progress on per shard basis.
@@ -277,4 +276,33 @@ type RunProgress struct {
 	LastStartToken int64
 	LastStartTime  time.Time
 	LastCommandID  int32
+}
+
+// Done returns true if all the segments were processed.
+func (p *RunProgress) Done() bool {
+	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError
+}
+
+// PercentDone returns value from 0 to 100 representing percentage of processed
+// segments within a shard.
+func (p *RunProgress) PercentDone() int {
+	if p.SegmentCount == 0 {
+		return 0
+	}
+
+	if p.Done() {
+		return 100
+	}
+
+	percent := 100 * (p.SegmentSuccess + p.SegmentError) / p.SegmentCount
+	if percent >= 100 {
+		percent = 99
+	}
+
+	return percent
+}
+
+// started returns true if the host / shard was ever repaired in the run.
+func (p *RunProgress) started() bool {
+	return !p.LastStartTime.IsZero()
 }

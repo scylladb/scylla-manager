@@ -36,7 +36,6 @@ CREATE TABLE repair_run (
     restart_count int,
     start_time timestamp,
     end_time timestamp,
-    pause_time timestamp,
     PRIMARY KEY(cluster_id, unit_id, id)
 ) WITH CLUSTERING ORDER BY (unit_id ASC, id DESC);
 

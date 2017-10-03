@@ -43,6 +43,11 @@ func (w *worker) exec(ctx context.Context) error {
 		ok = true
 	)
 	for _, s := range w.shards {
+		if s.progress.Done() {
+			s.logger.Info(ctx, "Already done, skipping")
+			continue
+		}
+
 		// range variable reuse
 		s := s
 		wg.Add(1)
@@ -67,38 +72,46 @@ func (w *worker) exec(ctx context.Context) error {
 }
 
 func (w *worker) init(ctx context.Context) error {
+	// split segments to shards
 	p, err := w.partitioner(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get partitioner")
 	}
+	shards := w.splitSegmentsToShards(ctx, p)
 
-	shards := splitSegmentsToShards(w.Segments, p)
-	if err := validateShards(w.Segments, shards, p); err != nil {
-		w.logger.Info(ctx, "Suboptimal sharding", "error", err)
+	// continue from a savepoint
+	prog, err := w.Service.GetProgress(ctx, w.Unit, w.Run.ID, w.Host)
+	if err != nil {
+		return errors.Wrap(err, "failed to get host progress")
+	}
+	if err := validateShardProgress(shards, prog); err != nil {
+		if len(prog) > 1 {
+			w.logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error())
+		}
+		prog = nil
 	}
 
 	w.shards = make([]*shardWorker, len(shards))
 
 	for i, segments := range shards {
-		segments = mergeSegments(segments)
-		segments = splitSegments(segments, *w.Config.SegmentSizeLimit)
+		// prepare progress
+		p := &RunProgress{
+			ClusterID:    w.Run.ClusterID,
+			UnitID:       w.Run.UnitID,
+			RunID:        w.Run.ID,
+			Host:         w.Host,
+			Shard:        i,
+			SegmentCount: len(segments),
+		}
+		if prog != nil {
+			p = prog[i]
+		}
 
 		w.shards[i] = &shardWorker{
 			parent:   w,
 			segments: segments,
-			progress: &RunProgress{
-				ClusterID:    w.Run.ClusterID,
-				UnitID:       w.Run.UnitID,
-				RunID:        w.Run.ID,
-				Host:         w.Host,
-				Shard:        i,
-				SegmentCount: len(segments),
-			},
-			logger: w.logger.With("shard", i),
-		}
-
-		if err := w.Service.putRunProgress(ctx, w.shards[i].progress); err != nil {
-			return errors.Wrapf(err, "failed to initialise segments progress %s", w.shards[i].progress)
+			progress: p,
+			logger:   w.logger.With("shard", i),
 		}
 	}
 
@@ -127,6 +140,20 @@ func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, erro
 	return dht.NewMurmur3Partitioner(shardCount, shardingIgnoreMsbBits), nil
 }
 
+func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) [][]*Segment {
+	shards := splitSegmentsToShards(w.Segments, p)
+	if err := validateShards(w.Segments, shards, p); err != nil {
+		w.logger.Info(ctx, "Suboptimal sharding", "error", err.Error())
+	}
+
+	for i := range shards {
+		shards[i] = mergeSegments(shards[i])
+		shards[i] = splitSegments(shards[i], *w.Config.SegmentSizeLimit)
+	}
+
+	return shards
+}
+
 // shardWorker repairs a single shard
 type shardWorker struct {
 	parent   *worker
@@ -136,64 +163,109 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) {
-	w.logger.Info(ctx, "Starting repair")
+	var (
+		start = w.startSegment(ctx)
+		end   = start + segmentsPerRequest
+		id    int32
+		err   error
+	)
+
+	w.logger.Info(ctx, "Starting repair", "start_segment", start)
 	w.logger.Debug(ctx, "Segment stats", "stats", segmentsStats(w.segments))
 
-	var (
-		start = 0
-		end   = segmentsPerRequest
-	)
+	next := func() {
+		start, end = end, end+segmentsPerRequest
+	}
+
+	savepoint := func() {
+		w.progress.LastStartTime = time.Now()
+		w.progress.LastStartToken = w.segments[start].StartToken
+		w.progress.LastCommandID = id
+		w.updateProgress(ctx)
+	}
+
 	for start < len(w.segments) {
-		if w.isPaused(ctx) {
-			w.logger.Info(ctx, "Paused")
+		w.logger.Info(ctx, "Progress", "percent", w.progress.PercentDone())
+
+		if w.isStopped(ctx) {
+			w.logger.Info(ctx, "Stopped")
 			break
 		}
 
-		// issue a repair
-		id, err := w.parent.Cluster.Repair(ctx, w.parent.Host, &scylla.RepairConfig{
-			Keyspace: w.parent.Run.Keyspace,
-			Tables:   w.parent.Run.Tables,
-			Ranges:   dumpSegments(w.segments[start:end]),
-		})
-		if err != nil {
-			// TODO limited tolerance to errors, 30m errors non stop ignore...
-			w.logger.Info(ctx, "Repair request failed", "error", err)
-			w.progress.SegmentError += end - start
-		} else {
-			// sevepoint
-			w.progress.LastCommandID = id
-			w.progress.LastStartTime = time.Now()
-			w.progress.LastStartToken = w.segments[start].StartToken
-			w.updateProgress(ctx)
-
-			if err := w.waitCommand(ctx, id); err != nil {
-				w.logger.Info(ctx, "Repair failed", "error", err)
-				w.progress.SegmentError += end - start
-			} else {
-				w.progress.SegmentSuccess += end - start
-			}
-		}
-
-		w.updateProgress(ctx)
-
-		start = end
-		end += segmentsPerRequest
 		if end > len(w.segments) {
 			end = len(w.segments)
 		}
 
-		w.logger.Info(ctx, "Progress", "percent", w.percentDone())
-	}
+		if w.progress.LastCommandID != 0 {
+			id = w.progress.LastCommandID
+		} else {
+			id, err = w.runRepair(ctx, start, end)
+			if err != nil {
+				w.logger.Info(ctx, "Repair request failed", "error", err)
 
-	w.logger.Info(ctx, "Done")
+				w.progress.SegmentError += end - start
+				w.updateProgress(ctx)
+
+				next()
+				continue
+			}
+		}
+
+		savepoint()
+
+		if err = w.waitCommand(ctx, id); err != nil {
+			w.logger.Info(ctx, "Repair failed", "error", err)
+			w.progress.SegmentError += end - start
+		} else {
+			w.progress.SegmentSuccess += end - start
+		}
+		w.progress.LastCommandID = 0
+		w.updateProgress(ctx)
+
+		next()
+	}
 }
 
-func (w *shardWorker) isPaused(ctx context.Context) bool {
-	paused, err := w.parent.Service.isPaused(ctx, w.parent.Unit, w.parent.Run.ID)
+func (w *shardWorker) startSegment(ctx context.Context) int {
+	if !w.progress.started() {
+		return 0
+	}
+
+	for i := 0; i < len(w.segments); i++ {
+		if w.segments[i].StartToken == w.progress.LastStartToken {
+			return i
+		}
+	}
+
+	// this shall never happen as it's checked by validateShardProgress
+	w.resetProgress(ctx)
+
+	return 0
+}
+
+func (w *shardWorker) resetProgress(ctx context.Context) {
+	w.logger.Error(ctx, "Starting from scratch: progress reset...")
+	w.progress.SegmentSuccess = 0
+	w.progress.SegmentError = 0
+	w.progress.LastStartToken = 0
+	w.progress.LastStartTime = time.Time{}
+	w.progress.LastCommandID = 0
+}
+
+func (w *shardWorker) isStopped(ctx context.Context) bool {
+	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Unit, w.parent.Run.ID)
 	if err != nil {
 		w.logger.Error(ctx, "Service error", "error", err)
 	}
-	return paused
+	return stopped
+}
+
+func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
+	return w.parent.Cluster.Repair(ctx, w.parent.Host, &scylla.RepairConfig{
+		Keyspace: w.parent.Run.Keyspace,
+		Tables:   w.parent.Run.Tables,
+		Ranges:   dumpSegments(w.segments[start:end]),
+	})
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
@@ -228,12 +300,4 @@ func (w *shardWorker) updateProgress(ctx context.Context) {
 	if err := w.parent.Service.putRunProgress(ctx, w.progress); err != nil {
 		w.logger.Error(ctx, "Cannot update the run progress", "error", err)
 	}
-}
-
-func (w *shardWorker) percentDone() int {
-	if w.progress.SegmentCount == 0 {
-		return 100
-	}
-
-	return 100 * (w.progress.SegmentSuccess + w.progress.SegmentError) / w.progress.SegmentCount
 }

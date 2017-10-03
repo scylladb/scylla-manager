@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
+	"strings"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
@@ -331,7 +332,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: u.ClusterID,
 			UnitID:    u.ID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusPaused,
+			Status:    repair.StatusStopped,
 		}
 		putRun(t, r1)
 
@@ -379,7 +380,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: u.ClusterID,
 			UnitID:    u.ID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusPaused,
+			Status:    repair.StatusStopped,
 		}
 		putRun(t, r1)
 
@@ -393,7 +394,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("pause run", func(t *testing.T) {
+	t.Run("stop run", func(t *testing.T) {
 		t.Parallel()
 
 		u := validUnit()
@@ -407,13 +408,13 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		putRun(t, &r)
 
-		if err := s.PauseRun(ctx, u, r.ID); err != nil {
+		if err := s.StopRun(ctx, u, r.ID); err != nil {
 			t.Fatal(err)
 		}
 
 		if run, err := s.GetRun(ctx, u, r.ID); err != nil {
 			t.Fatal(err)
-		} else if run.Status != repair.StatusPausing {
+		} else if run.Status != repair.StatusStopping {
 			t.Fatal(run.Status)
 		}
 	})
@@ -471,63 +472,160 @@ func TestServiceRepairIntegration(t *testing.T) {
 	var (
 		clusterID = uuid.MustRandom()
 		taskID    = uuid.NewTime()
-		ctx       = context.Background()
+		unit      = repair.Unit{
+			ClusterID: clusterID,
+			Keyspace:  "test_repair",
+		}
+		segmentsDone = 0
+		ctx          = context.Background()
 	)
 
-	// put a unit
-	u := repair.Unit{
-		ClusterID: clusterID,
-		Keyspace:  "test_repair",
+	assertStatus := func(expected repair.Status) {
+		if r, err := s.GetRun(ctx, &unit, taskID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != expected {
+			t.Fatal("wrong status", r, "expected", expected)
+		}
 	}
-	if err := s.PutUnit(ctx, &u); err != nil {
+
+	assertProgress := func() {
+		prog, err := s.GetProgress(ctx, &unit, taskID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(prog) != 4 {
+			l.Info(ctx, "Wrong progress items count", "progress", prog, "progress_length", len(prog))
+			t.Fatal()
+		}
+
+		done := 0
+		for _, p := range prog {
+			done += p.SegmentSuccess + p.SegmentError
+		}
+
+		if done < segmentsDone {
+			t.Fatal("no progress, got", done, "had", segmentsDone)
+		}
+
+		segmentsDone = done
+	}
+
+	wait := func() {
+		time.Sleep(5 * time.Second)
+	}
+
+	// Given unit
+	if err := s.PutUnit(ctx, &unit); err != nil {
 		t.Fatal(err)
 	}
 
-	// repair
-	if err := s.Repair(ctx, &u, taskID); err != nil {
+	// When run repair
+	if err := s.Repair(ctx, &unit, taskID); err != nil {
 		t.Fatal(err)
 	}
 
-	if r, err := s.GetRun(ctx, &u, taskID); err != nil {
-		t.Fatal(err)
-	} else if r.Status != repair.StatusRunning {
-		t.Fatal("wrong status", r)
-	}
+	// Then status is StatusRunning
+	assertStatus(repair.StatusRunning)
 
-	// wait
-	time.Sleep(5 * time.Second)
+	// When wait
+	wait()
 
-	// check ongoing progress
-	p, err := s.GetProgress(ctx, &u, taskID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(p) != 2+2 {
-		t.Fatalf("%+v", p)
-	}
+	// Then repair advances
+	assertProgress()
 
-	totalDone := 0
-	for _, v := range p {
-		totalDone += v.SegmentSuccess + v.SegmentError
-	}
-	if totalDone == 0 {
-		t.Fatalf("%+v", p)
-	}
+	// When run another repair
+	err = s.Repair(ctx, &unit, uuid.NewTime())
 
-	// check pause
-	s.PauseRun(ctx, &u, taskID)
-	if err != nil {
+	// Then run fails
+	if err == nil {
+		t.Fatal("expected error")
+	} else if !strings.Contains(err.Error(), taskID.String()) {
 		t.Fatal(err)
 	}
 
-	// wait
-	time.Sleep(5 * time.Second)
-
-	if r, err := s.GetRun(ctx, &u, taskID); err != nil {
+	// When stop run
+	if err := s.StopRun(ctx, &unit, taskID); err != nil {
 		t.Fatal(err)
-	} else if r.Status != repair.StatusPaused {
-		t.Fatal("wrong status", r)
 	}
+
+	// Then status is StatusRunning
+	assertStatus(repair.StatusStopping)
+
+	// When wait
+	wait()
+
+	// Then status is StatusStopped
+	assertStatus(repair.StatusStopped)
+
+	// When create a new task
+	taskID = uuid.NewTime()
+
+	// And run repair
+	if err := s.Repair(ctx, &unit, taskID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Then status is StatusRunning
+	assertStatus(repair.StatusRunning)
+
+	// And repair advances
+	assertProgress()
+
+	// When wait
+	wait()
+
+	// Then repair advances
+	assertProgress()
+
+	// When one host is fully repaired
+	hostProgress := func(host string) (done, total int) {
+		prog, err := s.GetProgress(ctx, &unit, taskID, host)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, p := range prog {
+			done += p.SegmentSuccess + p.SegmentError
+			total += p.SegmentCount
+		}
+
+		return
+	}
+
+	for {
+		done, total := hostProgress("172.16.1.10")
+		if done >= total {
+			break
+		} else {
+			t.Log(done, total)
+			wait()
+		}
+	}
+
+	// And stop run
+	if err := s.StopRun(ctx, &unit, taskID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Then status is StatusRunning
+	assertStatus(repair.StatusStopping)
+
+	// When wait
+	wait()
+
+	// Then status is StatusStopped
+	assertStatus(repair.StatusStopped)
+
+	// When create a new task
+	taskID = uuid.NewTime()
+
+	// And run repair
+	if err := s.Repair(ctx, &unit, taskID); err != nil {
+		t.Fatal(err)
+	}
+
+	// And wait
+	wait()
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
