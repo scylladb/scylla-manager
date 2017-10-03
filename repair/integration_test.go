@@ -362,6 +362,37 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("get last run", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+
+		r0 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusDone,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusPaused,
+		}
+		putRun(t, r1)
+
+		r, err := s.GetLastRun(ctx, u)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer()); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
 	t.Run("pause run", func(t *testing.T) {
 		t.Parallel()
 

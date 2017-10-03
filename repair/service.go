@@ -257,6 +257,38 @@ func (s *Service) ListRuns(ctx context.Context, u *Unit, f *RunFilter) ([]*Run, 
 	return v, nil
 }
 
+// GetLastRun returns the the most recent run of the unit.
+func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
+	s.logger.Debug(ctx, "GetLastRun", "unit", u)
+
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid unit")
+	}
+
+	stmt, names := qb.Select(schema.RepairRun.Name).
+		Where(
+			qb.Eq("cluster_id"),
+			qb.Eq("unit_id"),
+		).Limit(1).
+		ToCql()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var r Run
+	if err := gocqlx.Get(&r, q.Query); err != nil {
+		return nil, err
+	}
+
+	return &r, nil
+}
+
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, error) {
