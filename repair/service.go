@@ -49,7 +49,7 @@ func NewService(session *gocql.Session, p scylla.ProviderFunc, l log.Logger) (*S
 func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	s.logger.Debug(ctx, "Repair", "unit", u, "task_id", taskID)
 
-	// validate a unit
+	// validate the unit
 	if err := u.Validate(); err != nil {
 		return errors.Wrap(err, "invalid unit")
 	}
@@ -217,10 +217,55 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	s.logger.Info(ctx, "Done", "task_id", r.ID)
 }
 
+// ListRuns returns runs for the unit in descending order, latest runs first.
+func (s *Service) ListRuns(ctx context.Context, u *Unit, f *RunFilter) ([]*Run, error) {
+	s.logger.Debug(ctx, "ListRuns", "unit", u, "filter", f)
+
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid unit")
+	}
+
+	// validate the filter
+	if err := f.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid filter")
+	}
+
+	sel := qb.Select(schema.RepairRun.Name).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("unit_id"),
+	)
+	if f.Limit != 0 {
+		sel.Limit(f.Limit)
+	}
+
+	stmt, names := sel.ToCql()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var v []*Run
+	if err := gocqlx.Select(&v, q.Query); err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun", "unit", u, "task_id", taskID)
+
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid unit")
+	}
 
 	stmt, names := schema.RepairRun.Get()
 
@@ -265,6 +310,11 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 func (s *Service) PauseRun(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	s.logger.Debug(ctx, "PauseRun", "unit", u, "task_id", taskID)
 
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return errors.Wrap(err, "invalid unit")
+	}
+
 	r, err := s.GetRun(ctx, u, taskID)
 	if err != nil {
 		return err
@@ -306,6 +356,11 @@ func (s *Service) isPaused(ctx context.Context, u *Unit, taskID uuid.UUID) (bool
 func (s *Service) GetProgress(ctx context.Context, u *Unit, taskID uuid.UUID) ([]*RunProgress, error) {
 	s.logger.Debug(ctx, "GetProgress", "unit", u, "task_id", taskID)
 
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid unit")
+	}
+
 	stmt, names := schema.RepairRunProgress.Select()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
@@ -341,6 +396,11 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 // matching configuration is used.
 func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo, error) {
 	s.logger.Debug(ctx, "GetMergedUnitConfig", "unit", u)
+
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid unit")
+	}
 
 	order := []ConfigSource{
 		{
@@ -433,7 +493,7 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 	return q.ExecRelease()
 }
 
-// ListUnits returns all the Units in a given cluster.
+// ListUnits returns all the units in the cluster.
 func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*Unit, error) {
 	s.logger.Debug(ctx, "ListUnits", "cluster_id", clusterID)
 
@@ -489,6 +549,7 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 		}
 	}
 
+	// validate the unit
 	if err := u.Validate(); err != nil {
 		return err
 	}

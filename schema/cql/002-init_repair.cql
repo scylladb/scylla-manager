@@ -38,7 +38,7 @@ CREATE TABLE repair_run (
     end_time timestamp,
     pause_time timestamp,
     PRIMARY KEY(cluster_id, unit_id, id)
-);
+) WITH CLUSTERING ORDER BY (unit_id ASC, id DESC);
 
 CREATE TABLE repair_run_progress (
     cluster_id uuid,

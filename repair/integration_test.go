@@ -40,6 +40,13 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
+	putRun := func(t *testing.T, r *repair.Run) {
+		stmt, names := schema.RepairRun.Insert()
+		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	t.Run("get global merged unit config", func(t *testing.T) {
 		t.Parallel()
 
@@ -160,6 +167,50 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("list empty units", func(t *testing.T) {
+		t.Parallel()
+
+		units, err := s.ListUnits(ctx, uuid.MustRandom())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(units) != 0 {
+			t.Fatal("expected 0 len result")
+		}
+	})
+
+	t.Run("list units", func(t *testing.T) {
+		t.Parallel()
+
+		id := uuid.MustRandom()
+
+		expected := make([]*repair.Unit, 3)
+		for i := range expected {
+			u := &repair.Unit{
+				ClusterID: id,
+				ID:        uuid.NewTime(),
+				Keyspace:  "keyspace" + strconv.Itoa(i),
+				Tables: []string{
+					fmt.Sprintf("table%d", 2*i),
+					fmt.Sprintf("table%d", 2*i+1),
+				},
+			}
+			if err := s.PutUnit(ctx, u); err != nil {
+				t.Fatal(err)
+			}
+			expected[i] = u
+		}
+
+		units, err := s.ListUnits(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(units, expected, mermaidtest.UUIDComparer()); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
 	t.Run("get missing unit", func(t *testing.T) {
 		t.Parallel()
 
@@ -176,12 +227,12 @@ func TestServiceStorageIntegration(t *testing.T) {
 		t.Parallel()
 
 		u0 := validUnit()
-		v := u0.ID
+		u0.ID = uuid.Nil
 
 		if err := s.PutUnit(ctx, u0); err != nil {
 			t.Fatal(err)
 		}
-		if u0.ID == v {
+		if u0.ID == uuid.Nil {
 			t.Fatal("ID not updated")
 		}
 		u1, err := s.GetUnit(ctx, u0.ClusterID, u0.ID)
@@ -252,47 +303,62 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("list empty units", func(t *testing.T) {
+	t.Run("list runs invalid filter", func(t *testing.T) {
 		t.Parallel()
 
-		units, err := s.ListUnits(ctx, uuid.MustRandom())
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(units) != 0 {
-			t.Fatal("expected 0 len result")
+		u := validUnit()
+
+		_, err := s.ListRuns(ctx, u, nil)
+		if err == nil {
+			t.Fatal("expected validation error")
 		}
 	})
 
-	t.Run("list units", func(t *testing.T) {
+	t.Run("list runs", func(t *testing.T) {
 		t.Parallel()
 
-		id := uuid.MustRandom()
+		u := validUnit()
 
-		expected := make([]*repair.Unit, 3)
-		for i := range expected {
-			u := &repair.Unit{
-				ID:        uuid.NewTime(),
-				ClusterID: id,
-				Keyspace:  "keyspace" + strconv.Itoa(i),
-				Tables: []string{
-					fmt.Sprintf("table%d", 2*i),
-					fmt.Sprintf("table%d", 2*i+1),
-				},
-			}
-			if err := s.PutUnit(ctx, u); err != nil {
+		r0 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusDone,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusPaused,
+		}
+		putRun(t, r1)
+
+		table := []struct {
+			F *repair.RunFilter
+			E []*repair.Run
+		}{
+			// All runs
+			{
+				F: &repair.RunFilter{},
+				E: []*repair.Run{r1, r0},
+			},
+			// Add limit
+			{
+				F: &repair.RunFilter{Limit: 1},
+				E: []*repair.Run{r1},
+			},
+		}
+
+		for _, test := range table {
+			runs, err := s.ListRuns(ctx, u, test.F)
+			if err != nil {
 				t.Fatal(err)
 			}
-			expected[i] = u
-		}
-
-		units, err := s.ListUnits(ctx, id)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if diff := cmp.Diff(units, expected, mermaidtest.UUIDComparer()); diff != "" {
-			t.Fatal(diff)
+			if diff := cmp.Diff(runs, test.E, mermaidtest.UUIDComparer()); diff != "" {
+				t.Fatal(diff)
+			}
 		}
 	})
 
@@ -308,10 +374,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			Status:    repair.StatusRunning,
 		}
 
-		stmt, names := schema.RepairRun.Insert()
-		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
-			t.Fatal(err)
-		}
+		putRun(t, &r)
 
 		if err := s.PauseRun(ctx, u, r.ID); err != nil {
 			t.Fatal(err)
@@ -342,10 +405,9 @@ func validConfig() *repair.Config {
 }
 
 func validUnit() *repair.Unit {
-	uuid := uuid.MustRandom()
-
 	return &repair.Unit{
-		ClusterID: uuid,
+		ClusterID: uuid.MustRandom(),
+		ID:        uuid.MustRandom(),
 		Keyspace:  "keyspace",
 	}
 }

@@ -78,7 +78,7 @@ type Config struct {
 // Validate checks if all the fields are properly set.
 func (c *Config) Validate() error {
 	if c == nil {
-		return errors.New("nil config")
+		return errors.New("nil")
 	}
 
 	var (
@@ -144,7 +144,7 @@ type Unit struct {
 // Validate checks if all the fields are properly set.
 func (u *Unit) Validate() error {
 	if u == nil {
-		return errors.New("nil unit")
+		return errors.New("nil")
 	}
 
 	if u.ID == uuid.Nil {
@@ -236,6 +236,20 @@ func (s *Status) UnmarshalText(text []byte) error {
 	default:
 		return fmt.Errorf("unrecognized Status %q", text)
 	}
+	return nil
+}
+
+// RunFilter filters runs.
+type RunFilter struct {
+	Limit uint
+}
+
+// Validate checks if all the fields are properly set.
+func (f *RunFilter) Validate() error {
+	if f == nil {
+		return errors.New("nil")
+	}
+
 	return nil
 }
 
