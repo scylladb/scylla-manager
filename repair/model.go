@@ -241,9 +241,10 @@ func (s *Status) UnmarshalText(text []byte) error {
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
-	ID           uuid.UUID
-	UnitID       uuid.UUID
 	ClusterID    uuid.UUID
+	UnitID       uuid.UUID
+	ID           uuid.UUID
+	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
 	Keyspace     string `db:"keyspace_name"`
 	Tables       []string

@@ -27,6 +27,7 @@ CREATE TABLE repair_run (
     cluster_id uuid,
     unit_id uuid,
     id timeuuid,
+    prev_id timeuuid,
     topology_hash uuid,
     keyspace_name text,
     tables set<text>,
