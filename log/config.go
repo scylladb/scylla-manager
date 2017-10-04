@@ -13,7 +13,11 @@ import (
 // NewDevelopment creates a new logger that writes DebugLevel and above
 // logs to standard error in a human-friendly format.
 func NewDevelopment() Logger {
-	l, _ := zap.NewDevelopment(zap.AddCallerSkip(2))
+	cfg := zap.NewDevelopmentConfig()
+	cfg.Level.SetLevel(zapcore.DebugLevel)
+
+	l, _ := cfg.Build(zap.AddCallerSkip(2))
+
 	return Logger{base: l}
 }
 
