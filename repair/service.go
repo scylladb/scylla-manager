@@ -251,7 +251,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 		}
 
 		if diff := set.SymmetricDifference(prevHosts, hosts); !diff.IsEmpty() {
-			s.logger.Info(ctx, "Starting from scratch: hosts changed",
+			s.logger.Info(ctx, "Starting from scratch: hosts changed check that all API hosts belong to the same DC",
 				"task_id", r.ID,
 				"prev_task_id", prev.ID,
 				"old", prevHosts,
