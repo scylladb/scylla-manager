@@ -47,6 +47,43 @@ func NewService(session *gocql.Session, p scylla.ProviderFunc, l log.Logger) (*S
 	}, nil
 }
 
+// FixRunStatus shall be called when the service starts to assure proper
+// functioning. It iterates over all the repair units and marks running and
+// stopping runs as stopped.
+func (s *Service) FixRunStatus(ctx context.Context) error {
+	s.logger.Debug(ctx, "FixRunStatus")
+
+	stmt, _ := qb.Select(schema.RepairUnit.Name).ToCql()
+	iter := gocqlx.Iter(s.session.Query(stmt).WithContext(ctx))
+
+	defer func() {
+		iter.Close()
+		iter.ReleaseQuery()
+	}()
+
+	var u Unit
+	for iter.StructScan(&u) {
+		last, err := s.GetLastRun(ctx, &u)
+		if err == mermaid.ErrNotFound {
+			continue
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed to get last run of a unit")
+		}
+
+		switch last.Status {
+		case StatusRunning, StatusStopping:
+			last.Status = StatusStopped
+			if err := s.putRun(ctx, last); err != nil {
+				return errors.Wrap(err, "failed to update a run")
+			}
+			s.logger.Info(ctx, "Stopped a run", "unit", u, "task_id", last.ID)
+		}
+	}
+
+	return iter.Close()
+}
+
 // Repair starts an asynchronous repair process.
 func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	s.logger.Debug(ctx, "Repair", "unit", u, "task_id", taskID)

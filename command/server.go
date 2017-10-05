@@ -188,6 +188,10 @@ func (cmd *ServerCommand) Run(args []string) int {
 		cmd.UI.Error(fmt.Sprintf("Repair service error: %s", err))
 		return 1
 	}
+	if err := repairSvc.FixRunStatus(ctx); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Repair service error: %s", err))
+		return 1
+	}
 
 	// create REST handler
 	handler := restapi.New(repairSvc, logger.Named("restapi"))

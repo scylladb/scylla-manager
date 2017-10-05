@@ -418,6 +418,52 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(run.Status)
 		}
 	})
+
+	t.Run("fix run status", func(t *testing.T) {
+		t.Parallel()
+
+		u0 := validUnit()
+		if err := s.PutUnit(ctx, u0); err != nil {
+			t.Fatal(err)
+		}
+
+		u1 := validUnit()
+		if err := s.PutUnit(ctx, u1); err != nil {
+			t.Fatal(err)
+		}
+
+		r0 := repair.Run{
+			ID:        uuid.NewTime(),
+			UnitID:    u0.ID,
+			ClusterID: u0.ClusterID,
+			Status:    repair.StatusRunning,
+		}
+		putRun(t, &r0)
+
+		r1 := repair.Run{
+			ID:        uuid.NewTime(),
+			UnitID:    u1.ID,
+			ClusterID: u1.ClusterID,
+			Status:    repair.StatusStopping,
+		}
+		putRun(t, &r1)
+
+		if err := s.FixRunStatus(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		if r, err := s.GetRun(ctx, u0, r0.ID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != repair.StatusStopped {
+			t.Fatal("invalid status", r.Status)
+		}
+
+		if r, err := s.GetRun(ctx, u1, r1.ID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != repair.StatusStopped {
+			t.Fatal("invalid status", r.Status)
+		}
+	})
 }
 
 func validConfig() *repair.Config {
