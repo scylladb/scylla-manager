@@ -25,9 +25,11 @@ var globalClusterID = uuid.NewFromUint64(0, 0)
 
 // Service orchestrates cluster repairs.
 type Service struct {
-	session *gocql.Session
-	client  scylla.ProviderFunc
-	logger  log.Logger
+	session      *gocql.Session
+	client       scylla.ProviderFunc
+	workerCtx    context.Context
+	workerCancel context.CancelFunc
+	logger       log.Logger
 }
 
 // NewService creates a new service instance.
@@ -40,10 +42,14 @@ func NewService(session *gocql.Session, p scylla.ProviderFunc, l log.Logger) (*S
 		return nil, errors.New("invalid scylla provider")
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Service{
-		session: session,
-		client:  p,
-		logger:  l,
+		session:      session,
+		client:       p,
+		workerCtx:    ctx,
+		workerCancel: cancel,
+		logger:       l,
 	}, nil
 }
 
@@ -77,7 +83,7 @@ func (s *Service) FixRunStatus(ctx context.Context) error {
 			if err := s.putRun(ctx, last); err != nil {
 				return errors.Wrap(err, "failed to update a run")
 			}
-			s.logger.Info(ctx, "Stopped a run", "unit", u, "task_id", last.ID)
+			s.logger.Info(ctx, "Marked run as stopped", "unit", u, "task_id", last.ID)
 		}
 	}
 
@@ -271,7 +277,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	}
 
 	// spawn async repair
-	wctx := log.WithTraceID(context.Background())
+	wctx := log.WithTraceID(s.workerCtx)
 	s.logger.Info(ctx, "Starting repair",
 		"unit", u,
 		"task_id", taskID,
@@ -313,6 +319,11 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 		}
 		if err := w.exec(ctx); err != nil {
 			s.logger.Error(ctx, "Worker exec error", "error", err)
+		}
+
+		if ctx.Err() != nil {
+			s.logger.Info(ctx, "Aborted", "task_id", r.ID)
+			return
 		}
 
 		stopped, err := s.isStopped(ctx, u, r.ID)
@@ -731,4 +742,9 @@ func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 	})
 
 	return q.ExecRelease()
+}
+
+// Close terminates all the worker routines.
+func (s *Service) Close() {
+	s.workerCancel()
 }

@@ -201,6 +201,11 @@ func (w *shardWorker) exec(ctx context.Context) {
 		} else {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
+				if ctx.Err() != nil {
+					w.logger.Info(ctx, "Aborted")
+					break
+				}
+
 				w.logger.Info(ctx, "Repair request failed", "error", err)
 
 				w.progress.SegmentError += end - start
@@ -213,7 +218,12 @@ func (w *shardWorker) exec(ctx context.Context) {
 
 		savepoint()
 
-		if err = w.waitCommand(ctx, id); err != nil {
+		err = w.waitCommand(ctx, id)
+		if ctx.Err() != nil {
+			w.logger.Info(ctx, "Aborted")
+			break
+		}
+		if err != nil {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			w.progress.SegmentError += end - start
 		} else {
@@ -275,7 +285,7 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return errors.New("aborted")
+			return ctx.Err()
 		case <-t.C:
 			// TODO limited tolerance to errors, 30m errors non stop ignore...
 			s, err := w.parent.Cluster.RepairStatus(ctx, w.parent.Host, w.parent.Run.Keyspace, id)

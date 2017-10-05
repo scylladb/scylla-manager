@@ -495,33 +495,35 @@ func TestServiceRepairIntegration(t *testing.T) {
 	createKeyspace(t, session, "test_repair")
 	createTable(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
-	l := log.NewDevelopment()
-	s, err := repair.NewService(
-		session,
-		func(uuid.UUID) (*scylla.Client, error) {
-			c, err := scylla.NewClient(mermaidtest.ClusterHosts, l.Named("scylla"))
-			if err != nil {
-				return nil, err
-			}
-			config := scylla.Config{
-				"murmur3_partitioner_ignore_msb_bits": float64(12),
-				"shard_count":                         float64(2),
-			}
-			return scylla.WithConfig(c, config), nil
-		},
-		l.Named("repair"),
-	)
-	if err != nil {
-		t.Fatal(err)
+	logger := log.NewDevelopment()
+
+	newService := func() *repair.Service {
+		s, err := repair.NewService(
+			session,
+			func(uuid.UUID) (*scylla.Client, error) {
+				c, err := scylla.NewClient(mermaidtest.ClusterHosts, logger.Named("scylla"))
+				if err != nil {
+					return nil, err
+				}
+				config := scylla.Config{
+					"murmur3_partitioner_ignore_msb_bits": float64(12),
+					"shard_count":                         float64(2),
+				}
+				return scylla.WithConfig(c, config), nil
+			},
+			logger.Named("repair"),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
 	}
 
 	var (
-		clusterID = uuid.MustRandom()
-		taskID    = uuid.NewTime()
-		unit      = repair.Unit{
-			ClusterID: clusterID,
-			Keyspace:  "test_repair",
-		}
+		s            = newService()
+		clusterID    = uuid.MustRandom()
+		taskID       = uuid.NewTime()
+		unit         = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
 		segmentsDone = 0
 		ctx          = context.Background()
 	)
@@ -540,7 +542,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		if len(prog) != 4 {
-			l.Info(ctx, "Wrong progress items count", "progress", prog, "progress_length", len(prog))
+			logger.Info(ctx, "Wrong progress items count", "progress", prog, "progress_length", len(prog))
 			t.Fatal()
 		}
 
@@ -558,6 +560,31 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	wait := func() {
 		time.Sleep(5 * time.Second)
+	}
+
+	waitHostProgress := func(host string, percent float64) {
+		hostProgress := func(host string) (done, total int) {
+			prog, err := s.GetProgress(ctx, &unit, taskID, host)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for _, p := range prog {
+				done += p.SegmentSuccess + p.SegmentError
+				total += p.SegmentCount
+			}
+			return
+		}
+
+		for {
+			done, total := hostProgress(host)
+			if done >= int(float64(total)*percent) {
+				break
+			} else {
+				t.Log(done, total)
+				wait()
+			}
+		}
 	}
 
 	// Given unit
@@ -580,10 +607,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 	assertProgress()
 
 	// When run another repair
-	err = s.Repair(ctx, &unit, uuid.NewTime())
-
 	// Then run fails
-	if err == nil {
+	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil {
 		t.Fatal("expected error")
 	} else if !strings.Contains(err.Error(), taskID.String()) {
 		t.Fatal(err)
@@ -623,46 +648,20 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// Then repair advances
 	assertProgress()
 
-	// When one host is fully repaired
-	hostProgress := func(host string) (done, total int) {
-		prog, err := s.GetProgress(ctx, &unit, taskID, host)
-		if err != nil {
-			t.Fatal(err)
-		}
+	// When host is 1/2 repaired
+	waitHostProgress("172.16.1.10", 0.5)
 
-		for _, p := range prog {
-			done += p.SegmentSuccess + p.SegmentError
-			total += p.SegmentCount
-		}
+	// And close
+	s.Close()
 
-		return
-	}
-
-	for {
-		done, total := hostProgress("172.16.1.10")
-		if done >= total {
-			break
-		} else {
-			t.Log(done, total)
-			wait()
-		}
-	}
-
-	// And stop run
-	if err := s.StopRun(ctx, &unit, taskID); err != nil {
-		t.Fatal(err)
-	}
-
-	// Then status is StatusRunning
-	assertStatus(repair.StatusStopping)
-
-	// When wait
+	// And wait
 	wait()
 
-	// Then status is StatusStopped
-	assertStatus(repair.StatusStopped)
+	// And restart
+	s = newService()
+	s.FixRunStatus(ctx)
 
-	// When create a new task
+	// And create a new task
 	taskID = uuid.NewTime()
 
 	// And run repair
@@ -670,7 +669,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// And wait
+	// Then status is StatusRunning
+	assertStatus(repair.StatusRunning)
+
+	// And repair advances
+	assertProgress()
+
+	// When host is repaired
+	waitHostProgress("172.16.1.10", 1)
+
+	// Then wait
 	wait()
 }
 

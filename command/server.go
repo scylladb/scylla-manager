@@ -219,12 +219,9 @@ func (cmd *ServerCommand) Run(args []string) int {
 			Addr:    config.HTTP,
 			Handler: handler,
 		}
-
 		go func() {
 			logger.Info(ctx, "Starting HTTP", "address", httpServer.Addr)
-			if err := httpServer.ListenAndServe(); err != nil {
-				errCh <- err
-			}
+			errCh <- httpServer.ListenAndServe()
 		}()
 	}
 
@@ -233,12 +230,9 @@ func (cmd *ServerCommand) Run(args []string) int {
 			Addr:    config.HTTPS,
 			Handler: handler,
 		}
-
 		go func() {
 			logger.Info(ctx, "Starting HTTPS", "address", httpsServer.Addr)
-			if err := httpsServer.ListenAndServeTLS(config.TLSCertFile, config.TLSKeyFile); err != nil {
-				errCh <- err
-			}
+			errCh <- httpsServer.ListenAndServeTLS(config.TLSCertFile, config.TLSKeyFile)
 		}()
 	}
 
@@ -272,6 +266,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 			if err := httpServer.Shutdown(timeoutCtx); err != nil {
 				logger.Info(ctx, "Closing HTTP error", "error", err)
 			}
+			httpServer.Close()
 		}()
 	}
 	if httpsServer != nil {
@@ -283,9 +278,13 @@ func (cmd *ServerCommand) Run(args []string) int {
 			if err := httpsServer.Shutdown(timeoutCtx); err != nil {
 				logger.Info(ctx, "Closing HTTPS error", "error", err)
 			}
+			httpsServer.Close()
 		}()
 	}
 	wg.Wait()
+
+	// close repair
+	repairSvc.Close()
 
 	// close agent
 	if cmd.debug {
