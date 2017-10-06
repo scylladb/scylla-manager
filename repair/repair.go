@@ -192,11 +192,8 @@ func validateShards(segments []*Segment, shards [][]*Segment, p *dht.Murmur3Part
 		}
 		return true
 	})
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // validateShardProgress checks if run progress, possibly copied from a

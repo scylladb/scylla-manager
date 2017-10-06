@@ -53,7 +53,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			"uri", r.URL.RequestURI(),
 			"status", resp.StatusCode,
 			"bytes", resp.ContentLength,
-			"duration", fmt.Sprintf("%dms", time.Now().Sub(start)/1000000),
+			"duration", fmt.Sprintf("%dms", time.Since(start)/1000000),
 		)
 		fixResponse(resp)
 	}

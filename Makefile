@@ -9,12 +9,13 @@ clean:
 
 # check does static code analysis.
 .PHONY: check
-check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check-ineffassign
+check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell
 
 .PHONY: .check-copyright
 .check-copyright:
 	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ /scylla/internal/ ]] || \
+		[[ $$f =~ /restapi/client/ ]] || \
 		[[ $$f =~ .*_mock[.]go ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
 		(echo $$f; false); \
@@ -33,13 +34,17 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-misspell .check
 	@golint `go list ./...` \
 	| tee /dev/stderr | ifne false
 
-.PHONY: .check-misspell
-.check-misspell:
-	@misspell ./...
-
 .PHONY: .check-ineffassign
 .check-ineffassign:
 	@ineffassign `$(GOFILES)`
+
+.PHONY: .check-mega
+.check-mega:
+	@megacheck ./...
+
+.PHONY: .check-misspell
+.check-misspell:
+	@misspell ./...
 
 # fmt formats the source code.
 .PHONY: fmt
@@ -87,3 +92,4 @@ get-tools:
 	@go get -u github.com/fatih/gomodifytags
 	@go get -u github.com/gordonklaus/ineffassign
 	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
+	@go get -u honnef.co/go/tools/cmd/megacheck
