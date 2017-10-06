@@ -70,6 +70,10 @@ func (u UUID) Bytes() []byte {
 
 // MarshalCQL implements gocql.Marshaler.
 func (u UUID) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
+	if u == Nil {
+		return nil, nil
+	}
+
 	switch info.Type() {
 	case gocql.TypeUUID:
 		return u.uuid[:], nil

@@ -78,7 +78,7 @@ type Config struct {
 // Validate checks if all the fields are properly set.
 func (c *Config) Validate() error {
 	if c == nil {
-		return errors.New("nil config")
+		return errors.New("nil")
 	}
 
 	var (
@@ -144,7 +144,7 @@ type Unit struct {
 // Validate checks if all the fields are properly set.
 func (u *Unit) Validate() error {
 	if u == nil {
-		return errors.New("nil unit")
+		return errors.New("nil")
 	}
 
 	if u.ID == uuid.Nil {
@@ -200,13 +200,11 @@ type Status string
 
 // Status enumeration.
 const (
-	StatusUnknown Status = "unknown"
-	StatusRunning Status = "running"
-	StatusDone    Status = "done"
-	StatusError   Status = "error"
-	StatusPausing Status = "pausing"
-	StatusPaused  Status = "paused"
-	StatusAborted Status = "aborted"
+	StatusRunning  Status = "running"
+	StatusDone     Status = "done"
+	StatusError    Status = "error"
+	StatusStopping Status = "stopping"
+	StatusStopped  Status = "stopped"
 )
 
 func (s Status) String() string {
@@ -221,29 +219,40 @@ func (s Status) MarshalText() (text []byte, err error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *Status) UnmarshalText(text []byte) error {
 	switch Status(text) {
-	case StatusUnknown:
-		*s = StatusUnknown
 	case StatusDone:
 		*s = StatusDone
 	case StatusError:
 		*s = StatusError
-	case StatusPausing:
-		*s = StatusPausing
-	case StatusPaused:
-		*s = StatusPaused
-	case StatusAborted:
-		*s = StatusAborted
+	case StatusStopping:
+		*s = StatusStopping
+	case StatusStopped:
+		*s = StatusStopped
 	default:
 		return fmt.Errorf("unrecognized Status %q", text)
 	}
 	return nil
 }
 
+// RunFilter filters runs.
+type RunFilter struct {
+	Limit uint
+}
+
+// Validate checks if all the fields are properly set.
+func (f *RunFilter) Validate() error {
+	if f == nil {
+		return errors.New("nil")
+	}
+
+	return nil
+}
+
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
-	ID           uuid.UUID
-	UnitID       uuid.UUID
 	ClusterID    uuid.UUID
+	UnitID       uuid.UUID
+	ID           uuid.UUID
+	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
 	Keyspace     string `db:"keyspace_name"`
 	Tables       []string
@@ -252,7 +261,6 @@ type Run struct {
 	RestartCount int
 	StartTime    time.Time
 	EndTime      time.Time
-	PauseTime    time.Time
 }
 
 // RunProgress describes repair progress on per shard basis.
@@ -268,4 +276,33 @@ type RunProgress struct {
 	LastStartToken int64
 	LastStartTime  time.Time
 	LastCommandID  int32
+}
+
+// Done returns true if all the segments were processed.
+func (p *RunProgress) Done() bool {
+	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError
+}
+
+// PercentDone returns value from 0 to 100 representing percentage of processed
+// segments within a shard.
+func (p *RunProgress) PercentDone() int {
+	if p.SegmentCount == 0 {
+		return 0
+	}
+
+	if p.Done() {
+		return 100
+	}
+
+	percent := 100 * (p.SegmentSuccess + p.SegmentError) / p.SegmentCount
+	if percent >= 100 {
+		percent = 99
+	}
+
+	return percent
+}
+
+// started returns true if the host / shard was ever repaired in the run.
+func (p *RunProgress) started() bool {
+	return !p.LastStartTime.IsZero()
 }

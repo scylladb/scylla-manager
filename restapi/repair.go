@@ -176,16 +176,6 @@ func (h *repairHandler) triggerRepair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var args struct {
-		TaskID uuid.UUID `json:"task_id"`
-	}
-	if err := render.DecodeJSON(r.Body, &args); err != nil {
-		if err != io.EOF {
-			render.Respond(w, r, httpErrBadRequest(err))
-			return
-		}
-	}
-
 	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), id)
 	if err != nil {
 		if err == mermaid.ErrNotFound {
@@ -196,10 +186,16 @@ func (h *repairHandler) triggerRepair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.Repair(r.Context(), u, args.TaskID); err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusInternalServerError, "failed to start repair on unit: "+u.ID.String()))
+	taskID := uuid.NewTime()
+
+	if err := h.svc.Repair(r.Context(), u, taskID); err != nil {
+		render.Respond(w, r, newHTTPError(err, http.StatusInternalServerError, "failed to start repair"))
 		return
 	}
+
+	repairURL := r.URL.ResolveReference(&url.URL{Path: path.Join("unit", u.ID.String(), "repair", taskID.String())})
+	w.Header().Set("Location", repairURL.String())
+	w.WriteHeader(http.StatusCreated)
 }
 
 type repairConfigRequest struct {

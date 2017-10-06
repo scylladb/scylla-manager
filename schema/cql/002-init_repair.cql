@@ -27,6 +27,7 @@ CREATE TABLE repair_run (
     cluster_id uuid,
     unit_id uuid,
     id timeuuid,
+    prev_id timeuuid,
     topology_hash uuid,
     keyspace_name text,
     tables set<text>,
@@ -35,9 +36,8 @@ CREATE TABLE repair_run (
     restart_count int,
     start_time timestamp,
     end_time timestamp,
-    pause_time timestamp,
     PRIMARY KEY(cluster_id, unit_id, id)
-);
+) WITH CLUSTERING ORDER BY (unit_id ASC, id DESC);
 
 CREATE TABLE repair_run_progress (
     cluster_id uuid,

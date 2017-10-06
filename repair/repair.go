@@ -199,6 +199,28 @@ func validateShards(segments []*Segment, shards [][]*Segment, p *dht.Murmur3Part
 	return nil
 }
 
+// validateShardProgress checks if run progress, possibly copied from a
+// different run matches the shards.
+func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
+	if len(prog) != len(shards) {
+		return errors.New("length mismatch")
+	}
+
+	for i, p := range prog {
+		if p.Shard != i {
+			return errors.Errorf("shard %d: progress for shard %d", i, p.Shard)
+		}
+		if p.SegmentCount != len(shards[i]) {
+			return errors.Errorf("shard %d: segment count mismatch got %d expected %d", p.Shard, p.SegmentCount, len(shards[i]))
+		}
+		if _, ok := segmentsContainStartToken(shards[i], p.LastStartToken); !ok {
+			return errors.Errorf("shard %d: no segment for start token %d", p.Shard, p.LastStartToken)
+		}
+	}
+
+	return nil
+}
+
 // validateTables checks if tables are a subset of all the tables. Empty table
 // list is always valid.
 func validateTables(tables []string, all []string) error {

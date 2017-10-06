@@ -91,7 +91,7 @@ var (
 
 	RepairRun = Table{
 		Name:    "repair_run",
-		Columns: []string{"cluster_id", "unit_id", "id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time", "pause_time"},
+		Columns: []string{"cluster_id", "unit_id", "id", "prev_id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time"},
 		PartKey: []string{"cluster_id"},
 		SortKey: []string{"unit_id", "id"},
 	}.init()

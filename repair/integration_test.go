@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
+	"strings"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
@@ -39,6 +40,13 @@ func TestServiceStorageIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
+
+	putRun := func(t *testing.T, r *repair.Run) {
+		stmt, names := schema.RepairRun.Insert()
+		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	t.Run("get global merged unit config", func(t *testing.T) {
 		t.Parallel()
@@ -160,6 +168,50 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("list empty units", func(t *testing.T) {
+		t.Parallel()
+
+		units, err := s.ListUnits(ctx, uuid.MustRandom())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(units) != 0 {
+			t.Fatal("expected 0 len result")
+		}
+	})
+
+	t.Run("list units", func(t *testing.T) {
+		t.Parallel()
+
+		id := uuid.MustRandom()
+
+		expected := make([]*repair.Unit, 3)
+		for i := range expected {
+			u := &repair.Unit{
+				ClusterID: id,
+				ID:        uuid.NewTime(),
+				Keyspace:  "keyspace" + strconv.Itoa(i),
+				Tables: []string{
+					fmt.Sprintf("table%d", 2*i),
+					fmt.Sprintf("table%d", 2*i+1),
+				},
+			}
+			if err := s.PutUnit(ctx, u); err != nil {
+				t.Fatal(err)
+			}
+			expected[i] = u
+		}
+
+		units, err := s.ListUnits(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(units, expected, mermaidtest.UUIDComparer()); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
 	t.Run("get missing unit", func(t *testing.T) {
 		t.Parallel()
 
@@ -176,12 +228,12 @@ func TestServiceStorageIntegration(t *testing.T) {
 		t.Parallel()
 
 		u0 := validUnit()
-		v := u0.ID
+		u0.ID = uuid.Nil
 
 		if err := s.PutUnit(ctx, u0); err != nil {
 			t.Fatal(err)
 		}
-		if u0.ID == v {
+		if u0.ID == uuid.Nil {
 			t.Fatal("ID not updated")
 		}
 		u1, err := s.GetUnit(ctx, u0.ClusterID, u0.ID)
@@ -252,51 +304,97 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("list empty units", func(t *testing.T) {
+	t.Run("list runs invalid filter", func(t *testing.T) {
 		t.Parallel()
 
-		units, err := s.ListUnits(ctx, uuid.MustRandom())
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(units) != 0 {
-			t.Fatal("expected 0 len result")
+		u := validUnit()
+
+		_, err := s.ListRuns(ctx, u, nil)
+		if err == nil {
+			t.Fatal("expected validation error")
 		}
 	})
 
-	t.Run("list units", func(t *testing.T) {
+	t.Run("list runs", func(t *testing.T) {
 		t.Parallel()
 
-		id := uuid.MustRandom()
+		u := validUnit()
 
-		expected := make([]*repair.Unit, 3)
-		for i := range expected {
-			u := &repair.Unit{
-				ID:        uuid.NewTime(),
-				ClusterID: id,
-				Keyspace:  "keyspace" + strconv.Itoa(i),
-				Tables: []string{
-					fmt.Sprintf("table%d", 2*i),
-					fmt.Sprintf("table%d", 2*i+1),
-				},
-			}
-			if err := s.PutUnit(ctx, u); err != nil {
-				t.Fatal(err)
-			}
-			expected[i] = u
+		r0 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusDone,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusStopped,
+		}
+		putRun(t, r1)
+
+		table := []struct {
+			F *repair.RunFilter
+			E []*repair.Run
+		}{
+			// All runs
+			{
+				F: &repair.RunFilter{},
+				E: []*repair.Run{r1, r0},
+			},
+			// Add limit
+			{
+				F: &repair.RunFilter{Limit: 1},
+				E: []*repair.Run{r1},
+			},
 		}
 
-		units, err := s.ListUnits(ctx, id)
+		for _, test := range table {
+			runs, err := s.ListRuns(ctx, u, test.F)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(runs, test.E, mermaidtest.UUIDComparer()); diff != "" {
+				t.Fatal(diff)
+			}
+		}
+	})
+
+	t.Run("get last run", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+
+		r0 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusDone,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusStopped,
+		}
+		putRun(t, r1)
+
+		r, err := s.GetLastRun(ctx, u)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(units, expected, mermaidtest.UUIDComparer()); diff != "" {
+		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer()); diff != "" {
 			t.Fatal(diff)
 		}
 	})
 
-	t.Run("pause run", func(t *testing.T) {
+	t.Run("stop run", func(t *testing.T) {
 		t.Parallel()
 
 		u := validUnit()
@@ -308,19 +406,62 @@ func TestServiceStorageIntegration(t *testing.T) {
 			Status:    repair.StatusRunning,
 		}
 
-		stmt, names := schema.RepairRun.Insert()
-		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
-			t.Fatal(err)
-		}
+		putRun(t, &r)
 
-		if err := s.PauseRun(ctx, u, r.ID); err != nil {
+		if err := s.StopRun(ctx, u, r.ID); err != nil {
 			t.Fatal(err)
 		}
 
 		if run, err := s.GetRun(ctx, u, r.ID); err != nil {
 			t.Fatal(err)
-		} else if run.Status != repair.StatusPausing {
+		} else if run.Status != repair.StatusStopping {
 			t.Fatal(run.Status)
+		}
+	})
+
+	t.Run("fix run status", func(t *testing.T) {
+		t.Parallel()
+
+		u0 := validUnit()
+		if err := s.PutUnit(ctx, u0); err != nil {
+			t.Fatal(err)
+		}
+
+		u1 := validUnit()
+		if err := s.PutUnit(ctx, u1); err != nil {
+			t.Fatal(err)
+		}
+
+		r0 := repair.Run{
+			ID:        uuid.NewTime(),
+			UnitID:    u0.ID,
+			ClusterID: u0.ClusterID,
+			Status:    repair.StatusRunning,
+		}
+		putRun(t, &r0)
+
+		r1 := repair.Run{
+			ID:        uuid.NewTime(),
+			UnitID:    u1.ID,
+			ClusterID: u1.ClusterID,
+			Status:    repair.StatusStopping,
+		}
+		putRun(t, &r1)
+
+		if err := s.FixRunStatus(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		if r, err := s.GetRun(ctx, u0, r0.ID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != repair.StatusStopped {
+			t.Fatal("invalid status", r.Status)
+		}
+
+		if r, err := s.GetRun(ctx, u1, r1.ID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != repair.StatusStopped {
+			t.Fatal("invalid status", r.Status)
 		}
 	})
 }
@@ -342,10 +483,9 @@ func validConfig() *repair.Config {
 }
 
 func validUnit() *repair.Unit {
-	uuid := uuid.MustRandom()
-
 	return &repair.Unit{
-		ClusterID: uuid,
+		ClusterID: uuid.MustRandom(),
+		ID:        uuid.MustRandom(),
 		Keyspace:  "keyspace",
 	}
 }
@@ -355,86 +495,191 @@ func TestServiceRepairIntegration(t *testing.T) {
 	createKeyspace(t, session, "test_repair")
 	createTable(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
-	l := log.NewDevelopment()
-	s, err := repair.NewService(
-		session,
-		func(uuid.UUID) (*scylla.Client, error) {
-			c, err := scylla.NewClient(mermaidtest.ClusterHosts, l.Named("scylla"))
-			if err != nil {
-				return nil, err
-			}
-			config := scylla.Config{
-				"murmur3_partitioner_ignore_msb_bits": float64(12),
-				"shard_count":                         float64(2),
-			}
-			return scylla.WithConfig(c, config), nil
-		},
-		l.Named("repair"),
-	)
-	if err != nil {
-		t.Fatal(err)
+	logger := log.NewDevelopment()
+
+	newService := func() *repair.Service {
+		s, err := repair.NewService(
+			session,
+			func(uuid.UUID) (*scylla.Client, error) {
+				c, err := scylla.NewClient(mermaidtest.ClusterHosts, logger.Named("scylla"))
+				if err != nil {
+					return nil, err
+				}
+				config := scylla.Config{
+					"murmur3_partitioner_ignore_msb_bits": float64(12),
+					"shard_count":                         float64(2),
+				}
+				return scylla.WithConfig(c, config), nil
+			},
+			logger.Named("repair"),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
 	}
 
 	var (
-		clusterID = uuid.MustRandom()
-		taskID    = uuid.NewTime()
-		ctx       = context.Background()
+		s            = newService()
+		clusterID    = uuid.MustRandom()
+		taskID       = uuid.NewTime()
+		unit         = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
+		segmentsDone = 0
+		ctx          = context.Background()
 	)
 
-	// put a unit
-	u := repair.Unit{
-		ClusterID: clusterID,
-		Keyspace:  "test_repair",
+	assertStatus := func(expected repair.Status) {
+		if r, err := s.GetRun(ctx, &unit, taskID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != expected {
+			t.Fatal("wrong status", r, "expected", expected)
+		}
 	}
-	if err := s.PutUnit(ctx, &u); err != nil {
+
+	assertProgress := func() {
+		prog, err := s.GetProgress(ctx, &unit, taskID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(prog) != 4 {
+			logger.Info(ctx, "Wrong progress items count", "progress", prog, "progress_length", len(prog))
+			t.Fatal()
+		}
+
+		done := 0
+		for _, p := range prog {
+			done += p.SegmentSuccess + p.SegmentError
+		}
+
+		if done < segmentsDone {
+			t.Fatal("no progress, got", done, "had", segmentsDone)
+		}
+
+		segmentsDone = done
+	}
+
+	wait := func() {
+		time.Sleep(5 * time.Second)
+	}
+
+	waitHostProgress := func(host string, percent float64) {
+		hostProgress := func(host string) (done, total int) {
+			prog, err := s.GetProgress(ctx, &unit, taskID, host)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for _, p := range prog {
+				done += p.SegmentSuccess + p.SegmentError
+				total += p.SegmentCount
+			}
+			return
+		}
+
+		for {
+			done, total := hostProgress(host)
+			if done >= int(float64(total)*percent) {
+				break
+			} else {
+				t.Log(done, total)
+				wait()
+			}
+		}
+	}
+
+	// Given unit
+	if err := s.PutUnit(ctx, &unit); err != nil {
 		t.Fatal(err)
 	}
 
-	// repair
-	if err := s.Repair(ctx, &u, taskID); err != nil {
+	// When run repair
+	if err := s.Repair(ctx, &unit, taskID); err != nil {
 		t.Fatal(err)
 	}
 
-	if r, err := s.GetRun(ctx, &u, taskID); err != nil {
-		t.Fatal(err)
-	} else if r.Status != repair.StatusRunning {
-		t.Fatal("wrong status", r)
-	}
+	// Then status is StatusRunning
+	assertStatus(repair.StatusRunning)
 
-	// wait
-	time.Sleep(5 * time.Second)
+	// When wait
+	wait()
 
-	// check ongoing progress
-	p, err := s.GetProgress(ctx, &u, taskID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(p) != 2+2 {
-		t.Fatalf("%+v", p)
-	}
+	// Then repair advances
+	assertProgress()
 
-	totalDone := 0
-	for _, v := range p {
-		totalDone += v.SegmentSuccess + v.SegmentError
-	}
-	if totalDone == 0 {
-		t.Fatalf("%+v", p)
-	}
-
-	// check pause
-	s.PauseRun(ctx, &u, taskID)
-	if err != nil {
+	// When run another repair
+	// Then run fails
+	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil {
+		t.Fatal("expected error")
+	} else if !strings.Contains(err.Error(), taskID.String()) {
 		t.Fatal(err)
 	}
 
-	// wait
-	time.Sleep(5 * time.Second)
-
-	if r, err := s.GetRun(ctx, &u, taskID); err != nil {
+	// When stop run
+	if err := s.StopRun(ctx, &unit, taskID); err != nil {
 		t.Fatal(err)
-	} else if r.Status != repair.StatusPaused {
-		t.Fatal("wrong status", r)
 	}
+
+	// Then status is StatusRunning
+	assertStatus(repair.StatusStopping)
+
+	// When wait
+	wait()
+
+	// Then status is StatusStopped
+	assertStatus(repair.StatusStopped)
+
+	// When create a new task
+	taskID = uuid.NewTime()
+
+	// And run repair
+	if err := s.Repair(ctx, &unit, taskID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Then status is StatusRunning
+	assertStatus(repair.StatusRunning)
+
+	// And repair advances
+	assertProgress()
+
+	// When wait
+	wait()
+
+	// Then repair advances
+	assertProgress()
+
+	// When host is 1/2 repaired
+	waitHostProgress("172.16.1.10", 0.5)
+
+	// And close
+	s.Close()
+
+	// And wait
+	wait()
+
+	// And restart
+	s = newService()
+	s.FixRunStatus(ctx)
+
+	// And create a new task
+	taskID = uuid.NewTime()
+
+	// And run repair
+	if err := s.Repair(ctx, &unit, taskID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Then status is StatusRunning
+	assertStatus(repair.StatusRunning)
+
+	// And repair advances
+	assertProgress()
+
+	// When host is repaired
+	waitHostProgress("172.16.1.10", 1)
+
+	// Then wait
+	wait()
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {

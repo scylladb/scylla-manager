@@ -203,6 +203,42 @@ func TestSplitSegmentsToShards(t *testing.T) {
 	}
 }
 
+func TestValidateShardProgress(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		S   []*Segment
+		P   *RunProgress
+		Err string
+	}{
+		{
+			S:   []*Segment{{0, 10}, {20, 30}},
+			P:   &RunProgress{SegmentCount: 1},
+			Err: "shard 0: segment count mismatch got 1 expected 2",
+		},
+		{
+			S:   []*Segment{{0, 10}, {20, 30}},
+			P:   &RunProgress{SegmentCount: 2, LastStartToken: -1},
+			Err: "shard 0: no segment for start token -1",
+		},
+		{
+			S:   []*Segment{{0, 10}, {20, 30}},
+			P:   &RunProgress{SegmentCount: 2, LastStartToken: 20},
+			Err: "",
+		},
+	}
+
+	for _, test := range table {
+		msg := ""
+		if err := validateShardProgress([][]*Segment{test.S}, []*RunProgress{test.P}); err != nil {
+			msg = err.Error()
+		}
+		if diff := cmp.Diff(msg, test.Err); diff != "" {
+			t.Error(diff)
+		}
+	}
+}
+
 func TestValidateTables(t *testing.T) {
 	t.Parallel()
 
@@ -232,7 +268,7 @@ func TestValidateTables(t *testing.T) {
 			msg = err.Error()
 		}
 		if diff := cmp.Diff(msg, test.Err); diff != "" {
-			t.Fatal(diff)
+			t.Error(diff)
 		}
 	}
 }
