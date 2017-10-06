@@ -107,13 +107,15 @@ func splitSegments(segments []*Segment, sizeLimit int64) []*Segment {
 
 // segmentsContainStartToken checks if there exists a segment starting with a
 // given token.
-func segmentsContainStartToken(segments []*Segment, token int64) bool {
-	for i := 0; i < len(segments); i++ {
-		if segments[i].StartToken == token {
-			return true
-		}
+func segmentsContainStartToken(segments []*Segment, token int64) (int, bool) {
+	i := sort.Search(len(segments), func(i int) bool {
+		return segments[i].StartToken >= token
+	})
+	if i < len(segments) && segments[i].StartToken == token {
+		return i, true
 	}
-	return false
+
+	return i, false
 }
 
 // segmentsStats provides statistical information on the segments.

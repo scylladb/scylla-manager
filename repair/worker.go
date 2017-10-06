@@ -72,6 +72,12 @@ func (w *worker) exec(ctx context.Context) error {
 }
 
 func (w *worker) init(ctx context.Context) error {
+	// continue from a savepoint
+	prog, err := w.Service.GetProgress(ctx, w.Unit, w.Run.ID, w.Host)
+	if err != nil {
+		return errors.Wrap(err, "failed to get host progress")
+	}
+
 	// split segments to shards
 	p, err := w.partitioner(ctx)
 	if err != nil {
@@ -79,11 +85,7 @@ func (w *worker) init(ctx context.Context) error {
 	}
 	shards := w.splitSegmentsToShards(ctx, p)
 
-	// continue from a savepoint
-	prog, err := w.Service.GetProgress(ctx, w.Unit, w.Run.ID, w.Host)
-	if err != nil {
-		return errors.Wrap(err, "failed to get host progress")
-	}
+	// check if savepoint can be used
 	if err := validateShardProgress(shards, prog); err != nil {
 		if len(prog) > 1 {
 			w.logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error())
@@ -95,16 +97,18 @@ func (w *worker) init(ctx context.Context) error {
 
 	for i, segments := range shards {
 		// prepare progress
-		p := &RunProgress{
-			ClusterID:    w.Run.ClusterID,
-			UnitID:       w.Run.UnitID,
-			RunID:        w.Run.ID,
-			Host:         w.Host,
-			Shard:        i,
-			SegmentCount: len(segments),
-		}
+		var p *RunProgress
 		if prog != nil {
 			p = prog[i]
+		} else {
+			p = &RunProgress{
+				ClusterID:    w.Run.ClusterID,
+				UnitID:       w.Run.UnitID,
+				RunID:        w.Run.ID,
+				Host:         w.Host,
+				Shard:        i,
+				SegmentCount: len(segments),
+			}
 		}
 
 		w.shards[i] = &shardWorker{
@@ -241,10 +245,9 @@ func (w *shardWorker) startSegment(ctx context.Context) int {
 		return 0
 	}
 
-	for i := 0; i < len(w.segments); i++ {
-		if w.segments[i].StartToken == w.progress.LastStartToken {
-			return i
-		}
+	i, ok := segmentsContainStartToken(w.segments, w.progress.LastStartToken)
+	if ok {
+		return i
 	}
 
 	// this shall never happen as it's checked by validateShardProgress
@@ -263,6 +266,10 @@ func (w *shardWorker) resetProgress(ctx context.Context) {
 }
 
 func (w *shardWorker) isStopped(ctx context.Context) bool {
+	if ctx.Err() != nil {
+		return true
+	}
+
 	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Unit, w.parent.Run.ID)
 	if err != nil {
 		w.logger.Error(ctx, "Service error", "error", err)

@@ -213,7 +213,7 @@ func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
 		if p.SegmentCount != len(shards[i]) {
 			return errors.Errorf("shard %d: segment count mismatch got %d expected %d", p.Shard, p.SegmentCount, len(shards[i]))
 		}
-		if !segmentsContainStartToken(shards[i], p.LastStartToken) {
+		if _, ok := segmentsContainStartToken(shards[i], p.LastStartToken); !ok {
 			return errors.Errorf("shard %d: no segment for start token %d", p.Shard, p.LastStartToken)
 		}
 	}

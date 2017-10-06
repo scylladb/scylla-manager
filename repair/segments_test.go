@@ -101,23 +101,27 @@ func TestSegmentsContainStartToken(t *testing.T) {
 	table := []struct {
 		S []*Segment
 		T int64
+		P int
 		E bool
 	}{
 		{},
 		{
 			S: []*Segment{{0, 10}},
 			T: -1,
+			P: 0,
 			E: false,
 		},
 		{
 			S: []*Segment{{0, 10}, {10, 20}, {30, 40}},
 			T: 10,
+			P: 1,
 			E: true,
 		},
 	}
 
 	for _, test := range table {
-		if test.E != segmentsContainStartToken(test.S, test.T) {
+		p, e := segmentsContainStartToken(test.S, test.T)
+		if test.P != p || test.E != e {
 			t.Fatal(test)
 		}
 	}
