@@ -104,6 +104,11 @@ type ServerCommand struct {
 	debug      bool
 }
 
+// Synopsis implements cli.Command.
+func (cmd *ServerCommand) Synopsis() string {
+	return "Starts the Scylla management server"
+}
+
 // InitFlags sets the command flags.
 func (cmd *ServerCommand) InitFlags() {
 	f := cmd.BaseCommand.NewFlagSet(cmd)
@@ -296,11 +301,6 @@ func (cmd *ServerCommand) Run(args []string) int {
 	logger.Sync()
 
 	return 0
-}
-
-// Synopsis implements cli.Command.
-func (cmd *ServerCommand) Synopsis() string {
-	return "Starts the Scylla management server"
 }
 
 func (cmd *ServerCommand) readConfig(file string) (*serverConfig, error) {
