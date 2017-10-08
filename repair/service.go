@@ -5,6 +5,7 @@ package repair
 import (
 	"context"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/fatih/set"
@@ -29,6 +30,7 @@ type Service struct {
 	client       scylla.ProviderFunc
 	workerCtx    context.Context
 	workerCancel context.CancelFunc
+	wg           sync.WaitGroup
 	logger       log.Logger
 }
 
@@ -284,8 +286,10 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 		"prev_task_id", r.PrevID,
 		"worker_trace_id", log.TraceID(wctx),
 	)
+	s.wg.Add(1)
 	go func() {
 		defer func() {
+			s.wg.Done()
 			if v := recover(); v != nil {
 				s.logger.Error(wctx, "Panic", "panic", v)
 				fail(errors.Errorf("%s", v))
@@ -747,4 +751,5 @@ func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 // Close terminates all the worker routines.
 func (s *Service) Close() {
 	s.workerCancel()
+	s.wg.Wait()
 }
