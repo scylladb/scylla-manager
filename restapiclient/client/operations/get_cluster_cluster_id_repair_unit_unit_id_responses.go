@@ -13,7 +13,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/restapi/client/models"
+	"github.com/scylladb/mermaid/restapiclient/models"
 )
 
 // GetClusterClusterIDRepairUnitUnitIDReader is a Reader for the GetClusterClusterIDRepairUnitUnitID structure.

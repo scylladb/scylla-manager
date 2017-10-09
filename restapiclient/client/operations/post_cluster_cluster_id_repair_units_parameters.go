@@ -17,7 +17,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/restapi/client/models"
+	"github.com/scylladb/mermaid/restapiclient/models"
 )
 
 // NewPostClusterClusterIDRepairUnitsParams creates a new PostClusterClusterIDRepairUnitsParams object

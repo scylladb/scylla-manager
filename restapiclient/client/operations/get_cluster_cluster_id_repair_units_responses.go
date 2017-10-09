@@ -13,7 +13,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/restapi/client/models"
+	"github.com/scylladb/mermaid/restapiclient/models"
 )
 
 // GetClusterClusterIDRepairUnitsReader is a Reader for the GetClusterClusterIDRepairUnits structure.
@@ -47,7 +47,7 @@ func NewGetClusterClusterIDRepairUnitsOK() *GetClusterClusterIDRepairUnitsOK {
 array of units
 */
 type GetClusterClusterIDRepairUnitsOK struct {
-	Payload []*models.RepairUnitUpdate
+	Payload models.GetClusterClusterIDRepairUnitsOKBody
 }
 
 func (o *GetClusterClusterIDRepairUnitsOK) Error() string {
