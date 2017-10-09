@@ -652,7 +652,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	waitHostProgress("172.16.1.10", 0.5)
 
 	// And close
-	s.Close()
+	s.Close(ctx)
 
 	// And wait
 	wait()

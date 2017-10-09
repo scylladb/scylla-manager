@@ -284,7 +284,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 	wg.Wait()
 
 	// close repair
-	repairSvc.Close()
+	repairSvc.Close(ctx)
 
 	// close agent
 	if cmd.debug {
