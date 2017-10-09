@@ -311,7 +311,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/repairUnitUpdate"
+                "$ref": "#/definitions/repairUnit"
               }
             }
           }

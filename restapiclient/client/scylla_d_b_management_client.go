@@ -11,7 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/restapi/client/client/operations"
+	"github.com/scylladb/mermaid/restapiclient/client/operations"
 )
 
 // Default scylla d b management HTTP client.

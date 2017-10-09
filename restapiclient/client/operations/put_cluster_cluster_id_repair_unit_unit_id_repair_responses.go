@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -53,35 +52,5 @@ func (o *PutClusterClusterIDRepairUnitUnitIDRepairOK) Error() string {
 
 func (o *PutClusterClusterIDRepairUnitUnitIDRepairOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	return nil
-}
-
-/*PutClusterClusterIDRepairUnitUnitIDRepairBody put cluster cluster ID repair unit unit ID repair body
-swagger:model PutClusterClusterIDRepairUnitUnitIDRepairBody
-*/
-
-type PutClusterClusterIDRepairUnitUnitIDRepairBody struct {
-
-	// task id
-	TaskID string `json:"task_id,omitempty"`
-}
-
-/* polymorph PutClusterClusterIDRepairUnitUnitIDRepairBody task_id false */
-
-// MarshalBinary interface implementation
-func (o *PutClusterClusterIDRepairUnitUnitIDRepairBody) MarshalBinary() ([]byte, error) {
-	if o == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(o)
-}
-
-// UnmarshalBinary interface implementation
-func (o *PutClusterClusterIDRepairUnitUnitIDRepairBody) UnmarshalBinary(b []byte) error {
-	var res PutClusterClusterIDRepairUnitUnitIDRepairBody
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*o = res
 	return nil
 }
