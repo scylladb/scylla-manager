@@ -80,3 +80,7 @@
 [[constraint]]
   name = "github.com/google/gops"
   version = "0.3.2"
+
+[[constraint]]
+  branch = "center"
+  name = "github.com/mmatczuk/tablewriter"
