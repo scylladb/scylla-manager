@@ -21,7 +21,8 @@ func TestWithTraceIDIdempotency(t *testing.T) {
 }
 
 func TestTraceID(t *testing.T) {
-	if TraceID(nil) != "" {
+	ctx := context.Background()
+	if TraceID(ctx) != "" {
 		t.Fatal("expected empty")
 	}
 

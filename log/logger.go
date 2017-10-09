@@ -36,7 +36,7 @@ func (l Logger) With(keyvals ...interface{}) Logger {
 	if l.base == nil {
 		return l
 	}
-	return Logger{base: l.base.With(l.zapify(nil, keyvals)...)}
+	return Logger{base: l.base.With(l.zapify(context.Background(), keyvals)...)}
 }
 
 // Sync flushes any buffered log entries. Applications should take care to call
