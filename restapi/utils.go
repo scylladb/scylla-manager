@@ -19,11 +19,25 @@ func reqClusterID(req *http.Request) (uuid.UUID, error) {
 	return clusterID, nil
 }
 
-// reqUnitID extracts a unit ID from a request.
+// reqUnitID extracts a unit ID from a request URL.
 func reqUnitID(req *http.Request) (uuid.UUID, error) {
 	var unitID uuid.UUID
 	if err := unitID.UnmarshalText([]byte(chi.URLParam(req, "unit_id"))); err != nil {
 		return uuid.Nil, errors.Wrap(err, "invalid unit ID")
+	}
+	return unitID, nil
+}
+
+// reqUnitIDQuery extracts a unit ID from a request Query arg.
+// returned error is a suitable *httpError.
+func reqUnitIDQuery(req *http.Request) (uuid.UUID, error) {
+	id := req.FormValue("unit_id")
+	if id == "" {
+		return uuid.Nil, httpErrBadRequest(errors.Errorf("missing or empty query arg %q", "unit_id"))
+	}
+	var unitID uuid.UUID
+	if err := unitID.UnmarshalText([]byte(id)); err != nil {
+		return uuid.Nil, httpErrBadRequest(errors.Errorf("bad %q arg: %s", "unit_id", err.Error()))
 	}
 	return unitID, nil
 }

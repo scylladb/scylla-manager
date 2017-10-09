@@ -32,6 +32,8 @@ type RepairService interface {
 	DeleteConfig(ctx context.Context, src repair.ConfigSource) error
 
 	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
+	GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error)
+	GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error)
 }
 
 type repairHandler struct {
@@ -58,6 +60,8 @@ func newRepairHandler(svc RepairService) http.Handler {
 	h.Put("/config/{config_type}/{external_id}", h.updateConfig)
 	h.Delete("/config", h.deleteConfig)
 	h.Delete("/config/{config_type}/{external_id}", h.deleteConfig)
+
+	h.Get("/task/{task_id}", h.taskStats)
 
 	return h
 }
@@ -193,7 +197,10 @@ func (h *repairHandler) triggerRepair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repairURL := r.URL.ResolveReference(&url.URL{Path: path.Join("unit", u.ID.String(), "repair", taskID.String())})
+	repairURL := r.URL.ResolveReference(&url.URL{
+		Path:     path.Join("../../task", taskID.String()),
+		RawQuery: fmt.Sprintf("unit_id=%s", id)},
+	)
 	w.Header().Set("Location", repairURL.String())
 	w.WriteHeader(http.StatusCreated)
 }
@@ -275,4 +282,94 @@ func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
 	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
 		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete config"))
 	}
+}
+
+func (h *repairHandler) taskStats(w http.ResponseWriter, r *http.Request) {
+	var taskID uuid.UUID
+	if err := taskID.UnmarshalText([]byte(chi.URLParam(r, "task_id"))); err != nil {
+		render.Respond(w, r, httpErrBadRequest(err))
+		return
+	}
+
+	unitID, err := reqUnitIDQuery(r)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
+	if err != nil {
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load unit"))
+		return
+	}
+
+	taskRun, err := h.svc.GetRun(r.Context(), u, taskID)
+	if err != nil {
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load task"))
+		return
+	}
+
+	total, details, err := h.calcRepairProgress(r.Context(), u, taskID)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+	render.Respond(w, r, struct {
+		Keyspace string         `json:"keyspace"`
+		Tables   []string       `json:"tables"`
+		Status   repair.Status  `json:"status"`
+		Total    int            `json:"total"`
+		Details  map[string]int `json:"details"`
+	}{
+		Keyspace: taskRun.Keyspace,
+		Tables:   taskRun.Tables,
+		Status:   taskRun.Status,
+		Total:    total,
+		Details:  details,
+	})
+}
+
+// calcRepairProgress returns the total repair progress of taskID, plus the host and host/shard progress
+// percentage.
+func (h *repairHandler) calcRepairProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (int, map[string]int, error) {
+	runs, err := h.svc.GetProgress(ctx, u, taskID)
+	if err != nil {
+		return 0, nil, newHTTPError(err, http.StatusServiceUnavailable, "failed to load task progress")
+	}
+
+	if len(runs) == 0 {
+		return 0, nil, httpErrNotFound(err)
+	}
+
+	type shardProgress struct {
+		Shard    int
+		Complete float64
+	}
+	hostProgress := make(map[string][]shardProgress)
+	for _, r := range runs {
+		if r.SegmentCount == 0 {
+			hostProgress[r.Host] = append(hostProgress[r.Host], shardProgress{Shard: r.Shard})
+			continue
+		}
+		hostProgress[r.Host] = append(hostProgress[r.Host], shardProgress{
+			Shard:    r.Shard,
+			Complete: float64(r.SegmentSuccess+r.SegmentError) / float64(r.SegmentCount),
+		})
+	}
+
+	var (
+		totalSum float64
+		details  = make(map[string]int)
+	)
+	for k := range hostProgress {
+		var sum float64
+		for _, d := range hostProgress[k] {
+			details[fmt.Sprintf("%s/%d", k, d.Shard)] = int(100 * d.Complete)
+			sum += d.Complete
+		}
+		hostTotal := sum / float64(len(hostProgress[k]))
+		details[k] = int(100 * hostTotal)
+		totalSum += hostTotal
+	}
+	total := int(100 * totalSum / float64(len(hostProgress)))
+	return total, details, nil
 }

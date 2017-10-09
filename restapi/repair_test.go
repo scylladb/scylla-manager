@@ -5,6 +5,7 @@ package restapi_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -30,8 +31,17 @@ func init() {
 	uuid3.UnmarshalText([]byte("00000000-0000-0000-0000-000000000003"))
 }
 
+type taskStats struct {
+	Keyspace string         `json:"keyspace"`
+	Tables   []string       `json:"tables"`
+	Status   repair.Status  `json:"status"`
+	Total    int            `json:"total"`
+	Details  map[string]int `json:"details"`
+}
+
 func TestRepairUnitAPI(t *testing.T) {
 	var createdUnitID uuid.UUID
+
 	tests := []struct {
 		Name           string
 		Method         string
@@ -180,6 +190,118 @@ func TestRepairUnitAPI(t *testing.T) {
 				svc := mermaidmock.NewMockRepairService(ctrl)
 				svc.EXPECT().DeleteUnit(gomock.Any(), uuid1, uuid2).Return(nil)
 				return svc
+			},
+		},
+
+		{Name: "TaskStats/missing-unit-ID",
+			Method:         "GET",
+			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s", uuid2),
+			ClusterID:      uuid1,
+			ExpectedStatus: http.StatusBadRequest,
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
+				return mermaidmock.NewMockRepairService(ctrl)
+			},
+		},
+
+		{Name: "TaskStats/malformed-unit-ID",
+			Method:         "GET",
+			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s?unit_id=abcd", uuid2),
+			ClusterID:      uuid1,
+			ExpectedStatus: http.StatusBadRequest,
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
+				return mermaidmock.NewMockRepairService(ctrl)
+			},
+		},
+
+		{Name: "TaskStats/pre-init",
+			Method:         "GET",
+			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s?unit_id=%s", uuid2, uuid3),
+			ClusterID:      uuid1,
+			ExpectedStatus: http.StatusOK,
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
+				svc := mermaidmock.NewMockRepairService(ctrl)
+				tables := []string{"tables1"}
+
+				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid3).Return(&repair.Unit{
+					ID:        uuid3,
+					ClusterID: uuid1,
+					Tables:    tables,
+				}, nil)
+				svc.EXPECT().GetRun(gomock.Any(), gomock.Any(), uuid2).Return(
+					&repair.Run{ID: uuid2, UnitID: uuid3, ClusterID: uuid1, Keyspace: "test_keyspace", Tables: tables, Status: repair.StatusRunning},
+					nil,
+				)
+
+				svc.EXPECT().GetProgress(gomock.Any(), gomock.Any(), uuid2).Return([]*repair.RunProgress{
+					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.20"},
+					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.4"},
+					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.5"},
+				},
+					nil,
+				)
+				return svc
+			},
+			Check: func(t *testing.T, resp *http.Response) {
+				var stats taskStats
+				stats.Total = 42
+				dec := json.NewDecoder(resp.Body)
+				if err := dec.Decode(&stats); err != nil {
+					t.Log("json decode failed:", err)
+					t.Fatal()
+				}
+				if stats.Total != 0 {
+					t.Fail()
+				}
+				if len(stats.Details) != 3+3 /* entry-per host, entry-per host/0 shard */ {
+					t.Logf("unexpected number of detail entries: %+v\n", stats)
+					t.Fail()
+				}
+			},
+		},
+
+		{Name: "TaskStats/partial-start",
+			Method:         "GET",
+			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s?unit_id=%s", uuid2, uuid3),
+			ClusterID:      uuid1,
+			ExpectedStatus: http.StatusOK,
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
+				svc := mermaidmock.NewMockRepairService(ctrl)
+				tables := []string{"tables1"}
+
+				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid3).Return(&repair.Unit{
+					ID:        uuid3,
+					ClusterID: uuid1,
+					Tables:    tables,
+				}, nil)
+				svc.EXPECT().GetRun(gomock.Any(), gomock.Any(), uuid2).Return(
+					&repair.Run{ID: uuid2, UnitID: uuid3, ClusterID: uuid1, Keyspace: "test_keyspace", Tables: tables, Status: repair.StatusRunning},
+					nil,
+				)
+				svc.EXPECT().GetProgress(gomock.Any(), gomock.Any(), uuid2).Return([]*repair.RunProgress{
+					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.20"},
+					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.4", Shard: 0, SegmentCount: 1392, SegmentSuccess: 200},
+					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.4", Shard: 1, SegmentCount: 1381, SegmentSuccess: 200},
+					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.5"},
+				},
+					nil,
+				)
+				return svc
+			},
+			Check: func(t *testing.T, resp *http.Response) {
+				var stats taskStats
+				dec := json.NewDecoder(resp.Body)
+				if err := dec.Decode(&stats); err != nil {
+					t.Log("json decode failed:", err)
+					t.Fatal()
+				}
+				if stats.Total != 4 /* 100 * ((200/1392) + (200/1381) / 2) / 3 */ {
+					t.Logf("unexpected Total count: %+v\n", stats)
+					t.Fail()
+				}
+				if len(stats.Details) != 3+2+2 /* entry-per host, 2 entries for the empty 0 shards and 2 entries for 172.16.1.4 */ {
+					t.Logf("unexpected number of detail entries: %+v\n", stats)
+					t.Fail()
+				}
 			},
 		},
 	}

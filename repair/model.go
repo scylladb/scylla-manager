@@ -219,6 +219,8 @@ func (s Status) MarshalText() (text []byte, err error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *Status) UnmarshalText(text []byte) error {
 	switch Status(text) {
+	case StatusRunning:
+		*s = StatusRunning
 	case StatusDone:
 		*s = StatusDone
 	case StatusError:

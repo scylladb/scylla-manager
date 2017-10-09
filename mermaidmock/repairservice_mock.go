@@ -133,3 +133,34 @@ func (m *MockRepairService) Repair(ctx context.Context, u *repair.Unit, taskID u
 func (mr *MockRepairServiceMockRecorder) Repair(ctx, u, taskID interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockRepairService)(nil).Repair), ctx, u, taskID)
 }
+
+// GetRun mocks base method
+func (m *MockRepairService) GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error) {
+	ret := m.ctrl.Call(m, "GetRun", ctx, u, taskID)
+	ret0, _ := ret[0].(*repair.Run)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRun indicates an expected call of GetRun
+func (mr *MockRepairServiceMockRecorder) GetRun(ctx, u, taskID interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRun", reflect.TypeOf((*MockRepairService)(nil).GetRun), ctx, u, taskID)
+}
+
+// GetProgress mocks base method
+func (m *MockRepairService) GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error) {
+	varargs := []interface{}{ctx, u, taskID}
+	for _, a := range hosts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetProgress", varargs...)
+	ret0, _ := ret[0].([]*repair.RunProgress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProgress indicates an expected call of GetProgress
+func (mr *MockRepairServiceMockRecorder) GetProgress(ctx, u, taskID interface{}, hosts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, u, taskID}, hosts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProgress", reflect.TypeOf((*MockRepairService)(nil).GetProgress), varargs...)
+}
