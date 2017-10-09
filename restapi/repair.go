@@ -63,7 +63,7 @@ func newRepairHandler(svc RepairService) http.Handler {
 	h.Delete("/config", h.deleteConfig)
 	h.Delete("/config/{config_type}/{external_id}", h.deleteConfig)
 
-	h.Get("/task/{task_id}", h.taskStats)
+	h.Get("/task/{task_id}", h.repairProgress)
 
 	// TEMPORARY
 	h.Put("/unit/{unit_id}/repair", h.startRepair)
@@ -309,7 +309,28 @@ func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *repairHandler) taskStats(w http.ResponseWriter, r *http.Request) {
+type repairProgress struct {
+	PercentComplete int `json:"percent_complete"`
+	Total           int `json:"total"`
+	Success         int `json:"success"`
+	Error           int `json:"error"`
+}
+
+type repairHostProgress struct {
+	repairProgress
+	Shards map[int]*repairProgress `json:"shards"`
+}
+
+type repairProgressResponse struct {
+	Keyspace string        `json:"keyspace"`
+	Tables   []string      `json:"tables"`
+	Status   repair.Status `json:"status"`
+	repairProgress
+
+	Hosts map[string]*repairHostProgress `json:"hosts"`
+}
+
+func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 	var taskID uuid.UUID
 	if err := taskID.UnmarshalText([]byte(chi.URLParam(r, "task_id"))); err != nil {
 		render.Respond(w, r, httpErrBadRequest(err))
@@ -333,68 +354,65 @@ func (h *repairHandler) taskStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, details, err := h.calcRepairProgress(r.Context(), u, taskID)
+	resp, err := h.progressResponse(r.Context(), u, taskRun)
 	if err != nil {
 		render.Respond(w, r, err)
 		return
 	}
-	render.Respond(w, r, struct {
-		Keyspace string         `json:"keyspace"`
-		Tables   []string       `json:"tables"`
-		Status   repair.Status  `json:"status"`
-		Total    int            `json:"total"`
-		Details  map[string]int `json:"details"`
-	}{
-		Keyspace: taskRun.Keyspace,
-		Tables:   taskRun.Tables,
-		Status:   taskRun.Status,
-		Total:    total,
-		Details:  details,
-	})
+	render.Respond(w, r, resp)
 }
 
-// calcRepairProgress returns the total repair progress of taskID, plus the host and host/shard progress
-// percentage.
-func (h *repairHandler) calcRepairProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (int, map[string]int, error) {
-	runs, err := h.svc.GetProgress(ctx, u, taskID)
+func (h *repairHandler) progressResponse(ctx context.Context, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
+	runs, err := h.svc.GetProgress(ctx, u, t.ID)
 	if err != nil {
-		return 0, nil, httpErrInternal(err, "failed to load task progress")
+		return nil, httpErrInternal(err, "failed to load task progress")
 	}
 
 	if len(runs) == 0 {
-		return 0, nil, httpErrNotFound(err)
+		return nil, httpErrNotFound(err)
 	}
 
-	type shardProgress struct {
-		Shard    int
-		Complete float64
+	resp := &repairProgressResponse{
+		Keyspace: t.Keyspace,
+		Tables:   t.Tables,
+		Status:   t.Status,
+		Hosts:    make(map[string]*repairHostProgress),
 	}
-	hostProgress := make(map[string][]shardProgress)
 	for _, r := range runs {
+		if _, exists := resp.Hosts[r.Host]; !exists {
+			resp.Hosts[r.Host] = &repairHostProgress{
+				Shards: make(map[int]*repairProgress),
+			}
+		}
+
 		if r.SegmentCount == 0 {
-			hostProgress[r.Host] = append(hostProgress[r.Host], shardProgress{Shard: r.Shard})
+			resp.Hosts[r.Host].Shards[r.Shard] = &repairProgress{}
 			continue
 		}
-		hostProgress[r.Host] = append(hostProgress[r.Host], shardProgress{
-			Shard:    r.Shard,
-			Complete: float64(r.SegmentSuccess+r.SegmentError) / float64(r.SegmentCount),
-		})
+		resp.Hosts[r.Host].Shards[r.Shard] = &repairProgress{
+			PercentComplete: int(100 * float64(r.SegmentSuccess+r.SegmentError) / float64(r.SegmentCount)),
+			Total:           r.SegmentCount,
+			Success:         r.SegmentSuccess,
+			Error:           r.SegmentError,
+		}
 	}
 
-	var (
-		totalSum float64
-		details  = make(map[string]int)
-	)
-	for k := range hostProgress {
+	var totalSum float64
+	for _, hostProgress := range resp.Hosts {
 		var sum float64
-		for _, d := range hostProgress[k] {
-			details[fmt.Sprintf("%s/%d", k, d.Shard)] = int(100 * d.Complete)
-			sum += d.Complete
+		for _, s := range hostProgress.Shards {
+			sum += float64(s.PercentComplete)
+			hostProgress.Total += s.Total
+			hostProgress.Success += s.Success
+			hostProgress.Error += s.Error
 		}
-		hostTotal := sum / float64(len(hostProgress[k]))
-		details[k] = int(100 * hostTotal)
-		totalSum += hostTotal
+		sum /= float64(len(hostProgress.Shards))
+		totalSum += sum
+		hostProgress.PercentComplete = int(sum)
+		resp.Total += hostProgress.Total
+		resp.Success += hostProgress.Success
+		resp.Error += hostProgress.Error
 	}
-	total := int(100 * totalSum / float64(len(hostProgress)))
-	return total, details, nil
+	resp.PercentComplete = int(totalSum / float64(len(resp.Hosts)))
+	return resp, nil
 }

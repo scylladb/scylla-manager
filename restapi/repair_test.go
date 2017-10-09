@@ -31,12 +31,15 @@ func init() {
 	uuid3.UnmarshalText([]byte("00000000-0000-0000-0000-000000000003"))
 }
 
-type taskStats struct {
-	Keyspace string         `json:"keyspace"`
-	Tables   []string       `json:"tables"`
-	Status   repair.Status  `json:"status"`
-	Total    int            `json:"total"`
-	Details  map[string]int `json:"details"`
+type repairProgress struct {
+	Keyspace        string                 `json:"keyspace"`
+	Tables          []string               `json:"tables"`
+	Status          repair.Status          `json:"status"`
+	PercentComplete int                    `json:"percent_complete"`
+	Total           int                    `json:"total"`
+	Success         int                    `json:"success"`
+	Error           int                    `json:"error"`
+	Hosts           map[string]interface{} `json:"hosts"`
 }
 
 func TestRepairUnitAPI(t *testing.T) {
@@ -233,7 +236,7 @@ func TestRepairUnitAPI(t *testing.T) {
 			},
 		},
 
-		{Name: "TaskStats/pre-init",
+		{Name: "RepairProgress/pre-init",
 			Method:         http.MethodGet,
 			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s?unit_id=%s", uuid2, uuid3),
 			ClusterID:      uuid1,
@@ -264,24 +267,25 @@ func TestRepairUnitAPI(t *testing.T) {
 			},
 
 			Check: func(t *testing.T, resp *http.Response) {
-				var stats taskStats
-				stats.Total = 42
+				var prog repairProgress
+				prog.PercentComplete = 42
 				dec := json.NewDecoder(resp.Body)
-				if err := dec.Decode(&stats); err != nil {
+				if err := dec.Decode(&prog); err != nil {
 					t.Log("json decode failed:", err)
 					t.Fatal()
 				}
-				if stats.Total != 0 {
+				if prog.PercentComplete != 0 {
+					t.Logf("expected PercentComplete to be 0, %+v\n", prog)
 					t.Fail()
 				}
-				if len(stats.Details) != 3+3 /* entry-per host, entry-per host/0 shard */ {
-					t.Logf("unexpected number of detail entries: %+v\n", stats)
+				if len(prog.Hosts) != 3 {
+					t.Logf("unexpected number of hosts: %+v\n", prog)
 					t.Fail()
 				}
 			},
 		},
 
-		{Name: "TaskStats/partial-start",
+		{Name: "RepairProgress/partial-start",
 			Method:         http.MethodGet,
 			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s?unit_id=%s", uuid2, uuid3),
 			ClusterID:      uuid1,
@@ -312,18 +316,14 @@ func TestRepairUnitAPI(t *testing.T) {
 			},
 
 			Check: func(t *testing.T, resp *http.Response) {
-				var stats taskStats
+				var prog repairProgress
 				dec := json.NewDecoder(resp.Body)
-				if err := dec.Decode(&stats); err != nil {
+				if err := dec.Decode(&prog); err != nil {
 					t.Log("json decode failed:", err)
 					t.Fatal()
 				}
-				if stats.Total != 4 /* 100 * ((200/1392) + (200/1381) / 2) / 3 */ {
-					t.Logf("unexpected Total count: %+v\n", stats)
-					t.Fail()
-				}
-				if len(stats.Details) != 3+2+2 /* entry-per host, 2 entries for the empty 0 shards and 2 entries for 172.16.1.4 */ {
-					t.Logf("unexpected number of detail entries: %+v\n", stats)
+				if prog.PercentComplete != 4 /* 100 * ((200/1392) + (200/1381) / 2) / 3 */ {
+					t.Logf("unexpected PercentComplete: %+v\n", prog)
 					t.Fail()
 				}
 			},
