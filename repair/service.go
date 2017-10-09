@@ -749,7 +749,8 @@ func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 }
 
 // Close terminates all the worker routines.
-func (s *Service) Close() {
+func (s *Service) Close(ctx context.Context) {
+	s.logger.Info(ctx, "Waiting for workers to exit")
 	s.workerCancel()
 	s.wg.Wait()
 }
