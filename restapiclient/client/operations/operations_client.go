@@ -335,7 +335,7 @@ func (a *Client) PutClusterClusterIDRepairUnitUnitID(params *PutClusterClusterID
 /*
 PutClusterClusterIDRepairUnitUnitIDRepair put cluster cluster ID repair unit unit ID repair API
 */
-func (a *Client) PutClusterClusterIDRepairUnitUnitIDRepair(params *PutClusterClusterIDRepairUnitUnitIDRepairParams) (*PutClusterClusterIDRepairUnitUnitIDRepairOK, error) {
+func (a *Client) PutClusterClusterIDRepairUnitUnitIDRepair(params *PutClusterClusterIDRepairUnitUnitIDRepairParams) (*PutClusterClusterIDRepairUnitUnitIDRepairCreated, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPutClusterClusterIDRepairUnitUnitIDRepairParams()
@@ -356,7 +356,7 @@ func (a *Client) PutClusterClusterIDRepairUnitUnitIDRepair(params *PutClusterClu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PutClusterClusterIDRepairUnitUnitIDRepairOK), nil
+	return result.(*PutClusterClusterIDRepairUnitUnitIDRepairCreated), nil
 
 }
 

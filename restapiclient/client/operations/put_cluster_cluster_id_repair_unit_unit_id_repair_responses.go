@@ -22,8 +22,8 @@ type PutClusterClusterIDRepairUnitUnitIDRepairReader struct {
 func (o *PutClusterClusterIDRepairUnitUnitIDRepairReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
-	case 200:
-		result := NewPutClusterClusterIDRepairUnitUnitIDRepairOK()
+	case 201:
+		result := NewPutClusterClusterIDRepairUnitUnitIDRepairCreated()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -34,23 +34,29 @@ func (o *PutClusterClusterIDRepairUnitUnitIDRepairReader) ReadResponse(response 
 	}
 }
 
-// NewPutClusterClusterIDRepairUnitUnitIDRepairOK creates a PutClusterClusterIDRepairUnitUnitIDRepairOK with default headers values
-func NewPutClusterClusterIDRepairUnitUnitIDRepairOK() *PutClusterClusterIDRepairUnitUnitIDRepairOK {
-	return &PutClusterClusterIDRepairUnitUnitIDRepairOK{}
+// NewPutClusterClusterIDRepairUnitUnitIDRepairCreated creates a PutClusterClusterIDRepairUnitUnitIDRepairCreated with default headers values
+func NewPutClusterClusterIDRepairUnitUnitIDRepairCreated() *PutClusterClusterIDRepairUnitUnitIDRepairCreated {
+	return &PutClusterClusterIDRepairUnitUnitIDRepairCreated{}
 }
 
-/*PutClusterClusterIDRepairUnitUnitIDRepairOK handles this case with default header values.
+/*PutClusterClusterIDRepairUnitUnitIDRepairCreated handles this case with default header values.
 
 OK
 */
-type PutClusterClusterIDRepairUnitUnitIDRepairOK struct {
+type PutClusterClusterIDRepairUnitUnitIDRepairCreated struct {
+	/*location of the new unit
+	 */
+	Location string
 }
 
-func (o *PutClusterClusterIDRepairUnitUnitIDRepairOK) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repair/unit/{unit_id}/repair][%d] putClusterClusterIdRepairUnitUnitIdRepairOK ", 200)
+func (o *PutClusterClusterIDRepairUnitUnitIDRepairCreated) Error() string {
+	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repair/unit/{unit_id}/repair][%d] putClusterClusterIdRepairUnitUnitIdRepairCreated ", 201)
 }
 
-func (o *PutClusterClusterIDRepairUnitUnitIDRepairOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *PutClusterClusterIDRepairUnitUnitIDRepairCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// response header Location
+	o.Location = response.GetHeader("Location")
 
 	return nil
 }
