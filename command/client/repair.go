@@ -22,7 +22,7 @@ func (cmd *RepairUnitList) Synopsis() string {
 
 // InitFlags sets the command flags.
 func (cmd *RepairUnitList) InitFlags() {
-	f := cmd.BaseCommand.NewFlagSet(cmd)
+	f := cmd.NewFlagSet(cmd)
 	f.StringVar(&cmd.clusterID, "cluster", "", "ID or name of a cluster.")
 }
 
