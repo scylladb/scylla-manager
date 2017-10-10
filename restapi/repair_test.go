@@ -328,6 +328,8 @@ func TestRepairUnitAPI(t *testing.T) {
 				}
 			},
 		},
+
+		// TODO tests for TaskStop
 	}
 
 	logger := log.NewDevelopment()

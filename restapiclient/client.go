@@ -8,6 +8,8 @@ import (
 	"github.com/scylladb/mermaid/restapiclient/client/operations"
 )
 
+//go:generate swagger generate client -f ../restapi/swagger/restapi.json -t .
+
 // New returns a new mermaid rest API client.
 func New(host string) *operations.Client {
 	return operations.New(api.New(host, "/api/v1", []string{"http"}), strfmt.Default)

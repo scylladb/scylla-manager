@@ -44,7 +44,7 @@ func NewPutClusterClusterIDRepairUnitUnitIDRepairCreated() *PutClusterClusterIDR
 OK
 */
 type PutClusterClusterIDRepairUnitUnitIDRepairCreated struct {
-	/*location of the new unit
+	/*location of the new task
 	 */
 	Location string
 }

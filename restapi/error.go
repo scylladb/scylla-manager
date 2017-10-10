@@ -31,8 +31,8 @@ func newHTTPError(err error, status int, errText string) *httpError {
 	}
 }
 
-// httpErrNotFound wraps err with a generic http error with status code NotFound,
-// and a user-facing description.
+// httpErrNotFound wraps err with a generic http error with status code
+// NotFound, and a user-facing description.
 func httpErrNotFound(err error) *httpError {
 	return &httpError{
 		Err:        err,
@@ -41,8 +41,8 @@ func httpErrNotFound(err error) *httpError {
 	}
 }
 
-// httpErrBadRequest wraps err with a generic http error with status code BadRequest,
-// and a user-facing description.
+// httpErrBadRequest wraps err with a generic http error with status code
+// BadRequest, and a user-facing description.
 func httpErrBadRequest(err error) *httpError {
 	return &httpError{
 		Err:        err,
@@ -51,10 +51,22 @@ func httpErrBadRequest(err error) *httpError {
 	}
 }
 
-func notFoundOrError(w http.ResponseWriter, r *http.Request, err error, msg string) {
+// httpErrInternal wraps err with a generic http error with status code
+// StatusInternalServerError.
+func httpErrInternal(err error, msg string) *httpError {
+	return &httpError{
+		Err:        err,
+		StatusCode: http.StatusInternalServerError,
+		ErrorText:  msg,
+	}
+}
+
+// notFoundOrInternal coverts mermaid.ErrNotFound to httpErrNotFound and
+// everything else to httpErrInternal.
+func notFoundOrInternal(w http.ResponseWriter, r *http.Request, err error, msg string) {
 	if err == mermaid.ErrNotFound {
 		render.Respond(w, r, httpErrNotFound(err))
 	} else {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, msg))
+		render.Respond(w, r, httpErrInternal(err, msg))
 	}
 }

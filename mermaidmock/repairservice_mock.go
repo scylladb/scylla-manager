@@ -122,18 +122,6 @@ func (mr *MockRepairServiceMockRecorder) DeleteConfig(ctx, src interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfig", reflect.TypeOf((*MockRepairService)(nil).DeleteConfig), ctx, src)
 }
 
-// Repair mocks base method
-func (m *MockRepairService) Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error {
-	ret := m.ctrl.Call(m, "Repair", ctx, u, taskID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Repair indicates an expected call of Repair
-func (mr *MockRepairServiceMockRecorder) Repair(ctx, u, taskID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockRepairService)(nil).Repair), ctx, u, taskID)
-}
-
 // GetRun mocks base method
 func (m *MockRepairService) GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error) {
 	ret := m.ctrl.Call(m, "GetRun", ctx, u, taskID)
@@ -145,6 +133,19 @@ func (m *MockRepairService) GetRun(ctx context.Context, u *repair.Unit, taskID u
 // GetRun indicates an expected call of GetRun
 func (mr *MockRepairServiceMockRecorder) GetRun(ctx, u, taskID interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRun", reflect.TypeOf((*MockRepairService)(nil).GetRun), ctx, u, taskID)
+}
+
+// GetLastRun mocks base method
+func (m *MockRepairService) GetLastRun(ctx context.Context, u *repair.Unit) (*repair.Run, error) {
+	ret := m.ctrl.Call(m, "GetLastRun", ctx, u)
+	ret0, _ := ret[0].(*repair.Run)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastRun indicates an expected call of GetLastRun
+func (mr *MockRepairServiceMockRecorder) GetLastRun(ctx, u interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastRun", reflect.TypeOf((*MockRepairService)(nil).GetLastRun), ctx, u)
 }
 
 // GetProgress mocks base method
@@ -163,4 +164,28 @@ func (m *MockRepairService) GetProgress(ctx context.Context, u *repair.Unit, tas
 func (mr *MockRepairServiceMockRecorder) GetProgress(ctx, u, taskID interface{}, hosts ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{ctx, u, taskID}, hosts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProgress", reflect.TypeOf((*MockRepairService)(nil).GetProgress), varargs...)
+}
+
+// Repair mocks base method
+func (m *MockRepairService) Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error {
+	ret := m.ctrl.Call(m, "Repair", ctx, u, taskID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Repair indicates an expected call of Repair
+func (mr *MockRepairServiceMockRecorder) Repair(ctx, u, taskID interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockRepairService)(nil).Repair), ctx, u, taskID)
+}
+
+// StopRun mocks base method
+func (m *MockRepairService) StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error {
+	ret := m.ctrl.Call(m, "StopRun", ctx, u, taskID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StopRun indicates an expected call of StopRun
+func (mr *MockRepairServiceMockRecorder) StopRun(ctx, u, taskID interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopRun", reflect.TypeOf((*MockRepairService)(nil).StopRun), ctx, u, taskID)
 }
