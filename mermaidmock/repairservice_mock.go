@@ -135,6 +135,19 @@ func (mr *MockRepairServiceMockRecorder) GetRun(ctx, u, taskID interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRun", reflect.TypeOf((*MockRepairService)(nil).GetRun), ctx, u, taskID)
 }
 
+// GetLastRun mocks base method
+func (m *MockRepairService) GetLastRun(ctx context.Context, u *repair.Unit) (*repair.Run, error) {
+	ret := m.ctrl.Call(m, "GetLastRun", ctx, u)
+	ret0, _ := ret[0].(*repair.Run)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastRun indicates an expected call of GetLastRun
+func (mr *MockRepairServiceMockRecorder) GetLastRun(ctx, u interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastRun", reflect.TypeOf((*MockRepairService)(nil).GetLastRun), ctx, u)
+}
+
 // GetProgress mocks base method
 func (m *MockRepairService) GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error) {
 	varargs := []interface{}{ctx, u, taskID}
