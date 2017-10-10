@@ -214,18 +214,6 @@
             "name": "unit_id",
             "in": "path",
             "required": true
-          },
-          {
-            "name": "task_id",
-            "in": "body",
-            "description": "task id for repair",
-            "schema": {
-              "properties": {
-                "task_id": {
-                  "type": "string"
-                }
-              }
-            }
           }
         ],
         "responses": {
