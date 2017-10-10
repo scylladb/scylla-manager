@@ -36,6 +36,7 @@ func (t table) append(row ...interface{}) {
 }
 
 func (t table) String() string {
+	defer t.buf.Reset()
 	t.table.Render()
 	return t.buf.String()
 }
