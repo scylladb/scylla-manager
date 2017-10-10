@@ -2,7 +2,12 @@
 
 package restapi
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/go-chi/render"
+	"github.com/scylladb/mermaid"
+)
 
 // httpError is a wrapper holding an error, HTTP status code and a user-facing
 // message.
@@ -43,5 +48,13 @@ func httpErrBadRequest(err error) *httpError {
 		Err:        err,
 		StatusCode: http.StatusBadRequest,
 		ErrorText:  "malformed request",
+	}
+}
+
+func notFoundOrError(w http.ResponseWriter, r *http.Request, err error, msg string) {
+	if err == mermaid.ErrNotFound {
+		render.Respond(w, r, httpErrNotFound(err))
+	} else {
+		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, msg))
 	}
 }
