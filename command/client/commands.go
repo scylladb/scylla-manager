@@ -3,6 +3,7 @@
 package client
 
 import (
+	"context"
 	"os"
 
 	"github.com/mitchellh/cli"
@@ -13,7 +14,7 @@ import (
 var DefaultAPIHost = "localhost:9090"
 
 // Commands is the mapping of all the available commands.
-func Commands() map[string]cli.CommandFactory {
+func Commands(ctx context.Context) map[string]cli.CommandFactory {
 	ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
 
 	apiHost := os.Getenv("SCTOOL_API_HOST")
@@ -28,6 +29,7 @@ func Commands() map[string]cli.CommandFactory {
 					BaseCommand: command.BaseCommand{
 						UI: ui,
 					},
+					Context: ctx,
 					APIHost: apiHost,
 				},
 			}

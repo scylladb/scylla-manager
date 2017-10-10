@@ -3,6 +3,8 @@
 package client
 
 import (
+	"context"
+
 	"github.com/scylladb/mermaid/command"
 	"github.com/scylladb/mermaid/restapiclient"
 	"github.com/scylladb/mermaid/restapiclient/client/operations"
@@ -11,6 +13,8 @@ import (
 // BaseClientCommand handles common CLI client behaviours.
 type BaseClientCommand struct {
 	command.BaseCommand
+
+	Context context.Context
 	APIHost string
 }
 

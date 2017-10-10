@@ -3,7 +3,6 @@
 package client
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/scylladb/mermaid/restapiclient/client/operations"
@@ -34,11 +33,8 @@ func (cmd *RepairUnitList) Run(args []string) int {
 		return 1
 	}
 
-	// get client
-	m := cmd.client()
-
-	resp, err := m.GetClusterClusterIDRepairUnits(&operations.GetClusterClusterIDRepairUnitsParams{
-		Context:   context.Background(),
+	resp, err := cmd.client().GetClusterClusterIDRepairUnits(&operations.GetClusterClusterIDRepairUnitsParams{
+		Context:   cmd.Context,
 		ClusterID: cmd.clusterID,
 	})
 	if err != nil {
