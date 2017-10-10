@@ -16,8 +16,6 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 
 	strfmt "github.com/go-openapi/strfmt"
-
-	"github.com/scylladb/mermaid/restapiclient/models"
 )
 
 // NewPutClusterClusterIDRepairUnitUnitIDRepairParams creates a new PutClusterClusterIDRepairUnitUnitIDRepairParams object
@@ -69,11 +67,6 @@ type PutClusterClusterIDRepairUnitUnitIDRepairParams struct {
 
 	*/
 	ClusterID string
-	/*TaskID
-	  task id for repair
-
-	*/
-	TaskID *models.PutClusterClusterIDRepairUnitUnitIDRepairParamsBody
 	/*UnitID
 	  target unit UUID
 
@@ -129,17 +122,6 @@ func (o *PutClusterClusterIDRepairUnitUnitIDRepairParams) SetClusterID(clusterID
 	o.ClusterID = clusterID
 }
 
-// WithTaskID adds the taskID to the put cluster cluster ID repair unit unit ID repair params
-func (o *PutClusterClusterIDRepairUnitUnitIDRepairParams) WithTaskID(taskID *models.PutClusterClusterIDRepairUnitUnitIDRepairParamsBody) *PutClusterClusterIDRepairUnitUnitIDRepairParams {
-	o.SetTaskID(taskID)
-	return o
-}
-
-// SetTaskID adds the taskId to the put cluster cluster ID repair unit unit ID repair params
-func (o *PutClusterClusterIDRepairUnitUnitIDRepairParams) SetTaskID(taskID *models.PutClusterClusterIDRepairUnitUnitIDRepairParamsBody) {
-	o.TaskID = taskID
-}
-
 // WithUnitID adds the unitID to the put cluster cluster ID repair unit unit ID repair params
 func (o *PutClusterClusterIDRepairUnitUnitIDRepairParams) WithUnitID(unitID string) *PutClusterClusterIDRepairUnitUnitIDRepairParams {
 	o.SetUnitID(unitID)
@@ -161,14 +143,6 @@ func (o *PutClusterClusterIDRepairUnitUnitIDRepairParams) WriteToRequest(r runti
 
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
-		return err
-	}
-
-	if o.TaskID == nil {
-		o.TaskID = new(models.PutClusterClusterIDRepairUnitUnitIDRepairParamsBody)
-	}
-
-	if err := r.SetBodyParam(o.TaskID); err != nil {
 		return err
 	}
 
