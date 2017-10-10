@@ -32,6 +32,7 @@ type RepairService interface {
 
 	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
 	GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error)
+	StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
 	GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error)
 }
 
