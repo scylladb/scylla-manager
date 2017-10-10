@@ -217,8 +217,14 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "OK",
+            "headers": {
+              "Location": {
+                "description": "location of the new unit",
+                "type": "string"
+              }
+            }
           }
         }
       }
