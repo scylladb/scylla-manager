@@ -28,7 +28,7 @@ func (cmd *BaseClientCommand) InitFlags() {
 
 func (cmd *BaseClientCommand) validate() error {
 	if cmd.cluster == "" {
-		return errors.New("set cluster")
+		return errors.New("missing cluster")
 	}
 
 	return nil
