@@ -218,7 +218,7 @@
         ],
         "responses": {
           "201": {
-            "description": "OK",
+            "description": "Created",
             "headers": {
               "Location": {
                 "description": "location of the new task",
@@ -249,7 +249,7 @@
         ],
         "responses": {
           "201": {
-            "description": "OK",
+            "description": "Created",
             "headers": {
               "Location": {
                 "description": "location of the task",
