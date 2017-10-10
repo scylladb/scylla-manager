@@ -221,7 +221,38 @@
             "description": "OK",
             "headers": {
               "Location": {
-                "description": "location of the new unit",
+                "description": "location of the new task",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/repair/unit/{unit_id}/stop_repair": {
+      "put": {
+        "parameters": [
+          {
+            "type": "string",
+            "description": "cluster ID this API is performing on",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "target unit UUID",
+            "name": "unit_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "OK",
+            "headers": {
+              "Location": {
+                "description": "location of the task",
                 "type": "string"
               }
             }
