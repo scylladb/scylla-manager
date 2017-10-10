@@ -92,7 +92,7 @@ func parseUnitRequest(r *http.Request) (repairUnitRequest, error) {
 func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
 	ids, err := h.svc.ListUnits(r.Context(), clusterIDFromCtx(r.Context()))
 	if err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to list units"))
+		render.Respond(w, r, httpErrInternal(err, "failed to list units"))
 		return
 	}
 
@@ -111,12 +111,12 @@ func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if u.ID, err = uuid.NewRandom(); err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusInternalServerError, "failed to generate a unit ID "))
+		render.Respond(w, r, httpErrInternal(err, "failed to generate a unit ID "))
 		return
 	}
 
 	if err := h.svc.PutUnit(r.Context(), u.Unit); err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to create unit"))
+		render.Respond(w, r, httpErrInternal(err, "failed to create unit"))
 		return
 	}
 
@@ -134,7 +134,7 @@ func (h *repairHandler) loadUnit(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), id)
 	if err != nil {
-		notFoundOrError(w, r, err, "failed to load unit")
+		notFoundOrInternal(w, r, err, "failed to load unit")
 		return
 	}
 	render.Respond(w, r, u)
@@ -156,7 +156,7 @@ func (h *repairHandler) updateUnit(w http.ResponseWriter, r *http.Request) {
 
 	err = h.svc.PutUnit(r.Context(), u.Unit)
 	if err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to update unit"))
+		render.Respond(w, r, httpErrInternal(err, "failed to update unit"))
 		return
 	}
 	render.Respond(w, r, u.Unit)
@@ -170,7 +170,7 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.DeleteUnit(r.Context(), clusterIDFromCtx(r.Context()), id); err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete unit"))
+		render.Respond(w, r, httpErrInternal(err, "failed to delete unit"))
 		return
 	}
 }
@@ -184,14 +184,14 @@ func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), id)
 	if err != nil {
-		notFoundOrError(w, r, err, "failed to load unit")
+		notFoundOrInternal(w, r, err, "failed to load unit")
 		return
 	}
 
 	taskID := uuid.NewTime()
 
 	if err := h.svc.Repair(r.Context(), u, taskID); err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusInternalServerError, "failed to start repair"))
+		render.Respond(w, r, httpErrInternal(err, "failed to start repair"))
 		return
 	}
 
@@ -212,17 +212,17 @@ func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
 	if err != nil {
-		notFoundOrError(w, r, err, "failed to load unit")
+		notFoundOrInternal(w, r, err, "failed to load unit")
 		return
 	}
 
 	task, err := h.svc.GetLastRun(r.Context(), u)
 	if err != nil {
-		notFoundOrError(w, r, err, "failed to load task")
+		notFoundOrInternal(w, r, err, "failed to load task")
 	}
 
 	if err := h.svc.StopRun(r.Context(), u, task.ID); err != nil {
-		notFoundOrError(w, r, err, "failed to load task")
+		render.Respond(w, r, httpErrInternal(err, "failed to stop repair"))
 		return
 	}
 
@@ -278,7 +278,7 @@ func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 
 	c, err := h.svc.GetConfig(r.Context(), cr.ConfigSource)
 	if err != nil {
-		notFoundOrError(w, r, err, "failed to load config")
+		notFoundOrInternal(w, r, err, "failed to load config")
 		return
 	}
 	render.Respond(w, r, c)
@@ -292,7 +292,7 @@ func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.Config); err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to update config"))
+		render.Respond(w, r, httpErrInternal(err, "failed to update config"))
 		return
 	}
 }
@@ -305,7 +305,7 @@ func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to delete config"))
+		render.Respond(w, r, httpErrInternal(err, "failed to delete config"))
 	}
 }
 
@@ -323,13 +323,13 @@ func (h *repairHandler) taskStats(w http.ResponseWriter, r *http.Request) {
 	}
 	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
 	if err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load unit"))
+		render.Respond(w, r, httpErrInternal(err, "failed to load unit"))
 		return
 	}
 
 	taskRun, err := h.svc.GetRun(r.Context(), u, taskID)
 	if err != nil {
-		render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load task"))
+		render.Respond(w, r, httpErrInternal(err, "failed to load task"))
 		return
 	}
 
@@ -358,7 +358,7 @@ func (h *repairHandler) taskStats(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) calcRepairProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (int, map[string]int, error) {
 	runs, err := h.svc.GetProgress(ctx, u, taskID)
 	if err != nil {
-		return 0, nil, newHTTPError(err, http.StatusServiceUnavailable, "failed to load task progress")
+		return 0, nil, httpErrInternal(err, "failed to load task progress")
 	}
 
 	if len(runs) == 0 {
