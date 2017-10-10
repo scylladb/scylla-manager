@@ -14,7 +14,7 @@ import (
 // logs to standard error in a human-friendly format.
 func NewDevelopment() Logger {
 	cfg := zap.NewDevelopmentConfig()
-	cfg.Level.SetLevel(zapcore.InfoLevel)
+	cfg.Level.SetLevel(zapcore.DebugLevel)
 
 	l, _ := cfg.Build(zap.AddCallerSkip(2))
 
