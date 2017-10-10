@@ -30,6 +30,11 @@ type RepairService interface {
 	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error
 	DeleteConfig(ctx context.Context, src repair.ConfigSource) error
 
+	GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error)
+	GetLastRun(ctx context.Context, u *repair.Unit) (*repair.Run, error)
+	GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error)
+
+	// TEMPORARY
 	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
 	GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error)
 	StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
@@ -62,6 +67,10 @@ func newRepairHandler(svc RepairService) http.Handler {
 	h.Delete("/config/{config_type}/{external_id}", h.deleteConfig)
 
 	h.Get("/task/{task_id}", h.taskStats)
+
+	// TEMPORARY
+	h.Put("/unit/{unit_id}/repair", h.startRepair)
+	h.Put("/task/{task_id}/stop", h.taskStop)
 
 	return h
 }
