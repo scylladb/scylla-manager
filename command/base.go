@@ -27,9 +27,9 @@ type BaseCommand struct {
 
 // NewFlagSet creates a new flag set for the given command. It automatically
 // generates help output and adds the appropriate API flags.
-func (cmd *BaseCommand) NewFlagSet(command cli.Command) *flag.FlagSet {
+func (cmd *BaseCommand) NewFlagSet(help func() string) *flag.FlagSet {
 	f := flag.NewFlagSet("", flag.ContinueOnError)
-	f.Usage = func() { cmd.UI.Error(command.Help()) }
+	f.Usage = func() { cmd.UI.Error(help()) }
 
 	errR, errW := io.Pipe()
 	errScanner := bufio.NewScanner(errR)

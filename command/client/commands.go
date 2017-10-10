@@ -22,16 +22,21 @@ func Commands(ctx context.Context) map[string]cli.CommandFactory {
 		apiHost = DefaultAPIHost
 	}
 
+	cluster := os.Getenv("SCTOOL_CLUSTER")
+
+	base := BaseClientCommand{
+		BaseCommand: command.BaseCommand{
+			UI: ui,
+		},
+		context: ctx,
+		apiHost: apiHost,
+		cluster: cluster,
+	}
+
 	return map[string]cli.CommandFactory{
 		"repair unit list": func() (cli.Command, error) {
 			cmd := &RepairUnitList{
-				BaseClientCommand: BaseClientCommand{
-					BaseCommand: command.BaseCommand{
-						UI: ui,
-					},
-					Context: ctx,
-					APIHost: apiHost,
-				},
+				BaseClientCommand: base,
 			}
 			cmd.InitFlags()
 
