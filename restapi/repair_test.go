@@ -42,7 +42,7 @@ type repairProgress struct {
 	Hosts           map[string]interface{} `json:"hosts"`
 }
 
-func TestRepairUnitAPI(t *testing.T) {
+func TestRepairAPI(t *testing.T) {
 	t.Parallel()
 
 	var createdUnitID uuid.UUID
@@ -336,8 +336,6 @@ func TestRepairUnitAPI(t *testing.T) {
 	for _, test := range table {
 		test := test
 		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
