@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/mitchellh/cli"
+	"github.com/scylladb/mermaid/command/server"
 )
 
 func init() {
@@ -24,7 +25,7 @@ func realMain() int {
 
 	cli := cli.NewCLI("scylla-mgmt", version)
 	cli.Args = os.Args[1:]
-	cli.Commands = commands()
+	cli.Commands = server.Commands()
 
 	exitCode, err := cli.Run()
 	if err != nil {

@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package command
+package server
 
 import (
 	"bytes"
@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/mermaid/command"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/log/gocqllog"
 	"github.com/scylladb/mermaid/repair"
@@ -96,21 +97,21 @@ func (c *serverConfig) validate() error {
 	return nil
 }
 
-// ServerCommand runs the management server.
-type ServerCommand struct {
-	BaseCommand
+// Command runs the management server.
+type Command struct {
+	command.BaseCommand
 
 	configFile string
 	debug      bool
 }
 
 // Synopsis implements cli.Command.
-func (cmd *ServerCommand) Synopsis() string {
+func (cmd *Command) Synopsis() string {
 	return "Starts the Scylla management server"
 }
 
 // InitFlags sets the command flags.
-func (cmd *ServerCommand) InitFlags() {
+func (cmd *Command) InitFlags() {
 	f := cmd.BaseCommand.NewFlagSet(cmd)
 	f.StringVar(&cmd.configFile, "config-file", "/etc/scylla-mgmt/scylla-mgmt.yaml", "Path to a YAML file to read configuration from.")
 	f.BoolVar(&cmd.debug, "debug", false, "")
@@ -119,7 +120,7 @@ func (cmd *ServerCommand) InitFlags() {
 }
 
 // Run implements cli.Command.
-func (cmd *ServerCommand) Run(args []string) int {
+func (cmd *Command) Run(args []string) int {
 	// parse command line arguments
 	if err := cmd.Parse(args); err != nil {
 		cmd.UI.Error(fmt.Sprintf("Command line error: %s", err))
@@ -303,7 +304,7 @@ func (cmd *ServerCommand) Run(args []string) int {
 	return 0
 }
 
-func (cmd *ServerCommand) readConfig(file string) (*serverConfig, error) {
+func (cmd *Command) readConfig(file string) (*serverConfig, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, errors.Wrap(err, "io error")
@@ -319,7 +320,7 @@ func (cmd *ServerCommand) readConfig(file string) (*serverConfig, error) {
 	return config, yaml.Unmarshal(b, config)
 }
 
-func (cmd *ServerCommand) defaultConfig() *serverConfig {
+func (cmd *Command) defaultConfig() *serverConfig {
 	return &serverConfig{
 		Database: dbConfig{
 			Keyspace:                      "scylla_management",
@@ -332,14 +333,14 @@ func (cmd *ServerCommand) defaultConfig() *serverConfig {
 	}
 }
 
-func (cmd *ServerCommand) logger() (log.Logger, error) {
+func (cmd *Command) logger() (log.Logger, error) {
 	if cmd.debug {
 		return log.NewDevelopment(), nil
 	}
 	return log.NewProduction("scylla-mgmt")
 }
 
-func (cmd *ServerCommand) createKeyspace(config *serverConfig) error {
+func (cmd *Command) createKeyspace(config *serverConfig) error {
 	stmt, err := cmd.readKeyspaceTplFile(config)
 	if err != nil {
 		return err
@@ -359,7 +360,7 @@ func (cmd *ServerCommand) createKeyspace(config *serverConfig) error {
 	return gocqlx.Query(session.Query(stmt), nil).ExecRelease()
 }
 
-func (cmd *ServerCommand) readKeyspaceTplFile(config *serverConfig) (stmt string, err error) {
+func (cmd *Command) readKeyspaceTplFile(config *serverConfig) (stmt string, err error) {
 	b, err := ioutil.ReadFile(config.Database.KeyspaceTplFile)
 	if err != nil {
 		return "", errors.Wrapf(err, "could not read file %s", config.Database.KeyspaceTplFile)
@@ -378,7 +379,7 @@ func (cmd *ServerCommand) readKeyspaceTplFile(config *serverConfig) (stmt string
 	return buf.String(), err
 }
 
-func (cmd *ServerCommand) migrateSchema(config *serverConfig) error {
+func (cmd *Command) migrateSchema(config *serverConfig) error {
 	c := cmd.clusterConfig(config)
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
@@ -392,7 +393,7 @@ func (cmd *ServerCommand) migrateSchema(config *serverConfig) error {
 	return migrate.Migrate(context.Background(), session, config.Database.MigrateDir)
 }
 
-func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConfig {
+func (cmd *Command) clusterConfig(config *serverConfig) *gocql.ClusterConfig {
 	c := gocql.NewCluster(config.Database.Hosts...)
 
 	// overwrite the default settings
@@ -410,7 +411,7 @@ func (cmd *ServerCommand) clusterConfig(config *serverConfig) *gocql.ClusterConf
 	return c
 }
 
-func (cmd *ServerCommand) scyllaProviderFunc(config *serverConfig, logger log.Logger) (scylla.ProviderFunc, error) {
+func (cmd *Command) scyllaProviderFunc(config *serverConfig, logger log.Logger) (scylla.ProviderFunc, error) {
 	m := make(map[uuid.UUID]*scylla.Client, len(config.Clusters))
 	for _, c := range config.Clusters {
 		client, err := scylla.NewClient(c.Hosts, logger.Named("scylla"))

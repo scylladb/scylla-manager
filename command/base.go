@@ -11,8 +11,6 @@ import (
 	"strings"
 
 	"github.com/mitchellh/cli"
-	"github.com/scylladb/mermaid/restapiclient"
-	"github.com/scylladb/mermaid/restapiclient/client/operations"
 	"github.com/tonnerre/golang-text"
 )
 
@@ -140,14 +138,4 @@ func wrapAtLength(s string, pad int) string {
 		lines[i] = strings.Repeat(" ", pad) + line
 	}
 	return strings.Join(lines, "\n")
-}
-
-// BaseClientCommand handles common CLI client behaviours.
-type BaseClientCommand struct {
-	BaseCommand
-	APIHost string
-}
-
-func (cmd *BaseClientCommand) client() *operations.Client {
-	return restapiclient.New(cmd.APIHost)
 }

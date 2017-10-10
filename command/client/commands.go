@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package main
+package client
 
 import (
 	"os"
@@ -9,19 +9,22 @@ import (
 	"github.com/scylladb/mermaid/command"
 )
 
-// commands is the mapping of all the available commands.
-func commands() map[string]cli.CommandFactory {
+// DefaultAPIHost is a default TCP address of scylla-mgmt server.
+var DefaultAPIHost = "localhost:9090"
+
+// Commands is the mapping of all the available commands.
+func Commands() map[string]cli.CommandFactory {
 	ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
 
 	apiHost := os.Getenv("SCTOOL_API_HOST")
 	if apiHost == "" {
-		apiHost = "localhost:9090"
+		apiHost = DefaultAPIHost
 	}
 
 	return map[string]cli.CommandFactory{
 		"repair unit list": func() (cli.Command, error) {
-			cmd := &command.RepairUnitList{
-				BaseClientCommand: command.BaseClientCommand{
+			cmd := &RepairUnitList{
+				BaseClientCommand: BaseClientCommand{
 					BaseCommand: command.BaseCommand{
 						UI: ui,
 					},

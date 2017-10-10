@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/mitchellh/cli"
+	"github.com/scylladb/mermaid/command/client"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func realMain() int {
 
 	cli := cli.NewCLI("sctool", version)
 	cli.Args = os.Args[1:]
-	cli.Commands = commands()
+	cli.Commands = client.Commands()
 
 	exitCode, err := cli.Run()
 	if err != nil {

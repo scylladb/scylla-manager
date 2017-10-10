@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package command
+package server
 
 import (
 	"strings"
@@ -15,7 +15,7 @@ import (
 func TestServerReadConfig(t *testing.T) {
 	t.Parallel()
 
-	s := ServerCommand{}
+	s := Command{}
 	c, err := s.readConfig("testdata/scylla-mgmt.yml")
 	if err != nil {
 		t.Fatal(err)
@@ -56,11 +56,11 @@ func TestServerReadConfig(t *testing.T) {
 }
 
 func TestReadKeyspaceTplFile(t *testing.T) {
-	s := ServerCommand{}
+	s := Command{}
 	stmt, err := s.readKeyspaceTplFile(&serverConfig{
 		Database: dbConfig{
 			Keyspace:        "keyspace",
-			KeyspaceTplFile: "../dist/etc/create_keyspace.cql.tpl",
+			KeyspaceTplFile: "../../dist/etc/create_keyspace.cql.tpl",
 		},
 	})
 	if err != nil {
