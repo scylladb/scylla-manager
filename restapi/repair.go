@@ -52,7 +52,7 @@ func newRepairHandler(svc RepairService) http.Handler {
 	h.Get("/unit/{unit_id}", h.loadUnit)
 	h.Put("/unit/{unit_id}", h.updateUnit)
 	h.Delete("/unit/{unit_id}", h.deleteUnit)
-	h.Put("/unit/{unit_id}/repair", h.triggerRepair)
+	h.Put("/unit/{unit_id}/repair", h.startRepair)
 
 	h.Get("/config", h.getConfig)
 	h.Get("/config/{config_type}/{external_id}", h.getConfig)
@@ -173,7 +173,7 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *repairHandler) triggerRepair(w http.ResponseWriter, r *http.Request) {
+func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 	id, err := reqUnitID(r)
 	if err != nil {
 		render.Respond(w, r, httpErrBadRequest(err))

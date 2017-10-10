@@ -123,7 +123,7 @@ func (cmd *Command) InitFlags() {
 func (cmd *Command) Run(args []string) int {
 	// parse command line arguments
 	if err := cmd.Parse(args); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Command line error: %s", err))
+		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
 		return 1
 	}
 
