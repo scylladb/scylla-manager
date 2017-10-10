@@ -117,3 +117,59 @@ func (cmd *RepairStart) validate() error {
 
 	return nil
 }
+
+// RepairStop stops a repair of a unit.
+type RepairStop struct {
+	BaseClientCommand
+	unit string
+}
+
+// Synopsis implements cli.Command.
+func (cmd *RepairStop) Synopsis() string {
+	return "Stops a repair of a unit"
+}
+
+// InitFlags sets the command flags.
+func (cmd *RepairStop) InitFlags() {
+	f := cmd.NewFlagSet(cmd.Help)
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster.")
+	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit.")
+}
+
+// Run implements cli.Command.
+func (cmd *RepairStop) Run(args []string) int {
+	// parse command line arguments
+	if err := cmd.Parse(args); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		return 1
+	}
+
+	// validate command line arguments
+	if err := cmd.validate(); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		return 1
+	}
+
+	_, err := cmd.client().PutClusterClusterIDRepairUnitUnitIDStopRepair(&operations.PutClusterClusterIDRepairUnitUnitIDStopRepairParams{
+		Context:   cmd.context,
+		ClusterID: cmd.cluster,
+		UnitID:    cmd.unit,
+	})
+	if err != nil {
+		cmd.UI.Error(fmt.Sprintf("Host %s: %s", cmd.apiHost, err))
+		return 1
+	}
+
+	return 0
+}
+
+func (cmd *RepairStop) validate() error {
+	if err := cmd.BaseClientCommand.validate(); err != nil {
+		return err
+	}
+	if cmd.unit == "" {
+		return errors.New("missing unit")
+	}
+
+	return nil
+}

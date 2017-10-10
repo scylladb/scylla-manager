@@ -51,5 +51,14 @@ func Commands(ctx context.Context) map[string]cli.CommandFactory {
 
 			return cmd, nil
 		},
+
+		"repair stop": func() (cli.Command, error) {
+			cmd := &RepairStop{
+				BaseClientCommand: base,
+			}
+			cmd.InitFlags()
+
+			return cmd, nil
+		},
 	}
 }
