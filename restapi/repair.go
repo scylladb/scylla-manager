@@ -13,7 +13,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -128,11 +127,7 @@ func (h *repairHandler) loadUnit(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), id)
 	if err != nil {
-		if err == mermaid.ErrNotFound {
-			render.Respond(w, r, httpErrNotFound(err))
-		} else {
-			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load unit"))
-		}
+		notFoundOrError(w, r, err, "failed to load unit")
 		return
 	}
 	render.Respond(w, r, u)
@@ -182,11 +177,7 @@ func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), id)
 	if err != nil {
-		if err == mermaid.ErrNotFound {
-			render.Respond(w, r, httpErrNotFound(err))
-		} else {
-			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load unit"))
-		}
+		notFoundOrError(w, r, err, "failed to load unit")
 		return
 	}
 
@@ -249,11 +240,7 @@ func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 
 	c, err := h.svc.GetConfig(r.Context(), cr.ConfigSource)
 	if err != nil {
-		if err == mermaid.ErrNotFound {
-			render.Respond(w, r, httpErrNotFound(err))
-		} else {
-			render.Respond(w, r, newHTTPError(err, http.StatusServiceUnavailable, "failed to load config"))
-		}
+		notFoundOrError(w, r, err, "failed to load config")
 		return
 	}
 	render.Respond(w, r, c)
