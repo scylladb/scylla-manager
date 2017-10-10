@@ -36,9 +36,7 @@ type RepairService interface {
 
 	// TEMPORARY
 	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
-	GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error)
 	StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
-	GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error)
 }
 
 type repairHandler struct {
@@ -57,7 +55,6 @@ func newRepairHandler(svc RepairService) http.Handler {
 	h.Get("/unit/{unit_id}", h.loadUnit)
 	h.Put("/unit/{unit_id}", h.updateUnit)
 	h.Delete("/unit/{unit_id}", h.deleteUnit)
-	h.Put("/unit/{unit_id}/repair", h.startRepair)
 
 	h.Get("/config", h.getConfig)
 	h.Get("/config/{config_type}/{external_id}", h.getConfig)
@@ -70,7 +67,7 @@ func newRepairHandler(svc RepairService) http.Handler {
 
 	// TEMPORARY
 	h.Put("/unit/{unit_id}/repair", h.startRepair)
-	h.Put("/task/{task_id}/stop", h.taskStop)
+	h.Put("/unit/{unit_id}/stop_repair", h.stopRepair)
 
 	return h
 }
@@ -201,6 +198,37 @@ func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 	repairURL := r.URL.ResolveReference(&url.URL{
 		Path:     path.Join("../../task", taskID.String()),
 		RawQuery: fmt.Sprintf("unit_id=%s", id)},
+	)
+	w.Header().Set("Location", repairURL.String())
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
+	unitID, err := reqUnitID(r)
+	if err != nil {
+		render.Respond(w, r, httpErrBadRequest(err))
+		return
+	}
+
+	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
+	if err != nil {
+		notFoundOrError(w, r, err, "failed to load unit")
+		return
+	}
+
+	task, err := h.svc.GetLastRun(r.Context(), u)
+	if err != nil {
+		notFoundOrError(w, r, err, "failed to load task")
+	}
+
+	if err := h.svc.StopRun(r.Context(), u, task.ID); err != nil {
+		notFoundOrError(w, r, err, "failed to load task")
+		return
+	}
+
+	repairURL := r.URL.ResolveReference(&url.URL{
+		Path:     path.Join("../../task", task.ID.String()),
+		RawQuery: fmt.Sprintf("unit_id=%s", unitID)},
 	)
 	w.Header().Set("Location", repairURL.String())
 	w.WriteHeader(http.StatusCreated)
