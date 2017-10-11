@@ -165,6 +165,34 @@ func (a *Client) GetClusterClusterIDRepairConfigConfigTypeExternalID(params *Get
 }
 
 /*
+GetClusterClusterIDRepairTaskTaskID get cluster cluster ID repair task task ID API
+*/
+func (a *Client) GetClusterClusterIDRepairTaskTaskID(params *GetClusterClusterIDRepairTaskTaskIDParams) (*GetClusterClusterIDRepairTaskTaskIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDRepairTaskTaskIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDRepairTaskTaskID",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/repair/task/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDRepairTaskTaskIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterClusterIDRepairTaskTaskIDOK), nil
+
+}
+
+/*
 GetClusterClusterIDRepairUnitUnitID loadUnit Description
 */
 func (a *Client) GetClusterClusterIDRepairUnitUnitID(params *GetClusterClusterIDRepairUnitUnitIDParams) (*GetClusterClusterIDRepairUnitUnitIDOK, error) {

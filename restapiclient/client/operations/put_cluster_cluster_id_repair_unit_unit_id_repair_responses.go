@@ -41,7 +41,7 @@ func NewPutClusterClusterIDRepairUnitUnitIDRepairCreated() *PutClusterClusterIDR
 
 /*PutClusterClusterIDRepairUnitUnitIDRepairCreated handles this case with default header values.
 
-OK
+Created
 */
 type PutClusterClusterIDRepairUnitUnitIDRepairCreated struct {
 	/*location of the new task
