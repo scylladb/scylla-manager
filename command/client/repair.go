@@ -95,13 +95,11 @@ func (cmd *RepairStart) Run(args []string) int {
 		return 1
 	}
 
-	// extract ID from the location header
-	location, err := url.Parse(resp.Location)
+	id, err := extractIDFromLocation(resp.Location)
 	if err != nil {
 		cmd.UI.Error(fmt.Sprintf("Cannot parse response: %s", err))
 		return 1
 	}
-	_, id := path.Split(location.Path)
 	cmd.UI.Info(id)
 
 	return 0
@@ -150,7 +148,7 @@ func (cmd *RepairStop) Run(args []string) int {
 		return 1
 	}
 
-	_, err := cmd.client().PutClusterClusterIDRepairUnitUnitIDStopRepair(&operations.PutClusterClusterIDRepairUnitUnitIDStopRepairParams{
+	resp, err := cmd.client().PutClusterClusterIDRepairUnitUnitIDStopRepair(&operations.PutClusterClusterIDRepairUnitUnitIDStopRepairParams{
 		Context:   cmd.context,
 		ClusterID: cmd.cluster,
 		UnitID:    cmd.unit,
@@ -159,6 +157,13 @@ func (cmd *RepairStop) Run(args []string) int {
 		cmd.UI.Error(fmt.Sprintf("Host %s: %s", cmd.apiHost, err))
 		return 1
 	}
+
+	id, err := extractIDFromLocation(resp.Location)
+	if err != nil {
+		cmd.UI.Error(fmt.Sprintf("Cannot parse response: %s", err))
+		return 1
+	}
+	cmd.UI.Info(id)
 
 	return 0
 }
