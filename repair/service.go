@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -302,12 +303,14 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 }
 
 func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scylla.Client, hostSegments map[string][]*Segment) {
-	// sort hosts
+	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
 		hosts = append(hosts, host)
 	}
-	sort.Strings(hosts)
+	sort.Slice(hosts, func(i, j int) bool {
+		return xxhash.Sum64String(hosts[i]) < xxhash.Sum64String(hosts[j])
+	})
 
 	for _, host := range hosts {
 		w := worker{
