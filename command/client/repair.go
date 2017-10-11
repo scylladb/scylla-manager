@@ -67,8 +67,8 @@ func (cmd *RepairStart) Synopsis() string {
 // InitFlags sets the command flags.
 func (cmd *RepairStart) InitFlags() {
 	f := cmd.NewFlagSet(cmd.Help)
-	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster.")
-	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit.")
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster")
+	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit")
 }
 
 // Run implements cli.Command.
@@ -132,8 +132,8 @@ func (cmd *RepairStop) Synopsis() string {
 // InitFlags sets the command flags.
 func (cmd *RepairStop) InitFlags() {
 	f := cmd.NewFlagSet(cmd.Help)
-	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster.")
-	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit.")
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster")
+	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit")
 }
 
 // Run implements cli.Command.

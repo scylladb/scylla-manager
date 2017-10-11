@@ -113,7 +113,7 @@ func (cmd *Command) Synopsis() string {
 // InitFlags sets the command flags.
 func (cmd *Command) InitFlags() {
 	f := cmd.NewFlagSet(cmd.Help)
-	f.StringVar(&cmd.configFile, "config-file", "/etc/scylla-mgmt/scylla-mgmt.yaml", "Path to a YAML file to read configuration from.")
+	f.StringVar(&cmd.configFile, "config-file", "/etc/scylla-mgmt/scylla-mgmt.yaml", "Path to a YAML file to read configuration from")
 	f.BoolVar(&cmd.debug, "debug", false, "")
 
 	cmd.HideFlags("debug")
