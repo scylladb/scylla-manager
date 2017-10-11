@@ -1,6 +1,6 @@
 all: clean package
 
-VERSION := 1.0
+VERSION := 0
 ifndef RELEASE
 RELEASE := $(shell date +%Y%m%d)git$(shell git describe --always)
 endif
@@ -40,4 +40,4 @@ release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
 package: release/rpm
 
 inspect:
-	@rpm -qpli release/rpm/scylla-mgmt-$(VERSION_NAME).x86_64.rpm
+	@rpm -qpli release/rpm/scylla-mgmt{,-client}-$(VERSION_NAME).x86_64.rpm
