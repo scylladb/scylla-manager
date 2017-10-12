@@ -19,4 +19,4 @@ jq -M -s 'reduce .[] as $x (.[0]; .apis += $x.apis? | .models += $x.models) | .r
 rm -Rf ../internal
 mkdir ../internal
 
-swagger generate client -A scylladb -f scylla-api.json -t ../internal
+swagger generate client -A scylladb -f scylla.json -t ../internal
