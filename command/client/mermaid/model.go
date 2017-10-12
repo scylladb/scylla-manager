@@ -8,6 +8,7 @@ import (
 	"github.com/scylladb/mermaid/command/client/mermaid/internal/models"
 )
 
+// RepairProgressRow contains shard progress info.
 type RepairProgressRow struct {
 	Host     net.IP
 	Shard    int
@@ -15,4 +16,5 @@ type RepairProgressRow struct {
 	Error    int
 }
 
+// RepairUnit is repair.Unit representation.
 type RepairUnit = models.RepairUnit

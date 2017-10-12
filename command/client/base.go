@@ -7,8 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/command"
-	"github.com/scylladb/mermaid/restapiclient"
-	"github.com/scylladb/mermaid/restapiclient/client/operations"
+	"github.com/scylladb/mermaid/command/client/mermaid"
 )
 
 // BaseClientCommand handles common CLI client behaviours.
@@ -16,7 +15,7 @@ type BaseClientCommand struct {
 	command.BaseCommand
 
 	context context.Context
-	apiHost string
+	host    string
 	cluster string
 }
 
@@ -34,6 +33,6 @@ func (cmd *BaseClientCommand) validate() error {
 	return nil
 }
 
-func (cmd *BaseClientCommand) client() *operations.Client {
-	return restapiclient.New(cmd.apiHost)
+func (cmd *BaseClientCommand) client() *mermaid.Client {
+	return mermaid.NewClient(cmd.host, cmd.cluster)
 }

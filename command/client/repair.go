@@ -3,14 +3,9 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
-	"net"
-	"sort"
-	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/restapiclient/client/operations"
 )
 
 // RepairStart starts a repair of a unit.
@@ -45,22 +40,13 @@ func (cmd *RepairStart) Run(args []string) int {
 		return 1
 	}
 
-	resp, err := cmd.client().PutClusterClusterIDRepairUnitUnitIDRepair(&operations.PutClusterClusterIDRepairUnitUnitIDRepairParams{
-		Context:   cmd.context,
-		ClusterID: cmd.cluster,
-		UnitID:    cmd.unit,
-	})
+	u, err := cmd.client().StartRepair(cmd.context, cmd.unit)
 	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Host %s: %s", cmd.apiHost, err))
+		cmd.UI.Error(err.Error())
 		return 1
 	}
 
-	id, err := extractIDFromLocation(resp.Location)
-	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Cannot parse response: %s", err))
-		return 1
-	}
-	cmd.UI.Info(id)
+	cmd.UI.Info(u.String())
 
 	return 0
 }
@@ -108,22 +94,13 @@ func (cmd *RepairStop) Run(args []string) int {
 		return 1
 	}
 
-	resp, err := cmd.client().PutClusterClusterIDRepairUnitUnitIDStopRepair(&operations.PutClusterClusterIDRepairUnitUnitIDStopRepairParams{
-		Context:   cmd.context,
-		ClusterID: cmd.cluster,
-		UnitID:    cmd.unit,
-	})
+	u, err := cmd.client().StopRepair(cmd.context, cmd.unit)
 	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Host %s: %s", cmd.apiHost, err))
+		cmd.UI.Error(err.Error())
 		return 1
 	}
 
-	id, err := extractIDFromLocation(resp.Location)
-	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Cannot parse response: %s", err))
-		return 1
-	}
-	cmd.UI.Info(id)
+	cmd.UI.Info(u.String())
 
 	return 0
 }
@@ -173,75 +150,20 @@ func (cmd *RepairProgress) Run(args []string) int {
 		return 1
 	}
 
-	resp, err := cmd.client().GetClusterClusterIDRepairTaskTaskID(&operations.GetClusterClusterIDRepairTaskTaskIDParams{
-		Context:   cmd.context,
-		ClusterID: cmd.cluster,
-		UnitID:    cmd.unit,
-		TaskID:    cmd.task,
-	})
+	status, progress, rows, err := cmd.client().RepairProgress(cmd.context, cmd.unit, cmd.task)
 	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Host %s: %s", cmd.apiHost, err))
+		cmd.UI.Error(err.Error())
 		return 1
 	}
 
-	type row struct {
-		host     net.IP
-		shard    int64
-		progress int32
-		error    int32
-	}
-	var rows []row
-
-	for hostName, h := range resp.Payload.Hosts {
-		ip := net.ParseIP(hostName)
-		if ip == nil {
-			cmd.UI.Error(fmt.Sprintf("Host %s: invalid host %s: %s", cmd.apiHost, hostName, err))
-			return 1
-		}
-
-		if h.Total == 0 {
-			rows = append(rows, row{
-				host:  ip,
-				shard: -1,
-			})
-			continue
-		}
-
-		for shardName, s := range h.Shards {
-			shard, err := strconv.ParseInt(shardName, 10, 64)
-			if err != nil {
-				cmd.UI.Error(fmt.Sprintf("Host %s: invalid shard number %s: %s", cmd.apiHost, shardName, err))
-				return 1
-			}
-
-			rows = append(rows, row{
-				host:     ip,
-				shard:    shard,
-				progress: s.PercentComplete,
-				error:    s.Error,
-			})
-		}
-	}
-
-	sort.Slice(rows, func(i, j int) bool {
-		switch bytes.Compare(rows[i].host, rows[j].host) {
-		case -1:
-			return true
-		case 0:
-			return rows[i].shard < rows[j].shard
-		default:
-			return false
-		}
-	})
-
-	cmd.UI.Info(fmt.Sprintf("Status: %s, progress: %d%%\n", resp.Payload.Status, resp.Payload.PercentComplete))
+	cmd.UI.Info(fmt.Sprintf("Status: %s, progress: %d%%\n", status, progress))
 
 	t := newTable("host", "shard", "progress", "errors")
 	for _, r := range rows {
-		if r.shard == -1 {
-			t.append(r.host, "-", "-", "-")
+		if r.Shard == -1 {
+			t.append(r.Host, "-", "-", "-")
 		} else {
-			t.append(r.host, r.shard, r.progress, r.error)
+			t.append(r.Host, r.Shard, r.Progress, r.Error)
 		}
 	}
 	cmd.UI.Info(t.String())
@@ -287,18 +209,15 @@ func (cmd *RepairUnitList) Run(args []string) int {
 		return 1
 	}
 
-	resp, err := cmd.client().GetClusterClusterIDRepairUnits(&operations.GetClusterClusterIDRepairUnitsParams{
-		Context:   cmd.context,
-		ClusterID: cmd.cluster,
-	})
+	units, err := cmd.client().ListRepairUnits(cmd.context)
 	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Host %s: %s", cmd.apiHost, err))
+		cmd.UI.Error(err.Error())
 		return 1
 	}
 
 	t := newTable("unit id", "keyspace", "tables")
-	for _, p := range resp.Payload {
-		t.append(p.ID, p.Keyspace, p.Tables)
+	for _, u := range units {
+		t.append(u.ID, u.Keyspace, u.Tables)
 	}
 	cmd.UI.Info(t.String())
 
