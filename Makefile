@@ -67,9 +67,9 @@ integration-test: unit-test
 	@echo "==> Running integration tests..."
 	@go test -cover -tags integration -run Integration ./repair -cluster "172.16.1.10"
 
-# dev-run runs development server.
-.PHONY: dev-run
-dev-run:
+# dev-server runs development server.
+.PHONY: dev-server
+dev-server:
 	@echo "==> Running development server..."
 	@go run ./cmd/scylla-mgmt/*.go server -config-file docker/scylla-mgmt.yaml -debug
 
