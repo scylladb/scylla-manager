@@ -169,9 +169,6 @@
             "schema": {
               "$ref": "#/definitions/repairConfig"
             }
-          },
-          "404": {
-            "description": "not found"
           }
         }
       },
@@ -190,9 +187,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          },
-          "404": {
-            "description": "not found"
           }
         }
       },
@@ -201,9 +195,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          },
-          "404": {
-            "description": "not found"
           }
         }
       }
@@ -240,9 +231,6 @@
             "schema": {
               "$ref": "#/definitions/repairConfig"
             }
-          },
-          "404": {
-            "description": "not found"
           }
         }
       },
@@ -261,9 +249,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          },
-          "404": {
-            "description": "not found"
           }
         }
       },
@@ -272,9 +257,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          },
-          "404": {
-            "description": "not found"
           }
         }
       }
