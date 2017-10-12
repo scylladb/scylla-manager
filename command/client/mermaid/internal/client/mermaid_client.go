@@ -11,32 +11,32 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/scylla/internal/client/operations"
+	"github.com/scylladb/mermaid/command/client/mermaid/internal/client/operations"
 )
 
-// Default swagger HTTP client.
+// Default mermaid HTTP client.
 var Default = NewHTTPClient(nil)
 
 const (
 	// DefaultHost is the default Host
 	// found in Meta (info) section of spec file
-	DefaultHost string = "example.com"
+	DefaultHost string = "localhost"
 	// DefaultBasePath is the default BasePath
 	// found in Meta (info) section of spec file
-	DefaultBasePath string = "/api"
+	DefaultBasePath string = "/api/v1"
 )
 
 // DefaultSchemes are the default schemes found in Meta (info) section of spec file
 var DefaultSchemes = []string{"http"}
 
-// NewHTTPClient creates a new swagger HTTP client.
-func NewHTTPClient(formats strfmt.Registry) *Swagger {
+// NewHTTPClient creates a new mermaid HTTP client.
+func NewHTTPClient(formats strfmt.Registry) *Mermaid {
 	return NewHTTPClientWithConfig(formats, nil)
 }
 
-// NewHTTPClientWithConfig creates a new swagger HTTP client,
+// NewHTTPClientWithConfig creates a new mermaid HTTP client,
 // using a customizable transport config.
-func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Swagger {
+func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Mermaid {
 	// ensure nullable parameters have default
 	if formats == nil {
 		formats = strfmt.Default
@@ -50,9 +50,9 @@ func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Swa
 	return New(transport, formats)
 }
 
-// New creates a new swagger client
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Swagger {
-	cli := new(Swagger)
+// New creates a new mermaid client
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Mermaid {
+	cli := new(Mermaid)
 	cli.Transport = transport
 
 	cli.Operations = operations.New(transport, formats)
@@ -99,15 +99,15 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 	return cfg
 }
 
-// Swagger is a client for swagger
-type Swagger struct {
+// Mermaid is a client for mermaid
+type Mermaid struct {
 	Operations *operations.Client
 
 	Transport runtime.ClientTransport
 }
 
 // SetTransport changes the transport on the client and all its subresources
-func (c *Swagger) SetTransport(transport runtime.ClientTransport) {
+func (c *Mermaid) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 
 	c.Operations.SetTransport(transport)
