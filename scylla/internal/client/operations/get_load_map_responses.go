@@ -47,7 +47,7 @@ func NewGetLoadMapOK() *GetLoadMapOK {
 GetLoadMapOK get load map o k
 */
 type GetLoadMapOK struct {
-	Payload []*models.MapStringDouble
+	Payload models.GetLoadMapOKBody
 }
 
 func (o *GetLoadMapOK) Error() string {

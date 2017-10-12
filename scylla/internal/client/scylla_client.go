@@ -14,7 +14,7 @@ import (
 	"github.com/scylladb/mermaid/scylla/internal/client/operations"
 )
 
-// Default scylladb HTTP client.
+// Default scylla HTTP client.
 var Default = NewHTTPClient(nil)
 
 const (
@@ -29,14 +29,14 @@ const (
 // DefaultSchemes are the default schemes found in Meta (info) section of spec file
 var DefaultSchemes = []string{"http"}
 
-// NewHTTPClient creates a new scylladb HTTP client.
-func NewHTTPClient(formats strfmt.Registry) *Scylladb {
+// NewHTTPClient creates a new scylla HTTP client.
+func NewHTTPClient(formats strfmt.Registry) *Scylla {
 	return NewHTTPClientWithConfig(formats, nil)
 }
 
-// NewHTTPClientWithConfig creates a new scylladb HTTP client,
+// NewHTTPClientWithConfig creates a new scylla HTTP client,
 // using a customizable transport config.
-func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Scylladb {
+func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Scylla {
 	// ensure nullable parameters have default
 	if formats == nil {
 		formats = strfmt.Default
@@ -50,9 +50,9 @@ func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Scy
 	return New(transport, formats)
 }
 
-// New creates a new scylladb client
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Scylladb {
-	cli := new(Scylladb)
+// New creates a new scylla client
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Scylla {
+	cli := new(Scylla)
 	cli.Transport = transport
 
 	cli.Operations = operations.New(transport, formats)
@@ -99,15 +99,15 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 	return cfg
 }
 
-// Scylladb is a client for scylladb
-type Scylladb struct {
+// Scylla is a client for scylla
+type Scylla struct {
 	Operations *operations.Client
 
 	Transport runtime.ClientTransport
 }
 
 // SetTransport changes the transport on the client and all its subresources
-func (c *Scylladb) SetTransport(transport runtime.ClientTransport) {
+func (c *Scylla) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 
 	c.Operations.SetTransport(transport)

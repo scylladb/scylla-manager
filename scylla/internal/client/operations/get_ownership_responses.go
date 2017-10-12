@@ -47,7 +47,7 @@ func NewGetOwnershipOK() *GetOwnershipOK {
 GetOwnershipOK get ownership o k
 */
 type GetOwnershipOK struct {
-	Payload []*models.Mapper
+	Payload models.GetOwnershipOKBody
 }
 
 func (o *GetOwnershipOK) Error() string {
