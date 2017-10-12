@@ -3,7 +3,6 @@
 package restapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -30,14 +29,14 @@ func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {
 	if err, ok := v.(error); ok {
 		httpErr, _ := v.(*httpError)
 		if httpErr == nil {
-			httpErr = newHTTPError(err,
-				http.StatusInternalServerError,
-				fmt.Sprintf("traceID=%s an unexpected error has occurred, consult logs.", log.TraceID(r.Context())),
+			httpErr = newHTTPError(
+				r, err, http.StatusInternalServerError,
+				"unexpected error, consult logs",
 			)
 		}
 
 		if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
-			le.AddFields("Error", httpErr.Err.Error())
+			le.AddFields("Error", httpErr.Error())
 		}
 
 		render.Status(r, httpErr.StatusCode)
