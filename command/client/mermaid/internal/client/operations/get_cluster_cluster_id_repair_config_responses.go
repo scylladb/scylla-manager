@@ -32,13 +32,6 @@ func (o *GetClusterClusterIDRepairConfigReader) ReadResponse(response runtime.Cl
 		}
 		return result, nil
 
-	case 404:
-		result := NewGetClusterClusterIDRepairConfigNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
@@ -69,27 +62,6 @@ func (o *GetClusterClusterIDRepairConfigOK) readResponse(response runtime.Client
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDRepairConfigNotFound creates a GetClusterClusterIDRepairConfigNotFound with default headers values
-func NewGetClusterClusterIDRepairConfigNotFound() *GetClusterClusterIDRepairConfigNotFound {
-	return &GetClusterClusterIDRepairConfigNotFound{}
-}
-
-/*GetClusterClusterIDRepairConfigNotFound handles this case with default header values.
-
-not found
-*/
-type GetClusterClusterIDRepairConfigNotFound struct {
-}
-
-func (o *GetClusterClusterIDRepairConfigNotFound) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/repair/config][%d] getClusterClusterIdRepairConfigNotFound ", 404)
-}
-
-func (o *GetClusterClusterIDRepairConfigNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

@@ -29,13 +29,6 @@ func (o *DeleteClusterClusterIDRepairConfigReader) ReadResponse(response runtime
 		}
 		return result, nil
 
-	case 404:
-		result := NewDeleteClusterClusterIDRepairConfigNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
@@ -58,27 +51,6 @@ func (o *DeleteClusterClusterIDRepairConfigOK) Error() string {
 }
 
 func (o *DeleteClusterClusterIDRepairConfigOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	return nil
-}
-
-// NewDeleteClusterClusterIDRepairConfigNotFound creates a DeleteClusterClusterIDRepairConfigNotFound with default headers values
-func NewDeleteClusterClusterIDRepairConfigNotFound() *DeleteClusterClusterIDRepairConfigNotFound {
-	return &DeleteClusterClusterIDRepairConfigNotFound{}
-}
-
-/*DeleteClusterClusterIDRepairConfigNotFound handles this case with default header values.
-
-not found
-*/
-type DeleteClusterClusterIDRepairConfigNotFound struct {
-}
-
-func (o *DeleteClusterClusterIDRepairConfigNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/repair/config][%d] deleteClusterClusterIdRepairConfigNotFound ", 404)
-}
-
-func (o *DeleteClusterClusterIDRepairConfigNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

@@ -29,13 +29,6 @@ func (o *PutClusterClusterIDRepairConfigConfigTypeExternalIDReader) ReadResponse
 		}
 		return result, nil
 
-	case 404:
-		result := NewPutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
@@ -58,27 +51,6 @@ func (o *PutClusterClusterIDRepairConfigConfigTypeExternalIDOK) Error() string {
 }
 
 func (o *PutClusterClusterIDRepairConfigConfigTypeExternalIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	return nil
-}
-
-// NewPutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound creates a PutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound with default headers values
-func NewPutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound() *PutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound {
-	return &PutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound{}
-}
-
-/*PutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound handles this case with default header values.
-
-not found
-*/
-type PutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound struct {
-}
-
-func (o *PutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repair/config/{config_type}/{external_id}][%d] putClusterClusterIdRepairConfigConfigTypeExternalIdNotFound ", 404)
-}
-
-func (o *PutClusterClusterIDRepairConfigConfigTypeExternalIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

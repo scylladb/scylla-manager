@@ -29,13 +29,6 @@ func (o *DeleteClusterClusterIDRepairConfigConfigTypeExternalIDReader) ReadRespo
 		}
 		return result, nil
 
-	case 404:
-		result := NewDeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
@@ -58,27 +51,6 @@ func (o *DeleteClusterClusterIDRepairConfigConfigTypeExternalIDOK) Error() strin
 }
 
 func (o *DeleteClusterClusterIDRepairConfigConfigTypeExternalIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	return nil
-}
-
-// NewDeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound creates a DeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound with default headers values
-func NewDeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound() *DeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound {
-	return &DeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound{}
-}
-
-/*DeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound handles this case with default header values.
-
-not found
-*/
-type DeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound struct {
-}
-
-func (o *DeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/repair/config/{config_type}/{external_id}][%d] deleteClusterClusterIdRepairConfigConfigTypeExternalIdNotFound ", 404)
-}
-
-func (o *DeleteClusterClusterIDRepairConfigConfigTypeExternalIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }
