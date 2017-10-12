@@ -51,7 +51,7 @@ func (c *Client) StartRepair(ctx context.Context, unit string) (uuid.UUID, error
 		UnitID:    unit,
 	})
 	if err != nil {
-		return uuid.Nil, errors.Wrapf(err, "host %s", c.host)
+		return uuid.Nil, err
 	}
 
 	u, err := extractUUIDFromLocation(resp.Location)
@@ -79,7 +79,7 @@ func (c *Client) StopRepair(ctx context.Context, unit string) (uuid.UUID, error)
 		UnitID:    unit,
 	})
 	if err != nil {
-		return uuid.Nil, errors.Wrapf(err, "host %s", c.host)
+		return uuid.Nil, err
 	}
 
 	u, err := extractUUIDFromLocation(resp.Location)
@@ -117,7 +117,6 @@ func (c *Client) RepairProgress(ctx context.Context, unit string, task string) (
 		TaskID:    task,
 	})
 	if err != nil {
-		err = errors.Wrapf(err, "host %s", c.host)
 		return
 	}
 
@@ -181,7 +180,7 @@ func (c *Client) ListRepairUnits(ctx context.Context) ([]*RepairUnit, error) {
 		ClusterID: clusterID,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "host %s", c.host)
+		return nil, err
 	}
 
 	return resp.Payload, nil

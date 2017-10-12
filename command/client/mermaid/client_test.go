@@ -3,6 +3,9 @@
 package mermaid
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/scylladb/mermaid/uuid"
@@ -32,5 +35,21 @@ func TestExtractUUIDFromLocation(t *testing.T) {
 	}
 	if u1 != u0 {
 		t.Fatal(u1, u0)
+	}
+}
+
+func TestClientError(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "message", 500)
+	}))
+	defer s.Close()
+
+	c := NewClient(s.Listener.Addr().String(), uuid.MustRandom().String())
+	_, err := c.ListRepairUnits(context.Background())
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "message\n" {
+		t.Fatal(err)
 	}
 }
