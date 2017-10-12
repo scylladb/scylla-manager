@@ -32,7 +32,7 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}) Code() int {
 
 
 func ({{ .ReceiverName }} *{{ pascalize .Name }}) Error() string {
-	return fmt.Sprintf("[{{ upper .Method }} {{ .Path }}][%d] {{ if .Name }}{{ .Name }} {{ else }}unknown error {{ end }}{{ if .Schema }} %+v{{ end }}", {{ if eq .Code -1 }}{{ .ReceiverName }}._statusCode{{ else }}{{ .Code }}{{ end }}{{ if .Schema }}, o.Payload{{ end }})
+  return fmt.Sprintf("[{{ upper .Method }} {{ .Path }}][%d] {{ if .Name }}{{ .Name }} {{ else }}unknown error {{ end }}{{ if .Schema }} %+v{{ end }}", {{ if eq .Code -1 }}{{ .ReceiverName }}._statusCode{{ else }}{{ .Code }}{{ end }}{{ if .Schema }}, o.Payload{{ end }})
 }
 
 
@@ -85,6 +85,7 @@ package {{ .Package }}
 
 import (
   "io"
+  "io/ioutil"
   "net/http"
 
   "github.com/go-openapi/runtime"
@@ -128,7 +129,17 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response ru
       }
       return nil, result{{ end }}{{else}}
     {{ if $.Responses}}default:
-      {{ end }}return nil, runtime.NewAPIError("unknown error", response, response.Code()){{ end }}
+          body := response.Body()
+          if body != nil {
+            defer body.Close()
+
+            b, err := ioutil.ReadAll(body)
+            if err != nil {
+              return nil, err
+            }
+            return nil, errors.New(int32(response.Code()), string(b))
+          }
+          {{ end }}return nil, runtime.NewAPIError("unknown error", response, response.Code()){{ end }}
   {{ if .Responses}}}{{ end }}
 }
 
