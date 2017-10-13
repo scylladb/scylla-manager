@@ -84,6 +84,8 @@ package {{ .Package }}
 
 
 import (
+  "bytes"
+  "encoding/json"
   "io"
   "io/ioutil"
   "net/http"
@@ -137,7 +139,11 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response ru
             if err != nil {
               return nil, err
             }
-            return nil, errors.New(int32(response.Code()), string(b))
+
+            buf := new(bytes.Buffer)
+            json.Indent(buf, b, "", "  ")
+
+            return nil, errors.New(int32(response.Code()), buf.String())
           }
           {{ end }}return nil, runtime.NewAPIError("unknown error", response, response.Code()){{ end }}
   {{ if .Responses}}}{{ end }}
