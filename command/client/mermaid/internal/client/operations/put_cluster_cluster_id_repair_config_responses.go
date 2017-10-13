@@ -6,6 +6,8 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -40,7 +42,11 @@ func (o *PutClusterClusterIDRepairConfigReader) ReadResponse(response runtime.Cl
 			if err != nil {
 				return nil, err
 			}
-			return nil, errors.New(int32(response.Code()), string(b))
+
+			buf := new(bytes.Buffer)
+			json.Indent(buf, b, "", "  ")
+
+			return nil, errors.New(int32(response.Code()), buf.String())
 		}
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
