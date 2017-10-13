@@ -78,6 +78,10 @@ row DB.
 
 sctool is the CLI for interacting with the Scylla database management.
 
+%post client
+sctool -autocomplete-uninstall
+sctool -autocomplete-install
+
 %files client
 %defattr(-,root,root)
 %{_bindir}/sctool
