@@ -4,11 +4,14 @@ package client
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/command"
+	"github.com/scylladb/mermaid/command/client/mermaid"
 )
 
-// RepairStart starts a repair of a unit.
+// RepairStart starts unit repair.
 type RepairStart struct {
 	BaseClientCommand
 	unit string
@@ -16,14 +19,14 @@ type RepairStart struct {
 
 // Synopsis implements cli.Command.
 func (cmd *RepairStart) Synopsis() string {
-	return "Starts a repair of a unit"
+	return "Starts unit repair"
 }
 
 // InitFlags sets the command flags.
 func (cmd *RepairStart) InitFlags() {
 	f := cmd.NewFlagSet(cmd.Help)
-	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster")
-	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit")
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "`UUID` or name of a cluster")
+	f.StringVar(&cmd.unit, "unit", "", "`UUID` or name of a repair unit")
 }
 
 // Run implements cli.Command.
@@ -40,13 +43,13 @@ func (cmd *RepairStart) Run(args []string) int {
 		return 1
 	}
 
-	u, err := cmd.client().StartRepair(cmd.context, cmd.unit)
+	id, err := cmd.client().StartRepair(cmd.context, cmd.unit)
 	if err != nil {
 		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
-	cmd.UI.Info(u.String())
+	cmd.UI.Info(id)
 
 	return 0
 }
@@ -62,7 +65,7 @@ func (cmd *RepairStart) validate() error {
 	return nil
 }
 
-// RepairStop stops a repair of a unit.
+// RepairStop stops unit repair.
 type RepairStop struct {
 	BaseClientCommand
 	unit string
@@ -70,14 +73,14 @@ type RepairStop struct {
 
 // Synopsis implements cli.Command.
 func (cmd *RepairStop) Synopsis() string {
-	return "Stops a repair of a unit"
+	return "Stops unit repair"
 }
 
 // InitFlags sets the command flags.
 func (cmd *RepairStop) InitFlags() {
 	f := cmd.NewFlagSet(cmd.Help)
-	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster")
-	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit")
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "`UUID` or name of a cluster")
+	f.StringVar(&cmd.unit, "unit", "", "`UUID` or name of a repair unit")
 }
 
 // Run implements cli.Command.
@@ -94,13 +97,13 @@ func (cmd *RepairStop) Run(args []string) int {
 		return 1
 	}
 
-	u, err := cmd.client().StopRepair(cmd.context, cmd.unit)
+	id, err := cmd.client().StopRepair(cmd.context, cmd.unit)
 	if err != nil {
 		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
-	cmd.UI.Info(u.String())
+	cmd.UI.Info(id)
 
 	return 0
 }
@@ -116,7 +119,7 @@ func (cmd *RepairStop) validate() error {
 	return nil
 }
 
-// RepairProgress stops a repair of a unit.
+// RepairProgress shows repair progress.
 type RepairProgress struct {
 	BaseClientCommand
 	unit string
@@ -125,15 +128,15 @@ type RepairProgress struct {
 
 // Synopsis implements cli.Command.
 func (cmd *RepairProgress) Synopsis() string {
-	return "Shows progress of a repair"
+	return "Shows repair progress"
 }
 
 // InitFlags sets the command flags.
 func (cmd *RepairProgress) InitFlags() {
 	f := cmd.NewFlagSet(cmd.Help)
-	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "ID or name of a cluster")
-	f.StringVar(&cmd.unit, "unit", "", "ID or name of a repair unit")
-	f.StringVar(&cmd.task, "task", "", "repair task ID")
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "`UUID` or name of a cluster")
+	f.StringVar(&cmd.unit, "unit", "", "`UUID` or name of a repair unit")
+	f.StringVar(&cmd.task, "task", "", "repair task `UUID`")
 }
 
 // Run implements cli.Command.
@@ -185,14 +188,151 @@ func (cmd *RepairProgress) validate() error {
 	return nil
 }
 
-// RepairUnitList shows repair units within a cluster.
+// RepairUnitCreate creates a new repair unit.
+type RepairUnitCreate struct {
+	BaseClientCommand
+	keyspace string
+	tables   string
+}
+
+// Synopsis implements cli.Command.
+func (cmd *RepairUnitCreate) Synopsis() string {
+	return "Creates a new repair unit"
+}
+
+// InitFlags sets the command flags.
+func (cmd *RepairUnitCreate) InitFlags() {
+	f := cmd.NewFlagSet(cmd.Help)
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "`UUID` or name of a cluster")
+	f.StringVar(&cmd.keyspace, "keyspace", "", "Keyspace `name`")
+	f.StringVar(&cmd.tables, "tables", "", "Comma-separated `list` of tables in the keyspace, optional if empty repair the whole keyspace")
+}
+
+// Run implements cli.Command.
+func (cmd *RepairUnitCreate) Run(args []string) int {
+	// parse command line arguments
+	if err := cmd.Parse(args); err != nil {
+		cmd.UI.Error(errorStr(err))
+		return 1
+	}
+
+	// validate command line arguments
+	if err := cmd.validate(); err != nil {
+		cmd.UI.Error(errorStr(err))
+		return 1
+	}
+
+	id, err := cmd.client().CreateRepairUnit(cmd.context, &mermaid.RepairUnit{
+		Keyspace: cmd.keyspace,
+		Tables:   strings.Split(cmd.tables, ","),
+	})
+	if err != nil {
+		cmd.UI.Error(errorStr(err))
+		return 1
+	}
+
+	cmd.UI.Info(id)
+
+	return 0
+}
+
+func (cmd *RepairUnitCreate) validate() error {
+	if err := cmd.BaseClientCommand.validate(); err != nil {
+		return err
+	}
+	if cmd.keyspace == "" {
+		return errors.New("missing keyspace")
+	}
+
+	return nil
+}
+
+// RepairUnitUpdate modifies existing repair unit.
+type RepairUnitUpdate struct {
+	BaseClientCommand
+	unit string
+
+	keyspace command.OptionalString
+	tables   command.OptionalString
+}
+
+// Synopsis implements cli.Command.
+func (cmd *RepairUnitUpdate) Synopsis() string {
+	return "Modifies existing repair unit"
+}
+
+// InitFlags sets the command flags.
+func (cmd *RepairUnitUpdate) InitFlags() {
+	f := cmd.NewFlagSet(cmd.Help)
+	f.StringVar(&cmd.cluster, "cluster", cmd.cluster, "`UUID` or name of a cluster")
+	f.StringVar(&cmd.unit, "unit", "", "`UUID` or name of a repair unit")
+
+	f.Var(&cmd.keyspace, "keyspace", "Optional keyspace `name`")
+	f.Var(&cmd.tables, "tables", "Optional comma-separated `list` of tables in the keyspace")
+}
+
+// Run implements cli.Command.
+func (cmd *RepairUnitUpdate) Run(args []string) int {
+	// parse command line arguments
+	if err := cmd.Parse(args); err != nil {
+		cmd.UI.Error(errorStr(err))
+		return 1
+	}
+
+	// validate command line arguments
+	if err := cmd.validate(); err != nil {
+		cmd.UI.Error(errorStr(err))
+		return 1
+	}
+
+	client := cmd.client()
+
+	u, err := client.GetRepairUnit(cmd.context, cmd.unit)
+	if err != nil {
+		cmd.UI.Error(errorStr(err))
+		return 1
+	}
+
+	if cmd.keyspace.Changed {
+		u.Keyspace = cmd.keyspace.Value
+	}
+	if cmd.tables.Changed {
+		u.Tables = strings.Split(cmd.tables.Value, ",")
+	}
+
+	err = client.UpdateRepairUnit(cmd.context, cmd.unit, u)
+	if err != nil {
+		cmd.UI.Error(errorStr(err))
+		return 1
+	}
+
+	return 0
+}
+
+func (cmd *RepairUnitUpdate) validate() error {
+	if err := cmd.BaseClientCommand.validate(); err != nil {
+		return err
+	}
+	if cmd.unit == "" {
+		return errors.New("missing unit")
+	}
+
+	ok := cmd.keyspace.Changed || cmd.tables.Changed
+	if !ok {
+		return errors.New("missing values to update")
+	}
+
+	return nil
+}
+
+// RepairUnitList shows repair units.
 type RepairUnitList struct {
 	BaseClientCommand
 }
 
 // Synopsis implements cli.Command.
 func (cmd *RepairUnitList) Synopsis() string {
-	return "Shows repair units within a cluster"
+	return "Shows repair units"
 }
 
 // Run implements cli.Command.
