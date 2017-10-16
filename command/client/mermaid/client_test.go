@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -40,7 +41,7 @@ func TestExtractUUIDFromLocation(t *testing.T) {
 
 func TestClientError(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "message", 500)
+		http.Error(w, "{\"message\": \"bla\"}", 500)
 	}))
 	defer s.Close()
 
@@ -49,7 +50,8 @@ func TestClientError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if err.Error() != "message\n" {
-		t.Fatal(err)
+
+	if diff := cmp.Diff(err.Error(), "API error (status 500): \n{\n  \"message\": \"bla\"\n}\n "); diff != "" {
+		t.Fatal(diff)
 	}
 }
