@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
@@ -35,20 +34,17 @@ func (o *PutClusterClusterIDRepairConfigReader) ReadResponse(response runtime.Cl
 
 	default:
 		body := response.Body()
-		if body != nil {
-			defer body.Close()
+		defer body.Close()
 
-			b, err := ioutil.ReadAll(body)
-			if err != nil {
-				return nil, err
-			}
-
-			buf := new(bytes.Buffer)
-			json.Indent(buf, b, "", "  ")
-
-			return nil, errors.New(int32(response.Code()), buf.String())
+		b, err := ioutil.ReadAll(body)
+		if err != nil {
+			return nil, err
 		}
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+
+		buf := new(bytes.Buffer)
+		json.Indent(buf, b, "", "  ")
+
+		return nil, runtime.NewAPIError("API error", "\n"+buf.String(), response.Code())
 	}
 }
 
