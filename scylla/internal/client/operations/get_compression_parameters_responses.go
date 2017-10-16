@@ -47,7 +47,7 @@ func NewGetCompressionParametersOK() *GetCompressionParametersOK {
 GetCompressionParametersOK get compression parameters o k
 */
 type GetCompressionParametersOK struct {
-	Payload []*models.Mapper
+	Payload models.GetCompressionParametersOKBody
 }
 
 func (o *GetCompressionParametersOK) Error() string {

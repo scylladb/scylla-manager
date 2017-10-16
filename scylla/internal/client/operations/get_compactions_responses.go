@@ -47,7 +47,7 @@ func NewGetCompactionsOK() *GetCompactionsOK {
 GetCompactionsOK get compactions o k
 */
 type GetCompactionsOK struct {
-	Payload []*models.Summary
+	Payload models.GetCompactionsOKBody
 }
 
 func (o *GetCompactionsOK) Error() string {

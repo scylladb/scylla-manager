@@ -47,7 +47,7 @@ func NewDescribeRingOK() *DescribeRingOK {
 DescribeRingOK describe ring o k
 */
 type DescribeRingOK struct {
-	Payload []*models.TokenRange
+	Payload models.DescribeRingOKBody
 }
 
 func (o *DescribeRingOK) Error() string {

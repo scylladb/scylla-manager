@@ -47,7 +47,7 @@ func NewGetTokenEndpointOK() *GetTokenEndpointOK {
 GetTokenEndpointOK get token endpoint o k
 */
 type GetTokenEndpointOK struct {
-	Payload []*models.Mapper
+	Payload models.GetTokenEndpointOKBody
 }
 
 func (o *GetTokenEndpointOK) Error() string {

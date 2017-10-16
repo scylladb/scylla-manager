@@ -3,15 +3,28 @@
 package client
 
 import (
-	"net/url"
-	"path"
+	"encoding/json"
+	"fmt"
+
+	"github.com/go-openapi/runtime"
 )
 
-func extractIDFromLocation(location string) (string, error) {
-	l, err := url.Parse(location)
-	if err != nil {
-		return "", err
+// errorStr converts an error to a string representation.
+func errorStr(err error) string {
+	switch e := err.(type) {
+	case *runtime.APIError:
+		msg, ok := e.Response.(json.RawMessage)
+		if !ok {
+			return fmt.Sprintf("%s (status %d)", e.OperationName, e.Code)
+		}
+		s := string(msg)
+
+		// try indent
+		if b, err := json.MarshalIndent(msg, "", "  "); err == nil {
+			s = string(b)
+		}
+		return fmt.Sprintf("%s (status %d)\n%s", e.OperationName, e.Code, s)
 	}
-	_, id := path.Split(l.Path)
-	return id, nil
+
+	return fmt.Sprintf("Error: %s", err)
 }

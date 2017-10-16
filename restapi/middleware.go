@@ -40,7 +40,7 @@ func requireClusterID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clusterID, err := reqClusterID(r)
 		if err != nil || clusterID == uuid.Nil {
-			render.Respond(w, r, httpErrBadRequest(err))
+			render.Respond(w, r, httpErrBadRequest(r, err))
 			return
 		}
 		r = r.WithContext(newClusterIDCtx(r.Context(), clusterID))

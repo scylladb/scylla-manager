@@ -47,7 +47,7 @@ func NewGetTimeoutMessagesOK() *GetTimeoutMessagesOK {
 GetTimeoutMessagesOK get timeout messages o k
 */
 type GetTimeoutMessagesOK struct {
-	Payload []*models.MessageCounter
+	Payload models.GetTimeoutMessagesOKBody
 }
 
 func (o *GetTimeoutMessagesOK) Error() string {

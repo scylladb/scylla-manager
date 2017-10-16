@@ -29,7 +29,7 @@ func Commands(ctx context.Context) map[string]cli.CommandFactory {
 			UI: ui,
 		},
 		context: ctx,
-		apiHost: apiHost,
+		host:    apiHost,
 		cluster: cluster,
 	}
 

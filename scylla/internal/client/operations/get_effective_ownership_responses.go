@@ -47,7 +47,7 @@ func NewGetEffectiveOwnershipOK() *GetEffectiveOwnershipOK {
 GetEffectiveOwnershipOK get effective ownership o k
 */
 type GetEffectiveOwnershipOK struct {
-	Payload []*models.Mapper
+	Payload models.GetEffectiveOwnershipOKBody
 }
 
 func (o *GetEffectiveOwnershipOK) Error() string {

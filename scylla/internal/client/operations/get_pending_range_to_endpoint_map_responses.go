@@ -47,7 +47,7 @@ func NewGetPendingRangeToEndpointMapOK() *GetPendingRangeToEndpointMapOK {
 GetPendingRangeToEndpointMapOK get pending range to endpoint map o k
 */
 type GetPendingRangeToEndpointMapOK struct {
-	Payload []*models.MaplistMapper
+	Payload models.GetPendingRangeToEndpointMapOKBody
 }
 
 func (o *GetPendingRangeToEndpointMapOK) Error() string {

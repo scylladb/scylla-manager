@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/log"
 )
 
 // httpError is a wrapper holding an error, HTTP status code and a user-facing
@@ -14,7 +15,8 @@ import (
 type httpError struct {
 	Err        error  `json:"-"`
 	StatusCode int    `json:"-"`
-	ErrorText  string `json:"error"` // application-level error message
+	Message    string `json:"message"`
+	TraceID    string `json:"trace_id"`
 }
 
 func (e *httpError) Error() string {
@@ -23,41 +25,45 @@ func (e *httpError) Error() string {
 
 // newHTTPError wraps err with a generic http error with status code status,
 // and a user-facing description errText.
-func newHTTPError(err error, status int, errText string) *httpError {
+func newHTTPError(r *http.Request, err error, status int, msg string) *httpError {
 	return &httpError{
 		Err:        err,
 		StatusCode: status,
-		ErrorText:  errText,
+		Message:    msg,
+		TraceID:    log.TraceID(r.Context()),
 	}
 }
 
 // httpErrNotFound wraps err with a generic http error with status code
 // NotFound, and a user-facing description.
-func httpErrNotFound(err error) *httpError {
+func httpErrNotFound(r *http.Request, err error) *httpError {
 	return &httpError{
 		Err:        err,
 		StatusCode: http.StatusNotFound,
-		ErrorText:  "specified resource not found",
+		Message:    "specified resource not found",
+		TraceID:    log.TraceID(r.Context()),
 	}
 }
 
 // httpErrBadRequest wraps err with a generic http error with status code
 // BadRequest, and a user-facing description.
-func httpErrBadRequest(err error) *httpError {
+func httpErrBadRequest(r *http.Request, err error) *httpError {
 	return &httpError{
 		Err:        err,
 		StatusCode: http.StatusBadRequest,
-		ErrorText:  "malformed request",
+		Message:    "malformed request",
+		TraceID:    log.TraceID(r.Context()),
 	}
 }
 
 // httpErrInternal wraps err with a generic http error with status code
 // StatusInternalServerError.
-func httpErrInternal(err error, msg string) *httpError {
+func httpErrInternal(r *http.Request, err error, msg string) *httpError {
 	return &httpError{
 		Err:        err,
 		StatusCode: http.StatusInternalServerError,
-		ErrorText:  msg,
+		Message:    msg,
+		TraceID:    log.TraceID(r.Context()),
 	}
 }
 
@@ -65,8 +71,8 @@ func httpErrInternal(err error, msg string) *httpError {
 // everything else to httpErrInternal.
 func notFoundOrInternal(w http.ResponseWriter, r *http.Request, err error, msg string) {
 	if err == mermaid.ErrNotFound {
-		render.Respond(w, r, httpErrNotFound(err))
+		render.Respond(w, r, httpErrNotFound(r, err))
 	} else {
-		render.Respond(w, r, httpErrInternal(err, msg))
+		render.Respond(w, r, httpErrInternal(r, err, msg))
 	}
 }

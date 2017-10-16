@@ -82,7 +82,7 @@ type repairUnitRequest struct {
 func parseUnitRequest(r *http.Request) (repairUnitRequest, error) {
 	var u repairUnitRequest
 	if err := render.DecodeJSON(r.Body, &u); err != nil {
-		return repairUnitRequest{}, httpErrBadRequest(err)
+		return repairUnitRequest{}, httpErrBadRequest(r, err)
 	}
 	u.ClusterID = clusterIDFromCtx(r.Context())
 
@@ -92,7 +92,7 @@ func parseUnitRequest(r *http.Request) (repairUnitRequest, error) {
 func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
 	ids, err := h.svc.ListUnits(r.Context(), clusterIDFromCtx(r.Context()))
 	if err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to list units"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to list units"))
 		return
 	}
 
@@ -111,12 +111,12 @@ func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if u.ID, err = uuid.NewRandom(); err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to generate a unit ID "))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to generate a unit ID "))
 		return
 	}
 
 	if err := h.svc.PutUnit(r.Context(), u.Unit); err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to create unit"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to create unit"))
 		return
 	}
 
@@ -128,7 +128,7 @@ func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) loadUnit(w http.ResponseWriter, r *http.Request) {
 	unitID, err := reqUnitID(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(err))
+		render.Respond(w, r, httpErrBadRequest(r, err))
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *repairHandler) loadUnit(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) updateUnit(w http.ResponseWriter, r *http.Request) {
 	unitID, err := reqUnitID(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(err))
+		render.Respond(w, r, httpErrBadRequest(r, err))
 		return
 	}
 
@@ -156,7 +156,7 @@ func (h *repairHandler) updateUnit(w http.ResponseWriter, r *http.Request) {
 
 	err = h.svc.PutUnit(r.Context(), u.Unit)
 	if err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to update unit"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to update unit"))
 		return
 	}
 	render.Respond(w, r, u.Unit)
@@ -165,12 +165,12 @@ func (h *repairHandler) updateUnit(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 	unitID, err := reqUnitID(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(err))
+		render.Respond(w, r, httpErrBadRequest(r, err))
 		return
 	}
 
 	if err := h.svc.DeleteUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID); err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to delete unit"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to delete unit"))
 		return
 	}
 }
@@ -178,7 +178,7 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 	unitID, err := reqUnitID(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(err))
+		render.Respond(w, r, httpErrBadRequest(r, err))
 		return
 	}
 
@@ -191,7 +191,7 @@ func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 	taskID := uuid.NewTime()
 
 	if err := h.svc.Repair(r.Context(), u, taskID); err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to start repair"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to start repair"))
 		return
 	}
 
@@ -206,7 +206,7 @@ func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
 	unitID, err := reqUnitID(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(err))
+		render.Respond(w, r, httpErrBadRequest(r, err))
 		return
 	}
 
@@ -222,7 +222,7 @@ func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.StopRun(r.Context(), u, task.ID); err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to stop repair"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to stop repair"))
 		return
 	}
 
@@ -243,7 +243,7 @@ func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
 	var cr repairConfigRequest
 	if err := render.DecodeJSON(r.Body, &cr.Config); err != nil {
 		if err != io.EOF {
-			return nil, httpErrBadRequest(err)
+			return nil, httpErrBadRequest(r, err)
 		}
 	}
 
@@ -251,7 +251,7 @@ func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
 	if typ := routeCtx.URLParam("config_type"); typ != "" {
 		err := cr.Type.UnmarshalText([]byte(typ))
 		if err != nil {
-			return nil, httpErrBadRequest(errors.Wrap(err, "bad config type"))
+			return nil, httpErrBadRequest(r, errors.Wrap(err, "bad config type"))
 		}
 	} else {
 		cr.Type = repair.ClusterConfig
@@ -259,7 +259,7 @@ func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
 	switch cr.Type {
 	case repair.UnitConfig, repair.KeyspaceConfig, repair.ClusterConfig:
 	default:
-		return nil, httpErrBadRequest(fmt.Errorf("config type %q not allowed", cr.Type))
+		return nil, httpErrBadRequest(r, fmt.Errorf("config type %q not allowed", cr.Type))
 	}
 
 	if id := routeCtx.URLParam("external_id"); id != "" {
@@ -292,7 +292,7 @@ func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.Config); err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to update config"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to update config"))
 		return
 	}
 }
@@ -305,7 +305,7 @@ func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
-		render.Respond(w, r, httpErrInternal(err, "failed to delete config"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to delete config"))
 	}
 }
 
@@ -333,7 +333,7 @@ type repairProgressResponse struct {
 func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 	var taskID uuid.UUID
 	if err := taskID.UnmarshalText([]byte(chi.URLParam(r, "task_id"))); err != nil {
-		render.Respond(w, r, httpErrBadRequest(err))
+		render.Respond(w, r, httpErrBadRequest(r, err))
 		return
 	}
 
@@ -354,7 +354,7 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.progressResponse(r.Context(), u, taskRun)
+	resp, err := h.progressResponse(r, u, taskRun)
 	if err != nil {
 		render.Respond(w, r, err)
 		return
@@ -362,14 +362,14 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, resp)
 }
 
-func (h *repairHandler) progressResponse(ctx context.Context, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
-	runs, err := h.svc.GetProgress(ctx, u, t.ID)
+func (h *repairHandler) progressResponse(r *http.Request, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
+	runs, err := h.svc.GetProgress(r.Context(), u, t.ID)
 	if err != nil {
-		return nil, httpErrInternal(err, "failed to load task progress")
+		return nil, httpErrInternal(r, err, "failed to load task progress")
 	}
 
 	if len(runs) == 0 {
-		return nil, httpErrNotFound(err)
+		return nil, httpErrNotFound(r, err)
 	}
 
 	resp := &repairProgressResponse{

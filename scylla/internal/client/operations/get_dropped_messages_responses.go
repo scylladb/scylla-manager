@@ -47,7 +47,7 @@ func NewGetDroppedMessagesOK() *GetDroppedMessagesOK {
 GetDroppedMessagesOK get dropped messages o k
 */
 type GetDroppedMessagesOK struct {
-	Payload []*models.MessageCounter
+	Payload models.GetDroppedMessagesOKBody
 }
 
 func (o *GetDroppedMessagesOK) Error() string {

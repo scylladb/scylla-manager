@@ -47,7 +47,7 @@ func NewGetExceptionMessagesOK() *GetExceptionMessagesOK {
 GetExceptionMessagesOK get exception messages o k
 */
 type GetExceptionMessagesOK struct {
-	Payload []*models.MessageCounter
+	Payload models.GetExceptionMessagesOKBody
 }
 
 func (o *GetExceptionMessagesOK) Error() string {

@@ -47,7 +47,7 @@ func NewGetCompactionHistoryOK() *GetCompactionHistoryOK {
 GetCompactionHistoryOK get compaction history o k
 */
 type GetCompactionHistoryOK struct {
-	Payload []*models.History
+	Payload models.GetCompactionHistoryOKBody
 }
 
 func (o *GetCompactionHistoryOK) Error() string {
