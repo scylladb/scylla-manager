@@ -84,10 +84,8 @@ package {{ .Package }}
 
 
 import (
-  "bytes"
   "encoding/json"
   "io"
-  "io/ioutil"
   "net/http"
 
   "github.com/go-openapi/runtime"
@@ -134,15 +132,12 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response ru
       body := response.Body()
       defer body.Close()
 
-      b, err := ioutil.ReadAll(body)
-      if err != nil {
+      var m json.RawMessage
+      if err := json.NewDecoder(body).Decode(&m); err != nil {
         return nil, err
       }
 
-      buf := new(bytes.Buffer)
-      json.Indent(buf, b, "", "  ")
-
-      return nil, runtime.NewAPIError("API error", "\n" + buf.String(), response.Code()){{ end }}{{ end }}
+      return nil, runtime.NewAPIError("API error", m, response.Code()){{ end }}{{ end }}
   {{ if .Responses}}}{{ end }}
 }
 

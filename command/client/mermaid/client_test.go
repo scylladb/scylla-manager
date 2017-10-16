@@ -4,10 +4,12 @@ package mermaid
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-openapi/runtime"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -51,7 +53,12 @@ func TestClientError(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	if diff := cmp.Diff(err.Error(), "API error (status 500): \n{\n  \"message\": \"bla\"\n}\n "); diff != "" {
+	apiErr, ok := err.(*runtime.APIError)
+	if !ok {
+		t.Fatal("expected APIError")
+	}
+
+	if diff := cmp.Diff(string(apiErr.Response.(json.RawMessage)), "{\"message\": \"bla\"}"); diff != "" {
 		t.Fatal(diff)
 	}
 }
