@@ -22,6 +22,8 @@ import (
 // DefaultPort is Scylla API port.
 var DefaultPort = "10000"
 
+//go:generate ./gen_internal.sh
+
 // Client provides means to interact with Scylla nodes.
 type Client struct {
 	operations *operations.Client

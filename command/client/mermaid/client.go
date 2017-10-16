@@ -18,6 +18,8 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
+//go:generate ./gen_internal.sh
+
 // Client provides means to interact with Mermaid.
 type Client struct {
 	operations *operations.Client
