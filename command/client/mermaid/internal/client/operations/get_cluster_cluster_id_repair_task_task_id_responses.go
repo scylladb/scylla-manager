@@ -6,11 +6,9 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/go-openapi/runtime"
 
@@ -39,15 +37,12 @@ func (o *GetClusterClusterIDRepairTaskTaskIDReader) ReadResponse(response runtim
 		body := response.Body()
 		defer body.Close()
 
-		b, err := ioutil.ReadAll(body)
-		if err != nil {
+		var m json.RawMessage
+		if err := json.NewDecoder(body).Decode(&m); err != nil {
 			return nil, err
 		}
 
-		buf := new(bytes.Buffer)
-		json.Indent(buf, b, "", "  ")
-
-		return nil, runtime.NewAPIError("API error", "\n"+buf.String(), response.Code())
+		return nil, runtime.NewAPIError("API error", m, response.Code())
 	}
 }
 
