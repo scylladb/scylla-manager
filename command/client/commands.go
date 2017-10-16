@@ -34,15 +34,6 @@ func Commands(ctx context.Context) map[string]cli.CommandFactory {
 	}
 
 	return map[string]cli.CommandFactory{
-		"repair unit list": func() (cli.Command, error) {
-			cmd := &RepairUnitList{
-				BaseClientCommand: base,
-			}
-			cmd.InitFlags()
-
-			return cmd, nil
-		},
-
 		"repair start": func() (cli.Command, error) {
 			cmd := &RepairStart{
 				BaseClientCommand: base,
@@ -54,6 +45,24 @@ func Commands(ctx context.Context) map[string]cli.CommandFactory {
 
 		"repair stop": func() (cli.Command, error) {
 			cmd := &RepairStop{
+				BaseClientCommand: base,
+			}
+			cmd.InitFlags()
+
+			return cmd, nil
+		},
+
+		"repair progress": func() (cli.Command, error) {
+			cmd := &RepairProgress{
+				BaseClientCommand: base,
+			}
+			cmd.InitFlags()
+
+			return cmd, nil
+		},
+
+		"repair unit list": func() (cli.Command, error) {
+			cmd := &RepairUnitList{
 				BaseClientCommand: base,
 			}
 			cmd.InitFlags()
