@@ -30,19 +30,19 @@ func (cmd *RepairStart) InitFlags() {
 func (cmd *RepairStart) Run(args []string) int {
 	// parse command line arguments
 	if err := cmd.Parse(args); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	// validate command line arguments
 	if err := cmd.validate(); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	u, err := cmd.client().StartRepair(cmd.context, cmd.unit)
 	if err != nil {
-		cmd.UI.Error(err.Error())
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
@@ -84,19 +84,19 @@ func (cmd *RepairStop) InitFlags() {
 func (cmd *RepairStop) Run(args []string) int {
 	// parse command line arguments
 	if err := cmd.Parse(args); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	// validate command line arguments
 	if err := cmd.validate(); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	u, err := cmd.client().StopRepair(cmd.context, cmd.unit)
 	if err != nil {
-		cmd.UI.Error(err.Error())
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
@@ -140,19 +140,19 @@ func (cmd *RepairProgress) InitFlags() {
 func (cmd *RepairProgress) Run(args []string) int {
 	// parse command line arguments
 	if err := cmd.Parse(args); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	// validate command line arguments
 	if err := cmd.validate(); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	status, progress, rows, err := cmd.client().RepairProgress(cmd.context, cmd.unit, cmd.task)
 	if err != nil {
-		cmd.UI.Error(err.Error())
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
@@ -199,19 +199,19 @@ func (cmd *RepairUnitList) Synopsis() string {
 func (cmd *RepairUnitList) Run(args []string) int {
 	// parse command line arguments
 	if err := cmd.Parse(args); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	// validate command line arguments
 	if err := cmd.validate(); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
 	units, err := cmd.client().ListRepairUnits(cmd.context)
 	if err != nil {
-		cmd.UI.Error(err.Error())
+		cmd.UI.Error(errorStr(err))
 		return 1
 	}
 
