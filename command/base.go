@@ -15,7 +15,10 @@ import (
 )
 
 // maxLineLength is the maximum width of any line.
-const maxLineLength int = 72
+const maxLineLength int = 112
+
+// maxFlagLength is the maximum width of flag definition i.e. `  -flag <sting>`.
+const maxFlagLength int = 25
 
 // BaseCommand handles common command behaviours.
 type BaseCommand struct {
@@ -79,7 +82,7 @@ func (cmd *BaseCommand) helpFlagsFor(f *flag.FlagSet) string {
 			return
 		}
 		if firstCommand {
-			printTitle(&out, "Command Options")
+			printTitle(&out, "Flags:")
 			firstCommand = false
 		}
 		printFlag(&out, f)
@@ -95,19 +98,30 @@ func printTitle(w io.Writer, s string) {
 
 // printFlag prints a single flag to the given writer.
 func printFlag(w io.Writer, f *flag.Flag) {
-	example, _ := flag.UnquoteUsage(f)
-	if example != "" {
-		fmt.Fprintf(w, "  -%s=<%s>", f.Name, example)
-	} else {
-		fmt.Fprintf(w, "  -%s", f.Name)
-	}
-	if f.DefValue != "" {
-		fmt.Fprintf(w, " (default %v)", f.DefValue)
-	}
-	fmt.Fprint(w, "\n")
+	buf := &bytes.Buffer{}
 
-	indented := wrapAtLength(f.Usage, 5)
-	fmt.Fprintf(w, "%s\n\n", indented)
+	example, usage := flag.UnquoteUsage(f)
+	if example != "value" {
+		fmt.Fprintf(buf, "  -%s <%s> ", f.Name, strings.ToLower(example))
+	} else {
+		fmt.Fprintf(buf, "  -%s ", f.Name)
+	}
+
+	offset := maxFlagLength
+	if buf.Len() > offset {
+		offset = buf.Len()
+	} else {
+		fmt.Fprintf(buf, strings.Repeat(" ", offset-buf.Len()))
+	}
+
+	def := ""
+	if f.DefValue != "" {
+		def = fmt.Sprintf(" (default %v)", f.DefValue)
+	}
+
+	fmt.Fprintf(buf, "%s\n", wrapAtLength(usage+def, offset))
+
+	buf.WriteTo(w)
 }
 
 // flagContains returns true if the given flag is contained in the given flag
@@ -135,7 +149,9 @@ func wrapAtLength(s string, pad int) string {
 	wrapped := text.Wrap(s, maxLineLength-pad)
 	lines := strings.Split(wrapped, "\n")
 	for i, line := range lines {
-		lines[i] = strings.Repeat(" ", pad) + line
+		if i > 0 {
+			lines[i] = strings.Repeat(" ", pad) + line
+		}
 	}
 	return strings.Join(lines, "\n")
 }
