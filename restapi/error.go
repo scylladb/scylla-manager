@@ -14,7 +14,7 @@ import (
 // message.
 type httpError struct {
 	Err        error  `json:"-"`
-	StatusCode int    `json:"status"`
+	StatusCode int    `json:"-"`
 	Message    string `json:"message"`
 	TraceID    string `json:"trace_id"`
 }
