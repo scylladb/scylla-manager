@@ -8,8 +8,11 @@ VERSION_NAME := $(VERSION)-$(RELEASE)
 
 .PHONY: clean
 clean:
-	@rm -Rf release
 	@rm -Rf .rpmbuild.*
+
+.PHONY: mrproper
+mrproper: clean
+	@rm -Rf release
 
 release/scylla-mgmt-$(VERSION_NAME).tar:
 	@echo "==> Archiving..."
@@ -39,5 +42,6 @@ release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
 .PHONY: package
 package: release/rpm
 
+.PHONY: inspect
 inspect:
 	@rpm -qpli release/rpm/scylla-mgmt{,-client}-$(VERSION_NAME).x86_64.rpm

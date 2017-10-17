@@ -47,11 +47,13 @@ ln -s $PWD src/%{mermaid_pkg}
 
 %install
 mkdir -p %{buildroot}%{_bindir}/
+mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d/
 mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/
 mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 mkdir -p %{buildroot}%{_unitdir}/
 
 install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
+install -m644 dist/bash_completion/*.bash %{buildroot}%{_sysconfdir}/bash_completion.d/
 install -m644 dist/etc/*.yaml %{buildroot}%{_sysconfdir}/scylla-mgmt/
 install -m644 dist/etc/*.tpl %{buildroot}%{_sysconfdir}/scylla-mgmt/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
@@ -72,16 +74,15 @@ getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla 2
 
 %package client
 Summary: Scylla database management CLI
+Requires: bash-completion
+
 %description client
 Scylla is a highly scalable, eventually consistent, distributed, partitioned
 row DB.
 
 sctool is the CLI for interacting with the Scylla database management.
 
-%post client
-sctool -autocomplete-uninstall
-sctool -autocomplete-install
-
 %files client
 %defattr(-,root,root)
 %{_bindir}/sctool
+%{_sysconfdir}/bash_completion.d/sctool.bash
