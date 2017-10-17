@@ -32,7 +32,7 @@ func errorStr(err error) string {
 
 func parseList(s string) []string {
 	var l []string
-	if s != "" && strings.IndexByte(s, ',') > -1 {
+	if s != "" {
 		l = strings.Split(s, ",")
 	}
 	return l
