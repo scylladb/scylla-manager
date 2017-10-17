@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/command/client/mermaid/internal/client/operations"
+	"github.com/scylladb/mermaid/command/client/mermaid/internal/models"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -36,15 +37,15 @@ func NewClient(host string, cluster string) *Client {
 	}
 }
 
-// StartRepair starts a repair of a unit.
-func (c *Client) StartRepair(ctx context.Context, unit string) (uuid.UUID, error) {
+// StartRepair starts unit repair.
+func (c *Client) StartRepair(ctx context.Context, unit string) (string, error) {
 	clusterID, err := c.clusterUUID()
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "invalid cluster")
+		return "", errors.Wrap(err, "invalid cluster")
 	}
 
 	if err := isUUID(unit); err != nil {
-		return uuid.Nil, errors.Wrap(err, "invalid unit")
+		return "", errors.Wrap(err, "invalid unit")
 	}
 
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDRepair(&operations.PutClusterClusterIDRepairUnitUnitIDRepairParams{
@@ -53,26 +54,26 @@ func (c *Client) StartRepair(ctx context.Context, unit string) (uuid.UUID, error
 		UnitID:    unit,
 	})
 	if err != nil {
-		return uuid.Nil, err
+		return "", err
 	}
 
-	u, err := extractUUIDFromLocation(resp.Location)
+	taskID, err := extractUUIDFromLocation(resp.Location)
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "cannot parse response")
+		return "", errors.Wrap(err, "cannot parse response")
 	}
 
-	return u, nil
+	return taskID.String(), nil
 }
 
-// StopRepair stops a repair of a unit.
-func (c *Client) StopRepair(ctx context.Context, unit string) (uuid.UUID, error) {
+// StopRepair stops unit repair.
+func (c *Client) StopRepair(ctx context.Context, unit string) (string, error) {
 	clusterID, err := c.clusterUUID()
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "invalid cluster")
+		return "", errors.Wrap(err, "invalid cluster")
 	}
 
 	if err := isUUID(unit); err != nil {
-		return uuid.Nil, errors.Wrap(err, "invalid unit")
+		return "", errors.Wrap(err, "invalid unit")
 	}
 
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStopRepair(&operations.PutClusterClusterIDRepairUnitUnitIDStopRepairParams{
@@ -81,18 +82,18 @@ func (c *Client) StopRepair(ctx context.Context, unit string) (uuid.UUID, error)
 		UnitID:    unit,
 	})
 	if err != nil {
-		return uuid.Nil, err
+		return "", err
 	}
 
-	u, err := extractUUIDFromLocation(resp.Location)
+	taskID, err := extractUUIDFromLocation(resp.Location)
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "cannot parse response")
+		return "", errors.Wrap(err, "cannot parse response")
 	}
 
-	return u, nil
+	return taskID.String(), nil
 }
 
-// RepairProgress returns progress of a repair.
+// RepairProgress returns repair progress.
 func (c *Client) RepairProgress(ctx context.Context, unit string, task string) (status string, progress int, rows []RepairProgressRow, err error) {
 	clusterID, err := c.clusterUUID()
 	if err != nil {
@@ -170,7 +171,80 @@ func (c *Client) RepairProgress(ctx context.Context, unit string, task string) (
 	return
 }
 
-// ListRepairUnits lists repair units within a cluster
+// CreateRepairUnit creates a new repair unit.
+func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, error) {
+	clusterID, err := c.clusterUUID()
+	if err != nil {
+		return "", errors.Wrap(err, "invalid cluster")
+	}
+
+	resp, err := c.operations.PostClusterClusterIDRepairUnits(&operations.PostClusterClusterIDRepairUnitsParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		UnitFields: &models.RepairUnitUpdate{
+			Keyspace: u.Keyspace,
+			Tables:   u.Tables,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	unitID, err := extractUUIDFromLocation(resp.Location)
+	if err != nil {
+		return "", errors.Wrap(err, "cannot parse response")
+	}
+
+	return unitID.String(), nil
+}
+
+// UpdateRepairUnit updates existing repair unit.
+func (c *Client) UpdateRepairUnit(ctx context.Context, unit string, u *RepairUnit) error {
+	clusterID, err := c.clusterUUID()
+	if err != nil {
+		return errors.Wrap(err, "invalid cluster")
+	}
+
+	if err = isUUID(unit); err != nil {
+		return errors.Wrap(err, "invalid unit")
+	}
+
+	_, err = c.operations.PutClusterClusterIDRepairUnitUnitID(&operations.PutClusterClusterIDRepairUnitUnitIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		UnitID:    unit,
+		UnitFields: &models.RepairUnitUpdate{
+			Keyspace: u.Keyspace,
+			Tables:   u.Tables,
+		},
+	})
+	return err
+}
+
+// GetRepairUnit returns a repair unit for a given ID.
+func (c *Client) GetRepairUnit(ctx context.Context, unit string) (*RepairUnit, error) {
+	clusterID, err := c.clusterUUID()
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid cluster")
+	}
+
+	if err = isUUID(unit); err != nil {
+		return nil, errors.Wrap(err, "invalid unit")
+	}
+
+	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitID(&operations.GetClusterClusterIDRepairUnitUnitIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		UnitID:    unit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
+// ListRepairUnits returns repair units within a cluster.
 func (c *Client) ListRepairUnits(ctx context.Context) ([]*RepairUnit, error) {
 	clusterID, err := c.clusterUUID()
 	if err != nil {
