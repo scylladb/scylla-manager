@@ -39,6 +39,10 @@ func realMain() int {
 	cli.Args = os.Args[1:]
 	cli.Commands = client.Commands(ctx)
 
+	// disable auto complete installation
+	cli.AutocompleteInstall = "\n"
+	cli.AutocompleteUninstall = "\n"
+
 	exitCode, err := cli.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
