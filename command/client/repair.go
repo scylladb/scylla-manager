@@ -4,7 +4,6 @@ package client
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/command"
@@ -224,7 +223,7 @@ func (cmd *RepairUnitCreate) Run(args []string) int {
 
 	id, err := cmd.client().CreateRepairUnit(cmd.context, &mermaid.RepairUnit{
 		Keyspace: cmd.keyspace,
-		Tables:   strings.Split(cmd.tables, ","),
+		Tables:   parseList(cmd.tables),
 	})
 	if err != nil {
 		cmd.UI.Error(errorStr(err))
@@ -297,7 +296,7 @@ func (cmd *RepairUnitUpdate) Run(args []string) int {
 		u.Keyspace = cmd.keyspace.Value
 	}
 	if cmd.tables.Changed {
-		u.Tables = strings.Split(cmd.tables.Value, ",")
+		u.Tables = parseList(cmd.tables.Value)
 	}
 
 	err = client.UpdateRepairUnit(cmd.context, cmd.unit, u)

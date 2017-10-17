@@ -5,6 +5,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 )
@@ -27,4 +28,12 @@ func errorStr(err error) string {
 	}
 
 	return fmt.Sprintf("Error: %s", err)
+}
+
+func parseList(s string) []string {
+	var l []string
+	if s != "" && strings.IndexByte(s, ',') > -1 {
+		l = strings.Split(s, ",")
+	}
+	return l
 }
