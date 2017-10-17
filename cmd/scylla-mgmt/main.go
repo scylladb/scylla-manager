@@ -27,6 +27,9 @@ func realMain() int {
 	cli.Args = os.Args[1:]
 	cli.Commands = server.Commands()
 
+	// disable auto completion
+	cli.Autocomplete = false
+
 	exitCode, err := cli.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
