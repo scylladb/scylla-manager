@@ -234,6 +234,9 @@ func (w *shardWorker) exec(ctx context.Context) {
 			w.progress.SegmentSuccess += end - start
 		}
 		w.progress.LastCommandID = 0
+		if end < len(w.segments) {
+			w.progress.LastStartToken = w.segments[end].StartToken
+		}
 		w.updateProgress(ctx)
 
 		next()
