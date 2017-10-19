@@ -204,7 +204,7 @@ func (cmd *Command) Run(args []string) int {
 
 	// in debug mode launch gops agent
 	if cmd.debug {
-		if err := agent.Listen(nil); err != nil {
+		if err := agent.Listen(&agent.Options{NoShutdownCleanup: true}); err != nil {
 			cmd.UI.Error(fmt.Sprintf("Debug agent startup error: %s", err))
 		}
 	}
