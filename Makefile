@@ -1,5 +1,9 @@
 all: clean check test
 
+ifndef GOBIN
+export GOBIN := $(GOPATH)/bin
+endif
+
 GOFILES := go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
 # clean removes the build files.
@@ -31,24 +35,24 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .ch
 
 .PHONY: .check-lint
 .check-lint:
-	@golint `go list ./...` \
+	@$(GOBIN)/golint `go list ./...` \
 	| tee /dev/stderr | ifne false
 
 .PHONY: .check-ineffassign
 .check-ineffassign:
-	@ineffassign `$(GOFILES)`
+	@$(GOBIN)/ineffassign `$(GOFILES)`
 
 .PHONY: .check-mega
 .check-mega:
-	@megacheck ./...
+	@$(GOBIN)/megacheck ./...
 
 .PHONY: .check-misspell
 .check-misspell:
-	@misspell ./...
+	@$(GOBIN)/misspell ./...
 
 .PHONY: .check-vendor
 .check-vendor:
-	@dep ensure -no-vendor -dry-run
+	@$(GOBIN)/dep ensure -no-vendor -dry-run
 
 # fmt formats the source code.
 .PHONY: fmt
@@ -85,6 +89,7 @@ gen:
 
 # get-tools installs all the required tools for other targets.
 .PHONY: get-tools
+get-tools: GOPATH := $(shell mktemp -d)
 get-tools:
 	@echo "==> Installing tools..."
 
@@ -97,3 +102,5 @@ get-tools:
 	@go get -u github.com/gordonklaus/ineffassign
 	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
 	@go get -u honnef.co/go/tools/cmd/megacheck
+
+	@rm -Rf $(GOPATH)
