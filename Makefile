@@ -9,7 +9,7 @@ clean:
 
 # check does static code analysis.
 .PHONY: check
-check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell
+check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell .check-vendor
 
 .PHONY: .check-copyright
 .check-copyright:
@@ -45,6 +45,10 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .ch
 .PHONY: .check-misspell
 .check-misspell:
 	@misspell ./...
+
+.PHONY: .check-vendor
+.check-vendor:
+	@dep ensure -no-vendor -dry-run
 
 # fmt formats the source code.
 .PHONY: fmt
