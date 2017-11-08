@@ -1,1 +1,1 @@
-CREATE KEYSPACE IF NOT EXISTS {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+CREATE KEYSPACE IF NOT EXISTS {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': {{.ReplicationFactor}}};

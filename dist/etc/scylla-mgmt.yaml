@@ -16,11 +16,14 @@ http: 127.0.0.1:9090
 database:
   hosts:
     - 127.0.0.1
-# credentials
-#  user: user
-#  password: password
-# consistency level one of ANY, ONE, TWO, THREE, QUORUM, ALL, LOCAL_QUORUM, EACH_QUORUM, LOCAL_ONE
-#  consistency: QUORUM
+# Database credentials.
+#  credentials
+#    user: user
+#    password: password
+
+# Keyspace for management data, for create statement see /etc/scylla-mgmt/create_keyspace.cql.tpl.
+#  keyspace: scylla_management
+#  replication_factor: 1
 
 # List of managed clusters.
 # clusters:

@@ -49,7 +49,7 @@ type dbConfig struct {
 	MigrateDir                    string        `yaml:"migrate_dir"`
 	MigrateTimeout                time.Duration `yaml:"migrate_timeout"`
 	MigrateMaxWaitSchemaAgreement time.Duration `yaml:"migrate_max_wait_schema_agreement"`
-	Consistency                   string        `yaml:"consistency"`
+	ReplicationFactor             int           `yaml:"replication_factor"`
 }
 
 type serverConfig struct {
@@ -78,8 +78,8 @@ func (c *serverConfig) validate() error {
 	if len(c.Database.Hosts) == 0 {
 		return errors.New("missing database.hosts")
 	}
-	if _, err := gocql.ParseConsistencyWrapper(c.Database.Consistency); err != nil {
-		return errors.New("invalid database.consistency")
+	if c.Database.ReplicationFactor <= 0 {
+		return errors.New("invalid database.replication_factor <= 0")
 	}
 
 	for _, cluster := range c.Clusters {
@@ -328,7 +328,7 @@ func (cmd *Command) defaultConfig() *serverConfig {
 			MigrateDir:                    "/etc/scylla-mgmt/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
-			Consistency:                   gocql.Quorum.String(),
+			ReplicationFactor:             1,
 		},
 	}
 }
@@ -396,8 +396,12 @@ func (cmd *Command) migrateSchema(config *serverConfig) error {
 func (cmd *Command) clusterConfig(config *serverConfig) *gocql.ClusterConfig {
 	c := gocql.NewCluster(config.Database.Hosts...)
 
-	// overwrite the default settings
-	c.Consistency = gocql.ParseConsistency(config.Database.Consistency)
+	// consistency
+	if config.Database.ReplicationFactor == 1 {
+		c.Consistency = gocql.One
+	} else {
+		c.Consistency = gocql.LocalQuorum
+	}
 	c.Keyspace = config.Database.Keyspace
 
 	// authentication

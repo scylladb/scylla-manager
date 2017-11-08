@@ -38,7 +38,7 @@ func TestServerReadConfig(t *testing.T) {
 			MigrateDir:                    "/etc/scylla-mgmt/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
-			Consistency:                   "ONE",
+			ReplicationFactor:             3,
 		},
 		Clusters: []*clusterConfig{
 			{
