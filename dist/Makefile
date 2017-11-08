@@ -11,6 +11,7 @@ clean:
 	@rm -Rf .rpmbuild.*
 	@rm -Rf release
 
+release: release/scylla-mgmt-$(VERSION_NAME).tar
 release/scylla-mgmt-$(VERSION_NAME).tar:
 	@echo "==> Archiving..."
 	@mkdir -p release
@@ -19,6 +20,7 @@ release/scylla-mgmt-$(VERSION_NAME).tar:
 	--prefix scylla-mgmt-$(VERSION_NAME)/ \
 	-o $(PWD)/release/scylla-mgmt-$(VERSION_NAME).tar HEAD
 
+release: release/rpm
 release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
 	@echo "==> Building RPM..."
 	$(eval RPMBUILD := $(PWD)/$(shell mktemp -d .rpmbuild.XXXX))
@@ -35,9 +37,6 @@ release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
 
 	@mkdir -p release/rpm
 	@ln $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
-
-.PHONY: package
-package: release/rpm
 
 .PHONY: inspect
 inspect:
