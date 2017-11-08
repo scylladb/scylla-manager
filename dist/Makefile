@@ -9,9 +9,6 @@ VERSION_NAME := $(VERSION)-$(RELEASE)
 .PHONY: clean
 clean:
 	@rm -Rf .rpmbuild.*
-
-.PHONY: mrproper
-mrproper: clean
 	@rm -Rf release
 
 release/scylla-mgmt-$(VERSION_NAME).tar:
