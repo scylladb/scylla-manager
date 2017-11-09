@@ -15,7 +15,7 @@ Source0:        %{name}-%{version}-%{release}.tar
 
 BuildRequires:  curl
 ExclusiveArch:  x86_64
-Requires: scylla-mgmt-server = %{mermaid_version}-%{mermaid_release} scylla-mgmt-client = %{mermaid_version}-%{mermaid_release}
+Requires: scylla-server scylla-mgmt-server = %{mermaid_version}-%{mermaid_release} scylla-mgmt-client = %{mermaid_version}-%{mermaid_release}
 
 %description
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
@@ -62,9 +62,15 @@ install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 %files
 %defattr(-,root,root)
 
+%post
+/usr/lib/scylla/scylla_dev_mode_setup --developer-mode 1
+
 
 %package server
 Summary: Scylla database management server
+
+%{?systemd_requires}
+BuildRequires: systemd
 
 %description server
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
@@ -82,6 +88,15 @@ the database management tasks.
 %pre server
 getent group  scylla || /usr/sbin/groupadd scylla 2> /dev/null || :
 getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla 2> /dev/null || :
+
+%post server
+%systemd_post %{name}.service
+
+%preun server
+%systemd_preun %{name}.service
+
+%postun server
+%systemd_postun_with_restart %{name}.service
 
 
 %package client
