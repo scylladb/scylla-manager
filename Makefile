@@ -79,7 +79,7 @@ integration-test: unit-test
 .PHONY: dev-server
 dev-server:
 	@echo "==> Running development server..."
-	@go run ./cmd/scylla-mgmt/*.go server -config-file docker/scylla-mgmt.yaml -debug
+	@go run ./cmd/scylla-mgmt/*.go server -config-file testing/scylla_cluster/scylla-mgmt.yaml -debug
 
 # gen regenetates source code and other resources.
 .PHONY: gen
