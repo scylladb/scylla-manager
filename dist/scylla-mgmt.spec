@@ -6,7 +6,7 @@
 Name:           scylla-mgmt
 Version:        %{mermaid_version}
 Release:        %{mermaid_release}
-Summary:        Scylla database management server
+Summary:        Scylla database management meta package
 Group:          Applications/Databases
 
 License:        Proprietary
@@ -15,12 +15,12 @@ Source0:        %{name}-%{version}-%{release}.tar
 
 BuildRequires:  curl
 ExclusiveArch:  x86_64
+Requires: scylla-server scylla-mgmt-server = %{mermaid_version}-%{mermaid_release} scylla-mgmt-client = %{mermaid_version}-%{mermaid_release}
 
 %description
-Scylla is a highly scalable, eventually consistent, distributed, partitioned
-row DB.
-
-%{name} is the Scylla database management daemon.
+Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+database. %{name} is a meta package that installs all scylla-mgmt* packages as
+well as scylla database server.
 
 %prep
 %setup -q -T -b 0 -n %{name}-%{version}-%{release}
@@ -59,28 +59,54 @@ install -m644 dist/etc/*.tpl %{buildroot}%{_sysconfdir}/scylla-mgmt/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 
-%pre
-getent group  scylla || /usr/sbin/groupadd scylla 2> /dev/null || :
-getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla 2> /dev/null || :
-
 %files
 %defattr(-,root,root)
 
+%post
+/usr/lib/scylla/scylla_dev_mode_setup --developer-mode 1
+
+
+%package server
+Summary: Scylla database management server
+
+%{?systemd_requires}
+BuildRequires: systemd
+
+%description server
+Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+database. %{name} is the the Scylla database management server. It automates
+the database management tasks.
+
+%files server
+%defattr(-,root,root)
 %config(noreplace) %{_sysconfdir}/scylla-mgmt/*.yaml
 %config(noreplace) %{_sysconfdir}/scylla-mgmt/*.tpl
 %{_sysconfdir}/scylla-mgmt/cql/*.cql
 %{_bindir}/scylla-mgmt
 %{_unitdir}/*.service
 
+%pre server
+getent group  scylla || /usr/sbin/groupadd scylla 2> /dev/null || :
+getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla 2> /dev/null || :
+
+%post server
+%systemd_post %{name}.service
+
+%preun server
+%systemd_preun %{name}.service
+
+%postun server
+%systemd_postun_with_restart %{name}.service
+
+
 %package client
 Summary: Scylla database management CLI
 Requires: bash-completion
 
 %description client
-Scylla is a highly scalable, eventually consistent, distributed, partitioned
-row DB.
-
-sctool is the CLI for interacting with the Scylla database management.
+Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+database. %{name} is the CLI for interacting with the Scylla database management
+server.
 
 %files client
 %defattr(-,root,root)

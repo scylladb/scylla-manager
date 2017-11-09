@@ -1,4 +1,4 @@
-all: clean package
+all: clean release
 
 VERSION := 0
 ifndef RELEASE
@@ -40,4 +40,4 @@ release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
 
 .PHONY: inspect
 inspect:
-	@rpm -qpli release/rpm/scylla-mgmt{,-client}-$(VERSION_NAME).x86_64.rpm
+	@rpm -qpli release/rpm/scylla-mgmt{,-server,-client}-$(VERSION_NAME).x86_64.rpm
