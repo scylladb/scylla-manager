@@ -6,7 +6,7 @@
 Name:           scylla-mgmt
 Version:        %{mermaid_version}
 Release:        %{mermaid_release}
-Summary:        Scylla database management server
+Summary:        Scylla database management meta package
 Group:          Applications/Databases
 
 License:        Proprietary
@@ -18,8 +18,9 @@ ExclusiveArch:  x86_64
 Requires: scylla-mgmt-server = %{mermaid_version}-%{mermaid_release} scylla-mgmt-client = %{mermaid_version}-%{mermaid_release}
 
 %description
-Scylla is a highly scalable, eventually consistent, distributed, partitioned
-row DB.
+Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+database. %{name} is a meta package that installs all scylla-mgmt* packages as
+well as scylla database server.
 
 %prep
 %setup -q -T -b 0 -n %{name}-%{version}-%{release}
@@ -66,10 +67,9 @@ install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 Summary: Scylla database management server
 
 %description server
-Scylla is a highly scalable, eventually consistent, distributed, partitioned
-row DB.
-
-%{name} is the the Scylla database management server.
+Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+database. %{name} is the the Scylla database management server. It automates
+the database management tasks.
 
 %files server
 %defattr(-,root,root)
@@ -89,10 +89,9 @@ Summary: Scylla database management CLI
 Requires: bash-completion
 
 %description client
-Scylla is a highly scalable, eventually consistent, distributed, partitioned
-row DB.
-
-%{name} is the CLI for interacting with the Scylla database management.
+Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+database. %{name} is the CLI for interacting with the Scylla database management
+server.
 
 %files client
 %defattr(-,root,root)
