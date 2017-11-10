@@ -18,7 +18,11 @@ func TestClientClusterUUID(t *testing.T) {
 	t.Parallel()
 
 	u := uuid.MustRandom()
-	c := NewClient("", u.String())
+	c, err := NewClient("", u.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	v, err := c.clusterUUID()
 	if err != nil {
 		t.Fatal(err)
@@ -47,8 +51,12 @@ func TestClientError(t *testing.T) {
 	}))
 	defer s.Close()
 
-	c := NewClient(s.Listener.Addr().String(), uuid.MustRandom().String())
-	_, err := c.ListRepairUnits(context.Background())
+	c, err := NewClient(s.URL, uuid.MustRandom().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.ListRepairUnits(context.Background())
 	if err == nil {
 		t.Fatal("expected error")
 	}

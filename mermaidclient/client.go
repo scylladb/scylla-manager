@@ -24,17 +24,20 @@ import (
 // Client provides means to interact with Mermaid.
 type Client struct {
 	operations *operations.Client
-	host       string
 	cluster    string
 }
 
 // NewClient creates a new client.
-func NewClient(host string, cluster string) *Client {
-	return &Client{
-		operations: operations.New(api.New(host, "/api/v1", []string{"http"}), strfmt.Default),
-		host:       host,
-		cluster:    cluster,
+func NewClient(rawurl, cluster string) (*Client, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
 	}
+
+	return &Client{
+		operations: operations.New(api.New(u.Host, u.Path, []string{u.Scheme}), strfmt.Default),
+		cluster:    cluster,
+	}, nil
 }
 
 // StartRepair starts unit repair.

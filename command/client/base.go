@@ -34,5 +34,6 @@ func (cmd *BaseClientCommand) validate() error {
 }
 
 func (cmd *BaseClientCommand) client() *mermaidclient.Client {
-	return mermaidclient.NewClient(cmd.host, cmd.cluster)
+	c, _ := mermaidclient.NewClient(cmd.host, cmd.cluster)
+	return c
 }
