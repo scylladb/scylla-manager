@@ -12,12 +12,15 @@ up:
 down:
 	@$(COMPOSE) down
 
+.PHONY: status
 status:
 	@$(COMPOSE) exec dc1_seed_node nodetool status scylla_management
 
+.PHONY: bash
 bash:
 	@$(COMPOSE) exec dc1_seed_node bash
 
+.PHONY: cqlsh
 cqlsh:
 	@$(CQLSH)
 
