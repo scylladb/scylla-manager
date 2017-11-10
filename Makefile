@@ -78,8 +78,10 @@ integration-test: unit-test
 # dev-server runs development server.
 .PHONY: dev-server
 dev-server:
+	@echo "==> Building development server..."
+	@go build -o ./scylla-mgmt.dev ./cmd/scylla-mgmt
 	@echo "==> Running development server..."
-	@go run ./cmd/scylla-mgmt/*.go server -config-file testing/scylla_cluster/scylla-mgmt.yaml -debug
+	@./scylla-mgmt.dev -c testing/scylla_cluster/scylla-mgmt.yaml --developer-mode; rm -f ./scylla-mgmt.dev
 
 # gen regenetates source code and other resources.
 .PHONY: gen
