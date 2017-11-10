@@ -17,7 +17,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/command/client/mermaid/internal/models"
+	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
 // NewPostClusterClusterIDRepairUnitsParams creates a new PostClusterClusterIDRepairUnitsParams object
@@ -148,12 +148,10 @@ func (o *PostClusterClusterIDRepairUnitsParams) WriteToRequest(r runtime.ClientR
 		return err
 	}
 
-	if o.UnitFields == nil {
-		o.UnitFields = new(models.RepairUnitUpdate)
-	}
-
-	if err := r.SetBodyParam(o.UnitFields); err != nil {
-		return err
+	if o.UnitFields != nil {
+		if err := r.SetBodyParam(o.UnitFields); err != nil {
+			return err
+		}
 	}
 
 	if len(res) > 0 {

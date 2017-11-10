@@ -1,11 +1,11 @@
 // Copyright (C) 2017 ScyllaDB
 
-package mermaid
+package mermaidclient
 
 import (
 	"net"
 
-	"github.com/scylladb/mermaid/command/client/mermaid/internal/models"
+	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
 // RepairProgressRow contains shard progress info.

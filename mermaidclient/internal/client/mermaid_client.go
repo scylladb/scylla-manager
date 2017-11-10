@@ -11,7 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/command/client/mermaid/internal/client/operations"
+	"github.com/scylladb/mermaid/mermaidclient/internal/client/operations"
 )
 
 // Default mermaid HTTP client.

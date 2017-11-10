@@ -14,7 +14,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/command/client/mermaid/internal/models"
+	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
 // GetClusterClusterIDRepairTaskTaskIDReader is a Reader for the GetClusterClusterIDRepairTaskTaskID structure.

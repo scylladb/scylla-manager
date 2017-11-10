@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/command"
-	"github.com/scylladb/mermaid/command/client/mermaid"
+	"github.com/scylladb/mermaid/mermaidclient"
 )
 
 // RepairStart starts unit repair.
@@ -221,7 +221,7 @@ func (cmd *RepairUnitCreate) Run(args []string) int {
 		return 1
 	}
 
-	id, err := cmd.client().CreateRepairUnit(cmd.context, &mermaid.RepairUnit{
+	id, err := cmd.client().CreateRepairUnit(cmd.context, &mermaidclient.RepairUnit{
 		Keyspace: cmd.keyspace,
 		Tables:   parseList(cmd.tables),
 	})

@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/command"
-	"github.com/scylladb/mermaid/command/client/mermaid"
+	"github.com/scylladb/mermaid/mermaidclient"
 )
 
 // BaseClientCommand handles common CLI client behaviours.
@@ -33,6 +33,6 @@ func (cmd *BaseClientCommand) validate() error {
 	return nil
 }
 
-func (cmd *BaseClientCommand) client() *mermaid.Client {
-	return mermaid.NewClient(cmd.host, cmd.cluster)
+func (cmd *BaseClientCommand) client() *mermaidclient.Client {
+	return mermaidclient.NewClient(cmd.host, cmd.cluster)
 }

@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package mermaid
+package mermaidclient
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/command/client/mermaid/internal/client/operations"
-	"github.com/scylladb/mermaid/command/client/mermaid/internal/models"
+	"github.com/scylladb/mermaid/mermaidclient/internal/client/operations"
+	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/uuid"
 )
 

@@ -17,7 +17,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/command/client/mermaid/internal/models"
+	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
 // NewPutClusterClusterIDRepairConfigParams creates a new PutClusterClusterIDRepairConfigParams object
@@ -148,12 +148,10 @@ func (o *PutClusterClusterIDRepairConfigParams) WriteToRequest(r runtime.ClientR
 		return err
 	}
 
-	if o.Conf == nil {
-		o.Conf = new(models.RepairConfig)
-	}
-
-	if err := r.SetBodyParam(o.Conf); err != nil {
-		return err
+	if o.Conf != nil {
+		if err := r.SetBodyParam(o.Conf); err != nil {
+			return err
+		}
 	}
 
 	if len(res) > 0 {
