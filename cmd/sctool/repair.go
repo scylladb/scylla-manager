@@ -36,7 +36,7 @@ var repairStartCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := client.StartRepair(context.Background(), cfgRepairUnit)
 		if err != nil {
-			return err
+			return printableError{err}
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout(), id)
@@ -57,7 +57,7 @@ var repairStopCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := client.StopRepair(context.Background(), cfgRepairUnit)
 		if err != nil {
-			return err
+			return printableError{err}
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout(), id)
@@ -78,7 +78,7 @@ var repairProgressCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		status, progress, rows, err := client.RepairProgress(context.Background(), cfgRepairUnit, cfgRepairTask)
 		if err != nil {
-			return err
+			return printableError{err}
 		}
 
 		w := cmd.OutOrStdout()
@@ -133,7 +133,7 @@ var repairUnitCreateCmd = &cobra.Command{
 			Tables:   cfgRepairUnitTables,
 		})
 		if err != nil {
-			return err
+			return printableError{err}
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout(), id)
@@ -163,7 +163,7 @@ var repairUnitUpdateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		u, err := client.GetRepairUnit(context.Background(), cfgRepairUnit)
 		if err != nil {
-			return err
+			return printableError{err}
 		}
 
 		if cmd.Flags().Changed("keyspace") {
@@ -190,7 +190,7 @@ var repairUnitListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		units, err := client.ListRepairUnits(context.Background())
 		if err != nil {
-			return err
+			return printableError{err}
 		}
 
 		t := newTable("unit id", "keyspace", "tables")
