@@ -14,6 +14,12 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/apcera/termtables"
+  packages = [".","term"]
+  revision = "bcbc5dc54055d14996b256d348fb75cc6debe282"
+
+[[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
   revision = "73945b6115bfbbcc57d89b7316e28109364124e1"
@@ -176,12 +182,6 @@
   revision = "d0303fe809921458f417bcf828397a65db30a7e4"
 
 [[projects]]
-  branch = "center"
-  name = "github.com/mmatczuk/tablewriter"
-  packages = ["."]
-  revision = "ab8199783a4a32317c4bb576741c44da31744d27"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -256,6 +256,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2535c37a6c414f3df1142e53ced2962673cbd7855bfb602ea32dba94b82df85d"
+  inputs-digest = "a52b467b477e9daec7b514d88dd26b46e68ddf2628ce0a13085bd008f0db0275"
   solver-name = "gps-cdcl"
   solver-version = 1
