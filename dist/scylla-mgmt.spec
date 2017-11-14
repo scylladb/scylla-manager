@@ -32,15 +32,22 @@ ln -s $PWD src/%{mermaid_pkg}
 
 (
   set -e
+
+  export GOROOT=%{_builddir}/go
+  export GOPATH=$PWD
+  GO=$GOROOT/bin/go
+
+  mkdir -p release/bash_completion
+  TMP_SCTOOL=`mktemp`
+  $GO build -o $TMP_SCTOOL %{mermaid_pkg}/cmd/sctool
+  $TMP_SCTOOL _bashcompletion > release/bash_completion/sctool.bash
+  rm $TMP_SCTOOL
+
   export GOOS=linux
   export GOARCH=amd64
   export CGO_ENABLED=0
-  export GOROOT=%{_builddir}/go
-  export GOPATH=$PWD
 
-  GO=$GOROOT/bin/go
   GOLDFLAGS="-X main.version=%{version}_%{release}"
-
   $GO build -o release/linux_amd64/scylla-mgmt -ldflags "$GOLDFLAGS" %{mermaid_pkg}/cmd/scylla-mgmt
   $GO build -o release/linux_amd64/sctool -ldflags "$GOLDFLAGS" %{mermaid_pkg}/cmd/sctool
 )
@@ -53,7 +60,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 mkdir -p %{buildroot}%{_unitdir}/
 
 install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
-install -m644 dist/bash_completion/*.bash %{buildroot}%{_sysconfdir}/bash_completion.d/
+install -m644 release/bash_completion/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 install -m644 dist/etc/*.yaml %{buildroot}%{_sysconfdir}/scylla-mgmt/
 install -m644 dist/etc/*.tpl %{buildroot}%{_sysconfdir}/scylla-mgmt/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/

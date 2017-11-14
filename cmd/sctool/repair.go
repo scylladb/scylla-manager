@@ -27,6 +27,8 @@ func init() {
 
 func repairInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgRepairUnit, "unit", "u", "", "repair unit `name` or ID")
+
+	cmd.MarkFlagRequired("unit")
 }
 
 var repairStartCmd = &cobra.Command{
@@ -102,6 +104,8 @@ func init() {
 	repairCmd.AddCommand(repairProgressCmd)
 	repairInitCommonFlags(repairProgressCmd)
 	repairProgressCmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
+
+	repairProgressCmd.MarkFlagRequired("task")
 }
 
 var repairUnitCmd = &cobra.Command{
@@ -145,6 +149,8 @@ var repairUnitCreateCmd = &cobra.Command{
 func init() {
 	repairUnitCmd.AddCommand(repairUnitCreateCmd)
 	repairUnitInitCommonFlags(repairUnitCreateCmd)
+
+	repairUnitCreateCmd.MarkFlagRequired("keyspace")
 }
 
 var repairUnitUpdateCmd = &cobra.Command{
