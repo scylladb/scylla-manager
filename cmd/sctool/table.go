@@ -3,40 +3,12 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
-
-	"github.com/mmatczuk/tablewriter"
+	"github.com/apcera/termtables"
 )
 
-type table struct {
-	table *tablewriter.Table
-	buf   *bytes.Buffer
-}
-
-func newTable(header ...string) table {
-	b := new(bytes.Buffer)
-	t := tablewriter.NewWriter(b)
-	t.SetHeader(header)
-	t.SetAutoFormatHeaders(false)
-	t.SetBorder(false)
-
-	return table{
-		table: t,
-		buf:   b,
-	}
-}
-
-func (t table) append(row ...interface{}) {
-	s := make([]string, len(row))
-	for i, e := range row {
-		s[i] = fmt.Sprint(e)
-	}
-	t.table.Append(s)
-}
-
-func (t table) String() string {
-	defer t.buf.Reset()
-	t.table.Render()
-	return t.buf.String()
+func newTable(header ...interface{}) *termtables.Table {
+	t := termtables.CreateTable()
+	t.UTF8Box()
+	t.AddHeaders(header...)
+	return t
 }

@@ -89,12 +89,12 @@ var repairProgressCmd = &cobra.Command{
 		t := newTable("host", "shard", "progress", "errors")
 		for _, r := range rows {
 			if r.Shard == -1 {
-				t.append(r.Host, "-", "-", "-")
+				t.AddRow(r.Host, "-", "-", "-")
 			} else {
-				t.append(r.Host, r.Shard, r.Progress, r.Error)
+				t.AddRow(r.Host, r.Shard, r.Progress, r.Error)
 			}
 		}
-		fmt.Fprint(w, t)
+		fmt.Fprint(w, t.Render())
 
 		return nil
 	},
@@ -201,10 +201,10 @@ var repairUnitListCmd = &cobra.Command{
 
 		t := newTable("unit id", "keyspace", "tables")
 		for _, u := range units {
-			t.append(u.ID, u.Keyspace, u.Tables)
+			t.AddRow(u.ID, u.Keyspace, u.Tables)
 		}
 
-		fmt.Fprint(cmd.OutOrStdout(), t)
+		fmt.Fprint(cmd.OutOrStdout(), t.Render())
 
 		return nil
 	},
