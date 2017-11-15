@@ -3,13 +3,9 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-
-	"github.com/mitchellh/cli"
-	"github.com/scylladb/mermaid/command/server"
 )
 
 func init() {
@@ -17,24 +13,11 @@ func init() {
 }
 
 func main() {
-	os.Exit(realMain())
-}
-
-func realMain() int {
 	log.SetOutput(ioutil.Discard)
 
-	cli := cli.NewCLI("scylla-mgmt", version)
-	cli.Args = os.Args[1:]
-	cli.Commands = server.Commands()
-
-	// disable auto completion
-	cli.Autocomplete = false
-
-	exitCode, err := cli.Run()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
-		return 1
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
 	}
 
-	return exitCode
+	os.Exit(0)
 }
