@@ -38,10 +38,7 @@ ln -s $PWD src/%{mermaid_pkg}
   GO=$GOROOT/bin/go
 
   mkdir -p release/bash_completion
-  TMP_SCTOOL=`mktemp`
-  $GO build -o $TMP_SCTOOL %{mermaid_pkg}/cmd/sctool
-  $TMP_SCTOOL _bashcompletion > release/bash_completion/sctool.bash
-  rm $TMP_SCTOOL
+  $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' ./cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
 
   export GOOS=linux
   export GOARCH=amd64

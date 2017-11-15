@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 	Short: "Scylla management client",
 
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.IsAdditionalHelpTopicCommand() {
+		if cmd.IsAdditionalHelpTopicCommand() || cmd.Hidden {
 			return nil
 		}
 
