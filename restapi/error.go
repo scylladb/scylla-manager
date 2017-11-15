@@ -3,7 +3,6 @@
 package restapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -27,15 +26,10 @@ func (e *httpError) Error() string {
 // newHTTPError wraps err with a generic http error with status code status,
 // and a user-facing description errText.
 func newHTTPError(r *http.Request, err error, status int, msg string) *httpError {
-	message := fmt.Sprintf("%s: %s", msg, err)
-	if err == nil {
-		message = msg
-	}
-
 	return &httpError{
 		Err:        err,
 		StatusCode: status,
-		Message:    message,
+		Message:    msg,
 		TraceID:    log.TraceID(r.Context()),
 	}
 }
@@ -43,19 +37,34 @@ func newHTTPError(r *http.Request, err error, status int, msg string) *httpError
 // httpErrNotFound wraps err with a generic http error with status code
 // NotFound, and a user-facing description.
 func httpErrNotFound(r *http.Request, err error) *httpError {
-	return newHTTPError(r, err, http.StatusNotFound, "specified resource not found")
+	return &httpError{
+		Err:        err,
+		StatusCode: http.StatusNotFound,
+		Message:    "specified resource not found",
+		TraceID:    log.TraceID(r.Context()),
+	}
 }
 
 // httpErrBadRequest wraps err with a generic http error with status code
 // BadRequest, and a user-facing description.
 func httpErrBadRequest(r *http.Request, err error) *httpError {
-	return newHTTPError(r, err, http.StatusBadRequest, "malformed request")
+	return &httpError{
+		Err:        err,
+		StatusCode: http.StatusBadRequest,
+		Message:    "malformed request",
+		TraceID:    log.TraceID(r.Context()),
+	}
 }
 
 // httpErrInternal wraps err with a generic http error with status code
 // StatusInternalServerError.
 func httpErrInternal(r *http.Request, err error, msg string) *httpError {
-	return newHTTPError(r, err, http.StatusInternalServerError, msg)
+	return &httpError{
+		Err:        err,
+		StatusCode: http.StatusInternalServerError,
+		Message:    msg,
+		TraceID:    log.TraceID(r.Context()),
+	}
 }
 
 // notFoundOrInternal coverts mermaid.ErrNotFound to httpErrNotFound and
