@@ -137,6 +137,7 @@ type ConfigInfo struct {
 type Unit struct {
 	ID        uuid.UUID `json:"id"`
 	ClusterID uuid.UUID `json:"cluster_id"`
+	Name      string    `json:"name,omitempty"`
 	Keyspace  string    `db:"keyspace_name" json:"keyspace"`
 	Tables    []string  `json:"tables"`
 }

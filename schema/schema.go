@@ -105,7 +105,7 @@ var (
 
 	RepairUnit = Table{
 		Name:    "repair_unit",
-		Columns: []string{"cluster_id", "id", "keyspace_name", "tables"},
+		Columns: []string{"cluster_id", "id", "name", "keyspace_name", "tables"},
 		PartKey: []string{"cluster_id"},
 		SortKey: []string{"id"},
 	}.init()

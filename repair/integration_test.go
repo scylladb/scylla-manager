@@ -486,6 +486,7 @@ func validUnit() *repair.Unit {
 	return &repair.Unit{
 		ClusterID: uuid.MustRandom(),
 		ID:        uuid.MustRandom(),
+		Name:      "name",
 		Keyspace:  "keyspace",
 	}
 }
