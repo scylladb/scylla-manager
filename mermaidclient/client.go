@@ -47,10 +47,6 @@ func (c *Client) StartRepair(ctx context.Context, unit string) (string, error) {
 		return "", errors.Wrap(err, "invalid cluster")
 	}
 
-	if err := isUUID(unit); err != nil {
-		return "", errors.Wrap(err, "invalid unit")
-	}
-
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDRepair(&operations.PutClusterClusterIDRepairUnitUnitIDRepairParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -75,10 +71,6 @@ func (c *Client) StopRepair(ctx context.Context, unit string) (string, error) {
 		return "", errors.Wrap(err, "invalid cluster")
 	}
 
-	if err := isUUID(unit); err != nil {
-		return "", errors.Wrap(err, "invalid unit")
-	}
-
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStopRepair(&operations.PutClusterClusterIDRepairUnitUnitIDStopRepairParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -101,12 +93,6 @@ func (c *Client) RepairProgress(ctx context.Context, unit string, task string) (
 	clusterID, err := c.clusterUUID()
 	if err != nil {
 		err = errors.Wrap(err, "invalid cluster")
-		return
-	}
-
-	err = isUUID(unit)
-	if err != nil {
-		err = errors.Wrap(err, "invalid unit")
 		return
 	}
 
@@ -185,6 +171,7 @@ func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, e
 		Context:   ctx,
 		ClusterID: clusterID,
 		UnitFields: &models.RepairUnitUpdate{
+			Name:     u.Name,
 			Keyspace: u.Keyspace,
 			Tables:   u.Tables,
 		},
@@ -208,15 +195,12 @@ func (c *Client) UpdateRepairUnit(ctx context.Context, unit string, u *RepairUni
 		return errors.Wrap(err, "invalid cluster")
 	}
 
-	if err = isUUID(unit); err != nil {
-		return errors.Wrap(err, "invalid unit")
-	}
-
 	_, err = c.operations.PutClusterClusterIDRepairUnitUnitID(&operations.PutClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		UnitID:    unit,
 		UnitFields: &models.RepairUnitUpdate{
+			Name:     u.Name,
 			Keyspace: u.Keyspace,
 			Tables:   u.Tables,
 		},
@@ -229,10 +213,6 @@ func (c *Client) GetRepairUnit(ctx context.Context, unit string) (*RepairUnit, e
 	clusterID, err := c.clusterUUID()
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid cluster")
-	}
-
-	if err = isUUID(unit); err != nil {
-		return nil, errors.Wrap(err, "invalid unit")
 	}
 
 	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitID(&operations.GetClusterClusterIDRepairUnitUnitIDParams{
