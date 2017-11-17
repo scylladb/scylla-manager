@@ -12,16 +12,16 @@ import (
 type ctxt byte
 
 const (
-	clusterIDKey ctxt = iota
+	ctxClusterID ctxt = iota
 )
 
 // clusterIDFromCtx returns the Cluster ID of the (request) context ctx.
 func clusterIDFromCtx(ctx context.Context) uuid.UUID {
-	u, _ := ctx.Value(clusterIDKey).(uuid.UUID)
+	u, _ := ctx.Value(ctxClusterID).(uuid.UUID)
 	return u
 }
 
 // newClusterIDCtx returns a new context.Context that carries clusterID.
 func newClusterIDCtx(ctx context.Context, clusterID uuid.UUID) context.Context {
-	return context.WithValue(ctx, clusterIDKey, clusterID)
+	return context.WithValue(ctx, ctxClusterID, clusterID)
 }
