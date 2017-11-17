@@ -65,12 +65,17 @@ func newRepairHandler(svc RepairService) http.Handler {
 	})
 
 	// config
-	h.Get("/config", h.getConfig)
-	h.Get("/config/{config_type}/{external_id}", h.getConfig)
-	h.Put("/config", h.updateConfig)
-	h.Put("/config/{config_type}/{external_id}", h.updateConfig)
-	h.Delete("/config", h.deleteConfig)
-	h.Delete("/config/{config_type}/{external_id}", h.deleteConfig)
+	h.Route("/config", func(r chi.Router) {
+		r.Get("/", h.getConfig)
+		r.Put("/", h.updateConfig)
+		r.Delete("/", h.deleteConfig)
+
+		r.Route("/{config_type}/{external_id}", func(r chi.Router) {
+			r.Get("/", h.getConfig)
+			r.Put("/", h.updateConfig)
+			r.Delete("/", h.deleteConfig)
+		})
+	})
 
 	// task
 	h.Get("/task/{task_id}", h.repairProgress)
