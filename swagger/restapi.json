@@ -43,6 +43,9 @@
         "cluster_id": {
           "type": "string"
         },
+        "name": {
+          "type": "string"
+        },
         "keyspace": {
           "type": "string"
         },
@@ -57,6 +60,9 @@
     "repairUnitUpdate": {
       "type": "object",
       "properties": {
+        "name": {
+          "type": "string"
+        },
         "keyspace": {
           "type": "string"
         },
