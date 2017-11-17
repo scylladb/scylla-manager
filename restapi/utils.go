@@ -19,15 +19,6 @@ func reqClusterID(r *http.Request) (uuid.UUID, error) {
 	return clusterID, nil
 }
 
-// reqUnitID extracts a unit ID from a request URL.
-func reqUnitID(r *http.Request) (string, error) {
-	unitID := chi.URLParam(r, "unit_id")
-	if unitID == "" {
-		return "", errors.New("missing unit ID")
-	}
-	return unitID, nil
-}
-
 // reqUnitIDQuery extracts a unit ID from a request Query.
 func reqUnitIDQuery(r *http.Request) (string, error) {
 	unitID := r.FormValue("unit_id")

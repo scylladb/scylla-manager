@@ -66,12 +66,14 @@ func TestRepairAPI(t *testing.T) {
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
 				svc := mermaidmock.NewMockRepairService(ctrl)
 				svc.EXPECT().PutUnit(gomock.Any(), gomock.Any()).Do(func(_ interface{}, u *repair.Unit) {
-					if u.ID == uuid.Nil {
-						t.Fail()
+					if u.ID != uuid.Nil {
+						t.Fatal("expected nil uuid")
 					}
 					if u.ClusterID != uuid1 || u.Keyspace != "foo2" || u.Tables[0] != "table7" || u.Tables[1] != "table8" {
-						t.Fail()
+						t.Fatal(u)
 					}
+
+					u.ID = uuid.MustRandom()
 					createdUnitID = u.ID
 				})
 

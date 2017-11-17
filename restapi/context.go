@@ -13,6 +13,7 @@ type ctxt byte
 
 const (
 	ctxClusterID ctxt = iota
+	ctxRepairUnit
 )
 
 // clusterIDFromCtx returns the Cluster ID of the (request) context ctx.
