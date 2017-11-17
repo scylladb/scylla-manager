@@ -26,6 +26,9 @@ type RepairUnit struct {
 	// keyspace
 	Keyspace string `json:"keyspace,omitempty"`
 
+	// name
+	Name string `json:"name,omitempty"`
+
 	// tables
 	Tables []string `json:"tables"`
 }
@@ -35,6 +38,8 @@ type RepairUnit struct {
 /* polymorph repairUnit id false */
 
 /* polymorph repairUnit keyspace false */
+
+/* polymorph repairUnit name false */
 
 /* polymorph repairUnit tables false */
 
