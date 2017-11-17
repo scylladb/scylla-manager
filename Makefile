@@ -83,6 +83,12 @@ dev-server:
 	@echo "==> Running development server..."
 	@./scylla-mgmt.dev -c testing/scylla_cluster/scylla-mgmt.yaml --developer-mode; rm -f ./scylla-mgmt.dev
 
+# dev-cli builds development cli binary.
+.PHONY: dev-cli
+dev-cli:
+	@echo "==> Building development cli..."
+	@go build -o ./sctool ./cmd/sctool/
+
 # gen regenetates source code and other resources.
 .PHONY: gen
 gen:
