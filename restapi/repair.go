@@ -224,89 +224,6 @@ func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-//
-// config
-//
-
-type repairConfigRequest struct {
-	*repair.Config
-	repair.ConfigSource `json:"-"`
-}
-
-func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
-	var cr repairConfigRequest
-	if err := render.DecodeJSON(r.Body, &cr.Config); err != nil {
-		if err != io.EOF {
-			return nil, httpErrBadRequest(r, err)
-		}
-	}
-
-	routeCtx := chi.RouteContext(r.Context())
-	if typ := routeCtx.URLParam("config_type"); typ != "" {
-		err := cr.Type.UnmarshalText([]byte(typ))
-		if err != nil {
-			return nil, httpErrBadRequest(r, errors.Wrap(err, "bad config type"))
-		}
-	} else {
-		cr.Type = repair.ClusterConfig
-	}
-	switch cr.Type {
-	case repair.UnitConfig, repair.KeyspaceConfig, repair.ClusterConfig:
-	default:
-		return nil, httpErrBadRequest(r, fmt.Errorf("config type %q not allowed", cr.Type))
-	}
-
-	if id := routeCtx.URLParam("external_id"); id != "" {
-		cr.ExternalID = id
-	}
-	cr.ClusterID = clusterIDFromCtx(r.Context())
-	return &cr, nil
-}
-
-func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
-	cr, err := parseConfigRequest(r)
-	if err != nil {
-		render.Respond(w, r, err)
-		return
-	}
-
-	c, err := h.svc.GetConfig(r.Context(), cr.ConfigSource)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load config")
-		return
-	}
-	render.Respond(w, r, c)
-}
-
-func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
-	cr, err := parseConfigRequest(r)
-	if err != nil {
-		render.Respond(w, r, err)
-		return
-	}
-
-	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.Config); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to update config"))
-		return
-	}
-}
-
-func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
-	cr, err := parseConfigRequest(r)
-	if err != nil {
-		render.Respond(w, r, err)
-		return
-	}
-
-	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to delete config"))
-	}
-}
-
-//
-// task
-//
-
 type repairProgress struct {
 	PercentComplete int `json:"percent_complete"`
 	Total           int `json:"total"`
@@ -414,4 +331,83 @@ func (h *repairHandler) progressResponse(r *http.Request, u *repair.Unit, t *rep
 	}
 	resp.PercentComplete = int(totalSum / float64(len(resp.Hosts)))
 	return resp, nil
+}
+
+//
+// config
+//
+
+type repairConfigRequest struct {
+	*repair.Config
+	repair.ConfigSource `json:"-"`
+}
+
+func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
+	var cr repairConfigRequest
+	if err := render.DecodeJSON(r.Body, &cr.Config); err != nil {
+		if err != io.EOF {
+			return nil, httpErrBadRequest(r, err)
+		}
+	}
+
+	routeCtx := chi.RouteContext(r.Context())
+	if typ := routeCtx.URLParam("config_type"); typ != "" {
+		err := cr.Type.UnmarshalText([]byte(typ))
+		if err != nil {
+			return nil, httpErrBadRequest(r, errors.Wrap(err, "bad config type"))
+		}
+	} else {
+		cr.Type = repair.ClusterConfig
+	}
+	switch cr.Type {
+	case repair.UnitConfig, repair.KeyspaceConfig, repair.ClusterConfig:
+	default:
+		return nil, httpErrBadRequest(r, fmt.Errorf("config type %q not allowed", cr.Type))
+	}
+
+	if id := routeCtx.URLParam("external_id"); id != "" {
+		cr.ExternalID = id
+	}
+	cr.ClusterID = clusterIDFromCtx(r.Context())
+	return &cr, nil
+}
+
+func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
+	cr, err := parseConfigRequest(r)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+
+	c, err := h.svc.GetConfig(r.Context(), cr.ConfigSource)
+	if err != nil {
+		notFoundOrInternal(w, r, err, "failed to load config")
+		return
+	}
+	render.Respond(w, r, c)
+}
+
+func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
+	cr, err := parseConfigRequest(r)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+
+	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.Config); err != nil {
+		render.Respond(w, r, httpErrInternal(r, err, "failed to update config"))
+		return
+	}
+}
+
+func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
+	cr, err := parseConfigRequest(r)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+
+	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
+		render.Respond(w, r, httpErrInternal(r, err, "failed to delete config"))
+	}
 }
