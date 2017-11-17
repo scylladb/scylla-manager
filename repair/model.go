@@ -161,6 +161,20 @@ func (u *Unit) Validate() error {
 	return nil
 }
 
+// UnitFilter filters units.
+type UnitFilter struct {
+	Name string
+}
+
+// Validate checks if all the fields are properly set.
+func (f *UnitFilter) Validate() error {
+	if f == nil {
+		return errors.New("nil")
+	}
+
+	return nil
+}
+
 // genID generates unit ID based on keyspace and tables.
 func (u *Unit) genID() uuid.UUID {
 	xx := xxhash.New()

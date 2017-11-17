@@ -671,8 +671,13 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 }
 
 // ListUnits returns all the units in the cluster.
-func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*Unit, error) {
-	s.logger.Debug(ctx, "ListUnits", "cluster_id", clusterID)
+func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID, f *UnitFilter) ([]*Unit, error) {
+	s.logger.Debug(ctx, "ListUnits", "cluster_id", clusterID, "filter", f)
+
+	// validate the filter
+	if err := f.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid filter")
+	}
 
 	stmt, names := schema.RepairUnit.Select()
 
@@ -684,14 +689,41 @@ func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*Unit, 
 	}
 
 	var units []*Unit
-	err := gocqlx.Select(&units, q.Query)
-	return units, err
+	if err := gocqlx.Select(&units, q.Query); err != nil {
+		return nil, err
+	}
+
+	// nothing to filter
+	if f.Name == "" {
+		return units, nil
+	}
+
+	filtered := units[:0]
+	for _, u := range units {
+		if u.Name == f.Name {
+			filtered = append(filtered, u)
+		}
+	}
+
+	return filtered, nil
 }
 
-// GetUnit returns repair unit based on ID. If nothing was found
+// GetUnit returns repair unit based on ID or name. If nothing was found
 // mermaid.ErrNotFound is returned.
-func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, error) {
-	s.logger.Debug(ctx, "GetUnit", "cluster_id", clusterID, "id", ID)
+func (s *Service) GetUnit(ctx context.Context, clusterID uuid.UUID, idOrName string) (*Unit, error) {
+	var id uuid.UUID
+
+	if err := id.UnmarshalText([]byte(idOrName)); err == nil {
+		return s.GetUnitByID(ctx, clusterID, id)
+	}
+
+	return s.GetUnitByName(ctx, clusterID, idOrName)
+}
+
+// GetUnitByID returns repair unit based on ID. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetUnitByID(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, error) {
+	s.logger.Debug(ctx, "GetUnitByID", "cluster_id", clusterID, "id", ID)
 
 	stmt, names := schema.RepairUnit.Get()
 
@@ -709,6 +741,26 @@ func (s *Service) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, 
 	}
 
 	return &u, nil
+}
+
+// GetUnitByName returns repair unit based on name. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetUnitByName(ctx context.Context, clusterID uuid.UUID, name string) (*Unit, error) {
+	s.logger.Debug(ctx, "GetUnitByName", "cluster_id", clusterID, "name", name)
+
+	units, err := s.ListUnits(ctx, clusterID, &UnitFilter{Name: name})
+	if err != nil {
+		return nil, err
+	}
+
+	switch len(units) {
+	case 0:
+		return nil, mermaid.ErrNotFound
+	case 1:
+		return units[0], nil
+	default:
+		return nil, errors.Errorf("multiple units share the same name %q", name)
+	}
 }
 
 // PutUnit upserts a repair unit, unit instance must pass Validate() checks.
@@ -729,6 +781,19 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 	// validate the unit
 	if err := u.Validate(); err != nil {
 		return err
+	}
+
+	// check for conflicting names
+	if u.Name != "" {
+		conflict, err := s.GetUnitByName(ctx, u.ClusterID, u.Name)
+		if err != mermaid.ErrNotFound {
+			if err != nil {
+				return err
+			}
+			if conflict.ID != u.ID {
+				return errors.Errorf("name conflict on %q", u.Name)
+			}
+		}
 	}
 
 	stmt, names := schema.RepairUnit.Insert()
