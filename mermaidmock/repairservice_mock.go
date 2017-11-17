@@ -36,16 +36,16 @@ func (m *MockRepairService) EXPECT() *MockRepairServiceMockRecorder {
 }
 
 // GetUnit mocks base method
-func (m *MockRepairService) GetUnit(ctx context.Context, clusterID, ID uuid.UUID) (*repair.Unit, error) {
-	ret := m.ctrl.Call(m, "GetUnit", ctx, clusterID, ID)
+func (m *MockRepairService) GetUnit(ctx context.Context, clusterID uuid.UUID, idOrName string) (*repair.Unit, error) {
+	ret := m.ctrl.Call(m, "GetUnit", ctx, clusterID, idOrName)
 	ret0, _ := ret[0].(*repair.Unit)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetUnit indicates an expected call of GetUnit
-func (mr *MockRepairServiceMockRecorder) GetUnit(ctx, clusterID, ID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnit", reflect.TypeOf((*MockRepairService)(nil).GetUnit), ctx, clusterID, ID)
+func (mr *MockRepairServiceMockRecorder) GetUnit(ctx, clusterID, idOrName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnit", reflect.TypeOf((*MockRepairService)(nil).GetUnit), ctx, clusterID, idOrName)
 }
 
 // PutUnit mocks base method
@@ -73,16 +73,16 @@ func (mr *MockRepairServiceMockRecorder) DeleteUnit(ctx, clusterID, ID interface
 }
 
 // ListUnits mocks base method
-func (m *MockRepairService) ListUnits(ctx context.Context, clusterID uuid.UUID) ([]*repair.Unit, error) {
-	ret := m.ctrl.Call(m, "ListUnits", ctx, clusterID)
+func (m *MockRepairService) ListUnits(ctx context.Context, clusterID uuid.UUID, f *repair.UnitFilter) ([]*repair.Unit, error) {
+	ret := m.ctrl.Call(m, "ListUnits", ctx, clusterID, f)
 	ret0, _ := ret[0].([]*repair.Unit)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListUnits indicates an expected call of ListUnits
-func (mr *MockRepairServiceMockRecorder) ListUnits(ctx, clusterID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnits", reflect.TypeOf((*MockRepairService)(nil).ListUnits), ctx, clusterID)
+func (mr *MockRepairServiceMockRecorder) ListUnits(ctx, clusterID, f interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnits", reflect.TypeOf((*MockRepairService)(nil).ListUnits), ctx, clusterID, f)
 }
 
 // GetConfig mocks base method
