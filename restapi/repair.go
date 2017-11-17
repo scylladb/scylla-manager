@@ -60,8 +60,9 @@ func newRepairHandler(svc RepairService) http.Handler {
 		r.Put("/", h.updateUnit)
 		r.Delete("/", h.deleteUnit)
 		// temporary
-		r.Put("/repair", h.startRepair)
-		r.Put("/stop_repair", h.stopRepair)
+		r.Put("/start", h.startRepair)
+		r.Put("/stop", h.stopRepair)
+		r.Get("/progress", h.repairProgress)
 	})
 
 	// config
@@ -76,9 +77,6 @@ func newRepairHandler(svc RepairService) http.Handler {
 			r.Delete("/", h.deleteConfig)
 		})
 	})
-
-	// task
-	h.Get("/task/{task_id}", h.repairProgress)
 
 	return h
 }
@@ -149,7 +147,9 @@ func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	location := r.URL.ResolveReference(&url.URL{Path: path.Join("unit", newUnit.ID.String())})
+	location := r.URL.ResolveReference(&url.URL{
+		Path: path.Join("unit", newUnit.ID.String()),
+	})
 	w.Header().Set("Location", location.String())
 	w.WriteHeader(http.StatusCreated)
 }
@@ -195,32 +195,32 @@ func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repairURL := r.URL.ResolveReference(&url.URL{
-		Path:     path.Join("../../task", taskID.String()),
-		RawQuery: fmt.Sprintf("unit_id=%s", u.ID)},
-	)
-	w.Header().Set("Location", repairURL.String())
+	location := r.URL.ResolveReference(&url.URL{
+		Path:     "progress",
+		RawQuery: fmt.Sprintf("task_id=%s", taskID),
+	})
+	w.Header().Set("Location", location.String())
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
 	u := h.mustUnitFromCtx(r)
 
-	task, err := h.svc.GetLastRun(r.Context(), u)
+	run, err := h.svc.GetLastRun(r.Context(), u)
 	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load task")
+		notFoundOrInternal(w, r, err, "failed to load run")
 	}
 
-	if err := h.svc.StopRun(r.Context(), u, task.ID); err != nil {
+	if err := h.svc.StopRun(r.Context(), u, run.ID); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to stop repair"))
 		return
 	}
 
-	repairURL := r.URL.ResolveReference(&url.URL{
-		Path:     path.Join("../../task", task.ID.String()),
-		RawQuery: fmt.Sprintf("unit_id=%s", u.ID)},
-	)
-	w.Header().Set("Location", repairURL.String())
+	location := r.URL.ResolveReference(&url.URL{
+		Path:     "../progress",
+		RawQuery: fmt.Sprintf("task_id=%s", run.ID),
+	})
+	w.Header().Set("Location", location.String())
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -246,42 +246,26 @@ type repairProgressResponse struct {
 }
 
 func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
-	unitID, err := reqUnitIDQuery(r)
+	u := h.mustUnitFromCtx(r)
+
+	run, err := h.svc.GetLastRun(r.Context(), u)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
+		notFoundOrInternal(w, r, err, "failed to load run")
 	}
 
-	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load unit")
-		return
-	}
-
-	var taskID uuid.UUID
-	if err := taskID.UnmarshalText([]byte(chi.URLParam(r, "task_id"))); err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
-
-	taskRun, err := h.svc.GetRun(r.Context(), u, taskID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load task")
-		return
-	}
-
-	resp, err := h.progressResponse(r, u, taskRun)
+	resp, err := h.createProgressResponse(r, u, run)
 	if err != nil {
 		render.Respond(w, r, err)
 		return
 	}
+
 	render.Respond(w, r, resp)
 }
 
-func (h *repairHandler) progressResponse(r *http.Request, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
+func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
 	runs, err := h.svc.GetProgress(r.Context(), u, t.ID)
 	if err != nil {
-		return nil, httpErrInternal(r, err, "failed to load task progress")
+		return nil, httpErrInternal(r, err, "failed to load task repairProgress")
 	}
 
 	if len(runs) == 0 {

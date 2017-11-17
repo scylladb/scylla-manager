@@ -18,12 +18,3 @@ func reqClusterID(r *http.Request) (uuid.UUID, error) {
 	}
 	return clusterID, nil
 }
-
-// reqUnitIDQuery extracts a unit ID from a request Query.
-func reqUnitIDQuery(r *http.Request) (string, error) {
-	unitID := r.FormValue("unit_id")
-	if unitID == "" {
-		return "", errors.New("missing unit ID")
-	}
-	return unitID, nil
-}
