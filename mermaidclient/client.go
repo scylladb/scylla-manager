@@ -188,6 +188,25 @@ func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, e
 	return unitID.String(), nil
 }
 
+// GetRepairUnit returns a repair unit for a given ID.
+func (c *Client) GetRepairUnit(ctx context.Context, unit string) (*RepairUnit, error) {
+	clusterID, err := c.clusterUUID()
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid cluster")
+	}
+
+	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitID(&operations.GetClusterClusterIDRepairUnitUnitIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		UnitID:    unit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
 // UpdateRepairUnit updates existing repair unit.
 func (c *Client) UpdateRepairUnit(ctx context.Context, unit string, u *RepairUnit) error {
 	clusterID, err := c.clusterUUID()
@@ -206,25 +225,6 @@ func (c *Client) UpdateRepairUnit(ctx context.Context, unit string, u *RepairUni
 		},
 	})
 	return err
-}
-
-// GetRepairUnit returns a repair unit for a given ID.
-func (c *Client) GetRepairUnit(ctx context.Context, unit string) (*RepairUnit, error) {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid cluster")
-	}
-
-	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitID(&operations.GetClusterClusterIDRepairUnitUnitIDParams{
-		Context:   ctx,
-		ClusterID: clusterID,
-		UnitID:    unit,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Payload, nil
 }
 
 // ListRepairUnits returns repair units within a cluster.
