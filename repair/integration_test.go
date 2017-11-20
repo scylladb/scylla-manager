@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,7 +23,6 @@ import (
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
-	"strings"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
@@ -171,7 +171,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("list empty units", func(t *testing.T) {
 		t.Parallel()
 
-		units, err := s.ListUnits(ctx, uuid.MustRandom())
+		units, err := s.ListUnits(ctx, uuid.MustRandom(), &repair.UnitFilter{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -202,7 +202,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			expected[i] = u
 		}
 
-		units, err := s.ListUnits(ctx, id)
+		units, err := s.ListUnits(ctx, id, &repair.UnitFilter{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -215,7 +215,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("get missing unit", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := s.GetUnit(ctx, uuid.MustRandom(), uuid.MustRandom())
+		u, err := s.GetUnitByID(ctx, uuid.MustRandom(), uuid.MustRandom())
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected not found")
 		}
@@ -236,11 +236,19 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if u0.ID == uuid.Nil {
 			t.Fatal("ID not updated")
 		}
-		u1, err := s.GetUnit(ctx, u0.ClusterID, u0.ID)
+		u1, err := s.GetUnitByID(ctx, u0.ClusterID, u0.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if diff := cmp.Diff(u0, u1, mermaidtest.UUIDComparer()); diff != "" {
+			t.Fatal("read write mismatch", diff)
+		}
+
+		u2, err := s.GetUnitByName(ctx, u0.ClusterID, u0.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(u0, u2, mermaidtest.UUIDComparer()); diff != "" {
 			t.Fatal("read write mismatch", diff)
 		}
 	})
@@ -260,6 +268,23 @@ func TestServiceStorageIntegration(t *testing.T) {
 		u.ClusterID = uuid.Nil
 
 		if err := s.PutUnit(ctx, u); err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("put conflicting unit", func(t *testing.T) {
+		t.Parallel()
+
+		u0 := validUnit()
+
+		if err := s.PutUnit(ctx, u0); err != nil {
+			t.Fatal(err)
+		}
+
+		u1 := u0
+		u1.ID = uuid.Nil
+
+		if err := s.PutUnit(ctx, u0); err == nil {
 			t.Fatal("expected validation error")
 		}
 	})
@@ -298,7 +323,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := s.DeleteUnit(ctx, u.ClusterID, u.ID); err != nil {
 			t.Fatal(err)
 		}
-		_, err := s.GetUnit(ctx, u.ClusterID, u.ID)
+		_, err := s.GetUnitByID(ctx, u.ClusterID, u.ID)
 		if err != mermaid.ErrNotFound {
 			t.Fatal("expected nil")
 		}
@@ -486,6 +511,7 @@ func validUnit() *repair.Unit {
 	return &repair.Unit{
 		ClusterID: uuid.MustRandom(),
 		ID:        uuid.MustRandom(),
+		Name:      "name",
 		Keyspace:  "keyspace",
 	}
 }

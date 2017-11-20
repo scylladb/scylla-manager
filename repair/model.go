@@ -137,6 +137,7 @@ type ConfigInfo struct {
 type Unit struct {
 	ID        uuid.UUID `json:"id"`
 	ClusterID uuid.UUID `json:"cluster_id"`
+	Name      string    `json:"name,omitempty"`
 	Keyspace  string    `db:"keyspace_name" json:"keyspace"`
 	Tables    []string  `json:"tables"`
 }
@@ -155,6 +156,20 @@ func (u *Unit) Validate() error {
 	}
 	if u.Keyspace == "" {
 		return errors.New("missing Keyspace")
+	}
+
+	return nil
+}
+
+// UnitFilter filters units.
+type UnitFilter struct {
+	Name string
+}
+
+// Validate checks if all the fields are properly set.
+func (f *UnitFilter) Validate() error {
+	if f == nil {
+		return errors.New("nil")
 	}
 
 	return nil

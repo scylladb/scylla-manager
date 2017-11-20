@@ -118,11 +118,13 @@ func init() {
 }
 
 var (
+	cfgRepairUnitName     string
 	cfgRepairUnitKeyspace string
 	cfgRepairUnitTables   []string
 )
 
 func repairUnitInitCommonFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&cfgRepairUnitName, "name", "n", "", "Alias `name`")
 	cmd.Flags().StringVarP(&cfgRepairUnitKeyspace, "keyspace", "k", "", "Keyspace `name`")
 	cmd.Flags().StringSliceVarP(&cfgRepairUnitTables, "tables", "t", nil, "Comma-separated `list` of tables in to repair in the keyspace, if empty repair the whole keyspace")
 }
@@ -133,6 +135,7 @@ var repairUnitCreateCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := client.CreateRepairUnit(context.Background(), &mermaidclient.RepairUnit{
+			Name:     cfgRepairUnitName,
 			Keyspace: cfgRepairUnitKeyspace,
 			Tables:   cfgRepairUnitTables,
 		})
@@ -157,29 +160,34 @@ var repairUnitUpdateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Modifies existing repair unit",
 
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		ok := cmd.Flags().Changed("keyspace") || cmd.Flags().Changed("tables")
-		if !ok {
-			return errors.New("nothing to do")
-		}
-
-		return nil
-	},
-
 	RunE: func(cmd *cobra.Command, args []string) error {
 		u, err := client.GetRepairUnit(context.Background(), cfgRepairUnit)
 		if err != nil {
 			return printableError{err}
 		}
 
+		ok := false
+		if cmd.Flags().Changed("name") {
+			u.Name = cfgRepairUnitName
+			ok = true
+		}
 		if cmd.Flags().Changed("keyspace") {
 			u.Keyspace = cfgRepairUnitKeyspace
+			ok = true
 		}
 		if cmd.Flags().Changed("tables") {
 			u.Tables = cfgRepairUnitTables
+			ok = true
+		}
+		if !ok {
+			return errors.New("nothing to do")
 		}
 
-		return client.UpdateRepairUnit(context.Background(), cfgRepairUnit, u)
+		if err := client.UpdateRepairUnit(context.Background(), cfgRepairUnit, u); err != nil {
+			return printableError{err}
+		}
+
+		return nil
 	},
 }
 
@@ -198,12 +206,14 @@ var repairUnitListCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-
-		t := newTable("unit id", "keyspace", "tables")
-		for _, u := range units {
-			t.AddRow(u.ID, u.Keyspace, u.Tables)
+		if len(units) == 0 {
+			return nil
 		}
 
+		t := newTable("unit id", "name", "keyspace", "tables")
+		for _, u := range units {
+			t.AddRow(u.ID, u.Name, u.Keyspace, u.Tables)
+		}
 		fmt.Fprint(cmd.OutOrStdout(), t.Render())
 
 		return nil

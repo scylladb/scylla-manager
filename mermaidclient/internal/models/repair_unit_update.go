@@ -20,11 +20,16 @@ type RepairUnitUpdate struct {
 	// keyspace
 	Keyspace string `json:"keyspace,omitempty"`
 
+	// name
+	Name string `json:"name,omitempty"`
+
 	// tables
 	Tables []string `json:"tables"`
 }
 
 /* polymorph repairUnitUpdate keyspace false */
+
+/* polymorph repairUnitUpdate name false */
 
 /* polymorph repairUnitUpdate tables false */
 

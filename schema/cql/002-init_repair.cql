@@ -3,6 +3,7 @@
 CREATE TABLE repair_unit (
     cluster_id uuid,
     id uuid,
+    name text,
     keyspace_name text,
     tables set<text>,
     PRIMARY KEY (cluster_id, id)
