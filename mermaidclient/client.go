@@ -47,7 +47,7 @@ func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error)
 		return "", errors.Wrap(err, "invalid cluster")
 	}
 
-	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDRepair(&operations.PutClusterClusterIDRepairUnitUnitIDRepairParams{
+	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStart(&operations.PutClusterClusterIDRepairUnitUnitIDStartParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		UnitID:    unitID,
@@ -56,7 +56,7 @@ func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error)
 		return "", err
 	}
 
-	taskID, err := extractUUIDFromLocation(resp.Location)
+	taskID, err := extractTaskIDFromLocation(resp.Location)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot parse response")
 	}
@@ -71,7 +71,7 @@ func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) 
 		return "", errors.Wrap(err, "invalid cluster")
 	}
 
-	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStopRepair(&operations.PutClusterClusterIDRepairUnitUnitIDStopRepairParams{
+	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStop(&operations.PutClusterClusterIDRepairUnitUnitIDStopParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		UnitID:    unitID,
@@ -80,7 +80,7 @@ func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) 
 		return "", err
 	}
 
-	taskID, err := extractUUIDFromLocation(resp.Location)
+	taskID, err := extractTaskIDFromLocation(resp.Location)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot parse response")
 	}
@@ -89,24 +89,17 @@ func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) 
 }
 
 // RepairProgress returns repair progress.
-func (c *Client) RepairProgress(ctx context.Context, unitID string, taskID string) (status string, progress int, rows []RepairProgressRow, err error) {
+func (c *Client) RepairProgress(ctx context.Context, unitID string) (status string, progress int, rows []RepairProgressRow, err error) {
 	clusterID, err := c.clusterUUID()
 	if err != nil {
 		err = errors.Wrap(err, "invalid cluster")
 		return
 	}
 
-	err = isUUID(taskID)
-	if err != nil {
-		err = errors.Wrap(err, "invalid taskID")
-		return
-	}
-
-	resp, err := c.operations.GetClusterClusterIDRepairTaskTaskID(&operations.GetClusterClusterIDRepairTaskTaskIDParams{
+	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitIDProgress(&operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		UnitID:    unitID,
-		TaskID:    taskID,
 	})
 	if err != nil {
 		return
@@ -180,7 +173,7 @@ func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, e
 		return "", err
 	}
 
-	unitID, err := extractUUIDFromLocation(resp.Location)
+	unitID, err := extractUnitIDFromLocation(resp.Location)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot parse response")
 	}
@@ -273,12 +266,22 @@ func (c *Client) clusterUUID() (string, error) {
 	return "", err
 }
 
-func isUUID(str string) error {
+func extractTaskIDFromLocation(location string) (uuid.UUID, error) {
+	l, err := url.Parse(location)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	id := l.Query().Get("task_id")
+
 	var u uuid.UUID
-	return u.UnmarshalText([]byte(str))
+	if err := u.UnmarshalText([]byte(id)); err != nil {
+		return uuid.Nil, err
+	}
+
+	return u, nil
 }
 
-func extractUUIDFromLocation(location string) (uuid.UUID, error) {
+func extractUnitIDFromLocation(location string) (uuid.UUID, error) {
 	l, err := url.Parse(location)
 	if err != nil {
 		return uuid.Nil, err

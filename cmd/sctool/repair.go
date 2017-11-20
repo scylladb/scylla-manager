@@ -11,10 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	cfgRepairUnit string
-	cfgRepairTask string
-)
+var cfgRepairUnit string
 
 var repairCmd = &cobra.Command{
 	Use:   "repair",
@@ -78,7 +75,7 @@ var repairProgressCmd = &cobra.Command{
 	Short: "Shows repair progress",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		status, progress, rows, err := client.RepairProgress(context.Background(), cfgRepairUnit, cfgRepairTask)
+		status, progress, rows, err := client.RepairProgress(context.Background(), cfgRepairUnit)
 		if err != nil {
 			return printableError{err}
 		}
@@ -103,9 +100,6 @@ var repairProgressCmd = &cobra.Command{
 func init() {
 	repairCmd.AddCommand(repairProgressCmd)
 	repairInitCommonFlags(repairProgressCmd)
-	repairProgressCmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
-
-	repairProgressCmd.MarkFlagRequired("task")
 }
 
 var repairUnitCmd = &cobra.Command{
