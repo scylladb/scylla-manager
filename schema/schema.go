@@ -82,6 +82,12 @@ func (t Table) init() Table {
 
 // Tables listing
 var (
+	Cluster = Table{
+		Name:    "cluster",
+		Columns: []string{"id", "name", "hosts", "shard_count"},
+		PartKey: []string{"id"},
+	}.init()
+
 	RepairConfig = Table{
 		Name:    "repair_config",
 		Columns: []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_shard_percent"},
