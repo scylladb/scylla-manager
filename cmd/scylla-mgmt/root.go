@@ -293,6 +293,7 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 		c.Consistency = gocql.LocalQuorum
 	}
 	c.Keyspace = config.Database.Keyspace
+	c.Timeout = config.Database.Timeout
 
 	// authentication
 	if config.Database.User != "" {

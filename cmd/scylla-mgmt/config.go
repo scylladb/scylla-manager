@@ -31,6 +31,7 @@ type dbConfig struct {
 	MigrateTimeout                time.Duration `yaml:"migrate_timeout"`
 	MigrateMaxWaitSchemaAgreement time.Duration `yaml:"migrate_max_wait_schema_agreement"`
 	ReplicationFactor             int           `yaml:"replication_factor"`
+	Timeout                       time.Duration `yaml:"timeout"`
 }
 
 type serverConfig struct {
@@ -52,6 +53,7 @@ func defaultConfig() *serverConfig {
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
+			Timeout:                       600 * time.Millisecond,
 		},
 	}
 }
