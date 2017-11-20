@@ -197,6 +197,24 @@ func init() {
 	repairUnitInitCommonFlags(repairUnitUpdateCmd)
 }
 
+var repairUnitDeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Removes repair unit",
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := client.DeleteRepairUnit(context.Background(), cfgRepairUnit); err != nil {
+			return printableError{err}
+		}
+
+		return nil
+	},
+}
+
+func init() {
+	repairUnitCmd.AddCommand(repairUnitDeleteCmd)
+	repairInitCommonFlags(repairUnitDeleteCmd)
+}
+
 var repairUnitListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Shows repair units",
