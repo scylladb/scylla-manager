@@ -227,6 +227,21 @@ func (c *Client) UpdateRepairUnit(ctx context.Context, unit string, u *RepairUni
 	return err
 }
 
+// DeleteRepairUnit removes existing repair unit.
+func (c *Client) DeleteRepairUnit(ctx context.Context, unit string) error {
+	clusterID, err := c.clusterUUID()
+	if err != nil {
+		return errors.Wrap(err, "invalid cluster")
+	}
+
+	_, err = c.operations.DeleteClusterClusterIDRepairUnitUnitID(&operations.DeleteClusterClusterIDRepairUnitUnitIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		UnitID:    unit,
+	})
+	return err
+}
+
 // ListRepairUnits returns repair units within a cluster.
 func (c *Client) ListRepairUnits(ctx context.Context) ([]*RepairUnit, error) {
 	clusterID, err := c.clusterUUID()
