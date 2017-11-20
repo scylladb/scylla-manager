@@ -267,7 +267,7 @@
         }
       }
     },
-    "/cluster/{cluster_id}/repair/unit/{unit_id}/repair": {
+    "/cluster/{cluster_id}/repair/unit/{unit_id}/start": {
       "put": {
         "parameters": [
           {
@@ -298,7 +298,7 @@
         }
       }
     },
-    "/cluster/{cluster_id}/repair/unit/{unit_id}/stop_repair": {
+    "/cluster/{cluster_id}/repair/unit/{unit_id}/stop": {
       "put": {
         "parameters": [
           {
@@ -324,6 +324,34 @@
                 "description": "location of the task",
                 "type": "string"
               }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/repair/unit/{unit_id}/progress": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "description": "cluster ID this API is performing on",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "unit ID requesting the stats",
+            "type": "string",
+            "name": "unit_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "percentage of run completed in total and details",
+            "schema": {
+              "$ref": "#/definitions/repairProgress"
             }
           }
         }
@@ -431,43 +459,6 @@
                 "description": "location of the new unit",
                 "type": "string"
               }
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster_id}/repair/task/{task_id}": {
-      "parameters": [
-        {
-          "type": "string",
-          "description": "cluster ID this API is performing on",
-          "name": "cluster_id",
-          "in": "path",
-          "required": true
-        },
-        {
-          "type": "string",
-          "description": "task ID requesting the stats",
-          "name": "task_id",
-          "in": "path",
-          "required": true
-        }
-      ],
-      "get": {
-        "parameters": [
-          {
-            "description": "unit ID requesting the stats",
-            "type": "string",
-            "name": "unit_id",
-            "in": "query",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "percentage of run completed in total and details",
-            "schema": {
-              "$ref": "#/definitions/repairProgress"
             }
           }
         }
