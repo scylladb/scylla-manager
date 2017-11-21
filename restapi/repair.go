@@ -141,6 +141,10 @@ func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
 		render.Respond(w, r, httpErrBadRequest(r, err))
 		return
 	}
+	if newUnit.ID != uuid.Nil {
+		render.Respond(w, r, httpErrBadRequest(r, errors.Errorf("unexpected ID %q", newUnit.ID)))
+		return
+	}
 
 	if err := h.svc.PutUnit(r.Context(), newUnit); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to create unit"))
