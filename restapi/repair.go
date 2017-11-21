@@ -252,7 +252,22 @@ type repairProgressResponse struct {
 func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 	u := h.mustUnitFromCtx(r)
 
-	run, err := h.svc.GetLastRun(r.Context(), u)
+	var (
+		run *repair.Run
+		err error
+	)
+
+	if taskID := r.FormValue("task_id"); taskID == "" {
+		run, err = h.svc.GetLastRun(r.Context(), u)
+	} else {
+		var t uuid.UUID
+		if err := t.UnmarshalText([]byte(taskID)); err != nil {
+			render.Respond(w, r, httpErrBadRequest(r, err))
+			return
+		}
+		run, err = h.svc.GetRun(r.Context(), u, t)
+	}
+
 	if err != nil {
 		notFoundOrInternal(w, r, err, "failed to load task")
 	}
