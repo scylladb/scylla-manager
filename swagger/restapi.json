@@ -345,6 +345,12 @@
             "name": "unit_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "task ID requesting the stats",
+            "name": "task_id",
+            "in": "query"
           }
         ],
         "responses": {
