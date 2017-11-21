@@ -325,7 +325,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 		_, err := s.GetUnitByID(ctx, u.ClusterID, u.ID)
 		if err != mermaid.ErrNotFound {
-			t.Fatal("expected nil")
+			t.Fatal(err)
 		}
 	})
 

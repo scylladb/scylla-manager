@@ -722,14 +722,14 @@ func (s *Service) GetUnit(ctx context.Context, clusterID uuid.UUID, idOrName str
 
 // GetUnitByID returns repair unit based on ID. If nothing was found
 // mermaid.ErrNotFound is returned.
-func (s *Service) GetUnitByID(ctx context.Context, clusterID, ID uuid.UUID) (*Unit, error) {
-	s.logger.Debug(ctx, "GetUnitByID", "cluster_id", clusterID, "id", ID)
+func (s *Service) GetUnitByID(ctx context.Context, clusterID, id uuid.UUID) (*Unit, error) {
+	s.logger.Debug(ctx, "GetUnitByID", "cluster_id", clusterID, "id", id)
 
 	stmt, names := schema.RepairUnit.Get()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": clusterID,
-		"id":         ID,
+		"id":         id,
 	})
 	if q.Err() != nil {
 		return nil, q.Err()
@@ -803,14 +803,14 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 }
 
 // DeleteUnit removes repair based on ID.
-func (s *Service) DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error {
-	s.logger.Debug(ctx, "DeleteUnit", "cluster_id", clusterID, "id", ID)
+func (s *Service) DeleteUnit(ctx context.Context, clusterID, id uuid.UUID) error {
+	s.logger.Debug(ctx, "DeleteUnit", "cluster_id", clusterID, "id", id)
 
 	stmt, names := schema.RepairUnit.Delete()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": clusterID,
-		"id":         ID,
+		"id":         id,
 	})
 
 	return q.ExecRelease()
