@@ -208,7 +208,7 @@ func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
 
 	run, err := h.svc.GetLastRun(r.Context(), u)
 	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load run")
+		notFoundOrInternal(w, r, err, "failed to load task")
 	}
 
 	if err := h.svc.StopRun(r.Context(), u, run.ID); err != nil {
@@ -250,7 +250,7 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 
 	run, err := h.svc.GetLastRun(r.Context(), u)
 	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load run")
+		notFoundOrInternal(w, r, err, "failed to load task")
 	}
 
 	resp, err := h.createProgressResponse(r, u, run)
