@@ -89,18 +89,23 @@ func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) 
 }
 
 // RepairProgress returns repair progress.
-func (c *Client) RepairProgress(ctx context.Context, unitID string) (status string, progress int, rows []RepairProgressRow, err error) {
+func (c *Client) RepairProgress(ctx context.Context, unitID, taskID string) (status string, progress int, rows []RepairProgressRow, err error) {
 	clusterID, err := c.clusterUUID()
 	if err != nil {
 		err = errors.Wrap(err, "invalid cluster")
 		return
 	}
 
-	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitIDProgress(&operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{
+	params := &operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		UnitID:    unitID,
-	})
+	}
+	if taskID != "" {
+		params.TaskID = &taskID
+	}
+
+	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitIDProgress(params)
 	if err != nil {
 		return
 	}
