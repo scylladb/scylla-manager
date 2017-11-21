@@ -67,6 +67,11 @@ type GetClusterClusterIDRepairUnitUnitIDProgressParams struct {
 
 	*/
 	ClusterID string
+	/*TaskID
+	  task ID requesting the stats
+
+	*/
+	TaskID *string
 	/*UnitID
 	  unit ID requesting the stats
 
@@ -122,6 +127,17 @@ func (o *GetClusterClusterIDRepairUnitUnitIDProgressParams) SetClusterID(cluster
 	o.ClusterID = clusterID
 }
 
+// WithTaskID adds the taskID to the get cluster cluster ID repair unit unit ID progress params
+func (o *GetClusterClusterIDRepairUnitUnitIDProgressParams) WithTaskID(taskID *string) *GetClusterClusterIDRepairUnitUnitIDProgressParams {
+	o.SetTaskID(taskID)
+	return o
+}
+
+// SetTaskID adds the taskId to the get cluster cluster ID repair unit unit ID progress params
+func (o *GetClusterClusterIDRepairUnitUnitIDProgressParams) SetTaskID(taskID *string) {
+	o.TaskID = taskID
+}
+
 // WithUnitID adds the unitID to the get cluster cluster ID repair unit unit ID progress params
 func (o *GetClusterClusterIDRepairUnitUnitIDProgressParams) WithUnitID(unitID string) *GetClusterClusterIDRepairUnitUnitIDProgressParams {
 	o.SetUnitID(unitID)
@@ -144,6 +160,22 @@ func (o *GetClusterClusterIDRepairUnitUnitIDProgressParams) WriteToRequest(r run
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
 		return err
+	}
+
+	if o.TaskID != nil {
+
+		// query param task_id
+		var qrTaskID string
+		if o.TaskID != nil {
+			qrTaskID = *o.TaskID
+		}
+		qTaskID := qrTaskID
+		if qTaskID != "" {
+			if err := r.SetQueryParam("task_id", qTaskID); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// path param unit_id
