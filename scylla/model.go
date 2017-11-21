@@ -8,8 +8,8 @@ type CommandStatus string
 // Command statuses
 const (
 	CommandRunning    CommandStatus = "RUNNING"
-	CommandSuccessful               = "SUCCESSFUL"
-	CommandFailed                   = "FAILED"
+	CommandSuccessful CommandStatus = "SUCCESSFUL"
+	CommandFailed     CommandStatus = "FAILED"
 )
 
 // Partitioners
