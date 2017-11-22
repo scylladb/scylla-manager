@@ -2,7 +2,11 @@
 
 package scylla
 
-import "github.com/scylladb/mermaid/uuid"
+import (
+	"context"
+
+	"github.com/scylladb/mermaid/uuid"
+)
 
 // ProviderFunc is a function that returns a Client for a given cluster.
-type ProviderFunc func(clusterID uuid.UUID) (*Client, error)
+type ProviderFunc func(ctx context.Context, clusterID uuid.UUID) (*Client, error)

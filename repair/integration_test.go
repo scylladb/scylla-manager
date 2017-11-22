@@ -30,7 +30,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	s, err := repair.NewService(
 		session,
-		func(uuid.UUID) (*scylla.Client, error) {
+		func(context.Context, uuid.UUID) (*scylla.Client, error) {
 			return nil, errors.New("not implemented")
 		},
 		log.NewDevelopment().Named("repair"),
@@ -526,7 +526,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	newService := func() *repair.Service {
 		s, err := repair.NewService(
 			session,
-			func(uuid.UUID) (*scylla.Client, error) {
+			func(context.Context, uuid.UUID) (*scylla.Client, error) {
 				c, err := scylla.NewClient(mermaidtest.ClusterHosts, logger.Named("scylla"))
 				if err != nil {
 					return nil, err

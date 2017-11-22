@@ -319,7 +319,7 @@ func scyllaProviderFunc(config *serverConfig, logger log.Logger) (scylla.Provide
 		})
 	}
 
-	return func(clusterID uuid.UUID) (*scylla.Client, error) {
+	return func(ctx context.Context, clusterID uuid.UUID) (*scylla.Client, error) {
 		c, ok := m[clusterID]
 		if !ok {
 			return nil, errors.Errorf("unknown cluster %s", clusterID)
