@@ -9,9 +9,9 @@ type ctxt byte
 
 // ctxt enumeration.
 const (
-	_host ctxt = iota
+	ctxHost ctxt = iota
 )
 
 func withHostPort(ctx context.Context, host string) context.Context {
-	return context.WithValue(ctx, _host, withPort(host))
+	return context.WithValue(ctx, ctxHost, withPort(host))
 }

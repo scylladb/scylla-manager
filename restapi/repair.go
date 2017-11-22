@@ -25,6 +25,9 @@ type RepairService interface {
 	PutUnit(ctx context.Context, u *repair.Unit) error
 	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 	ListUnits(ctx context.Context, clusterID uuid.UUID, f *repair.UnitFilter) ([]*repair.Unit, error)
+	// temporary
+	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
+	StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
 
 	GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.Config, error)
 	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error
@@ -33,10 +36,6 @@ type RepairService interface {
 	GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error)
 	GetLastRun(ctx context.Context, u *repair.Unit) (*repair.Run, error)
 	GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error)
-
-	// TEMPORARY
-	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
-	StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
 }
 
 type repairHandler struct {
@@ -51,25 +50,33 @@ func newRepairHandler(svc RepairService) http.Handler {
 	}
 
 	// unit
-	h.Get("/units", h.listUnits)
-	h.Post("/units", h.createUnit)
-	h.Get("/unit/{unit_id}", h.loadUnit)
-	h.Put("/unit/{unit_id}", h.updateUnit)
-	h.Delete("/unit/{unit_id}", h.deleteUnit)
-	// temporary
-	h.Put("/unit/{unit_id}/repair", h.startRepair)
-	h.Put("/unit/{unit_id}/stop_repair", h.stopRepair)
+	h.Route("/units", func(r chi.Router) {
+		r.Get("/", h.listUnits)
+		r.Post("/", h.createUnit)
+	})
+	h.Route("/unit/{unit_id}", func(r chi.Router) {
+		r.Use(h.unitCtx)
+		r.Get("/", h.loadUnit)
+		r.Put("/", h.updateUnit)
+		r.Delete("/", h.deleteUnit)
+		// temporary
+		r.Put("/start", h.startRepair)
+		r.Put("/stop", h.stopRepair)
+		r.Get("/progress", h.repairProgress)
+	})
 
 	// config
-	h.Get("/config", h.getConfig)
-	h.Get("/config/{config_type}/{external_id}", h.getConfig)
-	h.Put("/config", h.updateConfig)
-	h.Put("/config/{config_type}/{external_id}", h.updateConfig)
-	h.Delete("/config", h.deleteConfig)
-	h.Delete("/config/{config_type}/{external_id}", h.deleteConfig)
+	h.Route("/config", func(r chi.Router) {
+		r.Get("/", h.getConfig)
+		r.Put("/", h.updateConfig)
+		r.Delete("/", h.deleteConfig)
 
-	// task
-	h.Get("/task/{task_id}", h.repairProgress)
+		r.Route("/{config_type}/{external_id}", func(r chi.Router) {
+			r.Get("/", h.getConfig)
+			r.Put("/", h.updateConfig)
+			r.Delete("/", h.deleteConfig)
+		})
+	})
 
 	return h
 }
@@ -78,18 +85,40 @@ func newRepairHandler(svc RepairService) http.Handler {
 // unit
 //
 
-type repairUnitRequest struct {
-	*repair.Unit
+func (h *repairHandler) unitCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		unitID := chi.URLParam(r, "unit_id")
+		if unitID == "" {
+			render.Respond(w, r, httpErrBadRequest(r, errors.New("missing unit ID")))
+			return
+		}
+
+		u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
+		if err != nil {
+			notFoundOrInternal(w, r, err, "failed to load unit")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), ctxRepairUnit, u)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
-func parseUnitRequest(r *http.Request) (repairUnitRequest, error) {
-	var u repairUnitRequest
+func (h *repairHandler) mustUnitFromCtx(r *http.Request) *repair.Unit {
+	u, ok := r.Context().Value(ctxRepairUnit).(*repair.Unit)
+	if !ok {
+		panic("missing repair unit in context")
+	}
+	return u
+}
+
+func (h *repairHandler) parseUnit(r *http.Request) (*repair.Unit, error) {
+	var u repair.Unit
 	if err := render.DecodeJSON(r.Body, &u); err != nil {
-		return repairUnitRequest{}, httpErrBadRequest(r, err)
+		return nil, err
 	}
 	u.ClusterID = clusterIDFromCtx(r.Context())
-
-	return u, nil
+	return &u, nil
 }
 
 func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
@@ -107,82 +136,52 @@ func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
-	newUnit, err := parseUnitRequest(r)
+	newUnit, err := h.parseUnit(r)
 	if err != nil {
-		render.Respond(w, r, err)
+		render.Respond(w, r, httpErrBadRequest(r, err))
+		return
+	}
+	if newUnit.ID != uuid.Nil {
+		render.Respond(w, r, httpErrBadRequest(r, errors.Errorf("unexpected ID %q", newUnit.ID)))
 		return
 	}
 
-	if newUnit.ID, err = uuid.NewRandom(); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to generate a unit ID "))
-		return
-	}
-
-	if err := h.svc.PutUnit(r.Context(), newUnit.Unit); err != nil {
+	if err := h.svc.PutUnit(r.Context(), newUnit); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to create unit"))
 		return
 	}
 
-	unitURL := r.URL.ResolveReference(&url.URL{Path: path.Join("unit", newUnit.Unit.ID.String())})
-	w.Header().Set("Location", unitURL.String())
+	location := r.URL.ResolveReference(&url.URL{
+		Path: path.Join("unit", newUnit.ID.String()),
+	})
+	w.Header().Set("Location", location.String())
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *repairHandler) loadUnit(w http.ResponseWriter, r *http.Request) {
-	unitID, err := reqUnitID(r)
-	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
-
-	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load unit")
-		return
-	}
+	u := h.mustUnitFromCtx(r)
 	render.Respond(w, r, u)
 }
 
 func (h *repairHandler) updateUnit(w http.ResponseWriter, r *http.Request) {
-	unitID, err := reqUnitID(r)
+	u := h.mustUnitFromCtx(r)
+
+	newUnit, err := h.parseUnit(r)
 	if err != nil {
 		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
-
-	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load unit")
-		return
-	}
-
-	newUnit, err := parseUnitRequest(r)
-	if err != nil {
-		render.Respond(w, r, err)
 		return
 	}
 	newUnit.ID = u.ID
 
-	err = h.svc.PutUnit(r.Context(), newUnit.Unit)
-	if err != nil {
+	if err := h.svc.PutUnit(r.Context(), newUnit); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to update unit"))
 		return
 	}
-	render.Respond(w, r, newUnit.Unit)
+	render.Respond(w, r, newUnit)
 }
 
 func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
-	unitID, err := reqUnitID(r)
-	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
-
-	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load unit")
-		return
-	}
+	u := h.mustUnitFromCtx(r)
 
 	if err := h.svc.DeleteUnit(r.Context(), clusterIDFromCtx(r.Context()), u.ID); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to delete unit"))
@@ -191,17 +190,7 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
-	unitID, err := reqUnitID(r)
-	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
-
-	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load unit")
-		return
-	}
+	u := h.mustUnitFromCtx(r)
 
 	taskID := uuid.NewTime()
 
@@ -210,43 +199,141 @@ func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repairURL := r.URL.ResolveReference(&url.URL{
-		Path:     path.Join("../../task", taskID.String()),
-		RawQuery: fmt.Sprintf("unit_id=%s", unitID)},
-	)
-	w.Header().Set("Location", repairURL.String())
+	location := r.URL.ResolveReference(&url.URL{
+		Path:     "progress",
+		RawQuery: fmt.Sprintf("task_id=%s", taskID),
+	})
+	w.Header().Set("Location", location.String())
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
-	unitID, err := reqUnitID(r)
-	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
+	u := h.mustUnitFromCtx(r)
 
-	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load unit")
-		return
-	}
-
-	task, err := h.svc.GetLastRun(r.Context(), u)
+	run, err := h.svc.GetLastRun(r.Context(), u)
 	if err != nil {
 		notFoundOrInternal(w, r, err, "failed to load task")
 	}
 
-	if err := h.svc.StopRun(r.Context(), u, task.ID); err != nil {
+	if err := h.svc.StopRun(r.Context(), u, run.ID); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to stop repair"))
 		return
 	}
 
-	repairURL := r.URL.ResolveReference(&url.URL{
-		Path:     path.Join("../../task", task.ID.String()),
-		RawQuery: fmt.Sprintf("unit_id=%s", unitID)},
-	)
-	w.Header().Set("Location", repairURL.String())
+	location := r.URL.ResolveReference(&url.URL{
+		Path:     "../progress",
+		RawQuery: fmt.Sprintf("task_id=%s", run.ID),
+	})
+	w.Header().Set("Location", location.String())
 	w.WriteHeader(http.StatusCreated)
+}
+
+type repairProgress struct {
+	PercentComplete int `json:"percent_complete"`
+	Total           int `json:"total"`
+	Success         int `json:"success"`
+	Error           int `json:"error"`
+}
+
+type repairHostProgress struct {
+	repairProgress
+	Shards map[int]*repairProgress `json:"shards"`
+}
+
+type repairProgressResponse struct {
+	Keyspace string        `json:"keyspace"`
+	Tables   []string      `json:"tables"`
+	Status   repair.Status `json:"status"`
+	repairProgress
+
+	Hosts map[string]*repairHostProgress `json:"hosts"`
+}
+
+func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
+	u := h.mustUnitFromCtx(r)
+
+	var (
+		run *repair.Run
+		err error
+	)
+
+	if taskID := r.FormValue("task_id"); taskID == "" {
+		run, err = h.svc.GetLastRun(r.Context(), u)
+	} else {
+		var t uuid.UUID
+		if err := t.UnmarshalText([]byte(taskID)); err != nil {
+			render.Respond(w, r, httpErrBadRequest(r, err))
+			return
+		}
+		run, err = h.svc.GetRun(r.Context(), u, t)
+	}
+
+	if err != nil {
+		notFoundOrInternal(w, r, err, "failed to load task")
+	}
+
+	resp, err := h.createProgressResponse(r, u, run)
+	if err != nil {
+		render.Respond(w, r, err)
+		return
+	}
+
+	render.Respond(w, r, resp)
+}
+
+func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
+	runs, err := h.svc.GetProgress(r.Context(), u, t.ID)
+	if err != nil {
+		return nil, httpErrInternal(r, err, "failed to load task repairProgress")
+	}
+
+	if len(runs) == 0 {
+		return nil, httpErrNotFound(r, err)
+	}
+
+	resp := &repairProgressResponse{
+		Keyspace: t.Keyspace,
+		Tables:   t.Tables,
+		Status:   t.Status,
+		Hosts:    make(map[string]*repairHostProgress),
+	}
+	for _, r := range runs {
+		if _, exists := resp.Hosts[r.Host]; !exists {
+			resp.Hosts[r.Host] = &repairHostProgress{
+				Shards: make(map[int]*repairProgress),
+			}
+		}
+
+		if r.SegmentCount == 0 {
+			resp.Hosts[r.Host].Shards[r.Shard] = &repairProgress{}
+			continue
+		}
+		resp.Hosts[r.Host].Shards[r.Shard] = &repairProgress{
+			PercentComplete: int(100 * float64(r.SegmentSuccess+r.SegmentError) / float64(r.SegmentCount)),
+			Total:           r.SegmentCount,
+			Success:         r.SegmentSuccess,
+			Error:           r.SegmentError,
+		}
+	}
+
+	var totalSum float64
+	for _, hostProgress := range resp.Hosts {
+		var sum float64
+		for _, s := range hostProgress.Shards {
+			sum += float64(s.PercentComplete)
+			hostProgress.Total += s.Total
+			hostProgress.Success += s.Success
+			hostProgress.Error += s.Error
+		}
+		sum /= float64(len(hostProgress.Shards))
+		totalSum += sum
+		hostProgress.PercentComplete = int(sum)
+		resp.Total += hostProgress.Total
+		resp.Success += hostProgress.Success
+		resp.Error += hostProgress.Error
+	}
+	resp.PercentComplete = int(totalSum / float64(len(resp.Hosts)))
+	return resp, nil
 }
 
 //
@@ -326,117 +413,4 @@ func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
 	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to delete config"))
 	}
-}
-
-//
-// task
-//
-
-type repairProgress struct {
-	PercentComplete int `json:"percent_complete"`
-	Total           int `json:"total"`
-	Success         int `json:"success"`
-	Error           int `json:"error"`
-}
-
-type repairHostProgress struct {
-	repairProgress
-	Shards map[int]*repairProgress `json:"shards"`
-}
-
-type repairProgressResponse struct {
-	Keyspace string        `json:"keyspace"`
-	Tables   []string      `json:"tables"`
-	Status   repair.Status `json:"status"`
-	repairProgress
-
-	Hosts map[string]*repairHostProgress `json:"hosts"`
-}
-
-func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
-	unitID, err := reqUnitIDQuery(r)
-	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
-
-	u, err := h.svc.GetUnit(r.Context(), clusterIDFromCtx(r.Context()), unitID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load unit")
-		return
-	}
-
-	var taskID uuid.UUID
-	if err := taskID.UnmarshalText([]byte(chi.URLParam(r, "task_id"))); err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
-		return
-	}
-
-	taskRun, err := h.svc.GetRun(r.Context(), u, taskID)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load task")
-		return
-	}
-
-	resp, err := h.progressResponse(r, u, taskRun)
-	if err != nil {
-		render.Respond(w, r, err)
-		return
-	}
-	render.Respond(w, r, resp)
-}
-
-func (h *repairHandler) progressResponse(r *http.Request, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
-	runs, err := h.svc.GetProgress(r.Context(), u, t.ID)
-	if err != nil {
-		return nil, httpErrInternal(r, err, "failed to load task progress")
-	}
-
-	if len(runs) == 0 {
-		return nil, httpErrNotFound(r, err)
-	}
-
-	resp := &repairProgressResponse{
-		Keyspace: t.Keyspace,
-		Tables:   t.Tables,
-		Status:   t.Status,
-		Hosts:    make(map[string]*repairHostProgress),
-	}
-	for _, r := range runs {
-		if _, exists := resp.Hosts[r.Host]; !exists {
-			resp.Hosts[r.Host] = &repairHostProgress{
-				Shards: make(map[int]*repairProgress),
-			}
-		}
-
-		if r.SegmentCount == 0 {
-			resp.Hosts[r.Host].Shards[r.Shard] = &repairProgress{}
-			continue
-		}
-		resp.Hosts[r.Host].Shards[r.Shard] = &repairProgress{
-			PercentComplete: int(100 * float64(r.SegmentSuccess+r.SegmentError) / float64(r.SegmentCount)),
-			Total:           r.SegmentCount,
-			Success:         r.SegmentSuccess,
-			Error:           r.SegmentError,
-		}
-	}
-
-	var totalSum float64
-	for _, hostProgress := range resp.Hosts {
-		var sum float64
-		for _, s := range hostProgress.Shards {
-			sum += float64(s.PercentComplete)
-			hostProgress.Total += s.Total
-			hostProgress.Success += s.Success
-			hostProgress.Error += s.Error
-		}
-		sum /= float64(len(hostProgress.Shards))
-		totalSum += sum
-		hostProgress.PercentComplete = int(sum)
-		resp.Total += hostProgress.Total
-		resp.Success += hostProgress.Success
-		resp.Error += hostProgress.Error
-	}
-	resp.PercentComplete = int(totalSum / float64(len(resp.Hosts)))
-	return resp, nil
 }

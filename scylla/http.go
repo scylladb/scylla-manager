@@ -29,7 +29,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	)
 
 	// get host from context
-	h, ok := ctx.Value(_host).(string)
+	h, ok := ctx.Value(ctxHost).(string)
 
 	// get host from pool
 	if !ok {

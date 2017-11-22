@@ -37,6 +37,7 @@ func TestNewConfigFromFile(t *testing.T) {
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             3,
+			Timeout:                       600 * time.Millisecond,
 		},
 		Clusters: []*clusterConfig{
 			{

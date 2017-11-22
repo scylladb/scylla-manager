@@ -104,8 +104,6 @@ func init() {
 	repairCmd.AddCommand(repairProgressCmd)
 	repairInitCommonFlags(repairProgressCmd)
 	repairProgressCmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
-
-	repairProgressCmd.MarkFlagRequired("task")
 }
 
 var repairUnitCmd = &cobra.Command{

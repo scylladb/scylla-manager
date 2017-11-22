@@ -47,31 +47,34 @@ func TestRepairAPI(t *testing.T) {
 
 	var createdUnitID uuid.UUID
 
+	basePath := "/api/v1/cluster/" + uuid1.String() + "/repair"
+
 	table := []struct {
 		Name           string
 		Method         string
 		Path           string
-		ClusterID      uuid.UUID
 		Body           io.Reader
 		ExpectedStatus int
 		SetupMock      func(*testing.T, *gomock.Controller) *mermaidmock.MockRepairService
 		Check          func(*testing.T, *http.Response)
 	}{
 		{Name: "CreateUnit",
-			Method: http.MethodPost,
-			Path:   "/api/v1/cluster/{cluster_id}/repair/units", ClusterID: uuid1,
+			Method:         http.MethodPost,
+			Path:           "/units",
 			Body:           strings.NewReader(`{"keyspace": "foo2", "tables": ["table7", "table8"]}`),
 			ExpectedStatus: http.StatusCreated,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
 				svc := mermaidmock.NewMockRepairService(ctrl)
 				svc.EXPECT().PutUnit(gomock.Any(), gomock.Any()).Do(func(_ interface{}, u *repair.Unit) {
-					if u.ID == uuid.Nil {
-						t.Fail()
+					if u.ID != uuid.Nil {
+						t.Fatal("expected nil uuid")
 					}
 					if u.ClusterID != uuid1 || u.Keyspace != "foo2" || u.Tables[0] != "table7" || u.Tables[1] != "table8" {
-						t.Fail()
+						t.Fatal(u)
 					}
+
+					u.ID = uuid.MustRandom()
 					createdUnitID = u.ID
 				})
 
@@ -92,9 +95,9 @@ func TestRepairAPI(t *testing.T) {
 		},
 
 		{
-			Name:   "ListUnits",
-			Method: http.MethodGet,
-			Path:   "/api/v1/cluster/{cluster_id}/repair/units", ClusterID: uuid1,
+			Name:           "ListUnits",
+			Method:         http.MethodGet,
+			Path:           "/units",
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
@@ -136,9 +139,9 @@ func TestRepairAPI(t *testing.T) {
 		},
 
 		{
-			Name:   "ListUnits/empty returns empty array",
-			Method: http.MethodGet,
-			Path:   "/api/v1/cluster/{cluster_id}/repair/units", ClusterID: uuid1,
+			Name:           "ListUnits/empty returns empty array",
+			Method:         http.MethodGet,
+			Path:           "/units",
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
@@ -163,9 +166,9 @@ func TestRepairAPI(t *testing.T) {
 		},
 
 		{
-			Name:   "GetNonExistantUnit",
-			Method: http.MethodGet,
-			Path:   "/api/v1/cluster/{cluster_id}/repair/unit/" + uuid3.String(), ClusterID: uuid1,
+			Name:           "GetNonExistantUnit",
+			Method:         http.MethodGet,
+			Path:           fmt.Sprintf("/unit/%s", uuid3),
 			ExpectedStatus: http.StatusNotFound,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
@@ -176,15 +179,15 @@ func TestRepairAPI(t *testing.T) {
 		},
 
 		{
-			Name:   "GetExistingUnit",
-			Method: http.MethodGet,
-			Path:   "/api/v1/cluster/{cluster_id}/repair/unit/" + uuid1.String(), ClusterID: uuid2,
+			Name:           "GetExistingUnit",
+			Method:         http.MethodGet,
+			Path:           fmt.Sprintf("/unit/%s", uuid2),
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
 				svc := mermaidmock.NewMockRepairService(ctrl)
-				svc.EXPECT().GetUnit(gomock.Any(), uuid2, uuid1.String()).Return(
-					&repair.Unit{ID: uuid1, ClusterID: uuid2, Keyspace: "keyspace0", Tables: []string{"tbl1", "tbl2"}}, nil)
+				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid2.String()).Return(
+					&repair.Unit{ID: uuid2, ClusterID: uuid1, Keyspace: "keyspace0", Tables: []string{"tbl1", "tbl2"}}, nil)
 				return svc
 			},
 
@@ -194,16 +197,16 @@ func TestRepairAPI(t *testing.T) {
 				if err := dec.Decode(&u); err != nil {
 					t.Fatal("json decode failed:", err)
 				}
-				if u.ID != uuid1 {
-					t.Fatal("unit ID mismatch", uuid1, u)
+				if u.ID != uuid2 {
+					t.Fatal("unit ID mismatch", uuid2, u)
 				}
 			},
 		},
 
 		{
-			Name:   "DeleteUnit",
-			Method: "DELETE",
-			Path:   "/api/v1/cluster/{cluster_id}/repair/unit/" + uuid2.String(), ClusterID: uuid1,
+			Name:           "DeleteUnit",
+			Method:         "DELETE",
+			Path:           fmt.Sprintf("/unit/%s", uuid2),
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
@@ -215,22 +218,9 @@ func TestRepairAPI(t *testing.T) {
 		},
 
 		{
-			Name:           "TaskStats/missing-unit-ID",
-			Method:         http.MethodGet,
-			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s", uuid2),
-			ClusterID:      uuid1,
-			ExpectedStatus: http.StatusBadRequest,
-
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				return mermaidmock.NewMockRepairService(ctrl)
-			},
-		},
-
-		{
 			Name:           "RepairProgress/pre-init",
 			Method:         http.MethodGet,
-			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s?unit_id=%s", uuid2, uuid3),
-			ClusterID:      uuid1,
+			Path:           fmt.Sprintf("/unit/%s/progress", uuid3),
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
@@ -242,11 +232,14 @@ func TestRepairAPI(t *testing.T) {
 					ClusterID: uuid1,
 					Tables:    tables,
 				}, nil)
-				svc.EXPECT().GetRun(gomock.Any(), gomock.Any(), uuid2).Return(
+				svc.EXPECT().GetLastRun(gomock.Any(), gomock.Any()).Do(func(_ interface{}, u *repair.Unit) {
+					if u.ID != uuid3 {
+						t.Fatal("expected", uuid3, "got", u.ID)
+					}
+				}).Return(
 					&repair.Run{ID: uuid2, UnitID: uuid3, ClusterID: uuid1, Keyspace: "test_keyspace", Tables: tables, Status: repair.StatusRunning},
 					nil,
 				)
-
 				svc.EXPECT().GetProgress(gomock.Any(), gomock.Any(), uuid2).Return([]*repair.RunProgress{
 					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.20"},
 					{ClusterID: uuid1, RunID: uuid2, UnitID: uuid3, Host: "172.16.1.4"},
@@ -276,8 +269,7 @@ func TestRepairAPI(t *testing.T) {
 		{
 			Name:           "RepairProgress/partial-start",
 			Method:         http.MethodGet,
-			Path:           fmt.Sprintf("/api/v1/cluster/{cluster_id}/repair/task/%s?unit_id=%s", uuid2, uuid3),
-			ClusterID:      uuid1,
+			Path:           fmt.Sprintf("/unit/%s/progress", uuid3),
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
@@ -289,7 +281,11 @@ func TestRepairAPI(t *testing.T) {
 					ClusterID: uuid1,
 					Tables:    tables,
 				}, nil)
-				svc.EXPECT().GetRun(gomock.Any(), gomock.Any(), uuid2).Return(
+				svc.EXPECT().GetLastRun(gomock.Any(), gomock.Any()).Do(func(_ interface{}, u *repair.Unit) {
+					if u.ID != uuid3 {
+						t.Fatal("expected", uuid3, "got", u.ID)
+					}
+				}).Return(
 					&repair.Run{ID: uuid2, UnitID: uuid3, ClusterID: uuid1, Keyspace: "test_keyspace", Tables: tables, Status: repair.StatusRunning},
 					nil,
 				)
@@ -326,7 +322,7 @@ func TestRepairAPI(t *testing.T) {
 			defer ctrl.Finish()
 
 			h := restapi.New(test.SetupMock(t, ctrl), logger)
-			r := httptest.NewRequest(test.Method, strings.Replace(test.Path, "{cluster_id}", test.ClusterID.String(), 1), test.Body)
+			r := httptest.NewRequest(test.Method, basePath+test.Path, test.Body)
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, r)
 			resp := w.Result()
