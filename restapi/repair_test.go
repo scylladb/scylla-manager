@@ -321,7 +321,9 @@ func TestRepairAPI(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			h := restapi.New(test.SetupMock(t, ctrl), logger)
+			h := restapi.New(&restapi.Services{
+				Repair: test.SetupMock(t, ctrl),
+			}, logger)
 			r := httptest.NewRequest(test.Method, basePath+test.Path, test.Body)
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, r)
