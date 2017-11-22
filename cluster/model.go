@@ -9,10 +9,10 @@ import (
 
 // Cluster specifies a cluster properties.
 type Cluster struct {
-	ID         uuid.UUID
-	Name       string
-	Hosts      []string
-	ShardCount int64
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Hosts      []string  `json:"hosts"`
+	ShardCount int64     `json:"shard_count"`
 }
 
 // Validate checks if all the fields are properly set.
