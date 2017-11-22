@@ -10,24 +10,25 @@ CREATE TYPE schedule (
 CREATE TABLE scheduler_task (
     cluster_id uuid,
     type text,
-    external_id text,
+    id uuid,
+    name text,
     tags set<text>,
     metadata text,
     enabled boolean,
     sched frozen<schedule>,
     properties map<text, text>,
-    PRIMARY KEY (cluster_id, type, external_id)
+    PRIMARY KEY (cluster_id, type, id)
 );
 
 CREATE TABLE scheduler_task_run (
     cluster_id uuid,
     type text,
-    external_id text,
+    task_id uuid,
     id timeuuid,
     status text,
     cause text,
     owner text,
     start_time timestamp,
     end_time timestamp,
-    PRIMARY KEY ((cluster_id, type, external_id), id)
+    PRIMARY KEY ((cluster_id, type, task_id), id)
 ) WITH CLUSTERING ORDER BY (id DESC);

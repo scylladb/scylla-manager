@@ -118,15 +118,15 @@ var (
 
 	SchedTask = Table{
 		Name:    "scheduler_task",
-		Columns: []string{"cluster_id", "type", "external_id", "tags", "metadata", "enabled", "sched", "properties"},
+		Columns: []string{"cluster_id", "type", "id", "name", "tags", "metadata", "enabled", "sched", "properties"},
 		PartKey: []string{"cluster_id"},
-		SortKey: []string{"type", "external_id"},
+		SortKey: []string{"type", "id"},
 	}.init()
 
 	SchedRun = Table{
 		Name:    "scheduler_task_run",
-		Columns: []string{"cluster_id", "type", "external_id", "id", "status", "cause", "owner", "start_time", "end_time"},
-		PartKey: []string{"cluster_id", "type", "external_id"},
+		Columns: []string{"cluster_id", "type", "task_id", "id", "status", "cause", "owner", "start_time", "end_time"},
+		PartKey: []string{"cluster_id", "type", "task_id"},
 		SortKey: []string{"id"},
 	}.init()
 )

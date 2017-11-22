@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/mermaid/log/gocqllog"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
+	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
@@ -144,6 +145,15 @@ var rootCmd = &cobra.Command{
 		}
 		if err := repairSvc.FixRunStatus(ctx); err != nil {
 			return errors.Wrapf(err, "repair service error")
+		}
+
+		// create scheduler service
+		schedSvc, err := sched.NewService(session, provider, logger.Named("scheduler"), repairSvc)
+		if err != nil {
+			return errors.Wrapf(err, "scheduler service error")
+		}
+		if err := schedSvc.LoadTasks(ctx); err != nil {
+			return errors.Wrapf(err, "schedule service error")
 		}
 
 		// create REST handler

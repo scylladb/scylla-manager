@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
@@ -882,4 +884,43 @@ func (s *Service) Close(ctx context.Context) {
 	s.logger.Info(ctx, "Waiting for workers to exit")
 	s.workerCancel()
 	s.wg.Wait()
+}
+
+// implement sched/runner.Runner
+
+func (s *Service) RunTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
+	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
+	if err != nil {
+		return err
+	}
+	return s.Repair(ctx, u, taskID)
+}
+
+func (s *Service) StopTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
+	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
+	if err != nil {
+		return err
+	}
+	return s.StopRun(ctx, u, taskID)
+}
+
+func (s *Service) TaskStatus(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
+	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
+	if err != nil {
+		return "", err
+	}
+	run, err := s.GetRun(ctx, u, taskID)
+	if err != nil {
+		return "", err
+	}
+	switch run.Status {
+	case StatusRunning, StatusStopping:
+		return runner.StatusRunning, nil
+	case StatusError:
+		return runner.StatusError, nil
+	case StatusDone, StatusStopped:
+		return runner.StatusStopped, nil
+	default:
+		return "", fmt.Errorf("unmapped repair service state %q", run.Status)
+	}
 }

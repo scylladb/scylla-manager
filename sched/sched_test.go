@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -19,12 +20,12 @@ func makeSchedule(startDate time.Time, interval, numRetries int) Schedule {
 	}
 }
 
-func makeHistory(startDate time.Time, runStatus ...Status) []*Run {
+func makeHistory(startDate time.Time, runStatus ...runner.Status) []*Run {
 	runs := make([]*Run, 0, len(runStatus))
 	for i, s := range runStatus {
 		runs = append(runs, &Run{
 			ID:        uuid.NewTime(),
-			StartTime: startDate.Add(time.Duration(i) * time.Hour),
+			StartTime: startDate.Add(time.Duration(i) * retryTaskWait),
 			Status:    s,
 		})
 	}
@@ -32,7 +33,7 @@ func makeHistory(startDate time.Time, runStatus ...Status) []*Run {
 }
 
 func TestSchedNextActivation(t *testing.T) {
-	now := time.Now().UTC()
+	now := timeNow().UTC()
 	t0 := now.AddDate(0, 0, -7)
 	t1 := t0.AddDate(0, 0, 2)
 
@@ -44,37 +45,37 @@ func TestSchedNextActivation(t *testing.T) {
 		// no history
 		{
 			schedule:       makeSchedule(t0, 7, 3),
-			nextActivation: now.Add(time.Hour),
+			nextActivation: now.Add(retryTaskWait),
 		},
 		// short (old) history 1
 		{
 			schedule:       makeSchedule(t0, 7, 3),
-			history:        makeHistory(t1, StatusError),
-			nextActivation: now.Add(time.Hour),
+			history:        makeHistory(t1, runner.StatusError),
+			nextActivation: now.Add(retryTaskWait),
 		},
 		// short (old) history 2
 		{
 			schedule:       makeSchedule(t0, 7, 3),
-			history:        makeHistory(t1, StatusError, StatusError),
-			nextActivation: now.Add(time.Hour),
+			history:        makeHistory(t1, runner.StatusError, runner.StatusError),
+			nextActivation: now.Add(retryTaskWait),
 		},
 		// short (recent) history
 		{
 			schedule:       makeSchedule(t0, 7, 3),
-			history:        makeHistory(now.Add(-30*time.Minute), StatusError),
-			nextActivation: now.Add(30 * time.Minute),
+			history:        makeHistory(now.Add(-retryTaskWait/2), runner.StatusError),
+			nextActivation: now.Add(retryTaskWait / 2),
 		},
 		// full history, too many activations to retry again, waiting for full interval period.
 		{
 			schedule:       makeSchedule(t0, 7, 3),
-			history:        makeHistory(t1, StatusError, StatusError, StatusError),
-			nextActivation: t1.Add(2*time.Hour).AddDate(0, 0, 7),
+			history:        makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
+			nextActivation: t1.Add(2*retryTaskWait).AddDate(0, 0, 7),
 		},
 		// full (old) history, retries allowed.
 		{
 			schedule:       makeSchedule(t0, 7, 3),
-			history:        makeHistory(t1, StatusError, StatusStopped, StatusError),
-			nextActivation: now.Add(time.Hour),
+			history:        makeHistory(t1, runner.StatusError, runner.StatusStopped, runner.StatusError),
+			nextActivation: now.Add(retryTaskWait),
 		},
 	}
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -78,14 +79,14 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 		retries := 0
 		for i := len(runs) - 1; i >= 0; i-- {
 			retries++
-			if runs[i].Status == StatusStopped {
+			if runs[i].Status == runner.StatusStopped {
 				break
 			}
 		}
 		if retries < s.NumRetries {
-			t := lastStart.Add(time.Hour)
+			t := lastStart.Add(retryTaskWait)
 			if t.Before(now) {
-				return now.Add(time.Hour)
+				return now.Add(retryTaskWait)
 			}
 			return t
 		}
@@ -100,13 +101,14 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 
 // Task is a schedulable entity.
 type Task struct {
-	ClusterID  uuid.UUID `json:"cluster_id"`
-	Type       TaskType  `json:"type"`
-	ExternalID string    `json:"external_id"`
-	Tags       []string  `json:"tags"`
-	Metadata   string    `json:"metadata"`
-	Enabled    bool      `json:"enabled"`
-	Sched      Schedule  `json:"schedule"`
+	ClusterID uuid.UUID `json:"cluster_id"`
+	Type      TaskType  `json:"type"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Tags      []string  `json:"tags"`
+	Metadata  string    `json:"metadata"`
+	Enabled   bool      `json:"enabled"`
+	Sched     Schedule  `json:"schedule"`
 
 	Properties map[string]string `json:"properties"`
 }
@@ -116,8 +118,8 @@ func (t *Task) Validate() error {
 	if t == nil {
 		return errors.New("nil task")
 	}
-	if t.ExternalID == "" {
-		return errors.New("empty external ID")
+	if t.ID == uuid.Nil {
+		return errors.New("missing ID")
 	}
 	if t.ClusterID == uuid.Nil {
 		return errors.New("missing ClusterID")
@@ -134,55 +136,15 @@ func (t *Task) Validate() error {
 	return nil
 }
 
-// Status specifies the status of a Run.
-type Status string
-
-// Status enumeration.
-const (
-	StatusStarting Status = "starting"
-	StatusRunning  Status = "running"
-	StatusStopping Status = "stopping"
-	StatusStopped  Status = "stopped"
-	StatusError    Status = "error"
-)
-
-func (s Status) String() string {
-	return string(s)
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s Status) MarshalText() (text []byte, err error) {
-	return []byte(s.String()), nil
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *Status) UnmarshalText(text []byte) error {
-	switch Status(text) {
-	case StatusStarting:
-		*s = StatusStarting
-	case StatusRunning:
-		*s = StatusRunning
-	case StatusStopping:
-		*s = StatusStopping
-	case StatusStopped:
-		*s = StatusStopped
-	case StatusError:
-		*s = StatusError
-	default:
-		return fmt.Errorf("unrecognized Status %q", text)
-	}
-	return nil
-}
-
 // Run describes a running instance of a Task.
 type Run struct {
-	ID         uuid.UUID `json:"id"`
-	Type       TaskType  `json:"type"`
-	ClusterID  uuid.UUID `json:"cluster_id"`
-	ExternalID string    `json:"external_id"`
-	Status     Status    `json:"status"`
-	Cause      string    `json:"cause"`
-	Owner      string    `json:"owner"`
-	StartTime  time.Time `json:"start_time"`
-	EndTime    time.Time `json:"end_time"`
+	ID        uuid.UUID     `json:"id"`
+	Type      TaskType      `json:"type"`
+	ClusterID uuid.UUID     `json:"cluster_id"`
+	TaskID    uuid.UUID     `json:"task_id"`
+	Status    runner.Status `json:"status"`
+	Cause     string        `json:"cause"`
+	Owner     string        `json:"owner"`
+	StartTime time.Time     `json:"start_time"`
+	EndTime   time.Time     `json:"end_time"`
 }
