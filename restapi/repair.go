@@ -122,17 +122,17 @@ func (h *repairHandler) parseUnit(r *http.Request) (*repair.Unit, error) {
 }
 
 func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
-	ids, err := h.svc.ListUnits(r.Context(), clusterIDFromCtx(r.Context()), &repair.UnitFilter{})
+	units, err := h.svc.ListUnits(r.Context(), clusterIDFromCtx(r.Context()), &repair.UnitFilter{})
 	if err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to list units"))
 		return
 	}
 
-	if len(ids) == 0 {
-		render.Respond(w, r, []string{})
+	if len(units) == 0 {
+		render.Respond(w, r, []struct{}{})
 		return
 	}
-	render.Respond(w, r, ids)
+	render.Respond(w, r, units)
 }
 
 func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
