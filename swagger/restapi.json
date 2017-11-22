@@ -12,6 +12,27 @@
     "application/json"
   ],
   "definitions": {
+    "cluster": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shard_count": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
     "repairConfig": {
       "type": "object",
       "properties": {
@@ -157,6 +178,97 @@
     }
   },
   "paths": {
+    "/clusters": {
+      "get": {
+        "description": "listClusters Description",
+        "responses": {
+          "200": {
+            "description": "list of all the clusters",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/cluster"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "createCluster Description",
+        "parameters": [
+          {
+            "description": "unit JSON object with updated fields",
+            "name": "cluster",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "Location": {
+                "description": "location of the new unit",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}": {
+      "parameters": [
+        {
+          "type": "string",
+          "description": "cluster ID this API is performing on",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "description": "loadCluster Description",
+        "responses": {
+          "200": {
+            "description": "requested unit fields",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "updateCluster Description",
+        "parameters": [
+          {
+            "description": "unit JSON object with updated fields",
+            "name": "cluster",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "updated unit fields",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "deleteCluster Description",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/cluster/{cluster_id}/repair/config": {
       "parameters": [
         {
