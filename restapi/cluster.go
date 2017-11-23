@@ -84,7 +84,7 @@ func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to create unit"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to create cluster"))
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *clusterHandler) clusterCtx(next http.Handler) http.Handler {
 func (h *clusterHandler) mustClusterFromCtx(r *http.Request) *cluster.Cluster {
 	c, ok := r.Context().Value(ctxCluster).(*cluster.Cluster)
 	if !ok {
-		panic("missing repair unit in context")
+		panic("missing cluster in context")
 	}
 	return c
 }
@@ -138,7 +138,7 @@ func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 	newCluster.ID = c.ID
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to update unit"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to update cluster"))
 		return
 	}
 	render.Respond(w, r, newCluster)
@@ -148,7 +148,7 @@ func (h *clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	c := h.mustClusterFromCtx(r)
 
 	if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to delete unit"))
+		render.Respond(w, r, httpErrInternal(r, err, "failed to delete cluster"))
 		return
 	}
 }
