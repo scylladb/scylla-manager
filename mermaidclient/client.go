@@ -50,12 +50,12 @@ func (c *Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, e
 		return "", err
 	}
 
-	unitID, err := extractIDFromLocation(resp.Location)
+	clusterID, err := extractIDFromLocation(resp.Location)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot parse response")
 	}
 
-	return unitID.String(), nil
+	return clusterID.String(), nil
 }
 
 // GetCluster returns a cluster for a given ID.
