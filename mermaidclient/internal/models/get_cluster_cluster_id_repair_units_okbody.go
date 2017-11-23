@@ -14,13 +14,12 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// GetClustersOKBody get clusters o k body
-// swagger:model getClustersOKBody
+// GetClusterClusterIDRepairUnitsOKBody get cluster cluster Id repair units o k body
+// swagger:model getClusterClusterIdRepairUnitsOKBody
+type GetClusterClusterIDRepairUnitsOKBody []*RepairUnit
 
-type GetClustersOKBody []*Cluster
-
-// Validate validates this get clusters o k body
-func (m GetClustersOKBody) Validate(formats strfmt.Registry) error {
+// Validate validates this get cluster cluster Id repair units o k body
+func (m GetClusterClusterIDRepairUnitsOKBody) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	for i := 0; i < len(m); i++ {

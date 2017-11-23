@@ -65,7 +65,7 @@ for the put cluster cluster ID operation typically these are written to a http.R
 type PutClusterClusterIDParams struct {
 
 	/*Cluster
-	  unit JSON object with updated fields
+	  cluster JSON object with updated fields
 
 	*/
 	Cluster *models.Cluster

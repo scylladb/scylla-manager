@@ -14,7 +14,6 @@ import (
 
 // Cluster cluster
 // swagger:model cluster
-
 type Cluster struct {
 
 	// hosts
@@ -29,14 +28,6 @@ type Cluster struct {
 	// shard count
 	ShardCount int64 `json:"shard_count,omitempty"`
 }
-
-/* polymorph cluster hosts false */
-
-/* polymorph cluster id false */
-
-/* polymorph cluster name false */
-
-/* polymorph cluster shard_count false */
 
 // Validate validates this cluster
 func (m *Cluster) Validate(formats strfmt.Registry) error {

@@ -14,7 +14,6 @@ import (
 
 // RepairProgressHostsAdditionalProperties repair progress hosts additional properties
 // swagger:model repairProgressHostsAdditionalProperties
-
 type RepairProgressHostsAdditionalProperties struct {
 
 	// error
@@ -32,16 +31,6 @@ type RepairProgressHostsAdditionalProperties struct {
 	// total
 	Total int32 `json:"total,omitempty"`
 }
-
-/* polymorph repairProgressHostsAdditionalProperties error false */
-
-/* polymorph repairProgressHostsAdditionalProperties percent_complete false */
-
-/* polymorph repairProgressHostsAdditionalProperties shards false */
-
-/* polymorph repairProgressHostsAdditionalProperties success false */
-
-/* polymorph repairProgressHostsAdditionalProperties total false */
 
 // Validate validates this repair progress hosts additional properties
 func (m *RepairProgressHostsAdditionalProperties) Validate(formats strfmt.Registry) error {

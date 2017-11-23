@@ -14,7 +14,6 @@ import (
 
 // RepairUnit repair unit
 // swagger:model repairUnit
-
 type RepairUnit struct {
 
 	// cluster id
@@ -32,16 +31,6 @@ type RepairUnit struct {
 	// tables
 	Tables []string `json:"tables"`
 }
-
-/* polymorph repairUnit cluster_id false */
-
-/* polymorph repairUnit id false */
-
-/* polymorph repairUnit keyspace false */
-
-/* polymorph repairUnit name false */
-
-/* polymorph repairUnit tables false */
 
 // Validate validates this repair unit
 func (m *RepairUnit) Validate(formats strfmt.Registry) error {

@@ -53,7 +53,7 @@ func NewPostClustersCreated() *PostClustersCreated {
 Created
 */
 type PostClustersCreated struct {
-	/*location of the new unit
+	/*location of the new cluster
 	 */
 	Location string
 }

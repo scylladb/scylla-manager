@@ -14,7 +14,6 @@ import (
 
 // RepairProgressHosts repair progress hosts
 // swagger:model repairProgressHosts
-
 type RepairProgressHosts map[string]RepairProgressHostsAdditionalProperties
 
 // Validate validates this repair progress hosts

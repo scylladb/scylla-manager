@@ -65,7 +65,7 @@ for the post clusters operation typically these are written to a http.Request
 type PostClustersParams struct {
 
 	/*Cluster
-	  unit JSON object with updated fields
+	  cluster JSON object with updated fields
 
 	*/
 	Cluster *models.Cluster
