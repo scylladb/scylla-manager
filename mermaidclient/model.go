@@ -8,6 +8,9 @@ import (
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
+// Cluster is cluster.Cluster representation.
+type Cluster = models.Cluster
+
 // RepairProgressRow contains shard progress info.
 type RepairProgressRow struct {
 	Host     net.IP
