@@ -156,7 +156,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	}
 
 	// get the cluster client
-	cluster, err := s.client(u.ClusterID)
+	cluster, err := s.client(ctx, u.ClusterID)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the cluster proxy"))
 	}

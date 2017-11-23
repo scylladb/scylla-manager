@@ -40,6 +40,68 @@ func NewClient(rawurl, clusterID string) (*Client, error) {
 	}, nil
 }
 
+// CreateCluster creates a new cluster.
+func (c *Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, error) {
+	resp, err := c.operations.PostClusters(&operations.PostClustersParams{
+		Context: ctx,
+		Cluster: cluster,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	clusterID, err := extractIDFromLocation(resp.Location)
+	if err != nil {
+		return "", errors.Wrap(err, "cannot parse response")
+	}
+
+	return clusterID.String(), nil
+}
+
+// GetCluster returns a cluster for a given ID.
+func (c *Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, error) {
+	resp, err := c.operations.GetClusterClusterID(&operations.GetClusterClusterIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
+// UpdateCluster updates cluster.
+func (c *Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
+	_, err := c.operations.PutClusterClusterID(&operations.PutClusterClusterIDParams{
+		Context:   ctx,
+		ClusterID: cluster.ID,
+		Cluster:   cluster,
+	})
+	return err
+}
+
+// DeleteCluster removes cluster.
+func (c *Client) DeleteCluster(ctx context.Context, clusterID string) error {
+	_, err := c.operations.DeleteClusterClusterID(&operations.DeleteClusterClusterIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+	})
+	return err
+}
+
+// ListClusters returns clusters.
+func (c *Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
+	resp, err := c.operations.GetClusters(&operations.GetClustersParams{
+		Context: ctx,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
 // StartRepair starts unit repair.
 func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error) {
 	clusterID, err := c.clusterUUID()
@@ -178,7 +240,7 @@ func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, e
 		return "", err
 	}
 
-	unitID, err := extractUnitIDFromLocation(resp.Location)
+	unitID, err := extractIDFromLocation(resp.Location)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot parse response")
 	}
@@ -271,12 +333,12 @@ func (c *Client) clusterUUID() (string, error) {
 	return "", err
 }
 
-func extractTaskIDFromLocation(location string) (uuid.UUID, error) {
+func extractIDFromLocation(location string) (uuid.UUID, error) {
 	l, err := url.Parse(location)
 	if err != nil {
 		return uuid.Nil, err
 	}
-	id := l.Query().Get("task_id")
+	_, id := path.Split(l.Path)
 
 	var u uuid.UUID
 	if err := u.UnmarshalText([]byte(id)); err != nil {
@@ -286,12 +348,12 @@ func extractTaskIDFromLocation(location string) (uuid.UUID, error) {
 	return u, nil
 }
 
-func extractUnitIDFromLocation(location string) (uuid.UUID, error) {
+func extractTaskIDFromLocation(location string) (uuid.UUID, error) {
 	l, err := url.Parse(location)
 	if err != nil {
 		return uuid.Nil, err
 	}
-	_, id := path.Split(l.Path)
+	id := l.Query().Get("task_id")
 
 	var u uuid.UUID
 	if err := u.UnmarshalText([]byte(id)); err != nil {

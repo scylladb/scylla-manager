@@ -14,7 +14,6 @@ import (
 
 // RepairUnitUpdate repair unit update
 // swagger:model repairUnitUpdate
-
 type RepairUnitUpdate struct {
 
 	// keyspace
@@ -26,12 +25,6 @@ type RepairUnitUpdate struct {
 	// tables
 	Tables []string `json:"tables"`
 }
-
-/* polymorph repairUnitUpdate keyspace false */
-
-/* polymorph repairUnitUpdate name false */
-
-/* polymorph repairUnitUpdate tables false */
 
 // Validate validates this repair unit update
 func (m *RepairUnitUpdate) Validate(formats strfmt.Registry) error {

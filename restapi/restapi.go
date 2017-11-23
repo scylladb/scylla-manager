@@ -11,17 +11,32 @@ import (
 	"github.com/scylladb/mermaid/log"
 )
 
+func init() {
+	render.Respond = httpErrorRender
+}
+
+// Services contains REST API services.
+type Services struct {
+	Cluster ClusterService
+	Repair  RepairService
+}
+
 // New returns an http.Handler implementing mermaid v1 REST API.
-func New(repairSvc RepairService, logger log.Logger) http.Handler {
+func New(svc *Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 	r.Use(traceIDMiddleware)
 	r.Use(middleware.RequestLogger(httpLogger{logger}))
 	r.Use(recoverPanics)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
-	r.Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(repairSvc))
+	if svc.Cluster != nil {
+		r.Mount("/api/v1/", newClusterHandler(svc.Cluster))
+	}
 
-	render.Respond = httpErrorRender
+	if svc.Repair != nil {
+		r.Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(svc.Repair))
+	}
+
 	return r
 }
 

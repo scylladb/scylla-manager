@@ -21,12 +21,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/log/gocqllog"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
-	"github.com/scylladb/mermaid/scylla"
-	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -102,14 +101,14 @@ var rootCmd = &cobra.Command{
 		}
 		defer session.Close()
 
-		// create configuration based scylla provider
-		provider, err := scyllaProviderFunc(config, logger)
+		// create cluster service
+		clusterSvc, err := cluster.NewService(session, logger.Named("cluster"))
 		if err != nil {
-			return errors.Wrapf(err, "sylla provider error")
+			return errors.Wrapf(err, "cluster service error")
 		}
 
 		// create repair service
-		repairSvc, err := repair.NewService(session, provider, logger.Named("repair"))
+		repairSvc, err := repair.NewService(session, clusterSvc.Client, logger.Named("repair"))
 		if err != nil {
 			return errors.Wrapf(err, "repair service error")
 		}
@@ -118,7 +117,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		// create REST handler
-		handler := restapi.New(repairSvc, logger.Named("restapi"))
+		handler := restapi.New(&restapi.Services{
+			Cluster: clusterSvc,
+			Repair:  repairSvc,
+		}, logger.Named("restapi"))
 
 		// in debug mode launch gops agent
 		if cfgDeveloperMode {
@@ -304,27 +306,4 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	}
 
 	return c
-}
-
-func scyllaProviderFunc(config *serverConfig, logger log.Logger) (scylla.ProviderFunc, error) {
-	m := make(map[uuid.UUID]*scylla.Client, len(config.Clusters))
-	for _, c := range config.Clusters {
-		client, err := scylla.NewClient(c.Hosts, logger.Named("scylla"))
-		if err != nil {
-			return nil, err
-		}
-		m[c.UUID] = scylla.WithConfig(client, scylla.Config{
-			"murmur3_partitioner_ignore_msb_bits": c.Murmur3PartitionerIgnoreMsbBits,
-			"shard_count":                         c.ShardCount,
-		})
-	}
-
-	return func(clusterID uuid.UUID) (*scylla.Client, error) {
-		c, ok := m[clusterID]
-		if !ok {
-			return nil, errors.Errorf("unknown cluster %s", clusterID)
-		}
-
-		return c, nil
-	}, nil
 }

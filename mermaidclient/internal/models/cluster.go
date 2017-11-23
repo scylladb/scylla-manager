@@ -12,31 +12,28 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// RepairUnit repair unit
-// swagger:model repairUnit
-type RepairUnit struct {
+// Cluster cluster
+// swagger:model cluster
+type Cluster struct {
 
-	// cluster id
-	ClusterID string `json:"cluster_id,omitempty"`
+	// hosts
+	Hosts []string `json:"hosts"`
 
 	// id
 	ID string `json:"id,omitempty"`
 
-	// keyspace
-	Keyspace string `json:"keyspace,omitempty"`
-
 	// name
 	Name string `json:"name,omitempty"`
 
-	// tables
-	Tables []string `json:"tables"`
+	// shard count
+	ShardCount int64 `json:"shard_count,omitempty"`
 }
 
-// Validate validates this repair unit
-func (m *RepairUnit) Validate(formats strfmt.Registry) error {
+// Validate validates this cluster
+func (m *Cluster) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateTables(formats); err != nil {
+	if err := m.validateHosts(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -47,9 +44,9 @@ func (m *RepairUnit) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RepairUnit) validateTables(formats strfmt.Registry) error {
+func (m *Cluster) validateHosts(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Tables) { // not required
+	if swag.IsZero(m.Hosts) { // not required
 		return nil
 	}
 
@@ -57,7 +54,7 @@ func (m *RepairUnit) validateTables(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *RepairUnit) MarshalBinary() ([]byte, error) {
+func (m *Cluster) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -65,8 +62,8 @@ func (m *RepairUnit) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *RepairUnit) UnmarshalBinary(b []byte) error {
-	var res RepairUnit
+func (m *Cluster) UnmarshalBinary(b []byte) error {
+	var res Cluster
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

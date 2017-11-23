@@ -14,7 +14,6 @@ import (
 
 // RepairProgressHostsAdditionalPropertiesShards repair progress hosts additional properties shards
 // swagger:model repairProgressHostsAdditionalPropertiesShards
-
 type RepairProgressHostsAdditionalPropertiesShards map[string]RepairProgressHostsAdditionalPropertiesShardsAdditionalProperties
 
 // Validate validates this repair progress hosts additional properties shards

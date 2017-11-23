@@ -25,6 +25,34 @@ type Client struct {
 }
 
 /*
+DeleteClusterClusterID deleteCluster Description
+*/
+func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*DeleteClusterClusterIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteClusterClusterIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeleteClusterClusterID",
+		Method:             "DELETE",
+		PathPattern:        "/cluster/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DeleteClusterClusterIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeleteClusterClusterIDOK), nil
+
+}
+
+/*
 DeleteClusterClusterIDRepairConfig deleteConfig cluster description
 */
 func (a *Client) DeleteClusterClusterIDRepairConfig(params *DeleteClusterClusterIDRepairConfigParams) (*DeleteClusterClusterIDRepairConfigOK, error) {
@@ -105,6 +133,34 @@ func (a *Client) DeleteClusterClusterIDRepairUnitUnitID(params *DeleteClusterClu
 		return nil, err
 	}
 	return result.(*DeleteClusterClusterIDRepairUnitUnitIDOK), nil
+
+}
+
+/*
+GetClusterClusterID loadCluster Description
+*/
+func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClusterClusterIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterID",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterClusterIDOK), nil
 
 }
 
@@ -249,6 +305,34 @@ func (a *Client) GetClusterClusterIDRepairUnits(params *GetClusterClusterIDRepai
 }
 
 /*
+GetClusters listClusters Description
+*/
+func (a *Client) GetClusters(params *GetClustersParams) (*GetClustersOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClustersParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusters",
+		Method:             "GET",
+		PathPattern:        "/clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClustersReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClustersOK), nil
+
+}
+
+/*
 PostClusterClusterIDRepairUnits createUnit Description
 */
 func (a *Client) PostClusterClusterIDRepairUnits(params *PostClusterClusterIDRepairUnitsParams) (*PostClusterClusterIDRepairUnitsCreated, error) {
@@ -273,6 +357,62 @@ func (a *Client) PostClusterClusterIDRepairUnits(params *PostClusterClusterIDRep
 		return nil, err
 	}
 	return result.(*PostClusterClusterIDRepairUnitsCreated), nil
+
+}
+
+/*
+PostClusters createCluster Description
+*/
+func (a *Client) PostClusters(params *PostClustersParams) (*PostClustersCreated, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPostClustersParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PostClusters",
+		Method:             "POST",
+		PathPattern:        "/clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PostClustersReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PostClustersCreated), nil
+
+}
+
+/*
+PutClusterClusterID updateCluster Description
+*/
+func (a *Client) PutClusterClusterID(params *PutClusterClusterIDParams) (*PutClusterClusterIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterID",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PutClusterClusterIDOK), nil
 
 }
 

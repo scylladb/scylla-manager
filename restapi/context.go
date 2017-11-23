@@ -13,6 +13,7 @@ type ctxt byte
 
 const (
 	ctxClusterID ctxt = iota
+	ctxCluster
 	ctxRepairUnit
 )
 

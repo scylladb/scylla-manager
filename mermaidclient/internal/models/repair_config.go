@@ -14,7 +14,6 @@ import (
 
 // RepairConfig repair config
 // swagger:model repairConfig
-
 type RepairConfig struct {
 
 	// enabled
@@ -32,16 +31,6 @@ type RepairConfig struct {
 	// segment size limit
 	SegmentSizeLimit int64 `json:"segment_size_limit,omitempty"`
 }
-
-/* polymorph repairConfig enabled false */
-
-/* polymorph repairConfig parallel_shard_percent false */
-
-/* polymorph repairConfig retry_backoff_seconds false */
-
-/* polymorph repairConfig retry_limit false */
-
-/* polymorph repairConfig segment_size_limit false */
 
 // Validate validates this repair config
 func (m *RepairConfig) Validate(formats strfmt.Registry) error {

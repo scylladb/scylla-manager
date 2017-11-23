@@ -32,11 +32,11 @@ func TestClientClusterUUID(t *testing.T) {
 	}
 }
 
-func TestExtractTaskIDFromLocation(t *testing.T) {
+func TestExtractIDFromLocation(t *testing.T) {
 	t.Parallel()
 
 	u0 := uuid.MustRandom()
-	u1, err := extractTaskIDFromLocation("http://bla/bla/?task_id=" + u0.String())
+	u1, err := extractIDFromLocation("http://bla/bla/" + u0.String() + "?param=true")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,11 +45,11 @@ func TestExtractTaskIDFromLocation(t *testing.T) {
 	}
 }
 
-func TestExtractUnitIDFromLocation(t *testing.T) {
+func TestExtractTaskIDFromLocation(t *testing.T) {
 	t.Parallel()
 
 	u0 := uuid.MustRandom()
-	u1, err := extractUnitIDFromLocation("http://bla/bla/" + u0.String() + "?param=true")
+	u1, err := extractTaskIDFromLocation("http://bla/bla/?task_id=" + u0.String())
 	if err != nil {
 		t.Fatal(err)
 	}

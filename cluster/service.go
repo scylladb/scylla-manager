@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -33,6 +34,25 @@ func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 		session: session,
 		logger:  l,
 	}, nil
+}
+
+// Client is scylla.ProviderFunc it returns cluster client.
+func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scylla.Client, error) {
+	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
+
+	c, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := scylla.NewClient(c.Hosts, s.logger.Named("client"))
+	if err != nil {
+		return nil, err
+	}
+	return scylla.WithConfig(client, scylla.Config{
+		"murmur3_partitioner_ignore_msb_bits": float64(12),
+		"shard_count":                         float64(c.ShardCount),
+	}), nil
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.

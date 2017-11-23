@@ -14,7 +14,6 @@ import (
 
 // RepairProgress repair progress
 // swagger:model repairProgress
-
 type RepairProgress struct {
 
 	// error
@@ -41,22 +40,6 @@ type RepairProgress struct {
 	// total
 	Total int32 `json:"total,omitempty"`
 }
-
-/* polymorph repairProgress error false */
-
-/* polymorph repairProgress hosts false */
-
-/* polymorph repairProgress keyspace false */
-
-/* polymorph repairProgress percent_complete false */
-
-/* polymorph repairProgress status false */
-
-/* polymorph repairProgress success false */
-
-/* polymorph repairProgress tables false */
-
-/* polymorph repairProgress total false */
 
 // Validate validates this repair progress
 func (m *RepairProgress) Validate(formats strfmt.Registry) error {

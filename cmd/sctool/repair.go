@@ -22,6 +22,7 @@ var repairCmd = &cobra.Command{
 }
 
 func init() {
+	initClusterFlag(repairCmd, repairCmd.PersistentFlags())
 	rootCmd.AddCommand(repairCmd)
 }
 
@@ -122,13 +123,13 @@ var (
 )
 
 func repairUnitInitCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&cfgRepairUnitName, "name", "n", "", "Alias `name`")
-	cmd.Flags().StringVarP(&cfgRepairUnitKeyspace, "keyspace", "k", "", "Keyspace `name`")
-	cmd.Flags().StringSliceVarP(&cfgRepairUnitTables, "tables", "t", nil, "Comma-separated `list` of tables in to repair in the keyspace, if empty repair the whole keyspace")
+	cmd.Flags().StringVarP(&cfgRepairUnitName, "name", "n", "", "alias `name`")
+	cmd.Flags().StringVarP(&cfgRepairUnitKeyspace, "keyspace", "k", "", "keyspace `name`")
+	cmd.Flags().StringSliceVarP(&cfgRepairUnitTables, "tables", "t", nil, "comma-separated `list` of tables in to repair in the keyspace, if empty repair the whole keyspace")
 }
 
-var repairUnitCreateCmd = &cobra.Command{
-	Use:   "create",
+var repairUnitAddCmd = &cobra.Command{
+	Use:   "add",
 	Short: "Creates a new repair unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -148,15 +149,15 @@ var repairUnitCreateCmd = &cobra.Command{
 }
 
 func init() {
-	repairUnitCmd.AddCommand(repairUnitCreateCmd)
-	repairUnitInitCommonFlags(repairUnitCreateCmd)
+	repairUnitCmd.AddCommand(repairUnitAddCmd)
+	repairUnitInitCommonFlags(repairUnitAddCmd)
 
-	repairUnitCreateCmd.MarkFlagRequired("keyspace")
+	repairUnitAddCmd.MarkFlagRequired("keyspace")
 }
 
 var repairUnitUpdateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Modifies existing repair unit",
+	Short: "Modifies a repair unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		u, err := client.GetRepairUnit(context.Background(), cfgRepairUnit)
@@ -197,7 +198,7 @@ func init() {
 
 var repairUnitDeleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Removes repair unit",
+	Short: "Deletes a repair unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := client.DeleteRepairUnit(context.Background(), cfgRepairUnit); err != nil {
@@ -215,7 +216,7 @@ func init() {
 
 var repairUnitListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Shows repair units",
+	Short: "Shows available repair units",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		units, err := client.ListRepairUnits(context.Background())
