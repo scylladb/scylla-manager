@@ -14,6 +14,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/repair"
@@ -321,8 +322,12 @@ func TestRepairAPI(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			clusterStub := mermaidmock.NewMockClusterService(ctrl)
+			clusterStub.EXPECT().GetCluster(gomock.Any(), gomock.Any()).Return(&cluster.Cluster{ID: uuid1}, nil)
+
 			h := restapi.New(&restapi.Services{
-				Repair: test.SetupMock(t, ctrl),
+				Cluster: clusterStub,
+				Repair:  test.SetupMock(t, ctrl),
 			}, logger)
 			r := httptest.NewRequest(test.Method, basePath+test.Path, test.Body)
 			w := httptest.NewRecorder()

@@ -26,15 +26,47 @@ type ClusterService interface {
 	DeleteCluster(ctx context.Context, id uuid.UUID) error
 }
 
-type clusterHandler struct {
-	chi.Router
+type clusterFilter struct {
 	svc ClusterService
+}
+
+func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.svc == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		clusterID := chi.URLParam(r, "cluster_id")
+		if clusterID == "" {
+			render.Respond(w, r, httpErrBadRequest(r, errors.New("missing cluster ID")))
+			return
+		}
+
+		c, err := h.svc.GetCluster(r.Context(), clusterID)
+		if err != nil {
+			notFoundOrInternal(w, r, err, "failed to load cluster")
+			return
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, ctxClusterID, c.ID)
+		ctx = context.WithValue(ctx, ctxCluster, c)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+type clusterHandler struct {
+	clusterFilter
+	chi.Router
 }
 
 func newClusterHandler(svc ClusterService) http.Handler {
 	h := &clusterHandler{
+		clusterFilter: clusterFilter{
+			svc: svc,
+		},
 		Router: chi.NewRouter(),
-		svc:    svc,
 	}
 
 	h.Route("/clusters", func(r chi.Router) {
@@ -95,40 +127,13 @@ func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *clusterHandler) clusterCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clusterID := chi.URLParam(r, "cluster_id")
-		if clusterID == "" {
-			render.Respond(w, r, httpErrBadRequest(r, errors.New("missing cluster ID")))
-			return
-		}
-
-		c, err := h.svc.GetCluster(r.Context(), clusterID)
-		if err != nil {
-			notFoundOrInternal(w, r, err, "failed to load cluster")
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), ctxCluster, c)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func (h *clusterHandler) mustClusterFromCtx(r *http.Request) *cluster.Cluster {
-	c, ok := r.Context().Value(ctxCluster).(*cluster.Cluster)
-	if !ok {
-		panic("missing cluster in context")
-	}
-	return c
-}
-
 func (h *clusterHandler) loadCluster(w http.ResponseWriter, r *http.Request) {
-	c := h.mustClusterFromCtx(r)
+	c := mustClusterFromCtx(r)
 	render.Respond(w, r, c)
 }
 
 func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
-	c := h.mustClusterFromCtx(r)
+	c := mustClusterFromCtx(r)
 
 	newCluster, err := h.parseCluster(r)
 	if err != nil {
@@ -145,7 +150,7 @@ func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
-	c := h.mustClusterFromCtx(r)
+	c := mustClusterFromCtx(r)
 
 	if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to delete cluster"))

@@ -34,7 +34,8 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	}
 
 	if svc.Repair != nil {
-		r.Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(svc.Repair))
+		r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
+			Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(svc.Repair))
 	}
 
 	return r
