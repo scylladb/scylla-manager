@@ -8,18 +8,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/uuid"
 	"gopkg.in/yaml.v2"
 )
-
-// clusterConfig is a temporary solution and will be soon replaced by a
-// a cluster configuration service.
-type clusterConfig struct {
-	UUID                            uuid.UUID `yaml:"uuid"`
-	Hosts                           []string  `yaml:"hosts"`
-	ShardCount                      float64   `yaml:"shard_count"`
-	Murmur3PartitionerIgnoreMsbBits float64   `yaml:"murmur3_partitioner_ignore_msb_bits"`
-}
 
 type dbConfig struct {
 	Hosts                         []string      `yaml:"hosts"`
@@ -40,8 +30,6 @@ type serverConfig struct {
 	TLSCertFile string   `yaml:"tls_cert_file"`
 	TLSKeyFile  string   `yaml:"tls_key_file"`
 	Database    dbConfig `yaml:"database"`
-
-	Clusters []*clusterConfig `yaml:"clusters"`
 }
 
 func defaultConfig() *serverConfig {
@@ -92,18 +80,6 @@ func (c *serverConfig) validate() error {
 	}
 	if c.Database.ReplicationFactor <= 0 {
 		return errors.New("invalid database.replication_factor <= 0")
-	}
-
-	for _, cluster := range c.Clusters {
-		if len(cluster.Hosts) == 0 {
-			errors.Errorf("cluster %s: missing %q", cluster.UUID, "hosts")
-		}
-		if cluster.ShardCount == 0 {
-			errors.Errorf("cluster %s: missing %q", cluster.UUID, "shard_count")
-		}
-		if cluster.Murmur3PartitionerIgnoreMsbBits == 0 {
-			errors.Errorf("cluster %s: missing %q", cluster.UUID, "murmur3_partitioner_ignore_msb_bits")
-		}
 	}
 
 	return nil

@@ -136,10 +136,6 @@ var rootCmd = &cobra.Command{
 			errCh       = make(chan error, 2)
 		)
 
-		if len(config.Clusters) == 0 {
-			logger.Info(ctx, "No clusters configured")
-		}
-
 		if config.HTTP != "" {
 			httpServer = &http.Server{
 				Addr:    config.HTTP,
