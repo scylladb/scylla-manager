@@ -20,6 +20,12 @@ func (c *Cluster) Validate() error {
 	if c == nil {
 		return errors.New("nil")
 	}
+	if len(c.Hosts) == 0 {
+		return errors.New("missing hosts")
+	}
+	if c.ShardCount <= 0 {
+		return errors.New("invalid shard_count")
+	}
 	return nil
 }
 
