@@ -197,7 +197,7 @@
         "description": "createCluster Description",
         "parameters": [
           {
-            "description": "unit JSON object with updated fields",
+            "description": "cluster JSON object with updated fields",
             "name": "cluster",
             "in": "body",
             "schema": {
@@ -210,7 +210,7 @@
             "description": "Created",
             "headers": {
               "Location": {
-                "description": "location of the new unit",
+                "description": "location of the new cluster",
                 "type": "string"
               }
             }
@@ -232,7 +232,7 @@
         "description": "loadCluster Description",
         "responses": {
           "200": {
-            "description": "requested unit fields",
+            "description": "requested cluster fields",
             "schema": {
               "$ref": "#/definitions/cluster"
             }
@@ -243,7 +243,7 @@
         "description": "updateCluster Description",
         "parameters": [
           {
-            "description": "unit JSON object with updated fields",
+            "description": "cluster JSON object with updated fields",
             "name": "cluster",
             "in": "body",
             "schema": {
@@ -253,7 +253,7 @@
         ],
         "responses": {
           "200": {
-            "description": "updated unit fields",
+            "description": "updated cluster fields",
             "schema": {
               "$ref": "#/definitions/cluster"
             }
