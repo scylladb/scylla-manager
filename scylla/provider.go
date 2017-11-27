@@ -4,9 +4,54 @@ package scylla
 
 import (
 	"context"
+	"sync"
 
 	"github.com/scylladb/mermaid/uuid"
 )
 
 // ProviderFunc is a function that returns a Client for a given cluster.
 type ProviderFunc func(ctx context.Context, clusterID uuid.UUID) (*Client, error)
+
+// CachedProvider is a provider implementation that reuses clients.
+type CachedProvider struct {
+	inner   ProviderFunc
+	clients map[uuid.UUID]*Client
+	mu      sync.Mutex
+}
+
+// NewCachedProvider creates provider.
+func NewCachedProvider(f ProviderFunc) *CachedProvider {
+	return &CachedProvider{
+		inner:   f,
+		clients: make(map[uuid.UUID]*Client),
+	}
+}
+
+// Client is the cached ProviderFunc.
+func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Client, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// cache hit
+	c, ok := p.clients[clusterID]
+	if ok {
+		return c, nil
+	}
+
+	// create new
+	c, err := p.inner(ctx, clusterID)
+	if err != nil {
+		return c, err
+	}
+
+	p.clients[clusterID] = c
+
+	return c, nil
+}
+
+// Invalidate removes client for clusterID from cache.
+func (p *CachedProvider) Invalidate(clusterID uuid.UUID) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	delete(p.clients, clusterID)
+}
