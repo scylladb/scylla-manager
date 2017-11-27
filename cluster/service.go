@@ -14,45 +14,33 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
-	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 )
 
+// Update holds ID of a modified cluster and it's current value.
+type Update struct {
+	ID    uuid.UUID
+	Value *Cluster
+}
+
 // Service manages cluster configurations.
 type Service struct {
-	session *gocql.Session
-	logger  log.Logger
+	session  *gocql.Session
+	updateCh chan<- Update
+	logger   log.Logger
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, updateCh chan<- Update, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	return &Service{
-		session: session,
-		logger:  l,
+		session:  session,
+		updateCh: updateCh,
+		logger:   l,
 	}, nil
-}
-
-// Client is scylla.ProviderFunc it returns cluster client.
-func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scylla.Client, error) {
-	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
-
-	c, err := s.GetClusterByID(ctx, clusterID)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := scylla.NewClient(c.Hosts, s.logger.Named("client"))
-	if err != nil {
-		return nil, err
-	}
-	return scylla.WithConfig(client, scylla.Config{
-		"murmur3_partitioner_ignore_msb_bits": float64(12),
-		"shard_count":                         float64(c.ShardCount),
-	}), nil
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.
@@ -182,7 +170,13 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	stmt, names := schema.Cluster.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(c)
 
-	return q.ExecRelease()
+	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	s.notifyUpdated(ctx, Update{ID: c.ID, Value: c})
+
+	return nil
 }
 
 // DeleteCluster removes cluster based on ID.
@@ -195,5 +189,20 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 		"id": id,
 	})
 
-	return q.ExecRelease()
+	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	s.notifyUpdated(ctx, Update{ID: id})
+
+	return nil
+}
+
+func (s *Service) notifyUpdated(ctx context.Context, u Update) {
+	select {
+	case s.updateCh <- u:
+		// ok
+	default:
+		s.logger.Error(ctx, "Failed to notify listeners")
+	}
 }
