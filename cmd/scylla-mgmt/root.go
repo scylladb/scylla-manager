@@ -148,7 +148,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// create scheduler service
-		schedSvc, err := sched.NewService(session, provider, logger.Named("scheduler"), repairSvc)
+		schedSvc, err := sched.NewService(session, logger.Named("scheduler"), repairSvc)
 		if err != nil {
 			return errors.Wrapf(err, "scheduler service error")
 		}

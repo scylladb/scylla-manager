@@ -23,7 +23,6 @@ type Service struct {
 	session *gocql.Session
 	logger  log.Logger
 
-	cron     *taskSched
 	cronCtx  context.Context
 	tasks    map[uuid.UUID]cancelableTrigger
 	wg       sync.WaitGroup
@@ -33,7 +32,7 @@ type Service struct {
 }
 
 type cancelableTrigger struct {
-	*trigger
+	timer  *time.Timer
 	cancel func()
 }
 
@@ -53,16 +52,16 @@ func NewService(session *gocql.Session, l log.Logger, repairRunner runner.Runner
 	return &Service{
 		session:      session,
 		logger:       l,
-		cron:         newTaskSched(),
 		cronCtx:      log.WithTraceID(context.Background()),
 		tasks:        make(map[uuid.UUID]cancelableTrigger),
 		repairRunner: repairRunner,
 	}, nil
 }
 
+// LoadTasks should be called on startr. It attaches to running tasks if there are such,
+// marking no-longer running ones as stopped. It then proceeds to schedule future tasks.
 func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Debug(ctx, "LoadTasks")
-	s.cron.Start()
 
 	stmt, _ := qb.Select(schema.SchedTask.Name).ToCql()
 	iter := gocqlx.Iter(s.session.Query(stmt).WithContext(ctx))
@@ -142,13 +141,20 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 	activation := t.Sched.nextActivation(now, runs)
 	s.logger.Debug(ctx, "schedTask", "activation", activation, "task", t)
 	triggerCtx, cancel := context.WithCancel(s.cronCtx)
+
+	if !now.Before(activation) {
+		s.logger.Error(ctx, "schedTask task in the past", "now", now, "activation", activation, "task", t)
+		cancel()
+		return
+	}
+
 	s.taskLock.Lock()
-	trigger := s.cron.Add(activation, func(now time.Time) { s.execTrigger(triggerCtx, t, now) })
+	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t) })
 	s.tasks[t.ID] = cancelableTrigger{
-		trigger: trigger,
+		timer: timer,
 		cancel: func() {
 			cancel()
-			s.cron.Cancel(trigger)
+			timer.Stop()
 		},
 	}
 	s.taskLock.Unlock()
@@ -159,8 +165,7 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 	triggerCtx, cancel := context.WithCancel(s.cronCtx)
 	s.taskLock.Lock()
 	s.tasks[t.ID] = cancelableTrigger{
-		trigger: &trigger{F: func(time.Time) {}},
-		cancel:  cancel,
+		cancel: cancel,
 	}
 	s.taskLock.Unlock()
 
@@ -196,9 +201,10 @@ func (s *Service) reschedTask(ctx context.Context, t *Task) {
 	s.schedTask(ctx, timeNow().UTC(), t)
 }
 
-func (s *Service) execTrigger(ctx context.Context, t *Task, now time.Time) {
+func (s *Service) execTrigger(ctx context.Context, t *Task) {
 	defer s.reschedTask(ctx, t)
 
+	now := timeNow().UTC()
 	run := &Run{
 		ID:        uuid.NewTime(),
 		Type:      t.Type,
@@ -313,6 +319,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	return nil
 }
 
+// ListTasks returns all the tasks stored.
 func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID) ([]*Task, error) {
 	s.logger.Debug(ctx, "ListTasks", "cluster_id", clusterID)
 	stmt, names := schema.SchedTask.Select()
@@ -352,9 +359,9 @@ func (s *Service) GetLastRunN(ctx context.Context, t *Task, n int) ([]*Run, erro
 	}
 	stmt, names := b.ToCql()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id":  t.ClusterID,
-		"type":        t.Type,
-		"task_id": t.ID,
+		"cluster_id": t.ClusterID,
+		"type":       t.Type,
+		"task_id":    t.ID,
 	})
 	if err := q.Err(); err != nil {
 		return nil, err

@@ -888,6 +888,7 @@ func (s *Service) Close(ctx context.Context) {
 
 // implement sched/runner.Runner
 
+// RunTask implements sched/runner.Runner.
 func (s *Service) RunTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
 	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
 	if err != nil {
@@ -896,6 +897,7 @@ func (s *Service) RunTask(ctx context.Context, clusterID, taskID uuid.UUID, prop
 	return s.Repair(ctx, u, taskID)
 }
 
+// StopTask implements sched/runner.Runner.
 func (s *Service) StopTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
 	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
 	if err != nil {
@@ -904,6 +906,7 @@ func (s *Service) StopTask(ctx context.Context, clusterID, taskID uuid.UUID, pro
 	return s.StopRun(ctx, u, taskID)
 }
 
+// TaskStatus implements sched/runner.Runner.
 func (s *Service) TaskStatus(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
 	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
 	if err != nil {
