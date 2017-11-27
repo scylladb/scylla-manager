@@ -39,14 +39,6 @@ func TestNewConfigFromFile(t *testing.T) {
 			ReplicationFactor:             3,
 			Timeout:                       600 * time.Millisecond,
 		},
-		Clusters: []*clusterConfig{
-			{
-				UUID:                            u,
-				Hosts:                           []string{"172.16.1.10", "172.16.1.20"},
-				ShardCount:                      16,
-				Murmur3PartitionerIgnoreMsbBits: 12,
-			},
-		},
 	}
 
 	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {

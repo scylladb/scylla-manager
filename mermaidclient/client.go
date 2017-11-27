@@ -104,14 +104,9 @@ func (c *Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 
 // StartRepair starts unit repair.
 func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error) {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return "", errors.Wrap(err, "invalid cluster")
-	}
-
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStart(&operations.PutClusterClusterIDRepairUnitUnitIDStartParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 		UnitID:    unitID,
 	})
 	if err != nil {
@@ -128,14 +123,9 @@ func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error)
 
 // StopRepair stops unit repair.
 func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return "", errors.Wrap(err, "invalid cluster")
-	}
-
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStop(&operations.PutClusterClusterIDRepairUnitUnitIDStopParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 		UnitID:    unitID,
 	})
 	if err != nil {
@@ -152,15 +142,9 @@ func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) 
 
 // RepairProgress returns repair progress.
 func (c *Client) RepairProgress(ctx context.Context, unitID, taskID string) (status string, progress int, rows []RepairProgressRow, err error) {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		err = errors.Wrap(err, "invalid cluster")
-		return
-	}
-
 	params := &operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 		UnitID:    unitID,
 	}
 	if taskID != "" {
@@ -222,14 +206,9 @@ func (c *Client) RepairProgress(ctx context.Context, unitID, taskID string) (sta
 
 // CreateRepairUnit creates a new repair unit.
 func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, error) {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return "", errors.Wrap(err, "invalid cluster")
-	}
-
 	resp, err := c.operations.PostClusterClusterIDRepairUnits(&operations.PostClusterClusterIDRepairUnitsParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 		UnitFields: &models.RepairUnitUpdate{
 			Name:     u.Name,
 			Keyspace: u.Keyspace,
@@ -250,14 +229,9 @@ func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, e
 
 // GetRepairUnit returns a repair unit for a given ID.
 func (c *Client) GetRepairUnit(ctx context.Context, unitID string) (*RepairUnit, error) {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid cluster")
-	}
-
 	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitID(&operations.GetClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 		UnitID:    unitID,
 	})
 	if err != nil {
@@ -269,14 +243,9 @@ func (c *Client) GetRepairUnit(ctx context.Context, unitID string) (*RepairUnit,
 
 // UpdateRepairUnit updates existing repair unit.
 func (c *Client) UpdateRepairUnit(ctx context.Context, unitID string, u *RepairUnit) error {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return errors.Wrap(err, "invalid cluster")
-	}
-
-	_, err = c.operations.PutClusterClusterIDRepairUnitUnitID(&operations.PutClusterClusterIDRepairUnitUnitIDParams{
+	_, err := c.operations.PutClusterClusterIDRepairUnitUnitID(&operations.PutClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 		UnitID:    unitID,
 		UnitFields: &models.RepairUnitUpdate{
 			Name:     u.Name,
@@ -289,14 +258,9 @@ func (c *Client) UpdateRepairUnit(ctx context.Context, unitID string, u *RepairU
 
 // DeleteRepairUnit removes existing repair unit.
 func (c *Client) DeleteRepairUnit(ctx context.Context, unitID string) error {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return errors.Wrap(err, "invalid cluster")
-	}
-
-	_, err = c.operations.DeleteClusterClusterIDRepairUnitUnitID(&operations.DeleteClusterClusterIDRepairUnitUnitIDParams{
+	_, err := c.operations.DeleteClusterClusterIDRepairUnitUnitID(&operations.DeleteClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 		UnitID:    unitID,
 	})
 	return err
@@ -304,33 +268,15 @@ func (c *Client) DeleteRepairUnit(ctx context.Context, unitID string) error {
 
 // ListRepairUnits returns repair units within a clusterID.
 func (c *Client) ListRepairUnits(ctx context.Context) ([]*RepairUnit, error) {
-	clusterID, err := c.clusterUUID()
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid cluster")
-	}
-
 	resp, err := c.operations.GetClusterClusterIDRepairUnits(&operations.GetClusterClusterIDRepairUnitsParams{
 		Context:   ctx,
-		ClusterID: clusterID,
+		ClusterID: c.clusterID,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return resp.Payload, nil
-}
-
-// clusterUUID returns cluster UUID for cluster name (alias resolution is not
-// yet implemented).
-func (c *Client) clusterUUID() (string, error) {
-	var u uuid.UUID
-	err := u.UnmarshalText([]byte(c.clusterID))
-
-	if err == nil {
-		return u.String(), nil
-	}
-
-	return "", err
 }
 
 func extractIDFromLocation(location string) (uuid.UUID, error) {

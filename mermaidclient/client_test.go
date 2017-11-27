@@ -14,24 +14,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-func TestClientClusterUUID(t *testing.T) {
-	t.Parallel()
-
-	u := uuid.MustRandom()
-	c, err := NewClient("", u.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	v, err := c.clusterUUID()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != u.String() {
-		t.Fatal(v, u)
-	}
-}
-
 func TestExtractIDFromLocation(t *testing.T) {
 	t.Parallel()
 

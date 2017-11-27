@@ -7,10 +7,3 @@ database:
   keyspace_tpl_file: dist/etc/create_keyspace.cql.tpl
   migrate_dir: schema/cql
   timeout: 1s
-
-clusters:
-  - uuid: a3f1b32b-ed5b-438d-81a7-c82eb7bde800
-    hosts:
-      - 172.16.1.20
-    shard_count: 2
-    murmur3_partitioner_ignore_msb_bits: 12

@@ -8,9 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"github.com/scylladb/mermaid/log"
-	"github.com/scylladb/mermaid/uuid"
 )
 
 func traceIDMiddleware(next http.Handler) http.Handler {
@@ -32,18 +30,6 @@ func recoverPanics(next http.Handler) http.Handler {
 
 		}()
 
-		next.ServeHTTP(w, r)
-	})
-}
-
-func requireClusterID(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clusterID, err := reqClusterID(r)
-		if err != nil || clusterID == uuid.Nil {
-			render.Respond(w, r, httpErrBadRequest(r, err))
-			return
-		}
-		r = r.WithContext(newClusterIDCtx(r.Context(), clusterID))
 		next.ServeHTTP(w, r)
 	})
 }

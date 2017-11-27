@@ -3,8 +3,10 @@
 package restapi
 
 import (
-	"context"
+	"net/http"
 
+	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -17,13 +19,26 @@ const (
 	ctxRepairUnit
 )
 
-// clusterIDFromCtx returns the Cluster ID of the (request) context ctx.
-func clusterIDFromCtx(ctx context.Context) uuid.UUID {
-	u, _ := ctx.Value(ctxClusterID).(uuid.UUID)
+func mustClusterIDFromCtx(r *http.Request) uuid.UUID {
+	u, ok := r.Context().Value(ctxClusterID).(uuid.UUID)
+	if !ok {
+		panic("missing cluster ID in context")
+	}
 	return u
 }
 
-// newClusterIDCtx returns a new context.Context that carries clusterID.
-func newClusterIDCtx(ctx context.Context, clusterID uuid.UUID) context.Context {
-	return context.WithValue(ctx, ctxClusterID, clusterID)
+func mustClusterFromCtx(r *http.Request) *cluster.Cluster {
+	c, ok := r.Context().Value(ctxCluster).(*cluster.Cluster)
+	if !ok {
+		panic("missing cluster in context")
+	}
+	return c
+}
+
+func mustUnitFromCtx(r *http.Request) *repair.Unit {
+	u, ok := r.Context().Value(ctxRepairUnit).(*repair.Unit)
+	if !ok {
+		panic("missing repair unit in context")
+	}
+	return u
 }
