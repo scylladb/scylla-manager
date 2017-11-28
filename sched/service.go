@@ -21,14 +21,13 @@ import (
 // Service schedules tasks.
 type Service struct {
 	session *gocql.Session
+	runners map[TaskType]runner.Runner
 	logger  log.Logger
 
 	cronCtx  context.Context
 	tasks    map[uuid.UUID]cancelableTrigger
 	wg       sync.WaitGroup
 	taskLock sync.Mutex
-
-	repairRunner runner.Runner
 }
 
 type cancelableTrigger struct {
@@ -46,17 +45,17 @@ var (
 )
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, l log.Logger, repairRunner runner.Runner) (*Service, error) {
+func NewService(session *gocql.Session, runners map[TaskType]runner.Runner, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	return &Service{
-		session:      session,
-		logger:       l,
-		cronCtx:      log.WithTraceID(context.Background()),
-		tasks:        make(map[uuid.UUID]cancelableTrigger),
-		repairRunner: repairRunner,
+		session: session,
+		logger:  l,
+		cronCtx: log.WithTraceID(context.Background()),
+		tasks:   make(map[uuid.UUID]cancelableTrigger),
+		runners: runners,
 	}, nil
 }
 
@@ -126,12 +125,12 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 }
 
 func (s *Service) taskRunner(t *Task) runner.Runner {
-	switch t.Type {
-	case RepairTask:
-		return s.repairRunner
-	default:
-		return nilRunner{}
+	r := s.runners[t.Type]
+	if r != nil {
+		return r
 	}
+
+	return nilRunner{}
 }
 
 func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {

@@ -28,6 +28,7 @@ import (
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
@@ -148,7 +149,9 @@ var rootCmd = &cobra.Command{
 		}
 
 		// create scheduler service
-		schedSvc, err := sched.NewService(session, logger.Named("scheduler"), repairSvc)
+		schedSvc, err := sched.NewService(session, map[sched.TaskType]runner.Runner{
+			sched.RepairTask: repairSvc,
+		}, logger.Named("scheduler"))
 		if err != nil {
 			return errors.Wrapf(err, "scheduler service error")
 		}

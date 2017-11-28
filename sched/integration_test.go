@@ -57,8 +57,8 @@ func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Contr
 
 	s, err := NewService(
 		session,
+		map[TaskType]runner.Runner{RepairTask: repairSvc},
 		log.NewDevelopment().Named("sched"),
-		repairSvc,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -100,7 +100,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	ch := make(chan bool)
 	reschedTaskDone = func(*Task) { ch <- true }
 	newRunID := uuid.Nil
-	expect := s.repairRunner.(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[RepairTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
 		expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
 			tick()
@@ -185,7 +185,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 		t.Fail()
 	}
 
-	expect := s.repairRunner.(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[RepairTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
 		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
 			tick()
@@ -257,7 +257,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	ch := make(chan bool)
 	reschedTaskDone = func(*Task) { ch <- true }
 	newRunID := uuid.Nil
-	expect := s.repairRunner.(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[RepairTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
 		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
 			tick()
@@ -352,7 +352,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	reschedTaskDone = func(*Task) { ch <- true }
 	newRunID := []uuid.UUID{uuid.Nil, uuid.Nil, uuid.Nil}
 	runNum := 0
-	expect := s.repairRunner.(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[RepairTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
 		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
 			tick()
