@@ -156,7 +156,14 @@ var rootCmd = &cobra.Command{
 				if !ok {
 					return
 				}
+
 				provider.Invalidate(c.ID)
+
+				if c.Current != nil {
+					if err := repairSvc.SyncUnits(ctx, c.ID); err != nil {
+						logger.Error(ctx, "failed to sync units", "error", err)
+					}
+				}
 			}
 		}()
 
