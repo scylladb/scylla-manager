@@ -41,6 +41,8 @@ var (
 	timeNow             = time.Now
 	retryTaskWait       = 10 * time.Minute
 	monitorTaskInterval = time.Second
+
+	reschedTaskDone = func(*Task) {}
 )
 
 // NewService creates a new service instance.
@@ -183,6 +185,7 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 }
 
 func (s *Service) reschedTask(ctx context.Context, t *Task) {
+	defer reschedTaskDone(t)
 	s.taskLock.Lock()
 	if prevTrigger, ok := s.tasks[t.ID]; ok {
 		delete(s.tasks, t.ID)
