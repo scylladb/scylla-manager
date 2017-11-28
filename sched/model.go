@@ -22,6 +22,8 @@ const (
 	UnknownTask TaskType = "unknown"
 	BackupTask  TaskType = "backup"
 	RepairTask  TaskType = "repair"
+
+	mockTask TaskType = "mock"
 )
 
 func (t TaskType) String() string {
