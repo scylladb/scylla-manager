@@ -26,6 +26,8 @@ import (
 	"github.com/scylladb/mermaid/log/gocqllog"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
+	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -107,8 +109,25 @@ var rootCmd = &cobra.Command{
 			return errors.Wrapf(err, "cluster service error")
 		}
 
+		// create scylla REST client provider
+		provider := scylla.NewCachedProvider(func(ctx context.Context, clusterID uuid.UUID) (*scylla.Client, error) {
+			c, err := clusterSvc.GetClusterByID(ctx, clusterID)
+			if err != nil {
+				return nil, err
+			}
+
+			client, err := scylla.NewClient(c.Hosts, logger.Named("client"))
+			if err != nil {
+				return nil, err
+			}
+			return scylla.WithConfig(client, scylla.Config{
+				"murmur3_partitioner_ignore_msb_bits": float64(12),
+				"shard_count":                         float64(c.ShardCount),
+			}), nil
+		})
+
 		// create repair service
-		repairSvc, err := repair.NewService(session, clusterSvc.Client, logger.Named("repair"))
+		repairSvc, err := repair.NewService(session, provider.Client, logger.Named("repair"))
 		if err != nil {
 			return errors.Wrapf(err, "repair service error")
 		}
@@ -128,6 +147,18 @@ var rootCmd = &cobra.Command{
 				return errors.Wrapf(err, "gops agent startup error")
 			}
 		}
+
+		// observe cluster changes
+		go func() {
+			ch := clusterSvc.Changes()
+			for {
+				c, ok := <-ch
+				if !ok {
+					return
+				}
+				provider.Invalidate(c.ID)
+			}
+		}()
 
 		// listen and serve
 		var (
@@ -204,6 +235,9 @@ var rootCmd = &cobra.Command{
 			}()
 		}
 		wg.Wait()
+
+		// close cluster
+		clusterSvc.Close()
 
 		// close repair
 		repairSvc.Close(ctx)

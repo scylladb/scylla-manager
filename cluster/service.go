@@ -3,10 +3,11 @@
 package cluster
 
 import (
+	"bytes"
 	"context"
 	"sort"
+	"sync"
 
-	"bytes"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
@@ -14,14 +15,22 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
-	"github.com/scylladb/mermaid/scylla"
 	"github.com/scylladb/mermaid/uuid"
 )
+
+// Change holds ID of a modified cluster and it's current value.
+type Change struct {
+	ID      uuid.UUID
+	Current *Cluster
+}
 
 // Service manages cluster configurations.
 type Service struct {
 	session *gocql.Session
 	logger  log.Logger
+
+	changesCh chan Change
+	mu        sync.Mutex
 }
 
 // NewService creates a new service instance.
@@ -34,25 +43,6 @@ func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 		session: session,
 		logger:  l,
 	}, nil
-}
-
-// Client is scylla.ProviderFunc it returns cluster client.
-func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scylla.Client, error) {
-	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
-
-	c, err := s.GetClusterByID(ctx, clusterID)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := scylla.NewClient(c.Hosts, s.logger.Named("client"))
-	if err != nil {
-		return nil, err
-	}
-	return scylla.WithConfig(client, scylla.Config{
-		"murmur3_partitioner_ignore_msb_bits": float64(12),
-		"shard_count":                         float64(c.ShardCount),
-	}), nil
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.
@@ -182,7 +172,13 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	stmt, names := schema.Cluster.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(c)
 
-	return q.ExecRelease()
+	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	s.notifyChange(ctx, Change{ID: c.ID, Current: c})
+
+	return nil
 }
 
 // DeleteCluster removes cluster based on ID.
@@ -195,5 +191,45 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 		"id": id,
 	})
 
-	return q.ExecRelease()
+	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	s.notifyChange(ctx, Change{ID: id})
+
+	return nil
+}
+
+func (s *Service) notifyChange(ctx context.Context, c Change) {
+	select {
+	case s.changesCh <- c:
+		// ok
+	default:
+		if s.changesCh != nil {
+			s.logger.Error(ctx, "Failed to notify", "change", c)
+		}
+	}
+}
+
+// Changes returns cluster Changes stream.
+func (s *Service) Changes() <-chan Change {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.changesCh == nil {
+		s.changesCh = make(chan Change, 128)
+	}
+	return s.changesCh
+}
+
+// Close closes the changes channel.
+func (s *Service) Close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.changesCh == nil {
+		return
+	}
+	close(s.changesCh)
+	s.changesCh = nil
 }
