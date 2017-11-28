@@ -104,8 +104,7 @@ var rootCmd = &cobra.Command{
 		defer session.Close()
 
 		// create cluster service
-		clusterUpdateCh := make(chan cluster.Update, 128)
-		clusterSvc, err := cluster.NewService(session, clusterUpdateCh, logger.Named("cluster"))
+		clusterSvc, err := cluster.NewService(session, logger.Named("cluster"))
 		if err != nil {
 			return errors.Wrapf(err, "cluster service error")
 		}
@@ -151,15 +150,13 @@ var rootCmd = &cobra.Command{
 
 		// observe cluster changes
 		go func() {
+			ch := clusterSvc.Changes()
 			for {
-				select {
-				case c, ok := <-clusterUpdateCh:
-					if !ok {
-						return
-					}
-
-					provider.Invalidate(c.ID)
+				c, ok := <-ch
+				if !ok {
+					return
 				}
+				provider.Invalidate(c.ID)
 			}
 		}()
 
@@ -239,8 +236,8 @@ var rootCmd = &cobra.Command{
 		}
 		wg.Wait()
 
-		// close cluster update
-		close(clusterUpdateCh)
+		// close cluster
+		clusterSvc.Close()
 
 		// close repair
 		repairSvc.Close(ctx)

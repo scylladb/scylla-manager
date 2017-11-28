@@ -3,10 +3,11 @@
 package cluster
 
 import (
+	"bytes"
 	"context"
 	"sort"
+	"sync"
 
-	"bytes"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
@@ -17,29 +18,30 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-// Update holds ID of a modified cluster and it's current value.
-type Update struct {
-	ID    uuid.UUID
-	Value *Cluster
+// Change holds ID of a modified cluster and it's current value.
+type Change struct {
+	ID      uuid.UUID
+	Current *Cluster
 }
 
 // Service manages cluster configurations.
 type Service struct {
-	session  *gocql.Session
-	updateCh chan<- Update
-	logger   log.Logger
+	session *gocql.Session
+	logger  log.Logger
+
+	changesCh chan Change
+	mu        sync.Mutex
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, updateCh chan<- Update, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	return &Service{
-		session:  session,
-		updateCh: updateCh,
-		logger:   l,
+		session: session,
+		logger:  l,
 	}, nil
 }
 
@@ -174,7 +176,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		return err
 	}
 
-	s.notifyUpdated(ctx, Update{ID: c.ID, Value: c})
+	s.notifyChange(ctx, Change{ID: c.ID, Current: c})
 
 	return nil
 }
@@ -193,16 +195,41 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	s.notifyUpdated(ctx, Update{ID: id})
+	s.notifyChange(ctx, Change{ID: id})
 
 	return nil
 }
 
-func (s *Service) notifyUpdated(ctx context.Context, u Update) {
+func (s *Service) notifyChange(ctx context.Context, c Change) {
 	select {
-	case s.updateCh <- u:
+	case s.changesCh <- c:
 		// ok
 	default:
-		s.logger.Error(ctx, "Failed to notify listeners")
+		if s.changesCh != nil {
+			s.logger.Error(ctx, "Failed to notify", "change", c)
+		}
 	}
+}
+
+// Changes returns cluster Changes stream.
+func (s *Service) Changes() <-chan Change {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.changesCh == nil {
+		s.changesCh = make(chan Change, 128)
+	}
+	return s.changesCh
+}
+
+// Close closes the changes channel.
+func (s *Service) Close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.changesCh == nil {
+		return
+	}
+	close(s.changesCh)
+	s.changesCh = nil
 }
