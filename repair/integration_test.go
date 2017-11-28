@@ -521,32 +521,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 	createKeyspace(t, session, "test_repair")
 	createTable(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
-	logger := log.NewDevelopment()
-
-	newService := func() *repair.Service {
-		s, err := repair.NewService(
-			session,
-			func(context.Context, uuid.UUID) (*scylla.Client, error) {
-				c, err := scylla.NewClient(mermaidtest.ClusterHosts, logger.Named("scylla"))
-				if err != nil {
-					return nil, err
-				}
-				config := scylla.Config{
-					"murmur3_partitioner_ignore_msb_bits": float64(12),
-					"shard_count":                         float64(2),
-				}
-				return scylla.WithConfig(c, config), nil
-			},
-			logger.Named("repair"),
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return s
-	}
-
 	var (
-		s            = newService()
+		s            = newTestService(t, session)
 		clusterID    = uuid.MustRandom()
 		taskID       = uuid.NewTime()
 		unit         = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
@@ -568,7 +544,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		if len(prog) != 4 {
-			logger.Info(ctx, "Wrong progress items count", "progress", prog, "progress_length", len(prog))
 			t.Fatal()
 		}
 
@@ -684,7 +659,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	// And restart
-	s = newService()
+	s = newTestService(t, session)
 	s.FixRunStatus(ctx)
 
 	// And create a new task
@@ -706,6 +681,30 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// Then wait
 	wait()
+}
+
+func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
+	logger := log.NewDevelopment()
+
+	s, err := repair.NewService(
+		session,
+		func(context.Context, uuid.UUID) (*scylla.Client, error) {
+			c, err := scylla.NewClient(mermaidtest.ClusterHosts, logger.Named("scylla"))
+			if err != nil {
+				return nil, err
+			}
+			config := scylla.Config{
+				"murmur3_partitioner_ignore_msb_bits": float64(12),
+				"shard_count":                         float64(2),
+			}
+			return scylla.WithConfig(c, config), nil
+		},
+		logger.Named("repair"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
