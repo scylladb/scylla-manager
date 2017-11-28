@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -516,10 +517,54 @@ func validUnit() *repair.Unit {
 	}
 }
 
+func TestServiceSyncUnitsIntegration(t *testing.T) {
+	session := mermaidtest.CreateSession(t)
+
+	createKeyspace(t, session, "test_0")
+	createKeyspace(t, session, "test_1")
+	createKeyspace(t, session, "test_2")
+
+	s := newTestService(t, session)
+	clusterID := uuid.MustRandom()
+	ctx := context.Background()
+
+	if err := s.PutUnit(ctx, &repair.Unit{ClusterID: clusterID, Keyspace: "test_2", Tables: []string{"a"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutUnit(ctx, &repair.Unit{ClusterID: clusterID, Keyspace: "test_2", Tables: []string{"b"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutUnit(ctx, &repair.Unit{ClusterID: clusterID, Keyspace: "test_missing"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.SyncUnits(ctx, clusterID); err != nil {
+		t.Fatal(err)
+	}
+
+	units, err := s.ListUnits(ctx, clusterID, &repair.UnitFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var actual []string
+	for _, u := range units {
+		actual = append(actual, u.Keyspace)
+	}
+	sort.Strings(actual)
+
+	expected := []string{"system", "system_schema", "system_traces", "test_0", "test_1", "test_2", "test_2", "test_scylla_management"}
+
+	if diff := cmp.Diff(actual, expected); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
 func TestServiceRepairIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
+
 	createKeyspace(t, session, "test_repair")
-	createTable(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
+	mermaidtest.ExecStmt(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
 	var (
 		s            = newTestService(t, session)
@@ -708,24 +753,5 @@ func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
-	var q *gocqlx.Queryx
-
-	q = gocqlx.Query(session.Query("DROP KEYSPACE IF EXISTS "+keyspace), nil)
-	if err := q.ExecRelease(); err != nil {
-		t.Fatal(err)
-	}
-
-	q = gocqlx.Query(session.Query("CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"), nil)
-	if err := q.ExecRelease(); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func createTable(t *testing.T, s *gocql.Session, table string) error {
-	if err := s.Query(table).RetryPolicy(nil).Exec(); err != nil {
-		t.Logf("error creating table table=%q err=%v\n", table, err)
-		return err
-	}
-
-	return nil
+	mermaidtest.ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
