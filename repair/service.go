@@ -670,6 +670,67 @@ func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
 	return q.ExecRelease()
 }
 
+// SyncUnits ensures that for every keyspace there is a Unit. If there is no
+// unit it will be created
+func (s *Service) SyncUnits(ctx context.Context, clusterID uuid.UUID) error {
+	s.logger.Debug(ctx, "SyncUnits", "cluster_id", clusterID)
+
+	// get the cluster client
+	cluster, err := s.client(ctx, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "failed to get the cluster proxy")
+	}
+
+	// cluster keyspaces
+	keyspaces, err := cluster.Keyspaces(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to list keyspaces")
+	}
+
+	ck := set.NewNonTS()
+	for _, k := range keyspaces {
+		ck.Add(k)
+	}
+
+	// database keyspaces
+	units, err := s.ListUnits(ctx, clusterID, &UnitFilter{})
+	if err != nil {
+		return errors.Wrap(err, "failed to list units")
+	}
+
+	dbk := set.NewNonTS()
+	for _, u := range units {
+		dbk.Add(u.Keyspace)
+	}
+
+	var dbErr error
+
+	// add missing keyspaces
+	set.Difference(ck, dbk).Each(func(i interface{}) bool {
+		dbErr = s.PutUnit(ctx, &Unit{ClusterID: clusterID, Keyspace: i.(string)})
+		return dbErr == nil
+	})
+	if dbErr != nil {
+		return dbErr
+	}
+
+	// delete dropped keyspaces
+	set.Difference(dbk, ck).Each(func(i interface{}) bool {
+		k := i.(string)
+		for _, u := range units {
+			if u.Keyspace == k {
+				dbErr = s.DeleteUnit(ctx, clusterID, u.ID)
+				if dbErr != nil {
+					return false
+				}
+			}
+		}
+		return true
+	})
+
+	return dbErr
+}
+
 // ListUnits returns all the units in the cluster.
 func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID, f *UnitFilter) ([]*Unit, error) {
 	s.logger.Debug(ctx, "ListUnits", "cluster_id", clusterID, "filter", f)

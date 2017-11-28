@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -83,6 +84,21 @@ func (c *Client) Datacenter(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	return resp.Payload, nil
+}
+
+// Keyspaces retrurn a list of all the keyspaces.
+func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
+	resp, err := c.operations.GetKeyspaces(&operations.GetKeyspacesParams{
+		Context:    ctx,
+		HTTPClient: c.client,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Strings(resp.Payload)
 
 	return resp.Payload, nil
 }

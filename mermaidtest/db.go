@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 )
 
@@ -55,7 +56,7 @@ func createCluster() *gocql.ClusterConfig {
 
 func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocql.Session {
 	initOnce.Do(func() {
-		createKeyspace(tb, cluster, "test_scylla_management")
+		createTestKeyspace(tb, cluster, "test_scylla_management")
 	})
 
 	cluster.Keyspace = "test_scylla_management"
@@ -71,7 +72,7 @@ func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocq
 	return session
 }
 
-func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string) {
+func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string) {
 	c := *cluster
 	c.Keyspace = "system"
 	c.Timeout = 30 * time.Second
@@ -81,16 +82,36 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 	}
 	defer session.Close()
 
-	mustExec(tb, session, "DROP KEYSPACE IF EXISTS "+keyspace)
-	mustExec(tb, session, fmt.Sprintf(`CREATE KEYSPACE %s
+	dropAllKeyspaces(tb, session)
+
+	ExecStmt(tb, session, fmt.Sprintf(`CREATE KEYSPACE %s
 	WITH replication = {
 		'class' : 'SimpleStrategy',
 		'replication_factor' : %d
 	}`, keyspace, *flagRF))
 }
 
-func mustExec(tb testing.TB, s *gocql.Session, stmt string) {
-	if err := s.Query(stmt).RetryPolicy(nil).Exec(); err != nil {
+func dropAllKeyspaces(tb testing.TB, session *gocql.Session) {
+	q := session.Query("select keyspace_name from system_schema.keyspaces")
+	var all []string
+	if err := gocqlx.Select(&all, q); err != nil {
+		tb.Fatal(err)
+	}
+
+	for _, k := range all {
+		if !strings.HasPrefix(k, "system") {
+			dropKeyspace(tb, session, k)
+		}
+	}
+}
+
+func dropKeyspace(tb testing.TB, session *gocql.Session, keyspace string) {
+	ExecStmt(tb, session, "DROP KEYSPACE IF EXISTS "+keyspace)
+}
+
+// ExecStmt executes given statement.
+func ExecStmt(tb testing.TB, session *gocql.Session, stmt string) {
+	if err := session.Query(stmt).RetryPolicy(nil).Exec(); err != nil {
 		tb.Fatal("exec failed", stmt, err)
 	}
 }
