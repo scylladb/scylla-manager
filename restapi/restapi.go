@@ -38,6 +38,8 @@ func New(svc *Services, logger log.Logger) http.Handler {
 			Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(svc.Repair))
 	}
 
+	r.Mount("/version", newVersionHandler())
+
 	return r
 }
 

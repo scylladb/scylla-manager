@@ -44,7 +44,7 @@ ln -s $PWD src/%{mermaid_pkg}
   export GOARCH=amd64
   export CGO_ENABLED=0
 
-  GOLDFLAGS="-w -X main.version=%{version}_%{release}"
+  GOLDFLAGS="-w -X github.com/scylladb/mermaid.version=%{version}_%{release}"
   $GO build -o release/linux_amd64/scylla-mgmt -ldflags "$GOLDFLAGS" %{mermaid_pkg}/cmd/scylla-mgmt
   $GO build -o release/linux_amd64/sctool -ldflags "$GOLDFLAGS" %{mermaid_pkg}/cmd/sctool
 )

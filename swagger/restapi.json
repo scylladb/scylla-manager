@@ -12,6 +12,14 @@
     "application/json"
   ],
   "definitions": {
+    "version": {
+      "type" : "object",
+      "properties": {
+        "version": {
+          "type" : "string"
+        }
+      }
+    },
     "cluster": {
       "type": "object",
       "properties": {
@@ -178,6 +186,19 @@
     }
   },
   "paths": {
+    "/version" : {
+      "get": {
+        "description" : "returns the server version",
+        "responses" : {
+          "200" : {
+            "description": "Server version",
+            "schema": {
+              "$ref": "#/definitions/version"
+            }
+          }
+        }
+      }
+    },
     "/clusters": {
       "get": {
         "description": "listClusters Description",

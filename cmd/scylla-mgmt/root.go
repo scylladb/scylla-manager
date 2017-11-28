@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/log/gocqllog"
@@ -51,7 +52,7 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// print version and return
 		if cfgVersion {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", version)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", mermaid.Version())
 			return nil
 		}
 
