@@ -41,6 +41,24 @@ func TestClientDatacenter(t *testing.T) {
 	}
 }
 
+func TestClientKeyspaces(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_keyspaces.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Keyspaces(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{"system", "system_schema", "system_traces", "test_repair", "test_scylla_management"}
+	if diff := cmp.Diff(v, expected); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
 func TestClientDescribeRing(t *testing.T) {
 	t.Parallel()
 
