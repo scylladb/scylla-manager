@@ -38,7 +38,7 @@ CREATE TABLE repair_run (
     start_time timestamp,
     end_time timestamp,
     PRIMARY KEY(cluster_id, unit_id, id)
-) WITH CLUSTERING ORDER BY (unit_id ASC, id DESC);
+) WITH default_time_to_live = 360000 AND CLUSTERING ORDER BY (unit_id ASC, id DESC);
 
 CREATE TABLE repair_run_progress (
     cluster_id uuid,
@@ -53,4 +53,4 @@ CREATE TABLE repair_run_progress (
     last_start_time timestamp,
     last_command_id int,
     PRIMARY KEY((cluster_id, unit_id, run_id), host, shard)
-);
+) WITH default_time_to_live = 360000;
