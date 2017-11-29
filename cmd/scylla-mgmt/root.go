@@ -81,6 +81,17 @@ var rootCmd = &cobra.Command{
 		// set gocql logger
 		gocql.Logger = gocqllog.New(ctx, logger.Named("gocql"))
 
+		// wait for database
+		for {
+			if session, err := gocqlConfig(config).CreateSession(); err != nil {
+				logger.Info(ctx, "could not connect to database", "error", err)
+				time.Sleep(5 * time.Second)
+			} else {
+				session.Close()
+				break
+			}
+		}
+
 		// create management keyspace
 		logger.Info(ctx, "Using keyspace",
 			"keyspace", config.Database.Keyspace,
