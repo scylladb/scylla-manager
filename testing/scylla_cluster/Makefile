@@ -11,15 +11,15 @@ up:
 
 .PHONY: down
 down:
-	@$(COMPOSE) down
+	@$(COMPOSE) down --remove-orphans
 
 .PHONY: status
 status:
-	@$(COMPOSE) exec dc1_seed_node nodetool status scylla_management
+	@$(COMPOSE) exec mgmt_node nodetool status scylla_management
 
 .PHONY: bash
 bash:
-	@$(COMPOSE) exec dc1_seed_node bash
+	@$(COMPOSE) exec mgmt_node bash
 
 .PHONY: cqlsh
 cqlsh:
