@@ -1,7 +1,8 @@
 [Unit]
 Description=Scylla Management Server
-After=network-online.target
 Wants=scylla-server.service
+After=scylla-server.service
+After=network-online.target
 
 [Service]
 Type=simple
