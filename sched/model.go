@@ -44,6 +44,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = BackupTask
 	case RepairTask:
 		*t = RepairTask
+	case mockTask:
+		*t = mockTask
 	default:
 		return fmt.Errorf("unrecognized TaskType %q", text)
 	}
@@ -126,15 +128,18 @@ func (t *Task) Validate() error {
 	if t.ClusterID == uuid.Nil {
 		return errors.New("missing ClusterID")
 	}
-	switch t.Type {
-	case BackupTask, RepairTask:
 
-	case UnknownTask:
+	switch t.Type {
+	case "", UnknownTask:
 		return errors.New("no TaskType specified")
 
 	default:
-		return fmt.Errorf("unrecognized TaskType %q", t.Type)
+		var tmpType TaskType
+		if err := tmpType.UnmarshalText([]byte(t.Type)); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
