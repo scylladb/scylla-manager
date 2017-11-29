@@ -53,10 +53,6 @@ if [ $ENABLE_SERVICE -eq 1 ]; then
         systemctl enable collectd.service
         systemctl enable scylla-server.service
         systemctl enable scylla-mgmt.service
-    elif is_gentoo_variant; then
-        rc-update add collectd default
-        rc-update add scylla-server default
-        rc-update add scylla-mgmt default
     fi
 fi
 
