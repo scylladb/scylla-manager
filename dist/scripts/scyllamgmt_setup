@@ -1,0 +1,63 @@
+#!/bin/bash -e
+#
+#  Copyright (C) 2017 ScyllaDB
+
+. /usr/lib/scylla/scylla_lib.sh
+
+interactive_ask_service() {
+    echo $1
+    echo $2
+    while true; do
+        if [ "$3" == "yes" ]; then
+        prompt="[YES/no]"
+        elif [ "$3" == "no" ]; then
+        prompt="[yes/NO]"
+        else
+        prompt="[yes/no]"
+        fi
+        result=""
+        while [ x == x"$result" ]; do
+            read -p $prompt ans
+            if [ x == x"$ans" ]; then
+                result="$3"
+            else
+                result="$ans"
+            fi
+        done
+        case $(echo $result | tr '[:upper:]' '[:lower:]') in
+            "y" | "yes")
+                return 1
+                ;;
+            "n" | "no")
+                return 0
+                ;;
+        esac
+    done
+}
+
+ENABLE_SERVICE=1
+
+if [ $# -ne 0 ]; then
+    INTERACTIVE=0
+else
+    INTERACTIVE=1
+fi
+
+if [ $INTERACTIVE -eq 1 ]; then
+    interactive_ask_service "Do you want to enable ScyllaDB management services?" "Answer yes to automatically start Scylla and Scylla management when the node boots; answer no to skip this step." "yes" &&:
+    ENABLE_SERVICE=$?
+fi
+
+if [ $ENABLE_SERVICE -eq 1 ]; then
+    if is_systemd; then
+        systemctl enable collectd.service
+        systemctl enable scylla-server.service
+        systemctl enable scylla-mgmt.service
+    elif is_gentoo_variant; then
+        rc-update add collectd default
+        rc-update add scylla-server default
+        rc-update add scylla-mgmt default
+    fi
+fi
+
+echo "ScyllaDB management setup finished."

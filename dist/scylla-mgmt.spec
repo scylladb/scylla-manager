@@ -55,16 +55,19 @@ mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d/
 mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/
 mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 mkdir -p %{buildroot}%{_unitdir}/
+mkdir -p %{buildroot}%{_prefix}/lib/scylla-mgmt/
 
 install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
 install -m644 release/bash_completion/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 install -m644 dist/etc/*.yaml %{buildroot}%{_sysconfdir}/scylla-mgmt/
 install -m644 dist/etc/*.tpl %{buildroot}%{_sysconfdir}/scylla-mgmt/
+install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/scylla-mgmt/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 
 %files
 %defattr(-,root,root)
+%{_prefix}/lib/scylla-mgmt/scyllamgmt_setup
 
 %post
 /usr/lib/scylla/scylla_dev_mode_setup --developer-mode 1
