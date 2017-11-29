@@ -24,13 +24,3 @@ database:
 # Keyspace for management data, for create statement see /etc/scylla-mgmt/create_keyspace.cql.tpl.
 #  keyspace: scylla_management
 #  replication_factor: 1
-
-# List of managed clusters.
-# clusters:
-#   - uuid: a3f1b32b-ed5b-438d-81a7-c82eb7bde800
-#     hosts:
-#       - 172.16.1.10
-#       - 172.16.1.20
-#     shard_count: 16
-#     murmur3_partitioner_ignore_msb_bits: 12
-
