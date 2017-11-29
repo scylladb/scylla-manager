@@ -83,11 +83,10 @@ var rootCmd = &cobra.Command{
 
 		// wait for database
 		for {
-			if session, err := gocqlConfig(config).CreateSession(); err != nil {
+			if err := tryConnect(config); err != nil {
 				logger.Info(ctx, "could not connect to database", "error", err)
 				time.Sleep(5 * time.Second)
 			} else {
-				session.Close()
 				break
 			}
 		}
@@ -278,6 +277,17 @@ func logger() (log.Logger, error) {
 		return log.NewDevelopment(), nil
 	}
 	return log.NewProduction("scylla-mgmt")
+}
+
+func tryConnect(config *serverConfig) error {
+	c := gocqlConfig(config)
+	c.Keyspace = "system"
+
+	sesion, err := c.CreateSession()
+	if sesion != nil {
+		sesion.Close()
+	}
+	return err
 }
 
 func createKeyspace(config *serverConfig) error {
