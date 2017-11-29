@@ -17,31 +17,43 @@ import (
 )
 
 var (
-	flagCluster = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
-	flagProto   = flag.Int("proto", 0, "protcol version")
-	flagCQL     = flag.String("cql", "3.0.0", "CQL version")
-	flagRF      = flag.Int("rf", 1, "replication factor for test keyspace")
-	flagRetry   = flag.Int("retries", 5, "number of times to retry queries")
-	flagTimeout = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
+	flagManagedCluster = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
+	flagCluster        = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of mgmt db hosts")
+	flagProto          = flag.Int("proto", 0, "protcol version")
+	flagCQL            = flag.String("cql", "3.0.0", "CQL version")
+	flagRF             = flag.Int("rf", 1, "replication factor for test keyspace")
+	flagRetry          = flag.Int("retries", 5, "number of times to retry queries")
+	flagTimeout        = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
 
 	// ClusterHosts specifies addresses of nodes in a test cluster.
-	ClusterHosts []string
+	ManagedClusterHosts []string
 )
 
 func init() {
 	flag.Parse()
-	ClusterHosts = strings.Split(*flagCluster, ",")
+	ManagedClusterHosts = strings.Split(*flagManagedCluster, ",")
 }
 
 var initOnce sync.Once
 
-// CreateSession recreates the database and returns a new gocql.Session.
+// CreateSession recreates the database on mgmt cluster and returns a new gocql.Session.
 func CreateSession(tb testing.TB) *gocql.Session {
-	return createSessionFromCluster(tb, createCluster())
+	return createSessionFromCluster(tb, createCluster(*flagCluster))
 }
 
-func createCluster() *gocql.ClusterConfig {
-	cluster := gocql.NewCluster(ClusterHosts...)
+// CreateManagedClusterSession returns a new gocql.Session to the managed data cluster.
+func CreateManagedClusterSession(tb testing.TB) *gocql.Session {
+	cluster := createCluster(ManagedClusterHosts...)
+	session, err := cluster.CreateSession()
+	if err != nil {
+		tb.Fatal("createSession:", err)
+	}
+	dropAllKeyspaces(tb, session)
+	return session
+}
+
+func createCluster(hosts ...string) *gocql.ClusterConfig {
+	cluster := gocql.NewCluster(hosts...)
 	cluster.ProtoVersion = *flagProto
 	cluster.CQLVersion = *flagCQL
 	cluster.Timeout = *flagTimeout

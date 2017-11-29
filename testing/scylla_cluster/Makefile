@@ -1,8 +1,9 @@
 COMPOSE=source ./.env && docker-compose
-CQLSH=cqlsh --cqlversion=3.3.1 172.16.1.10
+CQLSH=cqlsh --cqlversion=3.3.1 172.16.1.100
 
 .PHONY: up
 up:
+	@$(COMPOSE) up -d mgmt_node
 	@$(COMPOSE) up -d dc1_seed_node
 	@$(COMPOSE) up -d dc2_seed_node
 	@$(COMPOSE) up -d --scale dc1_node=2 dc1_node

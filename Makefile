@@ -73,7 +73,7 @@ unit-test:
 .PHONY: integration-test
 integration-test: unit-test
 	@echo "==> Running integration tests..."
-	@go test -cover -tags integration -run Integration ./repair -cluster "172.16.1.10"
+	@go test -cover -tags integration -run Integration ./repair -cluster 172.16.1.100 -managed-cluster "172.16.1.10,172.16.1.20"
 
 # dev-server runs development server.
 .PHONY: dev-server

@@ -520,9 +520,10 @@ func validUnit() *repair.Unit {
 func TestServiceSyncUnitsIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 
-	createKeyspace(t, session, "test_0")
-	createKeyspace(t, session, "test_1")
-	createKeyspace(t, session, "test_2")
+	clusterSession := mermaidtest.CreateManagedClusterSession(t)
+	createKeyspace(t, clusterSession, "test_0")
+	createKeyspace(t, clusterSession, "test_1")
+	createKeyspace(t, clusterSession, "test_2")
 
 	s := newTestService(t, session)
 	clusterID := uuid.MustRandom()
@@ -553,7 +554,7 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 	}
 	sort.Strings(actual)
 
-	expected := []string{"system", "system_schema", "system_traces", "test_0", "test_1", "test_2", "test_2", "test_scylla_management"}
+	expected := []string{"system", "system_schema", "system_traces", "test_0", "test_1", "test_2", "test_2"}
 
 	if diff := cmp.Diff(actual, expected); diff != "" {
 		t.Fatal(diff)
@@ -562,9 +563,9 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
-
-	createKeyspace(t, session, "test_repair")
-	mermaidtest.ExecStmt(t, session, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
+	clusterSession := mermaidtest.CreateManagedClusterSession(t)
+	createKeyspace(t, clusterSession, "test_repair")
+	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
 	var (
 		s            = newTestService(t, session)
@@ -734,7 +735,7 @@ func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
 	s, err := repair.NewService(
 		session,
 		func(context.Context, uuid.UUID) (*scylla.Client, error) {
-			c, err := scylla.NewClient(mermaidtest.ClusterHosts, logger.Named("scylla"))
+			c, err := scylla.NewClient(mermaidtest.ManagedClusterHosts, logger.Named("scylla"))
 			if err != nil {
 				return nil, err
 			}
