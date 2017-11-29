@@ -69,9 +69,6 @@ install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 %defattr(-,root,root)
 %{_prefix}/lib/scylla-mgmt/scyllamgmt_setup
 
-%post
-/usr/lib/scylla/scylla_dev_mode_setup --developer-mode 1
-
 
 %package server
 Summary: Scylla database management server

@@ -56,4 +56,6 @@ if [ $ENABLE_SERVICE -eq 1 ]; then
     fi
 fi
 
+/usr/lib/scylla/scylla_dev_mode_setup --developer-mode 1
+
 echo "ScyllaDB management setup finished."
