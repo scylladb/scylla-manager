@@ -149,12 +149,23 @@ var rootCmd = &cobra.Command{
 		}
 
 		// create scheduler service
-		schedSvc, err := sched.NewService(session, map[sched.TaskType]runner.Runner{
-			sched.RepairTask: repairSvc,
-		}, logger.Named("scheduler"))
+		schedSvc, err := sched.NewService(session, logger.Named("scheduler"))
 		if err != nil {
 			return errors.Wrapf(err, "scheduler service error")
 		}
+		// add repair
+		schedSvc.SetRunner(sched.RepairTask, repairSvc)
+
+		// add auto repair scheduler
+		repairAutoScheduler, err := repair.NewAutoScheduler(repairSvc, func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
+			return schedSvc.PutTask(ctx, repairTask(clusterID, props))
+		})
+		if err != nil {
+			return errors.Wrapf(err, "repair auto scheduler error")
+		}
+		schedSvc.SetRunner(sched.RepairAutoScheduleTask, repairAutoScheduler)
+
+		// start scheduler
 		if err := schedSvc.LoadTasks(ctx); err != nil {
 			return errors.Wrapf(err, "schedule service error")
 		}
@@ -198,19 +209,7 @@ var rootCmd = &cobra.Command{
 				if t, err := schedSvc.ListTasks(ctx, c.ID, sched.RepairAutoScheduleTask); err != nil {
 					logger.Error(ctx, "failed to list scheduled tasks", "error", err)
 				} else if len(t) == 0 {
-					logger.Info(ctx, "Auto schedule repair", "cluster_id", c.ID)
-
-					task := sched.Task{
-						ClusterID: c.ID,
-						Type:      sched.RepairAutoScheduleTask,
-						Enabled:   true,
-						Sched: sched.Schedule{
-							Repeat:       true,
-							IntervalDays: 7,
-							StartDate:    midnight(),
-						},
-					}
-					if err := schedSvc.PutTask(ctx, &task); err != nil {
+					if err := schedSvc.PutTask(ctx, repairAutoScheduleTask(c.ID)); err != nil {
 						logger.Error(ctx, "failed to add scheduled tasks", "error", err)
 					}
 				}
