@@ -45,6 +45,11 @@ var (
 	reschedTaskDone = func(*Task) {}
 )
 
+// RetryFor converts task best before date into number of retries.
+func RetryFor(d time.Duration) int {
+	return int(int64(d) / int64(retryTaskWait))
+}
+
 // NewService creates a new service instance.
 func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
