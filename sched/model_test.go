@@ -11,15 +11,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-func TestRetryFor(t *testing.T) {
-	if r := RetryFor(time.Millisecond); r != 0 {
-		t.Fatal(r)
-	}
-	if r := RetryFor(time.Hour); r != 6 {
-		t.Fatal(r)
-	}
-}
-
 func makeSchedule(startDate time.Time, interval, numRetries int) Schedule {
 	return Schedule{
 		Repeat:       true,
