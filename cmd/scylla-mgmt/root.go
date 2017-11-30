@@ -181,11 +181,37 @@ var rootCmd = &cobra.Command{
 					return
 				}
 
+				// invalidate scylla REST
 				provider.Invalidate(c.ID)
 
-				if c.Current != nil {
-					if err := repairSvc.SyncUnits(ctx, c.ID); err != nil {
-						logger.Error(ctx, "failed to sync units", "error", err)
+				// handle delete
+				if c.Current == nil {
+					continue
+				}
+
+				// create repair units
+				if err := repairSvc.SyncUnits(ctx, c.ID); err != nil {
+					logger.Error(ctx, "failed to sync units", "error", err)
+				}
+
+				// schedule all unit repair
+				if t, err := schedSvc.ListTasks(ctx, c.ID, sched.RepairAutoScheduleTask); err != nil {
+					logger.Error(ctx, "failed to list scheduled tasks", "error", err)
+				} else if len(t) == 0 {
+					logger.Info(ctx, "Auto schedule repair", "cluster_id", c.ID)
+
+					task := sched.Task{
+						ClusterID: c.ID,
+						Type:      sched.RepairAutoScheduleTask,
+						Enabled:   true,
+						Sched: sched.Schedule{
+							Repeat:       true,
+							IntervalDays: 7,
+							StartDate:    midnight(),
+						},
+					}
+					if err := schedSvc.PutTask(ctx, &task); err != nil {
+						logger.Error(ctx, "failed to add scheduled tasks", "error", err)
 					}
 				}
 			}
