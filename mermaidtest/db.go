@@ -25,7 +25,7 @@ var (
 	flagRetry          = flag.Int("retries", 5, "number of times to retry queries")
 	flagTimeout        = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
 
-	// ClusterHosts specifies addresses of nodes in a test cluster.
+	// ManagedClusterHosts specifies addresses of nodes in a test cluster.
 	ManagedClusterHosts []string
 )
 
