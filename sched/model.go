@@ -100,8 +100,10 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 	}
 
 	// advance start date with idealized periods
-	for lastStart.Before(now) {
-		lastStart = lastStart.AddDate(0, 0, s.IntervalDays)
+	if s.IntervalDays > 0 {
+		for lastStart.Before(now) {
+			lastStart = lastStart.AddDate(0, 0, s.IntervalDays)
+		}
 	}
 	return lastStart
 }
