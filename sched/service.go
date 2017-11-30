@@ -20,9 +20,10 @@ import (
 
 // Service schedules tasks.
 type Service struct {
-	session *gocql.Session
-	runners map[TaskType]runner.Runner
-	logger  log.Logger
+	session   *gocql.Session
+	runners   map[TaskType]runner.Runner
+	runnersMu sync.Mutex
+	logger    log.Logger
 
 	cronCtx  context.Context
 	tasks    map[uuid.UUID]cancelableTrigger
@@ -45,7 +46,7 @@ var (
 )
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, runners map[TaskType]runner.Runner, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -53,9 +54,10 @@ func NewService(session *gocql.Session, runners map[TaskType]runner.Runner, l lo
 	return &Service{
 		session: session,
 		logger:  l,
+
 		cronCtx: log.WithTraceID(context.Background()),
+		runners: make(map[TaskType]runner.Runner),
 		tasks:   make(map[uuid.UUID]cancelableTrigger),
-		runners: runners,
 	}, nil
 }
 
@@ -125,12 +127,22 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 }
 
 func (s *Service) taskRunner(t *Task) runner.Runner {
+	s.runnersMu.Lock()
+	defer s.runnersMu.Unlock()
+
 	r := s.runners[t.Type]
 	if r != nil {
 		return r
 	}
 
 	return nilRunner{}
+}
+
+// SetRunner assigns a given runner for a given task type.
+func (s *Service) SetRunner(tp TaskType, r runner.Runner) {
+	s.runnersMu.Lock()
+	defer s.runnersMu.Unlock()
+	s.runners[tp] = r
 }
 
 func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
