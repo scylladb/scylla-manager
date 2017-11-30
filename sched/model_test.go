@@ -42,22 +42,32 @@ func TestSchedNextActivation(t *testing.T) {
 		history        []*Run
 		nextActivation time.Time
 	}{
-		// no history
+		// no history, old start with retries
 		{
 			schedule:       makeSchedule(t0, 7, 3),
-			nextActivation: now.Add(retryTaskWait),
+			nextActivation: now.Add(tastStartNowSlack),
+		},
+		// no history, start in future > tastStartNowSlack
+		{
+			schedule:       makeSchedule(now.Add(tastStartNowSlack+time.Second), 7, 3),
+			nextActivation: now.Add(tastStartNowSlack + time.Second),
+		},
+		// no history, start in future < tastStartNowSlack
+		{
+			schedule:       makeSchedule(now.Add(time.Second), 7, 3),
+			nextActivation: now.Add(retryTaskWait + time.Second),
 		},
 		// short (old) history 1
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError),
-			nextActivation: now.Add(retryTaskWait),
+			nextActivation: now.Add(tastStartNowSlack),
 		},
 		// short (old) history 2
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError, runner.StatusError),
-			nextActivation: now.Add(retryTaskWait),
+			nextActivation: now.Add(tastStartNowSlack),
 		},
 		// short (recent) history
 		{
@@ -75,7 +85,7 @@ func TestSchedNextActivation(t *testing.T) {
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError, runner.StatusStopped, runner.StatusError),
-			nextActivation: now.Add(retryTaskWait),
+			nextActivation: now.Add(tastStartNowSlack),
 		},
 	}
 
