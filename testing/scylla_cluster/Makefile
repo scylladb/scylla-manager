@@ -15,7 +15,10 @@ down:
 
 .PHONY: status
 status:
-	@$(COMPOSE) exec mgmt_node nodetool status scylla_management
+	@echo "==> Backend"
+	@$(COMPOSE) exec mgmt_node nodetool status | grep -e "^[UD]" | grep -v Datacenter
+	@echo "==> Managed Cluster"
+	@$(COMPOSE) exec dc1_seed_node nodetool status | grep -e "^[UD]" | grep -v Datacenter
 
 .PHONY: bash
 bash:

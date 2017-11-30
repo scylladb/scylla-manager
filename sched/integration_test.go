@@ -53,14 +53,11 @@ func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Contr
 	t.Helper()
 	ctrl := gomock.NewController(t)
 
-	s, err := NewService(
-		session,
-		map[TaskType]runner.Runner{mockTask: mermaidmock.NewMockRunner(ctrl)},
-		log.NewDevelopment().Named("sched"),
-	)
+	s, err := NewService(session, log.NewDevelopment().Named("sched"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	s.SetRunner(mockTask, mermaidmock.NewMockRunner(ctrl))
 
 	return s, ctrl
 }

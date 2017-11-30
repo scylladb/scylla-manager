@@ -149,12 +149,23 @@ var rootCmd = &cobra.Command{
 		}
 
 		// create scheduler service
-		schedSvc, err := sched.NewService(session, map[sched.TaskType]runner.Runner{
-			sched.RepairTask: repairSvc,
-		}, logger.Named("scheduler"))
+		schedSvc, err := sched.NewService(session, logger.Named("scheduler"))
 		if err != nil {
 			return errors.Wrapf(err, "scheduler service error")
 		}
+		// add repair
+		schedSvc.SetRunner(sched.RepairTask, repairSvc)
+
+		// add auto repair scheduler
+		repairAutoScheduler, err := repair.NewAutoScheduler(repairSvc, func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
+			return schedSvc.PutTask(ctx, repairTask(clusterID, props))
+		})
+		if err != nil {
+			return errors.Wrapf(err, "repair auto scheduler error")
+		}
+		schedSvc.SetRunner(sched.RepairAutoScheduleTask, repairAutoScheduler)
+
+		// start scheduler
 		if err := schedSvc.LoadTasks(ctx); err != nil {
 			return errors.Wrapf(err, "schedule service error")
 		}
@@ -181,11 +192,25 @@ var rootCmd = &cobra.Command{
 					return
 				}
 
+				// invalidate scylla REST
 				provider.Invalidate(c.ID)
 
-				if c.Current != nil {
-					if err := repairSvc.SyncUnits(ctx, c.ID); err != nil {
-						logger.Error(ctx, "failed to sync units", "error", err)
+				// handle delete
+				if c.Current == nil {
+					continue
+				}
+
+				// create repair units
+				if err := repairSvc.SyncUnits(ctx, c.ID); err != nil {
+					logger.Error(ctx, "failed to sync units", "error", err)
+				}
+
+				// schedule all unit repair
+				if t, err := schedSvc.ListTasks(ctx, c.ID, sched.RepairAutoScheduleTask); err != nil {
+					logger.Error(ctx, "failed to list scheduled tasks", "error", err)
+				} else if len(t) == 0 {
+					if err := schedSvc.PutTask(ctx, repairAutoScheduleTask(c.ID)); err != nil {
+						logger.Error(ctx, "failed to add scheduled tasks", "error", err)
 					}
 				}
 			}

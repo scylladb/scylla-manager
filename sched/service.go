@@ -20,9 +20,10 @@ import (
 
 // Service schedules tasks.
 type Service struct {
-	session *gocql.Session
-	runners map[TaskType]runner.Runner
-	logger  log.Logger
+	session   *gocql.Session
+	runners   map[TaskType]runner.Runner
+	runnersMu sync.Mutex
+	logger    log.Logger
 
 	cronCtx  context.Context
 	tasks    map[uuid.UUID]cancelableTrigger
@@ -44,8 +45,13 @@ var (
 	reschedTaskDone = func(*Task) {}
 )
 
+// RetryFor converts task best before date into number of retries.
+func RetryFor(d time.Duration) int {
+	return int(int64(d) / int64(retryTaskWait))
+}
+
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, runners map[TaskType]runner.Runner, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -53,9 +59,10 @@ func NewService(session *gocql.Session, runners map[TaskType]runner.Runner, l lo
 	return &Service{
 		session: session,
 		logger:  l,
+
 		cronCtx: log.WithTraceID(context.Background()),
+		runners: make(map[TaskType]runner.Runner),
 		tasks:   make(map[uuid.UUID]cancelableTrigger),
-		runners: runners,
 	}, nil
 }
 
@@ -125,12 +132,22 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 }
 
 func (s *Service) taskRunner(t *Task) runner.Runner {
+	s.runnersMu.Lock()
+	defer s.runnersMu.Unlock()
+
 	r := s.runners[t.Type]
 	if r != nil {
 		return r
 	}
 
 	return nilRunner{}
+}
+
+// SetRunner assigns a given runner for a given task type.
+func (s *Service) SetRunner(tp TaskType, r runner.Runner) {
+	s.runnersMu.Lock()
+	defer s.runnersMu.Unlock()
+	s.runners[tp] = r
 }
 
 func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
@@ -321,14 +338,24 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	return nil
 }
 
-// ListTasks returns all the tasks stored.
-func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID) ([]*Task, error) {
-	s.logger.Debug(ctx, "ListTasks", "cluster_id", clusterID)
-	stmt, names := schema.SchedTask.Select()
+// ListTasks returns all the tasks stored, tp is optional if empty all task
+// types will loaded.
+func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskType) ([]*Task, error) {
+	s.logger.Debug(ctx, "ListTasks", "cluster_id", clusterID, "task_type", tp)
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	b := qb.Select(schema.SchedTask.Name).Where(qb.Eq("cluster_id"))
+	m := qb.M{
 		"cluster_id": clusterID,
-	})
+	}
+
+	if tp != "" {
+		b.Where(qb.Eq("type"))
+		m["type"] = tp
+	}
+
+	stmt, names := b.ToCql()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(m)
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
