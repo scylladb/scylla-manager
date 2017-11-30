@@ -1,4 +1,4 @@
-# Mermaid
+# Scylla-mgmt
 
 ## Development
 
