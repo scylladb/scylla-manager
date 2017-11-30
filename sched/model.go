@@ -77,7 +77,7 @@ func (s *Schedule) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) e
 
 func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 	n := len(runs)
-	if n == 0 && s.StartDate.After(now.Add(tastStartNowSlack)) {
+	if n == 0 && s.StartDate.After(now.Add(taskStartNowSlack)) {
 		return s.StartDate
 	}
 	lastStart := s.StartDate
@@ -98,7 +98,7 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 			t := lastStart.Add(retryTaskWait)
 			if t.Before(now) {
 				// previous activation was is in the past, and didn't occur. Try again now.
-				return now.Add(tastStartNowSlack)
+				return now.Add(taskStartNowSlack)
 			}
 			return t
 		}

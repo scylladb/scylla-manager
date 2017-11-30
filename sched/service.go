@@ -40,7 +40,7 @@ type cancelableTrigger struct {
 var (
 	timeNow             = time.Now
 	retryTaskWait       = 10 * time.Minute
-	tastStartNowSlack   = 10 * time.Second
+	taskStartNowSlack   = 10 * time.Second
 	monitorTaskInterval = time.Second
 
 	reschedTaskDone = func(*Task) {}
