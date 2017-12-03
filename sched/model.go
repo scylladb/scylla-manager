@@ -81,20 +81,22 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 		return s.StartDate
 	}
 	lastStart := s.StartDate
+	lastStatus := runner.StatusError
 	if n > 0 {
 		lastStart = runs[n-1].StartTime
+		lastStatus = runs[n-1].Status
 	}
 
 	if s.NumRetries > 0 {
 		// check no more than NumRetries Runs were attempted
 		retries := 0
 		for i := n - 1; i >= 0; i-- {
-			retries++
 			if runs[i].Status == runner.StatusStopped {
 				break
 			}
+			retries++
 		}
-		if retries < s.NumRetries {
+		if lastStatus != runner.StatusStopped && retries < s.NumRetries {
 			t := lastStart.Add(retryTaskWait)
 			if t.Before(now) {
 				// previous activation was is in the past, and didn't occur. Try again now.
@@ -109,8 +111,9 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 		for lastStart.Before(now) {
 			lastStart = lastStart.AddDate(0, 0, s.IntervalDays)
 		}
+		return lastStart
 	}
-	return lastStart
+	return time.Time{}
 }
 
 // Task is a schedulable entity.

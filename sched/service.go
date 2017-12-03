@@ -158,15 +158,17 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 		return
 	}
 	activation := t.Sched.nextActivation(now, runs)
-	s.logger.Debug(ctx, "schedTask", "activation", activation, "task", t)
-	triggerCtx, cancel := context.WithCancel(s.cronCtx)
-
+	if activation.IsZero() {
+		s.logger.Debug(ctx, "schedTask no activation", "task", t)
+		return
+	}
 	if !now.Before(activation) {
 		s.logger.Error(ctx, "schedTask task in the past", "now", now, "activation", activation, "task", t)
-		cancel()
 		return
 	}
 
+	s.logger.Debug(ctx, "schedTask", "activation", activation, "task", t)
+	triggerCtx, cancel := context.WithCancel(s.cronCtx)
 	s.taskLock.Lock()
 	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t) })
 	s.tasks[t.ID] = cancelableTrigger{

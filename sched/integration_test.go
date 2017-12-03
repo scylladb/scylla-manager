@@ -84,7 +84,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 		reschedTaskDone = func(*Task) {}
 	}()
 
-	taskStart := timeNow().UTC().Add(time.Second)
+	taskStart := timeNow().UTC().Add(taskStartNowSlack + time.Second)
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
@@ -232,7 +232,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{StartDate: taskStart, NumRetries: 1},
+		Sched: Schedule{StartDate: taskStart, NumRetries: 2},
 	}
 	putTask(t, session, ctx, task)
 
@@ -254,7 +254,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	newRunID := uuid.Nil
 	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
-		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
+		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusError, nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
@@ -288,13 +288,19 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		t.Fail()
 	}
 
-	for i, id := range []uuid.UUID{newRunID, storedRun.ID} {
-		if runs[i].ID != id {
-			t.Log("id mismatch, expected:", runs[i].ID, "but got", id)
+	for i, r := range []struct {
+		ID     uuid.UUID
+		Status runner.Status
+	}{
+		{newRunID, runner.StatusStopped},
+		{storedRun.ID, runner.StatusError},
+	} {
+		if runs[i].ID != r.ID {
+			t.Log("id mismatch, expected:", runs[i].ID, "but got", r.ID)
 			t.Fail()
 		}
-		if runs[i].Status != runner.StatusStopped {
-			t.Log("wrong status", id, runs[i].Status)
+		if runs[i].Status != r.Status {
+			t.Log("wrong status", r.ID, "expected", runs[i].Status, "got", r.Status)
 			t.Fail()
 		}
 	}
@@ -330,86 +336,31 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	}
 	putTask(t, session, ctx, task)
 
-	storedRun := &Run{
-		ID:        uuid.NewTime(),
-		Type:      task.Type,
-		ClusterID: clusterID,
-		TaskID:    task.ID,
-		Status:    runner.StatusRunning,
-		StartTime: taskStart,
-	}
-	if err := s.putRun(ctx, storedRun); err != nil {
-		t.Log("failed to put run", storedRun, err)
-		t.Fail()
-	}
-
 	ch := make(chan bool)
 	reschedTaskDone = func(*Task) { ch <- true }
 	newRunID := []uuid.UUID{uuid.Nil, uuid.Nil, uuid.Nil}
 	runNum := 0
 	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
-	gomock.InOrder(
-		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
 
-		// run 1
-		expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
-			tick()
-			newRunID[runNum] = runID.(uuid.UUID)
-			runNum++
-		}),
+	calls := make([]*gomock.Call, 0, task.Sched.NumRetries)
+	for i := 0; i < task.Sched.NumRetries; i++ {
+		calls = append(calls,
+			expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
+				tick()
+				newRunID[runNum] = runID.(uuid.UUID)
+				runNum++
+			}),
 
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[0]}, gomock.Any()).Return(runner.StatusRunning, nil).Times(4).Do(func(_ ...interface{}) {
-			tick()
-		}),
+			expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusRunning, nil).Times(4).Do(func(_ ...interface{}) {
+				tick()
+			}),
 
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[0]}, gomock.Any()).Return(runner.StatusStopping, nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[0]}, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		// run 2
-		expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
-			tick()
-			newRunID[runNum] = runID.(uuid.UUID)
-			runNum++
-		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[1]}, gomock.Any()).Return(runner.StatusRunning, nil).Times(4).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[1]}, gomock.Any()).Return(runner.StatusStopping, nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[1]}, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		// run 3
-		expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
-			tick()
-			newRunID[runNum] = runID.(uuid.UUID)
-			runNum++
-		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[2]}, gomock.Any()).Return(runner.StatusRunning, nil).Times(4).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[2]}, gomock.Any()).Return(runner.StatusStopping, nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[2]}, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-	)
+			expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusError, nil).Do(func(_ ...interface{}) {
+				tick()
+			}),
+		)
+	}
+	gomock.InOrder(calls...)
 
 	s.LoadTasks(ctx)
 	for i := 0; i < task.Sched.NumRetries; i++ {
@@ -421,16 +372,16 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 		t.Log(err)
 		t.Fatal()
 	}
-	if len(runs) != runNum+1 {
+	if len(runs) != runNum {
 		t.Fail()
 	}
 
-	for i, id := range []uuid.UUID{newRunID[2], newRunID[1], newRunID[0], storedRun.ID} {
+	for i, id := range []uuid.UUID{newRunID[2], newRunID[1], newRunID[0]} {
 		if runs[i].ID != id {
 			t.Log("id mismatch, expected:", runs[i].ID, "but got", id)
 			t.Fail()
 		}
-		if runs[i].Status != runner.StatusStopped {
+		if runs[i].Status != runner.StatusError {
 			t.Log("wrong status", id, runs[i].Status)
 			t.Fail()
 		}
