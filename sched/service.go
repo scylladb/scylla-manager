@@ -67,7 +67,7 @@ func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 	}, nil
 }
 
-// LoadTasks should be called on startr. It attaches to running tasks if there are such,
+// LoadTasks should be called on start. It attaches to running tasks if there are such,
 // marking no-longer running ones as stopped. It then proceeds to schedule future tasks.
 func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Debug(ctx, "LoadTasks")
@@ -123,7 +123,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 			}
 		}
 
-		if t.Sched.Repeat || t.Sched.NumRetries > 0 || t.Sched.StartDate.After(now) {
+		if t.Sched.IntervalDays > 0 || t.Sched.StartDate.After(now) {
 			t := t
 			s.schedTask(ctx, now, &t)
 		}
@@ -216,7 +216,7 @@ func (s *Service) reschedTask(ctx context.Context, t *Task) {
 		s.logger.Debug(ctx, "task canceled, not re-scheduling", "Task", t)
 		return
 	}
-	if !t.Sched.Repeat {
+	if t.Sched.IntervalDays == 0 {
 		s.logger.Debug(ctx, "one-shot task, not re-scheduling", "Task", t)
 		return
 	}

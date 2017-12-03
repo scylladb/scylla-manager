@@ -22,7 +22,6 @@ func repairAutoScheduleTask(clusterID uuid.UUID) *sched.Task {
 		Type:      sched.RepairAutoScheduleTask,
 		Enabled:   true,
 		Sched: sched.Schedule{
-			Repeat:       true,
 			IntervalDays: 7,
 			StartDate:    midnight(),
 			NumRetries:   sched.RetryFor(time.Hour),
@@ -36,7 +35,6 @@ func repairTask(clusterID uuid.UUID, props runner.TaskProperties) *sched.Task {
 		Type:      sched.RepairTask,
 		Enabled:   true,
 		Sched: sched.Schedule{
-			Repeat:     false,
 			StartDate:  midnight().Add(2 * time.Hour),
 			NumRetries: sched.RetryFor(6 * day),
 		},

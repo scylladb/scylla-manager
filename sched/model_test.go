@@ -13,7 +13,6 @@ import (
 
 func makeSchedule(startDate time.Time, interval, numRetries int) Schedule {
 	return Schedule{
-		Repeat:       true,
 		StartDate:    startDate,
 		IntervalDays: interval,
 		NumRetries:   numRetries,

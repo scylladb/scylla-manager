@@ -57,7 +57,6 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 
 // Schedule defines a periodic schedule.
 type Schedule struct {
-	Repeat       bool      `json:"repeat"`
 	StartDate    time.Time `json:"start_date"`
 	IntervalDays int       `json:"interval_days"`
 	NumRetries   int       `json:"num_retries"`

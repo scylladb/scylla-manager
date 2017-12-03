@@ -2,7 +2,6 @@
 
 CREATE TYPE schedule (
     start_date timestamp,
-    repeat boolean,
     interval_days int,
     num_retries int
 );

@@ -332,7 +332,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{Repeat: true, IntervalDays: 2, NumRetries: 3, StartDate: taskStart},
+		Sched: Schedule{IntervalDays: 2, NumRetries: 3, StartDate: taskStart},
 	}
 	putTask(t, session, ctx, task)
 
