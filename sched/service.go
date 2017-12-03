@@ -322,6 +322,90 @@ func (s *Service) cancelTask(t *Task) {
 	}
 }
 
+// GetTask returns a task based on ID or name. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetTask(ctx context.Context, clusterID uuid.UUID, tp TaskType, idOrName string) (*Task, error) {
+	var id uuid.UUID
+
+	if err := id.UnmarshalText([]byte(idOrName)); err == nil {
+		return s.GetTaskByID(ctx, clusterID, tp, id)
+	}
+
+	return s.GetTaskByName(ctx, clusterID, tp, idOrName)
+}
+
+// GetTaskByID returns a task based on ID and type. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskType, id uuid.UUID) (*Task, error) {
+	s.logger.Debug(ctx, "GetTaskByID", "cluster_id", clusterID, "id", id)
+
+	stmt, names := schema.SchedTask.Get()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"type":       tp,
+		"id":         id,
+	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var t Task
+	if err := gocqlx.Get(&t, q.Query); err != nil {
+		return nil, err
+	}
+
+	return &t, nil
+}
+
+// GetTaskByName returns a task based on type and name. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp TaskType, name string) (*Task, error) {
+	s.logger.Debug(ctx, "GetTaskByName", "cluster_id", clusterID, "name", name)
+
+	if name == "" {
+		return nil, errors.New("missing task")
+	}
+
+	b := qb.Select(schema.SchedTask.Name).Where(qb.Eq("cluster_id"), qb.Eq("type"))
+	m := qb.M{
+		"cluster_id": clusterID,
+		"type":       tp,
+	}
+
+	stmt, names := b.ToCql()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(m)
+
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var tasks []*Task
+	if err := gocqlx.Select(&tasks, q.Query); err != nil {
+		return nil, err
+	}
+
+	filtered := tasks[:0]
+	for _, t := range tasks {
+		if t.Name == name {
+			filtered = append(filtered, t)
+		}
+	}
+	for i := len(filtered); i < len(tasks); i++ {
+		tasks[i] = nil
+	}
+	tasks = filtered
+
+	switch len(tasks) {
+	case 0:
+		return nil, mermaid.ErrNotFound
+	case 1:
+		return tasks[0], nil
+	default:
+		return nil, errors.Errorf("multiple tasks share the same name %q", name)
+	}
+}
+
 // PutTask upserts a task, the task instance must pass Validate() checks.
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "PutTask", "Task", t)
@@ -350,6 +434,26 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	if t.Enabled {
 		s.schedTask(ctx, timeNow().UTC(), t)
 	}
+	return nil
+}
+
+// DeleteTask removes a task based on ID.
+func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
+	s.logger.Debug(ctx, "DeleteTask", "cluster_id", t.ClusterID, "id", t.ID, "type", t.Type)
+
+	stmt, names := schema.SchedTask.Delete()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": t.ClusterID,
+		"type":       t.Type,
+		"id":         t.ID,
+	})
+
+	err := q.ExecRelease()
+	if err != nil {
+		return err
+	}
+	s.cancelTask(t)
 	return nil
 }
 

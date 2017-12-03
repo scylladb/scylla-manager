@@ -767,6 +767,9 @@ func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID, f *UnitFil
 			filtered = append(filtered, u)
 		}
 	}
+	for i := len(filtered); i < len(units); i++ {
+		units[i] = nil
+	}
 
 	return filtered, nil
 }

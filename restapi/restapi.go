@@ -17,8 +17,9 @@ func init() {
 
 // Services contains REST API services.
 type Services struct {
-	Cluster ClusterService
-	Repair  RepairService
+	Cluster   ClusterService
+	Repair    RepairService
+	Scheduler SchedService
 }
 
 // New returns an http.Handler implementing mermaid v1 REST API.
@@ -36,6 +37,11 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	if svc.Repair != nil {
 		r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
 			Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(svc.Repair))
+	}
+
+	if svc.Scheduler != nil {
+		r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
+			Mount("/api/v1/cluster/{cluster_id}/", newSchedHandler(svc.Scheduler))
 	}
 
 	r.Mount("/version", newVersionHandler())

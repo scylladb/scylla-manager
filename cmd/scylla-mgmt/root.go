@@ -172,8 +172,9 @@ var rootCmd = &cobra.Command{
 
 		// create REST handler
 		handler := restapi.New(&restapi.Services{
-			Cluster: clusterSvc,
-			Repair:  repairSvc,
+			Cluster:   clusterSvc,
+			Repair:    repairSvc,
+			Scheduler: schedSvc,
 		}, logger.Named("restapi"))
 
 		// in debug mode launch gops agent
