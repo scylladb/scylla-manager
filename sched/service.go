@@ -34,6 +34,7 @@ type Service struct {
 type cancelableTrigger struct {
 	timer  *time.Timer
 	cancel func()
+	done   chan struct{}
 }
 
 // overridable knobs for tests
@@ -169,14 +170,18 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 
 	s.logger.Debug(ctx, "schedTask", "activation", activation, "task", t)
 	triggerCtx, cancel := context.WithCancel(s.cronCtx)
+	doneCh := make(chan struct{})
 	s.taskLock.Lock()
-	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t) })
+	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t, doneCh) })
 	s.tasks[t.ID] = cancelableTrigger{
 		timer: timer,
 		cancel: func() {
 			cancel()
-			timer.Stop()
+			if timer.Stop() {
+				close(doneCh)
+			}
 		},
+		done: doneCh,
 	}
 	s.taskLock.Unlock()
 }
@@ -184,14 +189,17 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 	s.logger.Debug(ctx, "attachTask", "task", t, "run", run)
 	triggerCtx, cancel := context.WithCancel(s.cronCtx)
+	doneCh := make(chan struct{})
 	s.taskLock.Lock()
 	s.tasks[t.ID] = cancelableTrigger{
 		cancel: cancel,
+		done:   doneCh,
 	}
 	s.taskLock.Unlock()
 
+	s.wg.Add(1)
 	go func() {
-		defer s.reschedTask(triggerCtx, t)
+		defer s.reschedTask(triggerCtx, t, doneCh)
 
 		run.Status = runner.StatusRunning
 		if err := s.putRun(ctx, run); err != nil {
@@ -203,8 +211,10 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 	}()
 }
 
-func (s *Service) reschedTask(ctx context.Context, t *Task) {
+func (s *Service) reschedTask(ctx context.Context, t *Task, done chan struct{}) {
 	defer reschedTaskDone(t)
+	defer close(done)
+	defer s.wg.Done()
 	s.taskLock.Lock()
 	if prevTrigger, ok := s.tasks[t.ID]; ok {
 		delete(s.tasks, t.ID)
@@ -223,8 +233,9 @@ func (s *Service) reschedTask(ctx context.Context, t *Task) {
 	s.schedTask(ctx, timeNow().UTC(), t)
 }
 
-func (s *Service) execTrigger(ctx context.Context, t *Task) {
-	defer s.reschedTask(ctx, t)
+func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) {
+	s.wg.Add(1)
+	defer s.reschedTask(ctx, t, done)
 
 	now := timeNow().UTC()
 	run := &Run{
@@ -262,12 +273,8 @@ func (s *Service) execTrigger(ctx context.Context, t *Task) {
 }
 
 func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
-	s.wg.Add(1)
 	ticker := time.NewTicker(monitorTaskInterval)
-	defer func() {
-		ticker.Stop()
-		s.wg.Done()
-	}()
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -302,12 +309,17 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 }
 
 func (s *Service) cancelTask(t *Task) {
+	var doneCh chan struct{}
 	s.taskLock.Lock()
 	if trigger, ok := s.tasks[t.ID]; ok {
 		delete(s.tasks, t.ID)
+		doneCh = trigger.done
 		trigger.cancel()
 	}
 	s.taskLock.Unlock()
+	if doneCh != nil {
+		<-doneCh
+	}
 }
 
 // PutTask upserts a task, the task instance must pass Validate() checks.
