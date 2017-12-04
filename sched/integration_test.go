@@ -36,16 +36,14 @@ func (m uuidMatcher) String() string {
 func putTask(t *testing.T, session *gocql.Session, ctx context.Context, task *Task) {
 	t.Helper()
 	if err := task.Validate(); err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatal(err)
 	}
 
 	stmt, names := schema.SchedTask.Insert()
 	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names).BindStruct(task)
 
 	if err := q.ExecRelease(); err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatal(err)
 	}
 }
 
@@ -120,19 +118,16 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	s.Close(ctx)
 	runs, err := s.GetLastRunN(ctx, task, -1)
 	if err != nil {
-		t.Log(err)
-		t.Fatal()
+		t.Fatal(err)
 	}
 	if len(runs) != 1 {
-		t.Fail()
+		t.Fatalf("len(runs) (%d) != 1", len(runs))
 	}
 	if runs[0].ID != newRunID {
-		t.Log("id mismatch, expected:", newRunID, "but got", runs[0].ID)
-		t.Fail()
+		t.Fatal("id mismatch, expected:", newRunID, "but got", runs[0].ID)
 	}
 	if runs[0].Status != runner.StatusStopped {
-		t.Log("wrong status", runs[0].ID, runs[0].Status)
-		t.Fail()
+		t.Fatal("wrong status", runs[0].ID, runs[0].Status)
 	}
 }
 
@@ -176,8 +171,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 		StartTime: taskStart,
 	}
 	if err := s.putRun(ctx, storedRun); err != nil {
-		t.Log("failed to put run", storedRun, err)
-		t.Fail()
+		t.Fatal("failed to put run", storedRun, err)
 	}
 
 	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
@@ -190,19 +184,16 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 	s.LoadTasks(ctx)
 	runs, err := s.GetLastRunN(ctx, task, -1)
 	if err != nil {
-		t.Log(err)
-		t.Fatal()
+		t.Fatal(err)
 	}
 	if len(runs) != 1 {
-		t.Fail()
+		t.Fatalf("len(runs) (%d) != 1", len(runs))
 	}
 	if runs[0].ID != storedRun.ID {
-		t.Log("id mismatch, expected:", storedRun.ID, "but got", runs[0].ID)
-		t.Fail()
+		t.Fatal("id mismatch, expected:", storedRun.ID, "but got", runs[0].ID)
 	}
 	if runs[0].Status != runner.StatusStopped {
-		t.Log("wrong status", runs[0].ID, runs[0].Status)
-		t.Fail()
+		t.Fatal("wrong status", runs[0].ID, runs[0].Status)
 	}
 }
 
@@ -245,8 +236,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		StartTime: taskStart,
 	}
 	if err := s.putRun(ctx, storedRun); err != nil {
-		t.Log("failed to put run", storedRun, err)
-		t.Fail()
+		t.Fatal("failed to put run", storedRun, err)
 	}
 
 	ch := make(chan bool)
@@ -285,7 +275,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		t.Fatal()
 	}
 	if len(runs) != 2 {
-		t.Fail()
+		t.Fatalf("len(runs) (%d) != 2", len(runs))
 	}
 
 	for i, r := range []struct {
@@ -296,12 +286,10 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		{storedRun.ID, runner.StatusError},
 	} {
 		if runs[i].ID != r.ID {
-			t.Log("id mismatch, expected:", runs[i].ID, "but got", r.ID)
-			t.Fail()
+			t.Fatal("id mismatch, expected:", runs[i].ID, "but got", r.ID)
 		}
 		if runs[i].Status != r.Status {
-			t.Log("wrong status", r.ID, "expected", runs[i].Status, "got", r.Status)
-			t.Fail()
+			t.Fatal("wrong status", r.ID, "expected", runs[i].Status, "got", r.Status)
 		}
 	}
 }
@@ -373,17 +361,15 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 		t.Fatal()
 	}
 	if len(runs) != runNum {
-		t.Fail()
+		t.Fatalf("len(runs) (%d) != runNum (%d)", len(runs), runNum)
 	}
 
 	for i, id := range []uuid.UUID{newRunID[2], newRunID[1], newRunID[0]} {
 		if runs[i].ID != id {
-			t.Log("id mismatch, expected:", runs[i].ID, "but got", id)
-			t.Fail()
+			t.Fatal("id mismatch, expected:", runs[i].ID, "but got", id)
 		}
 		if runs[i].Status != runner.StatusError {
-			t.Log("wrong status", id, runs[i].Status)
-			t.Fail()
+			t.Fatal("wrong status", id, runs[i].Status)
 		}
 	}
 }
