@@ -13,10 +13,10 @@
   ],
   "definitions": {
     "version": {
-      "type" : "object",
+      "type": "object",
       "properties": {
         "version": {
-          "type" : "string"
+          "type": "string"
         }
       }
     },
@@ -183,14 +183,100 @@
           }
         }
       }
+    },
+    "schedule": {
+      "type": "object",
+      "properties": {
+        "start_date": {
+          "type": "string"
+        },
+        "interval_days": {
+          "type": "number",
+          "format": "int32"
+        },
+        "num_retries": {
+          "type": "number",
+          "format": "int32"
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "schedule": {
+          "$ref": "#/definitions/schedule"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "taskUpdate": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "schedule": {
+          "$ref": "#/definitions/schedule"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "paths": {
-    "/version" : {
+    "/version": {
       "get": {
-        "description" : "returns the server version",
-        "responses" : {
-          "200" : {
+        "description": "returns the server version",
+        "responses": {
+          "200": {
             "description": "Server version",
             "schema": {
               "$ref": "#/definitions/version"
@@ -599,6 +685,195 @@
                 "type": "string"
               }
             }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/tasks": {
+      "parameters": [
+        {
+          "type": "string",
+          "description": "cluster ID this API is performing on",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "description": "listTasks Description",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "filter tasks by type",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "array of tasks",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/task"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "createTask Description",
+        "parameters": [
+          {
+            "description": "task JSON object with updated fields",
+            "name": "taskFields",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/taskUpdate"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "Location": {
+                "description": "location of the new task",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/{task_type}/{task_id}": {
+      "parameters": [
+        {
+          "type": "string",
+          "description": "cluster ID this API is performing on",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task type",
+          "name": "task_type",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task ID (UUID) or name",
+          "name": "task_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "description": "loadTask Description",
+        "responses": {
+          "200": {
+            "description": "requested task fields",
+            "schema": {
+              "$ref": "#/definitions/task"
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "updateTask Description",
+        "parameters": [
+          {
+            "description": "task JSON object with updated fields",
+            "name": "taskFields",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/taskUpdate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "updated task fields",
+            "schema": {
+              "$ref": "#/definitions/task"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "deleteTask Description",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/{task_type}/{task_id}/start": {
+      "parameters": [
+        {
+          "type": "string",
+          "description": "cluster ID this API is performing on",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task type",
+          "name": "task_type",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task ID (UUID) or name",
+          "name": "task_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "put": {
+        "description": "startTask Description",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/{task_type}/{task_id}/stop": {
+      "parameters": [
+        {
+          "type": "string",
+          "description": "cluster ID this API is performing on",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task type",
+          "name": "task_type",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task ID (UUID) or name",
+          "name": "task_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "put": {
+        "description": "stopTask Description",
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
