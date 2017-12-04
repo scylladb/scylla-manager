@@ -137,6 +137,34 @@ func (a *Client) DeleteClusterClusterIDRepairUnitUnitID(params *DeleteClusterClu
 }
 
 /*
+DeleteClusterClusterIDTaskTaskTypeTaskID deleteTask Description
+*/
+func (a *Client) DeleteClusterClusterIDTaskTaskTypeTaskID(params *DeleteClusterClusterIDTaskTaskTypeTaskIDParams) (*DeleteClusterClusterIDTaskTaskTypeTaskIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteClusterClusterIDTaskTaskTypeTaskIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeleteClusterClusterIDTaskTaskTypeTaskID",
+		Method:             "DELETE",
+		PathPattern:        "/cluster/{cluster_id}/task/{task_type}/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DeleteClusterClusterIDTaskTaskTypeTaskIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeleteClusterClusterIDTaskTaskTypeTaskIDOK), nil
+
+}
+
+/*
 GetClusterClusterID loadCluster Description
 */
 func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClusterClusterIDOK, error) {
@@ -305,6 +333,62 @@ func (a *Client) GetClusterClusterIDRepairUnits(params *GetClusterClusterIDRepai
 }
 
 /*
+GetClusterClusterIDTaskTaskTypeTaskID loadTask Description
+*/
+func (a *Client) GetClusterClusterIDTaskTaskTypeTaskID(params *GetClusterClusterIDTaskTaskTypeTaskIDParams) (*GetClusterClusterIDTaskTaskTypeTaskIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTaskTaskTypeTaskIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTaskTaskTypeTaskID",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/task/{task_type}/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTaskTaskTypeTaskIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterClusterIDTaskTaskTypeTaskIDOK), nil
+
+}
+
+/*
+GetClusterClusterIDTasks listTasks Description
+*/
+func (a *Client) GetClusterClusterIDTasks(params *GetClusterClusterIDTasksParams) (*GetClusterClusterIDTasksOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTasksParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTasks",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTasksReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterClusterIDTasksOK), nil
+
+}
+
+/*
 GetClusters listClusters Description
 */
 func (a *Client) GetClusters(params *GetClustersParams) (*GetClustersOK, error) {
@@ -385,6 +469,34 @@ func (a *Client) PostClusterClusterIDRepairUnits(params *PostClusterClusterIDRep
 		return nil, err
 	}
 	return result.(*PostClusterClusterIDRepairUnitsCreated), nil
+
+}
+
+/*
+PostClusterClusterIDTasks createTask Description
+*/
+func (a *Client) PostClusterClusterIDTasks(params *PostClusterClusterIDTasksParams) (*PostClusterClusterIDTasksCreated, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPostClusterClusterIDTasksParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PostClusterClusterIDTasks",
+		Method:             "POST",
+		PathPattern:        "/cluster/{cluster_id}/tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PostClusterClusterIDTasksReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PostClusterClusterIDTasksCreated), nil
 
 }
 
@@ -581,6 +693,90 @@ func (a *Client) PutClusterClusterIDRepairUnitUnitIDStop(params *PutClusterClust
 		return nil, err
 	}
 	return result.(*PutClusterClusterIDRepairUnitUnitIDStopCreated), nil
+
+}
+
+/*
+PutClusterClusterIDTaskTaskTypeTaskID updateTask Description
+*/
+func (a *Client) PutClusterClusterIDTaskTaskTypeTaskID(params *PutClusterClusterIDTaskTaskTypeTaskIDParams) (*PutClusterClusterIDTaskTaskTypeTaskIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDTaskTaskTypeTaskIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDTaskTaskTypeTaskID",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/task/{task_type}/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDTaskTaskTypeTaskIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PutClusterClusterIDTaskTaskTypeTaskIDOK), nil
+
+}
+
+/*
+PutClusterClusterIDTaskTaskTypeTaskIDStart startTask Description
+*/
+func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStart(params *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) (*PutClusterClusterIDTaskTaskTypeTaskIDStartOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDTaskTaskTypeTaskIDStartParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDTaskTaskTypeTaskIDStart",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/task/{task_type}/{task_id}/start",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDTaskTaskTypeTaskIDStartReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PutClusterClusterIDTaskTaskTypeTaskIDStartOK), nil
+
+}
+
+/*
+PutClusterClusterIDTaskTaskTypeTaskIDStop stopTask Description
+*/
+func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStop(params *PutClusterClusterIDTaskTaskTypeTaskIDStopParams) (*PutClusterClusterIDTaskTaskTypeTaskIDStopOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDTaskTaskTypeTaskIDStopParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDTaskTaskTypeTaskIDStop",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/task/{task_type}/{task_id}/stop",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDTaskTaskTypeTaskIDStopReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PutClusterClusterIDTaskTaskTypeTaskIDStopOK), nil
 
 }
 
