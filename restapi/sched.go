@@ -23,6 +23,8 @@ type SchedService interface {
 	PutTask(ctx context.Context, t *sched.Task) error
 	DeleteTask(ctx context.Context, t *sched.Task) error
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
+	StartTask(ctx context.Context, t *sched.Task) error
+	StopTask(ctx context.Context, t *sched.Task) error
 }
 
 type schedHandler struct {
@@ -46,6 +48,8 @@ func newSchedHandler(svc SchedService) http.Handler {
 		r.Get("/", h.loadTask)
 		r.Put("/", h.updateTask)
 		r.Delete("/", h.deleteTask)
+		r.Put("/start", h.startTask)
+		r.Put("/stop", h.stopTask)
 	})
 
 	return h
@@ -157,6 +161,22 @@ func (h *schedHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	if err := h.svc.DeleteTask(r.Context(), t); err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to delete task"))
+		return
+	}
+}
+
+func (h *schedHandler) startTask(w http.ResponseWriter, r *http.Request) {
+	t := mustTaskFromCtx(r)
+	if err := h.svc.StartTask(r.Context(), t); err != nil {
+		render.Respond(w, r, httpErrInternal(r, err, "failed to start task"))
+		return
+	}
+}
+
+func (h *schedHandler) stopTask(w http.ResponseWriter, r *http.Request) {
+	t := mustTaskFromCtx(r)
+	if err := h.svc.StopTask(r.Context(), t); err != nil {
+		render.Respond(w, r, httpErrInternal(r, err, "failed to stop task"))
 		return
 	}
 }

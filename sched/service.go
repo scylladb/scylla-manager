@@ -308,6 +308,26 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 	}
 }
 
+// StartTask starts execution of a task immediately, regardless of the task's schedule.
+func (s *Service) StartTask(ctx context.Context, t *Task) error {
+	s.logger.Debug(ctx, "StartTask", "Task", t)
+	if t == nil {
+		return errors.New("nil task")
+	}
+
+	s.cancelTask(t)
+	triggerCtx, cancel := context.WithCancel(s.cronCtx)
+	doneCh := make(chan struct{})
+	s.taskLock.Lock()
+	s.tasks[t.ID] = cancelableTrigger{
+		cancel: cancel,
+		done:   doneCh,
+	}
+	go s.execTrigger(triggerCtx, t, doneCh)
+	s.taskLock.Unlock()
+	return nil
+}
+
 func (s *Service) cancelTask(t *Task) {
 	var doneCh chan struct{}
 	s.taskLock.Lock()
@@ -320,6 +340,20 @@ func (s *Service) cancelTask(t *Task) {
 	if doneCh != nil {
 		<-doneCh
 	}
+}
+
+// StopTask stops task execution of immediately, regardless and re-schedule if Enabled.
+func (s *Service) StopTask(ctx context.Context, t *Task) error {
+	s.logger.Debug(ctx, "StopTask", "Task", t)
+	if t == nil {
+		return errors.New("nil task")
+	}
+
+	s.cancelTask(t)
+	if t.Enabled {
+		s.schedTask(ctx, timeNow().UTC(), t)
+	}
+	return nil
 }
 
 // GetTask returns a task based on ID or name. If nothing was found
