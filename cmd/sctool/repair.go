@@ -19,7 +19,6 @@ var (
 var repairCmd = &cobra.Command{
 	Use:   "repair",
 	Short: "Manage repairs",
-	Args:  cobra.NoArgs,
 }
 
 func init() {
