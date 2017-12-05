@@ -74,3 +74,8 @@ func initClusterFlag(cmd *cobra.Command, flags *flag.FlagSet) {
 		return nil
 	}
 }
+
+func withoutArgs(cmd *cobra.Command) *cobra.Command {
+	cmd.Args = cobra.NoArgs
+	return cmd
+}

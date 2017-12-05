@@ -16,10 +16,10 @@ var (
 	cfgRepairTask string
 )
 
-var repairCmd = &cobra.Command{
+var repairCmd = withoutArgs(&cobra.Command{
 	Use:   "repair",
 	Short: "Manage repairs",
-}
+})
 
 func init() {
 	initClusterFlag(repairCmd, repairCmd.PersistentFlags())
@@ -32,7 +32,7 @@ func repairInitCommonFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("unit")
 }
 
-var repairStartCmd = &cobra.Command{
+var repairStartCmd = withoutArgs(&cobra.Command{
 	Use:   "start",
 	Short: "Starts repair of a unit",
 
@@ -46,14 +46,14 @@ var repairStartCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	repairCmd.AddCommand(repairStartCmd)
 	repairInitCommonFlags(repairStartCmd)
 }
 
-var repairStopCmd = &cobra.Command{
+var repairStopCmd = withoutArgs(&cobra.Command{
 	Use:   "stop",
 	Short: "Stops a running repair",
 
@@ -67,14 +67,14 @@ var repairStopCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	repairCmd.AddCommand(repairStopCmd)
 	repairInitCommonFlags(repairStopCmd)
 }
 
-var repairProgressCmd = &cobra.Command{
+var repairProgressCmd = withoutArgs(&cobra.Command{
 	Use:   "progress",
 	Short: "Shows repair progress",
 
@@ -99,7 +99,7 @@ var repairProgressCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	repairCmd.AddCommand(repairProgressCmd)
@@ -107,10 +107,10 @@ func init() {
 	repairProgressCmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
 }
 
-var repairUnitCmd = &cobra.Command{
+var repairUnitCmd = withoutArgs(&cobra.Command{
 	Use:   "unit",
 	Short: "Manage repair units",
-}
+})
 
 func init() {
 	repairCmd.AddCommand(repairUnitCmd)
@@ -128,7 +128,7 @@ func repairUnitInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringSliceVarP(&cfgRepairUnitTables, "tables", "t", nil, "comma-separated `list` of tables in to repair in the keyspace, if empty repair the whole keyspace")
 }
 
-var repairUnitAddCmd = &cobra.Command{
+var repairUnitAddCmd = withoutArgs(&cobra.Command{
 	Use:   "add",
 	Short: "Creates a new repair unit",
 
@@ -146,7 +146,7 @@ var repairUnitAddCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	repairUnitCmd.AddCommand(repairUnitAddCmd)
@@ -155,7 +155,7 @@ func init() {
 	repairUnitAddCmd.MarkFlagRequired("keyspace")
 }
 
-var repairUnitUpdateCmd = &cobra.Command{
+var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
 	Use:   "update",
 	Short: "Modifies a repair unit",
 
@@ -188,7 +188,7 @@ var repairUnitUpdateCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	repairUnitCmd.AddCommand(repairUnitUpdateCmd)
@@ -196,7 +196,7 @@ func init() {
 	repairUnitInitCommonFlags(repairUnitUpdateCmd)
 }
 
-var repairUnitDeleteCmd = &cobra.Command{
+var repairUnitDeleteCmd = withoutArgs(&cobra.Command{
 	Use:   "delete",
 	Short: "Deletes a repair unit",
 
@@ -207,14 +207,14 @@ var repairUnitDeleteCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	repairUnitCmd.AddCommand(repairUnitDeleteCmd)
 	repairInitCommonFlags(repairUnitDeleteCmd)
 }
 
-var repairUnitListCmd = &cobra.Command{
+var repairUnitListCmd = withoutArgs(&cobra.Command{
 	Use:   "list",
 	Short: "Shows available repair units",
 
@@ -235,7 +235,7 @@ var repairUnitListCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	repairUnitCmd.AddCommand(repairUnitListCmd)

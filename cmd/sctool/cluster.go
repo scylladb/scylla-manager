@@ -11,10 +11,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var clusterCmd = &cobra.Command{
+var clusterCmd = withoutArgs(&cobra.Command{
 	Use:   "cluster",
 	Short: "Add or delete clusters",
-}
+})
 
 func init() {
 	rootCmd.AddCommand(clusterCmd)
@@ -32,7 +32,7 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().Int64Var(&cfgClusterShardCount, "shard-count", 16, "number of shards in nodes")
 }
 
-var clusterAddCmd = &cobra.Command{
+var clusterAddCmd = withoutArgs(&cobra.Command{
 	Use:   "add",
 	Short: "Adds a cluster to management",
 
@@ -50,14 +50,14 @@ var clusterAddCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	clusterCmd.AddCommand(clusterAddCmd)
 	clusterInitCommonFlags(clusterAddCmd)
 }
 
-var clusterUpdateCmd = &cobra.Command{
+var clusterUpdateCmd = withoutArgs(&cobra.Command{
 	Use:   "update",
 	Short: "Modifies a cluster",
 
@@ -90,7 +90,7 @@ var clusterUpdateCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	clusterCmd.AddCommand(clusterUpdateCmd)
@@ -98,7 +98,7 @@ func init() {
 	clusterInitCommonFlags(clusterUpdateCmd)
 }
 
-var clusterDeleteCmd = &cobra.Command{
+var clusterDeleteCmd = withoutArgs(&cobra.Command{
 	Use:   "delete",
 	Short: "Deletes a cluster from management",
 
@@ -109,14 +109,14 @@ var clusterDeleteCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	clusterCmd.AddCommand(clusterDeleteCmd)
 	initClusterFlag(clusterDeleteCmd, clusterDeleteCmd.Flags())
 }
 
-var clusterListCmd = &cobra.Command{
+var clusterListCmd = withoutArgs(&cobra.Command{
 	Use:   "list",
 	Short: "Shows managed clusters",
 
@@ -137,7 +137,7 @@ var clusterListCmd = &cobra.Command{
 
 		return nil
 	},
-}
+})
 
 func init() {
 	clusterCmd.AddCommand(clusterListCmd)
