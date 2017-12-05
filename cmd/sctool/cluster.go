@@ -35,6 +35,7 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 var clusterAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Adds a cluster to management",
+	Args:  cobra.NoArgs,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := client.CreateCluster(context.Background(), &mermaidclient.Cluster{
