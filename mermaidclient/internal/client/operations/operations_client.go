@@ -333,6 +333,34 @@ func (a *Client) GetClusters(params *GetClustersParams) (*GetClustersOK, error) 
 }
 
 /*
+GetVersion returns the server version
+*/
+func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetVersionParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetVersion",
+		Method:             "GET",
+		PathPattern:        "/version",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetVersionReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetVersionOK), nil
+
+}
+
+/*
 PostClusterClusterIDRepairUnits createUnit Description
 */
 func (a *Client) PostClusterClusterIDRepairUnits(params *PostClusterClusterIDRepairUnitsParams) (*PostClusterClusterIDRepairUnitsCreated, error) {
