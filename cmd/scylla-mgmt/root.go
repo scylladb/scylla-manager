@@ -49,6 +49,7 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use:          "scylla-mgmt",
 	Short:        "Scylla management server",
+	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
