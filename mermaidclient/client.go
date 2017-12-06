@@ -97,44 +97,6 @@ func (c Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 	return resp.Payload, nil
 }
 
-// StartRepair starts unit repair.
-func (c Client) StartRepair(ctx context.Context, clusterID, unitID string) (string, error) {
-	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStart(&operations.PutClusterClusterIDRepairUnitUnitIDStartParams{
-		Context:   ctx,
-		ClusterID: clusterID,
-		UnitID:    unitID,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	taskID, err := extractTaskIDFromLocation(resp.Location)
-	if err != nil {
-		return "", errors.Wrap(err, "cannot parse response")
-	}
-
-	return taskID.String(), nil
-}
-
-// StopRepair stops unit repair.
-func (c Client) StopRepair(ctx context.Context, clusterID, unitID string) (string, error) {
-	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStop(&operations.PutClusterClusterIDRepairUnitUnitIDStopParams{
-		Context:   ctx,
-		ClusterID: clusterID,
-		UnitID:    unitID,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	taskID, err := extractTaskIDFromLocation(resp.Location)
-	if err != nil {
-		return "", errors.Wrap(err, "cannot parse response")
-	}
-
-	return taskID.String(), nil
-}
-
 // RepairProgress returns repair progress.
 func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID string) (status string, progress int, rows []RepairProgressRow, err error) {
 	params := &operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{

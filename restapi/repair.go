@@ -25,9 +25,6 @@ type RepairService interface {
 	PutUnit(ctx context.Context, u *repair.Unit) error
 	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 	ListUnits(ctx context.Context, clusterID uuid.UUID, f *repair.UnitFilter) ([]*repair.Unit, error)
-	// temporary
-	Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
-	StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error
 
 	GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.Config, error)
 	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error
@@ -59,9 +56,6 @@ func newRepairHandler(svc RepairService) http.Handler {
 		r.Get("/", h.loadUnit)
 		r.Put("/", h.updateUnit)
 		r.Delete("/", h.deleteUnit)
-		// temporary
-		r.Put("/start", h.startRepair)
-		r.Put("/stop", h.stopRepair)
 		r.Get("/progress", h.repairProgress)
 	})
 
@@ -179,45 +173,6 @@ func (h *repairHandler) deleteUnit(w http.ResponseWriter, r *http.Request) {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to delete unit"))
 		return
 	}
-}
-
-func (h *repairHandler) startRepair(w http.ResponseWriter, r *http.Request) {
-	u := mustUnitFromCtx(r)
-
-	taskID := uuid.NewTime()
-
-	if err := h.svc.Repair(r.Context(), u, taskID); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to start repair"))
-		return
-	}
-
-	location := r.URL.ResolveReference(&url.URL{
-		Path:     "progress",
-		RawQuery: fmt.Sprintf("task_id=%s", taskID),
-	})
-	w.Header().Set("Location", location.String())
-	w.WriteHeader(http.StatusCreated)
-}
-
-func (h *repairHandler) stopRepair(w http.ResponseWriter, r *http.Request) {
-	u := mustUnitFromCtx(r)
-
-	run, err := h.svc.GetLastRun(r.Context(), u)
-	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load task")
-	}
-
-	if err := h.svc.StopRun(r.Context(), u, run.ID); err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to stop repair"))
-		return
-	}
-
-	location := r.URL.ResolveReference(&url.URL{
-		Path:     "../progress",
-		RawQuery: fmt.Sprintf("task_id=%s", run.ID),
-	})
-	w.Header().Set("Location", location.String())
-	w.WriteHeader(http.StatusCreated)
 }
 
 type repairProgress struct {

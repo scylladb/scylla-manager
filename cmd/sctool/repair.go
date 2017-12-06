@@ -29,54 +29,6 @@ func repairInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgRepairUnit, "unit", "u", "", "repair unit `name` or ID")
 }
 
-var repairStartCmd = withoutArgs(&cobra.Command{
-	Use:   "start",
-	Short: "Starts repair of a unit",
-
-	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.StartRepair(context.Background(), cfgCluster, cfgRepairUnit)
-		if err != nil {
-			return printableError{err}
-		}
-
-		fmt.Fprintln(cmd.OutOrStdout(), id)
-
-		return nil
-	},
-})
-
-func init() {
-	cmd := repairStartCmd
-	subcommand(cmd, rootCmd)
-
-	repairInitCommonFlags(cmd)
-	requireFlags(cmd, "unit")
-}
-
-var repairStopCmd = withoutArgs(&cobra.Command{
-	Use:   "stop",
-	Short: "Stops a running repair",
-
-	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.StopRepair(context.Background(), cfgCluster, cfgRepairUnit)
-		if err != nil {
-			return printableError{err}
-		}
-
-		fmt.Fprintln(cmd.OutOrStdout(), id)
-
-		return nil
-	},
-})
-
-func init() {
-	cmd := repairStopCmd
-	subcommand(cmd, repairCmd)
-
-	repairInitCommonFlags(cmd)
-	requireFlags(cmd, "unit")
-}
-
 var repairProgressCmd = withoutArgs(&cobra.Command{
 	Use:   "progress",
 	Short: "Shows repair progress",

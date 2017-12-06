@@ -641,62 +641,6 @@ func (a *Client) PutClusterClusterIDRepairUnitUnitID(params *PutClusterClusterID
 }
 
 /*
-PutClusterClusterIDRepairUnitUnitIDStart put cluster cluster ID repair unit unit ID start API
-*/
-func (a *Client) PutClusterClusterIDRepairUnitUnitIDStart(params *PutClusterClusterIDRepairUnitUnitIDStartParams) (*PutClusterClusterIDRepairUnitUnitIDStartCreated, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPutClusterClusterIDRepairUnitUnitIDStartParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PutClusterClusterIDRepairUnitUnitIDStart",
-		Method:             "PUT",
-		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}/start",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PutClusterClusterIDRepairUnitUnitIDStartReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PutClusterClusterIDRepairUnitUnitIDStartCreated), nil
-
-}
-
-/*
-PutClusterClusterIDRepairUnitUnitIDStop put cluster cluster ID repair unit unit ID stop API
-*/
-func (a *Client) PutClusterClusterIDRepairUnitUnitIDStop(params *PutClusterClusterIDRepairUnitUnitIDStopParams) (*PutClusterClusterIDRepairUnitUnitIDStopCreated, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPutClusterClusterIDRepairUnitUnitIDStopParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PutClusterClusterIDRepairUnitUnitIDStop",
-		Method:             "PUT",
-		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}/stop",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PutClusterClusterIDRepairUnitUnitIDStopReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PutClusterClusterIDRepairUnitUnitIDStopCreated), nil
-
-}
-
-/*
 PutClusterClusterIDTaskTaskTypeTaskID updateTask Description
 */
 func (a *Client) PutClusterClusterIDTaskTaskTypeTaskID(params *PutClusterClusterIDTaskTaskTypeTaskIDParams) (*PutClusterClusterIDTaskTaskTypeTaskIDOK, error) {

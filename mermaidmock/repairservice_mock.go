@@ -85,30 +85,6 @@ func (mr *MockRepairServiceMockRecorder) ListUnits(ctx, clusterID, f interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnits", reflect.TypeOf((*MockRepairService)(nil).ListUnits), ctx, clusterID, f)
 }
 
-// Repair mocks base method
-func (m *MockRepairService) Repair(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error {
-	ret := m.ctrl.Call(m, "Repair", ctx, u, taskID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Repair indicates an expected call of Repair
-func (mr *MockRepairServiceMockRecorder) Repair(ctx, u, taskID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockRepairService)(nil).Repair), ctx, u, taskID)
-}
-
-// StopRun mocks base method
-func (m *MockRepairService) StopRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) error {
-	ret := m.ctrl.Call(m, "StopRun", ctx, u, taskID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// StopRun indicates an expected call of StopRun
-func (mr *MockRepairServiceMockRecorder) StopRun(ctx, u, taskID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopRun", reflect.TypeOf((*MockRepairService)(nil).StopRun), ctx, u, taskID)
-}
-
 // GetConfig mocks base method
 func (m *MockRepairService) GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.Config, error) {
 	ret := m.ctrl.Call(m, "GetConfig", ctx, src)
