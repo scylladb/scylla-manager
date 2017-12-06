@@ -248,6 +248,33 @@ func (c Client) Version(ctx context.Context) (*models.Version, error) {
 	return resp.Payload, nil
 }
 
+// CreateSchedTask creates a new task.
+func (c *Client) CreateSchedTask(ctx context.Context, clusterID string, t *Task) (string, error) {
+	resp, err := c.operations.PostClusterClusterIDTasks(&operations.PostClusterClusterIDTasksParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskFields: &models.TaskUpdate{
+			Type:       t.Type,
+			Enabled:    t.Enabled,
+			Metadata:   t.Metadata,
+			Name:       t.Name,
+			Schedule:   t.Schedule,
+			Tags:       t.Tags,
+			Properties: t.Properties,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	taskID, err := extractIDFromLocation(resp.Location)
+	if err != nil {
+		return "", errors.Wrap(err, "cannot parse response")
+	}
+
+	return taskID.String(), nil
+}
+
 // GetSchedTask returns a task of a given type and ID.
 func (c *Client) GetSchedTask(ctx context.Context, clusterID string, tp string, taskID string) (*Task, error) {
 	resp, err := c.operations.GetClusterClusterIDTaskTaskTypeTaskID(&operations.GetClusterClusterIDTaskTaskTypeTaskIDParams{

@@ -5,6 +5,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
@@ -27,6 +29,60 @@ func init() {
 
 func repairInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgRepairUnit, "unit", "u", "", "repair unit `name` or ID")
+
+	requireFlags(cmd, "unit")
+}
+
+var repairSchedCmd = withoutArgs(&cobra.Command{
+	Use:   "schedule",
+	Short: "Schedule repair of a unit",
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		t := &mermaidclient.Task{
+			Type:       "repair",
+			Enabled:    true,
+			Properties: map[string]string{"unit_id": cfgRepairUnit},
+			Schedule:   new(mermaidclient.Schedule),
+		}
+
+		f := cmd.Flag("start-date")
+		activation, err := parseSchedStartDate(f.Value.String())
+		if err != nil {
+			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+		}
+		t.Schedule.StartDate = activation.Format(time.RFC3339)
+
+		f = cmd.Flag("interval")
+		interval, err := strconv.Atoi(f.Value.String())
+		if err != nil {
+			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+		}
+
+		t.Schedule.IntervalDays = int32(interval)
+		f = cmd.Flag("num-retries")
+		numRetries, err := strconv.Atoi(f.Value.String())
+		if err != nil {
+			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+		}
+		t.Schedule.NumRetries = int32(numRetries)
+
+		id, err := client.CreateSchedTask(context.Background(), cfgCluster, t)
+		if err != nil {
+			return printableError{err}
+		}
+
+		fmt.Fprintln(cmd.OutOrStdout(), id)
+
+		return nil
+	},
+})
+
+func init() {
+	cmd := repairSchedCmd
+	subcommand(cmd, repairCmd)
+
+	repairInitCommonFlags(cmd)
+	schedInitScheduleFlags(cmd)
 }
 
 var repairProgressCmd = withoutArgs(&cobra.Command{
@@ -61,7 +117,6 @@ func init() {
 	subcommand(cmd, repairCmd)
 
 	repairInitCommonFlags(cmd)
-	requireFlags(cmd, "unit")
 
 	cmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
 }

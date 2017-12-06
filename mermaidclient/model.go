@@ -24,3 +24,6 @@ type RepairUnit = models.RepairUnit
 
 // Task is a sched.Task representation.
 type Task = models.Task
+
+// Schedule is a sched.Schedule representation.
+type Schedule = models.Schedule
