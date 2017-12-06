@@ -7,7 +7,6 @@ import (
 	"context"
 	"net"
 	"net/url"
-	"path"
 	"sort"
 	"strconv"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient/internal/client/operations"
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
-	"github.com/scylladb/mermaid/uuid"
 )
 
 //go:generate ./gen_internal.sh
@@ -289,34 +287,4 @@ func (c *Client) ListRepairUnits(ctx context.Context) ([]*RepairUnit, error) {
 	}
 
 	return resp.Payload, nil
-}
-
-func extractIDFromLocation(location string) (uuid.UUID, error) {
-	l, err := url.Parse(location)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	_, id := path.Split(l.Path)
-
-	var u uuid.UUID
-	if err := u.UnmarshalText([]byte(id)); err != nil {
-		return uuid.Nil, err
-	}
-
-	return u, nil
-}
-
-func extractTaskIDFromLocation(location string) (uuid.UUID, error) {
-	l, err := url.Parse(location)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	id := l.Query().Get("task_id")
-
-	var u uuid.UUID
-	if err := u.UnmarshalText([]byte(id)); err != nil {
-		return uuid.Nil, err
-	}
-
-	return u, nil
 }
