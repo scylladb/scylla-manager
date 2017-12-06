@@ -285,3 +285,87 @@ func (c Client) Version(ctx context.Context) (*models.Version, error) {
 
 	return resp.Payload, nil
 }
+
+// GetSchedTask returns a task of a given type and ID.
+func (c *Client) GetSchedTask(ctx context.Context, clusterID string, tp string, taskID string) (*Task, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskTaskTypeTaskID(&operations.GetClusterClusterIDTaskTaskTypeTaskIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskType:  tp,
+		TaskID:    taskID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
+// SchedStartTask starts executing a task.
+func (c *Client) SchedStartTask(ctx context.Context, clusterID string, tp string, taskID string) error {
+	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStart(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStartParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskType:  tp,
+		TaskID:    taskID,
+	})
+
+	return err
+}
+
+// SchedStopTask stops executing a task.
+func (c *Client) SchedStopTask(ctx context.Context, clusterID string, tp string, taskID string) error {
+	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStop(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStopParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskType:  tp,
+		TaskID:    taskID,
+	})
+
+	return err
+}
+
+// SchedDeleteTask stops executing a task.
+func (c *Client) SchedDeleteTask(ctx context.Context, clusterID string, tp string, taskID string) error {
+	_, err := c.operations.DeleteClusterClusterIDTaskTaskTypeTaskID(&operations.DeleteClusterClusterIDTaskTaskTypeTaskIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskType:  tp,
+		TaskID:    taskID,
+	})
+
+	return err
+}
+
+// UpdateTask updates an existing task unit.
+func (c *Client) UpdateTask(ctx context.Context, clusterID string, tp string, taskID string, t *Task) error {
+	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskID(&operations.PutClusterClusterIDTaskTaskTypeTaskIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskType:  tp,
+		TaskID:    taskID,
+		TaskFields: &models.TaskUpdate{
+			Enabled:    t.Enabled,
+			Metadata:   t.Metadata,
+			Name:       t.Name,
+			Schedule:   t.Schedule,
+			Tags:       t.Tags,
+			Properties: t.Properties,
+		},
+	})
+	return err
+}
+
+// ListSchedTasks returns scheduled tasks within a clusterID, optionaly filtered by task type tp.
+func (c *Client) ListSchedTasks(ctx context.Context, clusterID string, tp string) ([]*Task, error) {
+	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Type:      &tp,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
