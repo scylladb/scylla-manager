@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/uuid"
 )
 
 func TestClientError(t *testing.T) {
@@ -20,12 +19,14 @@ func TestClientError(t *testing.T) {
 	}))
 	defer s.Close()
 
-	c, err := NewClient(s.URL, uuid.MustRandom().String())
+	c, err := NewClient(s.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = c.ListRepairUnits(context.Background())
+	ctx := context.Background()
+
+	_, err = c.ListRepairUnits(ctx, "name")
 	if err == nil {
 		t.Fatal("expected error")
 	}

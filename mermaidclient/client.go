@@ -22,24 +22,20 @@ import (
 // Client provides means to interact with Mermaid.
 type Client struct {
 	operations *operations.Client
-	clusterID  string
 }
 
 // NewClient creates a new client.
-func NewClient(rawurl, clusterID string) (*Client, error) {
+func NewClient(rawurl string) (Client, error) {
 	u, err := url.Parse(rawurl)
 	if err != nil {
-		return nil, err
+		return Client{}, err
 	}
 
-	return &Client{
-		operations: operations.New(api.New(u.Host, u.Path, []string{u.Scheme}), strfmt.Default),
-		clusterID:  clusterID,
-	}, nil
+	return Client{operations: operations.New(api.New(u.Host, u.Path, []string{u.Scheme}), strfmt.Default)}, nil
 }
 
 // CreateCluster creates a new cluster.
-func (c *Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, error) {
+func (c Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, error) {
 	resp, err := c.operations.PostClusters(&operations.PostClustersParams{
 		Context: ctx,
 		Cluster: cluster,
@@ -57,7 +53,8 @@ func (c *Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, e
 }
 
 // GetCluster returns a cluster for a given ID.
-func (c *Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, error) {
+func (c Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, error) {
+
 	resp, err := c.operations.GetClusterClusterID(&operations.GetClusterClusterIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -70,7 +67,7 @@ func (c *Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, er
 }
 
 // UpdateCluster updates cluster.
-func (c *Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
+func (c Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
 	_, err := c.operations.PutClusterClusterID(&operations.PutClusterClusterIDParams{
 		Context:   ctx,
 		ClusterID: cluster.ID,
@@ -80,7 +77,7 @@ func (c *Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
 }
 
 // DeleteCluster removes cluster.
-func (c *Client) DeleteCluster(ctx context.Context, clusterID string) error {
+func (c Client) DeleteCluster(ctx context.Context, clusterID string) error {
 	_, err := c.operations.DeleteClusterClusterID(&operations.DeleteClusterClusterIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -89,7 +86,7 @@ func (c *Client) DeleteCluster(ctx context.Context, clusterID string) error {
 }
 
 // ListClusters returns clusters.
-func (c *Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
+func (c Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 	resp, err := c.operations.GetClusters(&operations.GetClustersParams{
 		Context: ctx,
 	})
@@ -100,23 +97,11 @@ func (c *Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 	return resp.Payload, nil
 }
 
-// Version returns server version.
-func (c *Client) Version(ctx context.Context) (*models.Version, error) {
-	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
-		Context: ctx,
-	})
-	if err != nil {
-		return &models.Version{}, err
-	}
-
-	return resp.Payload, nil
-}
-
 // StartRepair starts unit repair.
-func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error) {
+func (c Client) StartRepair(ctx context.Context, clusterID, unitID string) (string, error) {
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStart(&operations.PutClusterClusterIDRepairUnitUnitIDStartParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
+		ClusterID: clusterID,
 		UnitID:    unitID,
 	})
 	if err != nil {
@@ -132,10 +117,10 @@ func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error)
 }
 
 // StopRepair stops unit repair.
-func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) {
+func (c Client) StopRepair(ctx context.Context, clusterID, unitID string) (string, error) {
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStop(&operations.PutClusterClusterIDRepairUnitUnitIDStopParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
+		ClusterID: clusterID,
 		UnitID:    unitID,
 	})
 	if err != nil {
@@ -151,10 +136,10 @@ func (c *Client) StopRepair(ctx context.Context, unitID string) (string, error) 
 }
 
 // RepairProgress returns repair progress.
-func (c *Client) RepairProgress(ctx context.Context, unitID, taskID string) (status string, progress int, rows []RepairProgressRow, err error) {
+func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID string) (status string, progress int, rows []RepairProgressRow, err error) {
 	params := &operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
+		ClusterID: clusterID,
 		UnitID:    unitID,
 	}
 	if taskID != "" {
@@ -215,10 +200,10 @@ func (c *Client) RepairProgress(ctx context.Context, unitID, taskID string) (sta
 }
 
 // CreateRepairUnit creates a new repair unit.
-func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, error) {
+func (c Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, error) {
 	resp, err := c.operations.PostClusterClusterIDRepairUnits(&operations.PostClusterClusterIDRepairUnitsParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
+		ClusterID: u.ClusterID,
 		UnitFields: &models.RepairUnitUpdate{
 			Name:     u.Name,
 			Keyspace: u.Keyspace,
@@ -238,10 +223,10 @@ func (c *Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, e
 }
 
 // GetRepairUnit returns a repair unit for a given ID.
-func (c *Client) GetRepairUnit(ctx context.Context, unitID string) (*RepairUnit, error) {
+func (c Client) GetRepairUnit(ctx context.Context, clusterID, unitID string) (*RepairUnit, error) {
 	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitID(&operations.GetClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
+		ClusterID: clusterID,
 		UnitID:    unitID,
 	})
 	if err != nil {
@@ -252,11 +237,11 @@ func (c *Client) GetRepairUnit(ctx context.Context, unitID string) (*RepairUnit,
 }
 
 // UpdateRepairUnit updates existing repair unit.
-func (c *Client) UpdateRepairUnit(ctx context.Context, unitID string, u *RepairUnit) error {
+func (c Client) UpdateRepairUnit(ctx context.Context, u *RepairUnit) error {
 	_, err := c.operations.PutClusterClusterIDRepairUnitUnitID(&operations.PutClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
-		UnitID:    unitID,
+		ClusterID: u.ClusterID,
+		UnitID:    u.ID,
 		UnitFields: &models.RepairUnitUpdate{
 			Name:     u.Name,
 			Keyspace: u.Keyspace,
@@ -267,23 +252,35 @@ func (c *Client) UpdateRepairUnit(ctx context.Context, unitID string, u *RepairU
 }
 
 // DeleteRepairUnit removes existing repair unit.
-func (c *Client) DeleteRepairUnit(ctx context.Context, unitID string) error {
+func (c Client) DeleteRepairUnit(ctx context.Context, clusterID, unitID string) error {
 	_, err := c.operations.DeleteClusterClusterIDRepairUnitUnitID(&operations.DeleteClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
+		ClusterID: clusterID,
 		UnitID:    unitID,
 	})
 	return err
 }
 
 // ListRepairUnits returns repair units within a clusterID.
-func (c *Client) ListRepairUnits(ctx context.Context) ([]*RepairUnit, error) {
+func (c Client) ListRepairUnits(ctx context.Context, clusterID string) ([]*RepairUnit, error) {
 	resp, err := c.operations.GetClusterClusterIDRepairUnits(&operations.GetClusterClusterIDRepairUnitsParams{
 		Context:   ctx,
-		ClusterID: c.clusterID,
+		ClusterID: clusterID,
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
+// Version returns server version.
+func (c Client) Version(ctx context.Context) (*models.Version, error) {
+	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
+		Context: ctx,
+	})
+	if err != nil {
+		return &models.Version{}, err
 	}
 
 	return resp.Payload, nil
