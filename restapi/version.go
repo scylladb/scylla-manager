@@ -14,7 +14,7 @@ type Version struct {
 	Version string `json:"version"`
 }
 
-func newVersionHandler() http.Handler {
+func newVersionHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		v := &Version{Version: mermaid.Version()}
 		render.Respond(w, r, v)

@@ -15,7 +15,7 @@ import (
 
 func TestVersion(t *testing.T) {
 	h := restapi.New(&restapi.Services{}, log.Logger{})
-	r := httptest.NewRequest(http.MethodGet, "/version", nil)
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/scylladb/mermaid"
@@ -12,8 +13,17 @@ import (
 var versionCmd = withoutArgs(&cobra.Command{
 	Use:   "version",
 	Short: "Show version information",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Fprintln(cmd.OutOrStdout(), mermaid.Version())
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Fprintln(cmd.OutOrStdout(), fmt.Sprintf("Client version: %v", mermaid.Version()))
+
+		sv, err := client.Version(context.Background())
+		if err != nil {
+			return printableError{err}
+		}
+
+		fmt.Fprintln(cmd.OutOrStdout(), fmt.Sprintf("Server version: %v", sv.Version))
+
+		return nil
 	},
 })
 

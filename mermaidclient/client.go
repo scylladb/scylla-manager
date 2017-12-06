@@ -102,6 +102,18 @@ func (c *Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 	return resp.Payload, nil
 }
 
+// Version returns server version.
+func (c *Client) Version(ctx context.Context) (*models.Version, error) {
+	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
+		Context: ctx,
+	})
+	if err != nil {
+		return &models.Version{}, err
+	}
+
+	return resp.Payload, nil
+}
+
 // StartRepair starts unit repair.
 func (c *Client) StartRepair(ctx context.Context, unitID string) (string, error) {
 	resp, err := c.operations.PutClusterClusterIDRepairUnitUnitIDStart(&operations.PutClusterClusterIDRepairUnitUnitIDStartParams{
