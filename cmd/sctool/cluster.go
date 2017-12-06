@@ -17,7 +17,7 @@ var clusterCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	rootCmd.AddCommand(clusterCmd)
+	subcommand(clusterCmd, rootCmd)
 }
 
 var (
@@ -53,8 +53,11 @@ var clusterAddCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	clusterCmd.AddCommand(clusterAddCmd)
-	clusterInitCommonFlags(clusterAddCmd)
+	cmd := clusterAddCmd
+	subcommand(cmd, clusterCmd)
+
+	clusterInitCommonFlags(cmd)
+	require(cmd, "hosts")
 }
 
 var clusterUpdateCmd = withoutArgs(&cobra.Command{
@@ -93,9 +96,10 @@ var clusterUpdateCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	clusterCmd.AddCommand(clusterUpdateCmd)
-	initClusterFlag(clusterUpdateCmd, clusterUpdateCmd.Flags())
-	clusterInitCommonFlags(clusterUpdateCmd)
+	cmd := clusterUpdateCmd
+	subcommand(cmd, clusterCmd)
+
+	clusterInitCommonFlags(cmd)
 }
 
 var clusterDeleteCmd = withoutArgs(&cobra.Command{
@@ -112,8 +116,8 @@ var clusterDeleteCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	clusterCmd.AddCommand(clusterDeleteCmd)
-	initClusterFlag(clusterDeleteCmd, clusterDeleteCmd.Flags())
+	cmd := clusterDeleteCmd
+	subcommand(cmd, clusterCmd)
 }
 
 var clusterListCmd = withoutArgs(&cobra.Command{
@@ -140,5 +144,5 @@ var clusterListCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	clusterCmd.AddCommand(clusterListCmd)
+	subcommand(clusterListCmd, clusterCmd)
 }

@@ -22,14 +22,11 @@ var repairCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	initClusterFlag(repairCmd, repairCmd.PersistentFlags())
-	rootCmd.AddCommand(repairCmd)
+	subcommand(repairCmd, rootCmd)
 }
 
 func repairInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgRepairUnit, "unit", "u", "", "repair unit `name` or ID")
-
-	cmd.MarkFlagRequired("unit")
 }
 
 var repairStartCmd = withoutArgs(&cobra.Command{
@@ -37,7 +34,7 @@ var repairStartCmd = withoutArgs(&cobra.Command{
 	Short: "Starts repair of a unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.StartRepair(context.Background(), cfgRepairUnit)
+		id, err := client.StartRepair(context.Background(), cfgCluster, cfgRepairUnit)
 		if err != nil {
 			return printableError{err}
 		}
@@ -49,8 +46,11 @@ var repairStartCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairCmd.AddCommand(repairStartCmd)
-	repairInitCommonFlags(repairStartCmd)
+	cmd := repairStartCmd
+	subcommand(cmd, rootCmd)
+
+	repairInitCommonFlags(cmd)
+	require(cmd, "unit")
 }
 
 var repairStopCmd = withoutArgs(&cobra.Command{
@@ -58,7 +58,7 @@ var repairStopCmd = withoutArgs(&cobra.Command{
 	Short: "Stops a running repair",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.StopRepair(context.Background(), cfgRepairUnit)
+		id, err := client.StopRepair(context.Background(), cfgCluster, cfgRepairUnit)
 		if err != nil {
 			return printableError{err}
 		}
@@ -70,8 +70,11 @@ var repairStopCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairCmd.AddCommand(repairStopCmd)
-	repairInitCommonFlags(repairStopCmd)
+	cmd := repairStopCmd
+	subcommand(cmd, repairCmd)
+
+	repairInitCommonFlags(cmd)
+	require(cmd, "unit")
 }
 
 var repairProgressCmd = withoutArgs(&cobra.Command{
@@ -79,7 +82,7 @@ var repairProgressCmd = withoutArgs(&cobra.Command{
 	Short: "Shows repair progress",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		status, progress, rows, err := client.RepairProgress(context.Background(), cfgRepairUnit, cfgRepairTask)
+		status, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, cfgRepairUnit, cfgRepairTask)
 		if err != nil {
 			return printableError{err}
 		}
@@ -102,9 +105,13 @@ var repairProgressCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairCmd.AddCommand(repairProgressCmd)
-	repairInitCommonFlags(repairProgressCmd)
-	repairProgressCmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
+	cmd := repairProgressCmd
+	subcommand(cmd, repairCmd)
+
+	repairInitCommonFlags(cmd)
+	require(cmd, "unit")
+
+	cmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
 }
 
 var repairUnitCmd = withoutArgs(&cobra.Command{
@@ -113,7 +120,7 @@ var repairUnitCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairCmd.AddCommand(repairUnitCmd)
+	subcommand(repairUnitCmd, repairCmd)
 }
 
 var (
@@ -149,10 +156,12 @@ var repairUnitAddCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairUnitCmd.AddCommand(repairUnitAddCmd)
-	repairUnitInitCommonFlags(repairUnitAddCmd)
+	cmd := repairUnitAddCmd
+	subcommand(cmd, repairUnitCmd)
 
-	repairUnitAddCmd.MarkFlagRequired("keyspace")
+	repairInitCommonFlags(cmd)
+	repairUnitInitCommonFlags(cmd)
+	require(cmd, "keyspace")
 }
 
 var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
@@ -160,7 +169,7 @@ var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
 	Short: "Modifies a repair unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		u, err := client.GetRepairUnit(context.Background(), cfgRepairUnit)
+		u, err := client.GetRepairUnit(context.Background(), cfgCluster, cfgRepairUnit)
 		if err != nil {
 			return printableError{err}
 		}
@@ -182,7 +191,7 @@ var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
 			return errors.New("nothing to do")
 		}
 
-		if err := client.UpdateRepairUnit(context.Background(), cfgRepairUnit, u); err != nil {
+		if err := client.UpdateRepairUnit(context.Background(), u); err != nil {
 			return printableError{err}
 		}
 
@@ -191,9 +200,12 @@ var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairUnitCmd.AddCommand(repairUnitUpdateCmd)
-	repairInitCommonFlags(repairUnitUpdateCmd)
-	repairUnitInitCommonFlags(repairUnitUpdateCmd)
+	cmd := repairUnitUpdateCmd
+	subcommand(cmd, repairUnitCmd)
+
+	repairInitCommonFlags(cmd)
+	repairUnitInitCommonFlags(cmd)
+	require(cmd, "unit")
 }
 
 var repairUnitDeleteCmd = withoutArgs(&cobra.Command{
@@ -201,7 +213,7 @@ var repairUnitDeleteCmd = withoutArgs(&cobra.Command{
 	Short: "Deletes a repair unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := client.DeleteRepairUnit(context.Background(), cfgRepairUnit); err != nil {
+		if err := client.DeleteRepairUnit(context.Background(), cfgCluster, cfgRepairUnit); err != nil {
 			return printableError{err}
 		}
 
@@ -210,8 +222,11 @@ var repairUnitDeleteCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairUnitCmd.AddCommand(repairUnitDeleteCmd)
-	repairInitCommonFlags(repairUnitDeleteCmd)
+	cmd := repairUnitDeleteCmd
+	subcommand(cmd, repairUnitCmd)
+
+	repairInitCommonFlags(cmd)
+	require(cmd, "unit")
 }
 
 var repairUnitListCmd = withoutArgs(&cobra.Command{
@@ -219,7 +234,7 @@ var repairUnitListCmd = withoutArgs(&cobra.Command{
 	Short: "Shows available repair units",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		units, err := client.ListRepairUnits(context.Background())
+		units, err := client.ListRepairUnits(context.Background(), cfgCluster)
 		if err != nil {
 			return printableError{err}
 		}
@@ -238,5 +253,5 @@ var repairUnitListCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	repairUnitCmd.AddCommand(repairUnitListCmd)
+	subcommand(repairUnitListCmd, repairUnitCmd)
 }

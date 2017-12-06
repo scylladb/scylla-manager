@@ -28,5 +28,5 @@ var versionCmd = withoutArgs(&cobra.Command{
 })
 
 func init() {
-	rootCmd.AddCommand(versionCmd)
+	subcommand(versionCmd, rootCmd)
 }

@@ -5,10 +5,8 @@ package main
 import (
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 )
 
 var (
@@ -17,19 +15,8 @@ var (
 	cfgURL     string
 	cfgCluster string
 
-	client *mermaidclient.Client
+	client mermaidclient.Client
 )
-
-func initClient() error {
-	c, err := mermaidclient.NewClient(cfgURL, cfgCluster)
-	if err != nil {
-		return err
-	}
-
-	client = c
-
-	return nil
-}
 
 var rootCmd = &cobra.Command{
 	Use:   "sctool",
@@ -41,12 +28,28 @@ var rootCmd = &cobra.Command{
 		}
 
 		// init client
-		if err := initClient(); err != nil {
-			return errors.Wrap(err, "failed to init client")
+		c, err := mermaidclient.NewClient(cfgURL)
+		if err != nil {
+			return err
+		}
+		client = c
+
+		// require cluster
+		if needsCluster(cmd) {
+			cluster := os.Getenv("SCYLLA_MGMT_CLUSTER")
+
+			cmd.Flags().StringVarP(&cfgCluster, "cluster", "c", cluster, "target cluster `name` or ID")
+			if cluster == "" {
+				cmd.MarkFlagRequired("cluster")
+			}
 		}
 
 		return nil
 	},
+}
+
+func needsCluster(cmd *cobra.Command) bool {
+	return cmd != clusterAddCmd && cmd != versionCmd
 }
 
 func init() {
@@ -55,27 +58,4 @@ func init() {
 		url = defaultURL
 	}
 	rootCmd.PersistentFlags().StringVar(&cfgURL, "api-url", url, "`URL` of Scylla management server")
-}
-
-func initClusterFlag(cmd *cobra.Command, flags *flag.FlagSet) {
-	flags.StringVarP(&cfgCluster, "cluster", "c", os.Getenv("SCYLLA_MGMT_CLUSTER"), "target cluster `name` or ID")
-
-	f := cmd.PreRunE
-
-	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		if cfgCluster == "" {
-			return errors.New("missing cluster")
-		}
-
-		if f != nil {
-			return f(cmd, args)
-		}
-
-		return nil
-	}
-}
-
-func withoutArgs(cmd *cobra.Command) *cobra.Command {
-	cmd.Args = cobra.NoArgs
-	return cmd
 }
