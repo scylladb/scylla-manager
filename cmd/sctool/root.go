@@ -36,11 +36,8 @@ var rootCmd = &cobra.Command{
 
 		// requireFlags cluster
 		if needsCluster(cmd) {
-			cluster := os.Getenv("SCYLLA_MGMT_CLUSTER")
-
-			cmd.Flags().StringVarP(&cfgCluster, "cluster", "c", cluster, "target cluster `name` or ID")
-			if cluster == "" {
-				cmd.MarkFlagRequired("cluster")
+			if os.Getenv("SCYLLA_MGMT_CLUSTER") == "" {
+				cmd.Root().MarkFlagRequired("cluster")
 			}
 		}
 
@@ -58,4 +55,7 @@ func init() {
 		url = defaultURL
 	}
 	rootCmd.PersistentFlags().StringVar(&cfgURL, "api-url", url, "`URL` of Scylla management server")
+
+	cluster := os.Getenv("SCYLLA_MGMT_CLUSTER")
+	rootCmd.PersistentFlags().StringVarP(&cfgCluster, "cluster", "c", cluster, "target cluster `name` or ID")
 }
