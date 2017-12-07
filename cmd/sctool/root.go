@@ -46,7 +46,11 @@ var rootCmd = &cobra.Command{
 }
 
 func needsCluster(cmd *cobra.Command) bool {
-	return cmd != clusterAddCmd && cmd != versionCmd
+	switch cmd {
+	case clusterAddCmd, clusterListCmd, versionCmd:
+		return false
+	}
+	return true
 }
 
 func init() {
