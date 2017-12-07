@@ -13,6 +13,8 @@ func subcommand(cmd *cobra.Command, parent *cobra.Command) {
 	parent.AddCommand(cmd)
 }
 
-func require(cmd *cobra.Command, flag string) {
-	cmd.MarkFlagRequired(flag)
+func requireFlags(cmd *cobra.Command, flags ...string) {
+	for _, f := range flags {
+		cmd.MarkFlagRequired(f)
+	}
 }

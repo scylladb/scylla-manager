@@ -57,7 +57,7 @@ func init() {
 	subcommand(cmd, clusterCmd)
 
 	clusterInitCommonFlags(cmd)
-	require(cmd, "hosts")
+	requireFlags(cmd, "hosts")
 }
 
 var clusterUpdateCmd = withoutArgs(&cobra.Command{

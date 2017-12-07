@@ -34,7 +34,7 @@ var rootCmd = &cobra.Command{
 		}
 		client = c
 
-		// require cluster
+		// requireFlags cluster
 		if needsCluster(cmd) {
 			cluster := os.Getenv("SCYLLA_MGMT_CLUSTER")
 

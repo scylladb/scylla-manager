@@ -50,7 +50,7 @@ func init() {
 	subcommand(cmd, rootCmd)
 
 	repairInitCommonFlags(cmd)
-	require(cmd, "unit")
+	requireFlags(cmd, "unit")
 }
 
 var repairStopCmd = withoutArgs(&cobra.Command{
@@ -74,7 +74,7 @@ func init() {
 	subcommand(cmd, repairCmd)
 
 	repairInitCommonFlags(cmd)
-	require(cmd, "unit")
+	requireFlags(cmd, "unit")
 }
 
 var repairProgressCmd = withoutArgs(&cobra.Command{
@@ -109,7 +109,7 @@ func init() {
 	subcommand(cmd, repairCmd)
 
 	repairInitCommonFlags(cmd)
-	require(cmd, "unit")
+	requireFlags(cmd, "unit")
 
 	cmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
 }
@@ -161,7 +161,7 @@ func init() {
 
 	repairInitCommonFlags(cmd)
 	repairUnitInitCommonFlags(cmd)
-	require(cmd, "keyspace")
+	requireFlags(cmd, "keyspace")
 }
 
 var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
@@ -205,7 +205,7 @@ func init() {
 
 	repairInitCommonFlags(cmd)
 	repairUnitInitCommonFlags(cmd)
-	require(cmd, "unit")
+	requireFlags(cmd, "unit")
 }
 
 var repairUnitDeleteCmd = withoutArgs(&cobra.Command{
@@ -226,7 +226,7 @@ func init() {
 	subcommand(cmd, repairUnitCmd)
 
 	repairInitCommonFlags(cmd)
-	require(cmd, "unit")
+	requireFlags(cmd, "unit")
 }
 
 var repairUnitListCmd = withoutArgs(&cobra.Command{
