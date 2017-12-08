@@ -1,4 +1,6 @@
-# Scylla-mgmt
+# Mermaid Scylla Management
+
+![Ariel](.github/logo.png)
 
 ## Development
 
