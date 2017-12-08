@@ -94,8 +94,8 @@ the database management tasks.
 %{_unitdir}/*.service
 
 %pre server
-getent group  scylla || /usr/sbin/groupadd scylla 2> /dev/null || :
-getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla 2> /dev/null || :
+getent group  scylla || /usr/sbin/groupadd scylla &> /dev/null || :
+getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r scylla &> /dev/null || :
 
 %post server
 %systemd_post %{name}.service
