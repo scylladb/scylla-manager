@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/dht"
 	"github.com/scylladb/mermaid/log"
-	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/scyllaclient"
 )
 
 const (
@@ -24,7 +24,7 @@ type worker struct {
 	Run      *Run
 	Config   *Config
 	Service  *Service
-	Cluster  *scylla.Client
+	Cluster  *scyllaclient.Client
 	Host     string
 	Segments []*Segment
 
@@ -281,7 +281,7 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 }
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
-	return w.parent.Cluster.Repair(ctx, w.parent.Host, &scylla.RepairConfig{
+	return w.parent.Cluster.Repair(ctx, w.parent.Host, &scyllaclient.RepairConfig{
 		Keyspace: w.parent.Run.Keyspace,
 		Tables:   w.parent.Run.Tables,
 		Ranges:   dumpSegments(w.segments[start:end]),
@@ -303,11 +303,11 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 				return err
 			}
 			switch s {
-			case scylla.CommandRunning:
+			case scyllaclient.CommandRunning:
 				// continue
-			case scylla.CommandSuccessful:
+			case scyllaclient.CommandSuccessful:
 				return nil
-			case scylla.CommandFailed:
+			case scyllaclient.CommandFailed:
 				return errors.New("repair failed")
 			default:
 				return errors.Errorf("unknown status %q", s)

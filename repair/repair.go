@@ -10,7 +10,7 @@ import (
 	"github.com/fatih/set"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/dht"
-	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -88,7 +88,7 @@ func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
 
 // groupSegmentsByHost extract list of primary segments (token ranges) for every
 // host in a datacenter and returns a mapping from host to list of it's segments.
-func groupSegmentsByHost(dc string, ring []*scylla.TokenRange) (map[string][]*Segment, error) {
+func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string][]*Segment, error) {
 	m := make(map[string][]*Segment)
 
 	for _, r := range ring {

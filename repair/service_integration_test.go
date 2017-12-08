@@ -22,7 +22,7 @@ import (
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/schema"
-	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/ssh"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -732,15 +732,15 @@ func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
 	s, err := repair.NewService(
 		session,
 		func(context.Context, uuid.UUID) (*scylla.Client, error) {
-			c, err := scylla.NewClient(mermaidtest.ManagedClusterHosts, ssh.Transport(ssh.NewDevelopmentClientConfig()), logger.Named("scylla"))
+			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, ssh.Transport(ssh.NewDevelopmentClientConfig()), logger.Named("scylla"))
 			if err != nil {
 				return nil, err
 			}
-			config := scylla.Config{
+			config := scyllaclient.Config{
 				"murmur3_partitioner_ignore_msb_bits": float64(12),
 				"shard_count":                         float64(2),
 			}
-			return scylla.WithConfig(c, config), nil
+			return scyllaclient.WithConfig(c, config), nil
 		},
 		logger.Named("repair"),
 	)

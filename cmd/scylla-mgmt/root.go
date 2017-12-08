@@ -30,7 +30,7 @@ import (
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/sched/runner"
-	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/ssh"
 	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
@@ -126,7 +126,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// create scylla REST client provider
-		provider := scylla.NewCachedProvider(func(ctx context.Context, clusterID uuid.UUID) (*scylla.Client, error) {
+		provider := scyllaclient.NewCachedProvider(func(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
 			c, err := clusterSvc.GetClusterByID(ctx, clusterID)
 			if err != nil {
 				return nil, err
@@ -137,11 +137,11 @@ var rootCmd = &cobra.Command{
 				return nil, err
 			}
 
-			client, err := scylla.NewClient(c.Hosts, rt, logger.Named("client"))
+			client, err := scyllaclient.NewClient(c.Hosts, rt, logger.Named("client"))
 			if err != nil {
 				return nil, err
 			}
-			return scylla.WithConfig(client, scylla.Config{
+			return scyllaclient.WithConfig(client, scyllaclient.Config{
 				"murmur3_partitioner_ignore_msb_bits": float64(12),
 				"shard_count":                         float64(c.ShardCount),
 			}), nil

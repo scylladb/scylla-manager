@@ -18,7 +18,7 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .ch
 .PHONY: .check-copyright
 .check-copyright:
 	@set -e; for f in `$(GOFILES)`; do \
-		[[ $$f =~ /scylla/internal/ ]] || \
+		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ .*_mock[.]go ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
@@ -76,7 +76,7 @@ INTEGRATION_TEST_ARGS := -cluster 172.16.1.100 -managed-cluster 172.16.1.10
 integration-test: unit-test
 	@echo "==> Running integration tests..."
 	@go test -cover -race -tags integration -run Integration ./ssh $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -tags integration -run Integration ./scylla $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
 
 # dev-server runs development server.

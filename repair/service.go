@@ -19,7 +19,7 @@ import (
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
-	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -30,7 +30,7 @@ var globalClusterID = uuid.NewFromUint64(0, 0)
 // Service orchestrates cluster repairs.
 type Service struct {
 	session      *gocql.Session
-	client       scylla.ProviderFunc
+	client       scyllaclient.ProviderFunc
 	workerCtx    context.Context
 	workerCancel context.CancelFunc
 	wg           sync.WaitGroup
@@ -38,7 +38,7 @@ type Service struct {
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, p scylla.ProviderFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, p scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -202,8 +202,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the cluster partitioner name"))
 	}
-	if p != scylla.Murmur3Partitioner {
-		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scylla.Murmur3Partitioner))
+	if p != scyllaclient.Murmur3Partitioner {
+		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner))
 	}
 
 	// get the ring description
@@ -304,7 +304,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scylla.Client, hostSegments map[string][]*Segment) {
+func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
