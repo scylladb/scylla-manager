@@ -6,3 +6,6 @@ database:
   keyspace_tpl_file: dist/etc/create_keyspace.cql.tpl
   migrate_dir: schema/cql
   timeout: 1s
+
+ssh:
+  user: scylla-mgmt

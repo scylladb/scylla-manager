@@ -24,12 +24,18 @@ type dbConfig struct {
 	Timeout                       time.Duration `yaml:"timeout"`
 }
 
+type sshConfig struct {
+	User       string `yaml:"user"`
+	KnownHosts string `yaml:"known_hosts"`
+}
+
 type serverConfig struct {
-	HTTP        string   `yaml:"http"`
-	HTTPS       string   `yaml:"https"`
-	TLSCertFile string   `yaml:"tls_cert_file"`
-	TLSKeyFile  string   `yaml:"tls_key_file"`
-	Database    dbConfig `yaml:"database"`
+	HTTP        string    `yaml:"http"`
+	HTTPS       string    `yaml:"https"`
+	TLSCertFile string    `yaml:"tls_cert_file"`
+	TLSKeyFile  string    `yaml:"tls_key_file"`
+	Database    dbConfig  `yaml:"database"`
+	SSH         sshConfig `yaml:"ssh"`
 }
 
 func defaultConfig() *serverConfig {
@@ -42,6 +48,9 @@ func defaultConfig() *serverConfig {
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
+		},
+		SSH: sshConfig{
+			KnownHosts: "~/.ssh/known_hosts",
 		},
 	}
 }

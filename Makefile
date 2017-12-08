@@ -69,11 +69,15 @@ unit-test:
 	@echo "==> Running tests (race)..."
 	@go test -cover -race ./...
 
+INTEGRATION_TEST_ARGS := -cluster 172.16.1.100 -managed-cluster 172.16.1.10
+
 # integration-test runs integration tests.
 .PHONY: integration-test
 integration-test: unit-test
 	@echo "==> Running integration tests..."
-	@go test -cover -tags integration -run Integration ./repair -cluster 172.16.1.100 -managed-cluster "172.16.1.10,172.16.1.20"
+	@go test -cover -race -tags integration -run Integration ./ssh $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -tags integration -run Integration ./scylla $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
 
 # dev-server runs development server.
 .PHONY: dev-server

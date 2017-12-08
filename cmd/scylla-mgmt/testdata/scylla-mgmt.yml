@@ -13,3 +13,7 @@ database:
   user: user
   password: password
   replication_factor: 3
+
+ssh:
+  user: user
+  known_hosts: known_hosts

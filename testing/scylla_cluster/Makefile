@@ -20,10 +20,6 @@ status:
 	@echo "==> Managed Cluster"
 	@$(COMPOSE) exec dc1_seed_node nodetool status | grep -e "^[UD]" | grep -v Datacenter
 
-.PHONY: bash
-bash:
-	@$(COMPOSE) exec mgmt_node bash
-
 .PHONY: cqlsh
 cqlsh:
 	@$(CQLSH)

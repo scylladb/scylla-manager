@@ -42,7 +42,7 @@ func WithConfig(c *Client, config Config) *Client {
 }
 
 // NewClient creates a new client.
-func NewClient(hosts []string, l log.Logger) (*Client, error) {
+func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, error) {
 	if len(hosts) == 0 {
 		return nil, errors.New("missing hosts")
 	}
@@ -57,7 +57,7 @@ func NewClient(hosts []string, l log.Logger) (*Client, error) {
 		operations: operations.New(api.New("", "", []string{"http"}), strfmt.Default),
 		client: &http.Client{
 			Transport: transport{
-				parent: http.DefaultTransport,
+				parent: rt,
 				pool:   pool,
 				logger: l,
 			},

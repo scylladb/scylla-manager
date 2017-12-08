@@ -17,10 +17,16 @@ database:
   hosts:
     - 127.0.0.1
 # Database credentials.
-#  credentials
-#    user: user
-#    password: password
+#   credentials
+#     user: user
+#     password: password
 
 # Keyspace for management data, for create statement see /etc/scylla-mgmt/create_keyspace.cql.tpl.
-#  keyspace: scylla_management
-#  replication_factor: 1
+#   keyspace: scylla_management
+#   replication_factor: 1
+
+# SSH is used to access scylla nodes. The user must be able to connect to any
+# node in managed clusters without providing a password.
+# If you want to use scylla REST API directly comment out this section.
+ssh:
+  user: scylla-mgmt

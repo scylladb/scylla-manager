@@ -23,6 +23,7 @@ import (
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/fsutil"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/log/gocqllog"
 	"github.com/scylladb/mermaid/repair"
@@ -30,6 +31,7 @@ import (
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/ssh"
 	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 )
@@ -130,7 +132,12 @@ var rootCmd = &cobra.Command{
 				return nil, err
 			}
 
-			client, err := scylla.NewClient(c.Hosts, logger.Named("client"))
+			rt, err := transport(config)
+			if err != nil {
+				return nil, err
+			}
+
+			client, err := scylla.NewClient(c.Hosts, rt, logger.Named("client"))
 			if err != nil {
 				return nil, err
 			}
@@ -405,4 +412,22 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	}
 
 	return c
+}
+
+func transport(config *serverConfig) (http.RoundTripper, error) {
+	if config.SSH.User == "" {
+		return http.DefaultTransport, nil
+	}
+
+	knownHostsFile, err := fsutil.ExpandPath(config.SSH.KnownHosts)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to expand SSH known hosts")
+	}
+
+	cfg, err := ssh.NewProductionClientConfig(config.SSH.User, knownHostsFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create SSH client config")
+	}
+
+	return ssh.Transport(cfg), nil
 }
