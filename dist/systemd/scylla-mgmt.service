@@ -8,7 +8,7 @@ After=network-online.target
 Type=simple
 User=scylla
 Group=scylla
-ExecStart=/usr/bin/scylla-mgmt server
+ExecStart=/usr/bin/scylla-mgmt
 StandardOutput=syslog
 StandardError=syslog
 
