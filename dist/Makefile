@@ -8,7 +8,7 @@ VERSION_NAME := $(VERSION)-$(RELEASE)
 
 .PHONY: clean
 clean:
-	@rm -Rf .rpmbuild.*
+	@rm -Rf /tmp/mermaid_rpm.*
 	@rm -Rf release
 
 release: release/scylla-mgmt-$(VERSION_NAME).tar
@@ -23,11 +23,11 @@ release/scylla-mgmt-$(VERSION_NAME).tar:
 release: release/rpm
 release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
 	@echo "==> Building RPM..."
-	$(eval RPMBUILD := $(PWD)/$(shell mktemp -d .rpmbuild.XXXX))
+	$(eval RPMBUILD := $(shell mktemp -t -d mermaid_rpm.XXXX))
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-	@ln scylla-mgmt.spec $(RPMBUILD)/SPECS/scylla-mgmt-$(VERSION_NAME).spec
-	@ln release/scylla-mgmt-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
+	@cp scylla-mgmt.spec $(RPMBUILD)/SPECS/scylla-mgmt-$(VERSION_NAME).spec
+	@cp release/scylla-mgmt-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
 
 	@rpmbuild -bb --target x86_64 --quiet \
 	--define "mermaid_version $(VERSION)" \
@@ -36,7 +36,7 @@ release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
 	$(RPMBUILD)/SPECS/scylla-mgmt-$(VERSION_NAME).spec > /dev/null
 
 	@mkdir -p release/rpm
-	@ln $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
+	@cp $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
 
 .PHONY: inspect
 inspect:
