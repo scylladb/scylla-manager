@@ -219,6 +219,6 @@ func mockServer(t *testing.T, file string) *httptest.Server {
 }
 
 func testClient(s *httptest.Server) *Client {
-	c, _ := NewClient([]string{s.Listener.Addr().String()}, log.NewDevelopment())
+	c, _ := NewClient([]string{s.Listener.Addr().String()}, http.DefaultTransport, log.NewDevelopment())
 	return c
 }

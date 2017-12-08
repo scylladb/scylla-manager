@@ -23,6 +23,7 @@ import (
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scylla"
+	"github.com/scylladb/mermaid/ssh"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -627,10 +628,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 			done, total := hostProgress(host)
 			if done >= int(float64(total)*percent) {
 				break
-			} else {
-				t.Log(done, total)
-				wait()
 			}
+
+			time.Sleep(time.Second)
 		}
 	}
 
@@ -724,9 +724,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// When host is repaired
 	waitHostProgress("172.16.1.10", 1)
-
-	// Then wait
-	wait()
 }
 
 func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
@@ -735,7 +732,7 @@ func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
 	s, err := repair.NewService(
 		session,
 		func(context.Context, uuid.UUID) (*scylla.Client, error) {
-			c, err := scylla.NewClient(mermaidtest.ManagedClusterHosts, logger.Named("scylla"))
+			c, err := scylla.NewClient(mermaidtest.ManagedClusterHosts, ssh.Transport(ssh.NewDevelopmentClientConfig()), logger.Named("scylla"))
 			if err != nil {
 				return nil, err
 			}
