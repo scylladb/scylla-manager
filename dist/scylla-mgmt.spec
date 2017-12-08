@@ -87,10 +87,10 @@ the database management tasks.
 
 %files server
 %defattr(-,root,root)
+%{_bindir}/scylla-mgmt
 %config(noreplace) %{_sysconfdir}/scylla-mgmt/*.yaml
 %config(noreplace) %{_sysconfdir}/scylla-mgmt/*.tpl
 %{_sysconfdir}/scylla-mgmt/cql/*.cql
-%{_bindir}/scylla-mgmt
 %{_unitdir}/*.service
 
 %pre server
