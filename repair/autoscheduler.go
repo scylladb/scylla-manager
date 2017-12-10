@@ -36,8 +36,8 @@ func NewAutoScheduler(service *Service, f ScheduleFunc) (*AutoScheduler, error) 
 	}, nil
 }
 
-// RunTask implements sched/runner.Runner.
-func (s *AutoScheduler) RunTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
+// Run implements sched/runner.Runner.
+func (s *AutoScheduler) Run(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
 	if err := s.service.SyncUnits(ctx, clusterID); err != nil {
 		return errors.Wrap(err, "failed to sync units")
 	}
@@ -56,12 +56,12 @@ func (s *AutoScheduler) RunTask(ctx context.Context, clusterID, taskID uuid.UUID
 	return nil
 }
 
-// StopTask implements sched/runner.Runner.
-func (s *AutoScheduler) StopTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
+// Stop implements sched/runner.Runner.
+func (s *AutoScheduler) Stop(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
 	return nil
 }
 
-// TaskStatus implements sched/runner.Runner.
-func (s *AutoScheduler) TaskStatus(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
+// Status implements sched/runner.Runner.
+func (s *AutoScheduler) Status(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
 	return runner.StatusStopped, nil
 }

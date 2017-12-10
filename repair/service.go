@@ -891,31 +891,31 @@ func (s *Service) Close(ctx context.Context) {
 
 // implement sched/runner.Runner
 
-// RunTask implements sched/runner.Runner.
-func (s *Service) RunTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
+// Run implements sched/runner.Runner.
+func (s *Service) Run(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
 	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
 	if err != nil {
 		return err
 	}
-	return s.Repair(ctx, u, taskID)
+	return s.Repair(ctx, u, runID)
 }
 
-// StopTask implements sched/runner.Runner.
-func (s *Service) StopTask(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) error {
+// Stop implements sched/runner.Runner.
+func (s *Service) Stop(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
 	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
 	if err != nil {
 		return err
 	}
-	return s.StopRun(ctx, u, taskID)
+	return s.StopRun(ctx, u, runID)
 }
 
-// TaskStatus implements sched/runner.Runner.
-func (s *Service) TaskStatus(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
+// Status implements sched/runner.Runner.
+func (s *Service) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
 	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
 	if err != nil {
 		return "", err
 	}
-	run, err := s.GetRun(ctx, u, taskID)
+	run, err := s.GetRun(ctx, u, runID)
 	if err != nil {
 		return "", err
 	}

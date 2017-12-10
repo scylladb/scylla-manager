@@ -56,7 +56,7 @@ func (s *Status) UnmarshalText(text []byte) error {
 
 // Runner interface should be implemented by all services being triggered by the scheduler service.
 type Runner interface {
-	RunTask(ctx context.Context, clusterID, taskID uuid.UUID, props TaskProperties) error
-	StopTask(ctx context.Context, clusterID, taskID uuid.UUID, props TaskProperties) error
-	TaskStatus(ctx context.Context, clusterID, taskID uuid.UUID, props TaskProperties) (Status, error)
+	Run(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) error
+	Stop(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) error
+	Status(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) (Status, error)
 }
