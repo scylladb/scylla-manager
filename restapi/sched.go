@@ -25,6 +25,7 @@ type SchedService interface {
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
 	StartTask(ctx context.Context, t *sched.Task) error
 	StopTask(ctx context.Context, t *sched.Task) error
+	GetLastRunN(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
 }
 
 type schedHandler struct {

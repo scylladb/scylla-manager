@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -37,13 +38,15 @@ type RepairService interface {
 
 type repairHandler struct {
 	chi.Router
-	svc RepairService
+	svc      RepairService
+	schedSvc SchedService
 }
 
-func newRepairHandler(svc RepairService) http.Handler {
+func newRepairHandler(svc RepairService, schedSvc SchedService) http.Handler {
 	h := &repairHandler{
-		Router: chi.NewRouter(),
-		svc:    svc,
+		Router:   chi.NewRouter(),
+		svc:      svc,
+		schedSvc: schedSvc,
 	}
 
 	// unit
@@ -207,16 +210,32 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 	if taskID := r.FormValue("task_id"); taskID == "" {
 		run, err = h.svc.GetLastRun(r.Context(), u)
 	} else {
-		var t uuid.UUID
-		if err := t.UnmarshalText([]byte(taskID)); err != nil {
-			render.Respond(w, r, httpErrBadRequest(r, err))
+		if h.schedSvc == nil {
+			render.Respond(w, r, httpErrInternal(r, errors.New("missing scheduler service"), "cannot lookup task"))
 			return
 		}
-		run, err = h.svc.GetRun(r.Context(), u, t)
+		var t *sched.Task
+		t, err = h.schedSvc.GetTask(r.Context(), u.ClusterID, sched.RepairTask, taskID)
+		if err != nil {
+			notFoundOrInternal(w, r, err, "failed to load task")
+			return
+		}
+		var runs []*sched.Run
+		runs, err = h.schedSvc.GetLastRunN(r.Context(), t, 1)
+		if err != nil {
+			notFoundOrInternal(w, r, err, "failed to load task run")
+			return
+		}
+		if len(runs) == 0 {
+			render.Respond(w, r, httpErrNotFound(r, errors.New("zero runs for task")))
+			return
+		}
+		run, err = h.svc.GetRun(r.Context(), u, runs[0].ID)
 	}
 
 	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to load task")
+		notFoundOrInternal(w, r, err, "failed to load repair run")
+		return
 	}
 
 	resp, err := h.createProgressResponse(r, u, run)
