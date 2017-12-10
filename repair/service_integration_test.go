@@ -571,14 +571,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 	var (
 		s            = newTestService(t, session)
 		clusterID    = uuid.MustRandom()
-		taskID       = uuid.NewTime()
+		runID        = uuid.NewTime()
 		unit         = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
 		segmentsDone = 0
 		ctx          = context.Background()
 	)
 
 	assertStatus := func(expected repair.Status) {
-		if r, err := s.GetRun(ctx, &unit, taskID); err != nil {
+		if r, err := s.GetRun(ctx, &unit, runID); err != nil {
 			t.Fatal(err)
 		} else if r.Status != expected {
 			t.Fatal("wrong status", r, "expected", expected)
@@ -586,7 +586,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	assertProgress := func() {
-		prog, err := s.GetProgress(ctx, &unit, taskID)
+		prog, err := s.GetProgress(ctx, &unit, runID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -612,7 +612,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	waitHostProgress := func(host string, percent float64) {
 		hostProgress := func(host string) (done, total int) {
-			prog, err := s.GetProgress(ctx, &unit, taskID, host)
+			prog, err := s.GetProgress(ctx, &unit, runID, host)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -640,7 +640,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// When run repair
-	if err := s.Repair(ctx, &unit, taskID); err != nil {
+	if err := s.Repair(ctx, &unit, runID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -657,12 +657,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// Then run fails
 	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil {
 		t.Fatal("expected error")
-	} else if !strings.Contains(err.Error(), taskID.String()) {
+	} else if !strings.Contains(err.Error(), runID.String()) {
 		t.Fatal(err)
 	}
 
 	// When stop run
-	if err := s.StopRun(ctx, &unit, taskID); err != nil {
+	if err := s.StopRun(ctx, &unit, runID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -676,10 +676,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	assertStatus(repair.StatusStopped)
 
 	// When create a new task
-	taskID = uuid.NewTime()
+	runID = uuid.NewTime()
 
 	// And run repair
-	if err := s.Repair(ctx, &unit, taskID); err != nil {
+	if err := s.Repair(ctx, &unit, runID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -709,10 +709,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	s.FixRunStatus(ctx)
 
 	// And create a new task
-	taskID = uuid.NewTime()
+	runID = uuid.NewTime()
 
 	// And run repair
-	if err := s.Repair(ctx, &unit, taskID); err != nil {
+	if err := s.Repair(ctx, &unit, runID); err != nil {
 		t.Fatal(err)
 	}
 

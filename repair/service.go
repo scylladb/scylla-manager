@@ -88,7 +88,7 @@ func (s *Service) FixRunStatus(ctx context.Context) error {
 			if err := s.putRun(ctx, last); err != nil {
 				return errors.Wrap(err, "failed to update a run")
 			}
-			s.logger.Info(ctx, "Marked run as stopped", "unit", u, "task_id", last.ID)
+			s.logger.Info(ctx, "Marked run as stopped", "unit", u, "run_id", last.ID)
 		}
 	}
 
@@ -96,8 +96,8 @@ func (s *Service) FixRunStatus(ctx context.Context) error {
 }
 
 // Repair starts an asynchronous repair process.
-func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
-	s.logger.Debug(ctx, "Repair", "unit", u, "task_id", taskID)
+func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
+	s.logger.Debug(ctx, "Repair", "unit", u, "run_id", runID)
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
@@ -135,7 +135,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	r := Run{
 		ClusterID: u.ClusterID,
 		UnitID:    u.ID,
-		ID:        taskID,
+		ID:        runID,
 		Keyspace:  u.Keyspace,
 		Tables:    u.Tables,
 		Status:    StatusRunning,
@@ -174,8 +174,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	if prev != nil {
 		if r.TopologyHash != prev.TopologyHash {
 			s.logger.Info(ctx, "Starting from scratch: topology changed",
-				"task_id", r.ID,
-				"prev_task_id", prev.ID,
+				"run_id", r.ID,
+				"prev_run_id", prev.ID,
 			)
 			prev = nil
 			r.PrevID = uuid.Nil
@@ -257,8 +257,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 
 		if diff := set.SymmetricDifference(prevHosts, hosts); !diff.IsEmpty() {
 			s.logger.Info(ctx, "Starting from scratch: hosts changed check that all API hosts belong to the same DC",
-				"task_id", r.ID,
-				"prev_task_id", prev.ID,
+				"run_id", r.ID,
+				"prev_run_id", prev.ID,
 				"old", prevHosts,
 				"new", hosts,
 				"diff", diff,
@@ -285,8 +285,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, taskID uuid.UUID) error {
 	wctx := log.WithTraceID(s.workerCtx)
 	s.logger.Info(ctx, "Starting repair",
 		"unit", u,
-		"task_id", taskID,
-		"prev_task_id", r.PrevID,
+		"run_id", runID,
+		"prev_run_id", r.PrevID,
 		"worker_trace_id", log.TraceID(wctx),
 	)
 	s.wg.Add(1)
@@ -324,14 +324,14 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			Host:     host,
 			Segments: hostSegments[host],
 
-			logger: s.logger.Named("worker").With("task_id", r.ID, "host", host),
+			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
 			s.logger.Error(ctx, "Worker exec error", "error", err)
 		}
 
 		if ctx.Err() != nil {
-			s.logger.Info(ctx, "Aborted", "task_id", r.ID)
+			s.logger.Info(ctx, "Aborted", "run_id", r.ID)
 			return
 		}
 
@@ -345,7 +345,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			r.EndTime = time.Now()
 			s.putRunLogError(ctx, r)
 
-			s.logger.Info(ctx, "Stopped", "task_id", r.ID)
+			s.logger.Info(ctx, "Stopped", "run_id", r.ID)
 			return
 		}
 	}
@@ -354,7 +354,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	r.EndTime = time.Now()
 	s.putRunLogError(ctx, r)
 
-	s.logger.Info(ctx, "Done", "task_id", r.ID)
+	s.logger.Info(ctx, "Done", "run_id", r.ID)
 }
 
 // ListRuns returns runs for the unit in descending order, latest runs first.
@@ -431,8 +431,8 @@ func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
 
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
-func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetRun", "unit", u, "task_id", taskID)
+func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetRun", "unit", u, "run_id", runID)
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
@@ -444,7 +444,7 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, taskID uuid.UUID) (*Run, 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
-		"id":         taskID,
+		"id":         runID,
 	})
 	if q.Err() != nil {
 		return nil, q.Err()
@@ -479,15 +479,15 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 }
 
 // StopRun marks a running repair as stopping.
-func (s *Service) StopRun(ctx context.Context, u *Unit, taskID uuid.UUID) error {
-	s.logger.Debug(ctx, "StopRun", "unit", u, "task_id", taskID)
+func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
+	s.logger.Debug(ctx, "StopRun", "unit", u, "run_id", runID)
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
 		return errors.Wrap(err, "invalid unit")
 	}
 
-	r, err := s.GetRun(ctx, u, taskID)
+	r, err := s.GetRun(ctx, u, runID)
 	if err != nil {
 		return err
 	}
@@ -502,14 +502,14 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, taskID uuid.UUID) error 
 }
 
 // isStopped checks if repair is in StatusStopping or StatusStopped.
-func (s *Service) isStopped(ctx context.Context, u *Unit, taskID uuid.UUID) (bool, error) {
-	s.logger.Debug(ctx, "isStopped", "unit", u, "task_id", taskID)
+func (s *Service) isStopped(ctx context.Context, u *Unit, runID uuid.UUID) (bool, error) {
+	s.logger.Debug(ctx, "isStopped", "unit", u, "run_id", runID)
 
 	stmt, names := schema.RepairRun.Select("status")
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
-		"id":         taskID,
+		"id":         runID,
 	})
 	if q.Err() != nil {
 		return false, q.Err()
@@ -525,8 +525,8 @@ func (s *Service) isStopped(ctx context.Context, u *Unit, taskID uuid.UUID) (boo
 
 // GetProgress returns run progress. If nothing was found mermaid.ErrNotFound
 // is returned.
-func (s *Service) GetProgress(ctx context.Context, u *Unit, taskID uuid.UUID, hosts ...string) ([]*RunProgress, error) {
-	s.logger.Debug(ctx, "GetProgress", "unit", u, "task_id", taskID)
+func (s *Service) GetProgress(ctx context.Context, u *Unit, runID uuid.UUID, hosts ...string) ([]*RunProgress, error) {
+	s.logger.Debug(ctx, "GetProgress", "unit", u, "run_id", runID)
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
@@ -544,7 +544,7 @@ func (s *Service) GetProgress(ctx context.Context, u *Unit, taskID uuid.UUID, ho
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
-		"run_id":     taskID,
+		"run_id":     runID,
 		"host":       hosts,
 	})
 	if q.Err() != nil {

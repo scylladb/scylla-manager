@@ -30,9 +30,9 @@ type RepairService interface {
 	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error
 	DeleteConfig(ctx context.Context, src repair.ConfigSource) error
 
-	GetRun(ctx context.Context, u *repair.Unit, taskID uuid.UUID) (*repair.Run, error)
+	GetRun(ctx context.Context, u *repair.Unit, runID uuid.UUID) (*repair.Run, error)
 	GetLastRun(ctx context.Context, u *repair.Unit) (*repair.Run, error)
-	GetProgress(ctx context.Context, u *repair.Unit, taskID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error)
+	GetProgress(ctx context.Context, u *repair.Unit, runID uuid.UUID, hosts ...string) ([]*repair.RunProgress, error)
 }
 
 type repairHandler struct {
