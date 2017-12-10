@@ -162,10 +162,10 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID st
 }
 
 // CreateRepairUnit creates a new repair unit.
-func (c Client) CreateRepairUnit(ctx context.Context, u *RepairUnit) (string, error) {
+func (c Client) CreateRepairUnit(ctx context.Context, clusterID string, u *RepairUnit) (string, error) {
 	resp, err := c.operations.PostClusterClusterIDRepairUnits(&operations.PostClusterClusterIDRepairUnitsParams{
 		Context:   ctx,
-		ClusterID: u.ClusterID,
+		ClusterID: clusterID,
 		UnitFields: &models.RepairUnitUpdate{
 			Name:     u.Name,
 			Keyspace: u.Keyspace,
@@ -199,10 +199,10 @@ func (c Client) GetRepairUnit(ctx context.Context, clusterID, unitID string) (*R
 }
 
 // UpdateRepairUnit updates existing repair unit.
-func (c Client) UpdateRepairUnit(ctx context.Context, u *RepairUnit) error {
+func (c Client) UpdateRepairUnit(ctx context.Context, clusterID string, u *RepairUnit) error {
 	_, err := c.operations.PutClusterClusterIDRepairUnitUnitID(&operations.PutClusterClusterIDRepairUnitUnitIDParams{
 		Context:   ctx,
-		ClusterID: u.ClusterID,
+		ClusterID: clusterID,
 		UnitID:    u.ID,
 		UnitFields: &models.RepairUnitUpdate{
 			Name:     u.Name,

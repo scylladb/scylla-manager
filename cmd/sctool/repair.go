@@ -148,7 +148,7 @@ var repairUnitAddCmd = withoutArgs(&cobra.Command{
 	Short: "Creates a new repair unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.CreateRepairUnit(context.Background(), &mermaidclient.RepairUnit{
+		id, err := client.CreateRepairUnit(context.Background(), cfgCluster, &mermaidclient.RepairUnit{
 			Name:     cfgRepairUnitName,
 			Keyspace: cfgRepairUnitKeyspace,
 			Tables:   cfgRepairUnitTables,
@@ -199,7 +199,7 @@ var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
 			return errors.New("nothing to do")
 		}
 
-		if err := client.UpdateRepairUnit(context.Background(), u); err != nil {
+		if err := client.UpdateRepairUnit(context.Background(), cfgCluster, u); err != nil {
 			return printableError{err}
 		}
 
