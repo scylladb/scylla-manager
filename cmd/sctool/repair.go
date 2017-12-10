@@ -90,6 +90,17 @@ var repairProgressCmd = withoutArgs(&cobra.Command{
 	Short: "Shows repair progress",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if cfgRepairUnit == "" && cfgRepairTask == "" {
+			return printableError{errors.New("either task name/ID or repair unit name/ID must be specified")}
+		}
+		if cfgRepairUnit == "" {
+			t, err := client.GetSchedTask(context.Background(), cfgCluster, "repair", cfgRepairTask)
+			if err != nil {
+				return printableError{err}
+			}
+			cfgRepairUnit = t.Properties["unit_id"]
+		}
+
 		status, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, cfgRepairUnit, cfgRepairTask)
 		if err != nil {
 			return printableError{err}
@@ -117,9 +128,7 @@ func init() {
 	subcommand(cmd, repairCmd)
 
 	repairInitCommonFlags(cmd)
-
 	cmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
-	requireFlags(cmd, "unit")
 }
 
 var repairUnitCmd = withoutArgs(&cobra.Command{
