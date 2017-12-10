@@ -29,8 +29,6 @@ func init() {
 
 func repairInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgRepairUnit, "unit", "u", "", "repair unit `name` or ID")
-
-	requireFlags(cmd, "unit")
 }
 
 var repairSchedCmd = withoutArgs(&cobra.Command{
@@ -83,6 +81,8 @@ func init() {
 
 	repairInitCommonFlags(cmd)
 	schedInitScheduleFlags(cmd)
+
+	requireFlags(cmd, "unit")
 }
 
 var repairProgressCmd = withoutArgs(&cobra.Command{
@@ -119,6 +119,7 @@ func init() {
 	repairInitCommonFlags(cmd)
 
 	cmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
+	requireFlags(cmd, "unit")
 }
 
 var repairUnitCmd = withoutArgs(&cobra.Command{
