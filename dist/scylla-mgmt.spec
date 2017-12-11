@@ -66,7 +66,7 @@ install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/scylla-mgmt/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 
-ln -srf %{buildroot}%{_prefix}/lib/scylla-mgmt/* %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/scylla-mgmt/scyllamgmt_setup %{buildroot}%{_sbindir}/
 
 %files
 %defattr(-,root,root)
