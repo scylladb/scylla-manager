@@ -250,11 +250,11 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, t *repair.Run) (*repairProgressResponse, error) {
 	runs, err := h.svc.GetProgress(r.Context(), u, t.ID)
 	if err != nil {
-		return nil, httpErrInternal(r, err, "failed to load task repairProgress")
+		return nil, httpErrInternal(r, err, "failed to load run repairProgress")
 	}
 
 	if len(runs) == 0 {
-		return nil, httpErrNotFound(r, err)
+		return nil, httpErrNotFound(r, errors.New("zero repair progress entries for run"))
 	}
 
 	resp := &repairProgressResponse{
