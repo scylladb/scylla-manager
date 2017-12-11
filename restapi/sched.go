@@ -134,8 +134,8 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 		runs, err := h.svc.GetLastRunN(r.Context(), t, 1)
 		if err != nil {
-			// TODO: log a warning?
-			continue
+			render.Respond(w, r, httpErrInternal(r, err, "failed to load task run"))
+			return
 		}
 		if len(runs) == 0 && status != "" {
 			continue

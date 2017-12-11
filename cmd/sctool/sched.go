@@ -5,11 +5,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 )
 
@@ -29,39 +31,99 @@ var (
 
 var schedTaskListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Shows available tasks",
+	Short: "Shows available tasks and their last run status",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		tasks, err := client.ListSchedTasks(context.Background(), cfgCluster, schedTaskType)
+		fs := cmd.Flags()
+		all, err := fs.GetBool("all")
+		if err != nil {
+			return printableError{err}
+		}
+		status, err := fs.GetString("status")
+		if err != nil {
+			return printableError{err}
+		}
+		tasks, err := client.ListSchedTasks(context.Background(), cfgCluster, schedTaskType, all, status)
 		if err != nil {
 			return printableError{err}
 		}
 		if len(tasks) == 0 {
 			return nil
 		}
-
-		t := newTable("task id", "name", "type", "start date", "interval days", "num retries")
-		for _, task := range tasks {
-			if task.Schedule != nil {
-				t.AddRow(task.ID, task.Name, task.Type, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
-			} else {
-				t.AddRow(task.ID, task.Name, task.Type, "-", "-", "-")
-			}
+		w := cmd.OutOrStdout()
+		if all {
+			printAllTasks(w, tasks)
+			return nil
 		}
-		fmt.Fprint(cmd.OutOrStdout(), t.Render())
-
+		printEnabledTasks(w, tasks)
 		return nil
 	},
 }
 
-func init() {
-	subcommand(schedTaskListCmd, taskCmd)
+func printAllTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
+	headers := []interface{}{"enabled", "task id", "name", "type", "start date", "interval days", "num retries", "run start", "run stop", "status"}
+	t := newTable(headers...)
+	for _, task := range tasks {
+		fields := make([]interface{}, 0, len(headers))
 
-	schedTaskListCmd.Flags().StringVarP(&schedTaskType, "type", "", "", "task type")
+		e := "\u2713" // CHECK MARK Unicode
+		if !task.Enabled {
+			e = ""
+		}
+		fields = append(fields, e)
+
+		if task.Schedule != nil {
+			fields = append(fields, task.ID, task.Name, task.Type, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+		} else {
+			fields = append(fields, task.ID, task.Name, task.Type, "-", "-", "-")
+		}
+
+		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
+			if f == "" {
+				f = "-"
+			}
+			fields = append(fields, f)
+		}
+		t.AddRow(fields...)
+	}
+	fmt.Fprint(w, t.Render())
+}
+
+func printEnabledTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
+	headers := []interface{}{"task id", "name", "type", "start date", "interval days", "num retries", "run start", "run stop", "status"}
+	t := newTable(headers...)
+	for _, task := range tasks {
+		fields := make([]interface{}, 0, len(headers))
+
+		if task.Schedule != nil {
+			fields = append(fields, task.ID, task.Name, task.Type, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+		} else {
+			fields = append(fields, task.ID, task.Name, task.Type, "-", "-", "-")
+		}
+
+		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
+			if f == "" {
+				f = "-"
+			}
+			fields = append(fields, f)
+		}
+		t.AddRow(fields...)
+	}
+	fmt.Fprint(w, t.Render())
+}
+
+func init() {
+	cmd := schedTaskListCmd
+	subcommand(cmd, taskCmd)
+
+	fs := cmd.Flags()
+	fs.StringVar(&schedTaskType, "type", "", "task type")
+	fs.Bool("all", false, "list disabled tasks as well")
+	fs.String("status", "", "filter tasks according to last run status")
 }
 
 func schedTaskInitCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&schedTaskType, "type", "", "", "task type")
+	cmd.Flags().StringVar(&schedTaskType, "type", "", "task type")
 	cmd.Flags().StringVarP(&schedTaskID, "task", "t", "", "task `name` or ID")
 
 	requireFlags(cmd, "type", "task")

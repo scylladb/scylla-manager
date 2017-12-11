@@ -26,5 +26,8 @@ type RepairUnit = models.RepairUnit
 // Task is a sched.Task representation.
 type Task = models.Task
 
+// ExtendedTask is a representation of sched.Task with additional fields from sched.Run.
+type ExtendedTask = models.ExtendedTask
+
 // Schedule is a sched.Schedule representation.
 type Schedule = models.Schedule

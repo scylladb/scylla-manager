@@ -347,11 +347,13 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID string, tp string, ta
 }
 
 // ListSchedTasks returns scheduled tasks within a clusterID, optionaly filtered by task type tp.
-func (c *Client) ListSchedTasks(ctx context.Context, clusterID string, tp string) ([]*Task, error) {
+func (c *Client) ListSchedTasks(ctx context.Context, clusterID string, tp string, all bool, status string) ([]*ExtendedTask, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		Type:      &tp,
+		All:       &all,
+		Status:    &status,
 	})
 	if err != nil {
 		return nil, err
