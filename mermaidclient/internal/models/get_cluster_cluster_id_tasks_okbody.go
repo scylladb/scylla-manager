@@ -16,7 +16,7 @@ import (
 
 // GetClusterClusterIDTasksOKBody get cluster cluster Id tasks o k body
 // swagger:model getClusterClusterIdTasksOKBody
-type GetClusterClusterIDTasksOKBody []*Task
+type GetClusterClusterIDTasksOKBody []*ExtendedTask
 
 // Validate validates this get cluster cluster Id tasks o k body
 func (m GetClusterClusterIDTasksOKBody) Validate(formats strfmt.Registry) error {

@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -62,11 +63,21 @@ for the get cluster cluster ID tasks operation typically these are written to a 
 */
 type GetClusterClusterIDTasksParams struct {
 
+	/*All
+	  return disabled tasks when true
+
+	*/
+	All *bool
 	/*ClusterID
 	  cluster ID this API is performing on
 
 	*/
 	ClusterID string
+	/*Status
+	  filter tasks by last run status
+
+	*/
+	Status *string
 	/*Type
 	  filter tasks by type
 
@@ -111,6 +122,17 @@ func (o *GetClusterClusterIDTasksParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithAll adds the all to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) WithAll(all *bool) *GetClusterClusterIDTasksParams {
+	o.SetAll(all)
+	return o
+}
+
+// SetAll adds the all to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) SetAll(all *bool) {
+	o.All = all
+}
+
 // WithClusterID adds the clusterID to the get cluster cluster ID tasks params
 func (o *GetClusterClusterIDTasksParams) WithClusterID(clusterID string) *GetClusterClusterIDTasksParams {
 	o.SetClusterID(clusterID)
@@ -120,6 +142,17 @@ func (o *GetClusterClusterIDTasksParams) WithClusterID(clusterID string) *GetClu
 // SetClusterID adds the clusterId to the get cluster cluster ID tasks params
 func (o *GetClusterClusterIDTasksParams) SetClusterID(clusterID string) {
 	o.ClusterID = clusterID
+}
+
+// WithStatus adds the status to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) WithStatus(status *string) *GetClusterClusterIDTasksParams {
+	o.SetStatus(status)
+	return o
+}
+
+// SetStatus adds the status to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) SetStatus(status *string) {
+	o.Status = status
 }
 
 // WithType adds the typeVar to the get cluster cluster ID tasks params
@@ -141,9 +174,41 @@ func (o *GetClusterClusterIDTasksParams) WriteToRequest(r runtime.ClientRequest,
 	}
 	var res []error
 
+	if o.All != nil {
+
+		// query param all
+		var qrAll bool
+		if o.All != nil {
+			qrAll = *o.All
+		}
+		qAll := swag.FormatBool(qrAll)
+		if qAll != "" {
+			if err := r.SetQueryParam("all", qAll); err != nil {
+				return err
+			}
+		}
+
+	}
+
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
 		return err
+	}
+
+	if o.Status != nil {
+
+		// query param status
+		var qrStatus string
+		if o.Status != nil {
+			qrStatus = *o.Status
+		}
+		qStatus := qrStatus
+		if qStatus != "" {
+			if err := r.SetQueryParam("status", qStatus); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if o.Type != nil {
