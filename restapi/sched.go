@@ -7,11 +7,14 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/sched"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -84,10 +87,35 @@ func (h *schedHandler) taskCtx(next http.Handler) http.Handler {
 	})
 }
 
+type extendedTask struct {
+	*sched.Task
+	Status    *runner.Status `json:"status,omitempty"`
+	Cause     *string        `json:"cause,omitempty"`
+	StartTime *time.Time     `json:"start_time,omitempty"`
+	EndTime   *time.Time     `json:"end_time,omitempty"`
+}
+
 func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
+	all := false
+	if a := r.FormValue("all"); a != "" {
+		var err error
+		all, err = strconv.ParseBool(a)
+		if err != nil {
+			render.Respond(w, r, httpErrBadRequest(r, err))
+			return
+		}
+	}
 	var taskType sched.TaskType
 	if t := r.FormValue("type"); t != "" {
 		if err := taskType.UnmarshalText([]byte(t)); err != nil {
+			render.Respond(w, r, httpErrBadRequest(r, err))
+			return
+		}
+	}
+
+	var status runner.Status
+	if s := r.FormValue("status"); s != "" {
+		if err := status.UnmarshalText([]byte(s)); err != nil {
 			render.Respond(w, r, httpErrBadRequest(r, err))
 			return
 		}
@@ -99,11 +127,37 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(tasks) == 0 {
-		render.Respond(w, r, []string{})
-		return
+	history := make([]extendedTask, 0, len(tasks))
+	for _, t := range tasks {
+		if !all && !t.Enabled {
+			continue
+		}
+		runs, err := h.svc.GetLastRunN(r.Context(), t, 1)
+		if err != nil {
+			// TODO: log a warning?
+			continue
+		}
+		if len(runs) == 0 && status != "" {
+			continue
+		}
+		if status != "" && runs[0].Status != status {
+			continue
+		}
+
+		e := extendedTask{Task: t}
+		if len(runs) > 0 {
+			e.Status = &runs[0].Status
+			e.Cause = &runs[0].Cause
+			if tm := runs[0].StartTime; !tm.IsZero() {
+				e.StartTime = &tm
+			}
+			if tm := runs[0].EndTime; !tm.IsZero() {
+				e.EndTime = &tm
+			}
+		}
+		history = append(history, e)
 	}
-	render.Respond(w, r, tasks)
+	render.Respond(w, r, history)
 }
 
 func (h *schedHandler) parseTask(r *http.Request) (*sched.Task, error) {

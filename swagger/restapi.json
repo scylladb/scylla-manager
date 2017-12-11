@@ -238,6 +238,56 @@
         }
       }
     },
+    "extendedTask": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "schedule": {
+          "$ref": "#/definitions/schedule"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string"
+        },
+        "cause": {
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string"
+        },
+        "end_time": {
+          "type": "string"
+        }
+      }
+    },
     "taskUpdate": {
       "type": "object",
       "properties": {
@@ -641,9 +691,23 @@
         "description": "listTasks Description",
         "parameters": [
           {
+            "name": "all",
+            "in": "query",
+            "type": "boolean",
+            "description": "return disabled tasks when true",
+            "required": false
+          },
+          {
             "name": "type",
             "in": "query",
             "description": "filter tasks by type",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "filter tasks by last run status",
             "type": "string",
             "required": false
           }
@@ -654,7 +718,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/task"
+                "$ref": "#/definitions/extendedTask"
               }
             }
           }
