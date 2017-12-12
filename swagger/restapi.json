@@ -319,6 +319,35 @@
           }
         }
       }
+    },
+    "taskRun": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "cause": {
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string"
+        },
+        "end_time": {
+          "type": "string"
+        }
+      }
     }
   },
   "paths": {
@@ -876,6 +905,55 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/{task_type}/{task_id}/history": {
+      "parameters": [
+        {
+          "type": "string",
+          "description": "cluster ID this API is performing on",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task type",
+          "name": "task_type",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "description": "task ID (UUID) or name",
+          "name": "task_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer",
+            "format": "int32",
+            "description": "limit the number of task runs returned",
+            "required": false
+          }
+        ],
+        "description": "taskHistory Description",
+        "responses": {
+          "200": {
+            "description": "requested task run history",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/taskRun"
+              }
+            }
           }
         }
       }

@@ -521,7 +521,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 // GetLastRunN returns at most N recent runs of the task.
 // If N is <= -1, return all runs. N == 0 returns an empty slice.
 func (s *Service) GetLastRunN(ctx context.Context, t *Task, n int) ([]*Run, error) {
-	s.logger.Debug(ctx, "GetLastRunN", "task", t)
+	s.logger.Debug(ctx, "GetLastRunN", "task", t, "n", n)
 
 	// validate the task
 	if err := t.Validate(); err != nil {

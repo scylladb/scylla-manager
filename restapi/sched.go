@@ -54,6 +54,7 @@ func newSchedHandler(svc SchedService) http.Handler {
 		r.Delete("/", h.deleteTask)
 		r.Put("/start", h.startTask)
 		r.Put("/stop", h.stopTask)
+		r.Get("/history", h.taskHistory)
 	})
 
 	return h
@@ -193,6 +194,29 @@ func (h *schedHandler) createTask(w http.ResponseWriter, r *http.Request) {
 func (h *schedHandler) loadTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	render.Respond(w, r, t)
+}
+
+func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
+	t := mustTaskFromCtx(r)
+	limit := 10
+	if l := r.FormValue("limit"); l != "" {
+		var err error
+		limit, err = strconv.Atoi(l)
+		if err != nil {
+			render.Respond(w, r, httpErrBadRequest(r, err))
+			return
+		}
+	}
+	runs, err := h.svc.GetLastRunN(r.Context(), t, limit)
+	if err != nil {
+		render.Respond(w, r, httpErrInternal(r, err, "failed to load task history"))
+		return
+	}
+	if len(runs) == 0 {
+		render.Respond(w, r, []string{})
+		return
+	}
+	render.Respond(w, r, runs)
 }
 
 func (h *schedHandler) updateTask(w http.ResponseWriter, r *http.Request) {
