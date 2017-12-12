@@ -25,8 +25,10 @@ database:
 #   keyspace: scylla_management
 #   replication_factor: 1
 
-# SSH is used to access scylla nodes. The user must be able to connect to any
-# node in managed clusters without providing a password.
-# If you want to use scylla REST API directly comment out this section.
+# SSH is used to access scylla nodes. All the database nodes must be present
+# in the known_hosts_file. User private key must be PEM encoded and stored in
+# the pem_file.
 ssh:
   user: scylla-mgmt
+  pem_file: ~/.ssh/scylla_mgmt
+  known_hosts_file: ~/.ssh/scylla_mgmt_known_hosts
