@@ -253,16 +253,16 @@ func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, 
 		return nil, httpErrInternal(r, err, "failed to load run repairProgress")
 	}
 
-	if len(runs) == 0 {
-		return nil, httpErrNotFound(r, errors.New("zero repair progress entries for run"))
-	}
-
 	resp := &repairProgressResponse{
 		Keyspace: t.Keyspace,
 		Tables:   t.Tables,
 		Status:   t.Status,
-		Hosts:    make(map[string]*repairHostProgress),
 	}
+	if len(runs) == 0 {
+		return resp, nil
+	}
+
+	resp.Hosts = make(map[string]*repairHostProgress)
 	for _, r := range runs {
 		if _, exists := resp.Hosts[r.Host]; !exists {
 			resp.Hosts[r.Host] = &repairHostProgress{
