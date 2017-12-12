@@ -291,6 +291,26 @@ func (c *Client) GetSchedTask(ctx context.Context, clusterID string, tp string, 
 	return resp.Payload, nil
 }
 
+// GetSchedTaskHistory returns a run history of task of a given type and task ID.
+func (c *Client) GetSchedTaskHistory(ctx context.Context, clusterID string, tp string, taskID string, limit int) ([]*TaskRun, error) {
+	params := &operations.GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskType:  tp,
+		TaskID:    taskID,
+	}
+	if limit > 0 {
+		l := int32(limit)
+		params.Limit = &l
+	}
+	resp, err := c.operations.GetClusterClusterIDTaskTaskTypeTaskIDHistory(params)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
 // SchedStartTask starts executing a task.
 func (c *Client) SchedStartTask(ctx context.Context, clusterID string, tp string, taskID string) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStart(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStartParams{

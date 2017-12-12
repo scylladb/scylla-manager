@@ -305,3 +305,47 @@ func init() {
 
 	schedTaskInitCommonFlags(schedDeleteTaskCmd)
 }
+
+var schedTaskHistoryCmd = &cobra.Command{
+	Use:   "history",
+	Short: "list run history of a task",
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		limit, err := cmd.Flags().GetInt("limit")
+		if err != nil {
+			return printableError{err}
+		}
+
+		runs, err := client.GetSchedTaskHistory(context.Background(), cfgCluster, schedTaskType, schedTaskID, limit)
+		if err != nil {
+			return printableError{err}
+		}
+		t := newTable("id", "start time", "stop time", "status")
+		for _, r := range runs {
+			fields := []interface{}{r.ID}
+			for _, f := range []string{r.StartTime, r.EndTime} {
+				t, err := time.Parse(time.RFC3339, f)
+				if err != nil {
+					return printableError{err}
+				}
+				if t.IsZero() {
+					f = "-"
+				}
+				fields = append(fields, f)
+			}
+			fields = append(fields, r.Status)
+			t.AddRow(fields...)
+		}
+		fmt.Fprint(cmd.OutOrStdout(), t.Render())
+
+		return nil
+	},
+}
+
+func init() {
+	cmd := schedTaskHistoryCmd
+	subcommand(cmd, taskCmd)
+
+	schedTaskInitCommonFlags(cmd)
+	cmd.Flags().Int("limit", -1, "limit the number of returned results")
+}

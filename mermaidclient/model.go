@@ -31,3 +31,6 @@ type ExtendedTask = models.ExtendedTask
 
 // Schedule is a sched.Schedule representation.
 type Schedule = models.Schedule
+
+// TaskRun is a sched.TaskRun representation.
+type TaskRun = models.TaskRun
