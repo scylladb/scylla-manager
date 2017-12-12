@@ -6,8 +6,8 @@ After=network-online.target
 
 [Service]
 Type=simple
-User=scylla
-Group=scylla
+User=scylla-mgmt
+Group=scylla-mgmt
 ExecStart=/usr/bin/scylla-mgmt
 StandardOutput=syslog
 StandardError=syslog
