@@ -5,7 +5,7 @@ RUN yum -y update && \
     yum -y install openssh-server passwd && \
     yum clean all
 RUN mkdir /var/run/sshd
-RUN ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N ''
+RUN /usr/sbin/sshd-keygen
 
 # Create scylla-mgmt user:
 RUN useradd scylla-mgmt && echo -e "test\ntest" | (passwd --stdin scylla-mgmt)

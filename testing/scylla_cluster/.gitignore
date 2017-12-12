@@ -1,3 +1,2 @@
-scylla_mgmt
-scylla_mgmt.pub
-scylla_mgmt_known_hosts
+id_rsa
+id_rsa.pub

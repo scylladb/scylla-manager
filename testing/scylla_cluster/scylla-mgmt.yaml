@@ -9,5 +9,5 @@ database:
 
 ssh:
   user: scylla-mgmt
-  identity_file: ~/.ssh/scylla_mgmt
-  known_hosts_file: ~/.ssh/scylla_mgmt_known_hosts
+  identity_file: testing/scylla_cluster/id_rsa
+  known_hosts_file: testing/scylla_cluster/known_hosts
