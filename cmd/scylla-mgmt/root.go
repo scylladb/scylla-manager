@@ -419,9 +419,9 @@ func transport(config *serverConfig) (http.RoundTripper, error) {
 		return http.DefaultTransport, nil
 	}
 
-	pemFile, err := fsutil.ExpandPath(config.SSH.PEMFile)
+	identityFile, err := fsutil.ExpandPath(config.SSH.IdentityFile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to expand %q", config.SSH.PEMFile)
+		return nil, errors.Wrapf(err, "failed to expand %q", config.SSH.IdentityFile)
 	}
 
 	knownHostsFile, err := fsutil.ExpandPath(config.SSH.KnownHostsFile)
@@ -429,7 +429,7 @@ func transport(config *serverConfig) (http.RoundTripper, error) {
 		return nil, errors.Wrapf(err, "failed to expand %q", config.SSH.KnownHostsFile)
 	}
 
-	cfg, err := ssh.NewProductionClientConfig(config.SSH.User, pemFile, knownHostsFile)
+	cfg, err := ssh.NewProductionClientConfig(config.SSH.User, identityFile, knownHostsFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create SSH client config")
 	}

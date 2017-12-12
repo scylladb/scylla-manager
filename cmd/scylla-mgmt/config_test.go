@@ -41,7 +41,7 @@ func TestNewConfigFromFile(t *testing.T) {
 		},
 		SSH: sshConfig{
 			User:           "user",
-			PEMFile:        "pem_file",
+			IdentityFile:   "identity_file",
 			KnownHostsFile: "known_hosts",
 		},
 	}

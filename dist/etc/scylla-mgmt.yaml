@@ -27,8 +27,8 @@ database:
 
 # SSH is used to access scylla nodes. All the database nodes must be present
 # in the known_hosts_file. User private key must be PEM encoded and stored in
-# the pem_file.
+# the identity_file.
 ssh:
   user: scylla-mgmt
-  pem_file: /home/scylla/.ssh/scylla_mgmt
+  identity_file: /home/scylla/.ssh/scylla_mgmt
   known_hosts_file: /home/scylla/.ssh/scylla_mgmt_known_hosts

@@ -16,5 +16,5 @@ database:
 
 ssh:
   user: user
-  pem_file: pem_file
+  identity_file: identity_file
   known_hosts_file: known_hosts

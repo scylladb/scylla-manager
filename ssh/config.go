@@ -12,12 +12,12 @@ import (
 
 // NewProductionClientConfig returns configuration with a key based
 // authentication that connects to known hosts only.
-func NewProductionClientConfig(user, pemFile, knownHostsFile string) (*ssh.ClientConfig, error) {
+func NewProductionClientConfig(user, identityFile, knownHostsFile string) (*ssh.ClientConfig, error) {
 	if user == "" {
 		return nil, errors.New("missing user")
 	}
-	if pemFile == "" {
-		return nil, errors.New("missing pem file")
+	if identityFile == "" {
+		return nil, errors.New("missing identity file")
 	}
 	if knownHostsFile == "" {
 		return nil, errors.New("missing known hosts")
@@ -28,9 +28,9 @@ func NewProductionClientConfig(user, pemFile, knownHostsFile string) (*ssh.Clien
 		return nil, errors.Wrapf(err, "failed to parse %q", knownHostsFile)
 	}
 
-	auth, err := keyPairAuthMethod(pemFile)
+	auth, err := keyPairAuthMethod(identityFile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %q", pemFile)
+		return nil, errors.Wrapf(err, "failed to parse %q", identityFile)
 	}
 
 	return &ssh.ClientConfig{
@@ -40,13 +40,13 @@ func NewProductionClientConfig(user, pemFile, knownHostsFile string) (*ssh.Clien
 	}, nil
 }
 
-func keyPairAuthMethod(pemFile string) (ssh.AuthMethod, error) {
-	pemBytes, err := ioutil.ReadFile(pemFile)
+func keyPairAuthMethod(identityFile string) (ssh.AuthMethod, error) {
+	b, err := ioutil.ReadFile(identityFile)
 	if err != nil {
 		return nil, err
 	}
 
-	signer, err := ssh.ParsePrivateKey(pemBytes)
+	signer, err := ssh.ParsePrivateKey(b)
 	if err != nil {
 		return nil, err
 	}
