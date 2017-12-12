@@ -23,14 +23,14 @@ func NewProductionClientConfig(user, identityFile, knownHostsFile string) (*ssh.
 		return nil, errors.New("missing known hosts")
 	}
 
-	cb, err := knownhosts.New(knownHostsFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %q", knownHostsFile)
-	}
-
 	auth, err := keyPairAuthMethod(identityFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse %q", identityFile)
+	}
+
+	cb, err := knownhosts.New(knownHostsFile)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse %q", knownHostsFile)
 	}
 
 	return &ssh.ClientConfig{
