@@ -30,5 +30,5 @@ database:
 # the identity_file.
 ssh:
   user: scylla-mgmt
-  identity_file: /home/scylla/.ssh/scylla_mgmt
-  known_hosts_file: /home/scylla/.ssh/scylla_mgmt_known_hosts
+  identity_file: /var/lib/scylla-mgmt/.ssh/scylla_mgmt
+  known_hosts_file: /var/lib/scylla-mgmt/.ssh/scylla_mgmt_known_hosts
