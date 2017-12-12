@@ -9,3 +9,5 @@ database:
 
 ssh:
   user: scylla-mgmt
+  pem_file: ~/.ssh/scylla_mgmt
+  known_hosts_file: ~/.ssh/scylla_mgmt_known_hosts

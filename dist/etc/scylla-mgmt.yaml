@@ -30,5 +30,5 @@ database:
 # the pem_file.
 ssh:
   user: scylla-mgmt
-  pem_file: ~/.ssh/scylla_mgmt
-  known_hosts_file: ~/.ssh/scylla_mgmt_known_hosts
+  pem_file: /home/scylla/.ssh/scylla_mgmt
+  known_hosts_file: /home/scylla/.ssh/scylla_mgmt_known_hosts
