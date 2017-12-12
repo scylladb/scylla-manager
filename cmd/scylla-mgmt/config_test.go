@@ -40,9 +40,8 @@ func TestNewConfigFromFile(t *testing.T) {
 			Timeout:                       600 * time.Millisecond,
 		},
 		SSH: sshConfig{
-			User:           "user",
-			IdentityFile:   "identity_file",
-			KnownHostsFile: "known_hosts",
+			User:         "user",
+			IdentityFile: "identity_file",
 		},
 	}
 

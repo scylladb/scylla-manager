@@ -10,4 +10,3 @@ database:
 ssh:
   user: scylla-mgmt
   identity_file: testing/scylla_cluster/id_rsa
-  known_hosts_file: testing/scylla_cluster/known_hosts

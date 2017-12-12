@@ -25,9 +25,8 @@ type dbConfig struct {
 }
 
 type sshConfig struct {
-	User           string `yaml:"user"`
-	IdentityFile   string `yaml:"identity_file"`
-	KnownHostsFile string `yaml:"known_hosts_file"`
+	User         string `yaml:"user"`
+	IdentityFile string `yaml:"identity_file"`
 }
 
 type serverConfig struct {
@@ -92,9 +91,6 @@ func (c *serverConfig) validate() error {
 	if c.SSH.User != "" {
 		if c.SSH.IdentityFile == "" {
 			return errors.New("missing ssh.identity_file")
-		}
-		if c.SSH.KnownHostsFile == "" {
-			return errors.New("missing ssh.known_hosts_file")
 		}
 	}
 

@@ -25,10 +25,8 @@ database:
 #   keyspace: scylla_management
 #   replication_factor: 1
 
-# SSH is used to access scylla nodes. All the database nodes must be present
-# in the known_hosts_file. User private key must be PEM encoded and stored in
-# the identity_file.
+# SSH is used to access scylla nodes. User private key must be PEM encoded and
+# stored in the identity_file.
 ssh:
   user: scylla-mgmt
-  identity_file: /var/lib/scylla-mgmt/.ssh/scylla_mgmt
-  known_hosts_file: /var/lib/scylla-mgmt/.ssh/scylla_mgmt_known_hosts
+  identity_file: /var/lib/scylla-mgmt/.ssh/id_rsa

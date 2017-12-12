@@ -7,20 +7,15 @@ import (
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// NewProductionClientConfig returns configuration with a key based
-// authentication that connects to known hosts only.
-func NewProductionClientConfig(user, identityFile, knownHostsFile string) (*ssh.ClientConfig, error) {
+// NewProductionClientConfig returns configuration with a key based authentication.
+func NewProductionClientConfig(user, identityFile string) (*ssh.ClientConfig, error) {
 	if user == "" {
 		return nil, errors.New("missing user")
 	}
 	if identityFile == "" {
 		return nil, errors.New("missing identity file")
-	}
-	if knownHostsFile == "" {
-		return nil, errors.New("missing known hosts")
 	}
 
 	auth, err := keyPairAuthMethod(identityFile)
@@ -28,15 +23,10 @@ func NewProductionClientConfig(user, identityFile, knownHostsFile string) (*ssh.
 		return nil, errors.Wrapf(err, "failed to parse %q", identityFile)
 	}
 
-	cb, err := knownhosts.New(knownHostsFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %q", knownHostsFile)
-	}
-
 	return &ssh.ClientConfig{
 		User:            user,
 		Auth:            []ssh.AuthMethod{auth},
-		HostKeyCallback: cb,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 }
 

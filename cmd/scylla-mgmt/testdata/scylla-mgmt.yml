@@ -17,4 +17,3 @@ database:
 ssh:
   user: user
   identity_file: identity_file
-  known_hosts_file: known_hosts
