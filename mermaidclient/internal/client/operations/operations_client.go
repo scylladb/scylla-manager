@@ -361,6 +361,34 @@ func (a *Client) GetClusterClusterIDTaskTaskTypeTaskID(params *GetClusterCluster
 }
 
 /*
+GetClusterClusterIDTaskTaskTypeTaskIDHistory taskHistory Description
+*/
+func (a *Client) GetClusterClusterIDTaskTaskTypeTaskIDHistory(params *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) (*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTaskTaskTypeTaskIDHistory",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/task/{task_type}/{task_id}/history",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTaskTaskTypeTaskIDHistoryReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK), nil
+
+}
+
+/*
 GetClusterClusterIDTasks listTasks Description
 */
 func (a *Client) GetClusterClusterIDTasks(params *GetClusterClusterIDTasksParams) (*GetClusterClusterIDTasksOK, error) {
