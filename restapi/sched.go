@@ -79,7 +79,7 @@ func (h *schedHandler) taskCtx(next http.Handler) http.Handler {
 
 		t, err := h.svc.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
 		if err != nil {
-			notFoundOrInternal(w, r, err, "failed to load task")
+			respondError(w, r, err, "failed to load task")
 			return
 		}
 
@@ -124,7 +124,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := h.svc.ListTasks(r.Context(), mustClusterIDFromCtx(r), taskType)
 	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to list tasks")
+		respondError(w, r, err, "failed to list tasks")
 		return
 	}
 
@@ -182,7 +182,7 @@ func (h *schedHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.PutTask(r.Context(), newTask); err != nil {
-		notFoundOrInternal(w, r, err, "failed to create task")
+		respondError(w, r, err, "failed to create task")
 		return
 	}
 
@@ -230,7 +230,7 @@ func (h *schedHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	newTask.Type = t.Type
 
 	if err := h.svc.PutTask(r.Context(), newTask); err != nil {
-		notFoundOrInternal(w, r, err, "failed to update task")
+		respondError(w, r, err, "failed to update task")
 		return
 	}
 	render.Respond(w, r, newTask)
@@ -239,7 +239,7 @@ func (h *schedHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 func (h *schedHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	if err := h.svc.DeleteTask(r.Context(), t); err != nil {
-		notFoundOrInternal(w, r, err, "failed to delete task")
+		respondError(w, r, err, "failed to delete task")
 		return
 	}
 }
@@ -247,7 +247,7 @@ func (h *schedHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 func (h *schedHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	if err := h.svc.StartTask(r.Context(), t); err != nil {
-		notFoundOrInternal(w, r, err, "failed to start task")
+		respondError(w, r, err, "failed to start task")
 		return
 	}
 }
@@ -255,7 +255,7 @@ func (h *schedHandler) startTask(w http.ResponseWriter, r *http.Request) {
 func (h *schedHandler) stopTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	if err := h.svc.StopTask(r.Context(), t); err != nil {
-		notFoundOrInternal(w, r, err, "failed to stop task")
+		respondError(w, r, err, "failed to stop task")
 		return
 	}
 }

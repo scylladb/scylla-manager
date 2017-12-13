@@ -45,7 +45,7 @@ func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
 
 		c, err := h.svc.GetCluster(r.Context(), clusterID)
 		if err != nil {
-			notFoundOrInternal(w, r, err, "failed to load cluster")
+			respondError(w, r, err, "failed to load cluster")
 			return
 		}
 
@@ -85,7 +85,7 @@ func newClusterHandler(svc ClusterService) http.Handler {
 func (h *clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 	ids, err := h.svc.ListClusters(r.Context(), &cluster.Filter{})
 	if err != nil {
-		notFoundOrInternal(w, r, err, "failed to list clusters")
+		respondError(w, r, err, "failed to list clusters")
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
-		notFoundOrInternal(w, r, err, "failed to create cluster")
+		respondError(w, r, err, "failed to create cluster")
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 	newCluster.ID = c.ID
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
-		notFoundOrInternal(w, r, err, "failed to update cluster")
+		respondError(w, r, err, "failed to update cluster")
 		return
 	}
 	render.Respond(w, r, newCluster)
@@ -153,7 +153,7 @@ func (h *clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 
 	if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
-		notFoundOrInternal(w, r, err, "failed to delete cluster")
+		respondError(w, r, err, "failed to delete cluster")
 		return
 	}
 }

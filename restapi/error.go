@@ -45,9 +45,9 @@ func httpErrBadRequest(r *http.Request, err error) *httpError {
 	}
 }
 
-// notFoundOrInternal coverts mermaid.ErrNotFound to httpErrNotFound and
+// respondError coverts mermaid.ErrNotFound to httpErrNotFound and
 // everything else to httpErrInternal.
-func notFoundOrInternal(w http.ResponseWriter, r *http.Request, err error, msg string) {
+func respondError(w http.ResponseWriter, r *http.Request, err error, msg string) {
 	if err == mermaid.ErrNotFound {
 		render.Respond(w, r, httpErrNotFound(r, err))
 	} else {
