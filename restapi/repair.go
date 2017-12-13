@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/uuid"
@@ -227,7 +228,7 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(runs) == 0 {
-			render.Respond(w, r, httpErrNotFound(r, errors.New("zero runs for task")))
+			respondError(w, r, mermaid.ParamError{errors.New("task did not run yet")}, "")
 			return
 		}
 		run, err = h.svc.GetRun(r.Context(), u, runs[0].ID)

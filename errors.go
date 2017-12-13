@@ -20,5 +20,8 @@ type ParamError struct {
 
 // Error implements error.
 func (e ParamError) Error() string {
+	if e.Cause == nil {
+		return ""
+	}
 	return e.Cause.Error()
 }
