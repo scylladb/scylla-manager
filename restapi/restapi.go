@@ -53,10 +53,12 @@ func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {
 	if err, ok := v.(error); ok {
 		httpErr, _ := v.(*httpError)
 		if httpErr == nil {
-			httpErr = newHTTPError(
-				r, err, http.StatusInternalServerError,
-				"unexpected error, consult logs",
-			)
+			httpErr = &httpError{
+				Err:        err,
+				StatusCode: http.StatusInternalServerError,
+				Message:    "unexpected error, consult logs",
+				TraceID:    log.TraceID(r.Context()),
+			}
 		}
 
 		if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
