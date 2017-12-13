@@ -443,19 +443,16 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 // PutTask upserts a task, the task instance must pass Validate() checks.
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "PutTask", "Task", t)
-	if t == nil {
-		return errors.New("nil task")
-	}
 
-	if t.ID == uuid.Nil {
+	if t != nil && t.ID == uuid.Nil {
 		var err error
 		if t.ID, err = uuid.NewRandom(); err != nil {
-			return errors.Wrap(err, "couldn't generate random UUID for Task")
+			return errors.Wrap(err, "couldn't generate random UUID for task")
 		}
 	}
 
 	if err := t.Validate(); err != nil {
-		return err
+		return mermaid.ParamError{errors.Wrap(err, "invalid task")}
 	}
 
 	stmt, names := schema.SchedTask.Insert()
@@ -525,7 +522,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 
 	// validate the task
 	if err := t.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid task")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid task")}
 	}
 
 	b := qb.Select(schema.SchedRun.Name).Where(

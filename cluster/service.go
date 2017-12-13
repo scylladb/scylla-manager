@@ -51,7 +51,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 
 	// validate the filter
 	if err := f.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid filter")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid filter")}
 	}
 
 	stmt, _ := qb.Select(schema.Cluster.Name).ToCql()
@@ -153,7 +153,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 
 	// validate the Cluster
 	if err := c.Validate(); err != nil {
-		return err
+		return mermaid.ParamError{errors.Wrap(err, "invalid cluster")}
 	}
 
 	// check for conflicting names
@@ -164,7 +164,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 				return err
 			}
 			if conflict.ID != c.ID {
-				return errors.Errorf("name conflict on %q", c.Name)
+				return mermaid.ParamError{errors.Errorf("name conflict on %q", c.Name)}
 			}
 		}
 	}

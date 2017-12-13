@@ -101,7 +101,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return errors.Wrap(err, "invalid unit")
+		return mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	// get the unit configuration
@@ -125,7 +125,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	if prev != nil {
 		switch prev.Status {
 		case StatusRunning, StatusStopping:
-			return errors.Errorf("repair in progress %s", prev.ID)
+			return mermaid.ParamError{errors.Errorf("repair in progress %s", prev.ID)}
 		case StatusDone, StatusError:
 			prev = nil
 		}
@@ -363,12 +363,12 @@ func (s *Service) ListRuns(ctx context.Context, u *Unit, f *RunFilter) ([]*Run, 
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid unit")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	// validate the filter
 	if err := f.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid filter")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid filter")}
 	}
 
 	sel := qb.Select(schema.RepairRun.Name).Where(
@@ -403,7 +403,7 @@ func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid unit")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	stmt, names := qb.Select(schema.RepairRun.Name).
@@ -436,7 +436,7 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, e
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid unit")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	stmt, names := schema.RepairRun.Get()
@@ -484,7 +484,7 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return errors.Wrap(err, "invalid unit")
+		return mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	r, err := s.GetRun(ctx, u, runID)
@@ -530,7 +530,7 @@ func (s *Service) GetProgress(ctx context.Context, u *Unit, runID uuid.UUID, hos
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid unit")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	t := schema.RepairRunProgress
@@ -578,7 +578,7 @@ func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid unit")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	order := []ConfigSource{
@@ -648,7 +648,7 @@ func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *Config) er
 	s.logger.Debug(ctx, "PutConfig", "source", src, "config", c)
 
 	if err := c.Validate(); err != nil {
-		return err
+		return mermaid.ParamError{errors.Wrap(err, "invalid config")}
 	}
 
 	stmt, names := schema.RepairConfig.Insert()
@@ -739,7 +739,7 @@ func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID, f *UnitFil
 
 	// validate the filter
 	if err := f.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid filter")
+		return nil, mermaid.ParamError{errors.Wrap(err, "invalid filter")}
 	}
 
 	stmt, names := schema.RepairUnit.Select()
@@ -846,7 +846,7 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
-		return err
+		return mermaid.ParamError{errors.Wrap(err, "invalid unit")}
 	}
 
 	// check for conflicting names
@@ -857,7 +857,7 @@ func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
 				return err
 			}
 			if conflict.ID != u.ID {
-				return errors.Errorf("name conflict on %q", u.Name)
+				return mermaid.ParamError{errors.Errorf("name conflict on %q", u.Name)}
 			}
 		}
 	}

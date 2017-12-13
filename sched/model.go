@@ -10,8 +10,10 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // TaskType specifies the type of a Task.
@@ -130,39 +132,37 @@ type Task struct {
 }
 
 // Validate checks if all the required fields are properly set.
-func (t *Task) Validate() error {
+func (t *Task) Validate() (err error) {
 	if t == nil {
-		return errors.New("nil task")
+		return mermaid.ErrNilPtr
 	}
+
 	if t.ID == uuid.Nil {
-		return errors.New("missing ID")
+		err = multierr.Append(err, errors.New("missing ID"))
 	}
 	if t.ClusterID == uuid.Nil {
-		return errors.New("missing ClusterID")
+		err = multierr.Append(err, errors.New("missing ClusterID"))
 	}
 
 	switch t.Type {
 	case "", UnknownTask:
-		return errors.New("no TaskType specified")
-
+		err = multierr.Append(err, errors.New("no TaskType specified"))
 	default:
-		var tmpType TaskType
-		if err := tmpType.UnmarshalText([]byte(t.Type)); err != nil {
-			return err
-		}
+		var tp TaskType
+		err = multierr.Append(err, tp.UnmarshalText([]byte(t.Type)))
 	}
 
 	if t.Sched.IntervalDays < 0 {
-		return errors.New("negative Sched.IntervalDays")
+		err = multierr.Append(err, errors.New("negative Sched.IntervalDays"))
 	}
 	if t.Sched.NumRetries < 0 {
-		return errors.New("negative Sched.NumRetries")
+		err = multierr.Append(err, errors.New("negative Sched.NumRetries"))
 	}
 	if t.Sched.StartDate.IsZero() {
-		return errors.New("missing Sched.StartDate")
+		err = multierr.Append(err, errors.New("missing Sched.StartDate"))
 	}
 
-	return nil
+	return
 }
 
 // Run describes a running instance of a Task.

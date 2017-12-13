@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // ConfigType specifies a type of configuration. Configuration object is built
@@ -76,9 +78,9 @@ type Config struct {
 }
 
 // Validate checks if all the fields are properly set.
-func (c *Config) Validate() error {
+func (c *Config) Validate() (err error) {
 	if c == nil {
-		return errors.New("nil")
+		return mermaid.ErrNilPtr
 	}
 
 	var (
@@ -90,29 +92,29 @@ func (c *Config) Validate() error {
 	if c.SegmentSizeLimit != nil {
 		i64 = *c.SegmentSizeLimit
 		if i64 < 1 && i64 != -1 {
-			return errors.New("invalid SegmentSizeLimit value, valid values are greater or equal 1")
+			err = multierr.Append(err, errors.New("invalid SegmentSizeLimit value, valid values are greater or equal 1"))
 		}
 	}
 	if c.RetryLimit != nil {
 		i = *c.RetryLimit
 		if i < 0 {
-			return errors.New("invalid RetryLimit value, valid values are greater or equal 0")
+			err = multierr.Append(err, errors.New("invalid RetryLimit value, valid values are greater or equal 0"))
 		}
 	}
 	if c.RetryBackoffSeconds != nil {
 		i = *c.RetryBackoffSeconds
 		if i < 0 {
-			return errors.New("invalid RetryBackoffSeconds value, valid values are greater or equal 0")
+			err = multierr.Append(err, errors.New("invalid RetryBackoffSeconds value, valid values are greater or equal 0"))
 		}
 	}
 	if c.ParallelShardPercent != nil {
 		f = *c.ParallelShardPercent
 		if f < 0 || f > 1 {
-			return errors.New("invalid ParallelShardPercent value, valid values are between 0 and 1")
+			err = multierr.Append(err, errors.New("invalid ParallelShardPercent value, valid values are between 0 and 1"))
 		}
 	}
 
-	return nil
+	return
 }
 
 // ConfigSource specifies configuration target.
@@ -143,22 +145,22 @@ type Unit struct {
 }
 
 // Validate checks if all the fields are properly set.
-func (u *Unit) Validate() error {
+func (u *Unit) Validate() (err error) {
 	if u == nil {
-		return errors.New("nil")
+		return mermaid.ErrNilPtr
 	}
 
 	if u.ID == uuid.Nil {
-		return errors.New("missing ID")
+		err = multierr.Append(err, errors.New("missing ID"))
 	}
 	if u.ClusterID == uuid.Nil {
-		return errors.New("missing ClusterID")
+		err = multierr.Append(err, errors.New("missing ClusterID"))
 	}
 	if u.Keyspace == "" {
-		return errors.New("missing Keyspace")
+		err = multierr.Append(err, errors.New("missing Keyspace"))
 	}
 
-	return nil
+	return
 }
 
 // UnitFilter filters units.
@@ -169,7 +171,7 @@ type UnitFilter struct {
 // Validate checks if all the fields are properly set.
 func (f *UnitFilter) Validate() error {
 	if f == nil {
-		return errors.New("nil")
+		return mermaid.ErrNilPtr
 	}
 
 	return nil
@@ -258,7 +260,7 @@ type RunFilter struct {
 // Validate checks if all the fields are properly set.
 func (f *RunFilter) Validate() error {
 	if f == nil {
-		return errors.New("nil")
+		return mermaid.ErrNilPtr
 	}
 
 	return nil

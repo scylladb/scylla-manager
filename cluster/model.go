@@ -4,7 +4,9 @@ package cluster
 
 import (
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // Cluster specifies a cluster properties.
@@ -16,17 +18,19 @@ type Cluster struct {
 }
 
 // Validate checks if all the fields are properly set.
-func (c *Cluster) Validate() error {
+func (c *Cluster) Validate() (err error) {
 	if c == nil {
-		return errors.New("nil")
+		return mermaid.ErrNilPtr
 	}
+
 	if len(c.Hosts) == 0 {
-		return errors.New("missing hosts")
+		err = multierr.Append(err, errors.New("missing hosts"))
 	}
 	if c.ShardCount <= 0 {
-		return errors.New("invalid shard_count")
+		err = multierr.Append(err, errors.New("invalid shard_count"))
 	}
-	return nil
+
+	return
 }
 
 // Filter filters Clusters.
@@ -37,7 +41,7 @@ type Filter struct {
 // Validate checks if all the fields are properly set.
 func (f *Filter) Validate() error {
 	if f == nil {
-		return errors.New("nil")
+		return mermaid.ErrNilPtr
 	}
 
 	return nil
