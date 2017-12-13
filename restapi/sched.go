@@ -28,7 +28,7 @@ type SchedService interface {
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
 	StartTask(ctx context.Context, t *sched.Task) error
 	StopTask(ctx context.Context, t *sched.Task) error
-	GetLastRunN(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
+	GetLastRun(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
 }
 
 type schedHandler struct {
@@ -133,7 +133,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		if !all && !t.Enabled {
 			continue
 		}
-		runs, err := h.svc.GetLastRunN(r.Context(), t, 1)
+		runs, err := h.svc.GetLastRun(r.Context(), t, 1)
 		if err != nil {
 			render.Respond(w, r, httpErrInternal(r, err, "failed to load task run"))
 			return
@@ -207,7 +207,7 @@ func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	runs, err := h.svc.GetLastRunN(r.Context(), t, limit)
+	runs, err := h.svc.GetLastRun(r.Context(), t, limit)
 	if err != nil {
 		render.Respond(w, r, httpErrInternal(r, err, "failed to load task history"))
 		return

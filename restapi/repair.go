@@ -221,7 +221,7 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var runs []*sched.Run
-		runs, err = h.schedSvc.GetLastRunN(r.Context(), t, 1)
+		runs, err = h.schedSvc.GetLastRun(r.Context(), t, 1)
 		if err != nil {
 			notFoundOrInternal(w, r, err, "failed to load task run")
 			return

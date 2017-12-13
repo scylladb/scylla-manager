@@ -89,7 +89,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 			continue
 		}
 
-		runs, err := s.GetLastRunN(ctx, &t, 1)
+		runs, err := s.GetLastRun(ctx, &t, 1)
 		if err != nil {
 			s.logger.Error(ctx, "failed to get last run of task", "Task", t, "error", err)
 			continue
@@ -153,7 +153,7 @@ func (s *Service) SetRunner(tp TaskType, r runner.Runner) {
 }
 
 func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
-	runs, err := s.GetLastRunN(ctx, t, t.Sched.NumRetries)
+	runs, err := s.GetLastRun(ctx, t, t.Sched.NumRetries)
 	if err != nil {
 		s.logger.Error(ctx, "failed to get history of task", "Task", t, "error", err)
 		return
@@ -518,26 +518,23 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 	return tasks, err
 }
 
-// GetLastRunN returns at most N recent runs of the task.
-// If N is <= -1, return all runs. N == 0 returns an empty slice.
-func (s *Service) GetLastRunN(ctx context.Context, t *Task, n int) ([]*Run, error) {
-	s.logger.Debug(ctx, "GetLastRunN", "task", t, "n", n)
+// GetLastRun returns at most limit recent runs of the task.
+// If limit is -1 or 0, return all available runs.
+func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, error) {
+	s.logger.Debug(ctx, "GetLastRun", "task", t, "limit", limit)
 
 	// validate the task
 	if err := t.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid task")
 	}
 
-	if n == 0 {
-		return nil, nil
-	}
 	b := qb.Select(schema.SchedRun.Name).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("type"),
 		qb.Eq("task_id"),
 	)
-	if n > 0 {
-		b.Limit(uint(n))
+	if limit > 0 {
+		b.Limit(uint(limit))
 	}
 	stmt, names := b.ToCql()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
