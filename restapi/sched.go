@@ -65,15 +65,15 @@ func (h *schedHandler) taskCtx(next http.Handler) http.Handler {
 		rctx := chi.RouteContext(r.Context())
 		var taskType sched.TaskType
 		if t := rctx.URLParam("task_type"); t == "" {
-			render.Respond(w, r, httpErrBadRequest(r, errors.New("missing task type")))
+			respondBadRequest(w, r, errors.New("missing task type"))
 			return
 		} else if err := taskType.UnmarshalText([]byte(t)); err != nil {
-			render.Respond(w, r, httpErrBadRequest(r, err))
+			respondBadRequest(w, r, err)
 			return
 		}
 		taskID := rctx.URLParam("task_id")
 		if taskID == "" {
-			render.Respond(w, r, httpErrBadRequest(r, errors.New("missing task ID")))
+			respondBadRequest(w, r, errors.New("missing task ID"))
 			return
 		}
 
@@ -109,7 +109,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	var taskType sched.TaskType
 	if t := r.FormValue("type"); t != "" {
 		if err := taskType.UnmarshalText([]byte(t)); err != nil {
-			render.Respond(w, r, httpErrBadRequest(r, err))
+			respondBadRequest(w, r, err)
 			return
 		}
 	}
@@ -173,11 +173,11 @@ func (h *schedHandler) parseTask(r *http.Request) (*sched.Task, error) {
 func (h *schedHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	newTask, err := h.parseTask(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
+		respondBadRequest(w, r, err)
 		return
 	}
 	if newTask.ID != uuid.Nil {
-		render.Respond(w, r, httpErrBadRequest(r, errors.Errorf("unexpected ID %q", newTask.ID)))
+		respondBadRequest(w, r, errors.Errorf("unexpected ID %q", newTask.ID))
 		return
 	}
 
@@ -223,7 +223,7 @@ func (h *schedHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	newTask, err := h.parseTask(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
+		respondBadRequest(w, r, err)
 		return
 	}
 	newTask.ID = t.ID

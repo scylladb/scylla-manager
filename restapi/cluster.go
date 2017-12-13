@@ -39,7 +39,7 @@ func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
 
 		clusterID := chi.URLParam(r, "cluster_id")
 		if clusterID == "" {
-			render.Respond(w, r, httpErrBadRequest(r, errors.New("missing cluster ID")))
+			respondBadRequest(w, r, errors.New("missing cluster ID"))
 			return
 		}
 
@@ -107,11 +107,11 @@ func (h *clusterHandler) parseCluster(r *http.Request) (*cluster.Cluster, error)
 func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	newCluster, err := h.parseCluster(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
+		respondBadRequest(w, r, err)
 		return
 	}
 	if newCluster.ID != uuid.Nil {
-		render.Respond(w, r, httpErrBadRequest(r, errors.Errorf("unexpected ID %q", newCluster.ID)))
+		respondBadRequest(w, r, errors.Errorf("unexpected ID %q", newCluster.ID))
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 
 	newCluster, err := h.parseCluster(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
+		respondBadRequest(w, r, err)
 		return
 	}
 	newCluster.ID = c.ID

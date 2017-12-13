@@ -87,7 +87,7 @@ func (h *repairHandler) unitCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		unitID := chi.URLParam(r, "unit_id")
 		if unitID == "" {
-			render.Respond(w, r, httpErrBadRequest(r, errors.New("missing unit ID")))
+			respondBadRequest(w, r, errors.New("missing unit ID"))
 			return
 		}
 
@@ -128,11 +128,11 @@ func (h *repairHandler) listUnits(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) createUnit(w http.ResponseWriter, r *http.Request) {
 	newUnit, err := h.parseUnit(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
+		respondBadRequest(w, r, err)
 		return
 	}
 	if newUnit.ID != uuid.Nil {
-		render.Respond(w, r, httpErrBadRequest(r, errors.Errorf("unexpected ID %q", newUnit.ID)))
+		respondBadRequest(w, r, errors.Errorf("unexpected ID %q", newUnit.ID))
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *repairHandler) updateUnit(w http.ResponseWriter, r *http.Request) {
 
 	newUnit, err := h.parseUnit(r)
 	if err != nil {
-		render.Respond(w, r, httpErrBadRequest(r, err))
+		respondBadRequest(w, r, err)
 		return
 	}
 	newUnit.ID = u.ID
@@ -316,7 +316,7 @@ func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
 	var cr repairConfigRequest
 	if err := render.DecodeJSON(r.Body, &cr.Config); err != nil {
 		if err != io.EOF {
-			return nil, httpErrBadRequest(r, err)
+			return nil, err
 		}
 	}
 
@@ -324,7 +324,7 @@ func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
 	if typ := routeCtx.URLParam("config_type"); typ != "" {
 		err := cr.Type.UnmarshalText([]byte(typ))
 		if err != nil {
-			return nil, httpErrBadRequest(r, errors.Wrap(err, "bad config type"))
+			return nil, errors.Wrap(err, "bad config type")
 		}
 	} else {
 		cr.Type = repair.ClusterConfig
@@ -332,20 +332,21 @@ func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
 	switch cr.Type {
 	case repair.UnitConfig, repair.KeyspaceConfig, repair.ClusterConfig:
 	default:
-		return nil, httpErrBadRequest(r, fmt.Errorf("config type %q not allowed", cr.Type))
+		return nil, fmt.Errorf("config type %q not allowed", cr.Type)
 	}
 
 	if id := routeCtx.URLParam("external_id"); id != "" {
 		cr.ExternalID = id
 	}
 	cr.ClusterID = mustClusterIDFromCtx(r)
+
 	return &cr, nil
 }
 
 func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	cr, err := parseConfigRequest(r)
 	if err != nil {
-		render.Respond(w, r, err)
+		respondBadRequest(w, r, err)
 		return
 	}
 
@@ -360,7 +361,7 @@ func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
 	cr, err := parseConfigRequest(r)
 	if err != nil {
-		render.Respond(w, r, err)
+		respondBadRequest(w, r, err)
 		return
 	}
 
@@ -373,7 +374,7 @@ func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
 func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
 	cr, err := parseConfigRequest(r)
 	if err != nil {
-		render.Respond(w, r, err)
+		respondBadRequest(w, r, err)
 		return
 	}
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 )
@@ -23,19 +24,15 @@ func (e *httpError) Error() string {
 	return e.Err.Error()
 }
 
-// httpErrBadRequest wraps err with a generic http error with status code
-// BadRequest, and a user-facing description.
-func httpErrBadRequest(r *http.Request, err error) *httpError {
-	return &httpError{
+func respondBadRequest(w http.ResponseWriter, r *http.Request, err error) {
+	render.Respond(w, r, &httpError{
 		Err:        err,
 		StatusCode: http.StatusBadRequest,
-		Message:    "malformed request",
+		Message:    errors.Wrap(err, "malformed request").Error(),
 		TraceID:    log.TraceID(r.Context()),
-	}
+	})
 }
 
-// respondError coverts mermaid.ErrNotFound to httpErrNotFound and
-// everything else to httpErrInternal.
 func respondError(w http.ResponseWriter, r *http.Request, err error, msg string) {
 	if err == mermaid.ErrNotFound {
 		render.Respond(w, r, &httpError{
@@ -52,7 +49,7 @@ func respondError(w http.ResponseWriter, r *http.Request, err error, msg string)
 		render.Respond(w, r, &httpError{
 			Err:        err,
 			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
+			Message:    errors.Wrap(err, msg).Error(),
 			TraceID:    log.TraceID(r.Context()),
 		})
 	default:
