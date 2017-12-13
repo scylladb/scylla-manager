@@ -25,8 +25,8 @@ type dbConfig struct {
 }
 
 type sshConfig struct {
-	User       string `yaml:"user"`
-	KnownHosts string `yaml:"known_hosts"`
+	User         string `yaml:"user"`
+	IdentityFile string `yaml:"identity_file"`
 }
 
 type serverConfig struct {
@@ -48,9 +48,6 @@ func defaultConfig() *serverConfig {
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
-		},
-		SSH: sshConfig{
-			KnownHosts: "~/.ssh/known_hosts",
 		},
 	}
 }
@@ -89,6 +86,12 @@ func (c *serverConfig) validate() error {
 	}
 	if c.Database.ReplicationFactor <= 0 {
 		return errors.New("invalid database.replication_factor <= 0")
+	}
+
+	if c.SSH.User != "" {
+		if c.SSH.IdentityFile == "" {
+			return errors.New("missing ssh.identity_file")
+		}
 	}
 
 	return nil

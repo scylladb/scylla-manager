@@ -3,42 +3,45 @@
 package ssh
 
 import (
-	"net"
-	"os"
+	"io/ioutil"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// NewProductionClientConfig returns configuration with a key based
-// authentication that connects to known hosts only.
-func NewProductionClientConfig(user, knownHostsFile string) (*ssh.ClientConfig, error) {
-	cb, err := knownhosts.New(knownHostsFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %q", knownHostsFile)
+// NewProductionClientConfig returns configuration with a key based authentication.
+func NewProductionClientConfig(user, identityFile string) (*ssh.ClientConfig, error) {
+	if user == "" {
+		return nil, errors.New("missing user")
+	}
+	if identityFile == "" {
+		return nil, errors.New("missing identity file")
 	}
 
-	auth, err := agentAuthMethod()
+	auth, err := keyPairAuthMethod(identityFile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get SSH agent")
+		return nil, errors.Wrapf(err, "failed to parse %q", identityFile)
 	}
 
 	return &ssh.ClientConfig{
 		User:            user,
 		Auth:            []ssh.AuthMethod{auth},
-		HostKeyCallback: cb,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 }
 
-func agentAuthMethod() (ssh.AuthMethod, error) {
-	agentSock, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+func keyPairAuthMethod(identityFile string) (ssh.AuthMethod, error) {
+	b, err := ioutil.ReadFile(identityFile)
 	if err != nil {
 		return nil, err
 	}
 
-	return ssh.PublicKeysCallback(agent.NewClient(agentSock).Signers), nil
+	signer, err := ssh.ParsePrivateKey(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return ssh.PublicKeys(signer), nil
 }
 
 // NewDevelopmentClientConfig returns configuration with a password based

@@ -81,7 +81,7 @@ var rootCmd = &cobra.Command{
 		// create logger
 		logger, err := logger()
 		if err != nil {
-			return errors.Wrapf(err, "logger error")
+			return errors.Wrapf(err, "logger")
 		}
 
 		// set gocql logger
@@ -103,36 +103,36 @@ var rootCmd = &cobra.Command{
 			"template", config.Database.KeyspaceTplFile,
 		)
 		if err := createKeyspace(config); err != nil {
-			return errors.Wrapf(err, "database error")
+			return errors.Wrapf(err, "database")
 		}
 
 		// migrate schema
 		logger.Info(ctx, "Migrating schema", "dir", config.Database.MigrateDir)
 		if err := migrateSchema(config); err != nil {
-			return errors.Wrapf(err, "database migration error")
+			return errors.Wrapf(err, "database migration")
 		}
 
 		// create database session
 		session, err := gocqlConfig(config).CreateSession()
 		if err != nil {
-			return errors.Wrapf(err, "database error")
+			return errors.Wrapf(err, "database")
 		}
 		defer session.Close()
 
 		// create cluster service
 		clusterSvc, err := cluster.NewService(session, logger.Named("cluster"))
 		if err != nil {
-			return errors.Wrapf(err, "cluster service error")
+			return errors.Wrapf(err, "cluster service")
+		}
+
+		rt, err := transport(config)
+		if err != nil {
+			return errors.Wrapf(err, "SSH")
 		}
 
 		// create scylla REST client provider
 		provider := scyllaclient.NewCachedProvider(func(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
 			c, err := clusterSvc.GetClusterByID(ctx, clusterID)
-			if err != nil {
-				return nil, err
-			}
-
-			rt, err := transport(config)
 			if err != nil {
 				return nil, err
 			}
@@ -150,16 +150,16 @@ var rootCmd = &cobra.Command{
 		// create repair service
 		repairSvc, err := repair.NewService(session, provider.Client, logger.Named("repair"))
 		if err != nil {
-			return errors.Wrapf(err, "repair service error")
+			return errors.Wrapf(err, "repair service")
 		}
 		if err := repairSvc.FixRunStatus(ctx); err != nil {
-			return errors.Wrapf(err, "repair service error")
+			return errors.Wrapf(err, "repair service")
 		}
 
 		// create scheduler service
 		schedSvc, err := sched.NewService(session, logger.Named("scheduler"))
 		if err != nil {
-			return errors.Wrapf(err, "scheduler service error")
+			return errors.Wrapf(err, "scheduler service")
 		}
 		// add repair
 		schedSvc.SetRunner(sched.RepairTask, repairSvc)
@@ -169,13 +169,13 @@ var rootCmd = &cobra.Command{
 			return schedSvc.PutTask(ctx, repairTask(clusterID, props))
 		})
 		if err != nil {
-			return errors.Wrapf(err, "repair auto scheduler error")
+			return errors.Wrapf(err, "repair auto scheduler")
 		}
 		schedSvc.SetRunner(sched.RepairAutoScheduleTask, repairAutoScheduler)
 
 		// start scheduler
 		if err := schedSvc.LoadTasks(ctx); err != nil {
-			return errors.Wrapf(err, "schedule service error")
+			return errors.Wrapf(err, "schedule service")
 		}
 
 		// create REST handler
@@ -188,7 +188,7 @@ var rootCmd = &cobra.Command{
 		// in debug mode launch gops agent
 		if cfgDeveloperMode {
 			if err := agent.Listen(&agent.Options{NoShutdownCleanup: true}); err != nil {
-				return errors.Wrapf(err, "gops agent startup error")
+				return errors.Wrapf(err, "gops agent startup")
 			}
 		}
 
@@ -419,12 +419,16 @@ func transport(config *serverConfig) (http.RoundTripper, error) {
 		return http.DefaultTransport, nil
 	}
 
-	knownHostsFile, err := fsutil.ExpandPath(config.SSH.KnownHosts)
+	identityFile, err := fsutil.ExpandPath(config.SSH.IdentityFile)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to expand SSH known hosts")
+		return nil, errors.Wrapf(err, "failed to expand %q", config.SSH.IdentityFile)
 	}
 
-	cfg, err := ssh.NewProductionClientConfig(config.SSH.User, knownHostsFile)
+	if err := fsutil.CheckPerm(identityFile, 0400); err != nil {
+		return nil, err
+	}
+
+	cfg, err := ssh.NewProductionClientConfig(config.SSH.User, identityFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create SSH client config")
 	}
