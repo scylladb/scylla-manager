@@ -424,7 +424,7 @@ func transport(config *serverConfig) (http.RoundTripper, error) {
 		return nil, errors.Wrapf(err, "failed to expand %q", config.SSH.IdentityFile)
 	}
 
-	if err := checkPerm(identityFile, 0400); err != nil {
+	if err := fsutil.CheckPerm(identityFile, 0400); err != nil {
 		return nil, err
 	}
 
@@ -434,18 +434,4 @@ func transport(config *serverConfig) (http.RoundTripper, error) {
 	}
 
 	return ssh.Transport(cfg), nil
-}
-
-func checkPerm(file string, perm os.FileMode) error {
-	s, err := os.Stat(file)
-
-	if err != nil {
-		return err
-	}
-
-	if s.Mode().Perm() != perm {
-		return errors.Errorf("change file permissions: chmod 0%o %q", perm, file)
-	}
-
-	return nil
 }
