@@ -17,6 +17,7 @@ type RepairProgressRow struct {
 	Shard    int
 	Progress int
 	Error    int
+	Empty    bool
 }
 
 // RepairUnit is repair.Unit representation.

@@ -120,13 +120,13 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID st
 			return
 		}
 
-		if h.Total == 0 {
-			rows = append(rows, RepairProgressRow{
-				Host:  ip,
-				Shard: -1,
-			})
-			continue
-		}
+		rows = append(rows, RepairProgressRow{
+			Host:     ip,
+			Shard:    -1,
+			Progress: int(h.PercentComplete),
+			Error:    int(h.Error),
+			Empty:    h.Total == 0,
+		})
 
 		var shard int64
 		for shardStr, s := range h.Shards {
@@ -141,6 +141,7 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID st
 				Shard:    int(shard),
 				Progress: int(s.PercentComplete),
 				Error:    int(s.Error),
+				Empty:    h.Total == 0,
 			})
 		}
 	}

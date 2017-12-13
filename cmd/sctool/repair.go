@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
@@ -109,26 +110,61 @@ var repairProgressCmd = withoutArgs(&cobra.Command{
 		w := cmd.OutOrStdout()
 		fmt.Fprintf(w, "Status: %s, progress: %d%%\n", status, progress)
 
-		t := newTable("host", "shard", "progress", "errors")
-		for _, r := range rows {
-			if r.Shard == -1 {
-				t.AddRow(r.Host, "-", "-", "-")
-			} else {
-				t.AddRow(r.Host, r.Shard, r.Progress, r.Error)
-			}
+		details, err := cmd.Flags().GetBool("details")
+		if err != nil {
+			return printableError{err}
 		}
-		fmt.Fprint(w, t.Render())
 
+		if details {
+			printDetailedProgress(w, rows)
+			return nil
+		}
+
+		printHostOnlyProgress(w, rows)
 		return nil
 	},
 })
+
+func printHostOnlyProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
+	t := newTable("host", "progress", "errors")
+	for _, r := range rows {
+		// ignore shard details when host only requested
+		if r.Shard != -1 {
+			continue
+		}
+		if r.Empty {
+			t.AddRow(r.Host, "-", "-")
+		} else {
+			t.AddRow(r.Host, r.Progress, r.Error)
+		}
+	}
+	fmt.Fprint(w, t.Render())
+}
+
+func printDetailedProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
+	t := newTable("host", "shard", "progress", "errors")
+	for _, r := range rows {
+		// ignore host-only entries when details requested
+		if r.Shard == -1 {
+			continue
+		}
+		if r.Empty {
+			t.AddRow(r.Host, "-", "-", "-")
+		} else {
+			t.AddRow(r.Host, r.Shard, r.Progress, r.Error)
+		}
+	}
+	fmt.Fprint(w, t.Render())
+}
 
 func init() {
 	cmd := repairProgressCmd
 	subcommand(cmd, repairCmd)
 
 	repairInitCommonFlags(cmd)
-	cmd.Flags().StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
+	fs := cmd.Flags()
+	fs.StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
+	fs.Bool("details", false, "show detailed progress on shards")
 }
 
 var repairUnitCmd = withoutArgs(&cobra.Command{
