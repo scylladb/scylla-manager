@@ -28,11 +28,20 @@ func TestUUIDFromUint64(t *testing.T) {
 func TestParse(t *testing.T) {
 	t.Parallel()
 
-	id0 := uuid.MustRandom()
-	if id1, err := uuid.Parse(id0.String()); id0 != id1 {
-		t.Fatal(err)
-	}
+	t.Run("empty", func(t *testing.T) {
+		if id, err := uuid.Parse(""); id != uuid.Nil || err == nil {
+			t.Fatal(id, err)
+		}
+	})
+
+	t.Run("random", func(t *testing.T) {
+		id0 := uuid.MustRandom()
+		if id1, err := uuid.Parse(id0.String()); id0 != id1 {
+			t.Fatal(err)
+		}
+	})
 }
+
 func TestUUIDMarshalUnmarshalCQL(t *testing.T) {
 	t.Parallel()
 
