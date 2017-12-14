@@ -143,6 +143,9 @@ func (t *Task) Validate() (err error) {
 	if t.ClusterID == uuid.Nil {
 		err = multierr.Append(err, errors.New("missing ClusterID"))
 	}
+	if _, e := uuid.Parse(t.Name); e == nil {
+		err = multierr.Append(err, errors.New("name cannot be an UUID"))
+	}
 
 	switch t.Type {
 	case "", UnknownTask:

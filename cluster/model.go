@@ -23,6 +23,9 @@ func (c *Cluster) Validate() (err error) {
 		return mermaid.ErrNilPtr
 	}
 
+	if _, e := uuid.Parse(c.Name); e == nil {
+		err = multierr.Append(err, errors.New("name cannot be an UUID"))
+	}
 	if len(c.Hosts) == 0 {
 		err = multierr.Append(err, errors.New("missing hosts"))
 	}
@@ -39,10 +42,14 @@ type Filter struct {
 }
 
 // Validate checks if all the fields are properly set.
-func (f *Filter) Validate() error {
+func (f *Filter) Validate() (err error) {
 	if f == nil {
 		return mermaid.ErrNilPtr
 	}
 
-	return nil
+	if _, e := uuid.Parse(f.Name); e == nil {
+		err = multierr.Append(err, errors.New("name cannot be an UUID"))
+	}
+
+	return
 }

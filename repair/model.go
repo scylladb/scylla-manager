@@ -156,6 +156,9 @@ func (u *Unit) Validate() (err error) {
 	if u.ClusterID == uuid.Nil {
 		err = multierr.Append(err, errors.New("missing ClusterID"))
 	}
+	if _, e := uuid.Parse(u.Name); e == nil {
+		err = multierr.Append(err, errors.New("name cannot be an UUID"))
+	}
 	if u.Keyspace == "" {
 		err = multierr.Append(err, errors.New("missing Keyspace"))
 	}
@@ -169,12 +172,16 @@ type UnitFilter struct {
 }
 
 // Validate checks if all the fields are properly set.
-func (f *UnitFilter) Validate() error {
+func (f *UnitFilter) Validate() (err error) {
 	if f == nil {
 		return mermaid.ErrNilPtr
 	}
 
-	return nil
+	if _, e := uuid.Parse(f.Name); e == nil {
+		err = multierr.Append(err, errors.New("name cannot be an UUID"))
+	}
+
+	return
 }
 
 // genID generates unit ID based on keyspace and tables.
