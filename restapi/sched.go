@@ -102,7 +102,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		var err error
 		all, err = strconv.ParseBool(a)
 		if err != nil {
-			render.Respond(w, r, httpErrBadRequest(r, err))
+			respondBadRequest(w, r, err)
 			return
 		}
 	}
@@ -117,7 +117,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	var status runner.Status
 	if s := r.FormValue("status"); s != "" {
 		if err := status.UnmarshalText([]byte(s)); err != nil {
-			render.Respond(w, r, httpErrBadRequest(r, err))
+			respondBadRequest(w, r, err)
 			return
 		}
 	}
@@ -135,7 +135,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 		runs, err := h.svc.GetLastRun(r.Context(), t, 1)
 		if err != nil {
-			render.Respond(w, r, httpErrInternal(r, err, "failed to load task run"))
+			respondError(w, r, err, "failed to load task run")
 			return
 		}
 		if len(runs) == 0 && status != "" {
@@ -203,13 +203,13 @@ func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 		var err error
 		limit, err = strconv.Atoi(l)
 		if err != nil {
-			render.Respond(w, r, httpErrBadRequest(r, err))
+			respondBadRequest(w, r, err)
 			return
 		}
 	}
 	runs, err := h.svc.GetLastRun(r.Context(), t, limit)
 	if err != nil {
-		render.Respond(w, r, httpErrInternal(r, err, "failed to load task history"))
+		respondError(w, r, err, "failed to load task history")
 		return
 	}
 	if len(runs) == 0 {
