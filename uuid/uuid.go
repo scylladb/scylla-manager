@@ -60,6 +60,13 @@ func NewFromUint64(l, h uint64) UUID {
 	return UUID{b}
 }
 
+// Parse creates a new UUID from string.
+func Parse(s string) (UUID, error) {
+	var u UUID
+	err := u.UnmarshalText([]byte(s))
+	return u, err
+}
+
 // Bytes returns the raw byte slice for this UUID. A UUID is always 128 bits
 // (16 bytes) long.
 func (u UUID) Bytes() []byte {
