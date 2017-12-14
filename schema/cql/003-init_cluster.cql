@@ -1,6 +1,6 @@
 -- Cluster
 
-CREATE TABLE cluster (
+CREATE TABLE IF NOT EXISTS cluster (
     id uuid,
     name text,
     hosts set<text>,

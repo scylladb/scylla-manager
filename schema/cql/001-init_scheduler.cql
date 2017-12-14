@@ -1,12 +1,12 @@
 -- Scheduler
 
-CREATE TYPE schedule (
+CREATE TYPE IF NOT EXISTS schedule (
     start_date timestamp,
     interval_days int,
     num_retries int
 );
 
-CREATE TABLE scheduler_task (
+CREATE TABLE IF NOT EXISTS scheduler_task (
     cluster_id uuid,
     type text,
     id uuid,
@@ -19,7 +19,7 @@ CREATE TABLE scheduler_task (
     PRIMARY KEY (cluster_id, type, id)
 );
 
-CREATE TABLE scheduler_task_run (
+CREATE TABLE IF NOT EXISTS scheduler_task_run (
     cluster_id uuid,
     type text,
     task_id uuid,

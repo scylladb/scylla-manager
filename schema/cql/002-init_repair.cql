@@ -1,6 +1,6 @@
 -- Repair
 
-CREATE TABLE repair_unit (
+CREATE TABLE IF NOT EXISTS repair_unit (
     cluster_id uuid,
     id uuid,
     name text,
@@ -9,7 +9,7 @@ CREATE TABLE repair_unit (
     PRIMARY KEY (cluster_id, id)
 );
 
-CREATE TABLE repair_config (
+CREATE TABLE IF NOT EXISTS repair_config (
     cluster_id uuid,
     type text,
     external_id text,
@@ -24,7 +24,7 @@ CREATE TABLE repair_config (
 INSERT INTO repair_config (cluster_id, type,external_id, enabled, segment_size_limit, retry_limit, retry_backoff_seconds, parallel_shard_percent)
 VALUES (00000000-0000-4000-8000-000000000000, 'tenant', '', true, -1, 3, 60, 1);
 
-CREATE TABLE repair_run (
+CREATE TABLE IF NOT EXISTS repair_run (
     cluster_id uuid,
     unit_id uuid,
     id timeuuid,
@@ -40,7 +40,7 @@ CREATE TABLE repair_run (
     PRIMARY KEY(cluster_id, unit_id, id)
 ) WITH default_time_to_live = 360000 AND CLUSTERING ORDER BY (unit_id ASC, id DESC);
 
-CREATE TABLE repair_run_progress (
+CREATE TABLE IF NOT EXISTS repair_run_progress (
     cluster_id uuid,
     unit_id uuid,
     run_id uuid,
