@@ -15,12 +15,7 @@ func extractIDFromLocation(location string) (uuid.UUID, error) {
 	}
 	_, id := path.Split(l.Path)
 
-	var u uuid.UUID
-	if err := u.UnmarshalText([]byte(id)); err != nil {
-		return uuid.Nil, err
-	}
-
-	return u, nil
+	return uuid.Parse(id)
 }
 
 func extractTaskIDFromLocation(location string) (uuid.UUID, error) {
@@ -30,10 +25,5 @@ func extractTaskIDFromLocation(location string) (uuid.UUID, error) {
 	}
 	id := l.Query().Get("task_id")
 
-	var u uuid.UUID
-	if err := u.UnmarshalText([]byte(id)); err != nil {
-		return uuid.Nil, err
-	}
-
-	return u, nil
+	return uuid.Parse(id)
 }

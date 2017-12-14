@@ -359,9 +359,7 @@ func (s *Service) StopTask(ctx context.Context, t *Task) error {
 // GetTask returns a task based on ID or name. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetTask(ctx context.Context, clusterID uuid.UUID, tp TaskType, idOrName string) (*Task, error) {
-	var id uuid.UUID
-
-	if err := id.UnmarshalText([]byte(idOrName)); err == nil {
+	if id, err := uuid.Parse(idOrName); err == nil {
 		return s.GetTaskByID(ctx, clusterID, tp, id)
 	}
 

@@ -88,8 +88,7 @@ func TestRepairAPI(t *testing.T) {
 				if !strings.HasPrefix(location, prefix) {
 					t.Fatal("bad location response")
 				}
-				var unitID uuid.UUID
-				if err := unitID.UnmarshalText([]byte(location[len(prefix):])); err != nil {
+				if _, err := uuid.Parse(location[len(prefix):]); err != nil {
 					t.Fatal("bad unit ID", err)
 				}
 			},

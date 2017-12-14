@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/uuid"
 )
 
 func TestNewConfigFromFile(t *testing.T) {
@@ -18,9 +17,6 @@ func TestNewConfigFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	var u uuid.UUID
-	u.UnmarshalText([]byte("a3f1b32b-ed5b-438d-81a7-c82eb7bde800"))
 
 	e := &serverConfig{
 		HTTP:        "127.0.0.1:80",

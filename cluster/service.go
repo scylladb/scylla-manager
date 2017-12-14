@@ -85,9 +85,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 // GetCluster returns cluster based on ID or name. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetCluster(ctx context.Context, idOrName string) (*Cluster, error) {
-	var id uuid.UUID
-
-	if err := id.UnmarshalText([]byte(idOrName)); err == nil {
+	if id, err := uuid.Parse(idOrName); err == nil {
 		return s.GetClusterByID(ctx, id)
 	}
 

@@ -777,9 +777,7 @@ func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID, f *UnitFil
 // GetUnit returns repair unit based on ID or name. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetUnit(ctx context.Context, clusterID uuid.UUID, idOrName string) (*Unit, error) {
-	var id uuid.UUID
-
-	if err := id.UnmarshalText([]byte(idOrName)); err == nil {
+	if id, err := uuid.Parse(idOrName); err == nil {
 		return s.GetUnitByID(ctx, clusterID, id)
 	}
 
