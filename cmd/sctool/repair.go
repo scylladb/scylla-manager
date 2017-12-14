@@ -6,17 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path"
 	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
-)
-
-var (
-	cfgRepairUnit string
-	cfgRepairTask string
 )
 
 var repairCmd = withoutArgs(&cobra.Command{
@@ -28,19 +24,16 @@ func init() {
 	subcommand(repairCmd, rootCmd)
 }
 
-func repairInitCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&cfgRepairUnit, "unit", "u", "", "repair unit `name` or ID")
-}
-
-var repairSchedCmd = withoutArgs(&cobra.Command{
-	Use:   "schedule",
+var repairSchedCmd = &cobra.Command{
+	Use:   "schedule <unit-id>",
 	Short: "Schedule repair of a unit",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		t := &mermaidclient.Task{
 			Type:       "repair",
 			Enabled:    true,
-			Properties: map[string]string{"unit_id": cfgRepairUnit},
+			Properties: map[string]string{"unit_id": args[0]},
 			Schedule:   new(mermaidclient.Schedule),
 		}
 
@@ -70,39 +63,48 @@ var repairSchedCmd = withoutArgs(&cobra.Command{
 			return printableError{err}
 		}
 
-		fmt.Fprintln(cmd.OutOrStdout(), id)
+		fmt.Fprintln(cmd.OutOrStdout(), path.Join("repair", id))
 
 		return nil
 	},
-})
+}
 
 func init() {
 	cmd := repairSchedCmd
 	subcommand(cmd, repairCmd)
 
-	repairInitCommonFlags(cmd)
 	schedInitScheduleFlags(cmd)
-
-	requireFlags(cmd, "unit")
 }
 
-var repairProgressCmd = withoutArgs(&cobra.Command{
-	Use:   "progress",
+var repairProgressCmd = &cobra.Command{
+	Use:   "progress [repair/task-id]",
 	Short: "Shows repair progress",
+	Args:  cobra.MaximumNArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if cfgRepairUnit == "" && cfgRepairTask == "" {
+		var (
+			repairTask string
+			repairUnit string
+			taskType   string
+		)
+		if len(args) > 0 {
+			taskType, repairTask = path.Split(args[0])
+		}
+		if f := cmd.Flags().Lookup("unit"); f != nil {
+			repairUnit = f.Value.String()
+		}
+		if repairUnit == "" && repairTask == "" {
 			return printableError{errors.New("either task name/ID or repair unit name/ID must be specified")}
 		}
-		if cfgRepairUnit == "" {
-			t, err := client.GetSchedTask(context.Background(), cfgCluster, "repair", cfgRepairTask)
+		if repairUnit == "" {
+			t, err := client.GetSchedTask(context.Background(), cfgCluster, taskType, repairTask)
 			if err != nil {
 				return printableError{err}
 			}
-			cfgRepairUnit = t.Properties["unit_id"]
+			repairUnit = t.Properties["unit_id"]
 		}
 
-		status, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, cfgRepairUnit, cfgRepairTask)
+		status, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, repairUnit, repairTask)
 		if err != nil {
 			return printableError{err}
 		}
@@ -123,7 +125,7 @@ var repairProgressCmd = withoutArgs(&cobra.Command{
 		printHostOnlyProgress(w, rows)
 		return nil
 	},
-})
+}
 
 func printHostOnlyProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
 	t := newTable("host", "progress", "errors")
@@ -161,9 +163,8 @@ func init() {
 	cmd := repairProgressCmd
 	subcommand(cmd, repairCmd)
 
-	repairInitCommonFlags(cmd)
 	fs := cmd.Flags()
-	fs.StringVarP(&cfgRepairTask, "task", "t", "", "repair task `ID`")
+	fs.StringP("unit", "u", "", "repair unit `name` or ID")
 	fs.Bool("details", false, "show detailed progress on shards")
 }
 
@@ -212,17 +213,17 @@ func init() {
 	cmd := repairUnitAddCmd
 	subcommand(cmd, repairUnitCmd)
 
-	repairInitCommonFlags(cmd)
 	repairUnitInitCommonFlags(cmd)
 	requireFlags(cmd, "keyspace")
 }
 
-var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
-	Use:   "update",
+var repairUnitUpdateCmd = &cobra.Command{
+	Use:   "update <unit-id>",
 	Short: "Modifies a repair unit",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		u, err := client.GetRepairUnit(context.Background(), cfgCluster, cfgRepairUnit)
+		u, err := client.GetRepairUnit(context.Background(), cfgCluster, args[0])
 		if err != nil {
 			return printableError{err}
 		}
@@ -250,36 +251,31 @@ var repairUnitUpdateCmd = withoutArgs(&cobra.Command{
 
 		return nil
 	},
-})
+}
 
 func init() {
 	cmd := repairUnitUpdateCmd
 	subcommand(cmd, repairUnitCmd)
 
-	repairInitCommonFlags(cmd)
 	repairUnitInitCommonFlags(cmd)
-	requireFlags(cmd, "unit")
 }
 
-var repairUnitDeleteCmd = withoutArgs(&cobra.Command{
-	Use:   "delete",
+var repairUnitDeleteCmd = &cobra.Command{
+	Use:   "delete <unit-id>",
 	Short: "Deletes a repair unit",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := client.DeleteRepairUnit(context.Background(), cfgCluster, cfgRepairUnit); err != nil {
+		if err := client.DeleteRepairUnit(context.Background(), cfgCluster, args[0]); err != nil {
 			return printableError{err}
 		}
 
 		return nil
 	},
-})
+}
 
 func init() {
-	cmd := repairUnitDeleteCmd
-	subcommand(cmd, repairUnitCmd)
-
-	repairInitCommonFlags(cmd)
-	requireFlags(cmd, "unit")
+	subcommand(repairUnitDeleteCmd, repairUnitCmd)
 }
 
 var repairUnitListCmd = withoutArgs(&cobra.Command{

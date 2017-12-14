@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -24,12 +25,7 @@ func init() {
 	subcommand(taskCmd, rootCmd)
 }
 
-var (
-	schedTaskID   string
-	schedTaskType string
-)
-
-var schedTaskListCmd = &cobra.Command{
+var schedTaskListCmd = withoutArgs(&cobra.Command{
 	Use:   "list",
 	Short: "Shows available tasks and their last run status",
 
@@ -58,10 +54,10 @@ var schedTaskListCmd = &cobra.Command{
 		printEnabledTasks(w, tasks)
 		return nil
 	},
-}
+})
 
 func printAllTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
-	headers := []interface{}{"enabled", "task id", "name", "type", "start date", "interval days", "num retries", "run start", "run stop", "status"}
+	headers := []interface{}{"enabled", "task id", "name", "start date", "interval days", "num retries", "run start", "run stop", "status"}
 	t := newTable(headers...)
 	for _, task := range tasks {
 		fields := make([]interface{}, 0, len(headers))
@@ -73,9 +69,9 @@ func printAllTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
 		fields = append(fields, e)
 
 		if task.Schedule != nil {
-			fields = append(fields, task.ID, task.Name, task.Type, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+			fields = append(fields, path.Join(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
 		} else {
-			fields = append(fields, task.ID, task.Name, task.Type, "-", "-", "-")
+			fields = append(fields, path.Join(task.Type, task.ID), task.Name, "-", "-", "-")
 		}
 
 		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
@@ -90,15 +86,15 @@ func printAllTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
 }
 
 func printEnabledTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
-	headers := []interface{}{"task id", "name", "type", "start date", "interval days", "num retries", "run start", "run stop", "status"}
+	headers := []interface{}{"task id", "name", "start date", "interval days", "num retries", "run start", "run stop", "status"}
 	t := newTable(headers...)
 	for _, task := range tasks {
 		fields := make([]interface{}, 0, len(headers))
 
 		if task.Schedule != nil {
-			fields = append(fields, task.ID, task.Name, task.Type, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+			fields = append(fields, path.Join(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
 		} else {
-			fields = append(fields, task.ID, task.Name, task.Type, "-", "-", "-")
+			fields = append(fields, path.Join(task.Type, task.ID), task.Name, "-", "-", "-")
 		}
 
 		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
@@ -122,18 +118,18 @@ func init() {
 	fs.String("status", "", "filter tasks according to last run status")
 }
 
-func schedTaskInitCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&schedTaskType, "type", "", "task type")
-	cmd.Flags().StringVarP(&schedTaskID, "task", "t", "", "task `name` or ID")
-
-	requireFlags(cmd, "type", "task")
-}
+var (
+	schedTaskID   string
+	schedTaskType string
+)
 
 var schedStartTaskCmd = &cobra.Command{
-	Use:   "start",
+	Use:   "start <type/task-id>",
 	Short: "Starts executing a task",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		schedTaskType, schedTaskID = path.Split(args[0])
 		if err := client.SchedStartTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
 			return printableError{err}
 		}
@@ -143,15 +139,15 @@ var schedStartTaskCmd = &cobra.Command{
 
 func init() {
 	subcommand(schedStartTaskCmd, taskCmd)
-
-	schedTaskInitCommonFlags(schedStartTaskCmd)
 }
 
 var schedStopTaskCmd = &cobra.Command{
-	Use:   "stop",
+	Use:   "stop <type/task-id>",
 	Short: "Stops executing a task",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		schedTaskType, schedTaskID = path.Split(args[0])
 		if err := client.SchedStopTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
 			return printableError{err}
 		}
@@ -161,8 +157,6 @@ var schedStopTaskCmd = &cobra.Command{
 
 func init() {
 	subcommand(schedStopTaskCmd, taskCmd)
-
-	schedTaskInitCommonFlags(schedStopTaskCmd)
 }
 
 func schedInitTaskPayloadFlags(cmd *cobra.Command) {
@@ -208,11 +202,13 @@ func parseSchedStartDate(startDate string) (time.Time, error) {
 	return t.UTC(), nil
 }
 
-var schedTaskUpdateCmd = withoutArgs(&cobra.Command{
-	Use:   "update",
+var schedTaskUpdateCmd = &cobra.Command{
+	Use:   "update <type/task-id>",
 	Short: "Modifies a task",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		schedTaskType, schedTaskID = path.Split(args[0])
 		t, err := client.GetSchedTask(context.Background(), cfgCluster, schedTaskType, schedTaskID)
 		if err != nil {
 			return printableError{err}
@@ -277,22 +273,23 @@ var schedTaskUpdateCmd = withoutArgs(&cobra.Command{
 
 		return nil
 	},
-})
+}
 
 func init() {
 	cmd := schedTaskUpdateCmd
 	subcommand(cmd, taskCmd)
 
-	schedTaskInitCommonFlags(cmd)
 	schedInitTaskPayloadFlags(cmd)
 	schedInitScheduleFlags(cmd)
 }
 
 var schedDeleteTaskCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete <type/task-id>",
 	Short: "Deletes a task schedule",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		schedTaskType, schedTaskID = path.Split(args[0])
 		if err := client.SchedDeleteTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
 			return printableError{err}
 		}
@@ -302,15 +299,15 @@ var schedDeleteTaskCmd = &cobra.Command{
 
 func init() {
 	subcommand(schedDeleteTaskCmd, taskCmd)
-
-	schedTaskInitCommonFlags(schedDeleteTaskCmd)
 }
 
 var schedTaskHistoryCmd = &cobra.Command{
-	Use:   "history",
+	Use:   "history <type/task-id>",
 	Short: "list run history of a task",
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		schedTaskType, schedTaskID = path.Split(args[0])
 		limit, err := cmd.Flags().GetInt("limit")
 		if err != nil {
 			return printableError{err}
@@ -346,6 +343,5 @@ func init() {
 	cmd := schedTaskHistoryCmd
 	subcommand(cmd, taskCmd)
 
-	schedTaskInitCommonFlags(cmd)
 	cmd.Flags().Int("limit", -1, "limit the number of returned results")
 }
