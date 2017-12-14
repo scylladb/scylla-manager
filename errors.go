@@ -21,7 +21,7 @@ type ParamError struct {
 // Error implements error.
 func (e ParamError) Error() string {
 	if e.Cause == nil {
-		return ""
+		panic("missing cause")
 	}
 	return e.Cause.Error()
 }
