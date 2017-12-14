@@ -226,7 +226,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh","ssh/knownhosts"]
+  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh"]
   revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
 
 [[projects]]
@@ -262,6 +262,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d9b6004c6524cc5b2869cefd0b4e6bf36e613562bf317762d8b929c22eb61550"
+  inputs-digest = "259474845118df5f5775d9d87f1fce01fd490fe46a092eaf28f72c6fd0ae60bf"
   solver-name = "gps-cdcl"
   solver-version = 1
