@@ -7,6 +7,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/fatih/set"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
@@ -15,7 +16,11 @@ import (
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
+
+// HostClusterDCFunc returns cluster and DC for a given host.
+type HostClusterDCFunc func(ctx context.Context, host string) (cluster, dc string, err error)
 
 // Change holds ID of a modified cluster and it's current value.
 type Change struct {
@@ -26,19 +31,24 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          *gocql.Session
+	hostCluterDC     HostClusterDCFunc
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, f HostClusterDCFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
+	if f == nil {
+		return nil, errors.New("missing hostCluterDC")
+	}
 
 	return &Service{
-		session: session,
-		logger:  l,
+		session:      session,
+		hostCluterDC: f,
+		logger:       l,
 	}, nil
 }
 
@@ -152,9 +162,14 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		}
 	}
 
-	// validate the Cluster
+	// validate cluster
 	if err := c.Validate(); err != nil {
 		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid cluster")}
+	}
+
+	// validate hosts
+	if err := s.validateHosts(ctx, c.Hosts); err != nil {
+		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid hosts")}
 	}
 
 	// check for conflicting names
@@ -182,6 +197,33 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	}
 
 	return s.onChangeListener(ctx, Change{ID: c.ID, Current: c})
+}
+
+func (s *Service) validateHosts(ctx context.Context, hosts []string) (err error) {
+	clusters := set.NewNonTS()
+	dcs := set.NewNonTS()
+
+	for _, h := range hosts {
+		c, dc, e := s.hostCluterDC(ctx, h)
+		if e != nil {
+			multierr.Append(err, e)
+		} else {
+			clusters.Add(c)
+			dcs.Add(dc)
+		}
+	}
+
+	if err != nil {
+		return
+	}
+
+	if clusters.Size() != 1 {
+		err = errors.Errorf("mixed clusters %s", clusters)
+	} else if dcs.Size() != 1 {
+		err = errors.Errorf("mixed datacenters %s", dcs)
+	}
+
+	return
 }
 
 // DeleteCluster removes cluster based on ID.

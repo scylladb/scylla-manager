@@ -22,6 +22,9 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	s, err := cluster.NewService(
 		session,
+		func(_ context.Context, _ string) (cluster, dc string, err error) {
+			return "", "", nil
+		},
 		log.NewDevelopment().Named("cluster"),
 	)
 	if err != nil {
@@ -188,3 +191,4 @@ func validCluster() *cluster.Cluster {
 		Name: "name_" + uuid.MustRandom().String(),
 	}
 }
+

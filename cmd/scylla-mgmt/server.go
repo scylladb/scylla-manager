@@ -120,7 +120,7 @@ func (s *server) transport() (http.RoundTripper, error) {
 func (s *server) initServices() error {
 	var err error
 
-	s.clusterSvc, err = cluster.NewService(s.session, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, s.checkHost, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
@@ -136,6 +136,11 @@ func (s *server) initServices() error {
 	}
 
 	return nil
+}
+
+func (s *server) checkHost(ctx context.Context, host string) (cluster, dc string, err error) {
+	// TODO
+	return "", "", nil
 }
 
 func (s *server) registerListeners() {
