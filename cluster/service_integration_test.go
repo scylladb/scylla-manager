@@ -191,4 +191,3 @@ func validCluster() *cluster.Cluster {
 		Name: "name_" + uuid.MustRandom().String(),
 	}
 }
-

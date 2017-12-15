@@ -3,6 +3,7 @@ version: '2'
 services:
   mgmt_node:
     image: scylladb/scylla:${SCYLLA_VERSION}
+    command: --api-address 0.0.0.0
     networks:
       cluster:
         ipv4_address: 172.16.1.100

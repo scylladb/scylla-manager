@@ -206,7 +206,7 @@ func (s *Service) validateHosts(ctx context.Context, hosts []string) (err error)
 	for _, h := range hosts {
 		c, dc, e := s.hostCluterDC(ctx, h)
 		if e != nil {
-			multierr.Append(err, e)
+			err = multierr.Append(err, e)
 		} else {
 			clusters.Add(c)
 			dcs.Add(dc)
@@ -218,9 +218,9 @@ func (s *Service) validateHosts(ctx context.Context, hosts []string) (err error)
 	}
 
 	if clusters.Size() != 1 {
-		err = errors.Errorf("mixed clusters %s", clusters)
+		err = errors.New("mixed clusters")
 	} else if dcs.Size() != 1 {
-		err = errors.Errorf("mixed datacenters %s", dcs)
+		err = errors.New("mixed datacenters")
 	}
 
 	return
