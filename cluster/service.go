@@ -206,7 +206,7 @@ func (s *Service) validateHosts(ctx context.Context, hosts []string) (err error)
 	for _, h := range hosts {
 		c, dc, e := s.hostCluterDC(ctx, h)
 		if e != nil {
-			err = multierr.Append(err, e)
+			err = multierr.Append(err, errors.Wrap(e, h))
 		} else {
 			clusters.Add(c)
 			dcs.Add(dc)
