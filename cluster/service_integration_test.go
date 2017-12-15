@@ -58,14 +58,16 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		expected := make([]*cluster.Cluster, 3)
 		for i := range expected {
-			u := &cluster.Cluster{
-				ID:   uuid.NewTime(),
-				Name: "name" + strconv.Itoa(i),
+			c := &cluster.Cluster{
+				ID:         uuid.NewTime(),
+				Name:       "name" + strconv.Itoa(i),
+				Hosts:      []string{"a"},
+				ShardCount: 16,
 			}
-			if err := s.PutCluster(ctx, u); err != nil {
+			if err := s.PutCluster(ctx, c); err != nil {
 				t.Fatal(err)
 			}
-			expected[i] = u
+			expected[i] = c
 		}
 
 		clusters, err := s.ListClusters(ctx, &cluster.Filter{})
@@ -187,7 +189,9 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 func validCluster() *cluster.Cluster {
 	return &cluster.Cluster{
-		ID:   uuid.MustRandom(),
-		Name: "name_" + uuid.MustRandom().String(),
+		ID:         uuid.MustRandom(),
+		Name:       "name_" + uuid.MustRandom().String(),
+		Hosts:      []string{"a", "b"},
+		ShardCount: 16,
 	}
 }

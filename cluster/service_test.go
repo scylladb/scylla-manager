@@ -27,7 +27,7 @@ func TestServiceValidateHosts(t *testing.T) {
 			// Error
 			H: []string{"a", "b"},
 			R: map[string]res{"a": {E: errors.New("error")}, "b": {C: "a", DC: "b"}},
-			E: "error",
+			E: "a: error",
 		},
 		{
 			// Cluster mixup
