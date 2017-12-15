@@ -25,6 +25,22 @@ func TestWithPort(t *testing.T) {
 	}
 }
 
+func TestClientClusterName(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_cluster_name.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.ClusterName(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != "Test Cluster" {
+		t.Fatal(v)
+	}
+}
+
 func TestClientDatacenter(t *testing.T) {
 	t.Parallel()
 
