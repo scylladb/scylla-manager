@@ -75,6 +75,7 @@ INTEGRATION_TEST_ARGS := -cluster 172.16.1.100 -managed-cluster 172.16.1.10
 .PHONY: integration-test
 integration-test: unit-test
 	@echo "==> Running integration tests..."
+	@go test -cover -race -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./ssh $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
