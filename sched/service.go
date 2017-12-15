@@ -450,7 +450,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 
 	if err := t.Validate(); err != nil {
-		return mermaid.ParamError{errors.Wrap(err, "invalid task")}
+		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid task")}
 	}
 
 	stmt, names := schema.SchedTask.Insert()
@@ -520,7 +520,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 
 	// validate the task
 	if err := t.Validate(); err != nil {
-		return nil, mermaid.ParamError{errors.Wrap(err, "invalid task")}
+		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid task")}
 	}
 
 	b := qb.Select(schema.SchedRun.Name).Where(

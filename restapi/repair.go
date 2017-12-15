@@ -228,7 +228,7 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(runs) == 0 {
-			respondError(w, r, mermaid.ParamError{errors.New("task did not run yet")}, "")
+			respondError(w, r, mermaid.ParamError{Cause: errors.New("task did not run yet")}, "")
 			return
 		}
 		run, err = h.svc.GetRun(r.Context(), u, runs[0].ID)
