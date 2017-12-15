@@ -58,6 +58,7 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 	if err := s.initServices(); err != nil {
 		return nil, err
 	}
+	s.registerListeners()
 	if err := s.registerSchedulerRunners(); err != nil {
 		return nil, err
 	}
@@ -137,6 +138,34 @@ func (s *server) initServices() error {
 	return nil
 }
 
+func (s *server) registerListeners() {
+	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
+}
+
+func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
+	s.provider.Invalidate(c.ID)
+
+	if c.Current == nil {
+		return nil
+	}
+
+	// create repair units
+	if err := s.repairSvc.SyncUnits(ctx, c.ID); err != nil {
+		return errors.Wrap(err, "failed to sync units")
+	}
+
+	// schedule all unit repair
+	if t, err := s.schedSvc.ListTasks(ctx, c.ID, sched.RepairAutoScheduleTask); err != nil {
+		return errors.Wrap(err, "failed to list scheduled tasks")
+	} else if len(t) == 0 {
+		if err := s.schedSvc.PutTask(ctx, repairAutoScheduleTask(c.ID)); err != nil {
+			return errors.Wrap(err, "failed to add scheduled tasks")
+		}
+	}
+
+	return nil
+}
+
 func (s *server) registerSchedulerRunners() error {
 	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc)
 
@@ -167,17 +196,6 @@ func (s *server) initHTTPServers() {
 }
 
 func (s *server) startServices(ctx context.Context) error {
-	go func() {
-		ch := s.clusterSvc.Changes()
-		for {
-			c, ok := <-ch
-			if !ok {
-				return
-			}
-			s.onClusterChanged(ctx, c)
-		}
-	}()
-
 	if err := s.repairSvc.FixRunStatus(ctx); err != nil {
 		return errors.Wrapf(err, "repair service")
 	}
@@ -187,28 +205,6 @@ func (s *server) startServices(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (s *server) onClusterChanged(ctx context.Context, c cluster.Change) {
-	s.provider.Invalidate(c.ID)
-
-	if c.Current == nil {
-		return
-	}
-
-	// create repair units
-	if err := s.repairSvc.SyncUnits(ctx, c.ID); err != nil {
-		s.logger.Error(ctx, "failed to sync units", "error", err)
-	}
-
-	// schedule all unit repair
-	if t, err := s.schedSvc.ListTasks(ctx, c.ID, sched.RepairAutoScheduleTask); err != nil {
-		s.logger.Error(ctx, "failed to list scheduled tasks", "error", err)
-	} else if len(t) == 0 {
-		if err := s.schedSvc.PutTask(ctx, repairAutoScheduleTask(c.ID)); err != nil {
-			s.logger.Error(ctx, "failed to add scheduled tasks", "error", err)
-		}
-	}
 }
 
 func (s *server) startHTTPServers(ctx context.Context) {
@@ -265,7 +261,6 @@ func (s *server) close() {
 		s.httpsServer.Close()
 	}
 
-	s.clusterSvc.Close()
 	s.schedSvc.Close()
 	s.repairSvc.Close()
 
