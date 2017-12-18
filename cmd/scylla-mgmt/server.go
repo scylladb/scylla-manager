@@ -27,9 +27,7 @@ type server struct {
 	session *gocql.Session
 	logger  log.Logger
 
-	transport http.RoundTripper
-	provider  *scyllaclient.CachedProvider
-
+	provider   *scyllaclient.CachedProvider
 	clusterSvc *cluster.Service
 	repairSvc  *repair.Service
 	schedSvc   *sched.Service
@@ -53,71 +51,30 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 		errCh: make(chan error, 2),
 	}
 
-	if err := s.initTransport(); err != nil {
-		return nil, err
-	}
-	s.provider = scyllaclient.NewCachedProvider(s.providerFunc)
-
 	if err := s.initServices(); err != nil {
 		return nil, err
 	}
+
 	s.registerListeners()
-	if err := s.registerSchedulerRunners(); err != nil {
-		return nil, err
-	}
+	s.registerSchedulerRunners()
+
 	s.initHTTPServers()
 
 	return s, nil
 }
 
-func (s *server) initTransport() error {
-	if s.config.SSH.User == "" {
-		s.transport = http.DefaultTransport
-		return nil
-	}
-
-	identityFile, err := fsutil.ExpandPath(s.config.SSH.IdentityFile)
-	if err != nil {
-		return errors.Wrapf(err, "failed to expand %q", s.config.SSH.IdentityFile)
-	}
-
-	if err := fsutil.CheckPerm(identityFile, 0400); err != nil {
-		return err
-	}
-
-	cfg, err := ssh.NewProductionClientConfig(s.config.SSH.User, identityFile)
-	if err != nil {
-		return errors.Wrap(err, "failed to create SSH client config")
-	}
-
-	s.transport = ssh.Transport(cfg)
-	return nil
-}
-
-func (s *server) providerFunc(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
-	c, err := s.clusterSvc.GetClusterByID(ctx, clusterID)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := scyllaclient.NewClient(c.Hosts, s.transport, s.logger.Named("client"))
-	if err != nil {
-		return nil, err
-	}
-
-	return scyllaclient.WithConfig(client, scyllaclient.Config{
-		"murmur3_partitioner_ignore_msb_bits": float64(12),
-		"shard_count":                         float64(c.ShardCount),
-	}), nil
-}
-
 func (s *server) initServices() error {
 	var err error
 
-	s.clusterSvc, err = cluster.NewService(s.session, s.checkHost, s.logger.Named("cluster"))
+	transport, err := s.defaultTransport()
+	if err != nil {
+		return errors.Wrapf(err, "transport")
+	}
+	s.clusterSvc, err = cluster.NewService(s.session, transport, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
+	s.provider = scyllaclient.NewCachedProvider(s.clusterSvc.Client)
 
 	s.repairSvc, err = repair.NewService(s.session, s.provider.Client, s.logger.Named("repair"))
 	if err != nil {
@@ -132,22 +89,21 @@ func (s *server) initServices() error {
 	return nil
 }
 
-func (s *server) checkHost(ctx context.Context, host string) (cluster, dc string, err error) {
-	client, err := scyllaclient.NewClient([]string{host}, s.transport, s.logger.Named("client"))
-	if err != nil {
-		return "", "", err
+func (s *server) defaultTransport() (http.RoundTripper, error) {
+	if s.config.SSH.User == "" {
+		return http.DefaultTransport, nil
 	}
 
-	cluster, err = client.ClusterName(ctx)
+	identityFile, err := fsutil.ExpandPath(s.config.SSH.IdentityFile)
 	if err != nil {
-		return
-	}
-	dc, err = client.Datacenter(ctx)
-	if err != nil {
-		return
+		return nil, errors.Wrapf(err, "failed to expand %q", s.config.SSH.IdentityFile)
 	}
 
-	return
+	if err := fsutil.CheckPerm(identityFile, 0400); err != nil {
+		return nil, err
+	}
+
+	return ssh.NewProductionTransport(s.config.SSH.User, identityFile)
 }
 
 func (s *server) registerListeners() {
@@ -178,18 +134,13 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	return nil
 }
 
-func (s *server) registerSchedulerRunners() error {
+func (s *server) registerSchedulerRunners() {
 	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc)
 
-	repairAutoSchedule, err := repair.NewAutoScheduler(s.repairSvc, func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
+	repairAutoSchedule := repair.NewAutoScheduler(s.repairSvc, func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
 		return s.schedSvc.PutTask(ctx, repairTask(clusterID, props))
 	})
-	if err != nil {
-		return errors.Wrapf(err, "repair auto scheduler")
-	}
 	s.schedSvc.SetRunner(sched.RepairAutoScheduleTask, repairAutoSchedule)
-
-	return nil
 }
 
 func (s *server) initHTTPServers() {
