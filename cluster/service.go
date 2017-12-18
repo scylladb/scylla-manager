@@ -5,9 +5,9 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"sort"
 
-	"github.com/fatih/set"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
@@ -15,12 +15,9 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/multierr"
 )
-
-// HostClusterDCFunc returns cluster and DC for a given host.
-type HostClusterDCFunc func(ctx context.Context, host string) (cluster, dc string, err error)
 
 // Change holds ID of a modified cluster and it's current value.
 type Change struct {
@@ -31,24 +28,21 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          *gocql.Session
-	hostCluterDC     HostClusterDCFunc
+	transport        http.RoundTripper
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, f HostClusterDCFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, t http.RoundTripper, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
-	if f == nil {
-		return nil, errors.New("missing hostCluterDC")
-	}
 
 	return &Service{
-		session:      session,
-		hostCluterDC: f,
-		logger:       l,
+		session:   session,
+		transport: t,
+		logger:    l,
 	}, nil
 }
 
@@ -56,6 +50,28 @@ func NewService(session *gocql.Session, f HostClusterDCFunc, l log.Logger) (*Ser
 // changes.
 func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) error) {
 	s.onChangeListener = f
+}
+
+// Client returns cluster client.
+func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	if s.transport == nil {
+		return nil, errors.New("no transport")
+	}
+
+	c, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := scyllaclient.NewClient(c.Hosts, s.transport, s.logger.Named("client"))
+	if err != nil {
+		return nil, err
+	}
+
+	return scyllaclient.WithConfig(client, scyllaclient.Config{
+		"murmur3_partitioner_ignore_msb_bits": float64(12),
+		"shard_count":                         float64(c.ShardCount),
+	}), nil
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.
@@ -168,8 +184,12 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	}
 
 	// validate hosts
-	if err := s.validateHosts(ctx, c.Hosts); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid hosts")}
+	if s.transport == nil {
+		s.logger.Info(ctx, "validation skipped: missing transport")
+	} else {
+		if err := validateHosts(ctx, c.Hosts, s.hostInfo); err != nil {
+			return mermaid.ParamError{Cause: errors.Wrap(err, "invalid hosts")}
+		}
 	}
 
 	// check for conflicting names
@@ -199,28 +219,19 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	return s.onChangeListener(ctx, Change{ID: c.ID, Current: c})
 }
 
-func (s *Service) validateHosts(ctx context.Context, hosts []string) (err error) {
-	clusters := set.NewNonTS()
-	dcs := set.NewNonTS()
-
-	for _, h := range hosts {
-		c, dc, e := s.hostCluterDC(ctx, h)
-		if e != nil {
-			err = multierr.Append(err, errors.Wrap(e, h))
-		} else {
-			clusters.Add(c)
-			dcs.Add(dc)
-		}
+func (s *Service) hostInfo(ctx context.Context, host string) (cluster, dc string, err error) {
+	client, err := scyllaclient.NewClient([]string{host}, s.transport, s.logger.Named("client"))
+	if err != nil {
+		return "", "", err
 	}
 
+	cluster, err = client.ClusterName(ctx)
 	if err != nil {
 		return
 	}
-
-	if clusters.Size() != 1 {
-		err = errors.New("mixed clusters")
-	} else if dcs.Size() != 1 {
-		err = errors.New("mixed datacenters")
+	dc, err = client.Datacenter(ctx)
+	if err != nil {
+		return
 	}
 
 	return

@@ -20,13 +20,7 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 
-	s, err := cluster.NewService(
-		session,
-		func(_ context.Context, _ string) (cluster, dc string, err error) {
-			return "", "", nil
-		},
-		log.NewDevelopment().Named("cluster"),
-	)
+	s, err := cluster.NewService(session, nil, log.NewDevelopment().Named("cluster"))
 	if err != nil {
 		t.Fatal(err)
 	}

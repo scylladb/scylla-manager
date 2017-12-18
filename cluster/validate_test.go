@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestServiceValidateHosts(t *testing.T) {
+func TestValidateHosts(t *testing.T) {
 	type res struct {
 		C  string
 		DC string
@@ -49,18 +49,18 @@ func TestServiceValidateHosts(t *testing.T) {
 	}
 
 	for i, test := range table {
-		s := Service{hostCluterDC: func(_ context.Context, host string) (cluster, dc string, err error) {
+		f := func(_ context.Context, host string) (cluster, dc string, err error) {
 			v, ok := test.R[host]
 			if !ok {
 				t.Fatal(i, host)
 			}
 			return v.C, v.DC, v.E
-		}}
+		}
 
 		if test.E == "" {
 			test.E = "<nil>"
 		}
-		if diff := cmp.Diff(fmt.Sprint(s.validateHosts(context.Background(), test.H)), test.E); diff != "" {
+		if diff := cmp.Diff(fmt.Sprint(validateHosts(context.Background(), test.H, f)), test.E); diff != "" {
 			t.Error(i, diff)
 		}
 	}
