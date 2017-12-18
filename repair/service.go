@@ -705,11 +705,22 @@ func (s *Service) SyncUnits(ctx context.Context, clusterID uuid.UUID) error {
 		dbk.Add(u.Keyspace)
 	}
 
+	names := set.NewNonTS()
+	for _, u := range units {
+		names.Add(u.Name)
+	}
+
 	var dbErr error
 
 	// add missing keyspaces
 	set.Difference(ck, dbk).Each(func(i interface{}) bool {
-		dbErr = s.PutUnit(ctx, &Unit{ClusterID: clusterID, Keyspace: i.(string)})
+		u := &Unit{ClusterID: clusterID, Keyspace: i.(string)}
+
+		if !names.Has(i) {
+			u.Name = u.Keyspace
+		}
+
+		dbErr = s.PutUnit(ctx, u)
 		return dbErr == nil
 	})
 	if dbErr != nil {
