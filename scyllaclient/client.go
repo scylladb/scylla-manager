@@ -54,7 +54,7 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
 
 	return &Client{
-		operations: operations.New(api.New("", "", []string{"http"}), strfmt.Default),
+		operations: operations.New(api.New("0.0.0.0:0", "", []string{"http"}), strfmt.Default),
 		client: &http.Client{
 			Transport: transport{
 				parent: rt,
