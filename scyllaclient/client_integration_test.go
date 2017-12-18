@@ -14,7 +14,7 @@ import (
 )
 
 func TestSSHTransportIntegration(t *testing.T) {
-	client, err := NewClient(mermaidtest.ManagedClusterHosts, ssh.Transport(ssh.NewDevelopmentClientConfig()), log.NewDevelopment())
+	client, err := NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -10,9 +10,9 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// Transport is a convenience function that returns a modified version of
+// NewTransport is a convenience function that returns a modified version of
 // http.Transport that uses ProxyDialer.
-func Transport(config *ssh.ClientConfig) *http.Transport {
+func NewTransport(config *ssh.ClientConfig) *http.Transport {
 	return &http.Transport{
 		Dial: ProxyDialer{
 			Pool:   DefaultPool,
@@ -32,5 +32,10 @@ func NewProductionTransport(user, identityFile string) (*http.Transport, error) 
 		return nil, errors.Wrap(err, "failed to create SSH client config")
 	}
 
-	return Transport(cfg), nil
+	return NewTransport(cfg), nil
+}
+
+// NewDevelopmentTransport returns Transport for NewDevelopmentClientConfig.
+func NewDevelopmentTransport() *http.Transport {
+	return NewTransport(NewDevelopmentClientConfig())
 }
