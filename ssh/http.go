@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -22,4 +23,14 @@ func Transport(config *ssh.ClientConfig) *http.Transport {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
+}
+
+// NewProductionTransport returns Transport for NewProductionClientConfig.
+func NewProductionTransport(user, identityFile string) (*http.Transport, error) {
+	cfg, err := NewProductionClientConfig(user, identityFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create SSH client config")
+	}
+
+	return Transport(cfg), nil
 }
