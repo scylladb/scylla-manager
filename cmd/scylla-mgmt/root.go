@@ -346,7 +346,6 @@ func createKeyspace(config *serverConfig) error {
 
 	c := gocqlConfig(config)
 	c.Keyspace = "system"
-	c.Consistency = gocql.All
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
 
@@ -380,7 +379,6 @@ func readKeyspaceTplFile(config *serverConfig) (stmt string, err error) {
 
 func migrateSchema(config *serverConfig) error {
 	c := gocqlConfig(config)
-	c.Consistency = gocql.All
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
 
