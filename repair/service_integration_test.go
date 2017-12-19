@@ -569,12 +569,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
 	var (
-		s            = newTestService(t, session)
-		clusterID    = uuid.MustRandom()
-		runID        = uuid.NewTime()
-		unit         = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
-		segmentsDone = 0
-		ctx          = context.Background()
+		s           = newTestService(t, session)
+		clusterID   = uuid.MustRandom()
+		runID       = uuid.NewTime()
+		unit        = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
+		percentDone = 0
+		ctx         = context.Background()
 	)
 
 	assertStatus := func(expected repair.Status) {
@@ -590,43 +590,45 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(prog) != 4 {
-			t.Fatal()
-		}
 
 		done := 0
 		for _, p := range prog {
-			done += p.SegmentSuccess + p.SegmentError
+			done += p.PercentDone()
+		}
+		if l := len(prog); l > 0 {
+			done /= l
 		}
 
-		if done < segmentsDone {
-			t.Fatal("no progress, got", done, "had", segmentsDone)
+		if done < percentDone {
+			t.Fatal("no progress, got", done, "had", percentDone)
 		}
 
-		segmentsDone = done
+		percentDone = done
 	}
 
 	wait := func() {
 		time.Sleep(5 * time.Second)
 	}
 
-	waitHostProgress := func(host string, percent float64) {
-		hostProgress := func(host string) (done, total int) {
+	waitHostProgress := func(host string, percent int) {
+		hostProgress := func(host string) (done int) {
 			prog, err := s.GetProgress(ctx, &unit, runID, host)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			for _, p := range prog {
-				done += p.SegmentSuccess + p.SegmentError
-				total += p.SegmentCount
+				done += p.PercentDone()
+			}
+			if l := len(prog); l > 0 {
+				done /= l
 			}
 			return
 		}
 
 		for {
-			done, total := hostProgress(host)
-			if done >= int(float64(total)*percent) {
+			done := hostProgress(host)
+			if done >= percent {
 				break
 			}
 
@@ -666,7 +668,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Then status is StatusRunning
+	// Then status is StatusStopping
 	assertStatus(repair.StatusStopping)
 
 	// When wait
@@ -696,7 +698,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	assertProgress()
 
 	// When host is 1/2 repaired
-	waitHostProgress("172.16.1.10", 0.5)
+	waitHostProgress("172.16.1.10", 50)
 
 	// And close
 	s.Close()
@@ -723,7 +725,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	assertProgress()
 
 	// When host is repaired
-	waitHostProgress("172.16.1.10", 1)
+	waitHostProgress("172.16.1.10", 100)
 }
 
 func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
