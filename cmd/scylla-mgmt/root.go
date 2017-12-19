@@ -7,11 +7,9 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sync"
 	"syscall"
 	"text/template"
 	"time"
@@ -22,17 +20,8 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/fsutil"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/log/gocqllog"
-	"github.com/scylladb/mermaid/repair"
-	"github.com/scylladb/mermaid/restapi"
-	"github.com/scylladb/mermaid/sched"
-	"github.com/scylladb/mermaid/sched/runner"
-	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/ssh"
-	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -59,6 +48,14 @@ var rootCmd = &cobra.Command{
 		if cfgVersion {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", mermaid.Version())
 			return nil
+		}
+
+		// in debug mode launch gops agent
+		if cfgDeveloperMode {
+			if err := agent.Listen(&agent.Options{NoShutdownCleanup: true}); err != nil {
+				return errors.Wrapf(err, "gops agent startup")
+			}
+			defer agent.Close()
 		}
 
 		// try to make absolute path
@@ -112,153 +109,22 @@ var rootCmd = &cobra.Command{
 			return errors.Wrapf(err, "database migration")
 		}
 
-		// create database session
-		session, err := gocqlConfig(config).CreateSession()
+		// start server
+		s, err := newServer(config, logger)
 		if err != nil {
-			return errors.Wrapf(err, "database")
+			return errors.Wrapf(err, "server init")
 		}
-		defer session.Close()
-
-		// create cluster service
-		clusterSvc, err := cluster.NewService(session, logger.Named("cluster"))
-		if err != nil {
-			return errors.Wrapf(err, "cluster service")
+		if err := s.startServices(ctx); err != nil {
+			return errors.Wrapf(err, "server start")
 		}
+		s.startHTTPServers(ctx)
+		defer s.close()
 
-		rt, err := transport(config)
-		if err != nil {
-			return errors.Wrapf(err, "SSH")
-		}
-
-		// create scylla REST client provider
-		provider := scyllaclient.NewCachedProvider(func(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
-			c, err := clusterSvc.GetClusterByID(ctx, clusterID)
-			if err != nil {
-				return nil, err
-			}
-
-			client, err := scyllaclient.NewClient(c.Hosts, rt, logger.Named("client"))
-			if err != nil {
-				return nil, err
-			}
-			return scyllaclient.WithConfig(client, scyllaclient.Config{
-				"murmur3_partitioner_ignore_msb_bits": float64(12),
-				"shard_count":                         float64(c.ShardCount),
-			}), nil
-		})
-
-		// create repair service
-		repairSvc, err := repair.NewService(session, provider.Client, logger.Named("repair"))
-		if err != nil {
-			return errors.Wrapf(err, "repair service")
-		}
-		if err := repairSvc.FixRunStatus(ctx); err != nil {
-			return errors.Wrapf(err, "repair service")
-		}
-
-		// create scheduler service
-		schedSvc, err := sched.NewService(session, logger.Named("scheduler"))
-		if err != nil {
-			return errors.Wrapf(err, "scheduler service")
-		}
-		// add repair
-		schedSvc.SetRunner(sched.RepairTask, repairSvc)
-
-		// add auto repair scheduler
-		repairAutoScheduler, err := repair.NewAutoScheduler(repairSvc, func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
-			return schedSvc.PutTask(ctx, repairTask(clusterID, props))
-		})
-		if err != nil {
-			return errors.Wrapf(err, "repair auto scheduler")
-		}
-		schedSvc.SetRunner(sched.RepairAutoScheduleTask, repairAutoScheduler)
-
-		// start scheduler
-		if err := schedSvc.LoadTasks(ctx); err != nil {
-			return errors.Wrapf(err, "schedule service")
-		}
-
-		// create REST handler
-		handler := restapi.New(&restapi.Services{
-			Cluster:   clusterSvc,
-			Repair:    repairSvc,
-			Scheduler: schedSvc,
-		}, logger.Named("restapi"))
-
-		// in debug mode launch gops agent
-		if cfgDeveloperMode {
-			if err := agent.Listen(&agent.Options{NoShutdownCleanup: true}); err != nil {
-				return errors.Wrapf(err, "gops agent startup")
-			}
-		}
-
-		// observe cluster changes
-		go func() {
-			ch := clusterSvc.Changes()
-			for {
-				c, ok := <-ch
-				if !ok {
-					return
-				}
-
-				// invalidate scylla REST
-				provider.Invalidate(c.ID)
-
-				// handle delete
-				if c.Current == nil {
-					continue
-				}
-
-				// create repair units
-				if err := repairSvc.SyncUnits(ctx, c.ID); err != nil {
-					logger.Error(ctx, "failed to sync units", "error", err)
-				}
-
-				// schedule all unit repair
-				if t, err := schedSvc.ListTasks(ctx, c.ID, sched.RepairAutoScheduleTask); err != nil {
-					logger.Error(ctx, "failed to list scheduled tasks", "error", err)
-				} else if len(t) == 0 {
-					if err := schedSvc.PutTask(ctx, repairAutoScheduleTask(c.ID)); err != nil {
-						logger.Error(ctx, "failed to add scheduled tasks", "error", err)
-					}
-				}
-			}
-		}()
-
-		// listen and serve
-		var (
-			httpServer  *http.Server
-			httpsServer *http.Server
-			errCh       = make(chan error, 2)
-		)
-
-		if config.HTTP != "" {
-			httpServer = &http.Server{
-				Addr:    config.HTTP,
-				Handler: handler,
-			}
-			go func() {
-				logger.Info(ctx, "Starting HTTP", "address", httpServer.Addr)
-				errCh <- httpServer.ListenAndServe()
-			}()
-		}
-
-		if config.HTTPS != "" {
-			httpsServer = &http.Server{
-				Addr:    config.HTTPS,
-				Handler: handler,
-			}
-			go func() {
-				logger.Info(ctx, "Starting HTTPS", "address", httpsServer.Addr)
-				errCh <- httpsServer.ListenAndServeTLS(config.TLSCertFile, config.TLSKeyFile)
-			}()
-		}
-
-		// wait
+		// wait signal
 		signalCh := make(chan os.Signal, 1)
 		signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 		select {
-		case err := <-errCh:
+		case err := <-s.errCh:
 			if err != nil {
 				logger.Error(ctx, "Server error", "error", err)
 			}
@@ -268,49 +134,9 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		// graceful shutdown
-		var (
-			timeoutCtx, cancelFunc = context.WithTimeout(ctx, 30*time.Second)
-			wg                     sync.WaitGroup
-		)
-		defer cancelFunc()
-
-		if httpServer != nil {
-			logger.Info(ctx, "Closing HTTP...")
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err := httpServer.Shutdown(timeoutCtx); err != nil {
-					logger.Info(ctx, "Closing HTTP error", "error", err)
-				}
-				httpServer.Close()
-			}()
-		}
-		if httpsServer != nil {
-			logger.Info(ctx, "Closing HTTPS...")
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err := httpsServer.Shutdown(timeoutCtx); err != nil {
-					logger.Info(ctx, "Closing HTTPS error", "error", err)
-				}
-				httpsServer.Close()
-			}()
-		}
-		wg.Wait()
-
-		// close cluster
-		clusterSvc.Close()
-
-		// close repair
-		repairSvc.Close(ctx)
-
-		// close agent
-		if cfgDeveloperMode {
-			agent.Close()
-		}
+		// close
+		s.shutdownServers(ctx, 30*time.Second)
+		s.close()
 
 		// bye
 		logger.Info(ctx, "Server stopped")
@@ -412,26 +238,4 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	}
 
 	return c
-}
-
-func transport(config *serverConfig) (http.RoundTripper, error) {
-	if config.SSH.User == "" {
-		return http.DefaultTransport, nil
-	}
-
-	identityFile, err := fsutil.ExpandPath(config.SSH.IdentityFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to expand %q", config.SSH.IdentityFile)
-	}
-
-	if err := fsutil.CheckPerm(identityFile, 0400); err != nil {
-		return nil, err
-	}
-
-	cfg, err := ssh.NewProductionClientConfig(config.SSH.User, identityFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create SSH client config")
-	}
-
-	return ssh.Transport(cfg), nil
 }

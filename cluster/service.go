@@ -5,8 +5,8 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"sort"
-	"sync"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -26,23 +27,51 @@ type Change struct {
 
 // Service manages cluster configurations.
 type Service struct {
-	session *gocql.Session
-	logger  log.Logger
-
-	changesCh chan Change
-	mu        sync.Mutex
+	session          *gocql.Session
+	transport        http.RoundTripper
+	logger           log.Logger
+	onChangeListener func(ctx context.Context, c Change) error
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, t http.RoundTripper, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	return &Service{
-		session: session,
-		logger:  l,
+		session:   session,
+		transport: t,
+		logger:    l,
 	}, nil
+}
+
+// SetOnChangeListener sets a function that would be invoked when a cluster
+// changes.
+func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) error) {
+	s.onChangeListener = f
+}
+
+// Client returns cluster client.
+func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	if s.transport == nil {
+		return nil, errors.New("no transport")
+	}
+
+	c, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := scyllaclient.NewClient(c.Hosts, s.transport, s.logger.Named("client"))
+	if err != nil {
+		return nil, err
+	}
+
+	return scyllaclient.WithConfig(client, scyllaclient.Config{
+		"murmur3_partitioner_ignore_msb_bits": float64(12),
+		"shard_count":                         float64(c.ShardCount),
+	}), nil
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.
@@ -149,9 +178,18 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		}
 	}
 
-	// validate the Cluster
+	// validate cluster
 	if err := c.Validate(); err != nil {
 		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid cluster")}
+	}
+
+	// validate hosts
+	if s.transport == nil {
+		s.logger.Info(ctx, "validation skipped: missing transport")
+	} else {
+		if err := validateHosts(ctx, c.Hosts, s.hostInfo); err != nil {
+			return mermaid.ParamError{Cause: errors.Wrap(err, "invalid hosts")}
+		}
 	}
 
 	// check for conflicting names
@@ -174,9 +212,29 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		return err
 	}
 
-	s.notifyChange(ctx, Change{ID: c.ID, Current: c})
+	if s.onChangeListener == nil {
+		return nil
+	}
 
-	return nil
+	return s.onChangeListener(ctx, Change{ID: c.ID, Current: c})
+}
+
+func (s *Service) hostInfo(ctx context.Context, host string) (cluster, dc string, err error) {
+	client, err := scyllaclient.NewClient([]string{host}, s.transport, s.logger.Named("client"))
+	if err != nil {
+		return "", "", err
+	}
+
+	cluster, err = client.ClusterName(ctx)
+	if err != nil {
+		return
+	}
+	dc, err = client.Datacenter(ctx)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // DeleteCluster removes cluster based on ID.
@@ -193,41 +251,9 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	s.notifyChange(ctx, Change{ID: id})
-
-	return nil
-}
-
-func (s *Service) notifyChange(ctx context.Context, c Change) {
-	select {
-	case s.changesCh <- c:
-		// ok
-	default:
-		if s.changesCh != nil {
-			s.logger.Error(ctx, "Failed to notify", "change", c)
-		}
+	if s.onChangeListener == nil {
+		return nil
 	}
-}
 
-// Changes returns cluster Changes stream.
-func (s *Service) Changes() <-chan Change {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.changesCh == nil {
-		s.changesCh = make(chan Change, 128)
-	}
-	return s.changesCh
-}
-
-// Close closes the changes channel.
-func (s *Service) Close() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.changesCh == nil {
-		return
-	}
-	close(s.changesCh)
-	s.changesCh = nil
+	return s.onChangeListener(ctx, Change{ID: id})
 }

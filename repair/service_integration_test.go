@@ -699,7 +699,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	waitHostProgress("172.16.1.10", 0.5)
 
 	// And close
-	s.Close(ctx)
+	s.Close()
 
 	// And wait
 	wait()
@@ -732,7 +732,7 @@ func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
 	s, err := repair.NewService(
 		session,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, ssh.Transport(ssh.NewDevelopmentClientConfig()), logger.Named("scylla"))
+			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), logger.Named("scylla"))
 			if err != nil {
 				return nil, err
 			}

@@ -22,18 +22,11 @@ type AutoScheduler struct {
 }
 
 // NewAutoScheduler creates a new AutoScheduler with a given ScheduleFunc.
-func NewAutoScheduler(service *Service, f ScheduleFunc) (*AutoScheduler, error) {
-	if service == nil {
-		return nil, errors.New("missing service")
-	}
-	if f == nil {
-		return nil, errors.New("missing schedule function")
-	}
-
+func NewAutoScheduler(service *Service, f ScheduleFunc) *AutoScheduler {
 	return &AutoScheduler{
 		service:  service,
 		schedule: f,
-	}, nil
+	}
 }
 
 // Run implements sched/runner.Runner.

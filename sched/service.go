@@ -559,8 +559,7 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 }
 
 // Close cancels all future task timers and waits for all running goroutines to terminate.
-func (s *Service) Close(ctx context.Context) {
-	s.logger.Info(ctx, "Waiting for tasks to finish")
+func (s *Service) Close() {
 	s.taskLock.Lock()
 	for _, t := range s.tasks {
 		t.cancel()

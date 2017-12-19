@@ -75,6 +75,19 @@ func withPort(host string) string {
 	return fmt.Sprint(host, ":", DefaultPort)
 }
 
+// ClusterName returns cluster name.
+func (c *Client) ClusterName(ctx context.Context) (string, error) {
+	resp, err := c.operations.GetClusterName(&operations.GetClusterNameParams{
+		Context:    ctx,
+		HTTPClient: c.client,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Payload, nil
+}
+
 // Datacenter returns the local datacenter name.
 func (c *Client) Datacenter(ctx context.Context) (string, error) {
 	resp, err := c.operations.GetDatacenter(&operations.GetDatacenterParams{

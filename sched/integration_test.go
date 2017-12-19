@@ -115,7 +115,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 
 	s.LoadTasks(ctx)
 	<-ch
-	s.Close(ctx)
+	s.Close()
 	runs, err := s.GetLastRunN(ctx, task, -1)
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +137,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 	defer ctrl.Finish()
 
 	ctx := context.Background()
-	defer s.Close(ctx)
+	defer s.Close()
 	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
 	tick := func() { baseTime = baseTime.Add(time.Second) }
 	timeNow = func() time.Time {
@@ -268,7 +268,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 
 	s.LoadTasks(ctx)
 	<-ch
-	s.Close(ctx)
+	s.Close()
 	runs, err := s.GetLastRunN(ctx, task, -1)
 	if err != nil {
 		t.Log(err)
@@ -354,7 +354,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	for i := 0; i < task.Sched.NumRetries; i++ {
 		<-ch
 	}
-	s.Close(ctx)
+	s.Close()
 	runs, err := s.GetLastRunN(ctx, task, -1)
 	if err != nil {
 		t.Log(err)
