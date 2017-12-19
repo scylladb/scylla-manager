@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/mermaidtest"
 )
 
@@ -16,7 +17,7 @@ func TestPoolIntegration(t *testing.T) {
 	var (
 		host   = mermaidtest.ManagedClusterHosts[0]
 		config = NewDevelopmentClientConfig()
-		pool   = NewPool(DefaultDialer, time.Minute)
+		pool   = NewPool(mermaid.DefaultDialer, time.Minute)
 	)
 
 	inspect := func() *poolConn {

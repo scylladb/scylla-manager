@@ -28,7 +28,6 @@ var DefaultPort = "10000"
 // Client provides means to interact with Scylla nodes.
 type Client struct {
 	operations *operations.Client
-	client     *http.Client
 	logger     log.Logger
 
 	config Config
@@ -53,16 +52,23 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 	}
 	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
 
-	return &Client{
-		operations: operations.New(api.New("0.0.0.0:0", "", []string{"http"}), strfmt.Default),
-		client: &http.Client{
+	// set the host to be a non-empty "host:port" pair. This allows using the http.DefaultTransport in
+	// functions such as httputil.DumpRequestOut without trigger an error.
+	// The address 0.0.0.0 and port 0 were chosen to prevent accidental dial if our transport somehow
+	// does not get used.
+	r := api.NewWithClient("0.0.0.0:0", "", []string{"http"},
+		&http.Client{
+			Timeout: mermaid.DefaultRPCTimeout,
 			Transport: transport{
 				parent: rt,
 				pool:   pool,
 				logger: l,
 			},
 		},
-		logger: l,
+	)
+	return &Client{
+		operations: operations.New(r, strfmt.Default),
+		logger:     l,
 	}, nil
 }
 
@@ -78,8 +84,7 @@ func withPort(host string) string {
 // ClusterName returns cluster name.
 func (c *Client) ClusterName(ctx context.Context) (string, error) {
 	resp, err := c.operations.GetClusterName(&operations.GetClusterNameParams{
-		Context:    ctx,
-		HTTPClient: c.client,
+		Context: ctx,
 	})
 	if err != nil {
 		return "", err
@@ -91,8 +96,7 @@ func (c *Client) ClusterName(ctx context.Context) (string, error) {
 // Datacenter returns the local datacenter name.
 func (c *Client) Datacenter(ctx context.Context) (string, error) {
 	resp, err := c.operations.GetDatacenter(&operations.GetDatacenterParams{
-		Context:    ctx,
-		HTTPClient: c.client,
+		Context: ctx,
 	})
 	if err != nil {
 		return "", err
@@ -104,8 +108,7 @@ func (c *Client) Datacenter(ctx context.Context) (string, error) {
 // Keyspaces retrurn a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 	resp, err := c.operations.GetKeyspaces(&operations.GetKeyspacesParams{
-		Context:    ctx,
-		HTTPClient: c.client,
+		Context: ctx,
 	})
 	if err != nil {
 		return nil, err
@@ -120,9 +123,8 @@ func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 // for a given keyspace.
 func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, []*TokenRange, error) {
 	resp, err := c.operations.DescribeRing(&operations.DescribeRingParams{
-		Context:    ctx,
-		HTTPClient: c.client,
-		Keyspace:   keyspace,
+		Context:  ctx,
+		Keyspace: keyspace,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -173,8 +175,7 @@ func (c *Client) HostConfig(ctx context.Context, host string) (Config, error) {
 // HostPendingCompactions returns number of pending compactions on a host.
 func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
 	resp, err := c.operations.GetAllPendingCompactions(&operations.GetAllPendingCompactionsParams{
-		Context:    withHostPort(ctx, host),
-		HTTPClient: c.client,
+		Context: withHostPort(ctx, host),
 	})
 	if err != nil {
 		return 0, err
@@ -186,8 +187,7 @@ func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32
 // Partitioner returns cluster partitioner name.
 func (c *Client) Partitioner(ctx context.Context) (string, error) {
 	resp, err := c.operations.GetPartitionerName(&operations.GetPartitionerNameParams{
-		Context:    ctx,
-		HTTPClient: c.client,
+		Context: ctx,
 	})
 	if err != nil {
 		return "", err
@@ -206,10 +206,9 @@ type RepairConfig struct {
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
 	p := operations.RepairAsyncParams{
-		Context:    withHostPort(ctx, host),
-		HTTPClient: c.client,
-		Keyspace:   config.Keyspace,
-		Ranges:     &config.Ranges,
+		Context:  withHostPort(ctx, host),
+		Keyspace: config.Keyspace,
+		Ranges:   &config.Ranges,
 	}
 	if config.Tables != nil {
 		tables := strings.Join(config.Tables, ",")
@@ -227,10 +226,9 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
 	resp, err := c.operations.RepairAsyncStatus(&operations.RepairAsyncStatusParams{
-		Context:    withHostPort(ctx, host),
-		HTTPClient: c.client,
-		Keyspace:   keyspace,
-		ID:         id,
+		Context:  withHostPort(ctx, host),
+		Keyspace: keyspace,
+		ID:       id,
 	})
 	if err != nil {
 		return "", err
@@ -242,8 +240,7 @@ func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int
 // Tables returns a slice of table names in a given keyspace.
 func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
 	resp, err := c.operations.GetColumnFamilyName(&operations.GetColumnFamilyNameParams{
-		Context:    ctx,
-		HTTPClient: c.client,
+		Context: ctx,
 	})
 	if err != nil {
 		return nil, err
@@ -265,8 +262,7 @@ func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) 
 // Tokens returns list of tokens in a cluster.
 func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 	resp, err := c.operations.GetTokenEndpoint(&operations.GetTokenEndpointParams{
-		Context:    ctx,
-		HTTPClient: c.client,
+		Context: ctx,
 	})
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/scylladb/mermaid"
 	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )
@@ -20,9 +21,9 @@ type poolConn struct {
 	refCount uint
 }
 
-// DefaultPool is the default instance of Pool it uses DefaultDialer for
+// DefaultPool is the default instance of Pool it uses mermaid.DefaultDialer for
 // creating the SSH connections.
-var DefaultPool = NewPool(DefaultDialer, 0)
+var DefaultPool = NewPool(mermaid.DefaultDialer, 0)
 
 // Pool is an SSH connection pool.
 type Pool struct {
