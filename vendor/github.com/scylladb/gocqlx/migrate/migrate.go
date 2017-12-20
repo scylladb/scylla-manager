@@ -21,16 +21,17 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 )
 
-var infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
+const (
+	infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	name text,
 	checksum text,
-	done tinyint,
+	done int,
 	start_time timestamp,
 	end_time timestamp,
 	PRIMARY KEY(name)
 )`
-
-var selectInfo = "SELECT * FROM gocqlx_migrate"
+	selectInfo = "SELECT * FROM gocqlx_migrate"
+)
 
 // Info contains information on migration applied on a database.
 type Info struct {
@@ -76,6 +77,9 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	fm, err := filepath.Glob(filepath.Join(dir, "*.cql"))
 	if err != nil {
 		return fmt.Errorf("failed to list migrations in %q: %s", dir, err)
+	}
+	if len(fm) == 0 {
+		return fmt.Errorf("no migration files found in %q", dir)
 	}
 	sort.Strings(fm)
 
@@ -148,6 +152,7 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 	defer iq.Release()
 
 	i := 1
+	stmtCount := 0
 	r := bytes.NewBuffer(b)
 	for {
 		stmt, err := r.ReadString(';')
@@ -157,6 +162,8 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		if err != nil {
 			return err
 		}
+		stmtCount++
+
 		if i <= done {
 			i++
 			continue
@@ -176,6 +183,9 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		}
 
 		i++
+	}
+	if stmtCount == 0 {
+		return fmt.Errorf("no migration statements found in %q", info.Name)
 	}
 
 	return nil
