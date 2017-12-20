@@ -29,7 +29,7 @@ var (
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "alias `name`")
 	cmd.Flags().StringSliceVar(&cfgClusterHosts, "hosts", nil, "comma-separated `list` of hosts")
-	cmd.Flags().Int64Var(&cfgClusterShardCount, "shard-count", 16, "number of shards in nodes")
+	cmd.Flags().Int64Var(&cfgClusterShardCount, "shard-count", 0, "number of shards per node, each node must have equal number of shards")
 }
 
 var clusterAddCmd = withoutArgs(&cobra.Command{
@@ -58,6 +58,7 @@ func init() {
 
 	clusterInitCommonFlags(cmd)
 	requireFlags(cmd, "hosts")
+	requireFlags(cmd, "shard-count")
 }
 
 var clusterUpdateCmd = withoutArgs(&cobra.Command{
