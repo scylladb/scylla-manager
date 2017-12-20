@@ -105,6 +105,8 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 
 func dropAllKeyspaces(tb testing.TB, session *gocql.Session) {
 	q := session.Query("select keyspace_name from system_schema.keyspaces")
+	defer q.Release()
+
 	var all []string
 	if err := gocqlx.Select(&all, q); err != nil {
 		tb.Fatal(err)

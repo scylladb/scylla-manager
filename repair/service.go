@@ -390,6 +390,8 @@ func (s *Service) ListRuns(ctx context.Context, u *Unit, f *RunFilter) ([]*Run, 
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
@@ -422,6 +424,8 @@ func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
@@ -451,6 +455,8 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, e
 		"unit_id":    u.ID,
 		"id":         runID,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
@@ -576,6 +582,8 @@ func (s *Service) GetProgress(ctx context.Context, u *Unit, runID uuid.UUID, hos
 		"run_id":     runID,
 		"host":       hosts,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
@@ -787,6 +795,8 @@ func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID, f *UnitFil
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": clusterID,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
@@ -835,6 +845,8 @@ func (s *Service) GetUnitByID(ctx context.Context, clusterID, id uuid.UUID) (*Un
 		"cluster_id": clusterID,
 		"id":         id,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}

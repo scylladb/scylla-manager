@@ -378,6 +378,8 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 		"type":       tp,
 		"id":         id,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
@@ -407,6 +409,7 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 
 	stmt, names := b.ToCql()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(m)
+	defer q.Release()
 
 	if q.Err() != nil {
 		return nil, q.Err()
@@ -503,6 +506,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 
 	stmt, names := b.ToCql()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(m)
+	defer q.Release()
 
 	if q.Err() != nil {
 		return nil, q.Err()
@@ -531,12 +535,15 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 	if limit > 0 {
 		b.Limit(uint(limit))
 	}
+
 	stmt, names := b.ToCql()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": t.ClusterID,
 		"type":       t.Type,
 		"task_id":    t.ID,
 	})
+	defer q.Release()
+
 	if err := q.Err(); err != nil {
 		return nil, err
 	}

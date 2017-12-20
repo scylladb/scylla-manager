@@ -86,6 +86,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 	stmt, _ := qb.Select(schema.Cluster.Name).ToCql()
 
 	q := s.session.Query(stmt).WithContext(ctx)
+	defer q.Release()
 
 	var clusters []*Cluster
 	if err := gocqlx.Select(&clusters, q); err != nil {
@@ -131,6 +132,8 @@ func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, e
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"id": id,
 	})
+	defer q.Release()
+
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
