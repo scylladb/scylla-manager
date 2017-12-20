@@ -73,15 +73,14 @@ func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Debug(ctx, "LoadTasks")
 
-	stmt, _ := qb.Select(schema.SchedTask.Name).ToCql()
-	iter := gocqlx.Iter(s.session.Query(stmt).WithContext(ctx))
-
-	defer func() {
-		iter.Close()
-		iter.ReleaseQuery()
-	}()
-
 	now := timeNow().UTC()
+
+	stmt, _ := qb.Select(schema.SchedTask.Name).ToCql()
+	q := s.session.Query(stmt).WithContext(ctx)
+	defer q.Release()
+
+	iter := gocqlx.Iter(q)
+	defer iter.Close()
 
 	var t Task
 	for iter.StructScan(&t) {

@@ -68,12 +68,11 @@ func (s *Service) FixRunStatus(ctx context.Context) error {
 	s.logger.Debug(ctx, "FixRunStatus")
 
 	stmt, _ := qb.Select(schema.RepairUnit.Name).ToCql()
-	iter := gocqlx.Iter(s.session.Query(stmt).WithContext(ctx))
+	q := s.session.Query(stmt).WithContext(ctx)
+	defer q.Release()
 
-	defer func() {
-		iter.Close()
-		iter.ReleaseQuery()
-	}()
+	iter := gocqlx.Iter(q)
+	defer iter.Close()
 
 	var u Unit
 	for iter.StructScan(&u) {
