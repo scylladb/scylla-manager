@@ -155,7 +155,7 @@
   branch = "master"
   name = "github.com/jmoiron/sqlx"
   packages = ["reflectx"]
-  revision = "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+  revision = "de8647470aafe4854c976707c431dbe1eb2822c6"
 
 [[projects]]
   branch = "master"
