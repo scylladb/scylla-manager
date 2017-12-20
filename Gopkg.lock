@@ -191,7 +191,7 @@
   branch = "master"
   name = "github.com/scylladb/gocqlx"
   packages = [".","migrate","qb"]
-  revision = "04179dd2d0710b57cfe083baeaad0e209a02f459"
+  revision = "ca0bd49565a5a51a187b267c928543814ddbb297"
 
 [[projects]]
   name = "github.com/spf13/cobra"
