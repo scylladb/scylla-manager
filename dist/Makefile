@@ -1,9 +1,7 @@
 all: clean release
 
-VERSION := 0
-ifndef RELEASE
-RELEASE := $(shell date +%Y%m%d)git$(shell git describe --always)
-endif
+VERSION := 1.0.0
+RELEASE := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION_NAME := $(VERSION)-$(RELEASE)
 
 .PHONY: clean
