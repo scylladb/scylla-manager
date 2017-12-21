@@ -31,6 +31,8 @@ var globalClusterID = uuid.NewFromUint64(0, 0)
 type Service struct {
 	session      *gocql.Session
 	client       scyllaclient.ProviderFunc
+	active       map[uuid.UUID]uuid.UUID // maps cluster ID to active run ID
+	activeMu     sync.Mutex
 	workerCtx    context.Context
 	workerCancel context.CancelFunc
 	wg           sync.WaitGroup
@@ -52,6 +54,7 @@ func NewService(session *gocql.Session, p scyllaclient.ProviderFunc, l log.Logge
 	return &Service{
 		session:      session,
 		client:       p,
+		active:       make(map[uuid.UUID]uuid.UUID),
 		workerCtx:    ctx,
 		workerCancel: cancel,
 		logger:       l,
@@ -122,10 +125,12 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return errors.Wrap(err, "failed to get last run of the unit")
 	}
 
+	if id := s.activeRun(u.ClusterID); id != uuid.Nil {
+		return mermaid.ParamError{Cause: errors.Errorf("repair in progress %s", id)}
+	}
+
 	if prev != nil {
 		switch prev.Status {
-		case StatusRunning, StatusStopping:
-			return mermaid.ParamError{Cause: errors.Errorf("repair in progress %s", prev.ID)}
 		case StatusDone, StatusError:
 			prev = nil
 		}
@@ -458,14 +463,38 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, e
 	return &r, nil
 }
 
+func (s *Service) activeRun(clusterID uuid.UUID) uuid.UUID {
+	s.activeMu.Lock()
+	defer s.activeMu.Unlock()
+	return s.active[clusterID]
+}
+
 // putRun upserts a repair run.
 func (s *Service) putRun(ctx context.Context, r *Run) error {
 	s.logger.Debug(ctx, "PutRun", "run", r)
 
+	s.activeMu.Lock()
+	defer s.activeMu.Unlock()
+
+	if id, ok := s.active[r.ClusterID]; ok && id != r.ID {
+		return errors.Errorf("another active repair %s", id)
+	}
+
 	stmt, names := schema.RepairRun.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 
-	return q.ExecRelease()
+	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	switch r.Status {
+	case StatusRunning, StatusStopping:
+		s.active[r.ClusterID] = r.ID
+	default:
+		delete(s.active, r.ClusterID)
+	}
+
+	return nil
 }
 
 // putRunLogError executes putRun and consumes the error.
