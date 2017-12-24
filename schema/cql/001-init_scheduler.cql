@@ -30,4 +30,4 @@ CREATE TABLE IF NOT EXISTS scheduler_task_run (
     start_time timestamp,
     end_time timestamp,
     PRIMARY KEY ((cluster_id, type, task_id), id)
-) WITH CLUSTERING ORDER BY (id DESC);
+) WITH default_time_to_live = 360000 AND CLUSTERING ORDER BY (id DESC);
