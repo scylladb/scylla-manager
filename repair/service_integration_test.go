@@ -6,7 +6,6 @@ package repair_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
@@ -657,10 +657,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// When run another repair
 	// Then run fails
-	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil {
+	attemptRepairID := uuid.NewTime()
+	if err := s.Repair(ctx, &unit, attemptRepairID); err == nil {
 		t.Fatal("expected error")
-	} else if !strings.Contains(err.Error(), runID.String()) {
+	} else if errors.Cause(err) != repair.ErrActiveRepair {
 		t.Fatal(err)
+	}
+	if run, err := s.GetRun(ctx, &unit, attemptRepairID); err != nil {
+		t.Fatal(err)
+	} else if !(run.Status == repair.StatusError && strings.Contains(run.Cause, runID.String())) {
+		t.Fatalf("unexpected run status: %s or cause: %q", run.Status, run.Cause)
 	}
 
 	// When stop run
@@ -687,9 +693,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// Then status is StatusRunning
 	assertStatus(repair.StatusRunning)
-
-	// And repair advances
-	assertProgress()
 
 	// When wait
 	wait()
@@ -720,6 +723,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// Then status is StatusRunning
 	assertStatus(repair.StatusRunning)
+
+	// And wait
+	wait()
 
 	// And repair advances
 	assertProgress()

@@ -124,10 +124,6 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return errors.Wrap(err, "failed to get last run of the unit")
 	}
 
-	if id := s.activeRun(u.ClusterID); id != uuid.Nil {
-		return mermaid.ParamError{Cause: errors.Errorf("repair in progress %s", id)}
-	}
-
 	if prev != nil {
 		switch prev.Status {
 		case StatusDone, StatusError:
@@ -149,7 +145,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		r.PrevID = prev.ID
 	}
 	if err := s.putRun(ctx, &r); err != nil {
-		errors.Wrap(err, "failed to register the run")
+		return errors.Wrap(err, "failed to register the run")
 	}
 
 	// fail updates a run and passes the error
@@ -484,12 +480,6 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, e
 	return &r, nil
 }
 
-func (s *Service) activeRun(clusterID uuid.UUID) uuid.UUID {
-	s.activeMu.Lock()
-	defer s.activeMu.Unlock()
-	return s.active[clusterID]
-}
-
 // putRun upserts a repair run.
 func (s *Service) putRun(ctx context.Context, r *Run) error {
 	s.logger.Debug(ctx, "PutRun", "run", r)
@@ -497,8 +487,12 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 	s.activeMu.Lock()
 	defer s.activeMu.Unlock()
 
+	isActive := false
 	if id, ok := s.active[r.ClusterID]; ok && id != r.ID {
-		return errors.Errorf("another active repair %s", id)
+		isActive = true
+		r.Status = StatusError
+		r.Cause = fmt.Sprintf("another active repair running: %s", id)
+		r.EndTime = time.Now()
 	}
 
 	stmt, names := schema.RepairRun.Insert()
@@ -506,6 +500,10 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 
 	if err := q.ExecRelease(); err != nil {
 		return err
+	}
+
+	if isActive {
+		return ErrActiveRepair
 	}
 
 	switch r.Status {
@@ -555,7 +553,7 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 func (s *Service) isStopped(ctx context.Context, u *Unit, runID uuid.UUID) (bool, error) {
 	s.logger.Debug(ctx, "isStopped", "unit", u, "run_id", runID)
 
-	stmt, names := schema.RepairRun.Select("status")
+	stmt, names := schema.RepairRun.Get("status")
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
