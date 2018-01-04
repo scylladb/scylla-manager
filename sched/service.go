@@ -99,7 +99,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 
 			switch r.Status {
 			case runner.StatusStarting, runner.StatusRunning, runner.StatusStopping:
-				curStatus, err := s.taskRunner(&t).Status(ctx, t.ClusterID, r.ID, t.Properties)
+				curStatus, cause, err := s.taskRunner(&t).Status(ctx, t.ClusterID, r.ID, t.Properties)
 				if err != nil {
 					s.logger.Error(ctx, "failed to get task status", "task", t, "run", r, "error", err)
 					continue
@@ -112,6 +112,9 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 				case runner.StatusStopped, runner.StatusError:
 					r.Status = curStatus
 					r.EndTime = now
+					if curStatus == runner.StatusError {
+						r.Cause = cause
+					}
 				default:
 					s.logger.Error(ctx, "unexpected task status", "status", curStatus, "task", t, "run", r)
 					continue
@@ -256,6 +259,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 		s.logger.Info(ctx, "failed to start task", "Task", t, "run ID", run.ID, "error", err)
 		run.Status = runner.StatusError
 		run.EndTime = now
+		run.Cause = err.Error()
 		if err := s.putRun(ctx, run); err != nil {
 			s.logger.Error(ctx, "failed to write run", "run", run)
 		}
@@ -289,7 +293,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 			}
 
 		case now := <-ticker.C:
-			curStatus, err := s.taskRunner(t).Status(ctx, t.ClusterID, run.ID, t.Properties)
+			curStatus, cause, err := s.taskRunner(t).Status(ctx, t.ClusterID, run.ID, t.Properties)
 			if err != nil {
 				s.logger.Error(ctx, "failed to get task status", "task", t, "run", run)
 				continue
@@ -298,6 +302,9 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 			case runner.StatusStopped, runner.StatusError:
 				run.Status = curStatus
 				run.EndTime = now
+				if curStatus == runner.StatusError {
+					run.Cause = cause
+				}
 				if err := s.putRun(ctx, run); err != nil {
 					s.logger.Error(ctx, "failed to write run", "run", run)
 				}
@@ -587,6 +594,6 @@ func (nilRunner) Stop(ctx context.Context, clusterID, runID uuid.UUID, props run
 	return errNilRunnerUsed
 }
 
-func (nilRunner) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
-	return "", errNilRunnerUsed
+func (nilRunner) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, string, error) {
+	return "", "", errNilRunnerUsed
 }

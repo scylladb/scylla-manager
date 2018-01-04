@@ -974,23 +974,23 @@ func (s *Service) Stop(ctx context.Context, clusterID, runID uuid.UUID, props ru
 }
 
 // Status implements sched/runner.Runner.
-func (s *Service) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
+func (s *Service) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, string, error) {
 	u, err := s.GetUnit(ctx, clusterID, props["unit_id"])
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	run, err := s.GetRun(ctx, u, runID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	switch run.Status {
 	case StatusRunning, StatusStopping:
-		return runner.StatusRunning, nil
+		return runner.StatusRunning, "", nil
 	case StatusError:
-		return runner.StatusError, nil
+		return runner.StatusError, run.Cause, nil
 	case StatusDone, StatusStopped:
-		return runner.StatusStopped, nil
+		return runner.StatusStopped, "", nil
 	default:
-		return "", fmt.Errorf("unmapped repair service state %q", run.Status)
+		return "", "", fmt.Errorf("unmapped repair service state %q", run.Status)
 	}
 }

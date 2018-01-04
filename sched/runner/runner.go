@@ -58,5 +58,5 @@ func (s *Status) UnmarshalText(text []byte) error {
 type Runner interface {
 	Run(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) error
 	Stop(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) error
-	Status(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) (Status, error)
+	Status(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) (Status, string, error)
 }

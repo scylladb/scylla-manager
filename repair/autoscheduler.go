@@ -55,6 +55,6 @@ func (s *AutoScheduler) Stop(ctx context.Context, clusterID, taskID uuid.UUID, p
 }
 
 // Status implements sched/runner.Runner.
-func (s *AutoScheduler) Status(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) (runner.Status, error) {
-	return runner.StatusStopped, nil
+func (s *AutoScheduler) Status(ctx context.Context, clusterID, taskID uuid.UUID, props runner.TaskProperties) (runner.Status, string, error) {
+	return runner.StatusStopped, "", nil
 }
