@@ -317,7 +317,7 @@ var schedTaskHistoryCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		t := newTable("id", "start time", "stop time", "status")
+		t := newTable("id", "start time", "stop time", "status", "cause")
 		for _, r := range runs {
 			fields := []interface{}{r.ID}
 			for _, f := range []string{r.StartTime, r.EndTime} {
@@ -330,7 +330,11 @@ var schedTaskHistoryCmd = &cobra.Command{
 				}
 				fields = append(fields, f)
 			}
-			fields = append(fields, r.Status)
+			cause := "-"
+			if r.Status == "error" {
+				cause = r.Cause
+			}
+			fields = append(fields, r.Status, cause)
 			t.AddRow(fields...)
 		}
 		fmt.Fprint(cmd.OutOrStdout(), t.Render())
