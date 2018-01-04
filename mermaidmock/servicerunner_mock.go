@@ -35,39 +35,40 @@ func (m *MockRunner) EXPECT() *MockRunnerMockRecorder {
 	return m.recorder
 }
 
-// RunTask mocks base method
-func (m *MockRunner) RunTask(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) error {
-	ret := m.ctrl.Call(m, "RunTask", arg0, arg1, arg2, arg3)
+// Run mocks base method
+func (m *MockRunner) Run(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) error {
+	ret := m.ctrl.Call(m, "Run", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RunTask indicates an expected call of RunTask
-func (mr *MockRunnerMockRecorder) RunTask(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunTask", reflect.TypeOf((*MockRunner)(nil).RunTask), arg0, arg1, arg2, arg3)
+// Run indicates an expected call of Run
+func (mr *MockRunnerMockRecorder) Run(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockRunner)(nil).Run), arg0, arg1, arg2, arg3)
 }
 
-// StopTask mocks base method
-func (m *MockRunner) StopTask(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) error {
-	ret := m.ctrl.Call(m, "StopTask", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// StopTask indicates an expected call of StopTask
-func (mr *MockRunnerMockRecorder) StopTask(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopTask", reflect.TypeOf((*MockRunner)(nil).StopTask), arg0, arg1, arg2, arg3)
-}
-
-// TaskStatus mocks base method
-func (m *MockRunner) TaskStatus(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) (runner.Status, error) {
-	ret := m.ctrl.Call(m, "TaskStatus", arg0, arg1, arg2, arg3)
+// Status mocks base method
+func (m *MockRunner) Status(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) (runner.Status, string, error) {
+	ret := m.ctrl.Call(m, "Status", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(runner.Status)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
-// TaskStatus indicates an expected call of TaskStatus
-func (mr *MockRunnerMockRecorder) TaskStatus(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskStatus", reflect.TypeOf((*MockRunner)(nil).TaskStatus), arg0, arg1, arg2, arg3)
+// Status indicates an expected call of Status
+func (mr *MockRunnerMockRecorder) Status(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockRunner)(nil).Status), arg0, arg1, arg2, arg3)
+}
+
+// Stop mocks base method
+func (m *MockRunner) Stop(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) error {
+	ret := m.ctrl.Call(m, "Stop", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Stop indicates an expected call of Stop
+func (mr *MockRunnerMockRecorder) Stop(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockRunner)(nil).Stop), arg0, arg1, arg2, arg3)
 }
