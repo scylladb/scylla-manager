@@ -57,6 +57,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/
 mkdir -p %{buildroot}%{_sysconfdir}/scylla-mgmt/cql/
 mkdir -p %{buildroot}%{_unitdir}/
 mkdir -p %{buildroot}%{_prefix}/lib/scylla-mgmt/
+mkdir -p %{buildroot}%{_sharedstatedir}/scylla-mgmt/
 
 install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
 install -m644 release/bash_completion/* %{buildroot}%{_sysconfdir}/bash_completion.d/
@@ -92,10 +93,12 @@ the database management tasks.
 %config(noreplace) %{_sysconfdir}/scylla-mgmt/*.tpl
 %{_sysconfdir}/scylla-mgmt/cql/*.cql
 %{_unitdir}/*.service
+%attr(0700, scylla-mgmt, scylla-mgmt) %{_sharedstatedir}/scylla-mgmt
 
 %pre server
 getent group  scylla-mgmt || /usr/sbin/groupadd scylla-mgmt &> /dev/null || :
-getent passwd scylla-mgmt || /usr/sbin/useradd -g scylla-mgmt -m -d /var/lib/scylla-mgmt -s /sbin/nologin -r scylla-mgmt &> /dev/null || :
+getent passwd scylla-mgmt || /usr/sbin/useradd \
+ -g scylla-mgmt -d %{_sharedstatedir}/scylla-mgmt -s /sbin/nologin -r scylla-mgmt &> /dev/null || :
 
 %post server
 %systemd_post %{name}.service
