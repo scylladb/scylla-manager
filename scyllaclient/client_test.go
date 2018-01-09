@@ -220,6 +220,23 @@ func TestClientTokens(t *testing.T) {
 	}
 }
 
+func TestClientPing(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "/dev/null")
+	defer s.Close()
+	c := testClient(s)
+
+	if _, err := c.Ping(context.Background(), s.Listener.Addr().String()); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := c.Ping(context.Background(), "localhost:0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func mockServer(t *testing.T, file string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// emulate ScyllaDB bug
