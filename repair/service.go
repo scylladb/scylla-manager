@@ -316,14 +316,19 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	})
 
 	for _, host := range hosts {
-		// ensure topology did not change
 		th, err := s.topologyHash(ctx, cluster)
 		if err != nil {
 			s.logger.Info(ctx, "Topology check error", "error", err)
-		} else {
-			if r.TopologyHash != th {
-				return errors.Errorf("topology changed old hash: %s new hash: %s", r.TopologyHash, th)
-			}
+		}
+
+		// ensure topology did not change
+		if th != uuid.Nil && r.TopologyHash != th {
+			return errors.Errorf("topology changed old hash: %s new hash: %s", r.TopologyHash, th)
+		}
+
+		// ping host
+		if _, err := cluster.Ping(ctx, host); err != nil {
+			return errors.Wrapf(err, "host %s not available", host)
 		}
 
 		w := worker{
