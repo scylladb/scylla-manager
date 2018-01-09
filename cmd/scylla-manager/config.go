@@ -41,9 +41,9 @@ type serverConfig struct {
 func defaultConfig() *serverConfig {
 	return &serverConfig{
 		Database: dbConfig{
-			Keyspace:                      "scylla_management",
-			KeyspaceTplFile:               "/etc/scylla-mgmt/create_keyspace.cql.tpl",
-			MigrateDir:                    "/etc/scylla-mgmt/cql",
+			Keyspace:                      "scylla_manager",
+			KeyspaceTplFile:               "/etc/scylla-manager/create_keyspace.cql.tpl",
+			MigrateDir:                    "/etc/scylla-manager/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,

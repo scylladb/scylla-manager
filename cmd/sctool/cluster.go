@@ -34,7 +34,7 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 
 var clusterAddCmd = withoutArgs(&cobra.Command{
 	Use:   "add",
-	Short: "Adds a cluster to management",
+	Short: "Adds a cluster to manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := client.CreateCluster(context.Background(), &mermaidclient.Cluster{
@@ -105,7 +105,7 @@ func init() {
 
 var clusterDeleteCmd = withoutArgs(&cobra.Command{
 	Use:   "delete",
-	Short: "Deletes a cluster from management",
+	Short: "Deletes a cluster from manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := client.DeleteCluster(context.Background(), cfgCluster); err != nil {

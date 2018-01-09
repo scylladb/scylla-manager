@@ -48,7 +48,7 @@ func keyPairAuthMethod(identityFile string) (ssh.AuthMethod, error) {
 // authentication.
 func NewDevelopmentClientConfig() *ssh.ClientConfig {
 	return &ssh.ClientConfig{
-		User:            "scylla-mgmt",
+		User:            "scylla-manager",
 		Auth:            []ssh.AuthMethod{ssh.Password("test")},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}

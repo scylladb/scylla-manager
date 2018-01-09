@@ -84,9 +84,9 @@ integration-test: unit-test
 .PHONY: dev-server
 dev-server:
 	@echo "==> Building development server..."
-	@go build -o ./scylla-mgmt.dev ./cmd/scylla-mgmt
+	@go build -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo "==> Running development server..."
-	@./scylla-mgmt.dev -c testing/scylla_cluster/scylla-mgmt.yaml --developer-mode; rm -f ./scylla-mgmt.dev
+	@./scylla-manager.dev -c testing/scylla_cluster/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
 
 # dev-cli builds development cli binary.
 .PHONY: dev-cli
