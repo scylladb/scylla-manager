@@ -60,12 +60,16 @@ func (w *worker) exec(ctx context.Context) error {
 				}
 			}()
 			s.exec(ctx)
+			if s.progress.Failure() {
+				s.logger.Error(ctx, "Too many errors, nothing was repaired")
+				ok = false
+			}
 		}()
 	}
 	wg.Wait()
 
 	if !ok {
-		return errors.New("shard panic")
+		return errors.New("shard error, see log for details")
 	}
 
 	return nil

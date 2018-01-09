@@ -309,6 +309,11 @@ func (p *RunProgress) Done() bool {
 	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError
 }
 
+// Failure returns true if all the segments failed.
+func (p *RunProgress) Failure() bool {
+	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentError
+}
+
 // PercentDone returns value from 0 to 100 representing percentage of processed
 // segments within a shard.
 func (p *RunProgress) PercentDone() int {
