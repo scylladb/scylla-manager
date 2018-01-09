@@ -1,14 +1,14 @@
 [Unit]
-Description=Scylla Management Server
+Description=Scylla Manager Server
 Wants=scylla-server.service
 After=scylla-server.service
 After=network-online.target
 
 [Service]
 Type=simple
-User=scylla-mgmt
-Group=scylla-mgmt
-ExecStart=/usr/bin/scylla-mgmt
+User=scylla-manager
+Group=scylla-manager
+ExecStart=/usr/bin/scylla-manager
 StandardOutput=syslog
 StandardError=syslog
 

@@ -20,7 +20,7 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "sctool",
-	Short: "Scylla management client",
+	Short: "Scylla Manager client",
 
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if cmd.IsAdditionalHelpTopicCommand() || cmd.Hidden {
@@ -58,7 +58,7 @@ func init() {
 	if url == "" {
 		url = defaultURL
 	}
-	rootCmd.PersistentFlags().StringVar(&cfgURL, "api-url", url, "`URL` of Scylla management server")
+	rootCmd.PersistentFlags().StringVar(&cfgURL, "api-url", url, "`URL` of Scylla Manager server")
 
 	cluster := os.Getenv("SCYLLA_MGMT_CLUSTER")
 	rootCmd.PersistentFlags().StringVarP(&cfgCluster, "cluster", "c", cluster, "target cluster `name` or ID")

@@ -7,8 +7,8 @@ RUN yum -y update && \
 RUN mkdir /var/run/sshd
 RUN /usr/sbin/sshd-keygen
 
-# Create scylla-mgmt user:
-RUN useradd scylla-mgmt && echo -e "test\ntest" | (passwd --stdin scylla-mgmt)
+# Create scylla-manager user:
+RUN useradd scylla-manager && echo -e "test\ntest" | (passwd --stdin scylla-manager)
 
 # Supervisord configuration:
 ADD etc/supervisord.conf.d/sshd.conf /etc/supervisord.conf.d/sshd.conf

@@ -8,5 +8,5 @@ database:
   timeout: 1s
 
 ssh:
-  user: scylla-mgmt
+  user: scylla-manager
   identity_file: testing/scylla_cluster/id_rsa

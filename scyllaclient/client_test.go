@@ -69,7 +69,7 @@ func TestClientKeyspaces(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []string{"system", "system_schema", "system_traces", "test_repair", "test_scylla_management"}
+	expected := []string{"system", "system_schema", "system_traces", "test_repair", "test_scylla_manager"}
 	if diff := cmp.Diff(v, expected); diff != "" {
 		t.Fatal(diff)
 	}
@@ -78,11 +78,11 @@ func TestClientKeyspaces(t *testing.T) {
 func TestClientDescribeRing(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/describe_ring_scylla_management.json")
+	s := mockServer(t, "testdata/describe_ring_scylla_manager.json")
 	defer s.Close()
 	c := testClient(s)
 
-	dcs, trs, err := c.DescribeRing(context.Background(), "scylla_management")
+	dcs, trs, err := c.DescribeRing(context.Background(), "scylla_manager")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,13 +139,13 @@ func TestClientPartitioner(t *testing.T) {
 func TestClientRepair(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_repair_async_scylla_management_0.json")
+	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_0.json")
 	defer s.Close()
 	c := testClient(s)
 
 	h := s.Listener.Addr().String()
 	v, err := c.Repair(context.Background(), h, &RepairConfig{
-		Keyspace: "scylla_management",
+		Keyspace: "scylla_manager",
 		Ranges:   "100:110,120:130",
 	})
 	if err != nil {
@@ -159,12 +159,12 @@ func TestClientRepair(t *testing.T) {
 func TestClientRepairStatus(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_repair_async_scylla_management_1.json")
+	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_1.json")
 	defer s.Close()
 	c := testClient(s)
 
 	h := s.Listener.Addr().String()
-	v, err := c.RepairStatus(context.Background(), h, "scylla_management", 1)
+	v, err := c.RepairStatus(context.Background(), h, "scylla_manager", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,12 +176,12 @@ func TestClientRepairStatus(t *testing.T) {
 func TestClientRepairStatusForWrongID(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_repair_async_scylla_management_2.json")
+	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_2.json")
 	defer s.Close()
 	c := testClient(s)
 
 	h := s.Listener.Addr().String()
-	_, err := c.RepairStatus(context.Background(), h, "scylla_management", 5)
+	_, err := c.RepairStatus(context.Background(), h, "scylla_manager", 5)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -194,7 +194,7 @@ func TestClientTables(t *testing.T) {
 	defer s.Close()
 	c := testClient(s)
 
-	v, err := c.Tables(context.Background(), "scylla_management")
+	v, err := c.Tables(context.Background(), "scylla_manager")
 	if err != nil {
 		t.Fatal(err)
 	}

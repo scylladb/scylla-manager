@@ -18,7 +18,7 @@ import (
 
 var (
 	flagManagedCluster = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
-	flagCluster        = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of mgmt db hosts")
+	flagCluster        = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
 	flagProto          = flag.Int("proto", 0, "protcol version")
 	flagCQL            = flag.String("cql", "3.0.0", "CQL version")
 	flagRF             = flag.Int("rf", 1, "replication factor for test keyspace")
@@ -36,7 +36,7 @@ func init() {
 
 var initOnce sync.Once
 
-// CreateSession recreates the database on mgmt cluster and returns a new gocql.Session.
+// CreateSession recreates the database on scylla manager cluster and returns a new gocql.Session.
 func CreateSession(tb testing.TB) *gocql.Session {
 	return createSessionFromCluster(tb, createCluster(*flagCluster))
 }
@@ -68,10 +68,10 @@ func createCluster(hosts ...string) *gocql.ClusterConfig {
 
 func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocql.Session {
 	initOnce.Do(func() {
-		createTestKeyspace(tb, cluster, "test_scylla_management")
+		createTestKeyspace(tb, cluster, "test_scylla_manager")
 	})
 
-	cluster.Keyspace = "test_scylla_management"
+	cluster.Keyspace = "test_scylla_manager"
 	session, err := cluster.CreateSession()
 	if err != nil {
 		tb.Fatal("createSession:", err)

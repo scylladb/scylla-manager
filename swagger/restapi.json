@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "ScyllaDB Management API",
+    "title": "Scylla Manager API",
     "version": "0.1"
   },
   "basePath": "/api/v1",

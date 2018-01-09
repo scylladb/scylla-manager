@@ -1,7 +1,7 @@
 version: '2'
 
 services:
-  mgmt_node:
+  manager_node:
     image: scylladb/scylla:${SCYLLA_VERSION}
     networks:
       cluster:

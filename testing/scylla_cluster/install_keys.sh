@@ -11,5 +11,5 @@ echo "==> Installing keys"
 for name in `docker ps -f name=mermaid_dc* --format {{.Names}}`; do
 	ip=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${name}`
 	echo " ${ip}"
-	sshpass -p "test" ssh-copy-id -i id_rsa -f ${SSH_OPTS} scylla-mgmt@${ip} &> /dev/null
+	sshpass -p "test" ssh-copy-id -i id_rsa -f ${SSH_OPTS} scylla-manager@${ip} &> /dev/null
 done

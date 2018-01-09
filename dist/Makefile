@@ -9,33 +9,33 @@ clean:
 	@rm -Rf /tmp/mermaid_rpm.*
 	@rm -Rf release
 
-release: release/scylla-mgmt-$(VERSION_NAME).tar
-release/scylla-mgmt-$(VERSION_NAME).tar:
+release: release/scylla-manager-$(VERSION_NAME).tar
+release/scylla-manager-$(VERSION_NAME).tar:
 	@echo "==> Archiving..."
 	@mkdir -p release
 	@cd `git rev-parse --show-toplevel`; git archive \
 	--format tar \
-	--prefix scylla-mgmt-$(VERSION_NAME)/ \
-	-o $(PWD)/release/scylla-mgmt-$(VERSION_NAME).tar HEAD
+	--prefix scylla-manager-$(VERSION_NAME)/ \
+	-o $(PWD)/release/scylla-manager-$(VERSION_NAME).tar HEAD
 
 release: release/rpm
-release/rpm: release/scylla-mgmt-$(VERSION_NAME).tar
+release/rpm: release/scylla-manager-$(VERSION_NAME).tar
 	@echo "==> Building RPM..."
 	$(eval RPMBUILD := $(shell mktemp -t -d mermaid_rpm.XXXX))
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-	@cp scylla-mgmt.spec $(RPMBUILD)/SPECS/scylla-mgmt-$(VERSION_NAME).spec
-	@cp release/scylla-mgmt-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
+	@cp scylla-manager.spec $(RPMBUILD)/SPECS/scylla-manager-$(VERSION_NAME).spec
+	@cp release/scylla-manager-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
 
 	@rpmbuild -bb --target x86_64 --quiet \
 	--define "mermaid_version $(VERSION)" \
 	--define "mermaid_release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)"  \
-	$(RPMBUILD)/SPECS/scylla-mgmt-$(VERSION_NAME).spec > /dev/null
+	$(RPMBUILD)/SPECS/scylla-manager-$(VERSION_NAME).spec > /dev/null
 
 	@mkdir -p release/rpm
 	@cp $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
 
 .PHONY: inspect
 inspect:
-	@rpm -qpli release/rpm/scylla-mgmt{,-server,-client}-$(VERSION_NAME).x86_64.rpm
+	@rpm -qpli release/rpm/scylla-manager{,-server,-client}-$(VERSION_NAME).x86_64.rpm

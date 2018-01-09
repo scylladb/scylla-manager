@@ -13,7 +13,7 @@ import (
 func TestNewConfigFromFile(t *testing.T) {
 	t.Parallel()
 
-	c, err := newConfigFromFile("testdata/scylla-mgmt.yml")
+	c, err := newConfigFromFile("testdata/scylla-manager.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,9 +27,9 @@ func TestNewConfigFromFile(t *testing.T) {
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
 			User:                          "user",
 			Password:                      "password",
-			Keyspace:                      "scylla_management",
-			KeyspaceTplFile:               "/etc/scylla-mgmt/create_keyspace.cql.tpl",
-			MigrateDir:                    "/etc/scylla-mgmt/cql",
+			Keyspace:                      "scylla_manager",
+			KeyspaceTplFile:               "/etc/scylla-manager/create_keyspace.cql.tpl",
+			MigrateDir:                    "/etc/scylla-manager/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             3,

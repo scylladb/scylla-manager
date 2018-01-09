@@ -1,4 +1,4 @@
-# Scylla management config YAML
+# Scylla Manager config YAML
 
 # Bind REST API to the specified TCP address using HTTP protocol.
 http: 127.0.0.1:9090
@@ -12,21 +12,23 @@ http: 127.0.0.1:9090
 # TLS key file to use for HTTPS.
 # tls_key_file:
 
-# Scylla management database, used to store management data.
+# Scylla Manager database, used to store management data.
 database:
   hosts:
     - 127.0.0.1
+# Database connection timeout.
+# timeout: 600ms
 # Database credentials.
 #   credentials
 #     user: user
 #     password: password
 
-# Keyspace for management data, for create statement see /etc/scylla-mgmt/create_keyspace.cql.tpl.
-#   keyspace: scylla_management
+# Keyspace for management data, for create statement see /etc/scylla-manager/create_keyspace.cql.tpl.
+#   keyspace: scylla_manager
 #   replication_factor: 1
 
 # SSH is used to access scylla nodes. User private key must be PEM encoded and
 # stored in the identity_file.
 ssh:
-  user: scylla-mgmt
-  identity_file: /var/lib/scylla-mgmt/.ssh/id_rsa
+  user: scylla-manager
+  identity_file: /var/lib/scylla-manager/.ssh/id_rsa

@@ -32,14 +32,14 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().StringVarP(&cfgConfigFile, "config-file", "c", "/etc/scylla-mgmt/scylla-mgmt.yaml", "configuration file `path`")
+	rootCmd.Flags().StringVarP(&cfgConfigFile, "config-file", "c", "/etc/scylla-manager/scylla-manager.yaml", "configuration file `path`")
 	rootCmd.Flags().BoolVar(&cfgDeveloperMode, "developer-mode", false, "run in developer mode")
 	rootCmd.Flags().BoolVar(&cfgVersion, "version", false, "print product version and exit")
 }
 
 var rootCmd = &cobra.Command{
-	Use:          "scylla-mgmt",
-	Short:        "Scylla management server",
+	Use:          "scylla-manager",
+	Short:        "Scylla Manager server",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 
@@ -94,7 +94,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		// create management keyspace
+		// create manager keyspace
 		logger.Info(ctx, "Using keyspace",
 			"keyspace", config.Database.Keyspace,
 			"template", config.Database.KeyspaceTplFile,
@@ -150,7 +150,7 @@ func logger() (log.Logger, error) {
 	if cfgDeveloperMode {
 		return log.NewDevelopment(), nil
 	}
-	return log.NewProduction("scylla-mgmt")
+	return log.NewProduction("scylla-manager")
 }
 
 func tryConnect(config *serverConfig) error {
