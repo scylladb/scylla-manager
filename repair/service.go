@@ -168,13 +168,12 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	}
 
 	// get the cluster topology hash
-	tokens, err := cluster.Tokens(ctx)
+	r.TopologyHash, err = s.topologyHash(ctx, cluster)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the cluster tokens"))
+		return fail(errors.Wrap(err, "failed to get topology hash"))
 	}
 
 	// ensure topology did not change, if changed start from scratch
-	r.TopologyHash = topologyHash(tokens)
 	if prev != nil {
 		if r.TopologyHash != prev.TopologyHash {
 			s.logger.Info(ctx, "Starting from scratch: topology changed",
@@ -319,6 +318,14 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	})
 
 	for _, host := range hosts {
+		// ensure topology did not change
+		if h, err := s.topologyHash(ctx, cluster); err != nil {
+			s.logger.Info(ctx, "Topology check error", "error", err)
+		} else if r.TopologyHash != h {
+			s.logger.Error(ctx, "Topology check error", "error", errors.Errorf("topology changed old hash: %s new hash: %s", r.TopologyHash, h))
+			break
+		}
+
 		w := worker{
 			Unit:     u,
 			Run:      r,
@@ -359,6 +366,15 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	s.putRunLogError(ctx, r)
 
 	s.logger.Info(ctx, "Done", "run_id", r.ID)
+}
+
+func (s *Service) topologyHash(ctx context.Context, cluster *scyllaclient.Client) (uuid.UUID, error) {
+	tokens, err := cluster.Tokens(ctx)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get the cluster tokens")
+	}
+
+	return topologyHash(tokens), nil
 }
 
 // ListRuns returns runs for the unit in descending order, latest runs first.
