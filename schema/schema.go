@@ -29,8 +29,15 @@ func (t *Table) Delete() (stmt string, names []string) {
 }
 
 // Get returns select by primary key statement.
-func (t *Table) Get() (stmt string, names []string) {
-	return t.get.stmt, t.get.names
+func (t *Table) Get(columns ...string) (stmt string, names []string) {
+	if len(columns) == 0 {
+		return t.get.stmt, t.get.names
+	}
+
+	return qb.Select(t.Name).
+		Columns(columns...).
+		Where(t.PrimaryKey...).
+		ToCql()
 }
 
 // Insert returns insert all columns statement.
