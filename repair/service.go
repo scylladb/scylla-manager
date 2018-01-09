@@ -297,13 +297,15 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 				fail(errors.Errorf("%s", v))
 			}
 		}()
-		s.repair(wctx, u, &r, &c.Config, cluster, hostSegments)
+		if err := s.repair(wctx, u, &r, &c.Config, cluster, hostSegments); err != nil {
+			fail(err)
+		}
 	}()
 
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) {
+func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) error {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
@@ -315,11 +317,13 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 
 	for _, host := range hosts {
 		// ensure topology did not change
-		if h, err := s.topologyHash(ctx, cluster); err != nil {
+		th, err := s.topologyHash(ctx, cluster)
+		if err != nil {
 			s.logger.Info(ctx, "Topology check error", "error", err)
-		} else if r.TopologyHash != h {
-			s.logger.Error(ctx, "Topology check error", "error", errors.Errorf("topology changed old hash: %s new hash: %s", r.TopologyHash, h))
-			break
+		} else {
+			if r.TopologyHash != th {
+				return errors.Errorf("topology changed old hash: %s new hash: %s", r.TopologyHash, th)
+			}
 		}
 
 		w := worker{
@@ -334,12 +338,12 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
-			s.logger.Error(ctx, "Worker exec error", "error", err)
+			return errors.Wrapf(err, "repair error")
 		}
 
 		if ctx.Err() != nil {
 			s.logger.Info(ctx, "Aborted", "run_id", r.ID)
-			return
+			return nil
 		}
 
 		stopped, err := s.isStopped(ctx, u, r.ID)
@@ -353,7 +357,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			s.putRunLogError(ctx, r)
 
 			s.logger.Info(ctx, "Stopped", "run_id", r.ID)
-			return
+			return nil
 		}
 	}
 
@@ -362,6 +366,8 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	s.putRunLogError(ctx, r)
 
 	s.logger.Info(ctx, "Done", "run_id", r.ID)
+
+	return nil
 }
 
 func (s *Service) topologyHash(ctx context.Context, cluster *scyllaclient.Client) (uuid.UUID, error) {
