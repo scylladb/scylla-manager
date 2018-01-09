@@ -48,8 +48,7 @@ func (w *worker) exec(ctx context.Context) error {
 			continue
 		}
 
-		// range variable reuse
-		s := s
+		s := s // range variable reuse
 		wg.Add(1)
 		go func() {
 			defer func() {
@@ -59,9 +58,8 @@ func (w *worker) exec(ctx context.Context) error {
 					ok = false
 				}
 			}()
-			s.exec(ctx)
-			if s.progress.Failure() {
-				s.logger.Error(ctx, "Too many errors, nothing was repaired")
+			if err := s.exec(ctx); err != nil {
+				s.logger.Error(ctx, "Exec failed", "error", err)
 				ok = false
 			}
 		}()
@@ -170,7 +168,7 @@ type shardWorker struct {
 	logger   log.Logger
 }
 
-func (w *shardWorker) exec(ctx context.Context) {
+func (w *shardWorker) exec(ctx context.Context) error {
 	var (
 		start = w.startSegment(ctx)
 		end   = start + segmentsPerRequest
@@ -214,13 +212,7 @@ func (w *shardWorker) exec(ctx context.Context) {
 					break
 				}
 
-				w.logger.Info(ctx, "Repair request failed", "error", err)
-
-				w.progress.SegmentError += end - start
-				w.updateProgress(ctx)
-
-				next()
-				continue
+				return errors.Wrap(err, "repair request failed")
 			}
 		}
 
@@ -245,6 +237,8 @@ func (w *shardWorker) exec(ctx context.Context) {
 
 		next()
 	}
+
+	return nil
 }
 
 func (w *shardWorker) startSegment(ctx context.Context) int {
