@@ -213,6 +213,11 @@ func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
 		if _, ok := segmentsContainStartToken(shards[i], p.LastStartToken); !ok {
 			return errors.Errorf("shard %d: no segment for start token %d", p.Shard, p.LastStartToken)
 		}
+		for _, token := range p.SegmentErrorStartTokens {
+			if _, ok := segmentsContainStartToken(shards[i], token); !ok {
+				return errors.Errorf("shard %d: no segment for start token %d", p.Shard, token)
+			}
+		}
 	}
 
 	return nil
