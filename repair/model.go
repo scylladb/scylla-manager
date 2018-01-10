@@ -291,17 +291,18 @@ type Run struct {
 
 // RunProgress describes repair progress on per shard basis.
 type RunProgress struct {
-	ClusterID      uuid.UUID
-	UnitID         uuid.UUID
-	RunID          uuid.UUID
-	Host           string
-	Shard          int
-	SegmentCount   int
-	SegmentSuccess int
-	SegmentError   int
-	LastStartToken int64
-	LastStartTime  time.Time
-	LastCommandID  int32
+	ClusterID               uuid.UUID
+	UnitID                  uuid.UUID
+	RunID                   uuid.UUID
+	Host                    string
+	Shard                   int
+	SegmentCount            int
+	SegmentSuccess          int
+	SegmentError            int
+	SegmentErrorStartTokens []int64
+	LastStartToken          int64
+	LastStartTime           time.Time
+	LastCommandID           int32
 }
 
 // Done returns true if all the segments were processed.

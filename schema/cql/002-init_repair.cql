@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS repair_run_progress (
     segment_count int,
     segment_success int,
     segment_error int,
+    segment_error_start_tokens set<bigint>,
     last_start_token bigint,
     last_start_time timestamp,
     last_command_id int,
