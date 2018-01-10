@@ -302,7 +302,6 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.C:
-			// TODO limited tolerance to errors, 30m errors non stop ignore...
 			s, err := w.parent.Cluster.RepairStatus(ctx, w.parent.Host, w.parent.Run.Keyspace, id)
 			if err != nil {
 				return err
