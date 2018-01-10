@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	segmentsPerRequest   = 1
-	checkIntervalSeconds = 1
+	segmentsPerRequest          = 1
+	checkIntervalSeconds        = 1
+	consecutiveFailureThreshold = 3
 )
 
 // worker manages shardWorkers.
