@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -27,6 +29,7 @@ var DefaultPort = "10000"
 
 // Client provides means to interact with Scylla nodes.
 type Client struct {
+	transport  http.RoundTripper
 	operations *operations.Client
 	logger     log.Logger
 
@@ -52,21 +55,24 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 	}
 	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
 
+	t := transport{
+		parent: rt,
+		pool:   pool,
+		logger: l,
+	}
+
 	// set the host to be a non-empty "host:port" pair. This allows using the http.DefaultTransport in
 	// functions such as httputil.DumpRequestOut without trigger an error.
 	// The address 0.0.0.0 and port 0 were chosen to prevent accidental dial if our transport somehow
 	// does not get used.
 	r := api.NewWithClient("0.0.0.0:0", "", []string{"http"},
 		&http.Client{
-			Timeout: mermaid.DefaultRPCTimeout,
-			Transport: transport{
-				parent: rt,
-				pool:   pool,
-				logger: l,
-			},
+			Timeout:   mermaid.DefaultRPCTimeout,
+			Transport: t,
 		},
 	)
 	return &Client{
+		transport:  t,
 		operations: operations.New(r, strfmt.Default),
 		logger:     l,
 	}, nil
@@ -278,4 +284,26 @@ func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 	}
 
 	return tokens, nil
+}
+
+// Ping checks if host is available using HTTP ping.
+func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   host,
+		Path:   "/",
+	}
+
+	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+	r = r.WithContext(withHostPort(ctx, host))
+
+	t := time.Now()
+	if _, err := c.transport.RoundTrip(r); err != nil {
+		return 0, err
+	}
+
+	return time.Since(t), nil
 }
