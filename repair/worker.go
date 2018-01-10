@@ -212,6 +212,10 @@ func (w *shardWorker) exec(ctx context.Context) error {
 					break
 				}
 
+				w.progress.SegmentError += end - start
+				w.progress.SegmentErrorStartTokens = append(w.progress.SegmentErrorStartTokens, w.segments[start].StartToken)
+				w.updateProgress(ctx)
+
 				return errors.Wrap(err, "repair request failed")
 			}
 		}
@@ -226,6 +230,7 @@ func (w *shardWorker) exec(ctx context.Context) error {
 		if err != nil {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			w.progress.SegmentError += end - start
+			w.progress.SegmentErrorStartTokens = append(w.progress.SegmentErrorStartTokens, w.segments[start].StartToken)
 		} else {
 			w.progress.SegmentSuccess += end - start
 		}
@@ -261,6 +266,7 @@ func (w *shardWorker) resetProgress(ctx context.Context) {
 	w.logger.Error(ctx, "Starting from scratch: progress reset...")
 	w.progress.SegmentSuccess = 0
 	w.progress.SegmentError = 0
+	w.progress.SegmentErrorStartTokens = nil
 	w.progress.LastStartToken = 0
 	w.progress.LastStartTime = time.Time{}
 	w.progress.LastCommandID = 0
