@@ -244,6 +244,10 @@ func (w *shardWorker) exec(ctx context.Context) error {
 		next()
 	}
 
+	if w.progress.SegmentError > 0 {
+		return errors.New("repair finished with errors")
+	}
+
 	return nil
 }
 
