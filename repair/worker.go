@@ -192,7 +192,7 @@ func (w *shardWorker) exec(ctx context.Context) error {
 	}
 
 	for start < len(w.segments) {
-		w.logger.Info(ctx, "Progress", "percent", w.progress.PercentDone())
+		w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
 
 		if w.isStopped(ctx) {
 			w.logger.Info(ctx, "Stopped")

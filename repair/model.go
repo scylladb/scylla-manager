@@ -310,18 +310,18 @@ func (p *RunProgress) Done() bool {
 	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError
 }
 
-// PercentDone returns value from 0 to 100 representing percentage of processed
-// segments within a shard.
-func (p *RunProgress) PercentDone() int {
+// PercentComplete returns value from 0 to 100 representing percentage of
+// successfully processed segments within a shard.
+func (p *RunProgress) PercentComplete() int {
 	if p.SegmentCount == 0 {
 		return 0
 	}
 
-	if p.Done() {
+	if p.SegmentSuccess >= p.SegmentCount {
 		return 100
 	}
 
-	percent := 100 * (p.SegmentSuccess + p.SegmentError) / p.SegmentCount
+	percent := 100 * p.SegmentSuccess / p.SegmentCount
 	if percent >= 100 {
 		percent = 99
 	}

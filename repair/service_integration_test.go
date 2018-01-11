@@ -593,7 +593,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		done := 0
 		for _, p := range prog {
-			done += p.PercentDone()
+			done += p.PercentComplete()
 		}
 		if l := len(prog); l > 0 {
 			done /= l
@@ -618,7 +618,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			}
 
 			for _, p := range prog {
-				done += p.PercentDone()
+				done += p.PercentComplete()
 			}
 			if l := len(prog); l > 0 {
 				done /= l
