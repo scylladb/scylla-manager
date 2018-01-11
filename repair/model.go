@@ -305,13 +305,13 @@ type RunProgress struct {
 	LastCommandID           int32
 }
 
-// Done returns true if all the segments were processed.
+// Done returns true if all the segments were successfully repaired.
 func (p *RunProgress) Done() bool {
-	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError
+	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess
 }
 
 // PercentComplete returns value from 0 to 100 representing percentage of
-// successfully processed segments within a shard.
+// successfully repaired segments within a shard.
 func (p *RunProgress) PercentComplete() int {
 	if p.SegmentCount == 0 {
 		return 0

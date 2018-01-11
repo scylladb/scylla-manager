@@ -13,12 +13,6 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-const (
-	segmentsPerRequest          = 1
-	checkIntervalSeconds        = 1
-	consecutiveFailureThreshold = 3
-)
-
 // worker manages shardWorkers.
 type worker struct {
 	Unit     *Unit
@@ -171,10 +165,11 @@ type shardWorker struct {
 
 func (w *shardWorker) exec(ctx context.Context) error {
 	var (
-		start = w.startSegment(ctx)
-		end   = start + segmentsPerRequest
-		id    int32
-		err   error
+		start     = w.startSegment(ctx)
+		end       = start + segmentsPerRequest
+		id        int32
+		err       error
+		failCount int
 	)
 
 	w.logger.Info(ctx, "Starting repair", "start_segment", start)
@@ -232,14 +227,20 @@ func (w *shardWorker) exec(ctx context.Context) error {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			w.progress.SegmentError += end - start
 			w.progress.SegmentErrorStartTokens = append(w.progress.SegmentErrorStartTokens, w.segments[start].StartToken)
+			failCount++
 		} else {
 			w.progress.SegmentSuccess += end - start
+			failCount = 0
 		}
 		w.progress.LastCommandID = 0
 		if end < len(w.segments) {
 			w.progress.LastStartToken = w.segments[end].StartToken
 		}
 		w.updateProgress(ctx)
+
+		if failCount >= consecutiveFailureThreshold {
+			return errors.New("number of consecutive errors exceeded")
+		}
 
 		next()
 	}
