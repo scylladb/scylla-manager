@@ -201,7 +201,7 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 
 	s.wg.Add(1)
 	go func() {
-		defer s.reschedTask(triggerCtx, t, doneCh)
+		defer s.reschedTask(triggerCtx, t, run, doneCh)
 
 		run.Status = runner.StatusRunning
 		if err := s.putRun(ctx, run); err != nil {
@@ -213,7 +213,7 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 	}()
 }
 
-func (s *Service) reschedTask(ctx context.Context, t *Task, done chan struct{}) {
+func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan struct{}) {
 	defer reschedTaskDone(t)
 	defer close(done)
 	defer s.wg.Done()
@@ -228,7 +228,7 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, done chan struct{}) 
 		s.logger.Debug(ctx, "task canceled, not re-scheduling", "Task", t)
 		return
 	}
-	if t.Sched.IntervalDays == 0 {
+	if t.Sched.IntervalDays == 0 && run.Status == runner.StatusStopped {
 		s.logger.Debug(ctx, "one-shot task, not re-scheduling", "Task", t)
 		return
 	}
@@ -237,7 +237,6 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, done chan struct{}) 
 
 func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) {
 	s.wg.Add(1)
-	defer s.reschedTask(ctx, t, done)
 
 	now := timeNow().UTC()
 	run := &Run{
@@ -250,6 +249,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 	}
 	s.logger.Debug(ctx, "execTrigger", "now", now, "task", t, "run", run)
 
+	defer s.reschedTask(ctx, t, run, done)
 	if err := s.putRun(ctx, run); err != nil {
 		s.logger.Error(ctx, "failed to write run", "run", run)
 		return
