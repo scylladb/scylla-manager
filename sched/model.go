@@ -84,15 +84,15 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 	lastStart := s.StartDate
 	lastStatus := runner.StatusError
 	if n > 0 {
-		lastStart = runs[n-1].StartTime
-		lastStatus = runs[n-1].Status
+		lastStart = runs[0].StartTime
+		lastStatus = runs[0].Status
 	}
 
 	if s.NumRetries > 0 {
 		// check no more than NumRetries Runs were attempted
 		retries := 0
-		for i := n - 1; i >= 0; i-- {
-			if runs[i].Status == runner.StatusStopped {
+		for _, r := range runs {
+			if r.Status == runner.StatusStopped {
 				break
 			}
 			retries++

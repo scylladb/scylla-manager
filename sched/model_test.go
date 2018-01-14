@@ -4,6 +4,7 @@ package sched
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -28,6 +29,9 @@ func makeHistory(startDate time.Time, runStatus ...runner.Status) []*Run {
 			Status:    s,
 		})
 	}
+	sort.Slice(runs, func(i, j int) bool {
+		return runs[i].StartTime.After(runs[j].StartTime)
+	})
 	return runs
 }
 

@@ -95,7 +95,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 		}
 
 		if n := len(runs); n > 0 {
-			r := runs[n-1]
+			r := runs[0]
 
 			switch r.Status {
 			case runner.StatusStarting, runner.StatusRunning, runner.StatusStopping:
