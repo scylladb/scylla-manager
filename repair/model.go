@@ -305,8 +305,8 @@ type RunProgress struct {
 	LastCommandID           int32
 }
 
-// Done returns true if all the segments were successfully repaired.
-func (p *RunProgress) Done() bool {
+// complete checks if a shard is completely repaired.
+func (p *RunProgress) complete() bool {
 	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess
 }
 
