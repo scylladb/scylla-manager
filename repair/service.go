@@ -342,6 +342,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
+			w.logger.Error(ctx, "Repair error", "error", err)
 			return errors.Wrapf(err, "repair error")
 		}
 
