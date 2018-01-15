@@ -164,6 +164,105 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
+<<<<<<< HEAD
+||||||| merged common ancestors
+	w.checkProgressErrors(ctx)
+
+=======
+	w.checkSegmentErrorsThreshold(ctx)
+
+	if w.progress.completeWithErrors() {
+		return w.repairFailed(ctx)
+	}
+
+	return w.repair(ctx)
+}
+
+func (w *shardWorker) checkSegmentErrorsThreshold(ctx context.Context) {
+	if w.progress.SegmentError > 0 && float64(w.progress.SegmentError)/float64(w.progress.SegmentCount) > failedSegmentsPercentThreshold {
+		w.logger.Info(ctx, "Starting from scratch: too many errors")
+		w.resetProgress(ctx)
+	}
+}
+
+func (w *shardWorker) repairFailed(ctx context.Context) error {
+	var (
+		start     int
+		end       int
+		id        int32
+		err       error
+		ok        bool
+		failCount int
+	)
+
+	savepoint := func() {
+		w.progress.LastStartTime = time.Now()
+		w.progress.LastStartToken = w.segments[start].StartToken
+		w.progress.LastCommandID = id
+		w.updateProgress(ctx)
+	}
+
+	for _, startToken := range w.progress.SegmentErrorStartTokens {
+		start, ok = segmentsContainStartToken(w.segments, startToken)
+		if !ok {
+			w.resetProgress(ctx)
+			return errors.New("could not find start token of a failed segment")
+		}
+
+		end = start + segmentsPerRequest
+		if end > len(w.segments) {
+			end = len(w.segments)
+		}
+
+		if w.progress.LastCommandID != 0 {
+			id = w.progress.LastCommandID
+		} else {
+			id, err = w.runRepair(ctx, start, end)
+			if err != nil {
+				if ctx.Err() != nil {
+					w.logger.Info(ctx, "Aborted")
+					break
+				}
+				return errors.Wrap(err, "repair request failed")
+			}
+		}
+
+		savepoint()
+
+		err = w.waitCommand(ctx, id)
+		if ctx.Err() != nil {
+			w.logger.Info(ctx, "Aborted")
+			return nil
+		}
+		if err != nil {
+			w.logger.Info(ctx, "Repair failed", "error", err)
+			// move startToken from start to end
+			w.progress.SegmentErrorStartTokens = append(w.progress.SegmentErrorStartTokens[1:len(w.progress.SegmentErrorStartTokens)], startToken)
+			failCount++
+		} else {
+			// transform error to success and remove startToken
+			w.progress.SegmentSuccess += end - start
+			w.progress.SegmentError -= end - start
+			w.progress.SegmentErrorStartTokens = w.progress.SegmentErrorStartTokens[1:len(w.progress.SegmentErrorStartTokens)]
+			failCount = 0
+		}
+		w.progress.LastCommandID = 0
+		w.updateProgress(ctx)
+
+		if failCount >= consecutiveFailuresThreshold {
+			return errors.New("number of consecutive errors exceeded")
+		}
+	}
+
+	if w.progress.SegmentError > 0 {
+		return errors.New("repair finished with errors")
+	}
+
+	return nil
+}
+
+func (w *shardWorker) repair(ctx context.Context) error {
+>>>>>>> repair: repair failed segments
 	var (
 		start     = w.startSegment(ctx)
 		end       = start + segmentsPerRequest
@@ -221,7 +320,7 @@ func (w *shardWorker) exec(ctx context.Context) error {
 		err = w.waitCommand(ctx, id)
 		if ctx.Err() != nil {
 			w.logger.Info(ctx, "Aborted")
-			break
+			return nil
 		}
 		if err != nil {
 			w.logger.Info(ctx, "Repair failed", "error", err)

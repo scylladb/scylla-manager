@@ -310,6 +310,11 @@ func (p *RunProgress) complete() bool {
 	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess
 }
 
+// completeWithErrors checks if a shard tried repairing every segment.
+func (p *RunProgress) completeWithErrors() bool {
+	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError && p.SegmentError > 0
+}
+
 // PercentComplete returns value from 0 to 100 representing percentage of
 // successfully repaired segments within a shard.
 func (p *RunProgress) PercentComplete() int {
