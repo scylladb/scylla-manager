@@ -727,7 +727,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// And wait
 	wait()
 
-	// And repair advances
+	// Then repair advances
 	assertProgress()
 
 	// When host is repaired

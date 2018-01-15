@@ -172,7 +172,7 @@ func (w *shardWorker) exec(ctx context.Context) error {
 	w.checkSegmentErrorsThreshold(ctx)
 
 	if w.progress.completeWithErrors() {
-		return w.repairFailed(ctx)
+		return w.repairFailedSegments(ctx)
 	}
 
 	return w.repair(ctx)
@@ -185,7 +185,7 @@ func (w *shardWorker) checkSegmentErrorsThreshold(ctx context.Context) {
 	}
 }
 
-func (w *shardWorker) repairFailed(ctx context.Context) error {
+func (w *shardWorker) repairFailedSegments(ctx context.Context) error {
 	var (
 		start     int
 		end       int
