@@ -96,7 +96,7 @@ the database management tasks.
 %attr(0700, scylla-manager, scylla-manager) %{_sharedstatedir}/scylla-manager
 
 %pre server
-getent group  scylla-manager || /usr/sbin/groupadd scylla-manager &> /dev/null || :
+getent group  scylla-manager || /usr/sbin/groupadd -r scylla-manager &> /dev/null || :
 getent passwd scylla-manager || /usr/sbin/useradd \
  -g scylla-manager -d %{_sharedstatedir}/scylla-manager -s /sbin/nologin -r scylla-manager &> /dev/null || :
 
