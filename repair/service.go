@@ -594,30 +594,49 @@ func (s *Service) GetProgress(ctx context.Context, u *Unit, runID uuid.UUID, hos
 
 	t := schema.RepairRunProgress
 	b := qb.Select(t.Name).Where(t.PrimaryKey[0:len(t.PartKey)]...)
-	if len(hosts) > 0 {
-		b.Where(qb.In("host"))
-	}
-
-	stmt, names := b.ToCql()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	m := qb.M{
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
 		"run_id":     runID,
-		"host":       hosts,
-	})
+	}
+	if len(hosts) > 0 {
+		b.Where(qb.Eq("host"))
+	}
+
+	stmt, names := b.ToCql()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
 	defer q.Release()
 
+	var p []*RunProgress
+	if len(hosts) > 0 {
+		for _, h := range hosts {
+			m["host"] = h
+			q.BindMap(m)
+			if q.Err() != nil {
+				return nil, q.Err()
+			}
+
+			var v []*RunProgress
+			if err := gocqlx.Select(&v, q.Query); err != nil {
+				return nil, err
+			}
+
+			p = append(p, v...)
+		}
+
+		return p, nil
+	}
+
+	q.BindMap(m)
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
 
-	var v []*RunProgress
-	if err := gocqlx.Select(&v, q.Query); err != nil {
+	if err := gocqlx.Select(&p, q.Query); err != nil {
 		return nil, err
 	}
 
-	return v, nil
+	return p, nil
 }
 
 // putRunProgress upserts a repair run.
