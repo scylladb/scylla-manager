@@ -36,6 +36,11 @@ release/rpm: release/scylla-manager-$(VERSION_NAME).tar
 	@mkdir -p release/rpm
 	@cp $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
 
+.PHONY: release/docker
+release/docker: release/rpm
+	@echo "==> Building docker image..."
+	@docker build --build-arg=VERSION_NAME=$(VERSION_NAME) -t scylla-manager:$(VERSION_NAME) -f docker/Dockerfile .
+
 .PHONY: inspect
 inspect:
 	@rpm -qpli release/rpm/scylla-manager{,-server,-client}-$(VERSION_NAME).x86_64.rpm
