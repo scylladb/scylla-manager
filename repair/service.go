@@ -125,8 +125,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	}
 
 	if prev != nil {
-		switch prev.Status {
-		case StatusDone, StatusError:
+		if prev.Status == StatusDone || prev.TopologyHash == uuid.Nil {
 			prev = nil
 		}
 	}
