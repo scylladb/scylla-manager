@@ -203,6 +203,13 @@ func (w *shardWorker) repairFailed(ctx context.Context) error {
 	}
 
 	for _, startToken := range w.progress.SegmentErrorStartTokens {
+		w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
+
+		if w.isStopped(ctx) {
+			w.logger.Info(ctx, "Stopped")
+			return nil
+		}
+
 		start, ok = segmentsContainStartToken(w.segments, startToken)
 		if !ok {
 			w.resetProgress(ctx)
@@ -221,7 +228,7 @@ func (w *shardWorker) repairFailed(ctx context.Context) error {
 			if err != nil {
 				if ctx.Err() != nil {
 					w.logger.Info(ctx, "Aborted")
-					break
+					return nil
 				}
 				return errors.Wrap(err, "repair request failed")
 			}
@@ -290,7 +297,7 @@ func (w *shardWorker) repair(ctx context.Context) error {
 
 		if w.isStopped(ctx) {
 			w.logger.Info(ctx, "Stopped")
-			break
+			return nil
 		}
 
 		if end > len(w.segments) {
@@ -304,7 +311,7 @@ func (w *shardWorker) repair(ctx context.Context) error {
 			if err != nil {
 				if ctx.Err() != nil {
 					w.logger.Info(ctx, "Aborted")
-					break
+					return nil
 				}
 
 				w.progress.SegmentError += end - start
