@@ -31,4 +31,4 @@ database:
 # stored in the identity_file.
 ssh:
   user: scylla-manager
-  identity_file: /var/lib/scylla-manager/.ssh/id_rsa
+  identity_file: /var/lib/scylla-manager/scylla_manager.pem

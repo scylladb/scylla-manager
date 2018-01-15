@@ -9,4 +9,4 @@ database:
 
 ssh:
   user: scylla-manager
-  identity_file: testing/scylla_cluster/id_rsa
+  identity_file: testing/scylla_cluster/scylla_manager.pem

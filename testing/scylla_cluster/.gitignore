@@ -1,2 +1,2 @@
-id_rsa
-id_rsa.pub
+scylla_manager.pem
+scylla_manager.pem.pub
