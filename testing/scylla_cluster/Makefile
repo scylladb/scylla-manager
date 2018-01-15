@@ -1,5 +1,5 @@
 COMPOSE=docker-compose
-CQLSH=cqlsh --cqlversion=3.3.1 172.16.1.100
+CQLSH=cqlsh --cqlversion=3.3.1
 
 include .env
 
@@ -28,5 +28,9 @@ status:
 
 .PHONY: cqlsh
 cqlsh:
-	@$(CQLSH)
+	@$(CQLSH) 172.16.1.100
 
+.PHONY: test-keyspace
+test-keyspace:
+	@$(CQLSH) 172.16.1.10 -e "CREATE KEYSPACE test_repair WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
+	@$(CQLSH) 172.16.1.10 -e "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)"
