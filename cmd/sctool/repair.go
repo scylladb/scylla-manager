@@ -128,7 +128,7 @@ var repairProgressCmd = &cobra.Command{
 }
 
 func printHostOnlyProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
-	t := newTable("host", "progress", "errors")
+	t := newTable("host", "progress", "failed segments")
 	for _, r := range rows {
 		// ignore shard details when host only requested
 		if r.Shard != -1 {
@@ -144,7 +144,7 @@ func printHostOnlyProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) 
 }
 
 func printDetailedProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
-	t := newTable("host", "shard", "progress", "errors")
+	t := newTable("host", "shard", "progress", "failed segments")
 	for _, r := range rows {
 		// ignore host-only entries when details requested
 		if r.Shard == -1 {
