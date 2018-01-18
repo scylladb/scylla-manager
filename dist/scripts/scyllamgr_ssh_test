@@ -3,7 +3,7 @@
 SSH_LOCAL_PORT=10010
 SSH_USER=scylla-manager
 SSH_IDENTITY_FILE=/var/lib/scylla-manager/scylla_manager.pem
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q"
+SSH_OPTS="-q -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 CURL_OPTS="-s -f -o /dev/null"
 
@@ -38,7 +38,7 @@ while [ $# -gt 0 ]; do
 done
 
 fuser -s -n tcp ${SSH_LOCAL_PORT}
-if [ $? == 0]; then
+if [ $? == 0 ]; then
     echo "port ${SSH_LOCAL_PORT} is used"
     exit 1
 fi
@@ -56,7 +56,7 @@ for host in $@; do
         res=1
     fi
 
-    fuser -s -n tcp ${SSH_LOCAL_PORT} -k -15 ||:
+    fuser -s -n tcp ${SSH_LOCAL_PORT} -k -15
 done
 
 exit ${res}
