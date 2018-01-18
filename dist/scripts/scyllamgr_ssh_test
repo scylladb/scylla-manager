@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 
-set -e
-
 SSH_LOCAL_PORT=10010
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q"
 SSH_USER=scylla-manager
 SSH_IDENTITY_FILE=/var/lib/scylla-manager/scylla_manager.pem
+SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q"
+
+CURL_OPTS="-s -f -o /dev/null"
 
 print_usage() {
     echo "scyllamgr_ssh_test --user remote_user --identity-file identity_file host..."
     echo "  -u --user				specify SSH user name, default ${SSH_USER}"
     echo "  -i --identity-file		specify SSH identity file path, default ${SSH_IDENTITY_FILE}"
+    echo "  -v --verbose			displays debug info"
 }
 
 while [ $# -gt 0 ]; do
@@ -23,6 +24,10 @@ while [ $# -gt 0 ]; do
             SSH_IDENTITY_FILE="$2"
             shift 2
             ;;
+        "-v"|"--verbose")
+            VERBOSE="-v"
+            shift 1
+            ;;
         "-h" | "--help")
             print_usage
             shift 1
@@ -32,8 +37,26 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+fuser -s -n tcp ${SSH_LOCAL_PORT}
+if [ $? == 0]; then
+    echo "port ${SSH_LOCAL_PORT} is used"
+    exit 1
+fi
+
+res=0
+
 for host in $@; do
-    ssh -i ${SSH_IDENTITY_FILE} -N -f ${SSH_OPTS} -L ${SSH_LOCAL_PORT}:localhost:10000 ${SSH_USER}@${host} || echo "${host} FAILED to open SSH connection" && continue
-    curl --silent --fail localhost:${SSH_LOCAL_PORT}/storage_service/cluster_name || echo "${host} FAILED to send HTTP request"
-    fuser -n tcp ${SSH_LOCAL_PORT} -k -15 ||:
+    (
+        ssh -i ${SSH_IDENTITY_FILE} -N -f ${SSH_OPTS} ${VERBOSE} -L ${SSH_LOCAL_PORT}:localhost:10000 ${SSH_USER}@${host} && \
+        curl ${CURL_OPTS} ${VERBOSE} localhost:${SSH_LOCAL_PORT}/storage_service/cluster_name && \
+        echo "${host}	OK"
+    )
+    if [ $? != 0 ]; then
+        echo "${host}	FAILED"
+        res=1
+    fi
+
+    fuser -s -n tcp ${SSH_LOCAL_PORT} -k -15 ||:
 done
+
+exit ${res}
