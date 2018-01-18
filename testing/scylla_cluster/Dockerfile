@@ -1,3 +1,5 @@
+ARG SCYLLA_VERSION
+
 FROM scylladb/scylla:${SCYLLA_VERSION}
 
 # Install sshd:

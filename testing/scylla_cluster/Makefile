@@ -1,5 +1,11 @@
-COMPOSE=source ./.env && docker-compose
+COMPOSE=docker-compose
 CQLSH=cqlsh --cqlversion=3.3.1 172.16.1.100
+
+include .env
+
+.PHONY: build
+build:
+	docker build --build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) -t scylladb/scylla-ssh:$(SCYLLA_VERSION) .
 
 .PHONY: up
 up:
