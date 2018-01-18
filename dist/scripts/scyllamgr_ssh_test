@@ -10,8 +10,9 @@ CURL_OPTS="-s -f -o /dev/null"
 print_usage() {
     echo "scyllamgr_ssh_test --user remote_user --identity-file identity_file host..."
     echo "  -u --user				specify SSH user name, default ${SSH_USER}"
-    echo "  -i --identity-file		specify SSH identity file path, default ${SSH_IDENTITY_FILE}"
-    echo "  -v --verbose			displays debug info"
+    echo "  -i --identity-file			specify SSH identity file path, default ${SSH_IDENTITY_FILE}"
+    echo "  -p --local-port			specify local port for SSH tunnel, default ${SSH_LOCAL_PORT}"
+    echo "  -v --verbose				display debug info"
 }
 
 while [ $# -gt 0 ]; do
@@ -24,13 +25,17 @@ while [ $# -gt 0 ]; do
             SSH_IDENTITY_FILE="$2"
             shift 2
             ;;
+        "-p"|"--local-port")
+            SSH_LOCAL_PORT="$2"
+            shift 2
+            ;;
         "-v"|"--verbose")
             VERBOSE="-v"
             shift 1
             ;;
         "-h" | "--help")
             print_usage
-            shift 1
+            exit 0
             ;;
         *)
             break
