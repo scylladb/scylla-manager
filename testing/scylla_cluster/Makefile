@@ -11,7 +11,7 @@ up:
 
 .PHONY: down
 down:
-	@$(COMPOSE) down --remove-orphans
+	@$(COMPOSE) down --volumes --remove-orphans
 
 .PHONY: status
 status:
