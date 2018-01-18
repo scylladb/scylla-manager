@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -e
+
+SSH_LOCAL_PORT=10010
+SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q"
+SSH_USER=scylla-manager
+SSH_IDENTITY_FILE=/var/lib/scylla-manager/scylla_manager.pem
+
+print_usage() {
+    echo "scyllamgr_ssh_test --user remote_user --identity-file identity_file host..."
+    echo "  -u --user				specify SSH user name, default ${SSH_USER}"
+    echo "  -i --identity-file		specify SSH identity file path, default ${SSH_IDENTITY_FILE}"
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        "-u"|"--user")
+            SSH_USER="$2"
+            shift 2
+            ;;
+        "-i"|"--identity-file")
+            SSH_IDENTITY_FILE="$2"
+            shift 2
+            ;;
+        "-h" | "--help")
+            print_usage
+            shift 1
+            ;;
+        *)
+            break
+    esac
+done
+
+for host in $@; do
+    ssh -i ${SSH_IDENTITY_FILE} -N -f ${SSH_OPTS} -L ${SSH_LOCAL_PORT}:localhost:10000 ${SSH_USER}@${host} || echo "${host} FAILED to open SSH connection" && continue
+    curl --silent --fail localhost:${SSH_LOCAL_PORT}/storage_service/cluster_name || echo "${host} FAILED to send HTTP request"
+    fuser -n tcp ${SSH_LOCAL_PORT} -k -15 ||:
+done

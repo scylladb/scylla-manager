@@ -68,11 +68,14 @@ install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-manager/cql/
 
 ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_setup %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_ssh_test %{buildroot}%{_sbindir}/
 
 %files
 %defattr(-,root,root)
 %{_prefix}/lib/scylla-manager/scyllamgr_setup
+%{_prefix}/lib/scylla-manager/scyllamgr_ssh_test
 %{_sbindir}/scyllamgr_setup
+%{_sbindir}/scyllamgr_ssh_test
 
 
 %package server
