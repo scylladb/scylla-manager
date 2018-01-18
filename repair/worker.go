@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	segmentsPerRequest   = 50
+	segmentsPerRequest   = 1
 	checkIntervalSeconds = 1
 )
 
