@@ -57,6 +57,14 @@ func (t *Table) Select(columns ...string) (stmt string, names []string) {
 		ToCql()
 }
 
+// SelectBuilder returns a builder initialised to select by partition key
+// statement.
+func (t *Table) SelectBuilder(columns ...string) *qb.SelectBuilder {
+	return qb.Select(t.Name).
+		Columns(columns...).
+		Where(t.PrimaryKey[0:len(t.PartKey)]...)
+}
+
 func (t Table) init() Table {
 	// primary key comparator
 	t.PrimaryKey = make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
