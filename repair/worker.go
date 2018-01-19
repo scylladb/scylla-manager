@@ -156,11 +156,8 @@ func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partit
 }
 
 const (
-	segmentsPerRequest   = 1
-	checkIntervalSeconds = 1
-
-	consecutiveFailuresThreshold   = 3
-	failedSegmentsPercentThreshold = 0.3
+	segmentsPerRepair = 1
+	maxFailedSegments = 100
 )
 
 // shardWorker repairs a single shard.
@@ -172,7 +169,10 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
-	w.checkSegmentErrorsThreshold(ctx)
+	if w.progress.SegmentError > maxFailedSegments {
+		w.logger.Info(ctx, "Starting from scratch: too many errors")
+		w.resetProgress(ctx)
+	}
 
 	if w.progress.completeWithErrors() {
 		return w.repairFailedSegments(ctx)
@@ -181,21 +181,13 @@ func (w *shardWorker) exec(ctx context.Context) error {
 	return w.repair(ctx)
 }
 
-func (w *shardWorker) checkSegmentErrorsThreshold(ctx context.Context) {
-	if w.progress.SegmentError > 0 && float64(w.progress.SegmentError)/float64(w.progress.SegmentCount) > failedSegmentsPercentThreshold {
-		w.logger.Info(ctx, "Starting from scratch: too many errors")
-		w.resetProgress(ctx)
-	}
-}
-
 func (w *shardWorker) repairFailedSegments(ctx context.Context) error {
 	var (
-		start     int
-		end       int
-		id        int32
-		err       error
-		ok        bool
-		failCount int
+		start int
+		end   int
+		id    int32
+		err   error
+		ok    bool
 	)
 
 	savepoint := func() {
@@ -219,7 +211,7 @@ func (w *shardWorker) repairFailedSegments(ctx context.Context) error {
 			return errors.New("could not find start token of a failed segment")
 		}
 
-		end = start + segmentsPerRequest
+		end = start + segmentsPerRepair
 		if end > len(w.segments) {
 			end = len(w.segments)
 		}
@@ -248,19 +240,17 @@ func (w *shardWorker) repairFailedSegments(ctx context.Context) error {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			// move startToken from start to end
 			w.progress.SegmentErrorStartTokens = append(w.progress.SegmentErrorStartTokens[1:len(w.progress.SegmentErrorStartTokens)], startToken)
-			failCount++
 		} else {
 			// transform error to success and remove startToken
 			w.progress.SegmentSuccess += end - start
 			w.progress.SegmentError -= end - start
 			w.progress.SegmentErrorStartTokens = w.progress.SegmentErrorStartTokens[1:len(w.progress.SegmentErrorStartTokens)]
-			failCount = 0
 		}
 		w.progress.LastCommandID = 0
 		w.updateProgress(ctx)
 
-		if failCount >= consecutiveFailuresThreshold {
-			return errors.New("number of consecutive errors exceeded")
+		if w.progress.SegmentError > maxFailedSegments {
+			return errors.New("number of errors exceeded")
 		}
 	}
 
@@ -273,18 +263,17 @@ func (w *shardWorker) repairFailedSegments(ctx context.Context) error {
 
 func (w *shardWorker) repair(ctx context.Context) error {
 	var (
-		start     = w.startSegment(ctx)
-		end       = start + segmentsPerRequest
-		id        int32
-		err       error
-		failCount int
+		start = w.startSegment(ctx)
+		end   = start + segmentsPerRepair
+		id    int32
+		err   error
 	)
 
 	w.logger.Info(ctx, "Starting repair", "start_segment", start)
 	w.logger.Debug(ctx, "Segment stats", "stats", segmentsStats(w.segments))
 
 	next := func() {
-		start, end = end, end+segmentsPerRequest
+		start, end = end, end+segmentsPerRepair
 	}
 
 	savepoint := func() {
@@ -335,10 +324,8 @@ func (w *shardWorker) repair(ctx context.Context) error {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			w.progress.SegmentError += end - start
 			w.progress.SegmentErrorStartTokens = append(w.progress.SegmentErrorStartTokens, w.segments[start].StartToken)
-			failCount++
 		} else {
 			w.progress.SegmentSuccess += end - start
-			failCount = 0
 		}
 		w.progress.LastCommandID = 0
 		if end < len(w.segments) {
@@ -346,8 +333,8 @@ func (w *shardWorker) repair(ctx context.Context) error {
 		}
 		w.updateProgress(ctx)
 
-		if failCount >= consecutiveFailuresThreshold {
-			return errors.New("number of consecutive errors exceeded")
+		if w.progress.SegmentError > maxFailedSegments {
+			return errors.New("number of errors exceeded")
 		}
 
 		next()
@@ -405,8 +392,10 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 	})
 }
 
+const pollInterval = time.Second
+
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
-	t := time.NewTicker(checkIntervalSeconds * time.Second)
+	t := time.NewTicker(pollInterval)
 	defer t.Stop()
 
 	for {
