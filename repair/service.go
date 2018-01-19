@@ -592,48 +592,58 @@ func (s *Service) GetProgress(ctx context.Context, u *Unit, runID uuid.UUID, hos
 		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
 	}
 
-	t := schema.RepairRunProgress
-	b := qb.Select(t.Name).Where(t.PrimaryKey[0:len(t.PartKey)]...)
+	if len(hosts) == 0 {
+		return s.getAllHostsProgress(ctx, u, runID)
+	}
+
+	return s.getHostProgress(ctx, u, runID, hosts...)
+}
+
+func (s *Service) getAllHostsProgress(ctx context.Context, u *Unit, runID uuid.UUID) ([]*RunProgress, error) {
+	stmt, names := schema.RepairRunProgress.Select()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
+	defer q.Release()
+
+	q.BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+		"run_id":     runID,
+	})
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var p []*RunProgress
+	return p, gocqlx.Select(&p, q.Query)
+}
+
+func (s *Service) getHostProgress(ctx context.Context, u *Unit, runID uuid.UUID, hosts ...string) ([]*RunProgress, error) {
+	stmt, names := schema.RepairRunProgress.SelectBuilder().Where(qb.Eq("host")).ToCql()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
+	defer q.Release()
+
+	var p []*RunProgress
+
 	m := qb.M{
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
 		"run_id":     runID,
 	}
-	if len(hosts) > 0 {
-		b.Where(qb.Eq("host"))
-	}
 
-	stmt, names := b.ToCql()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
-	defer q.Release()
+	for _, h := range hosts {
+		m["host"] = h
 
-	var p []*RunProgress
-	if len(hosts) > 0 {
-		for _, h := range hosts {
-			m["host"] = h
-			q.BindMap(m)
-			if q.Err() != nil {
-				return nil, q.Err()
-			}
-
-			var v []*RunProgress
-			if err := gocqlx.Select(&v, q.Query); err != nil {
-				return nil, err
-			}
-
-			p = append(p, v...)
+		q.BindMap(m)
+		if q.Err() != nil {
+			return nil, q.Err()
 		}
 
-		return p, nil
-	}
+		var v []*RunProgress
+		if err := gocqlx.Select(&v, q.Query); err != nil {
+			return nil, err
+		}
 
-	q.BindMap(m)
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	if err := gocqlx.Select(&p, q.Query); err != nil {
-		return nil, err
+		p = append(p, v...)
 	}
 
 	return p, nil
