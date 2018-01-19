@@ -155,7 +155,15 @@ func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partit
 	return shards
 }
 
-// shardWorker repairs a single shard
+const (
+	segmentsPerRequest   = 1
+	checkIntervalSeconds = 1
+
+	consecutiveFailuresThreshold   = 3
+	failedSegmentsPercentThreshold = 0.3
+)
+
+// shardWorker repairs a single shard.
 type shardWorker struct {
 	parent   *worker
 	segments []*Segment
@@ -164,11 +172,6 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
-<<<<<<< HEAD
-||||||| merged common ancestors
-	w.checkProgressErrors(ctx)
-
-=======
 	w.checkSegmentErrorsThreshold(ctx)
 
 	if w.progress.completeWithErrors() {
@@ -269,7 +272,6 @@ func (w *shardWorker) repairFailedSegments(ctx context.Context) error {
 }
 
 func (w *shardWorker) repair(ctx context.Context) error {
->>>>>>> repair: repair failed segments
 	var (
 		start     = w.startSegment(ctx)
 		end       = start + segmentsPerRequest
@@ -344,7 +346,7 @@ func (w *shardWorker) repair(ctx context.Context) error {
 		}
 		w.updateProgress(ctx)
 
-		if failCount >= consecutiveFailureThreshold {
+		if failCount >= consecutiveFailuresThreshold {
 			return errors.New("number of consecutive errors exceeded")
 		}
 
@@ -375,7 +377,6 @@ func (w *shardWorker) startSegment(ctx context.Context) int {
 }
 
 func (w *shardWorker) resetProgress(ctx context.Context) {
-	w.logger.Error(ctx, "Starting from scratch: progress reset...")
 	w.progress.SegmentSuccess = 0
 	w.progress.SegmentError = 0
 	w.progress.SegmentErrorStartTokens = nil
