@@ -201,15 +201,36 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		ok    bool
 	)
 
+	if w.progress.LastCommandID != 0 {
+		id = w.progress.LastCommandID
+	}
+
+	next := func() {
+		start, end, ok = ri.Next()
+	}
+
 	savepoint := func() {
-		w.progress.LastStartTime = time.Now()
-		w.progress.LastStartToken = w.segments[start].StartToken
-		w.progress.LastCommandID = id
+		if ok {
+			w.progress.LastStartToken = w.segments[start].StartToken
+		} else {
+			w.progress.LastStartToken = 0
+		}
+
+		if id != 0 {
+			w.progress.LastCommandID = id
+			w.progress.LastStartTime = time.Now()
+		} else {
+			w.progress.LastCommandID = 0
+			w.progress.LastStartTime = time.Time{}
+		}
+
 		w.updateProgress(ctx)
 	}
 
+	next()
+
 	for {
-		start, end, ok = ri.Next()
+		// no more segments
 		if !ok {
 			break
 		}
@@ -223,9 +244,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
 		}
 
-		if w.progress.LastCommandID != 0 {
-			id = w.progress.LastCommandID
-		} else {
+		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
 				if ctx.Err() != nil {
@@ -234,7 +253,8 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 				}
 
 				ri.OnError()
-				w.updateProgress(ctx)
+				next()
+				savepoint()
 
 				return errors.Wrap(err, "repair request failed")
 			}
@@ -242,7 +262,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 		savepoint()
 
-		err = w.waitCommand(ctx, id)
+		err, id = w.waitCommand(ctx, id), 0
 		if ctx.Err() != nil {
 			w.logger.Info(ctx, "Aborted")
 			return nil
@@ -253,7 +273,9 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		} else {
 			ri.OnSuccess()
 		}
-		w.updateProgress(ctx)
+
+		next()
+		savepoint()
 
 		if w.progress.SegmentError > maxFailedSegments {
 			return errors.New("number of errors exceeded")
