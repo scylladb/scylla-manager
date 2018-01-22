@@ -193,12 +193,15 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 }
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
+	w.logger.Info(ctx, "Start repair")
+
 	var (
 		start int
 		end   int
 		id    int32
 		err   error
 		ok    bool
+		iter  int
 	)
 
 	if w.progress.LastCommandID != 0 {
@@ -207,6 +210,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 	next := func() {
 		start, end, ok = ri.Next()
+		iter++
 	}
 
 	savepoint := func() {
@@ -240,7 +244,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			return nil
 		}
 
-		if p := w.progress.PercentComplete(); p%10 == 0 {
+		if iter%10 == 0 {
 			w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
 		}
 
@@ -318,7 +322,7 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 	})
 }
 
-const pollInterval = time.Second
+const pollInterval = 500 * time.Millisecond
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 	t := time.NewTicker(pollInterval)
