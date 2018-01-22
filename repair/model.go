@@ -211,14 +211,6 @@ type Segment struct {
 	EndToken   int64
 }
 
-// stats holds segments statistics.
-type stats struct {
-	Size        int
-	MaxRange    int64
-	AvgRange    int64
-	AvgMaxRatio float64
-}
-
 // Status specifies the status of a Run.
 type Status string
 
