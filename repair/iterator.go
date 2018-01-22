@@ -61,7 +61,7 @@ func (i *forwardIterator) Next() (start, end int, ok bool) {
 	}
 
 	if i.end == 0 {
-		if i.progress.started() {
+		if i.progress.LastStartToken != 0 {
 			i.start, _ = segmentsContainStartToken(i.segments, i.progress.LastStartToken)
 		}
 		i.end = i.start + segmentsPerRepair

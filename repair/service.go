@@ -361,7 +361,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			r.EndTime = time.Now()
 			s.putRunLogError(ctx, r)
 
-			s.logger.Info(ctx, "Stopped", "run_id", r.ID)
+			s.logger.Info(ctx, "Stopped", "unit", u, "run_id", r.ID)
 			return nil
 		}
 	}
@@ -555,6 +555,7 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return errors.New("not running")
 	}
 
+	s.logger.Info(ctx, "Stopping repair", "unit", u, "run_id", runID)
 	r.Status = StatusStopping
 
 	return s.putRun(ctx, r)

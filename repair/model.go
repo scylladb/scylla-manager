@@ -328,5 +328,5 @@ func (p *RunProgress) PercentComplete() int {
 
 // started returns true if the host / shard was ever repaired in the run.
 func (p *RunProgress) started() bool {
-	return !p.LastStartTime.IsZero()
+	return p.LastCommandID != 0 || p.SegmentSuccess > 0 || p.SegmentError > 0
 }
