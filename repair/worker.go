@@ -205,7 +205,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 }
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
-	w.logger.Info(ctx, "Start repair")
+	w.logger.Info(ctx, "Start repair", "progress", w.progress)
 
 	var (
 		start int
@@ -301,6 +301,8 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	if w.progress.SegmentError > 0 {
 		return errors.New("repair finished with errors")
 	}
+
+	w.logger.Info(ctx, "Done")
 
 	return nil
 }

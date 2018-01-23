@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -564,7 +563,7 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	// fix values for testing...
-	repair.DefaultSegmentsPerRepair = 50
+	repair.DefaultSegmentsPerRepair = 5
 	repair.DefaultPollInterval = 100 * time.Millisecond
 
 	session := mermaidtest.CreateSession(t)
@@ -572,13 +571,17 @@ func TestServiceRepairIntegration(t *testing.T) {
 	createKeyspace(t, clusterSession, "test_repair")
 	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
+	const (
+		node0 = "172.16.1.3"
+		node1 = "172.16.1.10"
+	)
+
 	var (
-		s           = newTestService(t, session)
-		clusterID   = uuid.MustRandom()
-		runID       = uuid.NewTime()
-		unit        = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
-		percentDone = 0
-		ctx         = context.Background()
+		s         = newTestService(t, session)
+		clusterID = uuid.MustRandom()
+		runID     = uuid.NewTime()
+		unit      = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
+		ctx       = context.Background()
 	)
 
 	assertStatus := func(expected repair.Status) {
@@ -589,55 +592,41 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	}
 
-	assertProgress := func() {
-		prog, err := s.GetProgress(ctx, &unit, runID)
+	hostProgress := func(host string) (done int) {
+		prog, err := s.GetProgress(ctx, &unit, runID, host)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		done := 0
 		for _, p := range prog {
 			done += p.PercentComplete()
 		}
 		if l := len(prog); l > 0 {
 			done /= l
 		}
-
-		if done < percentDone {
-			t.Fatal("no progress, got", done, "had", percentDone)
-		}
-
-		percentDone = done
-	}
-
-	wait := func() {
-		time.Sleep(5 * time.Second)
+		return
 	}
 
 	waitHostProgress := func(host string, percent int) {
-		hostProgress := func(host string) (done int) {
-			prog, err := s.GetProgress(ctx, &unit, runID, host)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			for _, p := range prog {
-				done += p.PercentComplete()
-			}
-			if l := len(prog); l > 0 {
-				done /= l
-			}
-			return
-		}
-
 		for {
 			done := hostProgress(host)
 			if done >= percent {
 				break
 			}
 
-			time.Sleep(time.Second)
+			time.Sleep(500 * time.Millisecond)
 		}
+	}
+
+	assertHostProgress := func(host string, percent int) {
+		done := hostProgress(host)
+		if done <= percent {
+			t.Fatal("no progress", "expected", percent, "got", done)
+		}
+	}
+
+	wait := func() {
+		time.Sleep(2 * time.Second)
 	}
 
 	// Given unit
@@ -656,24 +645,21 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// When wait
 	wait()
 
-	// Then repair advances
-	assertProgress()
+	// Then repair of first node advances
+	assertHostProgress(node0, 1)
 
 	// When run another repair
 	// Then run fails
-	attemptRepairID := uuid.NewTime()
-	if err := s.Repair(ctx, &unit, attemptRepairID); err == nil {
+	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil {
 		t.Fatal("expected error")
 	} else if errors.Cause(err) != repair.ErrActiveRepair {
 		t.Fatal(err)
 	}
-	if run, err := s.GetRun(ctx, &unit, attemptRepairID); err != nil {
-		t.Fatal(err)
-	} else if !(run.Status == repair.StatusError && strings.Contains(run.Cause, runID.String())) {
-		t.Fatalf("unexpected run status: %s or cause: %q", run.Status, run.Cause)
-	}
 
-	// When stop run
+	// When first node is 1/2 repaired
+	waitHostProgress(node0, 50)
+
+	// And
 	if err := s.StopRun(ctx, &unit, runID); err != nil {
 		t.Fatal(err)
 	}
@@ -701,19 +687,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// When wait
 	wait()
 
-	// Then repair advances
-	assertProgress()
+	// Then repair of first node continues
+	assertHostProgress(node0, 50)
 
-	// When host is 1/2 repaired
-	waitHostProgress("172.16.1.10", 50)
-
-	// And close
-	s.Close()
-
-	// And wait
-	wait()
+	// When second node is 1/2 repaired
+	waitHostProgress(node1, 50)
 
 	// And restart
+	s.Close()
+	wait()
 	s = newTestService(t, session)
 	s.FixRunStatus(ctx)
 
@@ -728,14 +710,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// Then status is StatusRunning
 	assertStatus(repair.StatusRunning)
 
-	// And wait
+	// When wait
 	wait()
 
-	// And repair continues
-	assertProgress()
+	// Then repair of second node continues
+	assertHostProgress(node1, 50)
 
-	// When host is repaired
-	waitHostProgress("172.16.1.10", 100)
+	// When second node is repaired
+	waitHostProgress(node1, 100)
 }
 
 func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
