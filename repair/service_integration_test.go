@@ -7,8 +7,10 @@ package repair_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sort"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -525,7 +527,7 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 	createKeyspace(t, clusterSession, "test_1")
 	createKeyspace(t, clusterSession, "test_2")
 
-	s := newTestService(t, session)
+	s, _ := newTestService(t, session)
 	clusterID := uuid.MustRandom()
 	ctx := context.Background()
 
@@ -577,7 +579,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	)
 
 	var (
-		s         = newTestService(t, session)
+		s, hrt    = newTestService(t, session)
 		clusterID = uuid.MustRandom()
 		runID     = uuid.NewTime()
 		unit      = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
@@ -689,13 +691,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// Then repair of node0 continues
 	assertNodeProgress(node0, 50)
 
+	// When errors occur
+	hrt.SetInterceptor(nil)
+
 	// When node1 is 1/2 repaired
 	waitNodeProgress(node1, 50)
 
 	// And restart
 	s.Close()
 	wait()
-	s = newTestService(t, session)
+	s, hrt = newTestService(t, session)
 	s.FixRunStatus(ctx)
 
 	// And create a new task
@@ -719,13 +724,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 	waitNodeProgress(node1, 100)
 }
 
-func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
+func newTestService(t *testing.T, session *gocql.Session) (*repair.Service, *mermaidtest.HackableRoundTripper) {
 	logger := log.NewDevelopment()
+
+	rt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
 
 	s, err := repair.NewService(
 		session,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), logger.Named("scylla"))
+			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, rt, logger.Named("scylla"))
 			if err != nil {
 				return nil, err
 			}
@@ -740,7 +747,7 @@ func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s
+	return s, rt
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
