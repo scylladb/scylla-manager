@@ -339,6 +339,10 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			Host:     host,
 			Segments: hostSegments[host],
 
+			segmentsPerRepair: DefaultSegmentsPerRepair,
+			maxFailedSegments: DefaultMaxFailedSegments,
+			pollInterval:      DefaultPollInterval,
+
 			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {

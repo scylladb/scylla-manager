@@ -2,8 +2,6 @@
 
 package repair
 
-const segmentsPerRepair = 1
-
 type repairIterator interface {
 	Next() (start, end int, ok bool)
 	OnSuccess()
@@ -11,10 +9,12 @@ type repairIterator interface {
 }
 
 type retryIterator struct {
-	segments []*Segment
-	progress *RunProgress
-	start    int
-	end      int
+	segments          []*Segment
+	progress          *RunProgress
+	segmentsPerRepair int
+
+	start int
+	end   int
 }
 
 func (i *retryIterator) Next() (start, end int, ok bool) {
@@ -28,7 +28,7 @@ func (i *retryIterator) Next() (start, end int, ok bool) {
 
 	startToken := i.progress.SegmentErrorStartTokens[0]
 	i.start, _ = segmentsContainStartToken(i.segments, startToken)
-	i.end = i.start + segmentsPerRepair
+	i.end = i.start + i.segmentsPerRepair
 
 	if i.end > len(i.segments) {
 		i.end = len(i.segments)
@@ -49,10 +49,12 @@ func (i *retryIterator) OnError() {
 }
 
 type forwardIterator struct {
-	segments []*Segment
-	progress *RunProgress
-	start    int
-	end      int
+	segments          []*Segment
+	progress          *RunProgress
+	segmentsPerRepair int
+
+	start int
+	end   int
 }
 
 func (i *forwardIterator) Next() (start, end int, ok bool) {
@@ -64,9 +66,9 @@ func (i *forwardIterator) Next() (start, end int, ok bool) {
 		if i.progress.LastStartToken != 0 {
 			i.start, _ = segmentsContainStartToken(i.segments, i.progress.LastStartToken)
 		}
-		i.end = i.start + segmentsPerRepair
+		i.end = i.start + i.segmentsPerRepair
 	} else {
-		i.start, i.end = i.end, i.end+segmentsPerRepair
+		i.start, i.end = i.end, i.end+i.segmentsPerRepair
 	}
 
 	if i.end > len(i.segments) {

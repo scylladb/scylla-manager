@@ -563,6 +563,10 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
+	// fix values for testing...
+	repair.DefaultSegmentsPerRepair = 50
+	repair.DefaultPollInterval = 100 * time.Millisecond
+
 	session := mermaidtest.CreateSession(t)
 	clusterSession := mermaidtest.CreateManagedClusterSession(t)
 	createKeyspace(t, clusterSession, "test_repair")
@@ -727,7 +731,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// And wait
 	wait()
 
-	// Then repair advances
+	// And repair continues
 	assertProgress()
 
 	// When host is repaired

@@ -13,6 +13,14 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
+// The values will be moved to service configuration, for now they are exposed
+// so that they can be changed for testing.
+var (
+	DefaultSegmentsPerRepair = 1
+	DefaultMaxFailedSegments = 100
+	DefaultPollInterval      = 500 * time.Millisecond
+)
+
 // worker manages shardWorkers.
 type worker struct {
 	Unit     *Unit
@@ -22,6 +30,10 @@ type worker struct {
 	Cluster  *scyllaclient.Client
 	Host     string
 	Segments []*Segment
+
+	segmentsPerRepair int
+	maxFailedSegments int
+	pollInterval      time.Duration
 
 	logger log.Logger
 	shards []*shardWorker
@@ -85,7 +97,7 @@ func (w *worker) init(ctx context.Context) error {
 	// check if savepoint can be used
 	if err := validateShardProgress(shards, prog); err != nil {
 		if len(prog) > 1 {
-			w.logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error())
+			w.logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error(), "progress", prog)
 		}
 		prog = nil
 	}
@@ -155,8 +167,6 @@ func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partit
 	return shards
 }
 
-const maxFailedSegments = 100
-
 // shardWorker repairs a single shard.
 type shardWorker struct {
 	parent   *worker
@@ -166,7 +176,7 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
-	if w.progress.SegmentError > maxFailedSegments {
+	if w.progress.SegmentError > w.parent.maxFailedSegments {
 		w.logger.Info(ctx, "Starting from scratch: too many errors")
 		w.resetProgress(ctx)
 	}
@@ -180,15 +190,17 @@ func (w *shardWorker) exec(ctx context.Context) error {
 
 func (w *shardWorker) newRetryIterator() *retryIterator {
 	return &retryIterator{
-		segments: w.segments,
-		progress: w.progress,
+		segments:          w.segments,
+		progress:          w.progress,
+		segmentsPerRepair: w.parent.segmentsPerRepair,
 	}
 }
 
 func (w *shardWorker) newForwardIterator() *forwardIterator {
 	return &forwardIterator{
-		segments: w.segments,
-		progress: w.progress,
+		segments:          w.segments,
+		progress:          w.progress,
+		segmentsPerRepair: w.parent.segmentsPerRepair,
 	}
 }
 
@@ -281,7 +293,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		next()
 		savepoint()
 
-		if w.progress.SegmentError > maxFailedSegments {
+		if w.progress.SegmentError > w.parent.maxFailedSegments {
 			return errors.New("number of errors exceeded")
 		}
 	}
@@ -322,10 +334,8 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 	})
 }
 
-const pollInterval = 500 * time.Millisecond
-
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
-	t := time.NewTicker(pollInterval)
+	t := time.NewTicker(w.parent.pollInterval)
 	defer t.Stop()
 
 	for {

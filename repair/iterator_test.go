@@ -14,6 +14,7 @@ func TestRetryIteratorNext(t *testing.T) {
 		progress: &RunProgress{
 			SegmentErrorStartTokens: []int64{1, 3},
 		},
+		segmentsPerRepair: 1,
 	}
 
 	var actual []int
@@ -33,8 +34,9 @@ func TestRetryIteratorNext(t *testing.T) {
 
 func TestForwardIteratorNext(t *testing.T) {
 	ri := forwardIterator{
-		segments: []*Segment{{0, 1}, {1, 2}, {3, 4}},
-		progress: &RunProgress{},
+		segments:          []*Segment{{0, 1}, {1, 2}, {3, 4}},
+		progress:          &RunProgress{},
+		segmentsPerRepair: 1,
 	}
 
 	var actual []int
