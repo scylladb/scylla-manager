@@ -650,10 +650,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// When run another repair
 	// Then run fails
-	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil {
-		t.Fatal("expected error")
-	} else if errors.Cause(err) != repair.ErrActiveRepair {
-		t.Fatal(err)
+	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil || err.Error() != "repair already in progress" {
+		t.Fatal("expected error", err)
 	}
 
 	// When first node is 1/2 repaired
