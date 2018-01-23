@@ -592,25 +592,26 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	}
 
-	hostProgress := func(host string) (done int) {
-		prog, err := s.GetProgress(ctx, &unit, runID, host)
+	nodeProgress := func(ip string) int {
+		prog, err := s.GetProgress(ctx, &unit, runID, ip)
 		if err != nil {
 			t.Fatal(err)
 		}
 
+		v := 0
 		for _, p := range prog {
-			done += p.PercentComplete()
+			v += p.PercentComplete()
 		}
 		if l := len(prog); l > 0 {
-			done /= l
+			v /= l
 		}
-		return
+		return v
 	}
 
-	waitHostProgress := func(host string, percent int) {
+	waitNodeProgress := func(ip string, percent int) {
 		for {
-			done := hostProgress(host)
-			if done >= percent {
+			p := nodeProgress(ip)
+			if p >= percent {
 				break
 			}
 
@@ -618,10 +619,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	}
 
-	assertHostProgress := func(host string, percent int) {
-		done := hostProgress(host)
-		if done <= percent {
-			t.Fatal("no progress", "expected", percent, "got", done)
+	assertNodeProgress := func(ip string, percent int) {
+		p := nodeProgress(ip)
+		if p <= percent {
+			t.Fatal("no progress", "expected", percent, "got", p)
 		}
 	}
 
@@ -646,7 +647,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	// Then repair of first node advances
-	assertHostProgress(node0, 1)
+	assertNodeProgress(node0, 1)
 
 	// When run another repair
 	// Then run fails
@@ -655,7 +656,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// When first node is 1/2 repaired
-	waitHostProgress(node0, 50)
+	waitNodeProgress(node0, 50)
 
 	// And
 	if err := s.StopRun(ctx, &unit, runID); err != nil {
@@ -686,10 +687,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	// Then repair of first node continues
-	assertHostProgress(node0, 50)
+	assertNodeProgress(node0, 50)
 
 	// When second node is 1/2 repaired
-	waitHostProgress(node1, 50)
+	waitNodeProgress(node1, 50)
 
 	// And restart
 	s.Close()
@@ -712,10 +713,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	// Then repair of second node continues
-	assertHostProgress(node1, 50)
+	assertNodeProgress(node1, 50)
 
 	// When second node is repaired
-	waitHostProgress(node1, 100)
+	waitNodeProgress(node1, 100)
 }
 
 func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
