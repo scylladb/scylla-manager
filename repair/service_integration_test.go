@@ -646,7 +646,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// When wait
 	wait()
 
-	// Then repair of first node advances
+	// Then repair of node0 advances
 	assertNodeProgress(node0, 1)
 
 	// When run another repair
@@ -655,7 +655,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Fatal("expected error", err)
 	}
 
-	// When first node is 1/2 repaired
+	// When node0 is 1/2 repaired
 	waitNodeProgress(node0, 50)
 
 	// And
@@ -686,10 +686,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// When wait
 	wait()
 
-	// Then repair of first node continues
+	// Then repair of node0 continues
 	assertNodeProgress(node0, 50)
 
-	// When second node is 1/2 repaired
+	// When node1 is 1/2 repaired
 	waitNodeProgress(node1, 50)
 
 	// And restart
@@ -712,10 +712,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// When wait
 	wait()
 
-	// Then repair of second node continues
+	// Then repair of node1 continues
 	assertNodeProgress(node1, 50)
 
-	// When second node is repaired
+	// When node1 is repaired
 	waitNodeProgress(node1, 100)
 }
 
