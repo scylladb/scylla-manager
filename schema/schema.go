@@ -11,7 +11,7 @@ type Table struct {
 	PartKey []string
 	SortKey []string
 
-	PrimaryKey []qb.Cmp
+	primaryKey []qb.Cmp
 	delete     cql
 	get        cql
 	insert     cql
@@ -36,7 +36,7 @@ func (t *Table) Get(columns ...string) (stmt string, names []string) {
 
 	return qb.Select(t.Name).
 		Columns(columns...).
-		Where(t.PrimaryKey...).
+		Where(t.primaryKey...).
 		ToCql()
 }
 
@@ -53,25 +53,33 @@ func (t *Table) Select(columns ...string) (stmt string, names []string) {
 
 	return qb.Select(t.Name).
 		Columns(columns...).
-		Where(t.PrimaryKey[0:len(t.PartKey)]...).
+		Where(t.primaryKey[0:len(t.PartKey)]...).
 		ToCql()
+}
+
+// SelectBuilder returns a builder initialised to select by partition key
+// statement.
+func (t *Table) SelectBuilder(columns ...string) *qb.SelectBuilder {
+	return qb.Select(t.Name).
+		Columns(columns...).
+		Where(t.primaryKey[0:len(t.PartKey)]...)
 }
 
 func (t Table) init() Table {
 	// primary key comparator
-	t.PrimaryKey = make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
+	t.primaryKey = make([]qb.Cmp, len(t.PartKey)+len(t.SortKey))
 	for i, c := range append(t.PartKey, t.SortKey...) {
-		t.PrimaryKey[i] = qb.Eq(c)
+		t.primaryKey[i] = qb.Eq(c)
 	}
 
 	// delete
 	{
-		t.delete.stmt, t.delete.names = qb.Delete(t.Name).Where(t.PrimaryKey...).ToCql()
+		t.delete.stmt, t.delete.names = qb.Delete(t.Name).Where(t.primaryKey...).ToCql()
 	}
 
 	// get
 	{
-		t.get.stmt, t.get.names = qb.Select(t.Name).Where(t.PrimaryKey...).ToCql()
+		t.get.stmt, t.get.names = qb.Select(t.Name).Where(t.primaryKey...).ToCql()
 	}
 
 	// insert
@@ -81,7 +89,7 @@ func (t Table) init() Table {
 
 	// select
 	{
-		t.sel.stmt, t.sel.names = qb.Select(t.Name).Where(t.PrimaryKey[0:len(t.PartKey)]...).ToCql()
+		t.sel.stmt, t.sel.names = qb.Select(t.Name).Where(t.primaryKey[0:len(t.PartKey)]...).ToCql()
 	}
 
 	return t
@@ -111,7 +119,7 @@ var (
 
 	RepairRunProgress = Table{
 		Name:    "repair_run_progress",
-		Columns: []string{"cluster_id", "unit_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "last_start_token", "last_start_time", "last_command_id"},
+		Columns: []string{"cluster_id", "unit_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "segment_error_start_tokens", "last_start_token", "last_start_time", "last_command_id"},
 		PartKey: []string{"cluster_id", "unit_id", "run_id"},
 		SortKey: []string{"host", "shard"},
 	}.init()

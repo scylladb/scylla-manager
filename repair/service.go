@@ -99,7 +99,7 @@ func (s *Service) FixRunStatus(ctx context.Context) error {
 
 // Repair starts an asynchronous repair process.
 func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
-	s.logger.Debug(ctx, "Repair", "unit", u, "run_id", runID)
+	s.logger.Info(ctx, "Repair", "unit", u, "run_id", runID)
 
 	// validate the unit
 	if err := u.Validate(); err != nil {
@@ -111,27 +111,14 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get a unit configuration")
 	}
-	s.logger.Debug(ctx, "Using config", "config", &c.Config)
+	s.logger.Info(ctx, "Using config", "config", &c.Config)
 
 	// if repair is disabled return an error
 	if !*c.Config.Enabled {
-		return ErrDisabled
+		s.logger.Info(ctx, "Disabled")
+		return mermaid.ParamError{Cause: ErrDisabled}
 	}
 
-	// get last run of the unit
-	prev, err := s.GetLastRun(ctx, u)
-	if err != nil && err != mermaid.ErrNotFound {
-		return errors.Wrap(err, "failed to get last run of the unit")
-	}
-
-	if prev != nil {
-		switch prev.Status {
-		case StatusDone, StatusError:
-			prev = nil
-		}
-	}
-
-	// register a run with preparing status
 	r := Run{
 		ClusterID: u.ClusterID,
 		UnitID:    u.ID,
@@ -141,9 +128,37 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		Status:    StatusRunning,
 		StartTime: time.Now(),
 	}
+
+	// make sure no other repairs are being run on that cluster
+	if err := s.tryLockCluster(&r); err != nil {
+		s.logger.Debug(ctx, "Lock error", "error", err)
+		return mermaid.ParamError{Cause: ErrActiveRepair}
+	}
+	defer func() {
+		if r.Status != StatusRunning {
+			if err := s.unlockCluster(&r); err != nil {
+				s.logger.Error(ctx, "Unlock error", "error", err)
+			}
+		}
+	}()
+
+	// get last run of the unit
+	prev, err := s.GetLastRun(ctx, u)
+	if err != nil && err != mermaid.ErrNotFound {
+		return errors.Wrap(err, "failed to get previous run")
+	}
+	if prev != nil {
+		s.logger.Info(ctx, "Found previous run", "prev", prev)
+		if prev.Status == StatusDone || prev.TopologyHash == uuid.Nil {
+			s.logger.Info(ctx, "Starting from scratch: nothing too continue from")
+			prev = nil
+		}
+	}
 	if prev != nil {
 		r.PrevID = prev.ID
 	}
+
+	// register the run
 	if err := s.putRun(ctx, &r); err != nil {
 		return errors.Wrap(err, "failed to register the run")
 	}
@@ -296,12 +311,44 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 				s.logger.Error(wctx, "Panic", "panic", v)
 				fail(errors.Errorf("%s", v))
 			}
+			if err := s.unlockCluster(&r); err != nil {
+				s.logger.Error(wctx, "Unlock error", "error", err)
+			}
 		}()
 		if err := s.repair(wctx, u, &r, &c.Config, cluster, hostSegments); err != nil {
 			fail(err)
 		}
 	}()
 
+	return nil
+}
+
+func (s *Service) tryLockCluster(r *Run) error {
+	s.activeMu.Lock()
+	defer s.activeMu.Unlock()
+
+	owner := s.active[r.ClusterID]
+	if owner != uuid.Nil {
+		return errors.Errorf("cluster owned by another run: %s", owner)
+	}
+
+	s.active[r.ClusterID] = r.ID
+	return nil
+}
+
+func (s *Service) unlockCluster(r *Run) error {
+	s.activeMu.Lock()
+	defer s.activeMu.Unlock()
+
+	owner := s.active[r.ClusterID]
+	if owner == uuid.Nil {
+		return errors.Errorf("not locked")
+	}
+	if owner != r.ID {
+		return errors.Errorf("cluster owned by another run: %s", owner)
+	}
+
+	delete(s.active, r.ClusterID)
 	return nil
 }
 
@@ -340,9 +387,15 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			Host:     host,
 			Segments: hostSegments[host],
 
+			segmentsPerRepair: DefaultSegmentsPerRepair,
+			maxFailedSegments: DefaultMaxFailedSegments,
+			pollInterval:      DefaultPollInterval,
+			backoff:           DefaultBackoff,
+
 			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
+			w.logger.Error(ctx, "Repair error", "error", err)
 			return errors.Wrapf(err, "repair error")
 		}
 
@@ -361,7 +414,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			r.EndTime = time.Now()
 			s.putRunLogError(ctx, r)
 
-			s.logger.Info(ctx, "Stopped", "run_id", r.ID)
+			s.logger.Info(ctx, "Stopped", "unit", u, "run_id", r.ID)
 			return nil
 		}
 	}
@@ -495,36 +548,10 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, e
 func (s *Service) putRun(ctx context.Context, r *Run) error {
 	s.logger.Debug(ctx, "PutRun", "run", r)
 
-	s.activeMu.Lock()
-	defer s.activeMu.Unlock()
-
-	isActive := false
-	if id, ok := s.active[r.ClusterID]; ok && id != r.ID {
-		isActive = true
-		r.Status = StatusError
-		r.Cause = fmt.Sprintf("another active repair running: %s", id)
-		r.EndTime = time.Now()
-	}
-
 	stmt, names := schema.RepairRun.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 
-	if err := q.ExecRelease(); err != nil {
-		return err
-	}
-
-	if isActive {
-		return ErrActiveRepair
-	}
-
-	switch r.Status {
-	case StatusRunning, StatusStopping:
-		s.active[r.ClusterID] = r.ID
-	default:
-		delete(s.active, r.ClusterID)
-	}
-
-	return nil
+	return q.ExecRelease()
 }
 
 // putRunLogError executes putRun and consumes the error.
@@ -555,6 +582,7 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return errors.New("not running")
 	}
 
+	s.logger.Info(ctx, "Stopping repair", "unit", u, "run_id", runID)
 	r.Status = StatusStopping
 
 	return s.putRun(ctx, r)
@@ -592,32 +620,61 @@ func (s *Service) GetProgress(ctx context.Context, u *Unit, runID uuid.UUID, hos
 		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
 	}
 
-	t := schema.RepairRunProgress
-	b := qb.Select(t.Name).Where(t.PrimaryKey[0:len(t.PartKey)]...)
-	if len(hosts) > 0 {
-		b.Where(qb.In("host"))
+	if len(hosts) == 0 {
+		return s.getAllHostsProgress(ctx, u, runID)
 	}
 
-	stmt, names := b.ToCql()
+	return s.getHostProgress(ctx, u, runID, hosts...)
+}
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+func (s *Service) getAllHostsProgress(ctx context.Context, u *Unit, runID uuid.UUID) ([]*RunProgress, error) {
+	stmt, names := schema.RepairRunProgress.Select()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
+	defer q.Release()
+
+	q.BindMap(qb.M{
 		"cluster_id": u.ClusterID,
 		"unit_id":    u.ID,
 		"run_id":     runID,
-		"host":       hosts,
 	})
-	defer q.Release()
-
 	if q.Err() != nil {
 		return nil, q.Err()
 	}
 
-	var v []*RunProgress
-	if err := gocqlx.Select(&v, q.Query); err != nil {
-		return nil, err
+	var p []*RunProgress
+	return p, gocqlx.Select(&p, q.Query)
+}
+
+func (s *Service) getHostProgress(ctx context.Context, u *Unit, runID uuid.UUID, hosts ...string) ([]*RunProgress, error) {
+	stmt, names := schema.RepairRunProgress.SelectBuilder().Where(qb.Eq("host")).ToCql()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
+	defer q.Release()
+
+	var p []*RunProgress
+
+	m := qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+		"run_id":     runID,
 	}
 
-	return v, nil
+	for _, h := range hosts {
+		m["host"] = h
+
+		q.BindMap(m)
+		if q.Err() != nil {
+			return nil, q.Err()
+		}
+
+		var v []*RunProgress
+		if err := gocqlx.Select(&v, q.Query); err != nil {
+			return nil, err
+		}
+
+		p = append(p, v...)
+	}
+
+	return p, nil
 }
 
 // putRunProgress upserts a repair run.

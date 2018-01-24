@@ -13,9 +13,13 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-const (
-	segmentsPerRequest   = 1
-	checkIntervalSeconds = 1
+// The values will be moved to service configuration, for now they are exposed
+// so that they can be changed for testing.
+var (
+	DefaultSegmentsPerRepair = 1
+	DefaultMaxFailedSegments = 100
+	DefaultPollInterval      = 500 * time.Millisecond
+	DefaultBackoff           = 10 * time.Second
 )
 
 // worker manages shardWorkers.
@@ -27,6 +31,11 @@ type worker struct {
 	Cluster  *scyllaclient.Client
 	Host     string
 	Segments []*Segment
+
+	segmentsPerRepair int
+	maxFailedSegments int
+	pollInterval      time.Duration
+	backoff           time.Duration
 
 	logger log.Logger
 	shards []*shardWorker
@@ -43,7 +52,7 @@ func (w *worker) exec(ctx context.Context) error {
 		ok = true
 	)
 	for _, s := range w.shards {
-		if s.progress.Done() {
+		if s.progress.complete() {
 			s.logger.Info(ctx, "Already done, skipping")
 			continue
 		}
@@ -90,7 +99,7 @@ func (w *worker) init(ctx context.Context) error {
 	// check if savepoint can be used
 	if err := validateShardProgress(shards, prog); err != nil {
 		if len(prog) > 1 {
-			w.logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error())
+			w.logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error(), "progress", prog)
 		}
 		prog = nil
 	}
@@ -160,7 +169,7 @@ func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partit
 	return shards
 }
 
-// shardWorker repairs a single shard
+// shardWorker repairs a single shard.
 type shardWorker struct {
 	parent   *worker
 	segments []*Segment
@@ -169,48 +178,101 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
+	if w.progress.SegmentError > w.parent.maxFailedSegments {
+		w.logger.Info(ctx, "Starting from scratch: too many errors")
+		w.resetProgress(ctx)
+	}
+
+	if w.progress.completeWithErrors() {
+		return w.repair(ctx, w.newRetryIterator())
+	}
+
+	return w.repair(ctx, w.newForwardIterator())
+}
+
+func (w *shardWorker) newRetryIterator() *retryIterator {
+	return &retryIterator{
+		segments:          w.segments,
+		progress:          w.progress,
+		segmentsPerRepair: w.parent.segmentsPerRepair,
+	}
+}
+
+func (w *shardWorker) newForwardIterator() *forwardIterator {
+	return &forwardIterator{
+		segments:          w.segments,
+		progress:          w.progress,
+		segmentsPerRepair: w.parent.segmentsPerRepair,
+	}
+}
+
+func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
+	w.logger.Info(ctx, "Start repair", "progress", w.progress)
+
 	var (
-		start = w.startSegment(ctx)
-		end   = start + segmentsPerRequest
+		start int
+		end   int
 		id    int32
 		err   error
+		ok    bool
+		iter  int
 	)
 
-	w.logger.Info(ctx, "Starting repair", "start_segment", start)
-	w.logger.Debug(ctx, "Segment stats", "stats", segmentsStats(w.segments))
+	if w.progress.LastCommandID != 0 {
+		id = w.progress.LastCommandID
+	}
 
 	next := func() {
-		start, end = end, end+segmentsPerRequest
+		start, end, ok = ri.Next()
+		iter++
 	}
 
 	savepoint := func() {
-		w.progress.LastStartTime = time.Now()
-		w.progress.LastStartToken = w.segments[start].StartToken
-		w.progress.LastCommandID = id
+		if ok {
+			w.progress.LastStartToken = w.segments[start].StartToken
+		} else {
+			w.progress.LastStartToken = 0
+		}
+
+		if id != 0 {
+			w.progress.LastCommandID = id
+			w.progress.LastStartTime = time.Now()
+		} else {
+			w.progress.LastCommandID = 0
+			w.progress.LastStartTime = time.Time{}
+		}
+
 		w.updateProgress(ctx)
 	}
 
-	for start < len(w.segments) {
-		w.logger.Info(ctx, "Progress", "percent", w.progress.PercentDone())
+	next()
 
-		if w.isStopped(ctx) {
-			w.logger.Info(ctx, "Stopped")
+	for {
+		// no more segments
+		if !ok {
 			break
 		}
 
-		if end > len(w.segments) {
-			end = len(w.segments)
+		if w.isStopped(ctx) {
+			w.logger.Info(ctx, "Stopped")
+			return nil
 		}
 
-		if w.progress.LastCommandID != 0 {
-			id = w.progress.LastCommandID
-		} else {
+		if iter%10 == 0 {
+			w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
+		}
+
+		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
 				if ctx.Err() != nil {
 					w.logger.Info(ctx, "Aborted")
-					break
+					return nil
 				}
+
+				ri.OnError()
+				next()
+				savepoint()
 
 				return errors.Wrap(err, "repair request failed")
 			}
@@ -218,49 +280,41 @@ func (w *shardWorker) exec(ctx context.Context) error {
 
 		savepoint()
 
-		err = w.waitCommand(ctx, id)
+		err, id = w.waitCommand(ctx, id), 0
 		if ctx.Err() != nil {
 			w.logger.Info(ctx, "Aborted")
-			break
+			return nil
 		}
 		if err != nil {
 			w.logger.Info(ctx, "Repair failed", "error", err)
-			w.progress.SegmentError += end - start
+			ri.OnError()
+
+			time.Sleep(w.parent.backoff)
 		} else {
-			w.progress.SegmentSuccess += end - start
+			ri.OnSuccess()
 		}
-		w.progress.LastCommandID = 0
-		if end < len(w.segments) {
-			w.progress.LastStartToken = w.segments[end].StartToken
-		}
-		w.updateProgress(ctx)
 
 		next()
+		savepoint()
+
+		if w.progress.SegmentError > w.parent.maxFailedSegments {
+			return errors.New("number of errors exceeded")
+		}
 	}
+
+	if w.progress.SegmentError > 0 {
+		return errors.New("repair finished with errors")
+	}
+
+	w.logger.Info(ctx, "Done")
 
 	return nil
 }
 
-func (w *shardWorker) startSegment(ctx context.Context) int {
-	if !w.progress.started() {
-		return 0
-	}
-
-	i, ok := segmentsContainStartToken(w.segments, w.progress.LastStartToken)
-	if ok {
-		return i
-	}
-
-	// this shall never happen as it's checked by validateShardProgress
-	w.resetProgress(ctx)
-
-	return 0
-}
-
 func (w *shardWorker) resetProgress(ctx context.Context) {
-	w.logger.Error(ctx, "Starting from scratch: progress reset...")
 	w.progress.SegmentSuccess = 0
 	w.progress.SegmentError = 0
+	w.progress.SegmentErrorStartTokens = nil
 	w.progress.LastStartToken = 0
 	w.progress.LastStartTime = time.Time{}
 	w.progress.LastCommandID = 0
@@ -287,7 +341,7 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
-	t := time.NewTicker(checkIntervalSeconds * time.Second)
+	t := time.NewTicker(w.parent.pollInterval)
 	defer t.Stop()
 
 	for {
@@ -295,7 +349,6 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.C:
-			// TODO limited tolerance to errors, 30m errors non stop ignore...
 			s, err := w.parent.Cluster.RepairStatus(ctx, w.parent.Host, w.parent.Run.Keyspace, id)
 			if err != nil {
 				return err

@@ -276,7 +276,7 @@ func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, 
 			continue
 		}
 		resp.Hosts[r.Host].Shards[r.Shard] = &repairProgress{
-			PercentComplete: int(100 * float64(r.SegmentSuccess+r.SegmentError) / float64(r.SegmentCount)),
+			PercentComplete: r.PercentComplete(),
 			Total:           r.SegmentCount,
 			Success:         r.SegmentSuccess,
 			Error:           r.SegmentError,

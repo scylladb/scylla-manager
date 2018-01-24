@@ -5,11 +5,13 @@
 package repair_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -526,7 +528,7 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 	createKeyspace(t, clusterSession, "test_1")
 	createKeyspace(t, clusterSession, "test_2")
 
-	s := newTestService(t, session)
+	s, _ := newTestService(t, session)
 	clusterID := uuid.MustRandom()
 	ctx := context.Background()
 
@@ -563,18 +565,27 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
+	// fix values for testing...
+	repair.DefaultSegmentsPerRepair = 5
+	repair.DefaultPollInterval = 100 * time.Millisecond
+	repair.DefaultBackoff = 1 * time.Second
+
 	session := mermaidtest.CreateSession(t)
 	clusterSession := mermaidtest.CreateManagedClusterSession(t)
 	createKeyspace(t, clusterSession, "test_repair")
 	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
+	const (
+		node0 = "172.16.1.3"
+		node1 = "172.16.1.10"
+	)
+
 	var (
-		s           = newTestService(t, session)
-		clusterID   = uuid.MustRandom()
-		runID       = uuid.NewTime()
-		unit        = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
-		percentDone = 0
-		ctx         = context.Background()
+		s, hrt    = newTestService(t, session)
+		clusterID = uuid.MustRandom()
+		runID     = uuid.NewTime()
+		unit      = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
+		ctx       = context.Background()
 	)
 
 	assertStatus := func(expected repair.Status) {
@@ -585,55 +596,42 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	}
 
-	assertProgress := func() {
-		prog, err := s.GetProgress(ctx, &unit, runID)
+	nodeProgress := func(ip string) int {
+		prog, err := s.GetProgress(ctx, &unit, runID, ip)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		done := 0
+		v := 0
 		for _, p := range prog {
-			done += p.PercentDone()
+			v += p.PercentComplete()
 		}
 		if l := len(prog); l > 0 {
-			done /= l
+			v /= l
 		}
-
-		if done < percentDone {
-			t.Fatal("no progress, got", done, "had", percentDone)
-		}
-
-		percentDone = done
+		return v
 	}
 
-	wait := func() {
-		time.Sleep(5 * time.Second)
-	}
-
-	waitHostProgress := func(host string, percent int) {
-		hostProgress := func(host string) (done int) {
-			prog, err := s.GetProgress(ctx, &unit, runID, host)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			for _, p := range prog {
-				done += p.PercentDone()
-			}
-			if l := len(prog); l > 0 {
-				done /= l
-			}
-			return
-		}
-
+	waitNodeProgress := func(ip string, percent int) {
 		for {
-			done := hostProgress(host)
-			if done >= percent {
+			p := nodeProgress(ip)
+			if p >= percent {
 				break
 			}
 
-			time.Sleep(time.Second)
+			time.Sleep(500 * time.Millisecond)
 		}
+	}
+
+	assertNodeProgress := func(ip string, percent int) {
+		p := nodeProgress(ip)
+		if p < percent {
+			t.Fatal("no progress", "expected", percent, "got", p)
+		}
+	}
+
+	wait := func() {
+		time.Sleep(2 * time.Second)
 	}
 
 	// Given unit
@@ -652,24 +650,19 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// When wait
 	wait()
 
-	// Then repair advances
-	assertProgress()
+	// Then repair of node0 advances
+	assertNodeProgress(node0, 1)
 
 	// When run another repair
 	// Then run fails
-	attemptRepairID := uuid.NewTime()
-	if err := s.Repair(ctx, &unit, attemptRepairID); err == nil {
-		t.Fatal("expected error")
-	} else if errors.Cause(err) != repair.ErrActiveRepair {
-		t.Fatal(err)
-	}
-	if run, err := s.GetRun(ctx, &unit, attemptRepairID); err != nil {
-		t.Fatal(err)
-	} else if !(run.Status == repair.StatusError && strings.Contains(run.Cause, runID.String())) {
-		t.Fatalf("unexpected run status: %s or cause: %q", run.Status, run.Cause)
+	if err := s.Repair(ctx, &unit, uuid.NewTime()); err == nil || err.Error() != "repair already in progress" {
+		t.Fatal("expected error", err)
 	}
 
-	// When stop run
+	// When node0 is 1/2 repaired
+	waitNodeProgress(node0, 50)
+
+	// And
 	if err := s.StopRun(ctx, &unit, runID); err != nil {
 		t.Fatal(err)
 	}
@@ -697,20 +690,60 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// When wait
 	wait()
 
-	// Then repair advances
-	assertProgress()
+	// Then repair of node0 continues
+	assertNodeProgress(node0, 50)
 
-	// When host is 1/2 repaired
-	waitHostProgress("172.16.1.10", 50)
+	// When errors occur
+	hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.Method != http.MethodGet {
+			return nil, nil
+		}
 
-	// And close
-	s.Close()
+		return &http.Response{
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
+			Request:    req,
+			Header:     make(http.Header, 0),
+		}, nil
+	}))
+	time.AfterFunc(5*time.Second, func() {
+		hrt.SetInterceptor(nil)
+	})
+
+	// When node0 is repaired
+	waitNodeProgress(node0, 97)
 
 	// And wait
 	wait()
 
+	// Then status is StatusError
+	assertStatus(repair.StatusError)
+
+	// When create a new task
+	runID = uuid.NewTime()
+
+	// And run repair
+	if err := s.Repair(ctx, &unit, runID); err != nil {
+		t.Fatal(err)
+	}
+
+	// And wait
+	wait()
+
+	// Then
+	assertNodeProgress(node0, 100)
+
+	// When node1 is 1/2 repaired
+	waitNodeProgress(node1, 50)
+
 	// And restart
-	s = newTestService(t, session)
+	s.Close()
+	wait()
+	s, hrt = newTestService(t, session)
 	s.FixRunStatus(ctx)
 
 	// And create a new task
@@ -724,23 +757,25 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// Then status is StatusRunning
 	assertStatus(repair.StatusRunning)
 
-	// And wait
+	// When wait
 	wait()
 
-	// And repair advances
-	assertProgress()
+	// Then repair of node1 continues
+	assertNodeProgress(node1, 50)
 
-	// When host is repaired
-	waitHostProgress("172.16.1.10", 100)
+	// When node1 is repaired
+	waitNodeProgress(node1, 100)
 }
 
-func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
+func newTestService(t *testing.T, session *gocql.Session) (*repair.Service, *mermaidtest.HackableRoundTripper) {
 	logger := log.NewDevelopment()
+
+	rt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
 
 	s, err := repair.NewService(
 		session,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), logger.Named("scylla"))
+			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, rt, logger.Named("scylla"))
 			if err != nil {
 				return nil, err
 			}
@@ -755,7 +790,7 @@ func newTestService(t *testing.T, session *gocql.Session) *repair.Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s
+	return s, rt
 }
 
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {

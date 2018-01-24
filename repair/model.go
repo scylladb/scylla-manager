@@ -211,14 +211,6 @@ type Segment struct {
 	EndToken   int64
 }
 
-// stats holds segments statistics.
-type stats struct {
-	Size        int
-	MaxRange    int64
-	AvgRange    int64
-	AvgMaxRatio float64
-}
-
 // Status specifies the status of a Run.
 type Status string
 
@@ -291,36 +283,42 @@ type Run struct {
 
 // RunProgress describes repair progress on per shard basis.
 type RunProgress struct {
-	ClusterID      uuid.UUID
-	UnitID         uuid.UUID
-	RunID          uuid.UUID
-	Host           string
-	Shard          int
-	SegmentCount   int
-	SegmentSuccess int
-	SegmentError   int
-	LastStartToken int64
-	LastStartTime  time.Time
-	LastCommandID  int32
+	ClusterID               uuid.UUID
+	UnitID                  uuid.UUID
+	RunID                   uuid.UUID
+	Host                    string
+	Shard                   int
+	SegmentCount            int
+	SegmentSuccess          int
+	SegmentError            int
+	SegmentErrorStartTokens []int64
+	LastStartToken          int64
+	LastStartTime           time.Time
+	LastCommandID           int32
 }
 
-// Done returns true if all the segments were processed.
-func (p *RunProgress) Done() bool {
-	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError
+// complete checks if a shard is completely repaired.
+func (p *RunProgress) complete() bool {
+	return p.SegmentCount > 0 && p.SegmentCount == p.SegmentSuccess
 }
 
-// PercentDone returns value from 0 to 100 representing percentage of processed
-// segments within a shard.
-func (p *RunProgress) PercentDone() int {
+// completeWithErrors checks if a shard tried repairing every segment.
+func (p *RunProgress) completeWithErrors() bool {
+	return p.SegmentCount > 0 && p.SegmentError > 0 && p.SegmentCount == p.SegmentSuccess+p.SegmentError
+}
+
+// PercentComplete returns value from 0 to 100 representing percentage of
+// successfully repaired segments within a shard.
+func (p *RunProgress) PercentComplete() int {
 	if p.SegmentCount == 0 {
 		return 0
 	}
 
-	if p.Done() {
+	if p.SegmentSuccess >= p.SegmentCount {
 		return 100
 	}
 
-	percent := 100 * (p.SegmentSuccess + p.SegmentError) / p.SegmentCount
+	percent := 100 * p.SegmentSuccess / p.SegmentCount
 	if percent >= 100 {
 		percent = 99
 	}
@@ -330,5 +328,5 @@ func (p *RunProgress) PercentDone() int {
 
 // started returns true if the host / shard was ever repaired in the run.
 func (p *RunProgress) started() bool {
-	return !p.LastStartTime.IsZero()
+	return p.LastCommandID != 0 || p.SegmentSuccess > 0 || p.SegmentError > 0
 }
