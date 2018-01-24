@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/mermaid/dht"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"go.uber.org/atomic"
 )
 
 // The values will be moved to service configuration, for now they are exposed
@@ -48,8 +49,8 @@ func (w *worker) exec(ctx context.Context) error {
 
 	// repair shards
 	var (
-		wg sync.WaitGroup
-		ok = true
+		wg     sync.WaitGroup
+		failed atomic.Bool
 	)
 	for _, s := range w.shards {
 		if s.progress.complete() {
@@ -64,18 +65,18 @@ func (w *worker) exec(ctx context.Context) error {
 				wg.Done()
 				if v := recover(); v != nil {
 					s.logger.Error(ctx, "Panic", "panic", v)
-					ok = false
+					failed.Store(true)
 				}
 			}()
 			if err := s.exec(ctx); err != nil {
 				s.logger.Error(ctx, "Exec failed", "error", err)
-				ok = false
+				failed.Store(true)
 			}
 		}()
 	}
 	wg.Wait()
 
-	if !ok {
+	if failed.Load() {
 		return errors.New("shard error, see log for details")
 	}
 
