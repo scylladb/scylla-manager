@@ -19,6 +19,7 @@ var (
 	DefaultSegmentsPerRepair = 1
 	DefaultMaxFailedSegments = 100
 	DefaultPollInterval      = 500 * time.Millisecond
+	DefaultBackoff           = 10 * time.Second
 )
 
 // worker manages shardWorkers.
@@ -34,6 +35,7 @@ type worker struct {
 	segmentsPerRepair int
 	maxFailedSegments int
 	pollInterval      time.Duration
+	backoff           time.Duration
 
 	logger log.Logger
 	shards []*shardWorker
@@ -286,6 +288,8 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		if err != nil {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			ri.OnError()
+
+			time.Sleep(w.parent.backoff)
 		} else {
 			ri.OnSuccess()
 		}

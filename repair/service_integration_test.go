@@ -5,12 +5,13 @@
 package repair_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -567,6 +568,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// fix values for testing...
 	repair.DefaultSegmentsPerRepair = 5
 	repair.DefaultPollInterval = 100 * time.Millisecond
+	repair.DefaultBackoff = 1 * time.Second
 
 	session := mermaidtest.CreateSession(t)
 	clusterSession := mermaidtest.CreateManagedClusterSession(t)
@@ -623,7 +625,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	assertNodeProgress := func(ip string, percent int) {
 		p := nodeProgress(ip)
-		if p <= percent {
+		if p < percent {
 			t.Fatal("no progress", "expected", percent, "got", p)
 		}
 	}
@@ -692,7 +694,48 @@ func TestServiceRepairIntegration(t *testing.T) {
 	assertNodeProgress(node0, 50)
 
 	// When errors occur
-	hrt.SetInterceptor(nil)
+	hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.Method != http.MethodGet {
+			return nil, nil
+		}
+
+		return &http.Response{
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
+			Request:    req,
+			Header:     make(http.Header, 0),
+		}, nil
+	}))
+	time.AfterFunc(5*time.Second, func() {
+		hrt.SetInterceptor(nil)
+	})
+
+	// When node0 is repaired
+	waitNodeProgress(node0, 97)
+
+	// And wait
+	wait()
+
+	// Then status is StatusError
+	assertStatus(repair.StatusError)
+
+	// When create a new task
+	runID = uuid.NewTime()
+
+	// And run repair
+	if err := s.Repair(ctx, &unit, runID); err != nil {
+		t.Fatal(err)
+	}
+
+	// And wait
+	wait()
+
+	// Then
+	assertNodeProgress(node0, 100)
 
 	// When node1 is 1/2 repaired
 	waitNodeProgress(node1, 50)

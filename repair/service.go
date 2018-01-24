@@ -131,7 +131,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(&r); err != nil {
-		s.logger.Info(ctx, "Lock error", "error", err)
+		s.logger.Debug(ctx, "Lock error", "error", err)
 		return mermaid.ParamError{Cause: ErrActiveRepair}
 	}
 	defer func() {
@@ -390,6 +390,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 			segmentsPerRepair: DefaultSegmentsPerRepair,
 			maxFailedSegments: DefaultMaxFailedSegments,
 			pollInterval:      DefaultPollInterval,
+			backoff:           DefaultBackoff,
 
 			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
