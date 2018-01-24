@@ -14,7 +14,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/mermaidclient/internal/models"
+	models "github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
 // GetClusterClusterIDReader is a Reader for the GetClusterClusterID structure.
