@@ -13,7 +13,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/scyllaclient/internal/models"
+	models "github.com/scylladb/mermaid/scyllaclient/internal/models"
 )
 
 // GetWaitingOnFreeMemtableSpaceReader is a Reader for the GetWaitingOnFreeMemtableSpace structure.

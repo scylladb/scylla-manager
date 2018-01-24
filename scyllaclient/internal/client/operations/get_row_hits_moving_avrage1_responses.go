@@ -13,7 +13,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/scyllaclient/internal/models"
+	models "github.com/scylladb/mermaid/scyllaclient/internal/models"
 )
 
 // GetRowHitsMovingAvrage1Reader is a Reader for the GetRowHitsMovingAvrage1 structure.
