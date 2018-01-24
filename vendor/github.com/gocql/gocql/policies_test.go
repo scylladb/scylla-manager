@@ -14,7 +14,7 @@ import (
 )
 
 // Tests of the round-robin host selection policy implementation
-func TestRoundRobinHostPolicy(t *testing.T) {
+func TestHostPolicy_RoundRobin(t *testing.T) {
 	policy := RoundRobinHostPolicy()
 
 	hosts := [...]*HostInfo{
@@ -53,7 +53,7 @@ func TestRoundRobinHostPolicy(t *testing.T) {
 
 // Tests of the token-aware host selection policy implementation with a
 // round-robin host selection policy fallback.
-func TestTokenAwareHostPolicy(t *testing.T) {
+func TestHostPolicy_TokenAware(t *testing.T) {
 	policy := TokenAwareHostPolicy(RoundRobinHostPolicy())
 
 	query := &Query{}
@@ -110,7 +110,7 @@ func TestTokenAwareHostPolicy(t *testing.T) {
 }
 
 // Tests of the host pool host selection policy implementation
-func TestHostPoolHostPolicy(t *testing.T) {
+func TestHostPolicy_HostPool(t *testing.T) {
 	policy := HostPoolHostPolicy(hostpool.New(nil))
 
 	hosts := []*HostInfo{
@@ -150,7 +150,7 @@ func TestHostPoolHostPolicy(t *testing.T) {
 	actualD.Mark(nil)
 }
 
-func TestRoundRobinNilHostInfo(t *testing.T) {
+func TestHostPolicy_RoundRobin_NilHostInfo(t *testing.T) {
 	policy := RoundRobinHostPolicy()
 
 	host := &HostInfo{hostId: "host-1"}
@@ -175,7 +175,7 @@ func TestRoundRobinNilHostInfo(t *testing.T) {
 	}
 }
 
-func TestTokenAwareNilHostInfo(t *testing.T) {
+func TestHostPolicy_TokenAware_NilHostInfo(t *testing.T) {
 	policy := TokenAwareHostPolicy(RoundRobinHostPolicy())
 
 	hosts := [...]*HostInfo{
@@ -302,19 +302,50 @@ func TestExponentialBackoffPolicy(t *testing.T) {
 	}
 }
 
-func TestDCAwareRR(t *testing.T) {
+func TestHostPolicy_DCAwareRR(t *testing.T) {
 	p := DCAwareRoundRobinPolicy("local")
-	p.AddHost(&HostInfo{connectAddress: net.ParseIP("10.0.0.1"), dataCenter: "local"})
-	p.AddHost(&HostInfo{connectAddress: net.ParseIP("10.0.0.2"), dataCenter: "remote"})
 
-	iter := p.Pick(nil)
+	hosts := [...]*HostInfo{
+		{hostId: "0", connectAddress: net.ParseIP("10.0.0.1"), dataCenter: "local"},
+		{hostId: "1", connectAddress: net.ParseIP("10.0.0.2"), dataCenter: "local"},
+		{hostId: "2", connectAddress: net.ParseIP("10.0.0.3"), dataCenter: "remote"},
+		{hostId: "3", connectAddress: net.ParseIP("10.0.0.4"), dataCenter: "remote"},
+	}
 
-	h := iter()
-	if h.Info().DataCenter() != "local" {
-		t.Fatalf("expected to get local DC first, got %v", h.Info())
+	for _, host := range hosts {
+		p.AddHost(host)
 	}
-	h = iter()
-	if h.Info().DataCenter() != "remote" {
-		t.Fatalf("expected to get remote DC, got %v", h.Info())
+
+	// interleaved iteration should always increment the host
+	iterA := p.Pick(nil)
+	if actual := iterA(); actual.Info() != hosts[0] {
+		t.Errorf("Expected hosts[0] but was hosts[%s]", actual.Info().HostID())
 	}
+	iterB := p.Pick(nil)
+	if actual := iterB(); actual.Info() != hosts[1] {
+		t.Errorf("Expected hosts[1] but was hosts[%s]", actual.Info().HostID())
+	}
+	if actual := iterB(); actual.Info() != hosts[0] {
+		t.Errorf("Expected hosts[0] but was hosts[%s]", actual.Info().HostID())
+	}
+	if actual := iterA(); actual.Info() != hosts[1] {
+		t.Errorf("Expected hosts[1] but was hosts[%s]", actual.Info().HostID())
+	}
+	iterC := p.Pick(nil)
+	if actual := iterC(); actual.Info() != hosts[0] {
+		t.Errorf("Expected hosts[0] but was hosts[%s]", actual.Info().HostID())
+	}
+	p.RemoveHost(hosts[0])
+	if actual := iterC(); actual.Info() != hosts[1] {
+		t.Errorf("Expected hosts[1] but was hosts[%s]", actual.Info().HostID())
+	}
+	p.RemoveHost(hosts[1])
+	iterD := p.Pick(nil)
+	if actual := iterD(); actual.Info() != hosts[2] {
+		t.Errorf("Expected hosts[2] but was hosts[%s]", actual.Info().HostID())
+	}
+	if actual := iterD(); actual.Info() != hosts[3] {
+		t.Errorf("Expected hosts[3] but was hosts[%s]", actual.Info().HostID())
+	}
+
 }
