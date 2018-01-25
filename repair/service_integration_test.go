@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -711,7 +712,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if r, err := s.GetRun(ctx, &unit, runID); err != nil {
 			t.Fatal(err)
 		} else if r.Status != expected {
-			t.Fatal("wrong status", r, "expected", expected)
+			t.Fatal("wrong status", r, "expected", expected, "got", r.Status)
 		}
 	}
 
@@ -794,6 +795,23 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// Then status is StatusStopped
 	assertStatus(repair.StatusStopped)
+
+	// When connectivity fails
+	hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		defer hrt.SetInterceptor(nil)
+		return nil, errors.New("test")
+	}))
+
+	// And create a new task
+	runID = uuid.NewTime()
+
+	// Then run fails
+	if err := s.Repair(ctx, &unit, runID); err == nil || !strings.Contains(err.Error(), "test") {
+		t.Fatal(err)
+	}
+
+	// And status is StatusError
+	assertStatus(repair.StatusError)
 
 	// When create a new task
 	runID = uuid.NewTime()

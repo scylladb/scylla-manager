@@ -17,6 +17,7 @@ import (
 // The values will be moved to service configuration, for now they are exposed
 // so that they can be changed for testing.
 var (
+	DefaultRepairMaxAge      = 36 * time.Hour
 	DefaultSegmentsPerRepair = 1
 	DefaultMaxFailedSegments = 100
 	DefaultPollInterval      = 500 * time.Millisecond

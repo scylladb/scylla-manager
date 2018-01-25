@@ -142,15 +142,19 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		}
 	}()
 
-	// get last run of the unit
-	prev, err := s.GetLastRun(ctx, u)
+	// get last started run of the unit
+	prev, err := s.GetLastStartedRun(ctx, u)
 	if err != nil && err != mermaid.ErrNotFound {
 		return errors.Wrap(err, "failed to get previous run")
 	}
 	if prev != nil {
 		s.logger.Info(ctx, "Found previous run", "prev", prev)
-		if prev.Status == StatusDone || prev.TopologyHash == uuid.Nil {
+		switch {
+		case prev.Status == StatusDone:
 			s.logger.Info(ctx, "Starting from scratch: nothing too continue from")
+			prev = nil
+		case time.Since(prev.StartTime) > DefaultRepairMaxAge:
+			s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 			prev = nil
 		}
 	}
@@ -363,13 +367,11 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	})
 
 	for _, host := range hosts {
+		// ensure topology did not change
 		th, err := s.topologyHash(ctx, cluster)
 		if err != nil {
 			s.logger.Info(ctx, "Topology check error", "error", err)
-		}
-
-		// ensure topology did not change
-		if th != uuid.Nil && r.TopologyHash != th {
+		} else if r.TopologyHash != th {
 			return errors.Errorf("topology changed old hash: %s new hash: %s", r.TopologyHash, th)
 		}
 
