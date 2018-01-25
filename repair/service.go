@@ -513,6 +513,55 @@ func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
 	return &r, nil
 }
 
+// GetLastStartedRun returns the the most recent run of the unit that started
+// the repair.
+func (s *Service) GetLastStartedRun(ctx context.Context, u *Unit) (*Run, error) {
+	s.logger.Debug(ctx, "GetLastStartedRun", "unit", u)
+
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
+	}
+
+	stmt, names := qb.Select(schema.RepairRun.Name).
+		Where(
+			qb.Eq("cluster_id"),
+			qb.Eq("unit_id"),
+		).Limit(10).ToCql()
+
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+		"cluster_id": u.ClusterID,
+		"unit_id":    u.ID,
+	})
+	defer q.Release()
+
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var runs []*Run
+	if err := gocqlx.Select(&runs, q.Query); err != nil {
+		return nil, err
+	}
+
+	for _, r := range runs {
+		if r.Status != StatusError {
+			return r, nil
+		}
+
+		// check if repair started
+		p, err := s.getAllHostsProgress(ctx, u, r.ID)
+		if err != nil {
+			return nil, err
+		}
+		if len(p) > 0 {
+			return r, nil
+		}
+	}
+
+	return nil, mermaid.ErrNotFound
+}
+
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, error) {

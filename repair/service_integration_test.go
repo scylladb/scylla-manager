@@ -51,6 +51,19 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	putRunProgress := func(t *testing.T, r *repair.Run) {
+		p := repair.RunProgress{
+			ClusterID: r.ClusterID,
+			UnitID:    r.UnitID,
+			RunID:     r.ID,
+			Host:      "172.16.1.3",
+			Shard:     0,
+		}
+		stmt, names := schema.RepairRunProgress.Insert()
+		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	t.Run("get global merged unit config", func(t *testing.T) {
 		t.Parallel()
@@ -414,6 +427,112 @@ func TestServiceStorageIntegration(t *testing.T) {
 		putRun(t, r1)
 
 		r, err := s.GetLastRun(ctx, u)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer()); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("get last started run nothing to return", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+
+		r0 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusError,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusError,
+		}
+		putRun(t, r1)
+
+		_, err := s.GetLastStartedRun(ctx, u)
+		if err != mermaid.ErrNotFound {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("get last started run return first", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+
+		r0 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusDone,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusStopped,
+		}
+		putRun(t, r1)
+
+		r2 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusError,
+		}
+		putRun(t, r2)
+
+		r, err := s.GetLastStartedRun(ctx, u)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer()); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("get last started run return first with error", func(t *testing.T) {
+		t.Parallel()
+
+		u := validUnit()
+
+		r0 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusDone,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusError,
+		}
+		putRun(t, r1)
+		putRunProgress(t, r1)
+
+		r2 := &repair.Run{
+			ClusterID: u.ClusterID,
+			UnitID:    u.ID,
+			ID:        uuid.NewTime(),
+			Status:    repair.StatusError,
+		}
+		putRun(t, r2)
+
+		r, err := s.GetLastStartedRun(ctx, u)
 		if err != nil {
 			t.Fatal(err)
 		}
