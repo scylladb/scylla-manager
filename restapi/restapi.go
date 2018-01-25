@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/mermaid/log"
 )
 
@@ -45,6 +46,8 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	}
 
 	r.Get("/api/v1/version", newVersionHandler())
+
+	r.Mount("/metrics", promhttp.Handler())
 
 	return r
 }
