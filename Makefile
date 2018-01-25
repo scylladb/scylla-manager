@@ -86,7 +86,7 @@ dev-server:
 	@echo "==> Building development server..."
 	@go build -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo "==> Running development server..."
-	@./scylla-manager.dev -c testing/scylla_cluster/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
+	@./scylla-manager.dev -c testing/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
 
 # dev-cli builds development cli binary.
 .PHONY: dev-cli
