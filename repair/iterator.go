@@ -19,7 +19,7 @@ type retryIterator struct {
 
 func (i *retryIterator) Next() (start, end int, ok bool) {
 	if i.end != 0 {
-		i.progress.SegmentErrorStartTokens = i.progress.SegmentErrorStartTokens[1:len(i.progress.SegmentErrorStartTokens)]
+		i.progress.SegmentErrorStartTokens = i.progress.SegmentErrorStartTokens[1:]
 	}
 
 	if len(i.progress.SegmentErrorStartTokens) == 0 {
