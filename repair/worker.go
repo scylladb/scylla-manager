@@ -17,13 +17,11 @@ import (
 )
 
 var (
-	repairDurationSeconds = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Subsystem: "repair",
 		Name:      "duration_seconds",
 		Help:      "Duration of single repair command.",
-		Buckets: prometheus.LinearBuckets(
-			float64(DefaultPollInterval)/float64(time.Second),
-			float64(DefaultPollInterval)/float64(time.Second), 100),
+		MaxAge:    30 * time.Minute,
 	}, []string{"cluster", "unit", "host", "shard"})
 
 	repairCompletePercent = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -222,7 +220,7 @@ type shardWorker struct {
 	progress *RunProgress
 	logger   log.Logger
 
-	repairDurationSeconds prometheus.Histogram
+	repairDurationSeconds prometheus.Summary
 	repairCompletePercent prometheus.Gauge
 	repairErrors          prometheus.Counter
 }
