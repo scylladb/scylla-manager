@@ -112,6 +112,7 @@ get-tools:
 
 	@go get -u github.com/client9/misspell/cmd/misspell
 	@go get -u github.com/fatih/gomodifytags
+	@go get -u github.com/google/gops
 	@go get -u github.com/gordonklaus/ineffassign
 	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
 	@go get -u honnef.co/go/tools/cmd/megacheck
