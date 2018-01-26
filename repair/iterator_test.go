@@ -3,53 +3,77 @@
 package repair
 
 import (
-	"github.com/google/go-cmp/cmp"
-
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestRetryIteratorNext(t *testing.T) {
-	ri := retryIterator{
-		segments: []*Segment{{0, 1}, {1, 2}, {3, 4}},
-		progress: &RunProgress{
-			SegmentErrorStartTokens: []int64{1, 3},
-		},
-		segmentsPerRepair: 1,
+	var ri repairIterator
+
+	modifiers := []func(){
+		func() {},
+		func() { ri.OnSuccess() },
+		func() { ri.OnError() },
 	}
 
-	var actual []int
-	for {
-		start, end, ok := ri.Next()
-		t.Log(start, end, ok)
-		if !ok {
-			break
+	for _, postFunc := range modifiers {
+		ri = &retryIterator{
+			segments: []*Segment{{0, 1}, {1, 2}, {3, 4}},
+			progress: &RunProgress{
+				SegmentErrorStartTokens: []int64{1, 3},
+			},
+			segmentsPerRepair: 1,
 		}
-		actual = append(actual, start)
-	}
 
-	if diff := cmp.Diff(actual, []int{1, 2}); diff != "" {
-		t.Fatal(diff)
+		var actual []int
+		for {
+			start, end, ok := ri.Next()
+			t.Log(start, end, ok)
+			if !ok {
+				break
+			}
+			postFunc()
+
+			actual = append(actual, start)
+		}
+
+		if diff := cmp.Diff(actual, []int{1, 2}); diff != "" {
+			t.Fatal(diff)
+		}
 	}
 }
 
 func TestForwardIteratorNext(t *testing.T) {
-	ri := forwardIterator{
-		segments:          []*Segment{{0, 1}, {1, 2}, {3, 4}},
-		progress:          &RunProgress{},
-		segmentsPerRepair: 1,
+	var ri repairIterator
+
+	modifiers := []func(){
+		func() {},
+		func() { ri.OnSuccess() },
+		func() { ri.OnError() },
 	}
 
-	var actual []int
-	for {
-		start, end, ok := ri.Next()
-		t.Log(start, end, ok)
-		if !ok {
-			break
+	for _, postFunc := range modifiers {
+		ri = &forwardIterator{
+			segments:          []*Segment{{0, 1}, {1, 2}, {3, 4}},
+			progress:          &RunProgress{},
+			segmentsPerRepair: 1,
 		}
-		actual = append(actual, start)
-	}
 
-	if diff := cmp.Diff(actual, []int{0, 1, 2}); diff != "" {
-		t.Fatal(diff)
+		var actual []int
+		for {
+			start, end, ok := ri.Next()
+			t.Log(start, end, ok)
+			if !ok {
+				break
+			}
+			postFunc()
+
+			actual = append(actual, start)
+		}
+
+		if diff := cmp.Diff(actual, []int{0, 1, 2}); diff != "" {
+			t.Fatal(diff)
+		}
 	}
 }
