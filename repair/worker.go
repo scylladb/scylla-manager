@@ -261,12 +261,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	if w.progress.SegmentSuccess == 0 {
 		w.repairCompletePercent.Set(0)
 	}
-	defer func() {
-		if w.progress.complete() {
-			w.repairCompletePercent.Set(0)
-		}
-		repairErrors.Reset()
-	}()
+	repairErrors.Reset()
 
 	var (
 		start int
