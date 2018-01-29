@@ -86,7 +86,7 @@ dev-server:
 	@echo "==> Building development server..."
 	@go build -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo "==> Running development server..."
-	@./scylla-manager.dev -c testing/scylla_cluster/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
+	@./scylla-manager.dev -c testing/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
 
 # dev-cli builds development cli binary.
 .PHONY: dev-cli
@@ -112,6 +112,7 @@ get-tools:
 
 	@go get -u github.com/client9/misspell/cmd/misspell
 	@go get -u github.com/fatih/gomodifytags
+	@go get -u github.com/google/gops
 	@go get -u github.com/gordonklaus/ineffassign
 	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
 	@go get -u honnef.co/go/tools/cmd/megacheck
