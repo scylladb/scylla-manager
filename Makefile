@@ -88,6 +88,15 @@ dev-server:
 	@echo "==> Running development server..."
 	@./scylla-manager.dev -c testing/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
 
+# dev-server-debug runs development server with dlv debugger.
+.PHONY: dev-server-debug
+dev-server-debug:
+	@echo "==> Building development server..."
+	@go build -gcflags='-N -l' -o ./scylla-manager.dev ./cmd/scylla-manager
+	@echo "==> Running development server in debug mode..."
+	@$(GOBIN)/dlv --listen=:2345 --headless=true --api-version=2 exec ./scylla-manager.dev -- -c testing/scylla-manager.yaml --developer-mode
+	@rm -f ./scylla-manager.dev
+
 # dev-cli builds development cli binary.
 .PHONY: dev-cli
 dev-cli:
@@ -111,6 +120,7 @@ get-tools:
 	@go get -u github.com/golang/mock/mockgen
 
 	@go get -u github.com/client9/misspell/cmd/misspell
+	@go get -u github.com/derekparker/delve/cmd/dlv
 	@go get -u github.com/fatih/gomodifytags
 	@go get -u github.com/google/gops
 	@go get -u github.com/gordonklaus/ineffassign
