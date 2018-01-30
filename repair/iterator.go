@@ -28,7 +28,7 @@ func (i *retryIterator) Next() (start, end int, ok bool) {
 
 	startToken := i.progress.SegmentErrorStartTokens[0]
 	start, _ = segmentsContainStartToken(i.segments, startToken)
-	if start <= i.start {
+	if i.end != 0 && start <= i.start {
 		return 0, 0, false
 	}
 	i.start = start
