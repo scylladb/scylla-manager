@@ -95,7 +95,11 @@ dev-server-debug:
 	@go build -gcflags='-N -l' -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo "==> Running development server in debug mode..."
 	@$(GOBIN)/dlv --listen=:2345 --headless=true --api-version=2 exec ./scylla-manager.dev -- -c testing/scylla-manager.yaml --developer-mode
-	@rm -f ./scylla-manager.dev
+
+# dev-server-kill stops all dev-server instances.
+.PHONY: dev-server-kill
+dev-server-kill:
+	@killall scylla-manager.dev
 
 # dev-cli builds development cli binary.
 .PHONY: dev-cli
