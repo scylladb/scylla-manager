@@ -87,6 +87,7 @@ func (w *worker) exec(ctx context.Context) error {
 	for _, s := range w.shards {
 		if s.progress.complete() {
 			s.logger.Info(ctx, "Already done, skipping")
+			s.repairCompletePercent.Set(1)
 			continue
 		}
 
