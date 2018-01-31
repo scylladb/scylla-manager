@@ -98,7 +98,7 @@ func (c Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 }
 
 // RepairProgress returns repair progress.
-func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID string) (status string, progress int, rows []RepairProgressRow, err error) {
+func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID string) (status, cause string, progress int, rows []RepairProgressRow, err error) {
 	params := &operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -158,7 +158,9 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID st
 	})
 
 	status = resp.Payload.Status
+	cause = resp.Payload.Cause
 	progress = int(resp.Payload.PercentComplete)
+
 	return
 }
 
@@ -277,11 +279,11 @@ func (c *Client) CreateSchedTask(ctx context.Context, clusterID string, t *Task)
 }
 
 // GetSchedTask returns a task of a given type and ID.
-func (c *Client) GetSchedTask(ctx context.Context, clusterID string, tp string, taskID string) (*Task, error) {
+func (c *Client) GetSchedTask(ctx context.Context, clusterID, taskType, taskID string) (*Task, error) {
 	resp, err := c.operations.GetClusterClusterIDTaskTaskTypeTaskID(&operations.GetClusterClusterIDTaskTaskTypeTaskIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		TaskType:  tp,
+		TaskType:  taskType,
 		TaskID:    taskID,
 	})
 	if err != nil {
@@ -292,11 +294,11 @@ func (c *Client) GetSchedTask(ctx context.Context, clusterID string, tp string, 
 }
 
 // GetSchedTaskHistory returns a run history of task of a given type and task ID.
-func (c *Client) GetSchedTaskHistory(ctx context.Context, clusterID string, tp string, taskID string, limit int) ([]*TaskRun, error) {
+func (c *Client) GetSchedTaskHistory(ctx context.Context, clusterID, taskType, taskID string, limit int) ([]*TaskRun, error) {
 	params := &operations.GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		TaskType:  tp,
+		TaskType:  taskType,
 		TaskID:    taskID,
 	}
 	if limit > 0 {
@@ -312,11 +314,11 @@ func (c *Client) GetSchedTaskHistory(ctx context.Context, clusterID string, tp s
 }
 
 // SchedStartTask starts executing a task.
-func (c *Client) SchedStartTask(ctx context.Context, clusterID string, tp string, taskID string) error {
+func (c *Client) SchedStartTask(ctx context.Context, clusterID, taskType, taskID string) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStart(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStartParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		TaskType:  tp,
+		TaskType:  taskType,
 		TaskID:    taskID,
 	})
 
@@ -324,11 +326,11 @@ func (c *Client) SchedStartTask(ctx context.Context, clusterID string, tp string
 }
 
 // SchedStopTask stops executing a task.
-func (c *Client) SchedStopTask(ctx context.Context, clusterID string, tp string, taskID string) error {
+func (c *Client) SchedStopTask(ctx context.Context, clusterID, taskType, taskID string) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStop(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStopParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		TaskType:  tp,
+		TaskType:  taskType,
 		TaskID:    taskID,
 	})
 
@@ -336,11 +338,11 @@ func (c *Client) SchedStopTask(ctx context.Context, clusterID string, tp string,
 }
 
 // SchedDeleteTask stops executing a task.
-func (c *Client) SchedDeleteTask(ctx context.Context, clusterID string, tp string, taskID string) error {
+func (c *Client) SchedDeleteTask(ctx context.Context, clusterID, taskType, taskID string) error {
 	_, err := c.operations.DeleteClusterClusterIDTaskTaskTypeTaskID(&operations.DeleteClusterClusterIDTaskTaskTypeTaskIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		TaskType:  tp,
+		TaskType:  taskType,
 		TaskID:    taskID,
 	})
 
@@ -348,11 +350,11 @@ func (c *Client) SchedDeleteTask(ctx context.Context, clusterID string, tp strin
 }
 
 // UpdateTask updates an existing task unit.
-func (c *Client) UpdateTask(ctx context.Context, clusterID string, tp string, taskID string, t *Task) error {
+func (c *Client) UpdateTask(ctx context.Context, clusterID, taskType, taskID string, t *Task) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskID(&operations.PutClusterClusterIDTaskTaskTypeTaskIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		TaskType:  tp,
+		TaskType:  taskType,
 		TaskID:    taskID,
 		TaskFields: &models.TaskUpdate{
 			Enabled:    t.Enabled,
@@ -367,11 +369,11 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID string, tp string, ta
 }
 
 // ListSchedTasks returns scheduled tasks within a clusterID, optionaly filtered by task type tp.
-func (c *Client) ListSchedTasks(ctx context.Context, clusterID string, tp string, all bool, status string) ([]*ExtendedTask, error) {
+func (c *Client) ListSchedTasks(ctx context.Context, clusterID, taskType string, all bool, status string) ([]*ExtendedTask, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		Type:      &tp,
+		Type:      &taskType,
 		All:       &all,
 		Status:    &status,
 	})

@@ -104,13 +104,21 @@ var repairProgressCmd = &cobra.Command{
 			repairUnit = t.Properties["unit_id"]
 		}
 
-		status, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, repairUnit, repairTask)
+		status, cause, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, repairUnit, repairTask)
 		if err != nil {
 			return printableError{err}
 		}
 
 		w := cmd.OutOrStdout()
-		fmt.Fprintf(w, "Status: %s, progress: %d%%\n", status, progress)
+		fmt.Fprintf(w, "Status: %s\n", status)
+		if cause != "" {
+			fmt.Fprintf(w, "Cause: %s\n", cause)
+		}
+		fmt.Fprintf(w, "Progress: %d\n", progress)
+
+		if len(rows) == 0 {
+			return nil
+		}
 
 		details, err := cmd.Flags().GetBool("details")
 		if err != nil {
@@ -123,6 +131,7 @@ var repairProgressCmd = &cobra.Command{
 		}
 
 		printHostOnlyProgress(w, rows)
+
 		return nil
 	},
 }
