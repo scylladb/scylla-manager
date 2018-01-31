@@ -9,6 +9,9 @@ Type=simple
 User=scylla-manager
 Group=scylla-manager
 ExecStart=/usr/bin/scylla-manager
+TimeoutStartSec=900
+KillMode=process
+Restart=on-abnormal
 StandardOutput=syslog
 StandardError=syslog
 
