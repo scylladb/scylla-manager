@@ -118,6 +118,9 @@
         "status": {
           "type": "string"
         },
+        "cause": {
+          "type": "string"
+        },
         "percent_complete": {
           "type": "number",
           "format": "int32"
