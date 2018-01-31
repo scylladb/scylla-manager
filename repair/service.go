@@ -101,24 +101,6 @@ func (s *Service) FixRunStatus(ctx context.Context) error {
 func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	s.logger.Info(ctx, "Repair", "unit", u, "run_id", runID)
 
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
-
-	// get the unit configuration
-	c, err := s.GetMergedUnitConfig(ctx, u)
-	if err != nil {
-		return errors.Wrap(err, "failed to get a unit configuration")
-	}
-	s.logger.Info(ctx, "Using config", "config", &c.Config)
-
-	// if repair is disabled return an error
-	if !*c.Config.Enabled {
-		s.logger.Info(ctx, "Disabled")
-		return mermaid.ParamError{Cause: ErrDisabled}
-	}
-
 	r := Run{
 		ClusterID: u.ClusterID,
 		UnitID:    u.ID,
@@ -129,10 +111,37 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		StartTime: time.Now(),
 	}
 
+	// fail updates a run and passes the error
+	fail := func(err error) error {
+		r.Status = StatusError
+		r.Cause = err.Error()
+		r.EndTime = time.Now()
+		s.putRunLogError(ctx, &r)
+		return err
+	}
+
+	// validate the unit
+	if err := u.Validate(); err != nil {
+		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")})
+	}
+
+	// get the unit configuration
+	c, err := s.GetMergedUnitConfig(ctx, u)
+	if err != nil {
+		return fail(errors.Wrap(err, "failed to get a unit configuration"))
+	}
+	s.logger.Info(ctx, "Using config", "config", &c.Config)
+
+	// if repair is disabled return an error
+	if !*c.Config.Enabled {
+		s.logger.Info(ctx, "Disabled")
+		return fail(mermaid.ParamError{Cause: ErrDisabled})
+	}
+
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(&r); err != nil {
 		s.logger.Debug(ctx, "Lock error", "error", err)
-		return mermaid.ParamError{Cause: ErrActiveRepair}
+		return fail(mermaid.ParamError{Cause: ErrActiveRepair})
 	}
 	defer func() {
 		if r.Status != StatusRunning {
@@ -145,7 +154,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	// get last started run of the unit
 	prev, err := s.GetLastStartedRun(ctx, u)
 	if err != nil && err != mermaid.ErrNotFound {
-		return errors.Wrap(err, "failed to get previous run")
+		return fail(errors.Wrap(err, "failed to get previous run"))
 	}
 	if prev != nil {
 		s.logger.Info(ctx, "Found previous run", "prev", prev)
@@ -164,16 +173,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 	// register the run
 	if err := s.putRun(ctx, &r); err != nil {
-		return errors.Wrap(err, "failed to register the run")
-	}
-
-	// fail updates a run and passes the error
-	fail := func(err error) error {
-		r.Status = StatusError
-		r.Cause = err.Error()
-		r.EndTime = time.Now()
-		s.putRunLogError(ctx, &r)
-		return err
+		return fail(errors.Wrap(err, "failed to register the run"))
 	}
 
 	// get the cluster client
@@ -529,7 +529,7 @@ func (s *Service) GetLastStartedRun(ctx context.Context, u *Unit) (*Run, error) 
 		Where(
 			qb.Eq("cluster_id"),
 			qb.Eq("unit_id"),
-		).Limit(10).ToCql()
+		).Limit(100).ToCql()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": u.ClusterID,
