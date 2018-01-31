@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path"
 	"strconv"
 	"time"
 
@@ -63,7 +62,7 @@ var repairSchedCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		fmt.Fprintln(cmd.OutOrStdout(), path.Join("repair", id))
+		fmt.Fprintln(cmd.OutOrStdout(), taskJoin("repair", id))
 
 		return nil
 	},
@@ -88,7 +87,7 @@ var repairProgressCmd = &cobra.Command{
 			taskType   string
 		)
 		if len(args) > 0 {
-			taskType, repairTask = path.Split(args[0])
+			taskType, repairTask = taskSplit(args[0])
 		}
 		if f := cmd.Flags().Lookup("unit"); f != nil {
 			repairUnit = f.Value.String()
