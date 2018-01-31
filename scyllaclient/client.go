@@ -301,9 +301,11 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	r = r.WithContext(withHostPort(ctx, host))
 
 	t := time.Now()
-	if _, err := c.transport.RoundTrip(r); err != nil {
+	resp, err := c.transport.RoundTrip(r)
+	if err != nil {
 		return 0, err
 	}
+	defer resp.Body.Close()
 
 	return time.Since(t), nil
 }
