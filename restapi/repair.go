@@ -195,6 +195,7 @@ type repairProgressResponse struct {
 	Keyspace string        `json:"keyspace"`
 	Tables   []string      `json:"tables"`
 	Status   repair.Status `json:"status"`
+	Cause    string        `json:"cause"`
 	repairProgress
 
 	Hosts map[string]*repairHostProgress `json:"hosts"`
@@ -258,6 +259,7 @@ func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, 
 		Keyspace: t.Keyspace,
 		Tables:   t.Tables,
 		Status:   t.Status,
+		Cause:    t.Cause,
 	}
 	if len(runs) == 0 {
 		return resp, nil
