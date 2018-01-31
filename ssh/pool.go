@@ -36,7 +36,7 @@ type Pool struct {
 }
 
 func key(network, addr string) string {
-	return fmt.Sprint(network, '/', addr)
+	return fmt.Sprint(network, "_", addr)
 }
 
 // NewPool creates a new Pool. If idleTimeout > 0 a GC routine is started
