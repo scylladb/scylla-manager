@@ -23,13 +23,14 @@ import (
 )
 
 var (
-	uuid1, uuid2, uuid3 uuid.UUID
+	uuid1, uuid2, uuid3, uuid4 uuid.UUID
 )
 
 func init() {
 	uuid1.UnmarshalText([]byte("00000000-0000-0000-0000-000000000001"))
 	uuid2.UnmarshalText([]byte("00000000-0000-0000-0000-000000000002"))
 	uuid3.UnmarshalText([]byte("00000000-0000-0000-0000-000000000003"))
+	uuid4.UnmarshalText([]byte("00000000-0000-0000-0000-000000000004"))
 }
 
 type repairProgress struct {
@@ -220,23 +221,21 @@ func TestRepairAPI(t *testing.T) {
 		{
 			Name:           "RepairProgress/pre-init",
 			Method:         http.MethodGet,
-			Path:           fmt.Sprintf("/unit/%s/progress", uuid3),
+			Path:           fmt.Sprintf("/unit/%s/progress/%s", uuid3, uuid4),
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
 				svc := mermaidmock.NewMockRepairService(ctrl)
 				tables := []string{"tables1"}
 
-				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid3.String()).Return(&repair.Unit{
+				u := &repair.Unit{
 					ID:        uuid3,
 					ClusterID: uuid1,
 					Tables:    tables,
-				}, nil)
-				svc.EXPECT().GetLastRun(gomock.Any(), gomock.Any()).Do(func(_ interface{}, u *repair.Unit) {
-					if u.ID != uuid3 {
-						t.Fatal("expected", uuid3, "got", u.ID)
-					}
-				}).Return(
+				}
+
+				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid3.String()).Return(u, nil)
+				svc.EXPECT().GetRun(gomock.Any(), u, uuid4).Return(
 					&repair.Run{ID: uuid2, UnitID: uuid3, ClusterID: uuid1, Keyspace: "test_keyspace", Tables: tables, Status: repair.StatusRunning},
 					nil,
 				)
@@ -269,23 +268,21 @@ func TestRepairAPI(t *testing.T) {
 		{
 			Name:           "RepairProgress/partial-start",
 			Method:         http.MethodGet,
-			Path:           fmt.Sprintf("/unit/%s/progress", uuid3),
+			Path:           fmt.Sprintf("/unit/%s/progress/%s", uuid3, uuid4),
 			ExpectedStatus: http.StatusOK,
 
 			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
 				svc := mermaidmock.NewMockRepairService(ctrl)
 				tables := []string{"tables1"}
 
-				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid3.String()).Return(&repair.Unit{
+				u := &repair.Unit{
 					ID:        uuid3,
 					ClusterID: uuid1,
 					Tables:    tables,
-				}, nil)
-				svc.EXPECT().GetLastRun(gomock.Any(), gomock.Any()).Do(func(_ interface{}, u *repair.Unit) {
-					if u.ID != uuid3 {
-						t.Fatal("expected", uuid3, "got", u.ID)
-					}
-				}).Return(
+				}
+
+				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid3.String()).Return(u, nil)
+				svc.EXPECT().GetRun(gomock.Any(), u, uuid4).Return(
 					&repair.Run{ID: uuid2, UnitID: uuid3, ClusterID: uuid1, Keyspace: "test_keyspace", Tables: tables, Status: repair.StatusRunning},
 					nil,
 				)
