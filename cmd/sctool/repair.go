@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -77,42 +78,46 @@ func init() {
 var repairProgressCmd = &cobra.Command{
 	Use:   "progress [repair/task-id]",
 	Short: "Shows repair progress",
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			taskID     string
-			repairUnit string
-			taskType   string
-		)
-		if len(args) > 0 {
-			taskType, taskID = taskSplit(args[0])
-		}
-		if f := cmd.Flags().Lookup("unit"); f != nil {
-			repairUnit = f.Value.String()
-		}
-		if repairUnit == "" && taskID == "" {
-			return printableError{errors.New("either task name/ID or repair unit name/ID must be specified")}
-		}
-		if repairUnit == "" {
-			t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
-			if err != nil {
-				return printableError{err}
-			}
-			repairUnit = t.Properties["unit_id"]
-		}
+		taskType, taskID := taskSplit(args[0])
 
-		status, cause, progress, rows, err := client.RepairProgress(ctx, cfgCluster, repairUnit, taskID)
+		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
 			return printableError{err}
 		}
+		unitID := t.Properties["unit_id"]
+
+		hist, err := client.GetSchedTaskHistory(ctx, cfgCluster, taskType, taskID, 1)
+		if err != nil {
+			return printableError{err}
+		}
+		if len(hist) == 0 {
+			return printableError{errors.New("task did not run yet")}
+		}
+		run := hist[0]
 
 		w := cmd.OutOrStdout()
-		fmt.Fprintf(w, "Status: %s\n", status)
-		if cause != "" {
-			fmt.Fprintf(w, "Cause: %s\n", cause)
+		fmt.Fprintf(w, "Status:\t\t%s", run.Status)
+		if run.Cause != "" {
+			fmt.Fprintf(w, " (%s)", run.Cause)
 		}
-		fmt.Fprintf(w, "Progress: %d\n", progress)
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Start time:\t%s\n", run.StartTime)
+		if run.EndTime != "" {
+			fmt.Fprintf(w, "End time:\t%s\n", run.EndTime)
+		}
+
+		if run.Status == runner.StatusError.String() {
+			return nil
+		}
+
+		_, _, progress, rows, err := client.RepairProgress(ctx, cfgCluster, unitID, run.ID)
+		if err != nil {
+			return printableError{err}
+		}
+		fmt.Fprintf(w, "Progress:\t\t%d\n", progress)
 
 		if len(rows) == 0 {
 			return nil
@@ -171,7 +176,6 @@ func init() {
 	subcommand(cmd, repairCmd)
 
 	fs := cmd.Flags()
-	fs.StringP("unit", "u", "", "repair unit `name` or ID")
 	fs.Bool("details", false, "show detailed progress on shards")
 }
 

@@ -98,17 +98,14 @@ func (c Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 }
 
 // RepairProgress returns repair progress.
-func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, taskID string) (status, cause string, progress int, rows []RepairProgressRow, err error) {
-	params := &operations.GetClusterClusterIDRepairUnitUnitIDProgressParams{
+func (c Client) RepairProgress(ctx context.Context, clusterID, unitID, runID string) (status, cause string, progress int, rows []RepairProgressRow, err error) {
+	var resp *operations.GetClusterClusterIDRepairUnitUnitIDProgressRunIDOK
+	resp, err = c.operations.GetClusterClusterIDRepairUnitUnitIDProgressRunID(&operations.GetClusterClusterIDRepairUnitUnitIDProgressRunIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		UnitID:    unitID,
-	}
-	if taskID != "" {
-		params.TaskID = &taskID
-	}
-
-	resp, err := c.operations.GetClusterClusterIDRepairUnitUnitIDProgress(params)
+		RunID:     runID,
+	})
 	if err != nil {
 		return
 	}
