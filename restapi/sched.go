@@ -90,10 +90,10 @@ func (h *schedHandler) taskCtx(next http.Handler) http.Handler {
 
 type extendedTask struct {
 	*sched.Task
-	Status    *runner.Status `json:"status,omitempty"`
-	Cause     *string        `json:"cause,omitempty"`
-	StartTime *time.Time     `json:"start_time,omitempty"`
-	EndTime   *time.Time     `json:"end_time,omitempty"`
+	Status    runner.Status `json:"status,omitempty"`
+	Cause     string        `json:"cause,omitempty"`
+	StartTime *time.Time    `json:"start_time,omitempty"`
+	EndTime   *time.Time    `json:"end_time,omitempty"`
 }
 
 func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +128,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	history := make([]extendedTask, 0, len(tasks))
+	hist := make([]extendedTask, 0, len(tasks))
 	for _, t := range tasks {
 		if !all && !t.Enabled {
 			continue
@@ -147,18 +147,16 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 
 		e := extendedTask{Task: t}
 		if len(runs) > 0 {
-			e.Status = &runs[0].Status
-			e.Cause = &runs[0].Cause
+			e.Status = runs[0].Status
+			e.Cause = runs[0].Cause
 			if tm := runs[0].StartTime; !tm.IsZero() {
 				e.StartTime = &tm
 			}
-			if tm := runs[0].EndTime; !tm.IsZero() {
-				e.EndTime = &tm
-			}
+			e.EndTime = runs[0].EndTime
 		}
-		history = append(history, e)
+		hist = append(hist, e)
 	}
-	render.Respond(w, r, history)
+	render.Respond(w, r, hist)
 }
 
 func (h *schedHandler) parseTask(r *http.Request) (*sched.Task, error) {

@@ -111,7 +111,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 					continue
 				case runner.StatusStopped, runner.StatusError:
 					r.Status = curStatus
-					r.EndTime = now
+					r.EndTime = &now
 					if curStatus == runner.StatusError {
 						r.Cause = cause
 					}
@@ -258,7 +258,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 	if err := s.taskRunner(t).Run(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
 		s.logger.Info(ctx, "failed to start task", "Task", t, "run ID", run.ID, "error", err)
 		run.Status = runner.StatusError
-		run.EndTime = now
+		run.EndTime = &now
 		run.Cause = err.Error()
 		if err := s.putRun(ctx, run); err != nil {
 			s.logger.Error(ctx, "failed to write run", "run", run)
@@ -301,7 +301,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 			switch curStatus {
 			case runner.StatusStopped, runner.StatusError:
 				run.Status = curStatus
-				run.EndTime = now
+				run.EndTime = &now
 				if curStatus == runner.StatusError {
 					run.Cause = cause
 				}

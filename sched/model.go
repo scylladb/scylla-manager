@@ -175,8 +175,8 @@ type Run struct {
 	ClusterID uuid.UUID     `json:"cluster_id"`
 	TaskID    uuid.UUID     `json:"task_id"`
 	Status    runner.Status `json:"status"`
-	Cause     string        `json:"cause"`
+	Cause     string        `json:"cause,omitempty"`
 	Owner     string        `json:"owner"`
 	StartTime time.Time     `json:"start_time"`
-	EndTime   time.Time     `json:"end_time"`
+	EndTime   *time.Time    `json:"end_time,omitempty"`
 }
