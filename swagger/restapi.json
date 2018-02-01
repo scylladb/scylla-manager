@@ -568,7 +568,7 @@
         }
       }
     },
-    "/cluster/{cluster_id}/repair/unit/{unit_id}/progress": {
+    "/cluster/{cluster_id}/repair/unit/{unit_id}/progress/{run_id}": {
       "get": {
         "parameters": [
           {
@@ -587,9 +587,10 @@
           },
           {
             "type": "string",
-            "description": "task ID requesting the stats",
-            "name": "task_id",
-            "in": "query"
+            "description": "repair run ID requesting the stats",
+            "name": "run_id",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
