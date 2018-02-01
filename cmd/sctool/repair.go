@@ -81,6 +81,8 @@ var repairProgressCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		w := cmd.OutOrStdout()
+
 		taskType, taskID := taskSplit(args[0])
 
 		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
@@ -94,11 +96,11 @@ var repairProgressCmd = &cobra.Command{
 			return printableError{err}
 		}
 		if len(hist) == 0 {
-			return printableError{errors.New("task did not run yet")}
+			fmt.Fprintf(w, "Task did not run yet\n")
+			return nil
 		}
 		run := hist[0]
 
-		w := cmd.OutOrStdout()
 		fmt.Fprintf(w, "Status:\t\t%s", run.Status)
 		if run.Cause != "" {
 			fmt.Fprintf(w, " (%s)", run.Cause)
