@@ -32,22 +32,21 @@ type SchedService interface {
 }
 
 type schedHandler struct {
-	chi.Router
 	svc SchedService
 }
 
-func newSchedHandler(svc SchedService) http.Handler {
+func newSchedHandler(svc SchedService) *chi.Mux {
+	m := chi.NewMux()
 	h := &schedHandler{
-		Router: chi.NewRouter(),
-		svc:    svc,
+		svc: svc,
 	}
 
-	h.Route("/tasks", func(r chi.Router) {
+	m.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.listTasks)
 		r.Post("/", h.createTask)
 	})
 
-	h.Route("/task/{task_type}/{task_id}", func(r chi.Router) {
+	m.Route("/task/{task_type}/{task_id}", func(r chi.Router) {
 		r.Use(h.taskCtx)
 		r.Get("/", h.loadTask)
 		r.Put("/", h.updateTask)
@@ -57,7 +56,7 @@ func newSchedHandler(svc SchedService) http.Handler {
 		r.Get("/history", h.taskHistory)
 	})
 
-	return h
+	return m
 }
 
 func (h *schedHandler) taskCtx(next http.Handler) http.Handler {

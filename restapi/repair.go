@@ -36,22 +36,21 @@ type RepairService interface {
 }
 
 type repairHandler struct {
-	chi.Router
 	svc RepairService
 }
 
-func newRepairHandler(svc RepairService) http.Handler {
+func newRepairHandler(svc RepairService) *chi.Mux {
+	m := chi.NewMux()
 	h := &repairHandler{
-		Router: chi.NewRouter(),
-		svc:    svc,
+		svc: svc,
 	}
 
 	// unit
-	h.Route("/units", func(r chi.Router) {
+	m.Route("/units", func(r chi.Router) {
 		r.Get("/", h.listUnits)
 		r.Post("/", h.createUnit)
 	})
-	h.Route("/unit/{unit_id}", func(r chi.Router) {
+	m.Route("/unit/{unit_id}", func(r chi.Router) {
 		r.Use(h.unitCtx)
 		r.Get("/", h.loadUnit)
 		r.Put("/", h.updateUnit)
@@ -60,7 +59,7 @@ func newRepairHandler(svc RepairService) http.Handler {
 	})
 
 	// config
-	h.Route("/config", func(r chi.Router) {
+	m.Route("/config", func(r chi.Router) {
 		r.Get("/", h.getConfig)
 		r.Put("/", h.updateConfig)
 		r.Delete("/", h.deleteConfig)
@@ -72,7 +71,7 @@ func newRepairHandler(svc RepairService) http.Handler {
 		})
 	})
 
-	return h
+	return m
 }
 
 //

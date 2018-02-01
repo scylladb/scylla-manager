@@ -58,28 +58,27 @@ func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
 
 type clusterHandler struct {
 	clusterFilter
-	chi.Router
 }
 
-func newClusterHandler(svc ClusterService) http.Handler {
+func newClusterHandler(svc ClusterService) *chi.Mux {
+	m := chi.NewMux()
 	h := &clusterHandler{
 		clusterFilter: clusterFilter{
 			svc: svc,
 		},
-		Router: chi.NewRouter(),
 	}
 
-	h.Route("/clusters", func(r chi.Router) {
+	m.Route("/clusters", func(r chi.Router) {
 		r.Get("/", h.listClusters)
 		r.Post("/", h.createCluster)
 	})
-	h.Route("/cluster/{cluster_id}", func(r chi.Router) {
+	m.Route("/cluster/{cluster_id}", func(r chi.Router) {
 		r.Use(h.clusterCtx)
 		r.Get("/", h.loadCluster)
 		r.Put("/", h.updateCluster)
 		r.Delete("/", h.deleteCluster)
 	})
-	return h
+	return m
 }
 
 func (h *clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
