@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 )
 
@@ -26,6 +27,9 @@ type Services struct {
 // New returns an http.Handler implementing mermaid v1 REST API.
 func New(svc *Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		respondError(w, r, mermaid.ErrNotFound, "")
+	})
 	r.Use(traceIDMiddleware)
 	r.Use(middleware.RequestLogger(httpLogger{logger}))
 	r.Use(recoverPanics)
