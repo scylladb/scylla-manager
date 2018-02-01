@@ -3,10 +3,13 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"os"
 )
+
+var ctx = context.Background()
 
 func main() {
 	log.SetOutput(ioutil.Discard)

@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -37,7 +36,7 @@ var clusterAddCmd = withoutArgs(&cobra.Command{
 	Short: "Adds a cluster to manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.CreateCluster(context.Background(), &mermaidclient.Cluster{
+		id, err := client.CreateCluster(ctx, &mermaidclient.Cluster{
 			Name:       cfgClusterName,
 			Hosts:      cfgClusterHosts,
 			ShardCount: cfgClusterShardCount,
@@ -66,7 +65,7 @@ var clusterUpdateCmd = withoutArgs(&cobra.Command{
 	Short: "Modifies a cluster",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cluster, err := client.GetCluster(context.Background(), cfgCluster)
+		cluster, err := client.GetCluster(ctx, cfgCluster)
 		if err != nil {
 			return printableError{err}
 		}
@@ -88,7 +87,7 @@ var clusterUpdateCmd = withoutArgs(&cobra.Command{
 			return errors.New("nothing to do")
 		}
 
-		if err := client.UpdateCluster(context.Background(), cluster); err != nil {
+		if err := client.UpdateCluster(ctx, cluster); err != nil {
 			return printableError{err}
 		}
 
@@ -108,7 +107,7 @@ var clusterDeleteCmd = withoutArgs(&cobra.Command{
 	Short: "Deletes a cluster from manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := client.DeleteCluster(context.Background(), cfgCluster); err != nil {
+		if err := client.DeleteCluster(ctx, cfgCluster); err != nil {
 			return printableError{err}
 		}
 
@@ -126,7 +125,7 @@ var clusterListCmd = withoutArgs(&cobra.Command{
 	Short: "Shows managed clusters",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		units, err := client.ListClusters(context.Background())
+		units, err := client.ListClusters(ctx)
 		if err != nil {
 			return printableError{err}
 		}

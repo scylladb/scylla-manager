@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -57,7 +56,7 @@ var repairSchedCmd = &cobra.Command{
 		}
 		t.Schedule.NumRetries = int32(numRetries)
 
-		id, err := client.CreateSchedTask(context.Background(), cfgCluster, t)
+		id, err := client.CreateSchedTask(ctx, cfgCluster, t)
 		if err != nil {
 			return printableError{err}
 		}
@@ -96,14 +95,14 @@ var repairProgressCmd = &cobra.Command{
 			return printableError{errors.New("either task name/ID or repair unit name/ID must be specified")}
 		}
 		if repairUnit == "" {
-			t, err := client.GetSchedTask(context.Background(), cfgCluster, taskType, taskID)
+			t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
 			if err != nil {
 				return printableError{err}
 			}
 			repairUnit = t.Properties["unit_id"]
 		}
 
-		status, cause, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, repairUnit, taskID)
+		status, cause, progress, rows, err := client.RepairProgress(ctx, cfgCluster, repairUnit, taskID)
 		if err != nil {
 			return printableError{err}
 		}
@@ -202,7 +201,7 @@ var repairUnitAddCmd = withoutArgs(&cobra.Command{
 	Short: "Creates a new repair unit",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.CreateRepairUnit(context.Background(), cfgCluster, &mermaidclient.RepairUnit{
+		id, err := client.CreateRepairUnit(ctx, cfgCluster, &mermaidclient.RepairUnit{
 			Name:     cfgRepairUnitName,
 			Keyspace: cfgRepairUnitKeyspace,
 			Tables:   cfgRepairUnitTables,
@@ -231,7 +230,7 @@ var repairUnitUpdateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		u, err := client.GetRepairUnit(context.Background(), cfgCluster, args[0])
+		u, err := client.GetRepairUnit(ctx, cfgCluster, args[0])
 		if err != nil {
 			return printableError{err}
 		}
@@ -253,7 +252,7 @@ var repairUnitUpdateCmd = &cobra.Command{
 			return errors.New("nothing to do")
 		}
 
-		if err := client.UpdateRepairUnit(context.Background(), cfgCluster, u); err != nil {
+		if err := client.UpdateRepairUnit(ctx, cfgCluster, u); err != nil {
 			return printableError{err}
 		}
 
@@ -274,7 +273,7 @@ var repairUnitDeleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := client.DeleteRepairUnit(context.Background(), cfgCluster, args[0]); err != nil {
+		if err := client.DeleteRepairUnit(ctx, cfgCluster, args[0]); err != nil {
 			return printableError{err}
 		}
 
@@ -291,7 +290,7 @@ var repairUnitListCmd = withoutArgs(&cobra.Command{
 	Short: "Shows available repair units",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		units, err := client.ListRepairUnits(context.Background(), cfgCluster)
+		units, err := client.ListRepairUnits(ctx, cfgCluster)
 		if err != nil {
 			return printableError{err}
 		}

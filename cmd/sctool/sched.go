@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -38,7 +37,7 @@ var schedTaskListCmd = withoutArgs(&cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		tasks, err := client.ListSchedTasks(context.Background(), cfgCluster, schedTaskType, all, status)
+		tasks, err := client.ListSchedTasks(ctx, cfgCluster, schedTaskType, all, status)
 		if err != nil {
 			return printableError{err}
 		}
@@ -129,7 +128,7 @@ var schedStartTaskCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		schedTaskType, schedTaskID = taskSplit(args[0])
-		if err := client.SchedStartTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
+		if err := client.SchedStartTask(ctx, cfgCluster, schedTaskType, schedTaskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -147,7 +146,7 @@ var schedStopTaskCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		schedTaskType, schedTaskID = taskSplit(args[0])
-		if err := client.SchedStopTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
+		if err := client.SchedStopTask(ctx, cfgCluster, schedTaskType, schedTaskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -208,7 +207,7 @@ var schedTaskUpdateCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		schedTaskType, schedTaskID = taskSplit(args[0])
-		t, err := client.GetSchedTask(context.Background(), cfgCluster, schedTaskType, schedTaskID)
+		t, err := client.GetSchedTask(ctx, cfgCluster, schedTaskType, schedTaskID)
 		if err != nil {
 			return printableError{err}
 		}
@@ -266,7 +265,7 @@ var schedTaskUpdateCmd = &cobra.Command{
 			return errors.New("nothing to change")
 		}
 
-		if err := client.UpdateTask(context.Background(), cfgCluster, schedTaskType, schedTaskID, t); err != nil {
+		if err := client.UpdateTask(ctx, cfgCluster, schedTaskType, schedTaskID, t); err != nil {
 			return printableError{err}
 		}
 
@@ -289,7 +288,7 @@ var schedDeleteTaskCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		schedTaskType, schedTaskID = taskSplit(args[0])
-		if err := client.SchedDeleteTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
+		if err := client.SchedDeleteTask(ctx, cfgCluster, schedTaskType, schedTaskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -312,7 +311,7 @@ var schedTaskHistoryCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		runs, err := client.GetSchedTaskHistory(context.Background(), cfgCluster, schedTaskType, schedTaskID, limit)
+		runs, err := client.GetSchedTaskHistory(ctx, cfgCluster, schedTaskType, schedTaskID, limit)
 		if err != nil {
 			return printableError{err}
 		}
