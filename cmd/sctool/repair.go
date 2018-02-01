@@ -117,7 +117,7 @@ var repairProgressCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		fmt.Fprintf(w, "Progress:\t\t%d\n", progress)
+		fmt.Fprintf(w, "Progress:\t%d%%\n", progress)
 
 		if len(rows) == 0 {
 			return nil
