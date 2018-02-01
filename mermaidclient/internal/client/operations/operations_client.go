@@ -277,30 +277,30 @@ func (a *Client) GetClusterClusterIDRepairUnitUnitID(params *GetClusterClusterID
 }
 
 /*
-GetClusterClusterIDRepairUnitUnitIDProgress get cluster cluster ID repair unit unit ID progress API
+GetClusterClusterIDRepairUnitUnitIDProgressRunID get cluster cluster ID repair unit unit ID progress run ID API
 */
-func (a *Client) GetClusterClusterIDRepairUnitUnitIDProgress(params *GetClusterClusterIDRepairUnitUnitIDProgressParams) (*GetClusterClusterIDRepairUnitUnitIDProgressOK, error) {
+func (a *Client) GetClusterClusterIDRepairUnitUnitIDProgressRunID(params *GetClusterClusterIDRepairUnitUnitIDProgressRunIDParams) (*GetClusterClusterIDRepairUnitUnitIDProgressRunIDOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetClusterClusterIDRepairUnitUnitIDProgressParams()
+		params = NewGetClusterClusterIDRepairUnitUnitIDProgressRunIDParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterClusterIDRepairUnitUnitIDProgress",
+		ID:                 "GetClusterClusterIDRepairUnitUnitIDProgressRunID",
 		Method:             "GET",
-		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}/progress",
+		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}/progress/{run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetClusterClusterIDRepairUnitUnitIDProgressReader{formats: a.formats},
+		Reader:             &GetClusterClusterIDRepairUnitUnitIDProgressRunIDReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDRepairUnitUnitIDProgressOK), nil
+	return result.(*GetClusterClusterIDRepairUnitUnitIDProgressRunIDOK), nil
 
 }
 
