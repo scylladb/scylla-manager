@@ -82,28 +82,28 @@ var repairProgressCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
-			repairTask string
+			taskID     string
 			repairUnit string
 			taskType   string
 		)
 		if len(args) > 0 {
-			taskType, repairTask = taskSplit(args[0])
+			taskType, taskID = taskSplit(args[0])
 		}
 		if f := cmd.Flags().Lookup("unit"); f != nil {
 			repairUnit = f.Value.String()
 		}
-		if repairUnit == "" && repairTask == "" {
+		if repairUnit == "" && taskID == "" {
 			return printableError{errors.New("either task name/ID or repair unit name/ID must be specified")}
 		}
 		if repairUnit == "" {
-			t, err := client.GetSchedTask(context.Background(), cfgCluster, taskType, repairTask)
+			t, err := client.GetSchedTask(context.Background(), cfgCluster, taskType, taskID)
 			if err != nil {
 				return printableError{err}
 			}
 			repairUnit = t.Properties["unit_id"]
 		}
 
-		status, cause, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, repairUnit, repairTask)
+		status, cause, progress, rows, err := client.RepairProgress(context.Background(), cfgCluster, repairUnit, taskID)
 		if err != nil {
 			return printableError{err}
 		}
