@@ -3,10 +3,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -39,7 +37,12 @@ var schedTaskListCmd = withoutArgs(&cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		tasks, err := client.ListSchedTasks(context.Background(), cfgCluster, schedTaskType, all, status)
+		taskType, err := fs.GetString("task")
+		if err != nil {
+			return printableError{err}
+		}
+
+		tasks, err := client.ListSchedTasks(ctx, cfgCluster, taskType, all, status)
 		if err != nil {
 			return printableError{err}
 		}
@@ -69,9 +72,9 @@ func printAllTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
 		fields = append(fields, e)
 
 		if task.Schedule != nil {
-			fields = append(fields, path.Join(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
 		} else {
-			fields = append(fields, path.Join(task.Type, task.ID), task.Name, "-", "-", "-")
+			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, "-", "-", "-")
 		}
 
 		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
@@ -92,9 +95,9 @@ func printEnabledTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
 		fields := make([]interface{}, 0, len(headers))
 
 		if task.Schedule != nil {
-			fields = append(fields, path.Join(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
 		} else {
-			fields = append(fields, path.Join(task.Type, task.ID), task.Name, "-", "-", "-")
+			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, "-", "-", "-")
 		}
 
 		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
@@ -113,15 +116,10 @@ func init() {
 	subcommand(cmd, taskCmd)
 
 	fs := cmd.Flags()
-	fs.StringVar(&schedTaskType, "type", "", "task type")
+	fs.StringP("type", "", "", "task type")
 	fs.Bool("all", false, "list disabled tasks as well")
 	fs.String("status", "", "filter tasks according to last run status")
 }
-
-var (
-	schedTaskID   string
-	schedTaskType string
-)
 
 var schedStartTaskCmd = &cobra.Command{
 	Use:   "start <type/task-id>",
@@ -129,8 +127,12 @@ var schedStartTaskCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		schedTaskType, schedTaskID = path.Split(args[0])
-		if err := client.SchedStartTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+
+		if err := client.SchedStartTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -147,8 +149,11 @@ var schedStopTaskCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		schedTaskType, schedTaskID = path.Split(args[0])
-		if err := client.SchedStopTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+		if err := client.SchedStopTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -208,8 +213,12 @@ var schedTaskUpdateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		schedTaskType, schedTaskID = path.Split(args[0])
-		t, err := client.GetSchedTask(context.Background(), cfgCluster, schedTaskType, schedTaskID)
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+
+		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
 			return printableError{err}
 		}
@@ -267,7 +276,7 @@ var schedTaskUpdateCmd = &cobra.Command{
 			return errors.New("nothing to change")
 		}
 
-		if err := client.UpdateTask(context.Background(), cfgCluster, schedTaskType, schedTaskID, t); err != nil {
+		if err := client.UpdateTask(ctx, cfgCluster, taskType, taskID, t); err != nil {
 			return printableError{err}
 		}
 
@@ -289,8 +298,12 @@ var schedDeleteTaskCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		schedTaskType, schedTaskID = path.Split(args[0])
-		if err := client.SchedDeleteTask(context.Background(), cfgCluster, schedTaskType, schedTaskID); err != nil {
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+
+		if err := client.SchedDeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -307,13 +320,17 @@ var schedTaskHistoryCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		schedTaskType, schedTaskID = path.Split(args[0])
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+
 		limit, err := cmd.Flags().GetInt("limit")
 		if err != nil {
 			return printableError{err}
 		}
 
-		runs, err := client.GetSchedTaskHistory(context.Background(), cfgCluster, schedTaskType, schedTaskID, limit)
+		runs, err := client.GetSchedTaskHistory(ctx, cfgCluster, taskType, taskID, limit)
 		if err != nil {
 			return printableError{err}
 		}

@@ -13,9 +13,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/repair"
-	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -39,15 +37,13 @@ type RepairService interface {
 
 type repairHandler struct {
 	chi.Router
-	svc      RepairService
-	schedSvc SchedService
+	svc RepairService
 }
 
-func newRepairHandler(svc RepairService, schedSvc SchedService) http.Handler {
+func newRepairHandler(svc RepairService) http.Handler {
 	h := &repairHandler{
-		Router:   chi.NewRouter(),
-		svc:      svc,
-		schedSvc: schedSvc,
+		Router: chi.NewRouter(),
+		svc:    svc,
 	}
 
 	// unit
@@ -60,7 +56,7 @@ func newRepairHandler(svc RepairService, schedSvc SchedService) http.Handler {
 		r.Get("/", h.loadUnit)
 		r.Put("/", h.updateUnit)
 		r.Delete("/", h.deleteUnit)
-		r.Get("/progress", h.repairProgress)
+		r.Get("/progress/{run_id}", h.repairProgress)
 	})
 
 	// config
@@ -195,6 +191,7 @@ type repairProgressResponse struct {
 	Keyspace string        `json:"keyspace"`
 	Tables   []string      `json:"tables"`
 	Status   repair.Status `json:"status"`
+	Cause    string        `json:"cause"`
 	repairProgress
 
 	Hosts map[string]*repairHostProgress `json:"hosts"`
@@ -203,37 +200,13 @@ type repairProgressResponse struct {
 func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 	u := mustUnitFromCtx(r)
 
-	var (
-		run *repair.Run
-		err error
-	)
-
-	if taskID := r.FormValue("task_id"); taskID == "" {
-		run, err = h.svc.GetLastRun(r.Context(), u)
-	} else {
-		if h.schedSvc == nil {
-			respondError(w, r, errors.New("missing scheduler service"), "cannot lookup task")
-			return
-		}
-		var t *sched.Task
-		t, err = h.schedSvc.GetTask(r.Context(), u.ClusterID, sched.RepairTask, taskID)
-		if err != nil {
-			respondError(w, r, err, "failed to load task")
-			return
-		}
-		var runs []*sched.Run
-		runs, err = h.schedSvc.GetLastRun(r.Context(), t, 1)
-		if err != nil {
-			respondError(w, r, err, "failed to load task run")
-			return
-		}
-		if len(runs) == 0 {
-			respondError(w, r, mermaid.ParamError{Cause: errors.New("task did not run yet")}, "")
-			return
-		}
-		run, err = h.svc.GetRun(r.Context(), u, runs[0].ID)
+	var runID uuid.UUID
+	if err := runID.UnmarshalText([]byte(chi.URLParam(r, "run_id"))); err != nil {
+		respondBadRequest(w, r, err)
+		return
 	}
 
+	run, err := h.svc.GetRun(r.Context(), u, runID)
 	if err != nil {
 		respondError(w, r, err, "failed to load repair run")
 		return
@@ -241,7 +214,7 @@ func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.createProgressResponse(r, u, run)
 	if err != nil {
-		respondError(w, r, err, "failed to load run repairProgress")
+		respondError(w, r, err, "failed to load run repair progress")
 		return
 	}
 
@@ -258,6 +231,7 @@ func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, 
 		Keyspace: t.Keyspace,
 		Tables:   t.Tables,
 		Status:   t.Status,
+		Cause:    t.Cause,
 	}
 	if len(runs) == 0 {
 		return resp, nil

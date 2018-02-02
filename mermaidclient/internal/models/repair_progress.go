@@ -16,6 +16,9 @@ import (
 // swagger:model repairProgress
 type RepairProgress struct {
 
+	// cause
+	Cause string `json:"cause,omitempty"`
+
 	// error
 	Error int32 `json:"error,omitempty"`
 
