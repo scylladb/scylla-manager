@@ -76,7 +76,7 @@ func init() {
 }
 
 var repairProgressCmd = &cobra.Command{
-	Use:   "progress [repair/task-id]",
+	Use:   "progress <repair/task-id>",
 	Short: "Shows repair progress",
 	Args:  cobra.ExactArgs(1),
 
