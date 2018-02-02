@@ -67,6 +67,15 @@ func Parse(s string) (UUID, error) {
 	return u, err
 }
 
+// MustParse creates a new UUID from string and panics if s is not an UUID.
+func MustParse(s string) UUID {
+	u, err := Parse(s)
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
 // Bytes returns the raw byte slice for this UUID. A UUID is always 128 bits
 // (16 bytes) long.
 func (u UUID) Bytes() []byte {
