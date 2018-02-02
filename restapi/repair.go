@@ -200,8 +200,8 @@ type repairProgressResponse struct {
 func (h *repairHandler) repairProgress(w http.ResponseWriter, r *http.Request) {
 	u := mustUnitFromCtx(r)
 
-	var runID uuid.UUID
-	if err := runID.UnmarshalText([]byte(chi.URLParam(r, "run_id"))); err != nil {
+	runID, err := uuid.Parse(chi.URLParam(r, "run_id"))
+	if err != nil {
 		respondBadRequest(w, r, err)
 		return
 	}

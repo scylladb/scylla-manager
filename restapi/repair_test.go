@@ -23,15 +23,11 @@ import (
 )
 
 var (
-	uuid1, uuid2, uuid3, uuid4 uuid.UUID
+	uuid1 = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	uuid2 = uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	uuid3 = uuid.MustParse("00000000-0000-0000-0000-000000000003")
+	uuid4 = uuid.MustParse("00000000-0000-0000-0000-000000000004")
 )
-
-func init() {
-	uuid1.UnmarshalText([]byte("00000000-0000-0000-0000-000000000001"))
-	uuid2.UnmarshalText([]byte("00000000-0000-0000-0000-000000000002"))
-	uuid3.UnmarshalText([]byte("00000000-0000-0000-0000-000000000003"))
-	uuid4.UnmarshalText([]byte("00000000-0000-0000-0000-000000000004"))
-}
 
 type repairProgress struct {
 	Keyspace        string                 `json:"keyspace"`
