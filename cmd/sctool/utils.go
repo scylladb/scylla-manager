@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -24,11 +25,15 @@ func requireFlags(cmd *cobra.Command, flags ...string) {
 	}
 }
 
-func taskSplit(s string) (taskType, taskID string) {
+func taskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
 	i := strings.LastIndex(s, "/")
-	return s[:i], s[i+1:]
+	if i != -1 {
+		taskType = s[:i]
+	}
+	taskID, err = uuid.Parse(s[i+1:])
+	return
 }
 
-func taskJoin(taskType, taskID string) string {
+func taskJoin(taskType string, taskID interface{}) string {
 	return fmt.Sprint(taskType, "/", taskID)
 }

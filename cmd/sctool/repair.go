@@ -83,7 +83,16 @@ var repairProgressCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		w := cmd.OutOrStdout()
 
-		taskType, taskID := taskSplit(args[0])
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+		if taskType == "" {
+			taskType = "repair"
+		}
+		if taskType != "repair" {
+			return printableError{errors.Errorf("unexpected task type %q", taskType)}
+		}
 
 		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
