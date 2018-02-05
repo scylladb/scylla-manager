@@ -364,5 +364,5 @@ func init() {
 	cmd := schedTaskHistoryCmd
 	subcommand(cmd, taskCmd)
 
-	cmd.Flags().Int("limit", -1, "limit the number of returned results")
+	cmd.Flags().Int("limit", 10, "limit the number of returned results")
 }

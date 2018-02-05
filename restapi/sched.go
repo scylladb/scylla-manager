@@ -195,6 +195,7 @@ func (h *schedHandler) loadTask(w http.ResponseWriter, r *http.Request) {
 
 func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
+
 	limit := 10
 	if l := r.FormValue("limit"); l != "" {
 		var err error
@@ -204,6 +205,7 @@ func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	runs, err := h.svc.GetLastRun(r.Context(), t, limit)
 	if err != nil {
 		respondError(w, r, err, "failed to load task history")

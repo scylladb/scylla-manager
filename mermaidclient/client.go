@@ -299,10 +299,10 @@ func (c *Client) GetSchedTaskHistory(ctx context.Context, clusterID, taskType st
 		TaskType:  taskType,
 		TaskID:    taskID.String(),
 	}
-	if limit > 0 {
-		l := int32(limit)
-		params.Limit = &l
-	}
+
+	l := int32(limit)
+	params.Limit = &l
+
 	resp, err := c.operations.GetClusterClusterIDTaskTaskTypeTaskIDHistory(params)
 	if err != nil {
 		return nil, err

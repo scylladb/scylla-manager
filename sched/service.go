@@ -524,7 +524,6 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 }
 
 // GetLastRun returns at most limit recent runs of the task.
-// If limit is -1 or 0, return all available runs.
 func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, error) {
 	s.logger.Debug(ctx, "GetLastRun", "task", t, "limit", limit)
 
@@ -532,15 +531,16 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 	if err := t.Validate(); err != nil {
 		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid task")}
 	}
+	if limit <= 0 {
+		return nil, mermaid.ParamError{Cause: errors.New("limit must be > 0")}
+	}
 
 	b := qb.Select(schema.SchedRun.Name).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("type"),
 		qb.Eq("task_id"),
 	)
-	if limit > 0 {
-		b.Limit(uint(limit))
-	}
+	b.Limit(uint(limit))
 
 	stmt, names := b.ToCql()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
