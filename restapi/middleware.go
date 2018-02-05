@@ -18,7 +18,7 @@ func traceIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func recoverPanics(next http.Handler) http.Handler {
+func recoverPanicsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rvr := recover(); rvr != nil {

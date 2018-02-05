@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 )
@@ -29,8 +28,12 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(traceIDMiddleware)
+	r.Use(recoverPanicsMiddleware)
+
+	r.Use(middleware.Heartbeat("/ping"))
+	r.Use(prometheusMiddleware("/metrics"))
+
 	r.Use(middleware.RequestLogger(httpLogger{logger}))
-	r.Use(recoverPanics)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	if svc.Cluster != nil {
@@ -45,8 +48,6 @@ func New(svc *Services, logger log.Logger) http.Handler {
 			Mount("/api/v1/cluster/{cluster_id}/", newSchedHandler(svc.Scheduler))
 	}
 	r.Get("/api/v1/version", newVersionHandler())
-
-	r.Mount("/metrics", promhttp.Handler())
 
 	// NotFound registered last due to https://github.com/go-chi/chi/issues/297
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
