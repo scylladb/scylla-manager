@@ -251,20 +251,6 @@ func (s *Status) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// RunFilter filters runs.
-type RunFilter struct {
-	Limit uint
-}
-
-// Validate checks if all the fields are properly set.
-func (f *RunFilter) Validate() error {
-	if f == nil {
-		return mermaid.ErrNilPtr
-	}
-
-	return nil
-}
-
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
 	ClusterID    uuid.UUID

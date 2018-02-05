@@ -437,48 +437,6 @@ func (s *Service) topologyHash(ctx context.Context, cluster *scyllaclient.Client
 	return topologyHash(tokens), nil
 }
 
-// ListRuns returns runs for the unit in descending order, latest runs first.
-func (s *Service) ListRuns(ctx context.Context, u *Unit, f *RunFilter) ([]*Run, error) {
-	s.logger.Debug(ctx, "ListRuns", "unit", u, "filter", f)
-
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
-
-	// validate the filter
-	if err := f.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid filter")}
-	}
-
-	sel := qb.Select(schema.RepairRun.Name).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("unit_id"),
-	)
-	if f.Limit != 0 {
-		sel.Limit(f.Limit)
-	}
-
-	stmt, names := sel.ToCql()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": u.ClusterID,
-		"unit_id":    u.ID,
-	})
-	defer q.Release()
-
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	var v []*Run
-	if err := gocqlx.Select(&v, q.Query); err != nil {
-		return nil, err
-	}
-
-	return v, nil
-}
-
 // GetLastRun returns the the most recent run of the unit.
 func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
 	s.logger.Debug(ctx, "GetLastRun", "unit", u)

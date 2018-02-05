@@ -347,65 +347,6 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("list runs invalid filter", func(t *testing.T) {
-		t.Parallel()
-
-		u := validUnit()
-
-		_, err := s.ListRuns(ctx, u, nil)
-		if err == nil {
-			t.Fatal("expected validation error")
-		}
-	})
-
-	t.Run("list runs", func(t *testing.T) {
-		t.Parallel()
-
-		u := validUnit()
-
-		r0 := &repair.Run{
-			ClusterID: u.ClusterID,
-			UnitID:    u.ID,
-			ID:        uuid.NewTime(),
-			Status:    repair.StatusDone,
-		}
-		putRun(t, r0)
-
-		r1 := &repair.Run{
-			ClusterID: u.ClusterID,
-			UnitID:    u.ID,
-			ID:        uuid.NewTime(),
-			Status:    repair.StatusStopped,
-		}
-		putRun(t, r1)
-
-		table := []struct {
-			F *repair.RunFilter
-			E []*repair.Run
-		}{
-			// All runs
-			{
-				F: &repair.RunFilter{},
-				E: []*repair.Run{r1, r0},
-			},
-			// Add limit
-			{
-				F: &repair.RunFilter{Limit: 1},
-				E: []*repair.Run{r1},
-			},
-		}
-
-		for _, test := range table {
-			runs, err := s.ListRuns(ctx, u, test.F)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if diff := cmp.Diff(runs, test.E, mermaidtest.UUIDComparer()); diff != "" {
-				t.Fatal(diff)
-			}
-		}
-	})
-
 	t.Run("get last run", func(t *testing.T) {
 		t.Parallel()
 
