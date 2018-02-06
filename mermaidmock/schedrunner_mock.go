@@ -7,6 +7,7 @@ package mermaidmock
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	runner "github.com/scylladb/mermaid/sched/runner"
 	uuid "github.com/scylladb/mermaid/uuid"
 	reflect "reflect"
 )
@@ -35,7 +36,7 @@ func (m *MockRunner) EXPECT() *MockRunnerMockRecorder {
 }
 
 // Run mocks base method
-func (m *MockRunner) Run(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) error {
+func (m *MockRunner) Run(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
 	ret := m.ctrl.Call(m, "Run", ctx, clusterID, runID, props)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -47,7 +48,7 @@ func (mr *MockRunnerMockRecorder) Run(ctx, clusterID, runID, props interface{}) 
 }
 
 // Stop mocks base method
-func (m *MockRunner) Stop(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) error {
+func (m *MockRunner) Stop(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
 	ret := m.ctrl.Call(m, "Stop", ctx, clusterID, runID, props)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -59,9 +60,9 @@ func (mr *MockRunnerMockRecorder) Stop(ctx, clusterID, runID, props interface{})
 }
 
 // Status mocks base method
-func (m *MockRunner) Status(ctx context.Context, clusterID, runID uuid.UUID, props TaskProperties) (Status, string, error) {
+func (m *MockRunner) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, string, error) {
 	ret := m.ctrl.Call(m, "Status", ctx, clusterID, runID, props)
-	ret0, _ := ret[0].(Status)
+	ret0, _ := ret[0].(runner.Status)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
