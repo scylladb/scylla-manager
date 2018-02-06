@@ -130,10 +130,6 @@ var repairProgressCmd = &cobra.Command{
 		}
 		fmt.Fprintf(w, "Progress:\t%d%%\n", progress)
 
-		if len(rows) == 0 {
-			return nil
-		}
-
 		details, err := cmd.Flags().GetBool("details")
 		if err != nil {
 			return printableError{err}
@@ -163,7 +159,7 @@ func printHostOnlyProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) 
 			t.AddRow(r.Host, r.Progress, r.Error)
 		}
 	}
-	fmt.Fprint(w, t.Render())
+	fmt.Fprint(w, t)
 }
 
 func printDetailedProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
@@ -179,7 +175,7 @@ func printDetailedProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) 
 			t.AddRow(r.Host, r.Shard, r.Progress, r.Error)
 		}
 	}
-	fmt.Fprint(w, t.Render())
+	fmt.Fprint(w, t)
 }
 
 func init() {
@@ -309,15 +305,12 @@ var repairUnitListCmd = withoutArgs(&cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if len(units) == 0 {
-			return nil
-		}
 
 		t := newTable("unit id", "name", "keyspace", "tables")
 		for _, u := range units {
 			t.AddRow(u.ID, u.Name, u.Keyspace, u.Tables)
 		}
-		fmt.Fprint(cmd.OutOrStdout(), t.Render())
+		fmt.Fprint(cmd.OutOrStdout(), t)
 
 		return nil
 	},

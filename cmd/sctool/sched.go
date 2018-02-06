@@ -46,9 +46,7 @@ var schedTaskListCmd = withoutArgs(&cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if len(tasks) == 0 {
-			return nil
-		}
+
 		w := cmd.OutOrStdout()
 		if all {
 			printAllTasks(w, tasks)
@@ -85,7 +83,7 @@ func printAllTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
 		}
 		t.AddRow(fields...)
 	}
-	fmt.Fprint(w, t.Render())
+	fmt.Fprint(w, t)
 }
 
 func printEnabledTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
@@ -108,7 +106,7 @@ func printEnabledTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
 		}
 		t.AddRow(fields...)
 	}
-	fmt.Fprint(w, t.Render())
+	fmt.Fprint(w, t)
 }
 
 func init() {
@@ -354,7 +352,7 @@ var schedTaskHistoryCmd = &cobra.Command{
 			fields = append(fields, r.Status, cause)
 			t.AddRow(fields...)
 		}
-		fmt.Fprint(cmd.OutOrStdout(), t.Render())
+		fmt.Fprint(cmd.OutOrStdout(), t)
 
 		return nil
 	},

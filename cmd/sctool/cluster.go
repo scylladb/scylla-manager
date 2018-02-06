@@ -129,15 +129,12 @@ var clusterListCmd = withoutArgs(&cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if len(units) == 0 {
-			return nil
-		}
 
 		t := newTable("cluster id", "name", "hosts", "shard count")
 		for _, u := range units {
 			t.AddRow(u.ID, u.Name, u.Hosts, u.ShardCount)
 		}
-		fmt.Fprint(cmd.OutOrStdout(), t.Render())
+		fmt.Fprint(cmd.OutOrStdout(), t)
 
 		return nil
 	},
