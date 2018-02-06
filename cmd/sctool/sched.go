@@ -47,21 +47,16 @@ var schedTaskListCmd = withoutArgs(&cobra.Command{
 			return printableError{err}
 		}
 
-		w := cmd.OutOrStdout()
-		if all {
-			printTasks(w, false, tasks)
-		} else {
-			printTasks(w, true, tasks)
-		}
+		printTasks(cmd.OutOrStdout(), tasks, all)
 
 		return nil
 	},
 })
 
-func printTasks(w io.Writer, onlyEnabled bool, tasks []*mermaidclient.ExtendedTask) {
-	t := newTable("task", "start date", "interval days", "num retries", "run start", "run stop", "status")
+func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
+	t := newTable("task", "start date", "int.", "ret.", "properties", "run start", "run stop", "status")
 	for _, task := range tasks {
-		if onlyEnabled && !task.Enabled {
+		if !all && !task.Enabled {
 			continue
 		}
 
@@ -72,6 +67,8 @@ func printTasks(w io.Writer, onlyEnabled bool, tasks []*mermaidclient.ExtendedTa
 		} else {
 			fields = append(fields, "-", "-", "-")
 		}
+
+		fields = append(fields, dumpMap(task.Properties))
 
 		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
 			if f == "" {
@@ -89,9 +86,9 @@ func init() {
 	subcommand(cmd, taskCmd)
 
 	fs := cmd.Flags()
-	fs.StringP("type", "", "", "task type")
 	fs.Bool("all", false, "list disabled tasks as well")
 	fs.String("status", "", "filter tasks according to last run status")
+	fs.StringP("type", "", "", "task type")
 }
 
 var schedStartTaskCmd = &cobra.Command{
