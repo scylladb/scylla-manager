@@ -33,12 +33,12 @@ func (t ProxyDialer) Dial(network, addr string) (net.Conn, error) {
 
 	client, err := t.Pool.Dial(network, net.JoinHostPort(host, "22"), t.Config)
 	if err != nil {
-		return nil, errors.Wrap(err, "SSH connection failed")
+		return nil, errors.Wrap(err, "ssh: dial failed")
 	}
 
 	conn, err := client.Dial(network, net.JoinHostPort("localhost", port))
 	if err != nil {
-		return nil, errors.Wrap(err, "remote dial failed")
+		return nil, errors.Wrap(err, "ssh: remote dial failed")
 	}
 
 	return proxyConn{

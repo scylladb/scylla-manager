@@ -44,6 +44,13 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	r.Host = h
 	r.URL.Host = h
 
+	// RoundTrip shall not modify requests, here we modify it to fix error
+	// messages see https://github.com/scylladb/mermaid/issues/266.
+	// This is legit because we own the whole process. The modified request
+	// is not being sent.
+	req.Host = h
+	req.URL.Host = h
+
 	start := time.Now()
 	resp, err := t.parent.RoundTrip(r)
 	if resp != nil {

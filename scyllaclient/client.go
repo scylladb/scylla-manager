@@ -61,17 +61,12 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 		logger: l,
 	}
 
-	// set the host to be a non-empty "host:port" pair. This allows using the http.DefaultTransport in
-	// functions such as httputil.DumpRequestOut without trigger an error.
-	// The address 0.0.0.0 and port 0 were chosen to prevent accidental dial if our transport somehow
-	// does not get used.
-	r := api.NewWithClient("0.0.0.0", "", []string{"http"},
+	r := api.NewWithClient("mermaid.magic.host", "", []string{"http"},
 		&http.Client{
 			Timeout:   mermaid.DefaultRPCTimeout,
 			Transport: t,
 		},
 	)
-	// force turn of lower level debug
 	// debug can be accidentally turned on by SWAGGER_DEBUG or DEBUG env variable
 	r.SetDebug(false)
 	return &Client{
