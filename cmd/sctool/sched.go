@@ -37,7 +37,7 @@ var schedTaskListCmd = withoutArgs(&cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		taskType, err := fs.GetString("task")
+		taskType, err := fs.GetString("type")
 		if err != nil {
 			return printableError{err}
 		}
@@ -49,53 +49,28 @@ var schedTaskListCmd = withoutArgs(&cobra.Command{
 
 		w := cmd.OutOrStdout()
 		if all {
-			printAllTasks(w, tasks)
-			return nil
+			printTasks(w, false, tasks)
+		} else {
+			printTasks(w, true, tasks)
 		}
-		printEnabledTasks(w, tasks)
+
 		return nil
 	},
 })
 
-func printAllTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
-	headers := []interface{}{"enabled", "task id", "name", "start date", "interval days", "num retries", "run start", "run stop", "status"}
-	t := newTable(headers...)
+func printTasks(w io.Writer, onlyEnabled bool, tasks []*mermaidclient.ExtendedTask) {
+	t := newTable("task", "start date", "interval days", "num retries", "run start", "run stop", "status")
 	for _, task := range tasks {
-		fields := make([]interface{}, 0, len(headers))
-
-		e := "\u2713" // CHECK MARK Unicode
-		if !task.Enabled {
-			e = ""
+		if onlyEnabled && !task.Enabled {
+			continue
 		}
-		fields = append(fields, e)
 
+		fields := make([]interface{}, 0, 8)
+		fields = append(fields, taskJoin(task.Type, task.ID))
 		if task.Schedule != nil {
-			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+			fields = append(fields, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
 		} else {
-			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, "-", "-", "-")
-		}
-
-		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
-			if f == "" {
-				f = "-"
-			}
-			fields = append(fields, f)
-		}
-		t.AddRow(fields...)
-	}
-	fmt.Fprint(w, t)
-}
-
-func printEnabledTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask) {
-	headers := []interface{}{"task id", "name", "start date", "interval days", "num retries", "run start", "run stop", "status"}
-	t := newTable(headers...)
-	for _, task := range tasks {
-		fields := make([]interface{}, 0, len(headers))
-
-		if task.Schedule != nil {
-			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
-		} else {
-			fields = append(fields, taskJoin(task.Type, task.ID), task.Name, "-", "-", "-")
+			fields = append(fields, "-", "-", "-")
 		}
 
 		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
