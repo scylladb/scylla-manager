@@ -462,6 +462,10 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid task")}
 	}
 
+	if t.Sched.StartDate.Before(timeNow()) {
+		return mermaid.ParamError{Cause: errors.New("start date in the past")}
+	}
+
 	stmt, names := schema.SchedTask.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(t)
 

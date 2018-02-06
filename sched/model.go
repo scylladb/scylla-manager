@@ -156,13 +156,13 @@ func (t *Task) Validate() (err error) {
 	}
 
 	if t.Sched.IntervalDays < 0 {
-		err = multierr.Append(err, errors.New("negative Sched.IntervalDays"))
+		err = multierr.Append(err, errors.New("negative interval days"))
 	}
 	if t.Sched.NumRetries < 0 {
-		err = multierr.Append(err, errors.New("negative Sched.NumRetries"))
+		err = multierr.Append(err, errors.New("negative num retries"))
 	}
 	if t.Sched.StartDate.IsZero() {
-		err = multierr.Append(err, errors.New("missing Sched.StartDate"))
+		err = multierr.Append(err, errors.New("missing start date"))
 	}
 
 	return
