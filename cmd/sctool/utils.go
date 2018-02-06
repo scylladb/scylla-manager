@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/scylladb/mermaid/uuid"
@@ -23,6 +24,24 @@ func requireFlags(cmd *cobra.Command, flags ...string) {
 	for _, f := range flags {
 		cmd.MarkFlagRequired(f)
 	}
+}
+
+func dumpMap(m map[string]string) string {
+	if len(m) == 0 {
+		return "-"
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	s := make([]string, 0, len(m))
+	for _, k := range keys {
+		s = append(s, fmt.Sprint(k, ":", m[k]))
+	}
+	return strings.Join(s, ", ")
 }
 
 func taskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
