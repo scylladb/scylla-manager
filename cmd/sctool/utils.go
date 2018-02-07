@@ -26,6 +26,19 @@ func requireFlags(cmd *cobra.Command, flags ...string) {
 	}
 }
 
+func taskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
+	i := strings.LastIndex(s, "/")
+	if i != -1 {
+		taskType = s[:i]
+	}
+	taskID, err = uuid.Parse(s[i+1:])
+	return
+}
+
+func taskJoin(taskType string, taskID interface{}) string {
+	return fmt.Sprint(taskType, "/", taskID)
+}
+
 func dumpMap(m map[string]string) string {
 	if len(m) == 0 {
 		return "-"
@@ -42,17 +55,4 @@ func dumpMap(m map[string]string) string {
 		s = append(s, fmt.Sprint(k, ":", m[k]))
 	}
 	return strings.Join(s, ", ")
-}
-
-func taskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
-	i := strings.LastIndex(s, "/")
-	if i != -1 {
-		taskType = s[:i]
-	}
-	taskID, err = uuid.Parse(s[i+1:])
-	return
-}
-
-func taskJoin(taskType string, taskID interface{}) string {
-	return fmt.Sprint(taskType, "/", taskID)
 }

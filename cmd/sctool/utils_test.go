@@ -9,34 +9,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-func TestDumpMap(t *testing.T) {
-	table := []struct {
-		M map[string]string
-		S string
-	}{
-		// Empty
-		{
-			S: "-",
-		},
-		// Single element
-		{
-			M: map[string]string{"a": "b"},
-			S: "a:b",
-		},
-		// Multiple elements
-		{
-			M: map[string]string{"a": "b", "c": "d"},
-			S: "a:b, c:d",
-		},
-	}
-
-	for i, test := range table {
-		if diff := cmp.Diff(dumpMap(test.M), test.S); diff != "" {
-			t.Error(i, diff)
-		}
-	}
-}
-
 func TestTaskSplit(t *testing.T) {
 	table := []struct {
 		S  string
@@ -64,6 +36,34 @@ func TestTaskSplit(t *testing.T) {
 		}
 		if id != test.ID {
 			t.Error(i, id)
+		}
+	}
+}
+
+func TestDumpMap(t *testing.T) {
+	table := []struct {
+		M map[string]string
+		S string
+	}{
+		// Empty
+		{
+			S: "-",
+		},
+		// Single element
+		{
+			M: map[string]string{"a": "b"},
+			S: "a:b",
+		},
+		// Multiple elements
+		{
+			M: map[string]string{"a": "b", "c": "d"},
+			S: "a:b, c:d",
+		},
+	}
+
+	for i, test := range table {
+		if diff := cmp.Diff(dumpMap(test.M), test.S); diff != "" {
+			t.Error(i, diff)
 		}
 	}
 }
