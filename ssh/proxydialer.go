@@ -6,8 +6,30 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/ssh"
 )
+
+var (
+	sshOpenStreams = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: "ssh",
+		Name:      "open_streams",
+		Help:      "Total number of multiplexed connection to Scylla node.",
+	}, []string{"host"})
+
+	sshErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Subsystem: "ssh",
+		Name:      "errors",
+		Help:      "SSH dial errors.",
+	}, []string{"host"})
+)
+
+func init() {
+	prometheus.MustRegister(
+		sshOpenStreams,
+		sshErrors,
+	)
+}
 
 type proxyConn struct {
 	net.Conn
@@ -30,20 +52,27 @@ type ProxyDialer struct {
 // proxies the connection to localhost:PORT.
 func (t ProxyDialer) Dial(network, addr string) (net.Conn, error) {
 	host, port, _ := net.SplitHostPort(addr)
+	labels := prometheus.Labels{"host": host}
 
 	client, err := t.Pool.Dial(network, net.JoinHostPort(host, "22"), t.Config)
 	if err != nil {
+		sshErrors.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: dial failed")
 	}
 
 	conn, err := client.Dial(network, net.JoinHostPort("localhost", port))
 	if err != nil {
+		sshErrors.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: remote dial failed")
 	}
+
+	g := sshOpenStreams.With(labels)
+	g.Inc()
 
 	return proxyConn{
 		Conn: conn,
 		free: func() {
+			g.Dec()
 			t.Pool.Release(client)
 		},
 	}, nil
