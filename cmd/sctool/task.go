@@ -48,12 +48,34 @@ var taskListCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		tasks, err := client.ListSchedTasks(ctx, cfgCluster, taskType, all, status)
-		if err != nil {
-			return printableError{err}
+		var clusters []*mermaidclient.Cluster
+		if cfgCluster == "" {
+			clusters, err = client.ListClusters(ctx)
+			if err != nil {
+				return printableError{err}
+			}
+		} else {
+			clusters = []*mermaidclient.Cluster{{ID: cfgCluster}}
 		}
 
-		printTasks(cmd.OutOrStdout(), tasks, all)
+		w := cmd.OutOrStdout()
+		for _, c := range clusters {
+			// display cluster id if it's not specified.
+			fmt.Fprint(w, "cluster: ")
+			if cfgCluster == "" {
+				if c.Name != "" {
+					fmt.Fprintln(w, c.Name)
+				} else {
+					fmt.Fprintln(w, c.ID)
+				}
+			}
+
+			tasks, err := client.ListSchedTasks(ctx, c.ID, taskType, all, status)
+			if err != nil {
+				return printableError{err}
+			}
+			printTasks(w, tasks, all)
+		}
 
 		return nil
 	},
