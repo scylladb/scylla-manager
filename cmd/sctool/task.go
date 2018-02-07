@@ -61,8 +61,8 @@ var taskListCmd = &cobra.Command{
 		w := cmd.OutOrStdout()
 		for _, c := range clusters {
 			// display cluster id if it's not specified.
-			fmt.Fprint(w, "cluster: ")
 			if cfgCluster == "" {
+				fmt.Fprint(w, "cluster: ")
 				if c.Name != "" {
 					fmt.Fprintln(w, c.Name)
 				} else {
