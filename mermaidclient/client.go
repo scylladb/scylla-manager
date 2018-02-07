@@ -32,7 +32,11 @@ func NewClient(rawurl string) (Client, error) {
 		return Client{}, err
 	}
 
-	return Client{operations: operations.New(api.New(u.Host, u.Path, []string{u.Scheme}), strfmt.Default)}, nil
+	r := api.New(u.Host, u.Path, []string{u.Scheme})
+	// debug can be accidentally turned on by SWAGGER_DEBUG or DEBUG env variable
+	r.SetDebug(false)
+
+	return Client{operations: operations.New(r, strfmt.Default)}, nil
 }
 
 // CreateCluster creates a new cluster.
