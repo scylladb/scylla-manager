@@ -6,13 +6,19 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 )
+
+func taskInitCommonFlags(cmd *cobra.Command) {
+	fs := cmd.Flags()
+	fs.StringP("start-date", "s", "now", "task start date in RFC3339 form or now[+duration]")
+	fs.UintP("interval", "i", 7, "task schedule interval in `days`")
+	fs.UintP("num-retries", "r", 3, "task schedule number of retries")
+}
 
 var taskCmd = &cobra.Command{
 	Use:   "task",
@@ -23,7 +29,7 @@ func init() {
 	subcommand(taskCmd, rootCmd)
 }
 
-var schedTaskListCmd = withoutArgs(&cobra.Command{
+var taskListCmd = withoutArgs(&cobra.Command{
 	Use:   "list",
 	Short: "Shows available tasks and their last run status",
 
@@ -82,7 +88,7 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 }
 
 func init() {
-	cmd := schedTaskListCmd
+	cmd := taskListCmd
 	subcommand(cmd, taskCmd)
 
 	fs := cmd.Flags()
@@ -91,7 +97,7 @@ func init() {
 	fs.StringP("type", "", "", "task type")
 }
 
-var schedStartTaskCmd = &cobra.Command{
+var taskStartCmd = &cobra.Command{
 	Use:   "start <type/task-id>",
 	Short: "Starts executing a task",
 	Args:  cobra.ExactArgs(1),
@@ -110,10 +116,10 @@ var schedStartTaskCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(schedStartTaskCmd, taskCmd)
+	subcommand(taskStartCmd, taskCmd)
 }
 
-var schedStopTaskCmd = &cobra.Command{
+var taskStopCmd = &cobra.Command{
 	Use:   "stop <type/task-id>",
 	Short: "Stops executing a task",
 	Args:  cobra.ExactArgs(1),
@@ -131,160 +137,10 @@ var schedStopTaskCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(schedStopTaskCmd, taskCmd)
+	subcommand(taskStopCmd, taskCmd)
 }
 
-func schedInitTaskPayloadFlags(cmd *cobra.Command) {
-	fs := cmd.Flags()
-	fs.StringP("name", "n", "", "task name")
-	fs.BoolP("enabled", "e", true, "enabled")
-	fs.StringP("metadata", "m", "", "task metadata")
-	fs.StringSlice("tags", nil, "tags")
-}
-
-func schedInitScheduleFlags(cmd *cobra.Command) {
-	fs := cmd.Flags()
-	fs.StringP("start-date", "s", "now", "task start date in RFC3339 form or now[+duration]")
-	fs.UintP("interval", "i", 7, "task schedule interval in `days`")
-	fs.UintP("num-retries", "r", 3, "task schedule number of retries")
-}
-
-func parseSchedStartDate(startDate string) (time.Time, error) {
-	const nowSafety = 30 * time.Second
-
-	if strings.HasPrefix(startDate, "now") {
-		now := time.Now()
-		var d time.Duration
-		if startDate != "now" {
-			var err error
-			d, err = time.ParseDuration(startDate[3:])
-			if err != nil {
-				return time.Time{}, err
-			}
-		}
-
-		activation := now.Add(d)
-		if activation.Before(now.Add(nowSafety)) {
-			activation = now.Add(nowSafety)
-		}
-		return activation.UTC(), nil
-	}
-
-	t, err := time.Parse(time.RFC3339, startDate)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return t.UTC(), nil
-}
-
-var schedTaskUpdateCmd = &cobra.Command{
-	Use:   "update <type/task-id>",
-	Short: "Modifies a task",
-	Args:  cobra.ExactArgs(1),
-
-	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := taskSplit(args[0])
-		if err != nil {
-			return printableError{err}
-		}
-
-		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
-		if err != nil {
-			return printableError{err}
-		}
-
-		changed := false
-		if f := cmd.Flag("name"); f.Changed {
-			t.Name = f.Value.String()
-			changed = true
-		}
-		if f := cmd.Flag("enabled"); f.Changed {
-			var err error
-			t.Enabled, err = strconv.ParseBool(f.Value.String())
-			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
-			}
-			changed = true
-		}
-		if f := cmd.Flag("metadata"); f.Changed {
-			t.Metadata = f.Value.String()
-			changed = true
-		}
-		if f := cmd.Flag("tags"); f.Changed {
-			var err error
-			t.Tags, err = cmd.Flags().GetStringSlice("tags")
-			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
-			}
-			changed = true
-		}
-		if f := cmd.Flag("start-date"); f.Changed {
-			startDate, err := parseSchedStartDate(f.Value.String())
-			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
-			}
-			t.Schedule.StartDate = startDate.Format(time.RFC3339)
-			changed = true
-		}
-		if f := cmd.Flag("interval"); f.Changed {
-			interval, err := strconv.Atoi(f.Value.String())
-			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
-			}
-			t.Schedule.IntervalDays = int32(interval)
-			changed = true
-		}
-		if f := cmd.Flag("num-retries"); f.Changed {
-			numRetries, err := strconv.Atoi(f.Value.String())
-			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
-			}
-			t.Schedule.NumRetries = int32(numRetries)
-			changed = true
-		}
-		if !changed {
-			return errors.New("nothing to change")
-		}
-
-		if err := client.UpdateTask(ctx, cfgCluster, taskType, taskID, t); err != nil {
-			return printableError{err}
-		}
-
-		return nil
-	},
-}
-
-func init() {
-	cmd := schedTaskUpdateCmd
-	subcommand(cmd, taskCmd)
-
-	schedInitTaskPayloadFlags(cmd)
-	schedInitScheduleFlags(cmd)
-}
-
-var schedDeleteTaskCmd = &cobra.Command{
-	Use:   "delete <type/task-id>",
-	Short: "Deletes a task schedule",
-	Args:  cobra.ExactArgs(1),
-
-	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := taskSplit(args[0])
-		if err != nil {
-			return printableError{err}
-		}
-
-		if err := client.SchedDeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
-			return printableError{err}
-		}
-		return nil
-	},
-}
-
-func init() {
-	subcommand(schedDeleteTaskCmd, taskCmd)
-}
-
-var schedTaskHistoryCmd = &cobra.Command{
+var taskHistoryCmd = &cobra.Command{
 	Use:   "history <type/task-id>",
 	Short: "list run history of a task",
 	Args:  cobra.ExactArgs(1),
@@ -331,8 +187,120 @@ var schedTaskHistoryCmd = &cobra.Command{
 }
 
 func init() {
-	cmd := schedTaskHistoryCmd
+	cmd := taskHistoryCmd
 	subcommand(cmd, taskCmd)
 
 	cmd.Flags().Int("limit", 10, "limit the number of returned results")
+}
+
+var taskUpdateCmd = &cobra.Command{
+	Use:   "update <type/task-id>",
+	Short: "Modifies a task",
+	Args:  cobra.ExactArgs(1),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+
+		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
+		if err != nil {
+			return printableError{err}
+		}
+
+		changed := false
+		if f := cmd.Flag("name"); f.Changed {
+			t.Name = f.Value.String()
+			changed = true
+		}
+		if f := cmd.Flag("enabled"); f.Changed {
+			var err error
+			t.Enabled, err = strconv.ParseBool(f.Value.String())
+			if err != nil {
+				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			}
+			changed = true
+		}
+		if f := cmd.Flag("metadata"); f.Changed {
+			t.Metadata = f.Value.String()
+			changed = true
+		}
+		if f := cmd.Flag("tags"); f.Changed {
+			var err error
+			t.Tags, err = cmd.Flags().GetStringSlice("tags")
+			if err != nil {
+				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			}
+			changed = true
+		}
+		if f := cmd.Flag("start-date"); f.Changed {
+			startDate, err := parseTaskStartDate(f.Value.String())
+			if err != nil {
+				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			}
+			t.Schedule.StartDate = startDate.Format(time.RFC3339)
+			changed = true
+		}
+		if f := cmd.Flag("interval"); f.Changed {
+			interval, err := strconv.Atoi(f.Value.String())
+			if err != nil {
+				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			}
+			t.Schedule.IntervalDays = int32(interval)
+			changed = true
+		}
+		if f := cmd.Flag("num-retries"); f.Changed {
+			numRetries, err := strconv.Atoi(f.Value.String())
+			if err != nil {
+				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			}
+			t.Schedule.NumRetries = int32(numRetries)
+			changed = true
+		}
+		if !changed {
+			return errors.New("nothing to change")
+		}
+
+		if err := client.UpdateTask(ctx, cfgCluster, taskType, taskID, t); err != nil {
+			return printableError{err}
+		}
+
+		return nil
+	},
+}
+
+func init() {
+	cmd := taskUpdateCmd
+	subcommand(cmd, taskCmd)
+
+	taskInitCommonFlags(cmd)
+
+	fs := cmd.Flags()
+	fs.StringP("name", "n", "", "task name")
+	fs.BoolP("enabled", "e", true, "enabled")
+	fs.StringP("metadata", "m", "", "task metadata")
+	fs.StringSlice("tags", nil, "tags")
+}
+
+var taskDeleteCmd = &cobra.Command{
+	Use:   "delete <type/task-id>",
+	Short: "Deletes a task schedule",
+	Args:  cobra.ExactArgs(1),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+
+		if err := client.SchedDeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
+			return printableError{err}
+		}
+		return nil
+	},
+}
+
+func init() {
+	subcommand(taskDeleteCmd, taskCmd)
 }

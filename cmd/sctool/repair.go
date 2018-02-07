@@ -37,7 +37,7 @@ var repairSchedCmd = &cobra.Command{
 		}
 
 		f := cmd.Flag("start-date")
-		activation, err := parseSchedStartDate(f.Value.String())
+		activation, err := parseTaskStartDate(f.Value.String())
 		if err != nil {
 			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 		}
@@ -72,7 +72,7 @@ func init() {
 	cmd := repairSchedCmd
 	subcommand(cmd, repairCmd)
 
-	schedInitScheduleFlags(cmd)
+	taskInitCommonFlags(cmd)
 }
 
 var repairProgressCmd = &cobra.Command{
