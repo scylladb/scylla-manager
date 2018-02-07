@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var versionCmd = withoutArgs(&cobra.Command{
+var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version information",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -24,8 +24,8 @@ var versionCmd = withoutArgs(&cobra.Command{
 
 		return nil
 	},
-})
+}
 
 func init() {
-	subcommand(versionCmd, rootCmd)
+	register(versionCmd, rootCmd)
 }

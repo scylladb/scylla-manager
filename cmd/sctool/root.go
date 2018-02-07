@@ -47,7 +47,7 @@ var rootCmd = &cobra.Command{
 
 func needsCluster(cmd *cobra.Command) bool {
 	switch cmd {
-	case clusterAddCmd, clusterListCmd, versionCmd:
+	case clusterAddCmd, clusterListCmd, taskListCmd, versionCmd:
 		return false
 	}
 	return true

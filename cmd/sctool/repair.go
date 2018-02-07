@@ -14,13 +14,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var repairCmd = withoutArgs(&cobra.Command{
+var repairCmd = &cobra.Command{
 	Use:   "repair",
 	Short: "Manage repairs",
-})
+}
 
 func init() {
-	subcommand(repairCmd, rootCmd)
+	register(repairCmd, rootCmd)
 }
 
 var repairSchedCmd = &cobra.Command{
@@ -70,7 +70,7 @@ var repairSchedCmd = &cobra.Command{
 
 func init() {
 	cmd := repairSchedCmd
-	subcommand(cmd, repairCmd)
+	register(cmd, repairCmd)
 
 	taskInitCommonFlags(cmd)
 }
@@ -180,19 +180,19 @@ func printDetailedProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) 
 
 func init() {
 	cmd := repairProgressCmd
-	subcommand(cmd, repairCmd)
+	register(cmd, repairCmd)
 
 	fs := cmd.Flags()
 	fs.Bool("details", false, "show detailed progress on shards")
 }
 
-var repairUnitCmd = withoutArgs(&cobra.Command{
+var repairUnitCmd = &cobra.Command{
 	Use:   "unit",
 	Short: "Manage repair units",
-})
+}
 
 func init() {
-	subcommand(repairUnitCmd, repairCmd)
+	register(repairUnitCmd, repairCmd)
 }
 
 var (
@@ -207,7 +207,7 @@ func repairUnitInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringSliceVarP(&cfgRepairUnitTables, "tables", "t", nil, "comma-separated `list` of tables in to repair in the keyspace, if empty repair the whole keyspace")
 }
 
-var repairUnitAddCmd = withoutArgs(&cobra.Command{
+var repairUnitAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Creates a new repair unit",
 
@@ -225,11 +225,11 @@ var repairUnitAddCmd = withoutArgs(&cobra.Command{
 
 		return nil
 	},
-})
+}
 
 func init() {
 	cmd := repairUnitAddCmd
-	subcommand(cmd, repairUnitCmd)
+	register(cmd, repairUnitCmd)
 
 	repairUnitInitCommonFlags(cmd)
 	requireFlags(cmd, "keyspace")
@@ -273,7 +273,7 @@ var repairUnitUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := repairUnitUpdateCmd
-	subcommand(cmd, repairUnitCmd)
+	register(cmd, repairUnitCmd)
 
 	repairUnitInitCommonFlags(cmd)
 }
@@ -293,10 +293,10 @@ var repairUnitDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(repairUnitDeleteCmd, repairUnitCmd)
+	register(repairUnitDeleteCmd, repairUnitCmd)
 }
 
-var repairUnitListCmd = withoutArgs(&cobra.Command{
+var repairUnitListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Shows available repair units",
 
@@ -314,8 +314,8 @@ var repairUnitListCmd = withoutArgs(&cobra.Command{
 
 		return nil
 	},
-})
+}
 
 func init() {
-	subcommand(repairUnitListCmd, repairUnitCmd)
+	register(repairUnitListCmd, repairUnitCmd)
 }

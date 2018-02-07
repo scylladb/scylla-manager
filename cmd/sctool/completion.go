@@ -13,5 +13,5 @@ var bashCompletionCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(bashCompletionCmd, rootCmd)
+	register(bashCompletionCmd, rootCmd)
 }

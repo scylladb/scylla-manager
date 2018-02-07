@@ -12,12 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func withoutArgs(cmd *cobra.Command) *cobra.Command {
-	cmd.Args = cobra.NoArgs
-	return cmd
-}
-
-func subcommand(cmd *cobra.Command, parent *cobra.Command) {
+func register(cmd *cobra.Command, parent *cobra.Command) {
+	// fix defaults
+	if cmd.Args == nil {
+		cmd.Args = cobra.NoArgs
+	}
 	parent.AddCommand(cmd)
 }
 

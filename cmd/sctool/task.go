@@ -26,10 +26,10 @@ var taskCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(taskCmd, rootCmd)
+	register(taskCmd, rootCmd)
 }
 
-var taskListCmd = withoutArgs(&cobra.Command{
+var taskListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Shows available tasks and their last run status",
 
@@ -57,7 +57,7 @@ var taskListCmd = withoutArgs(&cobra.Command{
 
 		return nil
 	},
-})
+}
 
 func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 	t := newTable("task", "start date", "int.", "ret.", "properties", "run start", "run stop", "status")
@@ -89,7 +89,7 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 
 func init() {
 	cmd := taskListCmd
-	subcommand(cmd, taskCmd)
+	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
 	fs.Bool("all", false, "list disabled tasks as well")
@@ -116,7 +116,7 @@ var taskStartCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(taskStartCmd, taskCmd)
+	register(taskStartCmd, taskCmd)
 }
 
 var taskStopCmd = &cobra.Command{
@@ -137,7 +137,7 @@ var taskStopCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(taskStopCmd, taskCmd)
+	register(taskStopCmd, taskCmd)
 }
 
 var taskHistoryCmd = &cobra.Command{
@@ -188,7 +188,7 @@ var taskHistoryCmd = &cobra.Command{
 
 func init() {
 	cmd := taskHistoryCmd
-	subcommand(cmd, taskCmd)
+	register(cmd, taskCmd)
 
 	cmd.Flags().Int("limit", 10, "limit the number of returned results")
 }
@@ -272,7 +272,7 @@ var taskUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := taskUpdateCmd
-	subcommand(cmd, taskCmd)
+	register(cmd, taskCmd)
 
 	taskInitCommonFlags(cmd)
 
@@ -302,5 +302,5 @@ var taskDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	subcommand(taskDeleteCmd, taskCmd)
+	register(taskDeleteCmd, taskCmd)
 }
