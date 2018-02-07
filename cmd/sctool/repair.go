@@ -202,9 +202,10 @@ var (
 )
 
 func repairUnitInitCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&cfgRepairUnitName, "name", "n", "", "alias `name`")
-	cmd.Flags().StringVarP(&cfgRepairUnitKeyspace, "keyspace", "k", "", "keyspace `name`")
-	cmd.Flags().StringSliceVarP(&cfgRepairUnitTables, "tables", "t", nil, "comma-separated `list` of tables in to repair in the keyspace, if empty repair the whole keyspace")
+	fs := cmd.Flags()
+	fs.StringVarP(&cfgRepairUnitName, "name", "n", "", "alias `name`")
+	fs.StringVarP(&cfgRepairUnitKeyspace, "keyspace", "k", "", "keyspace `name`")
+	fs.StringSliceVarP(&cfgRepairUnitTables, "tables", "t", nil, "comma-separated `list` of tables in to repair in the keyspace, if empty repair the whole keyspace")
 }
 
 var repairUnitAddCmd = &cobra.Command{
