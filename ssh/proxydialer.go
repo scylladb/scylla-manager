@@ -11,23 +11,23 @@ import (
 )
 
 var (
-	sshOpenStreams = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	sshOpenStreamsCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Subsystem: "ssh",
-		Name:      "open_streams",
-		Help:      "Total number of multiplexed connection to Scylla node.",
+		Name:      "open_streams_count",
+		Help:      "Number of active (multiplexed) connections to Scylla node.",
 	}, []string{"host"})
 
-	sshErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
+	sshErrorsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Subsystem: "ssh",
-		Name:      "errors",
-		Help:      "SSH dial errors.",
+		Name:      "errors_total",
+		Help:      "Total number of SSH dial errors.",
 	}, []string{"host"})
 )
 
 func init() {
 	prometheus.MustRegister(
-		sshOpenStreams,
-		sshErrors,
+		sshOpenStreamsCount,
+		sshErrorsTotal,
 	)
 }
 
@@ -56,17 +56,17 @@ func (t ProxyDialer) Dial(network, addr string) (net.Conn, error) {
 
 	client, err := t.Pool.Dial(network, net.JoinHostPort(host, "22"), t.Config)
 	if err != nil {
-		sshErrors.With(labels).Inc()
+		sshErrorsTotal.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: dial failed")
 	}
 
 	conn, err := client.Dial(network, net.JoinHostPort("localhost", port))
 	if err != nil {
-		sshErrors.With(labels).Inc()
+		sshErrorsTotal.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: remote dial failed")
 	}
 
-	g := sshOpenStreams.With(labels)
+	g := sshOpenStreamsCount.With(labels)
 	g.Inc()
 
 	return proxyConn{
