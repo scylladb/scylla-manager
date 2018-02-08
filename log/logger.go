@@ -5,9 +5,31 @@ package log
 import (
 	"context"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+var (
+	logInfoTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Subsystem: "log",
+		Name:      "info_total",
+		Help:      "Total number of INFO messages.",
+	})
+
+	logErrorTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Subsystem: "log",
+		Name:      "error_total",
+		Help:      "Total number of ERROR messages.",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(
+		logInfoTotal,
+		logErrorTotal,
+	)
+}
 
 // Logger logs messages.
 type Logger struct {
@@ -55,11 +77,13 @@ func (l Logger) Debug(ctx context.Context, msg string, keyvals ...interface{}) {
 
 // Info logs a message with some additional context.
 func (l Logger) Info(ctx context.Context, msg string, keyvals ...interface{}) {
+	logInfoTotal.Inc()
 	l.log(ctx, zapcore.InfoLevel, msg, keyvals)
 }
 
 // Error logs a message with some additional context.
 func (l Logger) Error(ctx context.Context, msg string, keyvals ...interface{}) {
+	logErrorTotal.Inc()
 	l.log(ctx, zapcore.ErrorLevel, msg, keyvals)
 }
 
