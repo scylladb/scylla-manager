@@ -17,31 +17,38 @@ import (
 )
 
 var (
+	repairSegmentsTotal = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: "repair",
+		Name:      "segments_total",
+		Help:      "Total number of segments to repair.",
+	}, []string{"cluster", "unit", "host", "shard"})
+
+	repairSegmentsSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: "repair",
+		Name:      "segments_success",
+		Help:      "Number of repaired segments.",
+	}, []string{"cluster", "unit", "host", "shard"})
+
+	repairSegmentsError = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: "repair",
+		Name:      "segments_error",
+		Help:      "Number of segments that failed to repair.",
+	}, []string{"cluster", "unit", "host", "shard"})
+
 	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Subsystem: "repair",
 		Name:      "duration_seconds",
-		Help:      "Duration of single repair command.",
+		Help:      "Duration of a single repair command.",
 		MaxAge:    30 * time.Minute,
-	}, []string{"cluster", "unit", "host", "shard"})
-
-	repairCompletePercent = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Subsystem: "repair",
-		Name:      "complete_percent",
-		Help:      "Repair progress.",
-	}, []string{"cluster", "unit", "host", "shard"})
-
-	repairErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Subsystem: "repair",
-		Name:      "errors",
-		Help:      "Repair errors.",
 	}, []string{"cluster", "unit", "host", "shard"})
 )
 
 func init() {
 	prometheus.MustRegister(
+		repairSegmentsTotal,
+		repairSegmentsSuccess,
+		repairSegmentsError,
 		repairDurationSeconds,
-		repairCompletePercent,
-		repairErrors,
 	)
 }
 
@@ -87,7 +94,7 @@ func (w *worker) exec(ctx context.Context) error {
 	for _, s := range w.shards {
 		if s.progress.complete() {
 			s.logger.Info(ctx, "Already done, skipping")
-			s.repairCompletePercent.Set(1)
+			s.updateMetrics()
 			continue
 		}
 
@@ -169,9 +176,10 @@ func (w *worker) init(ctx context.Context) error {
 			progress: p,
 			logger:   w.logger.With("shard", i),
 
+			repairSegmentsTotal:   repairSegmentsTotal.With(labels),
+			repairSegmentsSuccess: repairSegmentsSuccess.With(labels),
+			repairSegmentsError:   repairSegmentsError.With(labels),
 			repairDurationSeconds: repairDurationSeconds.With(labels),
-			repairCompletePercent: repairCompletePercent.With(labels),
-			repairErrors:          repairErrors.With(labels),
 		}
 	}
 
@@ -221,9 +229,10 @@ type shardWorker struct {
 	progress *RunProgress
 	logger   log.Logger
 
+	repairSegmentsTotal   prometheus.Gauge
+	repairSegmentsSuccess prometheus.Gauge
+	repairSegmentsError   prometheus.Gauge
 	repairDurationSeconds prometheus.Summary
-	repairCompletePercent prometheus.Gauge
-	repairErrors          prometheus.Counter
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
@@ -257,12 +266,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	w.logger.Info(ctx, "Start repair", "progress", w.progress)
-
-	// initialize metrics
-	if w.progress.SegmentSuccess == 0 {
-		w.repairCompletePercent.Set(0)
-	}
-	repairErrors.Reset()
+	w.updateMetrics()
 
 	var (
 		start int
@@ -296,6 +300,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		}
 
 		w.updateProgress(ctx)
+		w.updateMetrics()
 	}
 
 	next()
@@ -335,11 +340,8 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			return nil
 		}
 		if err != nil {
-			ri.OnError()
-
 			w.logger.Info(ctx, "Repair failed", "error", err)
-			w.repairErrors.Inc()
-
+			ri.OnError()
 			time.Sleep(w.parent.backoff)
 		} else {
 			ri.OnSuccess()
@@ -348,11 +350,9 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		next()
 		savepoint()
 
-		if w.progress.PercentComplete()%5 == 0 {
+		if w.progress.PercentComplete()%10 == 0 {
 			w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
 		}
-
-		w.repairCompletePercent.Set(float64(w.progress.SegmentSuccess) / float64(w.progress.SegmentCount))
 
 		if w.progress.SegmentError > w.parent.maxFailedSegments {
 			return errors.New("number of errors exceeded")
@@ -433,4 +433,10 @@ func (w *shardWorker) updateProgress(ctx context.Context) {
 	if err := w.parent.Service.putRunProgress(ctx, w.progress); err != nil {
 		w.logger.Error(ctx, "Cannot update the run progress", "error", err)
 	}
+}
+
+func (w *shardWorker) updateMetrics() {
+	w.repairSegmentsTotal.Set(float64(w.progress.SegmentCount))
+	w.repairSegmentsSuccess.Set(float64(w.progress.SegmentSuccess))
+	w.repairSegmentsError.Set(float64(w.progress.SegmentError))
 }
