@@ -8,11 +8,6 @@ const (
 	day = 24 * time.Hour
 )
 
-// TodayMidnight returns local midnight time in UTC.
-func TodayMidnight() time.Time {
-	return time.Now().AddDate(0, 0, 1).Truncate(day).UTC()
-}
-
 // Now returns current time in UTC.
 func Now() time.Time {
 	return time.Now().UTC()
@@ -30,4 +25,9 @@ func Parse(s string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return t.UTC(), nil
+}
+
+// TodayMidnight returns local midnight time in UTC.
+func TodayMidnight() time.Time {
+	return time.Now().AddDate(0, 0, 1).Truncate(day).UTC()
 }
