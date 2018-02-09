@@ -10,3 +10,6 @@ database:
 ssh:
   user: scylla-manager
   identity_file: testing/scylla_cluster/scylla_manager.pem
+
+repair:
+  auto_schedule_start_time_margin: 1m

@@ -32,3 +32,8 @@ database:
 ssh:
   user: scylla-manager
   identity_file: /var/lib/scylla-manager/scylla_manager.pem
+
+# repair service configuration.
+repair:
+  # Time between running automatic repair scheduling and the actual repairs.
+  # auto_schedule_start_time_margin: 2h

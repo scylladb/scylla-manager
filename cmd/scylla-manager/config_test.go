@@ -39,6 +39,9 @@ func TestNewConfigFromFile(t *testing.T) {
 			User:         "user",
 			IdentityFile: "identity_file",
 		},
+		Repair: repairConfig{
+			AutoScheduleStartTimeMargin: 2 * time.Hour,
+		},
 	}
 
 	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {
