@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -39,7 +40,6 @@ type cancelableTrigger struct {
 
 // overridable knobs for tests
 var (
-	timeNow             = time.Now
 	retryTaskWait       = 10 * time.Minute
 	taskStartNowSlack   = 10 * time.Second
 	monitorTaskInterval = time.Second
@@ -73,7 +73,7 @@ func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Debug(ctx, "LoadTasks")
 
-	now := timeNow().UTC()
+	now := timeutc.Now()
 
 	stmt, _ := qb.Select(schema.SchedTask.Name).ToCql()
 	q := s.session.Query(stmt).WithContext(ctx)
@@ -232,13 +232,13 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan 
 		s.logger.Debug(ctx, "one-shot task, not re-scheduling", "Task", t)
 		return
 	}
-	s.schedTask(ctx, timeNow().UTC(), t)
+	s.schedTask(ctx, timeutc.Now(), t)
 }
 
 func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) {
 	s.wg.Add(1)
 
-	now := timeNow().UTC()
+	now := timeutc.Now()
 	run := &Run{
 		ID:        uuid.NewTime(),
 		Type:      t.Type,
@@ -357,7 +357,7 @@ func (s *Service) StopTask(ctx context.Context, t *Task) error {
 
 	s.cancelTask(t)
 	if t.Enabled {
-		s.schedTask(ctx, timeNow().UTC(), t)
+		s.schedTask(ctx, timeutc.Now(), t)
 	}
 	return nil
 }
@@ -462,7 +462,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid task")}
 	}
 
-	if t.Sched.StartDate.Before(timeNow()) {
+	if t.Sched.StartDate.Before(timeutc.Now()) {
 		return mermaid.ParamError{Cause: errors.New("start date in the past")}
 	}
 
@@ -474,7 +474,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 	s.cancelTask(t)
 	if t.Enabled {
-		s.schedTask(ctx, timeNow().UTC(), t)
+		s.schedTask(ctx, timeutc.Now(), t)
 	}
 	return nil
 }

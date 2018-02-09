@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/timeutc"
 	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )
@@ -65,7 +66,7 @@ func (p *Pool) Dial(network, addr string, config *ssh.ClientConfig) (*ssh.Client
 
 	// cache hit
 	if c, ok := p.conns[key(network, addr)]; ok {
-		c.lastUse = time.Now()
+		c.lastUse = timeutc.Now()
 		c.refCount++
 		return c.client, nil
 	}
@@ -77,7 +78,7 @@ func (p *Pool) Dial(network, addr string, config *ssh.ClientConfig) (*ssh.Client
 	}
 	p.conns[key(network, addr)] = &poolConn{
 		client:   client,
-		lastUse:  time.Now(),
+		lastUse:  timeutc.Now(),
 		refCount: 1,
 	}
 
@@ -138,7 +139,7 @@ func (p *Pool) GC() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	now := time.Now()
+	now := timeutc.Now()
 	for key, conn := range p.conns {
 		if conn.refCount == 0 && conn.lastUse.Add(p.idleTimeout).Before(now) {
 			p.releaseLocked(key, conn)

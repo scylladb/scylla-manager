@@ -13,7 +13,7 @@ clean:
 
 # check does static code analysis.
 .PHONY: check
-check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell .check-vendor
+check: .check-copyright .check-timeutc .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell .check-vendor
 
 .PHONY: .check-copyright
 .check-copyright:
@@ -22,6 +22,16 @@ check: .check-copyright .check-fmt .check-vet .check-lint .check-ineffassign .ch
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ .*_mock[.]go ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
+		(echo $$f; false); \
+	done
+
+.PHONY: .check-timeutc
+.check-timeutc:
+	@set -e; for f in `$(GOFILES)`; do \
+		[[ $$f =~ /scyllaclient/internal/ ]] || \
+		[[ $$f =~ /mermaidclient/internal/ ]] || \
+		[[ $$f =~ /timeutc/ ]] || \
+		[ "`grep 'time.\(Now\|Since\)' $$f`" == "" ] || \
 		(echo $$f; false); \
 	done
 

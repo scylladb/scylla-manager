@@ -82,7 +82,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 		reschedTaskDone = func(*Task) {}
 	}()
 
-	taskStart := timeNow().UTC().Add(taskStartNowSlack + time.Second)
+	taskStart := timeutc.Now().Add(taskStartNowSlack + time.Second)
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
@@ -154,7 +154,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 		reschedTaskDone = func(*Task) {}
 	}()
 
-	taskStart := timeNow().UTC().Add(time.Second)
+	taskStart := timeutc.Now().Add(time.Second)
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
@@ -219,7 +219,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		reschedTaskDone = func(*Task) {}
 	}()
 
-	taskStart := timeNow().UTC().Add(time.Second)
+	taskStart := timeutc.Now().Add(time.Second)
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
@@ -316,7 +316,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 		reschedTaskDone = func(*Task) {}
 	}()
 
-	taskStart := timeNow().UTC().Add(time.Second)
+	taskStart := timeutc.Now().Add(time.Second)
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,

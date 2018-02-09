@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/mermaid/dht"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/timeutc"
 	"go.uber.org/atomic"
 )
 
@@ -293,7 +294,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 		if id != 0 {
 			w.progress.LastCommandID = id
-			w.progress.LastStartTime = time.Now()
+			w.progress.LastStartTime = timeutc.Now()
 		} else {
 			w.progress.LastCommandID = 0
 			w.progress.LastStartTime = time.Time{}
@@ -398,9 +399,9 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
-	start := time.Now()
+	start := timeutc.Now()
 	defer func() {
-		w.repairDurationSeconds.Observe(time.Since(start).Seconds())
+		w.repairDurationSeconds.Observe(timeutc.Since(start).Seconds())
 	}()
 
 	t := time.NewTicker(w.parent.pollInterval)
