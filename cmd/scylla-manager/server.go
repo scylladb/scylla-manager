@@ -137,9 +137,13 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 func (s *server) registerSchedulerRunners() {
 	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc)
 
-	repairAutoSchedule := repair.NewAutoScheduler(s.repairSvc, func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
-		return s.schedSvc.PutTask(ctx, repairTask(clusterID, props))
-	})
+	repairAutoSchedule := repair.NewAutoScheduler(
+		s.repairSvc,
+		func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
+			t := repairTask(clusterID, props, s.config.Repair.AutoScheduleStartTimeMargin)
+			return s.schedSvc.PutTask(ctx, t)
+		},
+	)
 	s.schedSvc.SetRunner(sched.RepairAutoScheduleTask, repairAutoSchedule)
 }
 

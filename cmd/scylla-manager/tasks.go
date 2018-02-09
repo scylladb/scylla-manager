@@ -10,12 +10,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-const day = 24 * time.Hour
-
-func midnight() time.Time {
-	return time.Now().AddDate(0, 0, 1).Truncate(day).UTC()
-}
-
 func repairAutoScheduleTask(clusterID uuid.UUID) *sched.Task {
 	return &sched.Task{
 		ClusterID: clusterID,
@@ -29,13 +23,13 @@ func repairAutoScheduleTask(clusterID uuid.UUID) *sched.Task {
 	}
 }
 
-func repairTask(clusterID uuid.UUID, props runner.TaskProperties) *sched.Task {
+func repairTask(clusterID uuid.UUID, props runner.TaskProperties, timeMargin time.Duration) *sched.Task {
 	return &sched.Task{
 		ClusterID: clusterID,
 		Type:      sched.RepairTask,
 		Enabled:   true,
 		Sched: sched.Schedule{
-			StartDate:  midnight().Add(2 * time.Hour),
+			StartDate:  nowPlus(timeMargin),
 			NumRetries: sched.RetryFor(6 * day),
 		},
 		Properties: props,
