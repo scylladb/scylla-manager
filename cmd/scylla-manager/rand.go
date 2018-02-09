@@ -7,7 +7,8 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"time"
+
+	"github.com/scylladb/mermaid/timeutc"
 )
 
 // seedMathRand provides weak, but guaranteed seeding, which is better than
@@ -16,7 +17,7 @@ import (
 func seedMathRand() {
 	n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
-		rand.Seed(time.Now().UTC().UnixNano())
+		rand.Seed(timeutc.Now().UnixNano())
 		return
 	}
 	rand.Seed(n.Int64())

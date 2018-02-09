@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 )
@@ -27,31 +28,26 @@ func requireFlags(cmd *cobra.Command, flags ...string) {
 }
 
 func parseTaskStartDate(startDate string) (time.Time, error) {
+	if !strings.HasPrefix(startDate, "now") {
+		return timeutc.Parse(startDate)
+	}
+
 	const nowSafety = 30 * time.Second
 
-	if strings.HasPrefix(startDate, "now") {
-		now := time.Now()
-		var d time.Duration
-		if startDate != "now" {
-			var err error
-			d, err = time.ParseDuration(startDate[3:])
-			if err != nil {
-				return time.Time{}, err
-			}
+	var d time.Duration
+	if startDate != "now" {
+		var err error
+		d, err = time.ParseDuration(startDate[3:])
+		if err != nil {
+			return time.Time{}, err
 		}
-
-		activation := now.Add(d)
-		if activation.Before(now.Add(nowSafety)) {
-			activation = now.Add(nowSafety)
-		}
-		return activation.UTC(), nil
 	}
 
-	t, err := time.Parse(time.RFC3339, startDate)
-	if err != nil {
-		return time.Time{}, err
+	if d < nowSafety {
+		d = nowSafety
 	}
-	return t.UTC(), nil
+
+	return timeutc.Now().Add(d), nil
 }
 
 func taskSplit(s string) (taskType string, taskID uuid.UUID, err error) {

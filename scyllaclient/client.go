@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
+	"github.com/scylladb/mermaid/timeutc"
 )
 
 // DefaultPort is Scylla API port.
@@ -298,12 +299,12 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	}
 	r = r.WithContext(withHostPort(ctx, host))
 
-	t := time.Now()
+	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)
 	if err != nil {
 		return 0, err
 	}
 	defer resp.Body.Close()
 
-	return time.Since(t), nil
+	return timeutc.Since(t), nil
 }

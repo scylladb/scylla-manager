@@ -6,7 +6,6 @@ import (
 	"context"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
@@ -18,6 +17,7 @@ import (
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -106,14 +106,14 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		Keyspace:  u.Keyspace,
 		Tables:    u.Tables,
 		Status:    StatusRunning,
-		StartTime: time.Now(),
+		StartTime: timeutc.Now(),
 	}
 
 	// fail updates a run and passes the error
 	fail := func(err error) error {
 		r.Status = StatusError
 		r.Cause = err.Error()
-		r.EndTime = time.Now()
+		r.EndTime = timeutc.Now()
 		s.putRunLogError(ctx, &r)
 		return err
 	}
@@ -160,7 +160,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		case prev.Status == StatusDone:
 			s.logger.Info(ctx, "Starting from scratch: nothing too continue from")
 			prev = nil
-		case time.Since(prev.StartTime) > DefaultRepairMaxAge:
+		case timeutc.Since(prev.StartTime) > DefaultRepairMaxAge:
 			s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 			prev = nil
 		}
@@ -411,7 +411,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 
 		if stopped {
 			r.Status = StatusStopped
-			r.EndTime = time.Now()
+			r.EndTime = timeutc.Now()
 			s.putRunLogError(ctx, r)
 
 			s.logger.Info(ctx, "Stopped", "unit", u, "run_id", r.ID)
@@ -420,7 +420,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 	}
 
 	r.Status = StatusDone
-	r.EndTime = time.Now()
+	r.EndTime = timeutc.Now()
 	s.putRunLogError(ctx, r)
 
 	s.logger.Info(ctx, "Done", "run_id", r.ID)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/scylladb/mermaid/sched/runner"
+	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -36,7 +37,7 @@ func makeHistory(startDate time.Time, runStatus ...runner.Status) []*Run {
 }
 
 func TestSchedNextActivation(t *testing.T) {
-	now := timeNow().UTC()
+	now := timeutc.Now()
 	t0 := now.AddDate(0, 0, -7)
 	t1 := t0.AddDate(0, 0, 2)
 

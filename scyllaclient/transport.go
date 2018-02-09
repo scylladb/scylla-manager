@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/hailocab/go-hostpool"
 	"github.com/scylladb/mermaid/log"
+	"github.com/scylladb/mermaid/timeutc"
 )
 
 // transport is an http.RoundTriper that updates request host from context and
@@ -51,7 +51,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Host = h
 	req.URL.Host = h
 
-	start := time.Now()
+	start := timeutc.Now()
 	resp, err := t.parent.RoundTrip(r)
 	if resp != nil {
 		t.logger.Debug(ctx, "HTTP",
@@ -60,7 +60,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			"uri", r.URL.RequestURI(),
 			"status", resp.StatusCode,
 			"bytes", resp.ContentLength,
-			"duration", fmt.Sprintf("%dms", time.Since(start)/1000000),
+			"duration", fmt.Sprintf("%dms", timeutc.Since(start)/1000000),
 		)
 		fixResponse(resp)
 	}
