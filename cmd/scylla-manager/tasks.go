@@ -7,6 +7,7 @@ import (
 
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/sched/runner"
+	"github.com/scylladb/mermaid/timeutil"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -17,7 +18,7 @@ func repairAutoScheduleTask(clusterID uuid.UUID) *sched.Task {
 		Enabled:   true,
 		Sched: sched.Schedule{
 			IntervalDays: 7,
-			StartDate:    midnight(),
+			StartDate:    timeutil.TodayMidnight(),
 			NumRetries:   sched.RetryFor(time.Hour),
 		},
 	}
@@ -29,8 +30,8 @@ func repairTask(clusterID uuid.UUID, props runner.TaskProperties, timeMargin tim
 		Type:      sched.RepairTask,
 		Enabled:   true,
 		Sched: sched.Schedule{
-			StartDate:  nowPlus(timeMargin),
-			NumRetries: sched.RetryFor(6 * day),
+			StartDate:  timeutil.NowUTC().Add(timeMargin).Truncate(time.Minute),
+			NumRetries: sched.RetryFor(6 * 24 * time.Hour),
 		},
 		Properties: props,
 	}
