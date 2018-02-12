@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // TaskRun task run
@@ -23,13 +24,13 @@ type TaskRun struct {
 	ClusterID string `json:"cluster_id,omitempty"`
 
 	// end time
-	EndTime string `json:"end_time,omitempty"`
+	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`
 
 	// start time
-	StartTime string `json:"start_time,omitempty"`
+	StartTime strfmt.DateTime `json:"start_time,omitempty"`
 
 	// status
 	Status string `json:"status,omitempty"`
@@ -45,9 +46,45 @@ type TaskRun struct {
 func (m *TaskRun) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateEndTime(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateStartTime(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *TaskRun) validateEndTime(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.EndTime) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("end_time", "body", "date-time", m.EndTime.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *TaskRun) validateStartTime(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartTime) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("start_time", "body", "date-time", m.StartTime.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
