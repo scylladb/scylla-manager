@@ -13,18 +13,15 @@ func Now() time.Time {
 	return time.Now().UTC()
 }
 
+// Parse calls time.Parse and returns value in UCT.
+func Parse(layout, value string) (time.Time, error) {
+	t, err := time.Parse(layout, value)
+	return t.UTC(), err
+}
+
 // Since returns the time elapsed since t.
 func Since(t time.Time) time.Duration {
 	return Now().Sub(t.UTC())
-}
-
-// Parse parses time according to RFC3339 and returns time in UTC.
-func Parse(s string) (time.Time, error) {
-	t, err := time.Parse(time.RFC3339, s)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return t.UTC(), nil
 }
 
 // TodayMidnight returns local midnight time in UTC.
