@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
@@ -37,11 +36,11 @@ var repairSchedCmd = &cobra.Command{
 		}
 
 		f := cmd.Flag("start-date")
-		activation, err := parseTaskStartDate(f.Value.String())
+		startDate, err := parseStartDate(f.Value.String())
 		if err != nil {
 			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 		}
-		t.Schedule.StartDate = activation.Format(time.RFC3339)
+		t.Schedule.StartDate = startDate
 
 		f = cmd.Flag("interval")
 		interval, err := strconv.Atoi(f.Value.String())
@@ -115,9 +114,9 @@ var repairProgressCmd = &cobra.Command{
 			fmt.Fprintf(w, " (%s)", run.Cause)
 		}
 		fmt.Fprintln(w)
-		fmt.Fprintf(w, "Start time:\t%s\n", run.StartTime)
-		if run.EndTime != "" {
-			fmt.Fprintf(w, "End time:\t%s\n", run.EndTime)
+		fmt.Fprintf(w, "Start time:\t%s\n", formatTime(run.StartTime))
+		if !isZero(run.EndTime) {
+			fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
 		}
 
 		if run.Status == runner.StatusError.String() {
