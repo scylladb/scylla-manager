@@ -36,6 +36,7 @@ func (m GetClusterClusterIDTasksOKBody) Validate(formats strfmt.Registry) error 
 				}
 				return err
 			}
+
 		}
 
 	}

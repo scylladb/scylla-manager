@@ -38,9 +38,6 @@ func NewHTTPClient(formats strfmt.Registry) *Mermaid {
 // using a customizable transport config.
 func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Mermaid {
 	// ensure nullable parameters have default
-	if formats == nil {
-		formats = strfmt.Default
-	}
 	if cfg == nil {
 		cfg = DefaultTransportConfig()
 	}
@@ -52,6 +49,11 @@ func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Mer
 
 // New creates a new mermaid client
 func New(transport runtime.ClientTransport, formats strfmt.Registry) *Mermaid {
+	// ensure nullable parameters have default
+	if formats == nil {
+		formats = strfmt.Default
+	}
+
 	cli := new(Mermaid)
 	cli.Transport = transport
 

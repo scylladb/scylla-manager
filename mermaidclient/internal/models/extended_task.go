@@ -90,6 +90,7 @@ func (m *ExtendedTask) validateSchedule(formats strfmt.Registry) error {
 			}
 			return err
 		}
+
 	}
 
 	return nil
