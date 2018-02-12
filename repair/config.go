@@ -190,6 +190,78 @@ func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo
 	return mergeConfigs(all, src)
 }
 
+// mergeConfigs does the configuration merging for Service.GetMergedUnitConfig.
+func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
+	if len(all) == 0 {
+		return nil, errors.New("no matching configurations")
+	}
+
+	m := ConfigInfo{}
+
+	// Enabled *bool
+	for i, c := range all {
+		if c.Enabled != nil {
+			if m.Enabled == nil || !*c.Enabled {
+				m.Enabled = c.Enabled
+				m.EnabledSource = src[i]
+			}
+		}
+	}
+	if m.Enabled == nil {
+		return nil, errors.New("no value for Enabled")
+	}
+
+	// SegmentSizeLimit *int64
+	for i, c := range all {
+		if c.SegmentSizeLimit != nil {
+			m.SegmentSizeLimit = c.SegmentSizeLimit
+			m.SegmentSizeLimitSource = src[i]
+			break
+		}
+	}
+	if m.SegmentSizeLimit == nil {
+		return nil, errors.New("no value for SegmentSizeLimit")
+	}
+
+	// RetryLimit *int
+	for i, c := range all {
+		if c.RetryLimit != nil {
+			m.RetryLimit = c.RetryLimit
+			m.RetryLimitSource = src[i]
+			break
+		}
+	}
+	if m.RetryLimit == nil {
+		return nil, errors.New("no value for RetryLimit")
+	}
+
+	// RetryBackoffSeconds *int
+	for i, c := range all {
+		if c.RetryBackoffSeconds != nil {
+			m.RetryBackoffSeconds = c.RetryBackoffSeconds
+			m.RetryBackoffSecondsSource = src[i]
+			break
+		}
+	}
+	if m.RetryBackoffSeconds == nil {
+		return nil, errors.New("no value for RetryBackoffSeconds")
+	}
+
+	// ParallelShardPercent *float32
+	for i, c := range all {
+		if c.ParallelShardPercent != nil {
+			m.ParallelShardPercent = c.ParallelShardPercent
+			m.ParallelShardPercentSource = src[i]
+			break
+		}
+	}
+	if m.ParallelShardPercent == nil {
+		return nil, errors.New("no value for ParallelShardPercent")
+	}
+
+	return &m, nil
+}
+
 // GetConfig returns repair configuration for a given object. If nothing was
 // found mermaid.ErrNotFound is returned.
 func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, error) {
