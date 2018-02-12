@@ -26,9 +26,9 @@ type RepairService interface {
 	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 	ListUnits(ctx context.Context, clusterID uuid.UUID, f *repair.UnitFilter) ([]*repair.Unit, error)
 
-	GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.LegacyConfig, error)
-	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.LegacyConfig) error
-	DeleteConfig(ctx context.Context, src repair.ConfigSource) error
+	GetConfig(ctx context.Context, src repair.LegacyConfigSource) (*repair.LegacyConfig, error)
+	PutConfig(ctx context.Context, src repair.LegacyConfigSource, c *repair.LegacyConfig) error
+	DeleteConfig(ctx context.Context, src repair.LegacyConfigSource) error
 
 	GetRun(ctx context.Context, u *repair.Unit, runID uuid.UUID) (*repair.Run, error)
 	GetLastRun(ctx context.Context, u *repair.Unit) (*repair.Run, error)
@@ -282,7 +282,7 @@ func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, 
 
 type repairConfigRequest struct {
 	*repair.LegacyConfig
-	repair.ConfigSource `json:"-"`
+	repair.LegacyConfigSource `json:"-"`
 }
 
 func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
@@ -323,7 +323,7 @@ func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := h.svc.GetConfig(r.Context(), cr.ConfigSource)
+	c, err := h.svc.GetConfig(r.Context(), cr.LegacyConfigSource)
 	if err != nil {
 		respondError(w, r, err, "failed to load config")
 		return
@@ -338,7 +338,7 @@ func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.LegacyConfig); err != nil {
+	if err := h.svc.PutConfig(r.Context(), cr.LegacyConfigSource, cr.LegacyConfig); err != nil {
 		respondError(w, r, err, "failed to update config")
 		return
 	}
@@ -351,7 +351,7 @@ func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.DeleteConfig(r.Context(), cr.ConfigSource); err != nil {
+	if err := h.svc.DeleteConfig(r.Context(), cr.LegacyConfigSource); err != nil {
 		respondError(w, r, err, "failed to delete config")
 	}
 }

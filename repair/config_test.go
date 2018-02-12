@@ -20,8 +20,8 @@ func TestMergeConfig(t *testing.T) {
 
 	table := []struct {
 		C []*LegacyConfig
-		S []ConfigSource
-		E *ConfigInfo
+		S []LegacyConfigSource
+		E *LegacyConfigInfo
 	}{
 		// empty
 		{
@@ -38,8 +38,8 @@ func TestMergeConfig(t *testing.T) {
 		// disable
 		{
 			C: []*LegacyConfig{v, {Enabled: bptr(false)}},
-			S: []ConfigSource{{ExternalID: "0"}, {ExternalID: "1"}},
-			E: &ConfigInfo{
+			S: []LegacyConfigSource{{ExternalID: "0"}, {ExternalID: "1"}},
+			E: &LegacyConfigInfo{
 				LegacyConfig: LegacyConfig{
 					Enabled:              bptr(false),
 					SegmentSizeLimit:     v.SegmentSizeLimit,
@@ -47,24 +47,24 @@ func TestMergeConfig(t *testing.T) {
 					RetryBackoffSeconds:  v.RetryBackoffSeconds,
 					ParallelShardPercent: v.ParallelShardPercent,
 				},
-				EnabledSource:              ConfigSource{ExternalID: "1"},
-				SegmentSizeLimitSource:     ConfigSource{ExternalID: "0"},
-				RetryLimitSource:           ConfigSource{ExternalID: "0"},
-				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "0"},
-				ParallelShardPercentSource: ConfigSource{ExternalID: "0"},
+				EnabledSource:              LegacyConfigSource{ExternalID: "1"},
+				SegmentSizeLimitSource:     LegacyConfigSource{ExternalID: "0"},
+				RetryLimitSource:           LegacyConfigSource{ExternalID: "0"},
+				RetryBackoffSecondsSource:  LegacyConfigSource{ExternalID: "0"},
+				ParallelShardPercentSource: LegacyConfigSource{ExternalID: "0"},
 			},
 		},
 		// fallthrough
 		{
 			C: []*LegacyConfig{{}, {}, v},
-			S: []ConfigSource{{ExternalID: "0"}, {ExternalID: "1"}, {ExternalID: "2"}},
-			E: &ConfigInfo{
+			S: []LegacyConfigSource{{ExternalID: "0"}, {ExternalID: "1"}, {ExternalID: "2"}},
+			E: &LegacyConfigInfo{
 				LegacyConfig:               *v,
-				EnabledSource:              ConfigSource{ExternalID: "2"},
-				SegmentSizeLimitSource:     ConfigSource{ExternalID: "2"},
-				RetryLimitSource:           ConfigSource{ExternalID: "2"},
-				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "2"},
-				ParallelShardPercentSource: ConfigSource{ExternalID: "2"},
+				EnabledSource:              LegacyConfigSource{ExternalID: "2"},
+				SegmentSizeLimitSource:     LegacyConfigSource{ExternalID: "2"},
+				RetryLimitSource:           LegacyConfigSource{ExternalID: "2"},
+				RetryBackoffSecondsSource:  LegacyConfigSource{ExternalID: "2"},
+				ParallelShardPercentSource: LegacyConfigSource{ExternalID: "2"},
 			},
 		},
 		// merge
@@ -83,14 +83,14 @@ func TestMergeConfig(t *testing.T) {
 					ParallelShardPercent: fptr(1),
 				},
 			},
-			S: []ConfigSource{{ExternalID: "0"}, {ExternalID: "1"}, {ExternalID: "2"}},
-			E: &ConfigInfo{
+			S: []LegacyConfigSource{{ExternalID: "0"}, {ExternalID: "1"}, {ExternalID: "2"}},
+			E: &LegacyConfigInfo{
 				LegacyConfig:               *v,
-				EnabledSource:              ConfigSource{ExternalID: "0"},
-				SegmentSizeLimitSource:     ConfigSource{ExternalID: "1"},
-				RetryLimitSource:           ConfigSource{ExternalID: "1"},
-				RetryBackoffSecondsSource:  ConfigSource{ExternalID: "1"},
-				ParallelShardPercentSource: ConfigSource{ExternalID: "2"},
+				EnabledSource:              LegacyConfigSource{ExternalID: "0"},
+				SegmentSizeLimitSource:     LegacyConfigSource{ExternalID: "1"},
+				RetryLimitSource:           LegacyConfigSource{ExternalID: "1"},
+				RetryBackoffSecondsSource:  LegacyConfigSource{ExternalID: "1"},
+				ParallelShardPercentSource: LegacyConfigSource{ExternalID: "2"},
 			},
 		},
 	}

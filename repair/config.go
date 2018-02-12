@@ -15,33 +15,33 @@ import (
 	"go.uber.org/multierr"
 )
 
-// ConfigType specifies a type of configuration. Configuration object is built
+// LegacyConfigType specifies a type of configuration. Configuration object is built
 // by merging configurations of different types. If configuration option is not
 // found for UnitConfig then it falls back to KeyspaceConfig, ClusterConfig and
 // TenantConfig.
-type ConfigType string
+type LegacyConfigType string
 
-// ConfigType enumeration.
+// LegacyConfigType enumeration.
 const (
-	UnknownConfigType ConfigType = "unknown"
-	UnitConfig        ConfigType = "unit"
-	KeyspaceConfig    ConfigType = "keyspace"
-	ClusterConfig     ConfigType = "cluster"
-	tenantConfig      ConfigType = "tenant"
+	UnknownConfigType LegacyConfigType = "unknown"
+	UnitConfig        LegacyConfigType = "unit"
+	KeyspaceConfig    LegacyConfigType = "keyspace"
+	ClusterConfig     LegacyConfigType = "cluster"
+	tenantConfig      LegacyConfigType = "tenant"
 )
 
-func (c ConfigType) String() string {
+func (c LegacyConfigType) String() string {
 	return string(c)
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (c ConfigType) MarshalText() (text []byte, err error) {
+func (c LegacyConfigType) MarshalText() (text []byte, err error) {
 	return []byte(c.String()), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (c *ConfigType) UnmarshalText(text []byte) error {
-	switch ConfigType(text) {
+func (c *LegacyConfigType) UnmarshalText(text []byte) error {
+	switch LegacyConfigType(text) {
 	case UnknownConfigType:
 		*c = UnknownConfigType
 	case UnitConfig:
@@ -53,7 +53,7 @@ func (c *ConfigType) UnmarshalText(text []byte) error {
 	case tenantConfig:
 		*c = tenantConfig
 	default:
-		return fmt.Errorf("unrecognized ConfigType %q", text)
+		return fmt.Errorf("unrecognized LegacyConfigType %q", text)
 	}
 	return nil
 }
@@ -118,29 +118,29 @@ func (c *LegacyConfig) Validate() (err error) {
 	return
 }
 
-// ConfigSource specifies configuration target.
-type ConfigSource struct {
+// LegacyConfigSource specifies configuration target.
+type LegacyConfigSource struct {
 	ClusterID  uuid.UUID
-	Type       ConfigType
+	Type       LegacyConfigType
 	ExternalID string
 }
 
-// ConfigInfo is configuration together with source info.
-type ConfigInfo struct {
+// LegacyConfigInfo is configuration together with source info.
+type LegacyConfigInfo struct {
 	LegacyConfig
 
-	EnabledSource              ConfigSource
-	SegmentSizeLimitSource     ConfigSource
-	RetryLimitSource           ConfigSource
-	RetryBackoffSecondsSource  ConfigSource
-	ParallelShardPercentSource ConfigSource
+	EnabledSource              LegacyConfigSource
+	SegmentSizeLimitSource     LegacyConfigSource
+	RetryLimitSource           LegacyConfigSource
+	RetryBackoffSecondsSource  LegacyConfigSource
+	ParallelShardPercentSource LegacyConfigSource
 }
 
 // GetMergedUnitConfig returns a merged configuration for a unit.
 // The configuration has no nil values. If any of the source configurations are
 // disabled the resulting configuration is disabled. For other fields first
 // matching configuration is used.
-func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo, error) {
+func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*LegacyConfigInfo, error) {
 	s.logger.Debug(ctx, "GetMergedUnitConfig", "unit", u)
 
 	// validate the unit
@@ -148,7 +148,7 @@ func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo
 		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
 	}
 
-	order := []ConfigSource{
+	order := []LegacyConfigSource{
 		{
 			ClusterID:  u.ClusterID,
 			Type:       UnitConfig,
@@ -191,12 +191,12 @@ func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo
 }
 
 // mergeConfigs does the configuration merging for Service.GetMergedUnitConfig.
-func mergeConfigs(all []*LegacyConfig, src []ConfigSource) (*ConfigInfo, error) {
+func mergeConfigs(all []*LegacyConfig, src []LegacyConfigSource) (*LegacyConfigInfo, error) {
 	if len(all) == 0 {
 		return nil, errors.New("no matching configurations")
 	}
 
-	m := ConfigInfo{}
+	m := LegacyConfigInfo{}
 
 	// Enabled *bool
 	for i, c := range all {
@@ -264,7 +264,7 @@ func mergeConfigs(all []*LegacyConfig, src []ConfigSource) (*ConfigInfo, error) 
 
 // GetConfig returns repair configuration for a given object. If nothing was
 // found mermaid.ErrNotFound is returned.
-func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*LegacyConfig, error) {
+func (s *Service) GetConfig(ctx context.Context, src LegacyConfigSource) (*LegacyConfig, error) {
 	s.logger.Debug(ctx, "GetConfig", "source", src)
 
 	stmt, names := schema.RepairConfig.Get()
@@ -283,7 +283,7 @@ func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*LegacyConfi
 }
 
 // PutConfig upserts repair configuration for a given object.
-func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *LegacyConfig) error {
+func (s *Service) PutConfig(ctx context.Context, src LegacyConfigSource, c *LegacyConfig) error {
 	s.logger.Debug(ctx, "PutConfig", "source", src, "config", c)
 
 	if err := c.Validate(); err != nil {
@@ -302,7 +302,7 @@ func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *LegacyConf
 }
 
 // DeleteConfig removes repair configuration for a given object.
-func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
+func (s *Service) DeleteConfig(ctx context.Context, src LegacyConfigSource) error {
 	s.logger.Debug(ctx, "DeleteConfig", "source", src)
 
 	stmt, names := schema.RepairConfig.Delete()

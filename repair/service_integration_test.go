@@ -85,7 +85,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("get missing config", func(t *testing.T) {
 		t.Parallel()
 
-		c, err := s.GetConfig(ctx, repair.ConfigSource{
+		c, err := s.GetConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -101,7 +101,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put nil config", func(t *testing.T) {
 		t.Parallel()
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{
+		if err := s.PutConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -117,7 +117,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		c := validConfig()
 		c.RetryLimit = &invalid
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{
+		if err := s.PutConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -129,7 +129,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("delete missing config", func(t *testing.T) {
 		t.Parallel()
 
-		if err := s.DeleteConfig(ctx, repair.ConfigSource{
+		if err := s.DeleteConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -141,7 +141,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put and get config", func(t *testing.T) {
 		t.Parallel()
 
-		src := repair.ConfigSource{
+		src := repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -166,7 +166,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put and delete config", func(t *testing.T) {
 		t.Parallel()
 
-		src := repair.ConfigSource{
+		src := repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
