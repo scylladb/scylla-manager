@@ -118,6 +118,7 @@ var repairProgressCmd = &cobra.Command{
 		if !isZero(run.EndTime) {
 			fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
 		}
+		fmt.Fprintf(w, "Duration:\t%s\n", duration(run.StartTime, run.EndTime))
 
 		if run.Status == runner.StatusError.String() {
 			return nil

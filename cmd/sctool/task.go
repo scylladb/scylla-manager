@@ -81,7 +81,7 @@ var taskListCmd = &cobra.Command{
 }
 
 func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
-	t := newTable("task", "start date", "int.", "ret.", "properties", "run start", "run stop", "status")
+	t := newTable("task", "start date", "int.", "ret.", "properties", "run start", "status")
 	for _, task := range tasks {
 		if !all && !task.Enabled {
 			continue
@@ -99,7 +99,6 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 
 		for _, f := range []string{
 			formatTime(task.StartTime),
-			formatTime(task.EndTime),
 			task.Status,
 		} {
 			if f == "" {
@@ -185,12 +184,12 @@ var taskHistoryCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		t := newTable("id", "start time", "stop time", "status", "cause")
+		t := newTable("id", "start time", "duration", "status", "cause")
 		for _, r := range runs {
 			fields := []interface{}{r.ID}
 			for _, f := range []string{
 				formatTime(r.StartTime),
-				formatTime(r.EndTime),
+				duration(r.StartTime, r.EndTime),
 			} {
 				if f == "" {
 					f = "-"

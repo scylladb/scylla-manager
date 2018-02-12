@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -57,4 +58,15 @@ func formatTime(t strfmt.DateTime) string {
 
 func isZero(t strfmt.DateTime) bool {
 	return time.Time(t).IsZero()
+}
+
+func duration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
+	var d time.Duration
+	if isZero(t1) {
+		d = timeutc.Now().Sub(time.Time(t0))
+	} else {
+		d = time.Time(t1).Sub(time.Time(t0))
+	}
+
+	return fmt.Sprint(d.Truncate(time.Second))
 }
