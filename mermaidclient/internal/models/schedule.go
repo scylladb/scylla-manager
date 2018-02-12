@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Schedule schedule
@@ -23,16 +24,34 @@ type Schedule struct {
 	NumRetries int32 `json:"num_retries,omitempty"`
 
 	// start date
-	StartDate string `json:"start_date,omitempty"`
+	StartDate strfmt.DateTime `json:"start_date,omitempty"`
 }
 
 // Validate validates this schedule
 func (m *Schedule) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateStartDate(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Schedule) validateStartDate(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartDate) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("start_date", "body", "date-time", m.StartDate.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
