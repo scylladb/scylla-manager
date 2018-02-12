@@ -36,6 +36,7 @@ func (m GetClusterClusterIDTaskTaskTypeTaskIDHistoryOKBody) Validate(formats str
 				}
 				return err
 			}
+
 		}
 
 	}

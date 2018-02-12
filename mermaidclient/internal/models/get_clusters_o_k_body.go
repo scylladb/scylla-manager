@@ -36,6 +36,7 @@ func (m GetClustersOKBody) Validate(formats strfmt.Registry) error {
 				}
 				return err
 			}
+
 		}
 
 	}

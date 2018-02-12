@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
@@ -82,7 +81,7 @@ var taskListCmd = &cobra.Command{
 }
 
 func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
-	t := newTable("task", "start date", "int.", "ret.", "properties", "run start", "run stop", "status")
+	t := newTable("task", "start date", "int.", "ret.", "properties", "run start", "status")
 	for _, task := range tasks {
 		if !all && !task.Enabled {
 			continue
@@ -91,14 +90,17 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 		fields := make([]interface{}, 0, 8)
 		fields = append(fields, taskJoin(task.Type, task.ID))
 		if task.Schedule != nil {
-			fields = append(fields, task.Schedule.StartDate, task.Schedule.IntervalDays, task.Schedule.NumRetries)
+			fields = append(fields, formatTime(task.Schedule.StartDate), task.Schedule.IntervalDays, task.Schedule.NumRetries)
 		} else {
 			fields = append(fields, "-", "-", "-")
 		}
 
 		fields = append(fields, dumpMap(task.Properties))
 
-		for _, f := range []string{task.StartTime, task.EndTime, task.Status} {
+		for _, f := range []string{
+			formatTime(task.StartTime),
+			task.Status,
+		} {
 			if f == "" {
 				f = "-"
 			}
@@ -182,15 +184,14 @@ var taskHistoryCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		t := newTable("id", "start time", "stop time", "status", "cause")
+		t := newTable("id", "start time", "duration", "status", "cause")
 		for _, r := range runs {
 			fields := []interface{}{r.ID}
-			for _, f := range []string{r.StartTime, r.EndTime} {
-				t, err := time.Parse(time.RFC3339, f)
-				if err != nil {
-					return printableError{err}
-				}
-				if t.IsZero() {
+			for _, f := range []string{
+				formatTime(r.StartTime),
+				duration(r.StartTime, r.EndTime),
+			} {
+				if f == "" {
 					f = "-"
 				}
 				fields = append(fields, f)
@@ -257,11 +258,11 @@ var taskUpdateCmd = &cobra.Command{
 			changed = true
 		}
 		if f := cmd.Flag("start-date"); f.Changed {
-			startDate, err := parseTaskStartDate(f.Value.String())
+			startDate, err := parseStartDate(f.Value.String())
 			if err != nil {
 				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 			}
-			t.Schedule.StartDate = startDate.Format(time.RFC3339)
+			t.Schedule.StartDate = startDate
 			changed = true
 		}
 		if f := cmd.Flag("interval"); f.Changed {

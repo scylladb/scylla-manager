@@ -31,7 +31,7 @@ check: .check-copyright .check-timeutc .check-fmt .check-vet .check-lint .check-
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ /timeutc/ ]] || \
-		[ "`grep 'time.\(Now\|Since\)' $$f`" == "" ] || \
+		[ "`grep 'time.\(Now\|Parse(\|Since\)' $$f`" == "" ] || \
 		(echo $$f; false); \
 	done
 

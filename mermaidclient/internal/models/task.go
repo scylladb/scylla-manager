@@ -78,6 +78,7 @@ func (m *Task) validateSchedule(formats strfmt.Registry) error {
 			}
 			return err
 		}
+
 	}
 
 	return nil

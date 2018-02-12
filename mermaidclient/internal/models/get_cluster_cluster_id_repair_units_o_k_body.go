@@ -36,6 +36,7 @@ func (m GetClusterClusterIDRepairUnitsOKBody) Validate(formats strfmt.Registry) 
 				}
 				return err
 			}
+
 		}
 
 	}
