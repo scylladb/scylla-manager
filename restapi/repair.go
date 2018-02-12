@@ -26,8 +26,8 @@ type RepairService interface {
 	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 	ListUnits(ctx context.Context, clusterID uuid.UUID, f *repair.UnitFilter) ([]*repair.Unit, error)
 
-	GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.Config, error)
-	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error
+	GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.LegacyConfig, error)
+	PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.LegacyConfig) error
 	DeleteConfig(ctx context.Context, src repair.ConfigSource) error
 
 	GetRun(ctx context.Context, u *repair.Unit, runID uuid.UUID) (*repair.Run, error)
@@ -281,13 +281,13 @@ func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, 
 //
 
 type repairConfigRequest struct {
-	*repair.Config
+	*repair.LegacyConfig
 	repair.ConfigSource `json:"-"`
 }
 
 func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
 	var cr repairConfigRequest
-	if err := render.DecodeJSON(r.Body, &cr.Config); err != nil {
+	if err := render.DecodeJSON(r.Body, &cr.LegacyConfig); err != nil {
 		if err != io.EOF {
 			return nil, err
 		}
@@ -338,7 +338,7 @@ func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.Config); err != nil {
+	if err := h.svc.PutConfig(r.Context(), cr.ConfigSource, cr.LegacyConfig); err != nil {
 		respondError(w, r, err, "failed to update config")
 		return
 	}

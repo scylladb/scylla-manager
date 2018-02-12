@@ -77,7 +77,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(&c.Config, validConfig()); diff != "" {
+		if diff := cmp.Diff(&c.LegacyConfig, validConfig()); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -556,14 +556,14 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 }
 
-func validConfig() *repair.Config {
+func validConfig() *repair.LegacyConfig {
 	enabled := true
 	segmentSizeLimit := int64(-1)
 	retryLimit := 3
 	retryBackoffSeconds := 60
 	parallelShardPercent := float32(1)
 
-	return &repair.Config{
+	return &repair.LegacyConfig{
 		Enabled:              &enabled,
 		SegmentSizeLimit:     &segmentSizeLimit,
 		RetryLimit:           &retryLimit,

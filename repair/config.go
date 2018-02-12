@@ -58,8 +58,8 @@ func (c *ConfigType) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// Config specifies how a Unit is repaired.
-type Config struct {
+// LegacyConfig specifies how a Unit is repaired.
+type LegacyConfig struct {
 	// Enabled specifies if repair should take place at all.
 	Enabled *bool `json:"enabled,omitempty"`
 	// SegmentSizeLimit specifies in how many steps a shard will be repaired,
@@ -79,7 +79,7 @@ type Config struct {
 }
 
 // Validate checks if all the fields are properly set.
-func (c *Config) Validate() (err error) {
+func (c *LegacyConfig) Validate() (err error) {
 	if c == nil {
 		return mermaid.ErrNilPtr
 	}
@@ -127,7 +127,7 @@ type ConfigSource struct {
 
 // ConfigInfo is configuration together with source info.
 type ConfigInfo struct {
-	Config
+	LegacyConfig
 
 	EnabledSource              ConfigSource
 	SegmentSizeLimitSource     ConfigSource
@@ -169,7 +169,7 @@ func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo
 		},
 	}
 
-	all := make([]*Config, 0, len(order))
+	all := make([]*LegacyConfig, 0, len(order))
 	src := order[:]
 
 	for _, o := range order {
@@ -191,7 +191,7 @@ func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo
 }
 
 // mergeConfigs does the configuration merging for Service.GetMergedUnitConfig.
-func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
+func mergeConfigs(all []*LegacyConfig, src []ConfigSource) (*ConfigInfo, error) {
 	if len(all) == 0 {
 		return nil, errors.New("no matching configurations")
 	}
@@ -264,7 +264,7 @@ func mergeConfigs(all []*Config, src []ConfigSource) (*ConfigInfo, error) {
 
 // GetConfig returns repair configuration for a given object. If nothing was
 // found mermaid.ErrNotFound is returned.
-func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, error) {
+func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*LegacyConfig, error) {
 	s.logger.Debug(ctx, "GetConfig", "source", src)
 
 	stmt, names := schema.RepairConfig.Get()
@@ -274,7 +274,7 @@ func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, err
 		return nil, q.Err()
 	}
 
-	var c Config
+	var c LegacyConfig
 	if err := gocqlx.Iter(q.Query).Unsafe().Get(&c); err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, err
 }
 
 // PutConfig upserts repair configuration for a given object.
-func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *Config) error {
+func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *LegacyConfig) error {
 	s.logger.Debug(ctx, "PutConfig", "source", src, "config", c)
 
 	if err := c.Validate(); err != nil {

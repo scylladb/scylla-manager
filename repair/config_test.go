@@ -10,7 +10,7 @@ import (
 )
 
 func TestMergeConfig(t *testing.T) {
-	v := &Config{
+	v := &LegacyConfig{
 		Enabled:              bptr(true),
 		SegmentSizeLimit:     i64ptr(50),
 		RetryLimit:           iptr(3),
@@ -19,7 +19,7 @@ func TestMergeConfig(t *testing.T) {
 	}
 
 	table := []struct {
-		C []*Config
+		C []*LegacyConfig
 		S []ConfigSource
 		E *ConfigInfo
 	}{
@@ -31,16 +31,16 @@ func TestMergeConfig(t *testing.T) {
 		},
 		// missing fields
 		{
-			C: []*Config{},
+			C: []*LegacyConfig{},
 			S: nil,
 			E: nil,
 		},
 		// disable
 		{
-			C: []*Config{v, {Enabled: bptr(false)}},
+			C: []*LegacyConfig{v, {Enabled: bptr(false)}},
 			S: []ConfigSource{{ExternalID: "0"}, {ExternalID: "1"}},
 			E: &ConfigInfo{
-				Config: Config{
+				LegacyConfig: LegacyConfig{
 					Enabled:              bptr(false),
 					SegmentSizeLimit:     v.SegmentSizeLimit,
 					RetryLimit:           v.RetryLimit,
@@ -56,10 +56,10 @@ func TestMergeConfig(t *testing.T) {
 		},
 		// fallthrough
 		{
-			C: []*Config{{}, {}, v},
+			C: []*LegacyConfig{{}, {}, v},
 			S: []ConfigSource{{ExternalID: "0"}, {ExternalID: "1"}, {ExternalID: "2"}},
 			E: &ConfigInfo{
-				Config:                     *v,
+				LegacyConfig:               *v,
 				EnabledSource:              ConfigSource{ExternalID: "2"},
 				SegmentSizeLimitSource:     ConfigSource{ExternalID: "2"},
 				RetryLimitSource:           ConfigSource{ExternalID: "2"},
@@ -69,7 +69,7 @@ func TestMergeConfig(t *testing.T) {
 		},
 		// merge
 		{
-			C: []*Config{
+			C: []*LegacyConfig{
 				{
 					Enabled: bptr(true),
 				},
@@ -85,7 +85,7 @@ func TestMergeConfig(t *testing.T) {
 			},
 			S: []ConfigSource{{ExternalID: "0"}, {ExternalID: "1"}, {ExternalID: "2"}},
 			E: &ConfigInfo{
-				Config:                     *v,
+				LegacyConfig:               *v,
 				EnabledSource:              ConfigSource{ExternalID: "0"},
 				SegmentSizeLimitSource:     ConfigSource{ExternalID: "1"},
 				RetryLimitSource:           ConfigSource{ExternalID: "1"},

@@ -86,9 +86,9 @@ func (mr *MockRepairServiceMockRecorder) ListUnits(ctx, clusterID, f interface{}
 }
 
 // GetConfig mocks base method
-func (m *MockRepairService) GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.Config, error) {
+func (m *MockRepairService) GetConfig(ctx context.Context, src repair.ConfigSource) (*repair.LegacyConfig, error) {
 	ret := m.ctrl.Call(m, "GetConfig", ctx, src)
-	ret0, _ := ret[0].(*repair.Config)
+	ret0, _ := ret[0].(*repair.LegacyConfig)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -99,7 +99,7 @@ func (mr *MockRepairServiceMockRecorder) GetConfig(ctx, src interface{}) *gomock
 }
 
 // PutConfig mocks base method
-func (m *MockRepairService) PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.Config) error {
+func (m *MockRepairService) PutConfig(ctx context.Context, src repair.ConfigSource, c *repair.LegacyConfig) error {
 	ret := m.ctrl.Call(m, "PutConfig", ctx, src, c)
 	ret0, _ := ret[0].(error)
 	return ret0
