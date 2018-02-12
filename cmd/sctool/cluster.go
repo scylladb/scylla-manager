@@ -45,7 +45,19 @@ var clusterAddCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		fmt.Fprintln(cmd.OutOrStdout(), id)
+		w := cmd.OutOrStdout()
+		fmt.Fprintln(w, id)
+
+		tasks, err := client.ListSchedTasks(ctx, id, "repair_auto_schedule", false, "")
+		if err != nil {
+			return printableError{err}
+		}
+
+		if len(tasks) > 0 {
+			s := tasks[0].Schedule
+			werr := cmd.OutOrStderr()
+			fmt.Fprintf(werr, clipper, id, formatTime(s.StartDate), s.IntervalDays, id)
+		}
 
 		return nil
 	},
