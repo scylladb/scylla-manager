@@ -123,19 +123,6 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")})
 	}
 
-	// get the unit configuration
-	c, err := s.GetMergedUnitConfig(ctx, u)
-	if err != nil {
-		return fail(errors.Wrap(err, "failed to get a unit configuration"))
-	}
-	s.logger.Info(ctx, "Using config", "config", &c.Config)
-
-	// if repair is disabled return an error
-	if !*c.Config.Enabled {
-		s.logger.Info(ctx, "Disabled")
-		return fail(mermaid.ParamError{Cause: ErrDisabled})
-	}
-
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(&r); err != nil {
 		s.logger.Debug(ctx, "Lock error", "error", err)
@@ -317,7 +304,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 				s.logger.Error(wctx, "Unlock error", "error", err)
 			}
 		}()
-		if err := s.repair(wctx, u, &r, &c.Config, cluster, hostSegments); err != nil {
+		if err := s.repair(wctx, u, &r, cluster, hostSegments); err != nil {
 			fail(err)
 		}
 	}()
@@ -354,7 +341,7 @@ func (s *Service) unlockCluster(r *Run) error {
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) error {
+func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) error {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
@@ -381,7 +368,6 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 		w := worker{
 			Unit:     u,
 			Run:      r,
-			Config:   c,
 			Service:  s,
 			Cluster:  cluster,
 			Host:     host,

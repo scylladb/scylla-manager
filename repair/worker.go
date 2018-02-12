@@ -58,6 +58,8 @@ func init() {
 var (
 	DefaultRepairMaxAge      = 36 * time.Hour
 	DefaultSegmentsPerRepair = 1
+	DefaultSegmentSizeLimit  = -1
+
 	DefaultMaxFailedSegments = 100
 	DefaultPollInterval      = 200 * time.Millisecond
 	DefaultBackoff           = 10 * time.Second
@@ -67,7 +69,6 @@ var (
 type worker struct {
 	Unit     *Unit
 	Run      *Run
-	Config   *Config
 	Service  *Service
 	Cluster  *scyllaclient.Client
 	Host     string
@@ -217,7 +218,7 @@ func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partit
 
 	for i := range shards {
 		shards[i] = mergeSegments(shards[i])
-		shards[i] = splitSegments(shards[i], *w.Config.SegmentSizeLimit)
+		shards[i] = splitSegments(shards[i], int64(DefaultSegmentSizeLimit))
 	}
 
 	return shards
