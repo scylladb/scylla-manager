@@ -21,10 +21,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-// globalClusterID is a special value used as a cluster ID for a global
-// configuration.
-var globalClusterID = uuid.NewFromUint64(0, 0)
-
 // Service orchestrates cluster repairs.
 type Service struct {
 	session      *gocql.Session

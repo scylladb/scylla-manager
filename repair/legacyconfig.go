@@ -15,6 +15,10 @@ import (
 	"go.uber.org/multierr"
 )
 
+// globalClusterID is a special value used as a cluster ID for a global
+// configuration.
+var globalClusterID = uuid.NewFromUint64(0, 0)
+
 // LegacyConfigType specifies a type of configuration. Configuration object is built
 // by merging configurations of different types. If configuration option is not
 // found for UnitConfig then it falls back to KeyspaceConfig, ClusterConfig and
