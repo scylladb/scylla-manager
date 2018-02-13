@@ -19,8 +19,8 @@ ssh:
   identity_file: identity_file
 
 repair:
-  segments_per_repair: 7
   segment_size_limit: 10
+  segments_per_repair: 7
   segment_error_limit: 0
   poll_interval: 500ms
   error_backoff: 10s

@@ -41,8 +41,8 @@ func TestNewConfigFromFile(t *testing.T) {
 			IdentityFile: "identity_file",
 		},
 		Repair: repair.Config{
-			SegmentsPerRepair: 7,
 			SegmentSizeLimit:  10,
+			SegmentsPerRepair: 7,
 			SegmentErrorLimit: 0,
 			PollInterval:      500 * time.Millisecond,
 			ErrorBackoff:      10 * time.Second,
