@@ -58,7 +58,7 @@ func (c *Config) Validate() (err error) {
 		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
 	}
 	if c.AutoScheduleDelay <= 0 {
-		err = multierr.Append(err, errors.New("invalid auto_schedule_start_time_margin, must be > 0"))
+		err = multierr.Append(err, errors.New("invalid auto_schedule_delay, must be > 0"))
 	}
 	if c.MaxRunAge <= 0 {
 		err = multierr.Append(err, errors.New("invalid max_run_age, must be > 0"))

@@ -94,16 +94,19 @@ func (s *server) defaultTransport() (http.RoundTripper, error) {
 		return http.DefaultTransport, nil
 	}
 
-	identityFile, err := fsutil.ExpandPath(s.config.SSH.IdentityFile)
+	f, err := fsutil.ExpandPath(s.config.SSH.IdentityFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to expand %q", s.config.SSH.IdentityFile)
 	}
 
-	if err := fsutil.CheckPerm(identityFile, 0400); err != nil {
+	if err := fsutil.CheckPerm(f, 0400); err != nil {
 		return nil, err
 	}
 
-	return ssh.NewProductionTransport(s.config.SSH.User, identityFile)
+	c := s.config.SSH
+	c.IdentityFile = f
+
+	return ssh.NewProductionTransport(c)
 }
 
 func (s *server) registerListeners() {

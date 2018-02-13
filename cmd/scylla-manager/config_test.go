@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/ssh"
 )
 
 func TestNewConfigFromFile(t *testing.T) {
@@ -36,7 +37,7 @@ func TestNewConfigFromFile(t *testing.T) {
 			ReplicationFactor:             3,
 			Timeout:                       600 * time.Millisecond,
 		},
-		SSH: sshConfig{
+		SSH: ssh.Config{
 			User:         "user",
 			IdentityFile: "identity_file",
 		},

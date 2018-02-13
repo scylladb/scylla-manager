@@ -6,25 +6,46 @@ import (
 	"io/ioutil"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid"
+	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )
 
-// NewProductionClientConfig returns configuration with a key based authentication.
-func NewProductionClientConfig(user, identityFile string) (*ssh.ClientConfig, error) {
-	if user == "" {
-		return nil, errors.New("missing user")
-	}
-	if identityFile == "" {
-		return nil, errors.New("missing identity file")
+// Config specifies SSH configuration.
+type Config struct {
+	User         string `yaml:"user"`
+	IdentityFile string `yaml:"identity_file"`
+}
+
+// Validate checks if all the fields are properly set.
+func (c *Config) Validate() (err error) {
+	if c == nil {
+		return mermaid.ErrNilPtr
 	}
 
-	auth, err := keyPairAuthMethod(identityFile)
+	if c.User == "" {
+		err = multierr.Append(err, errors.New("missing user"))
+	}
+	if c.IdentityFile == "" {
+		err = multierr.Append(err, errors.New("missing identity_file"))
+	}
+
+	return
+}
+
+// NewProductionClientConfig returns configuration with a key based authentication.
+func NewProductionClientConfig(c Config) (*ssh.ClientConfig, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+
+	auth, err := keyPairAuthMethod(c.IdentityFile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %q", identityFile)
+		return nil, errors.Wrapf(err, "failed to parse %q", c.IdentityFile)
 	}
 
 	return &ssh.ClientConfig{
-		User:            user,
+		User:            c.User,
 		Auth:            []ssh.AuthMethod{auth},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
