@@ -59,8 +59,7 @@ repair:
   # Time before running repair once automatically scheduled.
   # auto_schedule_delay: 2h
 
-  # Time threshold after which a repair would be forced to start from scratch even
-  # if could be continued otherwise.
+  # Time threshold to continue a stopped repair.
   # max_run_age: 36h
 
 
