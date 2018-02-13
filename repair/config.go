@@ -12,8 +12,8 @@ import (
 
 // Config specifies the repair service configuration.
 type Config struct {
-	SegmentsPerRepair int           `yaml:"segments_per_repair"`
 	SegmentSizeLimit  int           `yaml:"segment_size_limit"`
+	SegmentsPerRepair int           `yaml:"segments_per_repair"`
 	SegmentErrorLimit int           `yaml:"segment_error_limit"`
 	StopOnError       bool          `yaml:"stop_on_error"`
 	PollInterval      time.Duration `yaml:"poll_interval"`
