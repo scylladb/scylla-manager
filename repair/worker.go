@@ -312,9 +312,9 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 				}
 
 				ri.OnError()
+
 				next()
 				savepoint()
-
 				return errors.Wrap(err, "repair request failed")
 			}
 		}
@@ -329,6 +329,13 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		if err != nil {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			ri.OnError()
+
+			if w.parent.Config.StopOnError {
+				next()
+				savepoint()
+				return errors.New("repair stopped on error")
+			}
+
 			time.Sleep(w.parent.Config.ErrorBackoff)
 		} else {
 			ri.OnSuccess()
