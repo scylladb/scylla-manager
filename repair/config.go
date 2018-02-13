@@ -29,8 +29,8 @@ func DefaultConfig() Config {
 		SegmentsPerRepair: 1,
 		SegmentErrorLimit: 100,
 		StopOnError:       false,
-		PollInterval:      200 * time.Millisecond,
 		ErrorBackoff:      10 * time.Second,
+		PollInterval:      200 * time.Millisecond,
 		AutoScheduleDelay: 2 * time.Hour,
 		MaxRunAge:         36 * time.Hour,
 	}
@@ -51,11 +51,11 @@ func (c *Config) Validate() (err error) {
 	if c.SegmentErrorLimit <= 0 {
 		err = multierr.Append(err, errors.New("invalid segment_error_limit, must be > 0"))
 	}
-	if c.PollInterval <= 0 {
-		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
-	}
 	if c.ErrorBackoff <= 0 {
 		err = multierr.Append(err, errors.New("invalid error_backoff, must be > 0"))
+	}
+	if c.PollInterval <= 0 {
+		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
 	}
 	if c.AutoScheduleDelay <= 0 {
 		err = multierr.Append(err, errors.New("invalid auto_schedule_start_time_margin, must be > 0"))

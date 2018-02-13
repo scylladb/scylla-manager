@@ -47,11 +47,11 @@ repair:
   # start from scratch.
   # segment_error_limit: 100
 
-  # How often to poll Scylla node for repair status.
-  # poll_interval: 200ms
-
   # Time penalty if repair failed on Scylla node.
   # error_backoff: 10s
+
+  # How often to poll Scylla node for repair status.
+  # poll_interval: 200ms
 
   # Time before running repair once automatically scheduled.
   # auto_schedule_delay: 2h
