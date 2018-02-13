@@ -6,6 +6,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
@@ -19,15 +20,13 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/atomic"
 )
-
-// globalClusterID is a special value used as a cluster ID for a global
-// configuration.
-var globalClusterID = uuid.NewFromUint64(0, 0)
 
 // Service orchestrates cluster repairs.
 type Service struct {
 	session      *gocql.Session
+	config       Config
 	client       scyllaclient.ProviderFunc
 	active       map[uuid.UUID]uuid.UUID // maps cluster ID to active run ID
 	activeMu     sync.Mutex
@@ -38,9 +37,13 @@ type Service struct {
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, p scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, c Config, p scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
+	}
+
+	if err := c.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid config")
 	}
 
 	if p == nil {
@@ -51,6 +54,7 @@ func NewService(session *gocql.Session, p scyllaclient.ProviderFunc, l log.Logge
 
 	return &Service{
 		session:      session,
+		config:       c,
 		client:       p,
 		active:       make(map[uuid.UUID]uuid.UUID),
 		workerCtx:    ctx,
@@ -123,18 +127,10 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")})
 	}
 
-	// get the unit configuration
-	c, err := s.GetMergedUnitConfig(ctx, u)
-	if err != nil {
-		return fail(errors.Wrap(err, "failed to get a unit configuration"))
-	}
-	s.logger.Info(ctx, "Using config", "config", &c.Config)
-
-	// if repair is disabled return an error
-	if !*c.Config.Enabled {
-		s.logger.Info(ctx, "Disabled")
-		return fail(mermaid.ParamError{Cause: ErrDisabled})
-	}
+	// lock is used to make sure that the initialisation sequence is finished
+	// before starting the repair go routine.
+	lock := atomic.NewBool(true)
+	defer lock.Store(false)
 
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(&r); err != nil {
@@ -160,7 +156,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		case prev.Status == StatusDone:
 			s.logger.Info(ctx, "Starting from scratch: nothing too continue from")
 			prev = nil
-		case timeutc.Since(prev.StartTime) > DefaultRepairMaxAge:
+		case timeutc.Since(prev.StartTime) > s.config.MaxRunAge:
 			s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 			prev = nil
 		}
@@ -307,6 +303,11 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	)
 	s.wg.Add(1)
 	go func() {
+		// wait for unlock
+		for lock.Load() {
+			time.Sleep(50 * time.Millisecond)
+		}
+
 		defer func() {
 			s.wg.Done()
 			if v := recover(); v != nil {
@@ -317,7 +318,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 				s.logger.Error(wctx, "Unlock error", "error", err)
 			}
 		}()
-		if err := s.repair(wctx, u, &r, &c.Config, cluster, hostSegments); err != nil {
+		if err := s.repair(wctx, u, &r, cluster, hostSegments); err != nil {
 			fail(err)
 		}
 	}()
@@ -354,7 +355,7 @@ func (s *Service) unlockCluster(r *Run) error {
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) error {
+func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) error {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
@@ -379,23 +380,18 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 		}
 
 		w := worker{
+			Config:   &s.config,
 			Unit:     u,
 			Run:      r,
-			Config:   c,
-			Service:  s,
-			Cluster:  cluster,
 			Host:     host,
 			Segments: hostSegments[host],
 
-			segmentsPerRepair: DefaultSegmentsPerRepair,
-			maxFailedSegments: DefaultMaxFailedSegments,
-			pollInterval:      DefaultPollInterval,
-			backoff:           DefaultBackoff,
-
-			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
+			Service: s,
+			Cluster: cluster,
+			Logger:  s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
-			w.logger.Error(ctx, "Repair error", "error", err)
+			w.Logger.Error(ctx, "Repair error", "error", err)
 			return errors.Wrapf(err, "repair error")
 		}
 
@@ -406,7 +402,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, c *Config, cluste
 
 		stopped, err := s.isStopped(ctx, u, r.ID)
 		if err != nil {
-			w.logger.Error(ctx, "Service error", "error", err)
+			w.Logger.Error(ctx, "Service error", "error", err)
 		}
 
 		if stopped {
@@ -690,109 +686,6 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 
 	stmt, names := schema.RepairRunProgress.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(p)
-
-	return q.ExecRelease()
-}
-
-// GetMergedUnitConfig returns a merged configuration for a unit.
-// The configuration has no nil values. If any of the source configurations are
-// disabled the resulting configuration is disabled. For other fields first
-// matching configuration is used.
-func (s *Service) GetMergedUnitConfig(ctx context.Context, u *Unit) (*ConfigInfo, error) {
-	s.logger.Debug(ctx, "GetMergedUnitConfig", "unit", u)
-
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
-
-	order := []ConfigSource{
-		{
-			ClusterID:  u.ClusterID,
-			Type:       UnitConfig,
-			ExternalID: u.ID.String(),
-		},
-		{
-			ClusterID:  u.ClusterID,
-			Type:       KeyspaceConfig,
-			ExternalID: u.Keyspace,
-		},
-		{
-			ClusterID: u.ClusterID,
-			Type:      ClusterConfig,
-		},
-		{
-			ClusterID: globalClusterID,
-			Type:      tenantConfig,
-		},
-	}
-
-	all := make([]*Config, 0, len(order))
-	src := order[:]
-
-	for _, o := range order {
-		c, err := s.GetConfig(ctx, o)
-		// no entry
-		if err == mermaid.ErrNotFound {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		// add result
-		all = append(all, c)
-		src = append(src, o)
-	}
-
-	return mergeConfigs(all, src)
-}
-
-// GetConfig returns repair configuration for a given object. If nothing was
-// found mermaid.ErrNotFound is returned.
-func (s *Service) GetConfig(ctx context.Context, src ConfigSource) (*Config, error) {
-	s.logger.Debug(ctx, "GetConfig", "source", src)
-
-	stmt, names := schema.RepairConfig.Get()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	var c Config
-	if err := gocqlx.Iter(q.Query).Unsafe().Get(&c); err != nil {
-		return nil, err
-	}
-
-	return &c, nil
-}
-
-// PutConfig upserts repair configuration for a given object.
-func (s *Service) PutConfig(ctx context.Context, src ConfigSource, c *Config) error {
-	s.logger.Debug(ctx, "PutConfig", "source", src, "config", c)
-
-	if err := c.Validate(); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid config")}
-	}
-
-	stmt, names := schema.RepairConfig.Insert()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStructMap(c, qb.M{
-		"cluster_id":  src.ClusterID,
-		"type":        src.Type,
-		"external_id": src.ExternalID,
-	})
-
-	return q.ExecRelease()
-}
-
-// DeleteConfig removes repair configuration for a given object.
-func (s *Service) DeleteConfig(ctx context.Context, src ConfigSource) error {
-	s.logger.Debug(ctx, "DeleteConfig", "source", src)
-
-	stmt, names := schema.RepairConfig.Delete()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(src)
 
 	return q.ExecRelease()
 }

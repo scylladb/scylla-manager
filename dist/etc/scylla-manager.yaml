@@ -35,5 +35,31 @@ ssh:
 
 # repair service configuration.
 repair:
-  # Time between running automatic repair scheduling and the actual repairs.
-  # auto_schedule_start_time_margin: 2h
+  # Maximal number of tokens in a segment (continues token range), zero
+  # means no limit.
+  # segment_size_limit: 0
+
+  # How many segments shall be repaired in one repair command.
+  # segments_per_repair: 1
+
+  # Repair would tolerate up to that many failed segments. If exceeded, repair
+  # would stop and on restart would start from scratch.
+  # segment_error_limit: 100
+
+  # Fail-fast, if set to true repair would stop on first error.
+  # stop_on_error: false
+
+  # Time penalty if repair failed on Scylla node. If stop_on_error is true this
+  # has no effect.
+  # error_backoff: 10s
+
+  # How often to poll Scylla node for repair status.
+  # poll_interval: 200ms
+
+  # Time before running repair once automatically scheduled.
+  # auto_schedule_delay: 2h
+
+  # Time threshold to continue a stopped repair.
+  # max_run_age: 36h
+
+

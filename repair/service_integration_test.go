@@ -35,6 +35,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	s, err := repair.NewService(
 		session,
+		repair.DefaultConfig(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
@@ -77,7 +78,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(&c.Config, validConfig()); diff != "" {
+		if diff := cmp.Diff(&c.LegacyConfig, validConfig()); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -85,7 +86,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("get missing config", func(t *testing.T) {
 		t.Parallel()
 
-		c, err := s.GetConfig(ctx, repair.ConfigSource{
+		c, err := s.GetConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -101,7 +102,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put nil config", func(t *testing.T) {
 		t.Parallel()
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{
+		if err := s.PutConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -117,7 +118,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		c := validConfig()
 		c.RetryLimit = &invalid
 
-		if err := s.PutConfig(ctx, repair.ConfigSource{
+		if err := s.PutConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -129,7 +130,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("delete missing config", func(t *testing.T) {
 		t.Parallel()
 
-		if err := s.DeleteConfig(ctx, repair.ConfigSource{
+		if err := s.DeleteConfig(ctx, repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -141,7 +142,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put and get config", func(t *testing.T) {
 		t.Parallel()
 
-		src := repair.ConfigSource{
+		src := repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -166,7 +167,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put and delete config", func(t *testing.T) {
 		t.Parallel()
 
-		src := repair.ConfigSource{
+		src := repair.LegacyConfigSource{
 			ClusterID:  uuid.MustRandom(),
 			Type:       repair.UnitConfig,
 			ExternalID: "id",
@@ -556,14 +557,14 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 }
 
-func validConfig() *repair.Config {
+func validConfig() *repair.LegacyConfig {
 	enabled := true
 	segmentSizeLimit := int64(-1)
 	retryLimit := 3
 	retryBackoffSeconds := 60
 	parallelShardPercent := float32(1)
 
-	return &repair.Config{
+	return &repair.LegacyConfig{
 		Enabled:              &enabled,
 		SegmentSizeLimit:     &segmentSizeLimit,
 		RetryLimit:           &retryLimit,
@@ -589,7 +590,7 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 	createKeyspace(t, clusterSession, "test_1")
 	createKeyspace(t, clusterSession, "test_2")
 
-	s, _ := newTestService(t, session)
+	s, _ := newTestService(t, session, repair.DefaultConfig())
 	clusterID := uuid.MustRandom()
 	ctx := context.Background()
 
@@ -627,9 +628,10 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	// fix values for testing...
-	repair.DefaultSegmentsPerRepair = 5
-	repair.DefaultPollInterval = 100 * time.Millisecond
-	repair.DefaultBackoff = 1 * time.Second
+	config := repair.DefaultConfig()
+	config.SegmentsPerRepair = 5
+	config.PollInterval = 100 * time.Millisecond
+	config.ErrorBackoff = 1 * time.Second
 
 	session := mermaidtest.CreateSession(t)
 	clusterSession := mermaidtest.CreateManagedClusterSession(t)
@@ -642,7 +644,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	)
 
 	var (
-		s, hrt    = newTestService(t, session)
+		s, hrt    = newTestService(t, session, config)
 		clusterID = uuid.MustRandom()
 		runID     = uuid.NewTime()
 		unit      = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
@@ -772,22 +774,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	assertNodeProgress(node0, 50)
 
 	// When errors occur
-	hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if req.Method != http.MethodGet {
-			return nil, nil
-		}
-
-		return &http.Response{
-			Status:     "200 OK",
-			StatusCode: 200,
-			Proto:      "HTTP/1.1",
-			ProtoMajor: 1,
-			ProtoMinor: 1,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
-			Request:    req,
-			Header:     make(http.Header, 0),
-		}, nil
-	}))
+	hrt.SetInterceptor(failRepairInterceptor)
 	time.AfterFunc(5*time.Second, func() {
 		hrt.SetInterceptor(nil)
 	})
@@ -821,7 +808,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// And restart
 	s.Close()
 	wait()
-	s, hrt = newTestService(t, session)
+	s, hrt = newTestService(t, session, config)
 	s.FixRunStatus(ctx)
 
 	// And create a new task
@@ -845,13 +832,86 @@ func TestServiceRepairIntegration(t *testing.T) {
 	waitNodeProgress(node1, 100)
 }
 
-func newTestService(t *testing.T, session *gocql.Session) (*repair.Service, *mermaidtest.HackableRoundTripper) {
+func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
+	session := mermaidtest.CreateSession(t)
+	clusterSession := mermaidtest.CreateManagedClusterSession(t)
+	createKeyspace(t, clusterSession, "test_repair")
+	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
+
+	const node0 = "172.16.1.3"
+
+	// Given stop on error is true
+	config := repair.DefaultConfig()
+	config.StopOnError = true
+
+	var (
+		s, hrt    = newTestService(t, session, config)
+		clusterID = uuid.MustRandom()
+		runID     = uuid.NewTime()
+		unit      = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
+		ctx       = context.Background()
+	)
+
+	assertStatus := func(expected repair.Status) {
+		if r, err := s.GetRun(ctx, &unit, runID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != expected {
+			t.Fatal("wrong status", r, "expected", expected, "got", r.Status)
+		}
+	}
+
+	wait := func() {
+		time.Sleep(2 * time.Second)
+	}
+
+	// And repair failing repair
+	hrt.SetInterceptor(failRepairInterceptor)
+
+	// And unit
+	if err := s.PutUnit(ctx, &unit); err != nil {
+		t.Fatal(err)
+	}
+
+	// When run repair
+	if err := s.Repair(ctx, &unit, runID); err != nil {
+		t.Fatal(err)
+	}
+
+	// And wait
+	wait()
+
+	// Then repair stopped
+	assertStatus(repair.StatusError)
+
+	// And errors are recorded
+	prog, err := s.GetProgress(ctx, &unit, runID, node0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(prog) != 2 {
+		t.Fatal("expected 2 shards")
+	}
+	for _, p := range prog {
+		if p.SegmentError != config.SegmentsPerRepair {
+			t.Error("expected", config.SegmentsPerRepair, "failed segments, got", p.SegmentError)
+		}
+		if p.SegmentSuccess != 0 {
+			t.Error("expected no successful segments")
+		}
+		if len(p.SegmentErrorStartTokens) != 1 {
+			t.Error("expected 1 error start token, got", len(p.SegmentErrorStartTokens))
+		}
+	}
+}
+
+func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*repair.Service, *mermaidtest.HackableRoundTripper) {
 	logger := log.NewDevelopment()
 
 	rt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
 
 	s, err := repair.NewService(
 		session,
+		c,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, rt, logger.Named("scylla"))
 			if err != nil {
@@ -874,3 +934,20 @@ func newTestService(t *testing.T, session *gocql.Session) (*repair.Service, *mer
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	mermaidtest.ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
+
+var failRepairInterceptor = mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	if req.Method != http.MethodGet || !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+		return nil, nil
+	}
+
+	return &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
+		Request:    req,
+		Header:     make(http.Header, 0),
+	}, nil
+})

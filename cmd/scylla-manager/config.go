@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/repair"
 	"gopkg.in/yaml.v2"
 )
 
@@ -29,18 +30,14 @@ type sshConfig struct {
 	IdentityFile string `yaml:"identity_file"`
 }
 
-type repairConfig struct {
-	AutoScheduleStartTimeMargin time.Duration `yaml:"auto_schedule_start_time_margin"`
-}
-
 type serverConfig struct {
-	HTTP        string       `yaml:"http"`
-	HTTPS       string       `yaml:"https"`
-	TLSCertFile string       `yaml:"tls_cert_file"`
-	TLSKeyFile  string       `yaml:"tls_key_file"`
-	Database    dbConfig     `yaml:"database"`
-	SSH         sshConfig    `yaml:"ssh"`
-	Repair      repairConfig `yaml:"repair"`
+	HTTP        string        `yaml:"http"`
+	HTTPS       string        `yaml:"https"`
+	TLSCertFile string        `yaml:"tls_cert_file"`
+	TLSKeyFile  string        `yaml:"tls_key_file"`
+	Database    dbConfig      `yaml:"database"`
+	SSH         sshConfig     `yaml:"ssh"`
+	Repair      repair.Config `yaml:"repair"`
 }
 
 func defaultConfig() *serverConfig {
@@ -54,9 +51,7 @@ func defaultConfig() *serverConfig {
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
 		},
-		Repair: repairConfig{
-			AutoScheduleStartTimeMargin: 2 * time.Hour,
-		},
+		Repair: repair.DefaultConfig(),
 	}
 }
 

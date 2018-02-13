@@ -76,7 +76,7 @@ func (s *server) initServices() error {
 	}
 	s.provider = scyllaclient.NewCachedProvider(s.clusterSvc.Client)
 
-	s.repairSvc, err = repair.NewService(s.session, s.provider.Client, s.logger.Named("repair"))
+	s.repairSvc, err = repair.NewService(s.session, s.config.Repair, s.provider.Client, s.logger.Named("repair"))
 	if err != nil {
 		return errors.Wrapf(err, "repair service")
 	}
@@ -140,7 +140,7 @@ func (s *server) registerSchedulerRunners() {
 	repairAutoSchedule := repair.NewAutoScheduler(
 		s.repairSvc,
 		func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
-			t := repairTask(clusterID, props, s.config.Repair.AutoScheduleStartTimeMargin)
+			t := repairTask(clusterID, props, s.config.Repair.AutoScheduleDelay)
 			return s.schedSvc.PutTask(ctx, t)
 		},
 	)
