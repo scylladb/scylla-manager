@@ -42,9 +42,8 @@ repair:
   # How many segments shall be repaired in one repair command.
   # segments_per_repair: 1
 
-  # Repair would tolerate up to that many failed segments and would retry to
-  # repair them. If exceeded, repair would stop and once restarted would
-  # start from scratch.
+  # Repair would tolerate up to that many failed segments. If exceeded, repair
+  # would stop and on restart would start from scratch.
   # segment_error_limit: 100
 
   # Fail-fast, if set to true repair would stop on first error.
