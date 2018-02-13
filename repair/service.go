@@ -6,6 +6,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
@@ -19,6 +20,7 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/atomic"
 )
 
 // Service orchestrates cluster repairs.
@@ -124,6 +126,11 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	if err := u.Validate(); err != nil {
 		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")})
 	}
+
+	// lock is used to make sure that the initialisation sequence is finished
+	// before starting the repair go routine.
+	lock := atomic.NewBool(true)
+	defer lock.Store(false)
 
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(&r); err != nil {
@@ -296,6 +303,11 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	)
 	s.wg.Add(1)
 	go func() {
+		// wait for unlock
+		for lock.Load() {
+			time.Sleep(50 * time.Millisecond)
+		}
+
 		defer func() {
 			s.wg.Done()
 			if v := recover(); v != nil {
