@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/repair"
 )
 
 func TestNewConfigFromFile(t *testing.T) {
@@ -39,8 +40,14 @@ func TestNewConfigFromFile(t *testing.T) {
 			User:         "user",
 			IdentityFile: "identity_file",
 		},
-		Repair: repairConfig{
-			AutoScheduleStartTimeMargin: 2 * time.Hour,
+		Repair: repair.Config{
+			SegmentsPerRepair: 7,
+			SegmentSizeLimit:  10,
+			SegmentErrorLimit: 0,
+			PollInterval:      500 * time.Millisecond,
+			ErrorBackoff:      10 * time.Second,
+			AutoScheduleDelay: 100 * time.Second,
+			MaxRunAge:         12 * time.Hour,
 		},
 	}
 
