@@ -24,6 +24,7 @@ import (
 // Service orchestrates cluster repairs.
 type Service struct {
 	session      *gocql.Session
+	config       Config
 	client       scyllaclient.ProviderFunc
 	active       map[uuid.UUID]uuid.UUID // maps cluster ID to active run ID
 	activeMu     sync.Mutex
@@ -34,9 +35,13 @@ type Service struct {
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, p scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, c Config, p scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
+	}
+
+	if err := c.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid config")
 	}
 
 	if p == nil {
@@ -47,6 +52,7 @@ func NewService(session *gocql.Session, p scyllaclient.ProviderFunc, l log.Logge
 
 	return &Service{
 		session:      session,
+		config:       c,
 		client:       p,
 		active:       make(map[uuid.UUID]uuid.UUID),
 		workerCtx:    ctx,
@@ -143,7 +149,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		case prev.Status == StatusDone:
 			s.logger.Info(ctx, "Starting from scratch: nothing too continue from")
 			prev = nil
-		case timeutc.Since(prev.StartTime) > DefaultRepairMaxAge:
+		case timeutc.Since(prev.StartTime) > s.config.MaxRunAge:
 			s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 			prev = nil
 		}
@@ -362,22 +368,18 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllacl
 		}
 
 		w := worker{
+			Config:   &s.config,
 			Unit:     u,
 			Run:      r,
-			Service:  s,
-			Cluster:  cluster,
 			Host:     host,
 			Segments: hostSegments[host],
 
-			segmentsPerRepair: DefaultSegmentsPerRepair,
-			maxFailedSegments: DefaultMaxFailedSegments,
-			pollInterval:      DefaultPollInterval,
-			backoff:           DefaultBackoff,
-
-			logger: s.logger.Named("worker").With("run_id", r.ID, "host", host),
+			Service: s,
+			Cluster: cluster,
+			Logger:  s.logger.Named("worker").With("run_id", r.ID, "host", host),
 		}
 		if err := w.exec(ctx); err != nil {
-			w.logger.Error(ctx, "Repair error", "error", err)
+			w.Logger.Error(ctx, "Repair error", "error", err)
 			return errors.Wrapf(err, "repair error")
 		}
 
@@ -388,7 +390,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllacl
 
 		stopped, err := s.isStopped(ctx, u, r.ID)
 		if err != nil {
-			w.logger.Error(ctx, "Service error", "error", err)
+			w.Logger.Error(ctx, "Service error", "error", err)
 		}
 
 		if stopped {

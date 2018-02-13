@@ -35,6 +35,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	s, err := repair.NewService(
 		session,
+		repair.DefaultConfig(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
@@ -589,7 +590,7 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 	createKeyspace(t, clusterSession, "test_1")
 	createKeyspace(t, clusterSession, "test_2")
 
-	s, _ := newTestService(t, session)
+	s, _ := newTestService(t, session, repair.DefaultConfig())
 	clusterID := uuid.MustRandom()
 	ctx := context.Background()
 
@@ -627,9 +628,10 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	// fix values for testing...
-	repair.DefaultSegmentsPerRepair = 5
-	repair.DefaultPollInterval = 100 * time.Millisecond
-	repair.DefaultBackoff = 1 * time.Second
+	config := repair.DefaultConfig()
+	config.SegmentsPerRepair = 5
+	config.PollInterval = 100 * time.Millisecond
+	config.ErrorBackoff = 1 * time.Second
 
 	session := mermaidtest.CreateSession(t)
 	clusterSession := mermaidtest.CreateManagedClusterSession(t)
@@ -642,7 +644,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	)
 
 	var (
-		s, hrt    = newTestService(t, session)
+		s, hrt    = newTestService(t, session, config)
 		clusterID = uuid.MustRandom()
 		runID     = uuid.NewTime()
 		unit      = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
@@ -821,7 +823,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	// And restart
 	s.Close()
 	wait()
-	s, hrt = newTestService(t, session)
+	s, hrt = newTestService(t, session, config)
 	s.FixRunStatus(ctx)
 
 	// And create a new task
@@ -845,13 +847,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 	waitNodeProgress(node1, 100)
 }
 
-func newTestService(t *testing.T, session *gocql.Session) (*repair.Service, *mermaidtest.HackableRoundTripper) {
+func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*repair.Service, *mermaidtest.HackableRoundTripper) {
 	logger := log.NewDevelopment()
 
 	rt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
 
 	s, err := repair.NewService(
 		session,
+		c,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, rt, logger.Named("scylla"))
 			if err != nil {

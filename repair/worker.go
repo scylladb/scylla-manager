@@ -53,33 +53,18 @@ func init() {
 	)
 }
 
-// The values will be moved to service configuration, for now they are exposed
-// so that they can be changed for testing.
-var (
-	DefaultRepairMaxAge      = 36 * time.Hour
-	DefaultSegmentsPerRepair = 1
-	DefaultSegmentSizeLimit  = -1
-
-	DefaultMaxFailedSegments = 100
-	DefaultPollInterval      = 200 * time.Millisecond
-	DefaultBackoff           = 10 * time.Second
-)
-
 // worker manages shardWorkers.
 type worker struct {
+	Config   *Config
 	Unit     *Unit
 	Run      *Run
-	Service  *Service
-	Cluster  *scyllaclient.Client
 	Host     string
 	Segments []*Segment
 
-	segmentsPerRepair int
-	maxFailedSegments int
-	pollInterval      time.Duration
-	backoff           time.Duration
+	Service *Service
+	Cluster *scyllaclient.Client
+	Logger  log.Logger
 
-	logger log.Logger
 	shards []*shardWorker
 }
 
@@ -142,7 +127,7 @@ func (w *worker) init(ctx context.Context) error {
 	// check if savepoint can be used
 	if err := validateShardProgress(shards, prog); err != nil {
 		if len(prog) > 1 {
-			w.logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error(), "progress", prog)
+			w.Logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error(), "progress", prog)
 		}
 		prog = nil
 	}
@@ -176,7 +161,7 @@ func (w *worker) init(ctx context.Context) error {
 			parent:   w,
 			segments: segments,
 			progress: p,
-			logger:   w.logger.With("shard", i),
+			logger:   w.Logger.With("shard", i),
 
 			repairSegmentsTotal:   repairSegmentsTotal.With(labels),
 			repairSegmentsSuccess: repairSegmentsSuccess.With(labels),
@@ -213,12 +198,12 @@ func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, erro
 func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) [][]*Segment {
 	shards := splitSegmentsToShards(w.Segments, p)
 	if err := validateShards(w.Segments, shards, p); err != nil {
-		w.logger.Info(ctx, "Suboptimal sharding", "error", err.Error())
+		w.Logger.Info(ctx, "Suboptimal sharding", "error", err.Error())
 	}
 
 	for i := range shards {
 		shards[i] = mergeSegments(shards[i])
-		shards[i] = splitSegments(shards[i], int64(DefaultSegmentSizeLimit))
+		shards[i] = splitSegments(shards[i], int64(w.Config.SegmentSizeLimit))
 	}
 
 	return shards
@@ -238,7 +223,7 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
-	if w.progress.SegmentError > w.parent.maxFailedSegments {
+	if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
 		w.logger.Info(ctx, "Starting from scratch: too many errors")
 		w.resetProgress(ctx)
 	}
@@ -254,7 +239,7 @@ func (w *shardWorker) newRetryIterator() *retryIterator {
 	return &retryIterator{
 		segments:          w.segments,
 		progress:          w.progress,
-		segmentsPerRepair: w.parent.segmentsPerRepair,
+		segmentsPerRepair: w.parent.Config.SegmentsPerRepair,
 	}
 }
 
@@ -262,7 +247,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 	return &forwardIterator{
 		segments:          w.segments,
 		progress:          w.progress,
-		segmentsPerRepair: w.parent.segmentsPerRepair,
+		segmentsPerRepair: w.parent.Config.SegmentsPerRepair,
 	}
 }
 
@@ -344,7 +329,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		if err != nil {
 			w.logger.Info(ctx, "Repair failed", "error", err)
 			ri.OnError()
-			time.Sleep(w.parent.backoff)
+			time.Sleep(w.parent.Config.ErrorBackoff)
 		} else {
 			ri.OnSuccess()
 		}
@@ -356,7 +341,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
 		}
 
-		if w.progress.SegmentError > w.parent.maxFailedSegments {
+		if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
 			return errors.New("number of errors exceeded")
 		}
 	}
@@ -405,7 +390,7 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 		w.repairDurationSeconds.Observe(timeutc.Since(start).Seconds())
 	}()
 
-	t := time.NewTicker(w.parent.pollInterval)
+	t := time.NewTicker(w.parent.Config.PollInterval)
 	defer t.Stop()
 
 	for {
