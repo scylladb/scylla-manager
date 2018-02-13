@@ -24,8 +24,8 @@ type Config struct {
 // DefaultConfig returns a Config initialised with default values.
 func DefaultConfig() Config {
 	return Config{
-		SegmentsPerRepair: 1,
 		SegmentSizeLimit:  0,
+		SegmentsPerRepair: 1,
 		SegmentErrorLimit: 100,
 		PollInterval:      200 * time.Millisecond,
 		ErrorBackoff:      10 * time.Second,
@@ -40,11 +40,11 @@ func (c *Config) Validate() (err error) {
 		return mermaid.ErrNilPtr
 	}
 
-	if c.SegmentsPerRepair <= 0 {
-		err = multierr.Append(err, errors.New("invalid segments_per_repair, must be > 0"))
-	}
 	if c.SegmentSizeLimit < 0 {
 		err = multierr.Append(err, errors.New("invalid segment_size_limit, must be > 0 or 0 for no limit"))
+	}
+	if c.SegmentsPerRepair <= 0 {
+		err = multierr.Append(err, errors.New("invalid segments_per_repair, must be > 0"))
 	}
 	if c.SegmentErrorLimit <= 0 {
 		err = multierr.Append(err, errors.New("invalid segment_error_limit, must be > 0"))
