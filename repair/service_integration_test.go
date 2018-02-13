@@ -774,22 +774,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	assertNodeProgress(node0, 50)
 
 	// When errors occur
-	hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if req.Method != http.MethodGet {
-			return nil, nil
-		}
-
-		return &http.Response{
-			Status:     "200 OK",
-			StatusCode: 200,
-			Proto:      "HTTP/1.1",
-			ProtoMajor: 1,
-			ProtoMinor: 1,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
-			Request:    req,
-			Header:     make(http.Header, 0),
-		}, nil
-	}))
+	hrt.SetInterceptor(failRepairInterceptor)
 	time.AfterFunc(5*time.Second, func() {
 		hrt.SetInterceptor(nil)
 	})
@@ -847,6 +832,78 @@ func TestServiceRepairIntegration(t *testing.T) {
 	waitNodeProgress(node1, 100)
 }
 
+func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
+	session := mermaidtest.CreateSession(t)
+	clusterSession := mermaidtest.CreateManagedClusterSession(t)
+	createKeyspace(t, clusterSession, "test_repair")
+	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
+
+	const node0 = "172.16.1.3"
+
+	// Given stop on error is true
+	config := repair.DefaultConfig()
+	config.StopOnError = true
+
+	var (
+		s, hrt    = newTestService(t, session, config)
+		clusterID = uuid.MustRandom()
+		runID     = uuid.NewTime()
+		unit      = repair.Unit{ClusterID: clusterID, Keyspace: "test_repair"}
+		ctx       = context.Background()
+	)
+
+	assertStatus := func(expected repair.Status) {
+		if r, err := s.GetRun(ctx, &unit, runID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != expected {
+			t.Fatal("wrong status", r, "expected", expected, "got", r.Status)
+		}
+	}
+
+	wait := func() {
+		time.Sleep(2 * time.Second)
+	}
+
+	// And repair failing repair
+	hrt.SetInterceptor(failRepairInterceptor)
+
+	// And unit
+	if err := s.PutUnit(ctx, &unit); err != nil {
+		t.Fatal(err)
+	}
+
+	// When run repair
+	if err := s.Repair(ctx, &unit, runID); err != nil {
+		t.Fatal(err)
+	}
+
+	// And wait
+	wait()
+
+	// Then repair stopped
+	assertStatus(repair.StatusError)
+
+	// And errors are recorded
+	prog, err := s.GetProgress(ctx, &unit, runID, node0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(prog) != 2 {
+		t.Fatal("expected 2 shards")
+	}
+	for _, p := range prog {
+		if p.SegmentError != config.SegmentsPerRepair {
+			t.Error("expected", config.SegmentsPerRepair, "failed segments, got", p.SegmentError)
+		}
+		if p.SegmentSuccess != 0 {
+			t.Error("expected no successful segments")
+		}
+		if len(p.SegmentErrorStartTokens) != 1 {
+			t.Error("expected 1 error start token, got", len(p.SegmentErrorStartTokens))
+		}
+	}
+}
+
 func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*repair.Service, *mermaidtest.HackableRoundTripper) {
 	logger := log.NewDevelopment()
 
@@ -877,3 +934,20 @@ func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*rep
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	mermaidtest.ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
+
+var failRepairInterceptor = mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	if req.Method != http.MethodGet || !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+		return nil, nil
+	}
+
+	return &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
+		Request:    req,
+		Header:     make(http.Header, 0),
+	}, nil
+})
