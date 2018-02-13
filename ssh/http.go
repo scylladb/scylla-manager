@@ -26,8 +26,8 @@ func NewTransport(config *ssh.ClientConfig) *http.Transport {
 }
 
 // NewProductionTransport returns Transport for NewProductionClientConfig.
-func NewProductionTransport(user, identityFile string) (*http.Transport, error) {
-	cfg, err := NewProductionClientConfig(user, identityFile)
+func NewProductionTransport(c Config) (*http.Transport, error) {
+	cfg, err := NewProductionClientConfig(c)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create SSH client config")
 	}

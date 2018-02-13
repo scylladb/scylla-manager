@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/ssh"
 	"gopkg.in/yaml.v2"
 )
 
@@ -25,19 +26,15 @@ type dbConfig struct {
 	Timeout                       time.Duration `yaml:"timeout"`
 }
 
-type sshConfig struct {
-	User         string `yaml:"user"`
-	IdentityFile string `yaml:"identity_file"`
-}
-
 type serverConfig struct {
-	HTTP        string        `yaml:"http"`
-	HTTPS       string        `yaml:"https"`
-	TLSCertFile string        `yaml:"tls_cert_file"`
-	TLSKeyFile  string        `yaml:"tls_key_file"`
-	Database    dbConfig      `yaml:"database"`
-	SSH         sshConfig     `yaml:"ssh"`
-	Repair      repair.Config `yaml:"repair"`
+	HTTP        string   `yaml:"http"`
+	HTTPS       string   `yaml:"https"`
+	TLSCertFile string   `yaml:"tls_cert_file"`
+	TLSKeyFile  string   `yaml:"tls_key_file"`
+	Database    dbConfig `yaml:"database"`
+
+	SSH    ssh.Config    `yaml:"ssh"`
+	Repair repair.Config `yaml:"repair"`
 }
 
 func defaultConfig() *serverConfig {
@@ -92,9 +89,12 @@ func (c *serverConfig) validate() error {
 	}
 
 	if c.SSH.User != "" {
-		if c.SSH.IdentityFile == "" {
-			return errors.New("missing ssh.identity_file")
+		if err := c.SSH.Validate(); err != nil {
+			return errors.Wrap(err, "ssh")
 		}
+	}
+	if err := c.Repair.Validate(); err != nil {
+		return errors.Wrap(err, "repair")
 	}
 
 	return nil
