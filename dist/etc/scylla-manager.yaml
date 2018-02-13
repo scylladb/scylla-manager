@@ -47,7 +47,11 @@ repair:
   # start from scratch.
   # segment_error_limit: 100
 
-  # Time penalty if repair failed on Scylla node.
+  # Fail-fast, if set to true repair would stop on first error.
+  # stop_on_error: false
+
+  # Time penalty if repair failed on Scylla node. If stop_on_error is true this
+  # has no effect.
   # error_backoff: 10s
 
   # How often to poll Scylla node for repair status.
