@@ -11,9 +11,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	api "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/hailocab/go-hostpool" // shipped with gocql
 	"github.com/pkg/errors"
@@ -25,6 +27,8 @@ import (
 
 // DefaultPort is Scylla API port.
 var DefaultPort = "10000"
+
+var disableOpenAPIDebugOnce sync.Once
 
 //go:generate ./gen_internal.sh
 
@@ -62,14 +66,18 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 		logger: l,
 	}
 
+	disableOpenAPIDebugOnce.Do(func() {
+		middleware.Debug = false
+	})
+
 	r := api.NewWithClient("mermaid.magic.host", "", []string{"http"},
 		&http.Client{
 			Timeout:   mermaid.DefaultRPCTimeout,
 			Transport: t,
 		},
 	)
-	// debug can be accidentally turned on by SWAGGER_DEBUG or DEBUG env variable
-	r.SetDebug(false)
+	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
+	r.Debug = false
 	return &Client{
 		transport:  t,
 		operations: operations.New(r, strfmt.Default),

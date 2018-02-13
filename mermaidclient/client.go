@@ -9,14 +9,18 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"sync"
 
 	api "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient/internal/client/operations"
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/uuid"
 )
+
+var disableOpenAPIDebugOnce sync.Once
 
 //go:generate ./gen_internal.sh
 
@@ -32,9 +36,13 @@ func NewClient(rawurl string) (Client, error) {
 		return Client{}, err
 	}
 
+	disableOpenAPIDebugOnce.Do(func() {
+		middleware.Debug = false
+	})
+
 	r := api.New(u.Host, u.Path, []string{u.Scheme})
-	// debug can be accidentally turned on by SWAGGER_DEBUG or DEBUG env variable
-	r.SetDebug(false)
+	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
+	r.Debug = false
 
 	return Client{operations: operations.New(r, strfmt.Default)}, nil
 }
