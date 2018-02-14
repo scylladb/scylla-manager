@@ -69,8 +69,7 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	}
 
 	return scyllaclient.WithConfig(client, scyllaclient.Config{
-		"murmur3_partitioner_ignore_msb_bits": float64(12),
-		"shard_count":                         float64(c.ShardCount),
+		"shard_count": float64(c.ShardCount),
 	}), nil
 }
 

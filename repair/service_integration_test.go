@@ -917,11 +917,9 @@ func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*rep
 			if err != nil {
 				return nil, err
 			}
-			config := scyllaclient.Config{
-				"murmur3_partitioner_ignore_msb_bits": float64(12),
-				"shard_count":                         float64(2),
-			}
-			return scyllaclient.WithConfig(c, config), nil
+			return scyllaclient.WithConfig(c, scyllaclient.Config{
+				"shard_count": float64(2),
+			}), nil
 		},
 		logger.Named("repair"),
 	)

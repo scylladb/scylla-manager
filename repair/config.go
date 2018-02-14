@@ -12,27 +12,29 @@ import (
 
 // Config specifies the repair service configuration.
 type Config struct {
-	SegmentSizeLimit  int           `yaml:"segment_size_limit"`
-	SegmentsPerRepair int           `yaml:"segments_per_repair"`
-	SegmentErrorLimit int           `yaml:"segment_error_limit"`
-	StopOnError       bool          `yaml:"stop_on_error"`
-	PollInterval      time.Duration `yaml:"poll_interval"`
-	ErrorBackoff      time.Duration `yaml:"error_backoff"`
-	AutoScheduleDelay time.Duration `yaml:"auto_schedule_delay"`
-	MaxRunAge         time.Duration `yaml:"max_run_age"`
+	SegmentSizeLimit      int           `yaml:"segment_size_limit"`
+	SegmentsPerRepair     int           `yaml:"segments_per_repair"`
+	SegmentErrorLimit     int           `yaml:"segment_error_limit"`
+	StopOnError           bool          `yaml:"stop_on_error"`
+	PollInterval          time.Duration `yaml:"poll_interval"`
+	ErrorBackoff          time.Duration `yaml:"error_backoff"`
+	AutoScheduleDelay     time.Duration `yaml:"auto_schedule_delay"`
+	MaxRunAge             time.Duration `yaml:"max_run_age"`
+	ShardingIgnoreMsbBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 
 // DefaultConfig returns a Config initialised with default values.
 func DefaultConfig() Config {
 	return Config{
-		SegmentSizeLimit:  0,
-		SegmentsPerRepair: 1,
-		SegmentErrorLimit: 100,
-		StopOnError:       false,
-		ErrorBackoff:      10 * time.Second,
-		PollInterval:      200 * time.Millisecond,
-		AutoScheduleDelay: 2 * time.Hour,
-		MaxRunAge:         36 * time.Hour,
+		SegmentSizeLimit:      0,
+		SegmentsPerRepair:     1,
+		SegmentErrorLimit:     100,
+		StopOnError:           false,
+		ErrorBackoff:          10 * time.Second,
+		PollInterval:          200 * time.Millisecond,
+		AutoScheduleDelay:     2 * time.Hour,
+		MaxRunAge:             36 * time.Hour,
+		ShardingIgnoreMsbBits: 12,
 	}
 }
 
@@ -62,6 +64,9 @@ func (c *Config) Validate() (err error) {
 	}
 	if c.MaxRunAge <= 0 {
 		err = multierr.Append(err, errors.New("invalid max_run_age, must be > 0"))
+	}
+	if c.ShardingIgnoreMsbBits < 0 {
+		err = multierr.Append(err, errors.New("invalid murmur3_partitioner_ignore_msb_bits, must be >= 0"))
 	}
 
 	return

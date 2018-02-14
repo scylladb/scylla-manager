@@ -42,14 +42,15 @@ func TestNewConfigFromFile(t *testing.T) {
 			IdentityFile: "identity_file",
 		},
 		Repair: repair.Config{
-			SegmentSizeLimit:  10,
-			SegmentsPerRepair: 7,
-			SegmentErrorLimit: 0,
-			StopOnError:       true,
-			ErrorBackoff:      10 * time.Second,
-			PollInterval:      500 * time.Millisecond,
-			AutoScheduleDelay: 100 * time.Second,
-			MaxRunAge:         12 * time.Hour,
+			SegmentSizeLimit:      10,
+			SegmentsPerRepair:     7,
+			SegmentErrorLimit:     0,
+			StopOnError:           true,
+			ErrorBackoff:          10 * time.Second,
+			PollInterval:          500 * time.Millisecond,
+			AutoScheduleDelay:     100 * time.Second,
+			MaxRunAge:             12 * time.Hour,
+			ShardingIgnoreMsbBits: 1,
 		},
 	}
 

@@ -180,19 +180,11 @@ func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, erro
 	}
 
 	// create partitioner
-	var (
-		shardCount            uint
-		shardingIgnoreMsbBits uint
-		ok                    bool
-	)
-	if shardCount, ok = c.ShardCount(); !ok {
+	shardCount, ok := c.ShardCount()
+	if ok {
 		return nil, errors.New("config missing shard_count")
 	}
-	if shardingIgnoreMsbBits, ok = c.Murmur3PartitionerIgnoreMsbBits(); !ok {
-		return nil, errors.New("config missing murmur3_partitioner_ignore_msb_bits")
-	}
-
-	return dht.NewMurmur3Partitioner(shardCount, shardingIgnoreMsbBits), nil
+	return dht.NewMurmur3Partitioner(shardCount, uint(w.Config.ShardingIgnoreMsbBits)), nil
 }
 
 func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) [][]*Segment {

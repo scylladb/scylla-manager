@@ -27,4 +27,5 @@ repair:
   poll_interval: 500ms
   auto_schedule_delay: 100s
   max_run_age: 12h
+  murmur3_partitioner_ignore_msb_bits: 1
 
