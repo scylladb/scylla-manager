@@ -244,7 +244,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 }
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
-	w.logger.Info(ctx, "Start repair", "progress", w.progress)
+	w.logger.Info(ctx, "Starting repair", "percent_complete", w.progress.PercentComplete())
 	w.updateMetrics()
 
 	var (
@@ -335,10 +335,6 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 		next()
 		savepoint()
-
-		if w.progress.PercentComplete()%10 == 0 {
-			w.logger.Info(ctx, "Progress", "percent", w.progress.PercentComplete())
-		}
 
 		if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
 			return errors.New("number of errors exceeded")

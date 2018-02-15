@@ -67,7 +67,7 @@ func NewService(session *gocql.Session, c Config, p scyllaclient.ProviderFunc, l
 // functioning. It iterates over all the repair units and marks running and
 // stopping runs as stopped.
 func (s *Service) FixRunStatus(ctx context.Context) error {
-	s.logger.Debug(ctx, "FixRunStatus")
+	s.logger.Info(ctx, "Fixing run statuses")
 
 	stmt, _ := qb.Select(schema.RepairUnit.Name).ToCql()
 	q := s.session.Query(stmt).WithContext(ctx)
@@ -92,16 +92,22 @@ func (s *Service) FixRunStatus(ctx context.Context) error {
 			if err := s.putRun(ctx, last); err != nil {
 				return errors.Wrap(err, "failed to update a run")
 			}
-			s.logger.Info(ctx, "Marked run as stopped", "unit", u, "run_id", last.ID)
+			s.logger.Info(ctx, "Marked run as stopped",
+				"cluster_id", last.ClusterID,
+				"unit_id", u.ID,
+				"run_id", last.ID,
+			)
 		}
 	}
+
+	s.logger.Info(ctx, "Done")
 
 	return iter.Close()
 }
 
 // Repair starts an asynchronous repair process.
 func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
-	s.logger.Info(ctx, "Repair", "unit", u, "run_id", runID)
+	s.logger.Debug(ctx, "Repair", "unit", u, "run_id", runID)
 
 	r := Run{
 		ClusterID: u.ClusterID,
@@ -145,16 +151,22 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		}
 	}()
 
+	s.logger.Info(ctx, "Initialising repair",
+		"cluster_id", r.ClusterID,
+		"unit_id", r.UnitID,
+		"run_id", runID,
+	)
+
 	// get last started run of the unit
 	prev, err := s.GetLastStartedRun(ctx, u)
 	if err != nil && err != mermaid.ErrNotFound {
 		return fail(errors.Wrap(err, "failed to get previous run"))
 	}
 	if prev != nil {
-		s.logger.Info(ctx, "Found previous run", "prev", prev)
+		s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
 		switch {
 		case prev.Status == StatusDone:
-			s.logger.Info(ctx, "Starting from scratch: nothing too continue from")
+			s.logger.Info(ctx, "Starting from scratch: previous run is done")
 			prev = nil
 		case timeutc.Since(prev.StartTime) > s.config.MaxRunAge:
 			s.logger.Info(ctx, "Starting from scratch: previous run is too old")
@@ -185,10 +197,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	// ensure topology did not change, if changed start from scratch
 	if prev != nil {
 		if r.TopologyHash != prev.TopologyHash {
-			s.logger.Info(ctx, "Starting from scratch: topology changed",
-				"run_id", r.ID,
-				"prev_run_id", prev.ID,
-			)
+			s.logger.Info(ctx, "Starting from scratch: topology changed")
 			prev = nil
 			r.PrevID = uuid.Nil
 		}
@@ -268,9 +277,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		}
 
 		if diff := set.SymmetricDifference(prevHosts, hosts); !diff.IsEmpty() {
-			s.logger.Info(ctx, "Starting from scratch: hosts changed check that all API hosts belong to the same DC",
-				"run_id", r.ID,
-				"prev_run_id", prev.ID,
+			s.logger.Info(ctx, "Starting from scratch: hosts changed",
 				"old", prevHosts,
 				"new", hosts,
 				"diff", diff,
@@ -294,13 +301,8 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	}
 
 	// spawn async repair
-	wctx := log.WithTraceID(s.workerCtx)
-	s.logger.Info(ctx, "Starting repair",
-		"unit", u,
-		"run_id", runID,
-		"prev_run_id", r.PrevID,
-		"worker_trace_id", log.TraceID(wctx),
-	)
+	s.logger.Info(ctx, "Starting repair")
+
 	s.wg.Add(1)
 	go func() {
 		// wait for unlock
@@ -308,19 +310,23 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 			time.Sleep(50 * time.Millisecond)
 		}
 
+		ctx := log.CopyTraceID(s.workerCtx, ctx)
+
 		defer func() {
 			s.wg.Done()
 			if v := recover(); v != nil {
-				s.logger.Error(wctx, "Panic", "panic", v)
+				s.logger.Error(ctx, "Panic", "panic", v)
 				fail(errors.Errorf("%s", v))
 			}
 			if err := s.unlockCluster(&r); err != nil {
-				s.logger.Error(wctx, "Unlock error", "error", err)
+				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
 		}()
-		if err := s.repair(wctx, u, &r, cluster, hostSegments); err != nil {
+		if err := s.repair(ctx, u, &r, cluster, hostSegments); err != nil {
 			fail(err)
 		}
+
+		s.logger.Info(ctx, "Status", "status", r.Status)
 	}()
 
 	return nil
@@ -388,15 +394,13 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllacl
 
 			Service: s,
 			Cluster: cluster,
-			Logger:  s.logger.Named("worker").With("run_id", r.ID, "host", host),
+			Logger:  s.logger.Named("worker").With("host", host),
 		}
 		if err := w.exec(ctx); err != nil {
-			w.Logger.Error(ctx, "Repair error", "error", err)
 			return errors.Wrapf(err, "repair error")
 		}
 
 		if ctx.Err() != nil {
-			s.logger.Info(ctx, "Aborted", "run_id", r.ID)
 			return nil
 		}
 
@@ -410,7 +414,6 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllacl
 			r.EndTime = timeutc.Now()
 			s.putRunLogError(ctx, r)
 
-			s.logger.Info(ctx, "Stopped", "unit", u, "run_id", r.ID)
 			return nil
 		}
 	}
@@ -418,8 +421,6 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllacl
 	r.Status = StatusDone
 	r.EndTime = timeutc.Now()
 	s.putRunLogError(ctx, r)
-
-	s.logger.Info(ctx, "Done", "run_id", r.ID)
 
 	return nil
 }
@@ -549,8 +550,6 @@ func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, e
 
 // putRun upserts a repair run.
 func (s *Service) putRun(ctx context.Context, r *Run) error {
-	s.logger.Debug(ctx, "PutRun", "run", r)
-
 	stmt, names := schema.RepairRun.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 
@@ -585,7 +584,12 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return errors.New("not running")
 	}
 
-	s.logger.Info(ctx, "Stopping repair", "unit", u, "run_id", runID)
+	s.logger.Info(ctx, "Stopping repair",
+		"cluster_id", r.ClusterID,
+		"unit_id", r.UnitID,
+		"run_id", runID,
+	)
+
 	r.Status = StatusStopping
 
 	return s.putRun(ctx, r)
@@ -593,8 +597,6 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 // isStopped checks if repair is in StatusStopping or StatusStopped.
 func (s *Service) isStopped(ctx context.Context, u *Unit, runID uuid.UUID) (bool, error) {
-	s.logger.Debug(ctx, "isStopped", "unit", u, "run_id", runID)
-
 	stmt, names := schema.RepairRun.Get("status")
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": u.ClusterID,
@@ -693,7 +695,7 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 // SyncUnits ensures that for every keyspace there is a Unit. If there is no
 // unit it will be created
 func (s *Service) SyncUnits(ctx context.Context, clusterID uuid.UUID) error {
-	s.logger.Debug(ctx, "SyncUnits", "cluster_id", clusterID)
+	s.logger.Info(ctx, "Syncing units", "cluster_id", clusterID)
 
 	// get the cluster client
 	cluster, err := s.client(ctx, clusterID)
@@ -758,6 +760,8 @@ func (s *Service) SyncUnits(ctx context.Context, clusterID uuid.UUID) error {
 		}
 		return true
 	})
+
+	s.logger.Info(ctx, "Done")
 
 	return dbErr
 }

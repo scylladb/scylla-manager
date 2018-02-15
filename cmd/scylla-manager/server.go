@@ -199,7 +199,7 @@ func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
 
 	var wg sync.WaitGroup
 	if s.httpServer != nil {
-		s.logger.Info(ctx, "Closing HTTP...")
+		s.logger.Info(ctx, "Closing HTTP")
 
 		wg.Add(1)
 		go func() {
@@ -210,7 +210,7 @@ func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
 		}()
 	}
 	if s.httpsServer != nil {
-		s.logger.Info(ctx, "Closing HTTPS...")
+		s.logger.Info(ctx, "Closing HTTPS")
 
 		wg.Add(1)
 		go func() {

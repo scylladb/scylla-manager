@@ -170,7 +170,7 @@ func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, 
 func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	s.logger.Debug(ctx, "PutCluster", "cluster", c)
 	if c == nil {
-		return errors.New("nil Cluster")
+		return mermaid.ErrNilPtr
 	}
 
 	if c.ID == uuid.Nil {
@@ -178,6 +178,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		if c.ID, err = uuid.NewRandom(); err != nil {
 			return errors.Wrap(err, "couldn't generate random UUID for Cluster")
 		}
+		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
 	}
 
 	// validate cluster

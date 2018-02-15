@@ -71,7 +71,7 @@ func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
 // LoadTasks should be called on start. It attaches to running tasks if there are such,
 // marking no-longer running ones as stopped. It then proceeds to schedule future tasks.
 func (s *Service) LoadTasks(ctx context.Context) error {
-	s.logger.Debug(ctx, "LoadTasks")
+	s.logger.Info(ctx, "Loading tasks")
 
 	now := timeutc.Now()
 
@@ -90,7 +90,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 
 		runs, err := s.GetLastRun(ctx, &t, 1)
 		if err != nil {
-			s.logger.Error(ctx, "failed to get last run of task", "Task", t, "error", err)
+			s.logger.Error(ctx, "Failed to get last run of task", "task", t, "error", err)
 			continue
 		}
 
@@ -101,7 +101,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 			case runner.StatusStarting, runner.StatusRunning, runner.StatusStopping:
 				curStatus, cause, err := s.taskRunner(&t).Status(ctx, t.ClusterID, r.ID, t.Properties)
 				if err != nil {
-					s.logger.Error(ctx, "failed to get task status", "task", t, "run", r, "error", err)
+					s.logger.Error(ctx, "Failed to get task status", "task", t, "run", r, "error", err)
 					continue
 				}
 				switch curStatus {
@@ -116,11 +116,18 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 						r.Cause = cause
 					}
 				default:
-					s.logger.Error(ctx, "unexpected task status", "status", curStatus, "task", t, "run", r)
+					s.logger.Error(ctx, "Unexpected task status",
+						"task", t,
+						"run", r,
+						"status", curStatus,
+					)
 					continue
 				}
 				if err := s.putRun(ctx, r); err != nil {
-					s.logger.Error(ctx, "failed to write run", "run", r)
+					s.logger.Error(ctx, "Failed to write run",
+						"run", r,
+						"error", err,
+					)
 					return err
 				}
 			}
@@ -131,6 +138,8 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 			s.schedTask(ctx, now, &t)
 		}
 	}
+
+	s.logger.Info(ctx, "Done")
 
 	return iter.Close()
 }
@@ -157,21 +166,32 @@ func (s *Service) SetRunner(tp TaskType, r runner.Runner) {
 func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 	runs, err := s.GetLastRun(ctx, t, t.Sched.NumRetries)
 	if err != nil {
-		s.logger.Error(ctx, "failed to get history of task", "Task", t, "error", err)
+		s.logger.Error(ctx, "Failed to get history of task", "task", t, "error", err)
 		return
 	}
 	activation := t.Sched.nextActivation(now, runs)
 	if activation.IsZero() {
-		s.logger.Debug(ctx, "schedTask no activation", "task", t)
+		s.logger.Debug(ctx, "No activation", "task", t)
 		return
 	}
 	if !now.Before(activation) {
-		s.logger.Error(ctx, "schedTask task in the past", "now", now, "activation", activation, "task", t)
+		s.logger.Error(ctx, "Task in the past",
+			"task", t,
+			"activation", activation,
+			"now", now,
+		)
 		return
 	}
 
-	s.logger.Debug(ctx, "schedTask", "activation", activation, "task", t)
-	triggerCtx, cancel := context.WithCancel(s.cronCtx)
+	s.logger.Info(ctx, "Task scheduled",
+		"cluster_id", t.ClusterID,
+		"task_type", t.Type,
+		"task_id", t.ID,
+		"activation", activation,
+	)
+
+	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
+
 	doneCh := make(chan struct{})
 	s.taskLock.Lock()
 	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t, doneCh) })
@@ -189,8 +209,7 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 }
 
 func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
-	s.logger.Debug(ctx, "attachTask", "task", t, "run", run)
-	triggerCtx, cancel := context.WithCancel(s.cronCtx)
+	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
 	doneCh := make(chan struct{})
 	s.taskLock.Lock()
 	s.tasks[t.ID] = cancelableTrigger{
@@ -199,13 +218,23 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 	}
 	s.taskLock.Unlock()
 
+	s.logger.Info(ctx, "Attached task run",
+		"cluster_id", t.ClusterID,
+		"task_type", t.Type,
+		"task_id", t.ID,
+		"run_id", run.ID,
+	)
+
 	s.wg.Add(1)
 	go func() {
 		defer s.reschedTask(triggerCtx, t, run, doneCh)
 
 		run.Status = runner.StatusRunning
 		if err := s.putRun(ctx, run); err != nil {
-			s.logger.Error(ctx, "failed to write run", "run", run)
+			s.logger.Error(ctx, "Failed to write run",
+				"run", run,
+				"error", err,
+			)
 			return
 		}
 
@@ -225,19 +254,20 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan 
 	s.taskLock.Unlock()
 
 	if ctx.Err() != nil {
-		s.logger.Debug(ctx, "task canceled, not re-scheduling", "Task", t)
+		s.logger.Debug(ctx, "Task canceled, not re-scheduling", "task", t)
 		return
 	}
 	if t.Sched.IntervalDays == 0 && run.Status == runner.StatusStopped {
-		s.logger.Debug(ctx, "one-shot task, not re-scheduling", "Task", t)
+		s.logger.Debug(ctx, "One-shot task, not re-scheduling", "task", t)
 		return
 	}
 	s.schedTask(ctx, timeutc.Now(), t)
 }
 
 func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) {
-	s.wg.Add(1)
+	s.logger.Debug(ctx, "execTrigger", "task", t)
 
+	s.wg.Add(1)
 	now := timeutc.Now()
 	run := &Run{
 		ID:        uuid.NewTime(),
@@ -247,28 +277,49 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 		Status:    runner.StatusStarting,
 		StartTime: now,
 	}
-	s.logger.Debug(ctx, "execTrigger", "now", now, "task", t, "run", run)
-
 	defer s.reschedTask(ctx, t, run, done)
+
 	if err := s.putRun(ctx, run); err != nil {
-		s.logger.Error(ctx, "failed to write run", "run", run)
+		s.logger.Error(ctx, "Failed to write run",
+			"run", run,
+			"error", err,
+		)
 		return
 	}
 
 	if err := s.taskRunner(t).Run(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
-		s.logger.Info(ctx, "failed to start task", "Task", t, "run ID", run.ID, "error", err)
+		s.logger.Info(ctx, "Failed to start task",
+			"cluster_id", t.ClusterID,
+			"task_type", t.Type,
+			"task_id", t.ID,
+			"run_id", run.ID,
+			"error", err,
+		)
 		run.Status = runner.StatusError
 		run.EndTime = &now
 		run.Cause = err.Error()
 		if err := s.putRun(ctx, run); err != nil {
-			s.logger.Error(ctx, "failed to write run", "run", run)
+			s.logger.Error(ctx, "Failed to write run",
+				"run", run,
+				"error", err,
+			)
 		}
 		return
 	}
 
+	s.logger.Info(ctx, "Task started",
+		"cluster_id", t.ClusterID,
+		"task_type", t.Type,
+		"task_id", t.ID,
+		"run_id", run.ID,
+	)
+
 	run.Status = runner.StatusRunning
 	if err := s.putRun(ctx, run); err != nil {
-		s.logger.Error(ctx, "failed to write run", "run", run)
+		s.logger.Error(ctx, "Failed to write run",
+			"run", run,
+			"error", err,
+		)
 		return
 	}
 
@@ -282,20 +333,31 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 	for {
 		select {
 		case <-ctx.Done():
-			ctx = context.Background()
+			ctx = log.CopyTraceID(context.Background(), ctx)
+
 			if err := s.taskRunner(t).Stop(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
-				s.logger.Info(ctx, "failed to stop task", "Task", t, "run ID", run.ID, "error", err)
+				s.logger.Error(ctx, "Failed to stop task",
+					"task", t,
+					"run", run,
+					"error", err,
+				)
 				continue
 			}
 			run.Status = runner.StatusStopping
 			if err := s.putRun(ctx, run); err != nil {
-				s.logger.Error(ctx, "failed to write run", "run", run)
+				s.logger.Error(ctx, "Failed to write run",
+					"run", run,
+					"error", err,
+				)
 			}
-
 		case now := <-ticker.C:
 			curStatus, cause, err := s.taskRunner(t).Status(ctx, t.ClusterID, run.ID, t.Properties)
 			if err != nil {
-				s.logger.Error(ctx, "failed to get task status", "task", t, "run", run)
+				s.logger.Error(ctx, "Failed to get task status",
+					"task", t,
+					"run", run,
+					"error", err,
+				)
 				continue
 			}
 			switch curStatus {
@@ -306,8 +368,17 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 					run.Cause = cause
 				}
 				if err := s.putRun(ctx, run); err != nil {
-					s.logger.Error(ctx, "failed to write run", "run", run)
+					s.logger.Error(ctx, "Failed to write run",
+						"run", run,
+						"error", err,
+					)
 				}
+
+				s.logger.Info(ctx, "Status",
+					"status", curStatus,
+					"cause", cause,
+				)
+
 				return
 			}
 		}
@@ -316,13 +387,13 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 
 // StartTask starts execution of a task immediately, regardless of the task's schedule.
 func (s *Service) StartTask(ctx context.Context, t *Task) error {
-	s.logger.Debug(ctx, "StartTask", "Task", t)
+	s.logger.Debug(ctx, "StartTask", "task", t)
 	if t == nil {
 		return errors.New("nil task")
 	}
 
 	s.cancelTask(t)
-	triggerCtx, cancel := context.WithCancel(s.cronCtx)
+	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
 	doneCh := make(chan struct{})
 	s.taskLock.Lock()
 	s.tasks[t.ID] = cancelableTrigger{
@@ -350,7 +421,7 @@ func (s *Service) cancelTask(t *Task) {
 
 // StopTask stops task execution of immediately, regardless and re-schedule if Enabled.
 func (s *Service) StopTask(ctx context.Context, t *Task) error {
-	s.logger.Debug(ctx, "StopTask", "Task", t)
+	s.logger.Debug(ctx, "StopTask", "task", t)
 	if t == nil {
 		return errors.New("nil task")
 	}
@@ -359,6 +430,13 @@ func (s *Service) StopTask(ctx context.Context, t *Task) error {
 	if t.Enabled {
 		s.schedTask(ctx, timeutc.Now(), t)
 	}
+
+	s.logger.Info(ctx, "Stopping task",
+		"cluster_id", t.ClusterID,
+		"task_type", t.Type,
+		"task_id", t.ID,
+	)
+
 	return nil
 }
 
@@ -449,7 +527,7 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 
 // PutTask upserts a task, the task instance must pass Validate() checks.
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
-	s.logger.Debug(ctx, "PutTask", "Task", t)
+	s.logger.Debug(ctx, "PutTask", "task", t)
 
 	if t != nil && t.ID == uuid.Nil {
 		var err error
@@ -481,7 +559,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 
 // DeleteTask removes a task based on ID.
 func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
-	s.logger.Debug(ctx, "DeleteTask", "cluster_id", t.ClusterID, "id", t.ID, "type", t.Type)
+	s.logger.Debug(ctx, "DeleteTask", "task", t)
 
 	stmt, names := schema.SchedTask.Delete()
 
@@ -496,6 +574,13 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 		return err
 	}
 	s.cancelTask(t)
+
+	s.logger.Info(ctx, "Task deleted",
+		"cluster_id", t.ClusterID,
+		"task_type", t.Type,
+		"task_id", t.ID,
+	)
+
 	return nil
 }
 
@@ -567,8 +652,6 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 }
 
 func (s *Service) putRun(ctx context.Context, r *Run) error {
-	s.logger.Debug(ctx, "PutRun", "run", r)
-
 	stmt, names := schema.SchedRun.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 

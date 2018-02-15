@@ -87,8 +87,12 @@ var rootCmd = &cobra.Command{
 		// wait for database
 		for {
 			if err := tryConnect(config); err != nil {
-				logger.Info(ctx, "could not connect to database", "error", err)
-				time.Sleep(5 * time.Second)
+				const wait = 5 * time.Second
+				logger.Info(ctx, "Could not connect to database",
+					"sleep", wait,
+					"error", err,
+				)
+				time.Sleep(wait)
 			} else {
 				break
 			}
@@ -108,6 +112,7 @@ var rootCmd = &cobra.Command{
 		if err := migrateSchema(config); err != nil {
 			return errors.Wrapf(err, "database migration")
 		}
+		logger.Info(ctx, "Done")
 
 		// start server
 		s, err := newServer(config, logger)
@@ -139,7 +144,7 @@ var rootCmd = &cobra.Command{
 		s.close()
 
 		// bye
-		logger.Info(ctx, "Server stopped")
+		logger.Info(ctx, "Bye")
 		logger.Sync()
 
 		return nil
