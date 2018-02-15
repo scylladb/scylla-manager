@@ -101,8 +101,14 @@ func NewProduction(c Config) (Logger, error) {
 // NewDevelopment creates a new logger that writes DebugLevel and above
 // logs to standard error in a human-friendly format.
 func NewDevelopment() Logger {
+	return NewDevelopmentWithLevel(zapcore.DebugLevel)
+}
+
+// NewDevelopmentWithLevel creates a new logger that writes level and above
+// logs to standard error in a human-friendly format.
+func NewDevelopmentWithLevel(level zapcore.Level) Logger {
 	cfg := zap.NewDevelopmentConfig()
-	cfg.Level.SetLevel(zapcore.DebugLevel)
+	cfg.Level.SetLevel(level)
 	l, _ := cfg.Build(zap.AddCallerSkip(2))
 	return Logger{base: l}
 }

@@ -148,7 +148,7 @@ var rootCmd = &cobra.Command{
 
 func logger(config *serverConfig) (log.Logger, error) {
 	if cfgDeveloperMode {
-		return log.NewDevelopment(), nil
+		return log.NewDevelopmentWithLevel(config.Logger.Level), nil
 	}
 	return log.NewProduction(config.Logger)
 }
