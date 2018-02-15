@@ -42,6 +42,10 @@ type serverConfig struct {
 
 func defaultConfig() *serverConfig {
 	return &serverConfig{
+		Logger: log.Config{
+			Mode:  log.SyslogMode,
+			Level: zapcore.InfoLevel,
+		},
 		Database: dbConfig{
 			Keyspace:                      "scylla_manager",
 			KeyspaceTplFile:               "/etc/scylla-manager/create_keyspace.cql.tpl",
@@ -50,10 +54,6 @@ func defaultConfig() *serverConfig {
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
-		},
-		Logger: log.Config{
-			Mode:  log.SyslogMode,
-			Level: zapcore.InfoLevel,
 		},
 		Repair: repair.DefaultConfig(),
 	}
