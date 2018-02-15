@@ -1,6 +1,6 @@
-ARG VERSION_NAME
-
 FROM centos:7 as pkg-env
+
+ARG VERSION_NAME
 
 ADD release/rpm /tmp
 RUN yum install -y /tmp/scylla-manager-server-${VERSION_NAME}.x86_64.rpm
