@@ -181,7 +181,7 @@ func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, erro
 
 	// create partitioner
 	shardCount, ok := c.ShardCount()
-	if ok {
+	if !ok {
 		return nil, errors.New("config missing shard_count")
 	}
 	return dht.NewMurmur3Partitioner(shardCount, uint(w.Config.ShardingIgnoreMsbBits)), nil
