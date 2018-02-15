@@ -76,7 +76,7 @@ var rootCmd = &cobra.Command{
 		ctx := log.WithTraceID(context.Background())
 
 		// create logger
-		logger, err := logger()
+		logger, err := logger(config)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -146,11 +146,11 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func logger() (log.Logger, error) {
+func logger(config *serverConfig) (log.Logger, error) {
 	if cfgDeveloperMode {
 		return log.NewDevelopment(), nil
 	}
-	return log.NewProduction("scylla-manager")
+	return log.NewProduction(config.Logger)
 }
 
 func tryConnect(config *serverConfig) error {

@@ -6,6 +6,10 @@ tls_cert_file: tls.cert
 
 tls_key_file: tls.key
 
+logger:
+  mode: stderr
+  level: debug
+
 database:
   hosts:
     - 172.16.1.10
