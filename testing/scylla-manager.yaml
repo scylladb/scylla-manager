@@ -1,5 +1,9 @@
 http: 127.0.0.1:8889
 
+logger:
+  mode: stderr
+  level: info
+
 database:
   hosts:
     - 172.16.1.100
