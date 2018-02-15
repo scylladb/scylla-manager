@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/ssh"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
 )
 
@@ -27,18 +29,23 @@ type dbConfig struct {
 }
 
 type serverConfig struct {
-	HTTP        string   `yaml:"http"`
-	HTTPS       string   `yaml:"https"`
-	TLSCertFile string   `yaml:"tls_cert_file"`
-	TLSKeyFile  string   `yaml:"tls_key_file"`
-	Database    dbConfig `yaml:"database"`
+	HTTP        string `yaml:"http"`
+	HTTPS       string `yaml:"https"`
+	TLSCertFile string `yaml:"tls_cert_file"`
+	TLSKeyFile  string `yaml:"tls_key_file"`
 
-	SSH    ssh.Config    `yaml:"ssh"`
-	Repair repair.Config `yaml:"repair"`
+	Logger   log.Config    `yaml:"logger"`
+	Database dbConfig      `yaml:"database"`
+	SSH      ssh.Config    `yaml:"ssh"`
+	Repair   repair.Config `yaml:"repair"`
 }
 
 func defaultConfig() *serverConfig {
 	return &serverConfig{
+		Logger: log.Config{
+			Mode:  log.SyslogMode,
+			Level: zapcore.InfoLevel,
+		},
 		Database: dbConfig{
 			Keyspace:                      "scylla_manager",
 			KeyspaceTplFile:               "/etc/scylla-manager/create_keyspace.cql.tpl",

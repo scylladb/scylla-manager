@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/ssh"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestNewConfigFromFile(t *testing.T) {
@@ -25,6 +27,10 @@ func TestNewConfigFromFile(t *testing.T) {
 		HTTPS:       "127.0.0.1:443",
 		TLSCertFile: "tls.cert",
 		TLSKeyFile:  "tls.key",
+		Logger: log.Config{
+			Mode:  log.StderrMode,
+			Level: zapcore.DebugLevel,
+		},
 		Database: dbConfig{
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
 			User:                          "user",

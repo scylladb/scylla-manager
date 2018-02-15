@@ -12,6 +12,11 @@ http: 127.0.0.1:8889
 # TLS key file to use for HTTPS.
 # tls_key_file:
 
+# Logging configuration.
+logger:
+  # Available log levels are error, info and debug.
+  # level: info
+
 # Scylla Manager database, used to store management data.
 database:
   hosts:

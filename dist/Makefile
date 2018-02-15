@@ -39,7 +39,7 @@ release/rpm: release/scylla-manager-$(VERSION_NAME).tar
 .PHONY: release/docker
 release/docker: release/rpm
 	@echo "==> Building docker image..."
-	@docker build --build-arg=VERSION_NAME=$(VERSION_NAME) -t scylla-manager:$(VERSION_NAME) -f docker/Dockerfile .
+	docker build --build-arg VERSION_NAME=$(VERSION_NAME) -t scylla-manager:$(VERSION_NAME) -f docker/Dockerfile .
 
 .PHONY: inspect
 inspect:
