@@ -15,7 +15,7 @@ import (
 func taskInitCommonFlags(cmd *cobra.Command) {
 	fs := cmd.Flags()
 	fs.StringP("start-date", "s", "now", "task start date in RFC3339 form or now[+duration]")
-	fs.UintP("interval", "i", 7, "task schedule interval in `days`")
+	fs.UintP("interval", "i", 0, "task schedule interval in `days`")
 	fs.UintP("num-retries", "r", 3, "task schedule number of retries")
 }
 
