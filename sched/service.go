@@ -9,6 +9,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
@@ -18,6 +19,27 @@ import (
 	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
+
+var (
+	taskActiveCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: "task",
+		Name:      "active_count",
+		Help:      "Total number of active tasks.",
+	}, []string{"cluster", "type"})
+
+	taskStatusTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Subsystem: "task",
+		Name:      "status_total",
+		Help:      "Total number of tasks .",
+	}, []string{"cluster", "type", "status"})
+)
+
+func init() {
+	prometheus.MustRegister(
+		taskActiveCount,
+		taskStatusTotal,
+	)
+}
 
 // Service schedules tasks.
 type Service struct {
@@ -314,6 +336,11 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 		"run_id", run.ID,
 	)
 
+	taskActiveCount.With(prometheus.Labels{
+		"cluster": t.ClusterID.String(),
+		"type":    t.Type.String(),
+	}).Inc()
+
 	run.Status = runner.StatusRunning
 	if err := s.putRun(ctx, run); err != nil {
 		s.logger.Error(ctx, "Failed to write run",
@@ -329,6 +356,19 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 	ticker := time.NewTicker(monitorTaskInterval)
 	defer ticker.Stop()
+
+	defer func() {
+		taskActiveCount.With(prometheus.Labels{
+			"cluster": t.ClusterID.String(),
+			"type":    t.Type.String(),
+		}).Dec()
+
+		taskStatusTotal.With(prometheus.Labels{
+			"cluster": t.ClusterID.String(),
+			"type":    t.Type.String(),
+			"status":  run.Status.String(),
+		}).Inc()
+	}()
 
 	for {
 		select {
