@@ -109,7 +109,7 @@ dev-server-debug:
 # dev-server-kill stops all dev-server instances.
 .PHONY: dev-server-kill
 dev-server-kill:
-	@killall scylla-manager.dev
+	@killall -9 scylla-manager.dev
 
 # dev-cli builds development cli binary.
 .PHONY: dev-cli
