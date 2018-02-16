@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestWithTraceIDIdempotency(t *testing.T) {
+func TestWithTraceID(t *testing.T) {
 	ctx := WithTraceID(context.Background())
 	id := TraceID(ctx)
 	if id == "" {
@@ -17,6 +17,16 @@ func TestWithTraceIDIdempotency(t *testing.T) {
 	ctx = WithTraceID(ctx)
 	if id != TraceID(ctx) {
 		t.Fatal("expected", id, "got", TraceID(ctx))
+	}
+}
+
+func TestCopyTraceID(t *testing.T) {
+	from := WithTraceID(context.Background())
+	ctx := context.Background()
+
+	cp := CopyTraceID(ctx, from)
+	if TraceID(from) != TraceID(cp) {
+		t.Fatal("id not copied")
 	}
 }
 

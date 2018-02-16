@@ -23,6 +23,16 @@ func WithTraceID(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxTraceID, &v)
 }
 
+// CopyTraceID allows for copying the trace ID from a context to another context.
+func CopyTraceID(ctx, from context.Context) context.Context {
+	v, ok := from.Value(ctxTraceID).(*zapcore.Field)
+	if !ok {
+		return ctx
+	}
+
+	return context.WithValue(ctx, ctxTraceID, v)
+}
+
 // TraceID returns trace ID of the context.
 func TraceID(ctx context.Context) string {
 	if ctx == nil {
