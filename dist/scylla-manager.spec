@@ -35,16 +35,16 @@ ln -s $PWD src/%{mermaid_pkg}
 
   export GOROOT=%{_builddir}/go
   export GOPATH=$PWD
-  GO=$GOROOT/bin/go
-
-  mkdir -p release/bash_completion
-  $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{mermaid_pkg}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
 
   export GOOS=linux
   export GOARCH=amd64
   export CGO_ENABLED=0
 
+  GO=$GOROOT/bin/go
   GOLDFLAGS="-w -extldflags '-static' -X %{mermaid_pkg}.version=%{version}_%{release}"
+
+  mkdir -p release/bash_completion
+  $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{mermaid_pkg}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
 
   $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/scylla-manager %{mermaid_pkg}/cmd/scylla-manager
   $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/sctool %{mermaid_pkg}/cmd/sctool
