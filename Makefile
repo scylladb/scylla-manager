@@ -128,6 +128,7 @@ gen:
 get-tools: GOPATH := $(shell mktemp -d)
 get-tools:
 	@echo "==> Installing tools..."
+	@mkdir -p $(GOBIN)
 
 	@go get -u github.com/golang/dep/cmd/dep
 	@go get -u github.com/golang/lint/golint
@@ -148,6 +149,7 @@ get-tools:
 get-vscode-tools: GOPATH := $(shell mktemp -d)
 get-vscode-tools:
 	@echo "==> Installing vscode tools..."
+	@mkdir -p $(GOBIN)
 
 	@go get -u github.com/ramya-rao-a/go-outline
 	@go get -u github.com/acroca/go-symbols
