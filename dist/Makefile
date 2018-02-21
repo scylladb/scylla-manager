@@ -24,14 +24,13 @@ release/rpm: release/scylla-manager-$(VERSION_NAME).tar
 	$(eval RPMBUILD := $(shell mktemp -t -d mermaid_rpm.XXXX))
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-	@cp scylla-manager.spec $(RPMBUILD)/SPECS/scylla-manager-$(VERSION_NAME).spec
 	@cp release/scylla-manager-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
 
 	@rpmbuild -bb --target x86_64 --quiet \
 	--define "mermaid_version $(VERSION)" \
 	--define "mermaid_release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)"  \
-	$(RPMBUILD)/SPECS/scylla-manager-$(VERSION_NAME).spec > /dev/null
+	redhat/scylla-manager.spec > /dev/null
 
 	@mkdir -p release/rpm
 	@cp $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
