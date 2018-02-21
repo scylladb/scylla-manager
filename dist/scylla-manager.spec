@@ -1,7 +1,7 @@
 %define debug_package %{nil}
 %global go_version 1.10.2
 %global go_url https://storage.googleapis.com/golang/go%{go_version}.linux-amd64.tar.gz
-%global mermaid_pkg github.com/scylladb/mermaid
+%global pkg_name github.com/scylladb/mermaid
 
 Name:           scylla-manager
 Version:        %{mermaid_version}
@@ -15,7 +15,7 @@ Source0:        %{name}-%{version}-%{release}.tar
 
 BuildRequires:  curl
 ExclusiveArch:  x86_64
-Requires: scylla-enterprise scylla-manager-server = %{mermaid_version}-%{mermaid_release} scylla-manager-client = %{mermaid_version}-%{mermaid_release} psmisc
+Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla-manager-client = %{version}-%{release} psmisc
 
 %description
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
@@ -27,8 +27,8 @@ well as scylla database server.
 
 %build
 curl -sSq -L %{go_url} | tar zxf - -C %{_builddir}
-mkdir -p src/%{dirname:%{mermaid_pkg}}
-ln -s $PWD src/%{mermaid_pkg}
+mkdir -p src/%{dirname:%{pkg_name}}
+ln -s $PWD src/%{pkg_name}
 
 (
   set -e
@@ -41,13 +41,13 @@ ln -s $PWD src/%{mermaid_pkg}
   export CGO_ENABLED=0
 
   GO=$GOROOT/bin/go
-  GOLDFLAGS="-w -extldflags '-static' -X %{mermaid_pkg}.version=%{version}_%{release}"
+  GOLDFLAGS="-w -extldflags '-static' -X %{pkg_name}.version=%{version}_%{release}"
 
   mkdir -p release/bash_completion
-  $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{mermaid_pkg}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
+  $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{pkg_name}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
 
-  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/scylla-manager %{mermaid_pkg}/cmd/scylla-manager
-  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/sctool %{mermaid_pkg}/cmd/sctool
+  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/scylla-manager %{pkg_name}/cmd/scylla-manager
+  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
 )
 
 %install
