@@ -46,8 +46,8 @@ ln -s $PWD src/%{pkg_name}
   mkdir -p release/bash_completion
   $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{pkg_name}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
 
-  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/scylla-manager %{pkg_name}/cmd/scylla-manager
-  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
+  $GO build -ldflags "-B 0x$(head -c40 < /dev/urandom | xxd -p -c40) $GOLDFLAGS" -o release/linux_amd64/scylla-manager %{pkg_name}/cmd/scylla-manager
+  $GO build -ldflags "-B 0x$(head -c40 < /dev/urandom | xxd -p -c40) $GOLDFLAGS" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
 )
 
 %install
