@@ -46,7 +46,7 @@ ln -s $PWD src/%{pkg_name}
   mkdir -p release/bash_completion
   $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{pkg_name}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
 
-  $GO build -ldflags "-B 0x$(head -c40 < /dev/urandom | xxd -p -c40) $GOLDFLAGS" -o release/linux_amd64/scylla-manager %{pkg_name}/cmd/scylla-manager
+  $GO build -ldflags "-B 0x$(head -c40 < /dev/urandom | xxd -p -c40) $GOLDFLAGS" -o release/linux_amd64/%{name} %{pkg_name}/cmd/%{name}
   $GO build -ldflags "-B 0x$(head -c40 < /dev/urandom | xxd -p -c40) $GOLDFLAGS" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
 )
 
@@ -54,28 +54,28 @@ ln -s $PWD src/%{pkg_name}
 mkdir -p %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_sbindir}/
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d/
-mkdir -p %{buildroot}%{_sysconfdir}/scylla-manager/
-mkdir -p %{buildroot}%{_sysconfdir}/scylla-manager/cql/
+mkdir -p %{buildroot}%{_sysconfdir}/%{name}/
+mkdir -p %{buildroot}%{_sysconfdir}/%{name}/cql/
 mkdir -p %{buildroot}%{_unitdir}/
-mkdir -p %{buildroot}%{_prefix}/lib/scylla-manager/
-mkdir -p %{buildroot}%{_sharedstatedir}/scylla-manager/
+mkdir -p %{buildroot}%{_prefix}/lib/%{name}/
+mkdir -p %{buildroot}%{_sharedstatedir}/%{name}/
 
 install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
 install -m644 release/bash_completion/* %{buildroot}%{_sysconfdir}/bash_completion.d/
-install -m644 dist/etc/*.yaml %{buildroot}%{_sysconfdir}/scylla-manager/
-install -m644 dist/etc/*.tpl %{buildroot}%{_sysconfdir}/scylla-manager/
-install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/scylla-manager/
+install -m644 dist/etc/*.yaml %{buildroot}%{_sysconfdir}/%{name}/
+install -m644 dist/etc/*.tpl %{buildroot}%{_sysconfdir}/%{name}/
+install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/%{name}/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
-install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-manager/cql/
+install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
 
-ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_setup %{buildroot}%{_sbindir}/
-ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_ssh_test %{buildroot}%{_sbindir}/
-ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssh_test %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
 
 %files
 %defattr(-,root,root)
-%{_prefix}/lib/scylla-manager/scyllamgr_setup
-%{_prefix}/lib/scylla-manager/scyllamgr_ssh_test
+%{_prefix}/lib/%{name}/scyllamgr_setup
+%{_prefix}/lib/%{name}/scyllamgr_ssh_test
 %{_sbindir}/scyllamgr_setup
 %{_sbindir}/scyllamgr_ssh_test
 
@@ -93,19 +93,19 @@ the database management tasks.
 
 %files server
 %defattr(-,root,root)
-%{_bindir}/scylla-manager
-%{_prefix}/lib/scylla-manager/scyllamgr_ssl_cert_gen
+%{_bindir}/%{name}
+%{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
 %{_sbindir}/scyllamgr_ssl_cert_gen
-%config(noreplace) %{_sysconfdir}/scylla-manager/*.yaml
-%config(noreplace) %{_sysconfdir}/scylla-manager/*.tpl
-%{_sysconfdir}/scylla-manager/cql/*.cql
-%{_unitdir}/*.service
-%attr(0700, scylla-manager, scylla-manager) %{_sharedstatedir}/scylla-manager
+%config(noreplace) %{_sysconfdir}/%{name}/%{name}.yaml
+%config(noreplace) %{_sysconfdir}/%{name}/*.tpl
+%{_sysconfdir}/%{name}/cql/*.cql
+%{_unitdir}/%{name}.service
+%attr(0700, %{name}, %{name}) %{_sharedstatedir}/%{name}
 
 %pre server
-getent group  scylla-manager || /usr/sbin/groupadd -r scylla-manager &> /dev/null || :
-getent passwd scylla-manager || /usr/sbin/useradd \
- -g scylla-manager -d %{_sharedstatedir}/scylla-manager -s /sbin/nologin -r scylla-manager &> /dev/null || :
+getent group  %{name} || /usr/sbin/groupadd -r %{name} &> /dev/null || :
+getent passwd %{name} || /usr/sbin/useradd \
+ -g %{name} -d %{_sharedstatedir}/%{name} -s /sbin/nologin -r %{name} &> /dev/null || :
 
 %post server
 /usr/bin/sh %{_sbindir}/scyllamgr_ssl_cert_gen
