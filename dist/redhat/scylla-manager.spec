@@ -11,7 +11,7 @@ Group:          Applications/Databases
 
 License:        Proprietary
 URL:            http://www.scylladb.com/
-Source0:        %{name}-%{version}-%{release}.tar
+Source0:        %{name}-%{version}-%{release}.tar.gz
 
 BuildRequires:  curl
 ExclusiveArch:  x86_64

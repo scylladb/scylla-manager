@@ -13,10 +13,9 @@ release: release/scylla-manager-$(VERSION_NAME).tar
 release/scylla-manager-$(VERSION_NAME).tar:
 	@echo "==> Archiving..."
 	@mkdir -p release
-	@cd `git rev-parse --show-toplevel`; git archive \
-	--format tar \
+	@cd `git rev-parse --show-toplevel`; git archive --format tar.gz \
 	--prefix scylla-manager-$(VERSION_NAME)/ \
-	-o $(PWD)/release/scylla-manager-$(VERSION_NAME).tar HEAD
+	-o $(PWD)/release/scylla-manager-$(VERSION_NAME).tar.gz HEAD
 
 release: release/rpm
 release/rpm: release/scylla-manager-$(VERSION_NAME).tar
@@ -24,7 +23,7 @@ release/rpm: release/scylla-manager-$(VERSION_NAME).tar
 	$(eval RPMBUILD := $(shell mktemp -t -d mermaid_rpm.XXXX))
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-	@cp release/scylla-manager-$(VERSION_NAME).tar $(RPMBUILD)/SOURCES
+	@cp release/scylla-manager-$(VERSION_NAME).tar.gz $(RPMBUILD)/SOURCES
 
 	@rpmbuild -bb --target x86_64 --quiet \
 	--define "mermaid_version $(VERSION)" \
