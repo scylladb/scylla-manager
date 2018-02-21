@@ -44,9 +44,10 @@ ln -s $PWD src/%{mermaid_pkg}
   export GOARCH=amd64
   export CGO_ENABLED=0
 
-  GOLDFLAGS="-w -X github.com/scylladb/mermaid.version=%{version}_%{release}"
-  $GO build -o release/linux_amd64/scylla-manager -ldflags "$GOLDFLAGS" %{mermaid_pkg}/cmd/scylla-manager
-  $GO build -o release/linux_amd64/sctool -ldflags "$GOLDFLAGS" %{mermaid_pkg}/cmd/sctool
+  GOLDFLAGS="-w -extldflags '-static' -X %{mermaid_pkg}.version=%{version}_%{release}"
+
+  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/scylla-manager %{mermaid_pkg}/cmd/scylla-manager
+  $GO build -ldflags "-B 0x$(head -c16 </dev/urandom|xxd -p -u) $GOLDFLAGS" -o release/linux_amd64/sctool %{mermaid_pkg}/cmd/sctool
 )
 
 %install
