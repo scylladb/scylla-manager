@@ -1,5 +1,5 @@
 %define debug_package %{nil}
-%global go_version 1.9.3
+%global go_version 1.9.4
 %global go_url https://storage.googleapis.com/golang/go%{go_version}.linux-amd64.tar.gz
 %global mermaid_pkg github.com/scylladb/mermaid
 
