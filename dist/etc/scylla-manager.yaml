@@ -15,7 +15,7 @@ http: 127.0.0.1:8889
 # Logging configuration.
 logger:
   # Available log levels are error, info and debug.
-  # level: info
+  level: info
 
 # Scylla Manager database, used to store management data.
 database:
@@ -45,39 +45,39 @@ repair:
   # token range.
   #
   # Set the maximal number of tokens in a segment (zero is no limit).
-  # segment_size_limit: 0
-  #
+  segment_size_limit: 0
+
   # Set number of segments to be repaired in one Scylla command.
-  # segments_per_repair: 1
+  segments_per_repair: 1
 
   # Error tolerance.
   #
   # Set how many segments may fail to repair. Note that the manager would retry
   # to repair the failed segments. If the limit is exceeded, however, repair
   # will stop and the next repair will start from the beginning.
-  # segment_error_limit: 100
-  #
+  segment_error_limit: 100
+
   # Fail-fast, set to true if you want repair to stop on first error. Unlike
   # segment_error_limit this allows for resuming the stopped repair.
-  # stop_on_error: false
-  #
+  stop_on_error: false
+
   # Set wait time if Scylla failed to execute a repair command. Note that if
   # stop_on_error is true this has no effect.
-  # error_backoff: 10s
+  error_backoff: 10s
 
   # Set how often to poll Scylla node for command status.
-  # poll_interval: 200ms
+  poll_interval: 200ms
 
   # Set time offset between the automated scheduler run and the scheduled
   # repairs. If scheduler runs at midnight the repairs would start at
   # midnight + this value. This gives you the opportunity to audit and modify
   # the scheduled repairs.
-  # auto_schedule_delay: 2h
+  auto_schedule_delay: 2h
 
   # Set maximal time after which a restarted repair is forced to start from the
   # beginning.
-  # max_run_age: 36h
+  max_run_age: 36h
 
   # Distribution of data among cores (shards) within a node.
   # Copy value from Scylla configuration file.
-  # murmur3_partitioner_ignore_msb_bits: 12
+  murmur3_partitioner_ignore_msb_bits: 12
