@@ -17,6 +17,14 @@ type Cluster struct {
 	ShardCount int64     `json:"shard_count"`
 }
 
+// String returns cluster Name or ID if Name is is empty.
+func (c *Cluster) String() string {
+	if c.Name != "" {
+		return c.Name
+	}
+	return c.ID.String()
+}
+
 // Validate checks if all the fields are properly set.
 func (c *Cluster) Validate() (err error) {
 	if c == nil {
