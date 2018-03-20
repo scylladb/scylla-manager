@@ -12,12 +12,14 @@ import (
 
 var (
 	logInfoTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "log",
 		Name:      "info_total",
 		Help:      "Total number of INFO messages.",
 	})
 
 	logErrorTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "log",
 		Name:      "error_total",
 		Help:      "Total number of ERROR messages.",

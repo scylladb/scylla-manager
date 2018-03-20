@@ -20,24 +20,28 @@ import (
 
 var (
 	repairSegmentsTotal = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_total",
 		Help:      "Total number of segments to repair.",
 	}, []string{"cluster", "unit", "host", "shard"})
 
 	repairSegmentsSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_success",
 		Help:      "Number of repaired segments.",
 	}, []string{"cluster", "unit", "host", "shard"})
 
 	repairSegmentsError = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_error",
 		Help:      "Number of segments that failed to repair.",
 	}, []string{"cluster", "unit", "host", "shard"})
 
 	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "duration_seconds",
 		Help:      "Duration of a single repair command.",

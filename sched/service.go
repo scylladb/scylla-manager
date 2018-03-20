@@ -23,12 +23,14 @@ import (
 
 var (
 	taskActiveCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "task",
 		Name:      "active_count",
 		Help:      "Total number of active tasks.",
 	}, []string{"cluster", "type"})
 
 	taskStatusTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "scylla_manager",
 		Subsystem: "task",
 		Name:      "status_total",
 		Help:      "Total number of tasks .",
