@@ -13,6 +13,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/mermaidtest"
@@ -51,7 +52,13 @@ func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Contr
 	t.Helper()
 	ctrl := gomock.NewController(t)
 
-	s, err := NewService(session, log.NewDevelopment().Named("sched"))
+	cp := func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
+		return &cluster.Cluster{
+			ID: id,
+		}, nil
+	}
+
+	s, err := NewService(session, cp, log.NewDevelopment().Named("sched"))
 	if err != nil {
 		t.Fatal(err)
 	}

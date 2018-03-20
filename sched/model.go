@@ -119,16 +119,17 @@ func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
 
 // Task is a schedulable entity.
 type Task struct {
-	ClusterID uuid.UUID `json:"cluster_id"`
-	Type      TaskType  `json:"type"`
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Tags      []string  `json:"tags"`
-	Metadata  string    `json:"metadata"`
-	Enabled   bool      `json:"enabled"`
-	Sched     Schedule  `json:"schedule"`
-
+	ClusterID  uuid.UUID         `json:"cluster_id"`
+	Type       TaskType          `json:"type"`
+	ID         uuid.UUID         `json:"id"`
+	Name       string            `json:"name"`
+	Tags       []string          `json:"tags"`
+	Metadata   string            `json:"metadata"`
+	Enabled    bool              `json:"enabled"`
+	Sched      Schedule          `json:"schedule"`
 	Properties map[string]string `json:"properties"`
+
+	clusterName string
 }
 
 // Validate checks if all the required fields are properly set.

@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
@@ -44,6 +45,7 @@ func init() {
 // Service schedules tasks.
 type Service struct {
 	session   *gocql.Session
+	cluster   cluster.ProviderFunc
 	runners   map[TaskType]runner.Runner
 	runnersMu sync.Mutex
 	logger    log.Logger
@@ -75,13 +77,18 @@ func RetryFor(d time.Duration) int {
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
+	if cp == nil {
+		return nil, errors.New("invalid cluster provider")
+	}
+
 	return &Service{
 		session: session,
+		cluster: cp,
 		logger:  l,
 
 		cronCtx: log.WithTraceID(context.Background()),
@@ -289,7 +296,6 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan 
 func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) {
 	s.logger.Debug(ctx, "execTrigger", "task", t)
 
-	s.wg.Add(1)
 	now := timeutc.Now()
 	run := &Run{
 		ID:        uuid.NewTime(),
@@ -299,7 +305,9 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 		Status:    runner.StatusStarting,
 		StartTime: now,
 	}
-	defer s.reschedTask(ctx, t, run, done)
+
+	s.wg.Add(1)
+	defer s.reschedTask(ctx, t, run, done) // reschedTask calls s.wg.Done()
 
 	if err := s.putRun(ctx, run); err != nil {
 		s.logger.Error(ctx, "Failed to write run",
@@ -308,6 +316,8 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 		)
 		return
 	}
+
+	s.updateClusterName(ctx, t)
 
 	if err := s.taskRunner(t).Run(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
 		s.logger.Info(ctx, "Failed to start task",
@@ -337,7 +347,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 	)
 
 	taskActiveCount.With(prometheus.Labels{
-		"cluster": t.ClusterID.String(),
+		"cluster": t.clusterName,
 		"type":    t.Type.String(),
 	}).Inc()
 
@@ -359,12 +369,12 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 
 	defer func() {
 		taskActiveCount.With(prometheus.Labels{
-			"cluster": t.ClusterID.String(),
+			"cluster": t.clusterName,
 			"type":    t.Type.String(),
 		}).Dec()
 
 		taskStatusTotal.With(prometheus.Labels{
-			"cluster": t.ClusterID.String(),
+			"cluster": t.clusterName,
 			"type":    t.Type.String(),
 			"status":  run.Status.String(),
 		}).Inc()
@@ -422,6 +432,15 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				return
 			}
 		}
+	}
+}
+
+func (s *Service) updateClusterName(ctx context.Context, t *Task) {
+	c, _ := s.cluster(ctx, t.ClusterID)
+	if c != nil {
+		t.clusterName = c.String()
+	} else {
+		t.clusterName = t.ClusterID.String()
 	}
 }
 

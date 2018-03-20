@@ -87,7 +87,11 @@ func (s *server) initServices() error {
 		return errors.Wrapf(err, "repair service")
 	}
 
-	s.schedSvc, err = sched.NewService(s.session, s.logger.Named("scheduler"))
+	s.schedSvc, err = sched.NewService(
+		s.session,
+		s.clusterSvc.GetClusterByID,
+		s.logger.Named("scheduler"),
+	)
 	if err != nil {
 		return errors.Wrapf(err, "scheduler service")
 	}
