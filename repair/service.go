@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -27,6 +28,7 @@ import (
 type Service struct {
 	session      *gocql.Session
 	config       Config
+	cluster      cluster.ProviderFunc
 	client       scyllaclient.ProviderFunc
 	active       map[uuid.UUID]uuid.UUID // maps cluster ID to active run ID
 	activeMu     sync.Mutex
@@ -37,7 +39,7 @@ type Service struct {
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, c Config, p scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -46,7 +48,11 @@ func NewService(session *gocql.Session, c Config, p scyllaclient.ProviderFunc, l
 		return nil, errors.Wrap(err, "invalid config")
 	}
 
-	if p == nil {
+	if cp == nil {
+		return nil, errors.New("invalid cluster provider")
+	}
+
+	if sp == nil {
 		return nil, errors.New("invalid scylla provider")
 	}
 
@@ -55,7 +61,8 @@ func NewService(session *gocql.Session, c Config, p scyllaclient.ProviderFunc, l
 	return &Service{
 		session:      session,
 		config:       c,
-		client:       p,
+		cluster:      cp,
+		client:       sp,
 		active:       make(map[uuid.UUID]uuid.UUID),
 		workerCtx:    ctx,
 		workerCancel: cancel,
@@ -133,6 +140,12 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")})
 	}
 
+	// get cluster
+	c, err := s.cluster(ctx, u.ClusterID)
+	if err != nil {
+		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "client not found")})
+	}
+
 	// lock is used to make sure that the initialisation sequence is finished
 	// before starting the repair go routine.
 	lock := atomic.NewBool(true)
@@ -183,13 +196,13 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	}
 
 	// get the cluster client
-	cluster, err := s.client(ctx, u.ClusterID)
+	client, err := s.client(ctx, u.ClusterID)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the cluster proxy"))
+		return fail(errors.Wrap(err, "failed to get the client proxy"))
 	}
 
 	// get the cluster topology hash
-	r.TopologyHash, err = s.topologyHash(ctx, cluster)
+	r.TopologyHash, err = s.topologyHash(ctx, client)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get topology hash"))
 	}
@@ -207,9 +220,9 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	}
 
 	// check keyspace and tables
-	all, err := cluster.Tables(ctx, r.Keyspace)
+	all, err := client.Tables(ctx, r.Keyspace)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the cluster table names for keyspace"))
+		return fail(errors.Wrap(err, "failed to get the client table names for keyspace"))
 	}
 	if len(all) == 0 {
 		return fail(errors.Errorf("missing or empty keyspace %q", r.Keyspace))
@@ -219,22 +232,22 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	}
 
 	// check the cluster partitioner
-	p, err := cluster.Partitioner(ctx)
+	p, err := client.Partitioner(ctx)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the cluster partitioner name"))
+		return fail(errors.Wrap(err, "failed to get the client partitioner name"))
 	}
 	if p != scyllaclient.Murmur3Partitioner {
 		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner))
 	}
 
 	// get the ring description
-	_, ring, err := cluster.DescribeRing(ctx, u.Keyspace)
+	_, ring, err := client.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the ring description"))
 	}
 
 	// get local datacenter name
-	dc, err := cluster.Datacenter(ctx)
+	dc, err := client.Datacenter(ctx)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the local datacenter name"))
 	}
@@ -322,7 +335,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
 		}()
-		if err := s.repair(ctx, u, &r, cluster, hostSegments); err != nil {
+		if err := s.repair(ctx, c, u, &r, client, hostSegments); err != nil {
 			fail(err)
 		}
 
@@ -361,7 +374,7 @@ func (s *Service) unlockCluster(r *Run) error {
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllaclient.Client, hostSegments map[string][]*Segment) error {
+func (s *Service) repair(ctx context.Context, c *cluster.Cluster, u *Unit, r *Run, client *scyllaclient.Client, hostSegments map[string][]*Segment) error {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
@@ -373,7 +386,7 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllacl
 
 	for _, host := range hosts {
 		// ensure topology did not change
-		th, err := s.topologyHash(ctx, cluster)
+		th, err := s.topologyHash(ctx, client)
 		if err != nil {
 			s.logger.Info(ctx, "Topology check error", "error", err)
 		} else if r.TopologyHash != th {
@@ -381,19 +394,20 @@ func (s *Service) repair(ctx context.Context, u *Unit, r *Run, cluster *scyllacl
 		}
 
 		// ping host
-		if _, err := cluster.Ping(ctx, host); err != nil {
+		if _, err := client.Ping(ctx, host); err != nil {
 			return errors.Wrapf(err, "host %s not available", host)
 		}
 
 		w := worker{
 			Config:   &s.config,
+			Cluster:  c,
 			Unit:     u,
 			Run:      r,
 			Host:     host,
 			Segments: hostSegments[host],
 
 			Service: s,
-			Cluster: cluster,
+			Client:  client,
 			Logger:  s.logger.Named("worker").With("host", host),
 		}
 		if err := w.exec(ctx); err != nil {

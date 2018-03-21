@@ -23,6 +23,14 @@ type Unit struct {
 	Tables    []string  `json:"tables"`
 }
 
+// String returns unit Name or ID if Name is is empty.
+func (u *Unit) String() string {
+	if u.Name != "" {
+		return u.Name
+	}
+	return u.ID.String()
+}
+
 // Validate checks if all the fields are properly set.
 func (u *Unit) Validate() (err error) {
 	if u == nil {

@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
@@ -36,6 +37,9 @@ func TestServiceStorageIntegration(t *testing.T) {
 	s, err := repair.NewService(
 		session,
 		repair.DefaultConfig(),
+		func(context.Context, uuid.UUID) (*cluster.Cluster, error) {
+			return nil, errors.New("not implemented")
+		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
@@ -912,6 +916,12 @@ func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*rep
 	s, err := repair.NewService(
 		session,
 		c,
+		func(_ context.Context, id uuid.UUID) (*cluster.Cluster, error) {
+			return &cluster.Cluster{
+				ID:   id,
+				Name: "test_cluster",
+			}, nil
+		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, rt, logger.Named("scylla"))
 			if err != nil {

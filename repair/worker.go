@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/dht"
 	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -56,13 +57,14 @@ func init() {
 // worker manages shardWorkers.
 type worker struct {
 	Config   *Config
+	Cluster  *cluster.Cluster
 	Unit     *Unit
 	Run      *Run
 	Host     string
 	Segments []*Segment
 
 	Service *Service
-	Cluster *scyllaclient.Client
+	Client  *scyllaclient.Client
 	Logger  log.Logger
 
 	shards []*shardWorker
@@ -151,8 +153,8 @@ func (w *worker) init(ctx context.Context) error {
 		}
 
 		labels := prometheus.Labels{
-			"cluster": w.Run.ClusterID.String(),
-			"unit":    w.Run.UnitID.String(),
+			"cluster": w.Cluster.String(),
+			"unit":    w.Unit.String(),
 			"host":    w.Host,
 			"shard":   fmt.Sprint(i),
 		}
@@ -174,7 +176,7 @@ func (w *worker) init(ctx context.Context) error {
 }
 
 func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, error) {
-	c, err := w.Cluster.HostConfig(ctx, w.Host)
+	c, err := w.Client.HostConfig(ctx, w.Host)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get host config")
 	}
@@ -372,7 +374,7 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 }
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
-	return w.parent.Cluster.Repair(ctx, w.parent.Host, &scyllaclient.RepairConfig{
+	return w.parent.Client.Repair(ctx, w.parent.Host, &scyllaclient.RepairConfig{
 		Keyspace: w.parent.Run.Keyspace,
 		Tables:   w.parent.Run.Tables,
 		Ranges:   dumpSegments(w.segments[start:end]),
@@ -393,7 +395,7 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.C:
-			s, err := w.parent.Cluster.RepairStatus(ctx, w.parent.Host, w.parent.Run.Keyspace, id)
+			s, err := w.parent.Client.RepairStatus(ctx, w.parent.Host, w.parent.Run.Keyspace, id)
 			if err != nil {
 				return err
 			}

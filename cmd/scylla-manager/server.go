@@ -76,12 +76,22 @@ func (s *server) initServices() error {
 	}
 	s.provider = scyllaclient.NewCachedProvider(s.clusterSvc.Client)
 
-	s.repairSvc, err = repair.NewService(s.session, s.config.Repair, s.provider.Client, s.logger.Named("repair"))
+	s.repairSvc, err = repair.NewService(
+		s.session,
+		s.config.Repair,
+		s.clusterSvc.GetClusterByID,
+		s.provider.Client,
+		s.logger.Named("repair"),
+	)
 	if err != nil {
 		return errors.Wrapf(err, "repair service")
 	}
 
-	s.schedSvc, err = sched.NewService(s.session, s.logger.Named("scheduler"))
+	s.schedSvc, err = sched.NewService(
+		s.session,
+		s.clusterSvc.GetClusterByID,
+		s.logger.Named("scheduler"),
+	)
 	if err != nil {
 		return errors.Wrapf(err, "scheduler service")
 	}
