@@ -127,9 +127,17 @@ func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	sort.Strings(resp.Payload)
+	var v []string
+	for _, s := range resp.Payload {
+		// ignore system tables on old Scylla versions
+		// see https://github.com/scylladb/scylla/issues/1380
+		if !strings.HasPrefix(s, "system") {
+			v = append(v, s)
+		}
+	}
+	sort.Strings(v)
 
-	return resp.Payload, nil
+	return v, nil
 }
 
 // DescribeRing returns list of datacenters and a token range description
