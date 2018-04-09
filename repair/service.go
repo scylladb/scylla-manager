@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/fatih/set"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
@@ -270,6 +272,17 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		if err := s.putRunProgress(ctx, &p); err != nil {
 			return fail(errors.Wrapf(err, "failed to initialise the run progress %s", &p))
 		}
+
+		l := prometheus.Labels{
+			"cluster": c.String(),
+			"unit":    u.String(),
+			"host":    host,
+			"shard":   "0",
+		}
+
+		repairSegmentsTotal.With(l).Set(0)
+		repairSegmentsSuccess.With(l).Set(0)
+		repairSegmentsError.With(l).Set(0)
 	}
 
 	// update progress from the previous run
@@ -308,6 +321,17 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 					if err := s.putRunProgress(ctx, p); err != nil {
 						return fail(errors.Wrapf(err, "failed to initialise the run progress %s", &p))
 					}
+
+					l := prometheus.Labels{
+						"cluster": c.String(),
+						"unit":    u.String(),
+						"host":    p.Host,
+						"shard":   fmt.Sprint(p.Shard),
+					}
+
+					repairSegmentsTotal.With(l).Set(float64(p.SegmentCount))
+					repairSegmentsSuccess.With(l).Set(float64(p.SegmentSuccess))
+					repairSegmentsError.With(l).Set(float64(p.SegmentError))
 				}
 			}
 		}
