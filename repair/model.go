@@ -25,6 +25,9 @@ type Unit struct {
 
 // String returns unit Name or ID if Name is is empty.
 func (u *Unit) String() string {
+	if u == nil {
+		return ""
+	}
 	if u.Name != "" {
 		return u.Name
 	}

@@ -19,6 +19,9 @@ type Cluster struct {
 
 // String returns cluster Name or ID if Name is is empty.
 func (c *Cluster) String() string {
+	if c == nil {
+		return ""
+	}
 	if c.Name != "" {
 		return c.Name
 	}
