@@ -21,13 +21,9 @@ func TestSSHTransportIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 10; i++ {
-		k, err := client.Keyspaces(ctx)
+		_, err := client.Keyspaces(ctx)
 		if err != nil {
 			t.Fatal(err)
-		}
-
-		if len(k) == 0 {
-			t.Fatal(k)
 		}
 	}
 }

@@ -623,7 +623,7 @@ func TestServiceSyncUnitsIntegration(t *testing.T) {
 	}
 	sort.Strings(actual)
 
-	expected := []string{"system", "system_schema", "system_traces", "test_0", "test_1", "test_2", "test_2"}
+	expected := []string{"test_0", "test_1", "test_2", "test_2"}
 
 	if diff := cmp.Diff(actual, expected); diff != "" {
 		t.Fatal(diff)
