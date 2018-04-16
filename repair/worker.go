@@ -47,6 +47,13 @@ var (
 		Help:      "Duration of a single repair command.",
 		MaxAge:    30 * time.Minute,
 	}, []string{"cluster", "unit", "host", "shard"})
+
+	repairProgress = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "repair",
+		Name:      "progress",
+		Help:      "Current repair progress.",
+	}, []string{"cluster", "unit", "host"})
 )
 
 func init() {
@@ -55,6 +62,7 @@ func init() {
 		repairSegmentsSuccess,
 		repairSegmentsError,
 		repairDurationSeconds,
+		repairProgress,
 	)
 }
 

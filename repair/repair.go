@@ -194,3 +194,40 @@ func topologyHash(tokens []int64) uuid.UUID {
 
 	return uuid.NewFromUint64(uint64(h>>32), uint64(uint32(h)))
 }
+
+func hostsPercentComplete(prog []*RunProgress) map[string]float64 {
+	if len(prog) == 0 {
+		return nil
+	}
+
+	v := make(map[string]float64)
+
+	total := 0.
+	hosts := 0.
+
+	ht := 0.
+	hs := 0.
+	lh := prog[0].Host
+	for _, p := range prog {
+		if lh != p.Host {
+			v[lh] = ht / hs
+			total += ht / hs
+			hosts++
+
+			ht = 0
+			hs = 0
+			lh = p.Host
+		}
+
+		ht += float64(p.PercentComplete())
+		hs++
+	}
+
+	v[lh] = ht / hs
+	total += ht / hs
+	hosts++
+
+	v[""] = total / hosts
+
+	return v
+}

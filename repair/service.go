@@ -347,7 +347,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 			time.Sleep(50 * time.Millisecond)
 		}
 
-		ctx := log.CopyTraceID(s.workerCtx, ctx)
+		ctx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
 
 		defer func() {
 			s.wg.Done()
@@ -358,7 +358,11 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 			if err := s.unlockCluster(&r); err != nil {
 				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
+			cancel()
 		}()
+
+		go s.reportRepairProgress(ctx, c, u, &r)
+
 		if err := s.repair(ctx, c, u, &r, client, hostSegments); err != nil {
 			fail(err)
 		}
@@ -461,6 +465,30 @@ func (s *Service) repair(ctx context.Context, c *cluster.Cluster, u *Unit, r *Ru
 	s.putRunLogError(ctx, r)
 
 	return nil
+}
+
+func (s *Service) reportRepairProgress(ctx context.Context, c *cluster.Cluster, u *Unit, r *Run) {
+	t := time.NewTicker(2500 * time.Millisecond)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-t.C:
+			prog, err := s.getAllHostsProgress(ctx, u, r.ID)
+			if err != nil {
+				s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
+			}
+			for host, percent := range hostsPercentComplete(prog) {
+				repairProgress.With(prometheus.Labels{
+					"cluster": c.String(),
+					"unit":    u.String(),
+					"host":    host,
+				}).Set(percent)
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (s *Service) topologyHash(ctx context.Context, cluster *scyllaclient.Client) (uuid.UUID, error) {
