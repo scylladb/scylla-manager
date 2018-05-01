@@ -53,7 +53,7 @@ func formatTime(t strfmt.DateTime) string {
 	if isZero(t) {
 		return ""
 	}
-	return time.Time(t).Format(time.RFC822)
+	return time.Time(t).Local().Format(time.RFC822)
 }
 
 func isZero(t strfmt.DateTime) bool {
