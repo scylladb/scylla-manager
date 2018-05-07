@@ -285,6 +285,15 @@
   revision = "9fa5432a65524efe309950bfe3771f3b37decd55"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/scylladb/golog"
+  packages = [
+    ".",
+    "gocql"
+  ]
+  revision = "209b79c58264fa5cdbdf2473c1b19f2329dbcab6"
+
+[[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "7b2c5ac9fc04fc5efafb60700713d4fa609b777b"
@@ -316,9 +325,7 @@
     "internal/bufferpool",
     "internal/color",
     "internal/exit",
-    "zapcore",
-    "zaptest",
-    "zaptest/observer"
+    "zapcore"
   ]
   revision = "35aad584952c3e7020db7b839f6b102de6271f89"
   version = "v1.7.1"
@@ -392,6 +399,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b756d32bab23e95ad3086fc81049f87e721552fa6dc62cdbeecd2c82867cff88"
+  inputs-digest = "9b3b24f7564bf286103089dcbf03eb77393de932faae45dface0611e3c758f4a"
   solver-name = "gps-cdcl"
   solver-version = 1
