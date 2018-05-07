@@ -30,7 +30,7 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	r.Use(traceIDMiddleware)
 	r.Use(recoverPanicsMiddleware)
 
-	r.Use(middleware.Heartbeat("/ping"))
+	r.Use(heartbeat("/ping"))
 	r.Use(prometheusMiddleware("/metrics"))
 
 	r.Use(middleware.RequestLogger(httpLogger{logger}))
