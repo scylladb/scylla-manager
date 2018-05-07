@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/log"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/ssh"
 	"go.uber.org/zap/zapcore"

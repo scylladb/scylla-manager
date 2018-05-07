@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/middleware"
-	"github.com/scylladb/mermaid/log"
+	log "github.com/scylladb/golog"
 )
 
 func traceIDMiddleware(next http.Handler) http.Handler {

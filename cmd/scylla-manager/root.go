@@ -19,9 +19,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
+	log "github.com/scylladb/golog"
+	gocqllog "github.com/scylladb/golog/gocql"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/log"
-	"github.com/scylladb/mermaid/log/gocqllog"
 	"github.com/spf13/cobra"
 )
 
@@ -82,7 +82,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		// set gocql logger
-		gocql.Logger = gocqllog.New(ctx, logger.Named("gocql"))
+		gocql.Logger = gocqllog.StdLogger{
+			BaseCtx: ctx,
+			Logger:  logger.Named("gocql"),
+		}
 
 		// wait for database
 		for {

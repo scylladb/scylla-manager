@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/log"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/ssh"

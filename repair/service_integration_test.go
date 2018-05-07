@@ -20,9 +20,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/schema"
@@ -43,7 +43,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
-		log.NewDevelopment().Named("repair"),
+		golog.NewDevelopment().Named("repair"),
 	)
 	if err != nil {
 		t.Fatal(err)

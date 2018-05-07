@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/log"
 )
 
 func init() {

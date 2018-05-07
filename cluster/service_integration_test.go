@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -20,7 +20,7 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 
-	s, err := cluster.NewService(session, nil, log.NewDevelopment().Named("cluster"))
+	s, err := cluster.NewService(session, nil, golog.NewDevelopment().Named("cluster"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -19,8 +19,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/hailocab/go-hostpool" // shipped with gocql
 	"github.com/pkg/errors"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
 	"github.com/scylladb/mermaid/timeutc"
 )

@@ -8,13 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/restapi"
 )
 
 func TestVersion(t *testing.T) {
-	h := restapi.New(&restapi.Services{}, log.Logger{})
+	h := restapi.New(&restapi.Services{}, golog.Logger{})
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

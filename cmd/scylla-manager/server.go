@@ -10,9 +10,9 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/fsutil"
-	"github.com/scylladb/mermaid/log"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"

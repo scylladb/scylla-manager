@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"github.com/hailocab/go-hostpool"
-	"github.com/scylladb/mermaid/log"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/timeutc"
 )
 

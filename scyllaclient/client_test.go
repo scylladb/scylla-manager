@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/log"
+	"github.com/scylladb/golog"
 )
 
 func TestWithPort(t *testing.T) {
@@ -252,6 +252,6 @@ func mockServer(t *testing.T, file string) *httptest.Server {
 }
 
 func testClient(s *httptest.Server) *Client {
-	c, _ := NewClient([]string{s.Listener.Addr().String()}, http.DefaultTransport, log.NewDevelopment())
+	c, _ := NewClient([]string{s.Listener.Addr().String()}, http.DefaultTransport, golog.NewDevelopment())
 	return c
 }
