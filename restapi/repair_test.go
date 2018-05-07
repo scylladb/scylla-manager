@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/scylladb/golog"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/mermaidmock"
@@ -308,7 +308,7 @@ func TestRepairAPI(t *testing.T) {
 		// TODO tests for TaskStop
 	}
 
-	logger := golog.NewDevelopment()
+	logger := log.NewDevelopment()
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)

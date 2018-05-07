@@ -43,7 +43,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
-		golog.NewDevelopment().Named("repair"),
+		log.NewDevelopment().Named("repair"),
 	)
 	if err != nil {
 		t.Fatal(err)

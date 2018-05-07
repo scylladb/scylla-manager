@@ -13,7 +13,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/golog"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/mermaidtest"
@@ -59,7 +59,7 @@ func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Contr
 		}, nil
 	}
 
-	s, err := NewService(session, cp, golog.NewDevelopment().Named("sched"))
+	s, err := NewService(session, cp, log.NewDevelopment().Named("sched"))
 	if err != nil {
 		t.Fatal(err)
 	}

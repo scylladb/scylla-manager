@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/golog"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/restapi"
@@ -51,7 +51,7 @@ func TestClusterList(t *testing.T) {
 	m := mermaidmock.NewMockClusterService(ctrl)
 	m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(expected, nil)
 
-	h := restapi.New(&restapi.Services{Cluster: m}, golog.Logger{})
+	h := restapi.New(&restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/clusters", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -72,7 +72,7 @@ func TestClusterCreate(t *testing.T) {
 		e.ID = id
 	}).Return(nil)
 
-	h := restapi.New(&restapi.Services{Cluster: m}, golog.Logger{})
+	h := restapi.New(&restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/clusters", jsonBody(t, &cluster.Cluster{Name: "name"}))
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

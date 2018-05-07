@@ -7,12 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/scylladb/golog"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/restapi"
 )
 
 func TestMetrics(t *testing.T) {
-	h := restapi.New(&restapi.Services{}, golog.Logger{})
+	h := restapi.New(&restapi.Services{}, log.Logger{})
 	r := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

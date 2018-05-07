@@ -8,13 +8,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/scylladb/golog"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/ssh"
 )
 
 func TestSSHTransportIntegration(t *testing.T) {
-	client, err := NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), golog.NewDevelopment())
+	client, err := NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
