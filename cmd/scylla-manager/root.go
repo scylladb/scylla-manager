@@ -38,16 +38,17 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:          "scylla-manager",
-	Short:        "Scylla Manager server",
-	Args:         cobra.NoArgs,
-	SilenceUsage: true,
+	Use:           "scylla-manager",
+	Short:         "Scylla Manager server",
+	Args:          cobra.NoArgs,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) (runError error) {
 		// print version and return
 		if cfgVersion {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", mermaid.Version())
-			return nil
+			return
 		}
 
 		// in debug mode launch gops agent
@@ -66,10 +67,14 @@ var rootCmd = &cobra.Command{
 		// read configuration
 		config, err := newConfigFromFile(cfgConfigFile)
 		if err != nil {
-			return errors.Wrapf(err, "configuration %q", cfgConfigFile)
+			runError = errors.Wrapf(err, "configuration %q", cfgConfigFile)
+			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
+			return
 		}
 		if err := config.validate(); err != nil {
-			return errors.Wrapf(err, "configuration %q", cfgConfigFile)
+			runError = errors.Wrapf(err, "configuration %q", cfgConfigFile)
+			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
+			return
 		}
 
 		// get a base context
@@ -78,8 +83,18 @@ var rootCmd = &cobra.Command{
 		// create logger
 		logger, err := logger(config)
 		if err != nil {
-			return errors.Wrapf(err, "logger")
+			runError = errors.Wrapf(err, "logger")
+			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
+			return
 		}
+		defer func() {
+			if runError != nil {
+				logger.Error(ctx, "Bye", "error", errors.Cause(runError))
+			} else {
+				logger.Info(ctx, "Bye")
+			}
+			logger.Sync()
+		}()
 
 		// set gocql logger
 		gocql.Logger = gocqllog.StdLogger{
@@ -115,7 +130,7 @@ var rootCmd = &cobra.Command{
 		if err := migrateSchema(config); err != nil {
 			return errors.Wrapf(err, "database migration")
 		}
-		logger.Info(ctx, "Done")
+		logger.Info(ctx, "Migrating schema done")
 
 		// start server
 		s, err := newServer(config, logger)
@@ -127,6 +142,8 @@ var rootCmd = &cobra.Command{
 		}
 		s.startHTTPServers(ctx)
 		defer s.close()
+
+		logger.Info(ctx, "Service started")
 
 		// wait signal
 		signalCh := make(chan os.Signal, 1)
@@ -144,13 +161,8 @@ var rootCmd = &cobra.Command{
 
 		// close
 		s.shutdownServers(ctx, 30*time.Second)
-		s.close()
 
-		// bye
-		logger.Info(ctx, "Bye")
-		logger.Sync()
-
-		return nil
+		return
 	},
 }
 
