@@ -69,6 +69,7 @@ install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/scylla-manager/cql/
 
 ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_ssh_test %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/scylla-manager/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
 
 %files
 %defattr(-,root,root)
@@ -92,6 +93,8 @@ the database management tasks.
 %files server
 %defattr(-,root,root)
 %{_bindir}/scylla-manager
+%{_prefix}/lib/scylla-manager/scyllamgr_ssl_cert_gen
+%{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/scylla-manager/*.yaml
 %config(noreplace) %{_sysconfdir}/scylla-manager/*.tpl
 %{_sysconfdir}/scylla-manager/cql/*.cql
@@ -104,6 +107,7 @@ getent passwd scylla-manager || /usr/sbin/useradd \
  -g scylla-manager -d %{_sharedstatedir}/scylla-manager -s /sbin/nologin -r scylla-manager &> /dev/null || :
 
 %post server
+/usr/bin/sh %{_sbindir}/scyllamgr_ssl_cert_gen
 %systemd_post %{name}.service
 
 %preun server

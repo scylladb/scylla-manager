@@ -1,16 +1,16 @@
 # Scylla Manager config YAML
 
 # Bind REST API to the specified TCP address using HTTP protocol.
-http: 127.0.0.1:8889
+# http: 127.0.0.1:8889
 
 # Bind REST API to the specified TCP address using HTTPS protocol.
-# https: 127.0.0.1:8443
+https: 127.0.0.1:8443
 
 # TLS certificate file to use for HTTPS.
-# tls_cert_file:
+tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
 
 # TLS key file to use for HTTPS.
-# tls_key_file:
+tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 
 # Logging configuration.
 logger:
