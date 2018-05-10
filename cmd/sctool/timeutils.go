@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/timeutc"
+	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 const nowSafety = 30 * time.Second

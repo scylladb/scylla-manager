@@ -9,7 +9,7 @@ import (
 
 	"github.com/hailocab/go-hostpool"
 	log "github.com/scylladb/golog"
-	"github.com/scylladb/mermaid/timeutc"
+	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 // transport is an http.RoundTriper that updates request host from context and

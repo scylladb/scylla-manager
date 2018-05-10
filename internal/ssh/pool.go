@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/timeutc"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )

@@ -21,8 +21,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
-	"github.com/scylladb/mermaid/timeutc"
 )
 
 // DefaultPort is Scylla API port.

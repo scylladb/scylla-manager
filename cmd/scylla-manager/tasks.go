@@ -5,9 +5,9 @@ package main
 import (
 	"time"
 
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/sched/runner"
-	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
 

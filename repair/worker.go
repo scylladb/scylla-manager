@@ -13,8 +13,8 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/dht"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/timeutc"
 	"go.uber.org/atomic"
 )
 

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/scylladb/mermaid/timeutc"
+	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 func TestParseStartDate(t *testing.T) {
