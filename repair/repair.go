@@ -9,7 +9,7 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/dht"
+	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/dht"
+	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
