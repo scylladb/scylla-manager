@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/fsutil"
+	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
