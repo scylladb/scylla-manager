@@ -49,12 +49,6 @@ func (m *Task) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateSchedule(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateTags(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -71,23 +65,12 @@ func (m *Task) validateSchedule(formats strfmt.Registry) error {
 	}
 
 	if m.Schedule != nil {
-
 		if err := m.Schedule.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("schedule")
 			}
 			return err
 		}
-
-	}
-
-	return nil
-}
-
-func (m *Task) validateTags(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Tags) { // not required
-		return nil
 	}
 
 	return nil

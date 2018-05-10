@@ -56,7 +56,7 @@ func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryOK() *GetClusterClusterIDTas
 requested task run history
 */
 type GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK struct {
-	Payload models.GetClusterClusterIDTaskTaskTypeTaskIDHistoryOKBody
+	Payload []*models.TaskRun
 }
 
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK) Error() string {

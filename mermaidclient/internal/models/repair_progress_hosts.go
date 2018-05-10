@@ -24,6 +24,16 @@ func (m RepairProgressHosts) Validate(formats strfmt.Registry) error {
 		return err
 	}
 
+	for k := range m {
+
+		if val, ok := m[k]; ok {
+			if err := val.Validate(formats); err != nil {
+				return err
+			}
+		}
+
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

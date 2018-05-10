@@ -8,7 +8,6 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -27,39 +26,6 @@ type MaplistMapper struct {
 
 // Validate validates this maplist mapper
 func (m *MaplistMapper) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateKey(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateValue(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *MaplistMapper) validateKey(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Key) { // not required
-		return nil
-	}
-
-	return nil
-}
-
-func (m *MaplistMapper) validateValue(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Value) { // not required
-		return nil
-	}
-
 	return nil
 }
 

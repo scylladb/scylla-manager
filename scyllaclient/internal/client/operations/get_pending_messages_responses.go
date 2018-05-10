@@ -47,7 +47,7 @@ func NewGetPendingMessagesOK() *GetPendingMessagesOK {
 GetPendingMessagesOK get pending messages o k
 */
 type GetPendingMessagesOK struct {
-	Payload models.GetPendingMessagesOKBody
+	Payload []*models.MessageCounter
 }
 
 func (o *GetPendingMessagesOK) Error() string {

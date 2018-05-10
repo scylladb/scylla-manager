@@ -8,7 +8,6 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -42,25 +41,6 @@ type Histogram struct {
 
 // Validate validates this histogram
 func (m *Histogram) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateSample(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *Histogram) validateSample(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Sample) { // not required
-		return nil
-	}
-
 	return nil
 }
 

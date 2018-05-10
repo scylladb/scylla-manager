@@ -47,7 +47,7 @@ func NewGetAllEndpointStatesOK() *GetAllEndpointStatesOK {
 GetAllEndpointStatesOK get all endpoint states o k
 */
 type GetAllEndpointStatesOK struct {
-	Payload models.GetAllEndpointStatesOKBody
+	Payload []*models.EndpointState
 }
 
 func (o *GetAllEndpointStatesOK) Error() string {

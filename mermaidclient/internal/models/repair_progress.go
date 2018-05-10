@@ -48,8 +48,7 @@ type RepairProgress struct {
 func (m *RepairProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateTables(formats); err != nil {
-		// prop
+	if err := m.validateHosts(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -59,10 +58,17 @@ func (m *RepairProgress) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RepairProgress) validateTables(formats strfmt.Registry) error {
+func (m *RepairProgress) validateHosts(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Tables) { // not required
+	if swag.IsZero(m.Hosts) { // not required
 		return nil
+	}
+
+	if err := m.Hosts.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("hosts")
+		}
+		return err
 	}
 
 	return nil

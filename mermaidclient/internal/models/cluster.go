@@ -8,7 +8,6 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -31,25 +30,6 @@ type Cluster struct {
 
 // Validate validates this cluster
 func (m *Cluster) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateHosts(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *Cluster) validateHosts(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Hosts) { // not required
-		return nil
-	}
-
 	return nil
 }
 

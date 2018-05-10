@@ -47,7 +47,7 @@ func NewGetSnapshotDetailsOK() *GetSnapshotDetailsOK {
 GetSnapshotDetailsOK get snapshot details o k
 */
 type GetSnapshotDetailsOK struct {
-	Payload models.GetSnapshotDetailsOKBody
+	Payload []*models.Snapshots
 }
 
 func (o *GetSnapshotDetailsOK) Error() string {

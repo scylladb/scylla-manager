@@ -30,7 +30,6 @@ func (m *VerbCounter) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateVerb(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 

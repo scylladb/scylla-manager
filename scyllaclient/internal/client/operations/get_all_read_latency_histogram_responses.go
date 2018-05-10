@@ -47,7 +47,7 @@ func NewGetAllReadLatencyHistogramOK() *GetAllReadLatencyHistogramOK {
 GetAllReadLatencyHistogramOK get all read latency histogram o k
 */
 type GetAllReadLatencyHistogramOK struct {
-	Payload models.GetAllReadLatencyHistogramOKBody
+	Payload []*models.RateMovingAverageAndHistogram
 }
 
 func (o *GetAllReadLatencyHistogramOK) Error() string {

@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -21,8 +23,8 @@ type TokenRange struct {
 	// The range start token
 	EndToken string `json:"end_token,omitempty"`
 
-	// endpoint details
-	EndpointDetails TokenRangeEndpointDetails `json:"endpoint_details"`
+	// The endpoint details
+	EndpointDetails []*EndpointDetail `json:"endpoint_details"`
 
 	// The endpoints
 	Endpoints []string `json:"endpoints"`
@@ -38,13 +40,7 @@ type TokenRange struct {
 func (m *TokenRange) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateEndpoints(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateRPCEndpoints(formats); err != nil {
-		// prop
+	if err := m.validateEndpointDetails(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -54,19 +50,26 @@ func (m *TokenRange) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *TokenRange) validateEndpoints(formats strfmt.Registry) error {
+func (m *TokenRange) validateEndpointDetails(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Endpoints) { // not required
+	if swag.IsZero(m.EndpointDetails) { // not required
 		return nil
 	}
 
-	return nil
-}
+	for i := 0; i < len(m.EndpointDetails); i++ {
+		if swag.IsZero(m.EndpointDetails[i]) { // not required
+			continue
+		}
 
-func (m *TokenRange) validateRPCEndpoints(formats strfmt.Registry) error {
+		if m.EndpointDetails[i] != nil {
+			if err := m.EndpointDetails[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("endpoint_details" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
 
-	if swag.IsZero(m.RPCEndpoints) { // not required
-		return nil
 	}
 
 	return nil

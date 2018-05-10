@@ -56,7 +56,7 @@ func NewGetClusterClusterIDTasksOK() *GetClusterClusterIDTasksOK {
 array of tasks
 */
 type GetClusterClusterIDTasksOK struct {
-	Payload models.GetClusterClusterIDTasksOKBody
+	Payload []*models.ExtendedTask
 }
 
 func (o *GetClusterClusterIDTasksOK) Error() string {

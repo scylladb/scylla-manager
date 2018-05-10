@@ -56,7 +56,7 @@ func NewGetClustersOK() *GetClustersOK {
 list of all the clusters
 */
 type GetClustersOK struct {
-	Payload models.GetClustersOKBody
+	Payload []*models.Cluster
 }
 
 func (o *GetClustersOK) Error() string {

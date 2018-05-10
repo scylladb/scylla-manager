@@ -8,7 +8,6 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -27,25 +26,6 @@ type MapperList struct {
 
 // Validate validates this mapper list
 func (m *MapperList) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateValue(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *MapperList) validateValue(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Value) { // not required
-		return nil
-	}
-
 	return nil
 }
 

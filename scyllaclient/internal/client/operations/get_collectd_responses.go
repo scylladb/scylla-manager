@@ -47,7 +47,7 @@ func NewGetCollectdOK() *GetCollectdOK {
 GetCollectdOK get collectd o k
 */
 type GetCollectdOK struct {
-	Payload models.GetCollectdOKBody
+	Payload []*models.CollectdValue
 }
 
 func (o *GetCollectdOK) Error() string {

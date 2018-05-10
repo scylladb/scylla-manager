@@ -47,7 +47,7 @@ func NewGetSimpleStatesOK() *GetSimpleStatesOK {
 GetSimpleStatesOK get simple states o k
 */
 type GetSimpleStatesOK struct {
-	Payload models.GetSimpleStatesOKBody
+	Payload []*models.Mapper
 }
 
 func (o *GetSimpleStatesOK) Error() string {

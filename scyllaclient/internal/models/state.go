@@ -19,16 +19,22 @@ import (
 type State string
 
 const (
+
 	// StateINITIALIZED captures enum value "INITIALIZED"
 	StateINITIALIZED State = "INITIALIZED"
+
 	// StatePREPARING captures enum value "PREPARING"
 	StatePREPARING State = "PREPARING"
+
 	// StateSTREAMING captures enum value "STREAMING"
 	StateSTREAMING State = "STREAMING"
+
 	// StateWAITCOMPLETE captures enum value "WAIT_COMPLETE"
 	StateWAITCOMPLETE State = "WAIT_COMPLETE"
+
 	// StateCOMPLETE captures enum value "COMPLETE"
 	StateCOMPLETE State = "COMPLETE"
+
 	// StateFAILED captures enum value "FAILED"
 	StateFAILED State = "FAILED"
 )

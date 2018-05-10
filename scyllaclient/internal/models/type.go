@@ -19,10 +19,13 @@ import (
 type Type string
 
 const (
+
 	// TypeAll captures enum value "all"
 	TypeAll Type = "all"
+
 	// TypeUser captures enum value "user"
 	TypeUser Type = "user"
+
 	// TypeNonLocalStrategy captures enum value "non_local_strategy"
 	TypeNonLocalStrategy Type = "non_local_strategy"
 )

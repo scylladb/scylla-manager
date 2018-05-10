@@ -36,9 +36,29 @@ type RepairProgressHostsAdditionalProperties struct {
 func (m *RepairProgressHostsAdditionalProperties) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateShards(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *RepairProgressHostsAdditionalProperties) validateShards(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Shards) { // not required
+		return nil
+	}
+
+	if err := m.Shards.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("shards")
+		}
+		return err
+	}
+
 	return nil
 }
 

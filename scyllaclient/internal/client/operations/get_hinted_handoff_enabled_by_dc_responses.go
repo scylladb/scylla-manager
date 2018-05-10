@@ -47,7 +47,7 @@ func NewGetHintedHandoffEnabledByDcOK() *GetHintedHandoffEnabledByDcOK {
 GetHintedHandoffEnabledByDcOK get hinted handoff enabled by dc o k
 */
 type GetHintedHandoffEnabledByDcOK struct {
-	Payload models.GetHintedHandoffEnabledByDcOKBody
+	Payload []*models.MapperList
 }
 
 func (o *GetHintedHandoffEnabledByDcOK) Error() string {

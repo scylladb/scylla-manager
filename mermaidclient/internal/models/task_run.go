@@ -24,12 +24,14 @@ type TaskRun struct {
 	ClusterID string `json:"cluster_id,omitempty"`
 
 	// end time
+	// Format: date-time
 	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`
 
 	// start time
+	// Format: date-time
 	StartTime strfmt.DateTime `json:"start_time,omitempty"`
 
 	// status
@@ -47,12 +49,10 @@ func (m *TaskRun) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateEndTime(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateStartTime(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 

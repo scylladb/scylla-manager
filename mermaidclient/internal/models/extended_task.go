@@ -27,6 +27,7 @@ type ExtendedTask struct {
 	Enabled bool `json:"enabled,omitempty"`
 
 	// end time
+	// Format: date-time
 	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
 	// id
@@ -45,6 +46,7 @@ type ExtendedTask struct {
 	Schedule *Schedule `json:"schedule,omitempty"`
 
 	// start time
+	// Format: date-time
 	StartTime strfmt.DateTime `json:"start_time,omitempty"`
 
 	// status
@@ -62,22 +64,14 @@ func (m *ExtendedTask) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateEndTime(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateSchedule(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateStartTime(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateTags(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -107,14 +101,12 @@ func (m *ExtendedTask) validateSchedule(formats strfmt.Registry) error {
 	}
 
 	if m.Schedule != nil {
-
 		if err := m.Schedule.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("schedule")
 			}
 			return err
 		}
-
 	}
 
 	return nil
@@ -128,15 +120,6 @@ func (m *ExtendedTask) validateStartTime(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("start_time", "body", "date-time", m.StartTime.String(), formats); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (m *ExtendedTask) validateTags(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Tags) { // not required
-		return nil
 	}
 
 	return nil

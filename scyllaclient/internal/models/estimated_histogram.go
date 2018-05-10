@@ -8,7 +8,6 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -27,39 +26,6 @@ type EstimatedHistogram struct {
 
 // Validate validates this estimated histogram
 func (m *EstimatedHistogram) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateBucketOffsets(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateBuckets(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *EstimatedHistogram) validateBucketOffsets(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.BucketOffsets) { // not required
-		return nil
-	}
-
-	return nil
-}
-
-func (m *EstimatedHistogram) validateBuckets(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Buckets) { // not required
-		return nil
-	}
-
 	return nil
 }
 
