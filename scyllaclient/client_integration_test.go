@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	log "github.com/scylladb/golog"
+	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/ssh"
 )
 
 func TestSSHTransportIntegration(t *testing.T) {
