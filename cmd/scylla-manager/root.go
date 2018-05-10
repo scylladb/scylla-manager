@@ -53,7 +53,7 @@ var rootCmd = &cobra.Command{
 
 		// in debug mode launch gops agent
 		if cfgDeveloperMode {
-			if err := agent.Listen(&agent.Options{NoShutdownCleanup: true}); err != nil {
+			if err := agent.Listen(agent.Options{ShutdownCleanup: false}); err != nil {
 				return errors.Wrapf(err, "gops agent startup")
 			}
 			defer agent.Close()
