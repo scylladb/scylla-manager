@@ -81,7 +81,7 @@ func TestFormatTimeZero(t *testing.T) {
 }
 
 func TestFormatTimeNonZero(t *testing.T) {
-	tz, _ := time.Now().Local().Zone()
+	tz, _ := timeutc.Now().Local().Zone()
 
 	if s := formatTime(strfmt.DateTime(timeutc.Now())); !strings.Contains(s, tz) {
 		t.Error(s)
