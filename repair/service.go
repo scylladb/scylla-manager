@@ -19,9 +19,9 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/atomic"
 )

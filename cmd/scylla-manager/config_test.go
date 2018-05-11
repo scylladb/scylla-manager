@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	log "github.com/scylladb/golog"
+	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
-	"github.com/scylladb/mermaid/ssh"
 	"go.uber.org/zap/zapcore"
 )
 

@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"math/rand"
 
-	"github.com/scylladb/mermaid/timeutc"
+	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 // seedMathRand provides weak, but guaranteed seeding, which is better than

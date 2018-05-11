@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/sched/runner"
-	"github.com/scylladb/mermaid/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
 
