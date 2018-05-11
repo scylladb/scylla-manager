@@ -3,7 +3,7 @@ ARG SCYLLA_VERSION
 FROM scylladb/scylla:${SCYLLA_VERSION}
 
 # Install sshd:
-RUN yum -y update && \
+RUN yum makecache && \
     yum -y install openssh-server passwd && \
     yum clean all
 RUN mkdir /var/run/sshd
