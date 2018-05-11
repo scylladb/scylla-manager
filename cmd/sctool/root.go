@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	defaultURL = "http://localhost:8889/api/v1"
+	defaultURL = "https://localhost:8443/api/v1"
 
 	cfgURL     string
 	cfgCluster string

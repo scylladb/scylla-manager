@@ -5,7 +5,9 @@ package mermaidclient
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"net"
+	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
@@ -40,7 +42,15 @@ func NewClient(rawurl string) (Client, error) {
 		middleware.Debug = false
 	})
 
-	r := api.New(u.Host, u.Path, []string{u.Scheme})
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	r := api.NewWithClient(u.Host, u.Path, []string{u.Scheme}, httpClient)
 	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
 	r.Debug = false
 
