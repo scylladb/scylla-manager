@@ -29,6 +29,7 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/ssh"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
@@ -43,7 +44,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
-		log.NewDevelopment().Named("repair"),
+		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("repair"),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -909,7 +910,7 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 }
 
 func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*repair.Service, *mermaidtest.HackableRoundTripper) {
-	logger := log.NewDevelopment()
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	rt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
 
