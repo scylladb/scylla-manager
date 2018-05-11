@@ -30,12 +30,10 @@ func (m *RateMovingAverageAndHistogram) Validate(formats strfmt.Registry) error 
 	var res []error
 
 	if err := m.validateHist(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateMeter(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -52,7 +50,6 @@ func (m *RateMovingAverageAndHistogram) validateHist(formats strfmt.Registry) er
 	}
 
 	if m.Hist != nil {
-
 		if err := m.Hist.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("hist")
@@ -71,7 +68,6 @@ func (m *RateMovingAverageAndHistogram) validateMeter(formats strfmt.Registry) e
 	}
 
 	if m.Meter != nil {
-
 		if err := m.Meter.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("meter")

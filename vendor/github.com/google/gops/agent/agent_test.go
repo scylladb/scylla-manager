@@ -10,7 +10,7 @@ import (
 )
 
 func TestListen(t *testing.T) {
-	err := Listen(nil)
+	err := Listen(Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestListen(t *testing.T) {
 }
 
 func TestAgentClose(t *testing.T) {
-	err := Listen(nil)
+	err := Listen(Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,8 +32,19 @@ func TestAgentClose(t *testing.T) {
 	}
 }
 
+func TestUseCustomConfigDir(t *testing.T) {
+	err := Listen(Options{
+		ConfigDir:       os.TempDir(),
+		ShutdownCleanup: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	Close()
+}
+
 func TestAgentListenMultipleClose(t *testing.T) {
-	err := Listen(nil)
+	err := Listen(Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

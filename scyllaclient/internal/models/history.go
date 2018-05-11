@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -36,17 +38,46 @@ type History struct {
 	// The keyspace name
 	Ks string `json:"ks,omitempty"`
 
-	// rows merged
-	RowsMerged HistoryRowsMerged `json:"rows_merged"`
+	// The merged rows
+	RowsMerged []*RowMerged `json:"rows_merged"`
 }
 
 // Validate validates this history
 func (m *History) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateRowsMerged(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *History) validateRowsMerged(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RowsMerged) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.RowsMerged); i++ {
+		if swag.IsZero(m.RowsMerged[i]) { // not required
+			continue
+		}
+
+		if m.RowsMerged[i] != nil {
+			if err := m.RowsMerged[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("rows_merged" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

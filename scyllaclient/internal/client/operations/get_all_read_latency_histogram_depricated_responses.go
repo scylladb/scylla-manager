@@ -47,7 +47,7 @@ func NewGetAllReadLatencyHistogramDepricatedOK() *GetAllReadLatencyHistogramDepr
 GetAllReadLatencyHistogramDepricatedOK get all read latency histogram depricated o k
 */
 type GetAllReadLatencyHistogramDepricatedOK struct {
-	Payload models.GetAllReadLatencyHistogramDepricatedOKBody
+	Payload []*models.Histogram
 }
 
 func (o *GetAllReadLatencyHistogramDepricatedOK) Error() string {

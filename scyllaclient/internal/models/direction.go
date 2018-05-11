@@ -19,8 +19,10 @@ import (
 type Direction string
 
 const (
+
 	// DirectionOUT captures enum value "OUT"
 	DirectionOUT Direction = "OUT"
+
 	// DirectionIN captures enum value "IN"
 	DirectionIN Direction = "IN"
 )

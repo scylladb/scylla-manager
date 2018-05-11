@@ -8,7 +8,6 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -30,25 +29,6 @@ type RateMovingAverage struct {
 
 // Validate validates this rate moving average
 func (m *RateMovingAverage) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateRates(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *RateMovingAverage) validateRates(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Rates) { // not required
-		return nil
-	}
-
 	return nil
 }
 

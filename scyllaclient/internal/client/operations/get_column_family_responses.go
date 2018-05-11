@@ -47,7 +47,7 @@ func NewGetColumnFamilyOK() *GetColumnFamilyOK {
 GetColumnFamilyOK get column family o k
 */
 type GetColumnFamilyOK struct {
-	Payload models.GetColumnFamilyOKBody
+	Payload []*models.ColumnFamilyInfo
 }
 
 func (o *GetColumnFamilyOK) Error() string {

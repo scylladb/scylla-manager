@@ -19,14 +19,19 @@ import (
 type Level string
 
 const (
+
 	// LevelError captures enum value "error"
 	LevelError Level = "error"
+
 	// LevelWarn captures enum value "warn"
 	LevelWarn Level = "warn"
+
 	// LevelInfo captures enum value "info"
 	LevelInfo Level = "info"
+
 	// LevelDebug captures enum value "debug"
 	LevelDebug Level = "debug"
+
 	// LevelTrace captures enum value "trace"
 	LevelTrace Level = "trace"
 )

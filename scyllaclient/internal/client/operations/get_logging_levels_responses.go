@@ -47,7 +47,7 @@ func NewGetLoggingLevelsOK() *GetLoggingLevelsOK {
 GetLoggingLevelsOK get logging levels o k
 */
 type GetLoggingLevelsOK struct {
-	Payload models.GetLoggingLevelsOKBody
+	Payload []*models.Mapper
 }
 
 func (o *GetLoggingLevelsOK) Error() string {

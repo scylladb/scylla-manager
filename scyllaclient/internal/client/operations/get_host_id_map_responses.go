@@ -47,7 +47,7 @@ func NewGetHostIDMapOK() *GetHostIDMapOK {
 GetHostIDMapOK get host Id map o k
 */
 type GetHostIDMapOK struct {
-	Payload models.GetHostIDMapOKBody
+	Payload []*models.Mapper
 }
 
 func (o *GetHostIDMapOK) Error() string {

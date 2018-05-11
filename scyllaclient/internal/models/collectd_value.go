@@ -8,7 +8,6 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -24,25 +23,6 @@ type CollectdValue struct {
 
 // Validate validates this collectd value
 func (m *CollectdValue) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateValues(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *CollectdValue) validateValues(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Values) { // not required
-		return nil
-	}
-
 	return nil
 }
 

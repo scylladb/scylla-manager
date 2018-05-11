@@ -24,6 +24,7 @@ type Schedule struct {
 	NumRetries int32 `json:"num_retries,omitempty"`
 
 	// start date
+	// Format: date-time
 	StartDate strfmt.DateTime `json:"start_date,omitempty"`
 }
 
@@ -32,7 +33,6 @@ func (m *Schedule) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateStartDate(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 

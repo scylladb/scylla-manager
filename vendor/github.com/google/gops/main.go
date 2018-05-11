@@ -8,29 +8,34 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/gops/goprocess"
+	"github.com/shirou/gopsutil/process"
 )
 
-const helpText = `Usage: gops is a tool to list and diagnose Go processes.
+const helpText = `gops is a tool to list and diagnose Go processes.
 
+	gops <cmd> <pid|addr> ...
+	gops <pid> # displays process info
 
 Commands:
-    stack       Prints the stack trace.
-    gc          Runs the garbage collector and blocks until successful.
-    memstats    Prints the allocation and garbage collection stats.
-    version     Prints the Go version used to build the program.
-    stats       Prints the vital runtime stats.
-    help        Prints this help text.
+    stack       	Prints the stack trace.
+    gc          	Runs the garbage collector and blocks until successful.
+    setgc	        Sets the garbage collection target percentage.
+    memstats    	Prints the allocation and garbage collection stats.
+    version     	Prints the Go version used to build the program.
+    stats       	Prints the vital runtime stats.
+    help        	Prints this help text.
 
 Profiling commands:
-    trace       Runs the runtime tracer for 5 secs and launches "go tool trace".
-    pprof-heap  Reads the heap profile and launches "go tool pprof".
-    pprof-cpu   Reads the CPU profile and launches "go tool pprof".
+    trace       	Runs the runtime tracer for 5 secs and launches "go tool trace".
+    pprof-heap  	Reads the heap profile and launches "go tool pprof".
+    pprof-cpu   	Reads the CPU profile and launches "go tool pprof".
 
 
 All commands require the agent running on the Go process.
@@ -45,11 +50,16 @@ func main() {
 	}
 
 	cmd := os.Args[1]
+
+	// See if it is a PID.
+	pid, err := strconv.Atoi(cmd)
+	if err == nil {
+		processInfo(pid)
+		return
+	}
+
 	if cmd == "help" {
 		usage("")
-	}
-	if len(os.Args) < 3 {
-		usage("missing PID or address")
 	}
 	fn, ok := cmds[cmd]
 	if !ok {
@@ -60,7 +70,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Couldn't resolve addr or pid %v to TCPAddress: %v\n", os.Args[2], err)
 		os.Exit(1)
 	}
-	if err := fn(*addr); err != nil {
+	var params []string
+	if len(os.Args) > 3 {
+		params = append(params, os.Args[3:]...)
+	}
+	if err := fn(*addr, params); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
@@ -99,6 +113,39 @@ func processes() {
 		fmt.Fprint(buf, p.Path)
 		fmt.Fprintln(buf)
 		buf.WriteTo(os.Stdout)
+	}
+}
+
+func processInfo(pid int) {
+	p, err := process.NewProcess(int32(pid))
+	if err != nil {
+		log.Fatalf("Cannot read process info: %v", err)
+	}
+	if v, err := p.Parent(); err == nil {
+		fmt.Printf("parent PID:\t%v\n", v.Pid)
+	}
+	if v, err := p.NumThreads(); err == nil {
+		fmt.Printf("threads:\t%v\n", v)
+	}
+	if v, err := p.MemoryPercent(); err == nil {
+		fmt.Printf("memory usage:\t%.3f%%\n", v)
+	}
+	if v, err := p.CPUPercent(); err == nil {
+		fmt.Printf("cpu usage:\t%.3f%%\n", v)
+	}
+	if v, err := p.Username(); err == nil {
+		fmt.Printf("username:\t%v\n", v)
+	}
+	if v, err := p.Cmdline(); err == nil {
+		fmt.Printf("cmd+args:\t%v\n", v)
+	}
+	if v, err := p.Connections(); err == nil {
+		if len(v) > 0 {
+			for _, conn := range v {
+				fmt.Printf("local/remote:\t%v:%v <-> %v:%v (%v)\n",
+					conn.Laddr.IP, conn.Laddr.Port, conn.Raddr.IP, conn.Raddr.Port, conn.Status)
+			}
+		}
 	}
 }
 

@@ -47,7 +47,7 @@ func NewGetSentMessagesOK() *GetSentMessagesOK {
 GetSentMessagesOK get sent messages o k
 */
 type GetSentMessagesOK struct {
-	Payload models.GetSentMessagesOKBody
+	Payload []*models.MessageCounter
 }
 
 func (o *GetSentMessagesOK) Error() string {

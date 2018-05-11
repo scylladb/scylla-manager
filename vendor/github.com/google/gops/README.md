@@ -1,21 +1,21 @@
 # gops
 
 [![Build status](https://circleci.com/gh/google/gops/tree/master.svg?style=shield&circle-token=2637dc1e57d5407ae250480a86a2e553a7d20482)](https://circleci.com/gh/google/gops)
-[![GoDoc](https://godoc.org/github.com/google/gops/agent?status.svg)](https://godoc.org/github.com/google/gops/agent)
+[![GoDoc](https://godoc.org/github.com/google/gops?status.svg)](https://godoc.org/github.com/google/gops)
 
 gops is a command to list and diagnose Go processes currently running on your system.
 
-```
+```sh
 $ gops
-983     uplink-soecks	(/usr/local/bin/uplink-soecks)
-52697   gops	(/Users/jbd/bin/gops)
-4132*   foops (/Users/jbd/bin/foops)
-51130   gocode	(/Users/jbd/bin/gocode)
+983   980    uplink-soecks go1.9 (/usr/local/bin/uplink-soecks)
+52697 52695  gops          go1.9 (/Users/jbd/bin/gops)
+4132  4130   foops*        go1.9 (/Users/jbd/bin/foops)
+51130 51128  gocode        go1.9 (/Users/jbd/bin/gocode)
 ```
 
 ## Installation
 
-```
+```sh
 $ go get -u github.com/google/gops
 ```
 
@@ -38,12 +38,15 @@ import (
 )
 
 func main() {
-	if err := agent.Listen(nil); err != nil {
+	if err := agent.Listen(agent.Options{}); err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(time.Hour)
 }
 ```
+
+Otherwise, you could set `GOPS_CONFIG_DIR` environment variables to assign your config dir.
+Default, gops will use the current user's home directory(AppData on windows).
 
 ### Manual
 
@@ -60,11 +63,18 @@ To print all go processes, run `gops` without arguments:
 
 ```sh
 $ gops
-983     uplink-soecks	(/usr/local/bin/uplink-soecks)
-52697   gops	(/Users/jbd/bin/gops)
-4132*   foops (/Users/jbd/bin/foops)
-51130   gocode	(/Users/jbd/bin/gocode)
+983   980    uplink-soecks go1.9 (/usr/local/bin/uplink-soecks)
+52697 52695  gops          go1.9 (/Users/jbd/bin/gops)
+4132  4130   foops*        go1.9 (/Users/jbd/bin/foops)
+51130 51128  gocode        go1.9 (/Users/jbd/bin/gocode)
 ```
+
+The output displays:
+* PID
+* PPID
+* name of the program
+* Go version used to build the program,
+* Location of the associated program
 
 Note that processes running the agent are marked with `*` next to the PID (e.g. `4132*`).
 
@@ -105,6 +115,15 @@ $ gops memstats (<pid>|<addr>)
 
 If you want to force run garbage collection on the target program, run `gc`.
 It will block until the GC is completed.
+
+#### $gops setgc (\<pid\>|\<addr\>) <perc>
+
+Sets the garbage collection target to a certain percentage.
+The following command sets it to 10%:
+
+``` sh
+$ gops setgc (<pid>|<addr>) 10
+```
 
 
 #### $ gops version (\<pid\>|\<addr\>)

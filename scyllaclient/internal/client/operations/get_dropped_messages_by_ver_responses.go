@@ -47,7 +47,7 @@ func NewGetDroppedMessagesByVerOK() *GetDroppedMessagesByVerOK {
 GetDroppedMessagesByVerOK get dropped messages by ver o k
 */
 type GetDroppedMessagesByVerOK struct {
-	Payload models.GetDroppedMessagesByVerOKBody
+	Payload []*models.VerbCounter
 }
 
 func (o *GetDroppedMessagesByVerOK) Error() string {

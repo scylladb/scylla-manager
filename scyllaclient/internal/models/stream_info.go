@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -24,17 +26,17 @@ type StreamInfo struct {
 	// The peer
 	Peer string `json:"peer,omitempty"`
 
-	// receiving files
-	ReceivingFiles StreamInfoReceivingFiles `json:"receiving_files"`
+	// Receiving files
+	ReceivingFiles []*ProgressInfoMapper `json:"receiving_files"`
 
-	// receiving summaries
-	ReceivingSummaries StreamInfoReceivingSummaries `json:"receiving_summaries"`
+	// Receiving summaries
+	ReceivingSummaries []*StreamSummary `json:"receiving_summaries"`
 
-	// sending files
-	SendingFiles StreamInfoSendingFiles `json:"sending_files"`
+	// Sending files
+	SendingFiles []*ProgressInfoMapper `json:"sending_files"`
 
-	// sending summaries
-	SendingSummaries StreamInfoSendingSummaries `json:"sending_summaries"`
+	// Sending summaries
+	SendingSummaries []*StreamSummary `json:"sending_summaries"`
 
 	// The session index
 	SessionIndex int32 `json:"session_index,omitempty"`
@@ -47,14 +49,129 @@ type StreamInfo struct {
 func (m *StreamInfo) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateReceivingFiles(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateReceivingSummaries(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSendingFiles(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSendingSummaries(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateState(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *StreamInfo) validateReceivingFiles(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ReceivingFiles) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ReceivingFiles); i++ {
+		if swag.IsZero(m.ReceivingFiles[i]) { // not required
+			continue
+		}
+
+		if m.ReceivingFiles[i] != nil {
+			if err := m.ReceivingFiles[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("receiving_files" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *StreamInfo) validateReceivingSummaries(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ReceivingSummaries) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ReceivingSummaries); i++ {
+		if swag.IsZero(m.ReceivingSummaries[i]) { // not required
+			continue
+		}
+
+		if m.ReceivingSummaries[i] != nil {
+			if err := m.ReceivingSummaries[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("receiving_summaries" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *StreamInfo) validateSendingFiles(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SendingFiles) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.SendingFiles); i++ {
+		if swag.IsZero(m.SendingFiles[i]) { // not required
+			continue
+		}
+
+		if m.SendingFiles[i] != nil {
+			if err := m.SendingFiles[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("sending_files" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *StreamInfo) validateSendingSummaries(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SendingSummaries) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.SendingSummaries); i++ {
+		if swag.IsZero(m.SendingSummaries[i]) { // not required
+			continue
+		}
+
+		if m.SendingSummaries[i] != nil {
+			if err := m.SendingSummaries[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("sending_summaries" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

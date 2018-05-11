@@ -47,7 +47,7 @@ func NewGetCurrentStreamsOK() *GetCurrentStreamsOK {
 GetCurrentStreamsOK get current streams o k
 */
 type GetCurrentStreamsOK struct {
-	Payload models.GetCurrentStreamsOKBody
+	Payload []*models.StreamState
 }
 
 func (o *GetCurrentStreamsOK) Error() string {

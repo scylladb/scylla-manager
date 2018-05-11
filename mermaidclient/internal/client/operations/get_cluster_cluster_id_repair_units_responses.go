@@ -56,7 +56,7 @@ func NewGetClusterClusterIDRepairUnitsOK() *GetClusterClusterIDRepairUnitsOK {
 array of units
 */
 type GetClusterClusterIDRepairUnitsOK struct {
-	Payload models.GetClusterClusterIDRepairUnitsOKBody
+	Payload []*models.RepairUnit
 }
 
 func (o *GetClusterClusterIDRepairUnitsOK) Error() string {

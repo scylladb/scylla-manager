@@ -47,7 +47,7 @@ func NewGetSchemaVersionsOK() *GetSchemaVersionsOK {
 GetSchemaVersionsOK get schema versions o k
 */
 type GetSchemaVersionsOK struct {
-	Payload models.GetSchemaVersionsOKBody
+	Payload []*models.MapperList
 }
 
 func (o *GetSchemaVersionsOK) Error() string {

@@ -38,9 +38,6 @@ func NewHTTPClient(formats strfmt.Registry) *Scylla {
 // using a customizable transport config.
 func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Scylla {
 	// ensure nullable parameters have default
-	if formats == nil {
-		formats = strfmt.Default
-	}
 	if cfg == nil {
 		cfg = DefaultTransportConfig()
 	}
@@ -52,6 +49,11 @@ func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Scy
 
 // New creates a new scylla client
 func New(transport runtime.ClientTransport, formats strfmt.Registry) *Scylla {
+	// ensure nullable parameters have default
+	if formats == nil {
+		formats = strfmt.Default
+	}
+
 	cli := new(Scylla)
 	cli.Transport = transport
 
