@@ -62,10 +62,19 @@ func (t ProxyDialer) Dial(network, addr string) (net.Conn, error) {
 		return nil, errors.Wrap(err, "ssh: dial failed")
 	}
 
-	conn, err := client.Dial(network, net.JoinHostPort("localhost", port))
-	if err != nil {
+	var (
+		conn    net.Conn
+		connErr error
+	)
+	for _, h := range []string{"localhost", host} {
+		conn, connErr = client.Dial(network, net.JoinHostPort(h, port))
+		if connErr == nil {
+			break
+		}
+	}
+	if connErr != nil {
 		sshErrorsTotal.With(labels).Inc()
-		return nil, errors.Wrap(err, "ssh: remote dial failed")
+		return nil, errors.Wrap(connErr, "ssh: remote dial failed")
 	}
 
 	g := sshOpenStreamsCount.With(labels)
