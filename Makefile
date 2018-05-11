@@ -127,7 +127,7 @@ gen:
 .PHONY: get-tools
 get-tools: GOPATH := $(shell mktemp -d)
 get-tools:
-	@echo "==> Installing tools..."
+	@echo "==> Installing tools at $(GOBIN)..."
 	@mkdir -p $(GOBIN)
 
 	@go get -u github.com/golang/dep/cmd/dep
@@ -140,31 +140,5 @@ get-tools:
 	@go get -u github.com/gordonklaus/ineffassign
 	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
 	@go get -u honnef.co/go/tools/cmd/megacheck
-
-	@rm -Rf $(GOPATH)
-
-# get-vscode-tools installs tools needed for vscode IDE, see
-# https://github.com/Microsoft/vscode-go/wiki/Go-tools-that-the-Go-extension-depends-on.
-.PHONY: get-vscode-tools
-get-vscode-tools: GOPATH := $(shell mktemp -d)
-get-vscode-tools:
-	@echo "==> Installing vscode tools..."
-	@mkdir -p $(GOBIN)
-
-	@go get -u github.com/ramya-rao-a/go-outline
-	@go get -u github.com/acroca/go-symbols
-	@go get -u github.com/nsf/gocode
-	@go get -u github.com/rogpeppe/godef
-	@go get -u golang.org/x/tools/cmd/godoc
-	@go get -u github.com/zmb3/gogetdoc
-	#@go get -u github.com/golang/lint/golint
-	@go get -u github.com/fatih/gomodifytags
-	@go get -u github.com/uudashr/gopkgs/cmd/gopkgs
-	@go get -u golang.org/x/tools/cmd/gorename
-	@go get -u sourcegraph.com/sqs/goreturns
-	@go get -u github.com/cweill/gotests/...
-	@go get -u golang.org/x/tools/cmd/guru
-	@go get -u github.com/josharian/impl
-	@go get -u github.com/haya14busa/goplay/cmd/goplay
 
 	@rm -Rf $(GOPATH)
