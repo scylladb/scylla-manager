@@ -6,7 +6,7 @@ services:
     volumes:
       - ./scylla_manager.pem:/var/lib/scylla-manager/scylla_manager.pem:ro
     ports:
-      - "127.0.0.1:8889:8889"
+      - "127.0.0.1:56443:56443"
     depends_on:
       scylla:
         condition: service_healthy

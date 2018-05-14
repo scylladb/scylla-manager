@@ -115,7 +115,7 @@ dev-server-kill:
 .PHONY: dev-cli
 dev-cli:
 	@echo "==> Building development cli..."
-	@go build -o ./sctool ./cmd/sctool/
+	@go build -o ./sctool.dev ./cmd/sctool/
 
 # gen regenetates source code and other resources.
 .PHONY: gen
