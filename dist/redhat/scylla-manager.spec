@@ -43,8 +43,8 @@ ln -s $PWD src/%{pkg_name}
   GO=$GOROOT/bin/go
   GOLDFLAGS="-w -extldflags '-static' -X %{pkg_name}.version=%{version}-%{release}"
 
-  $GO build -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $GOLDFLAGS" -o release/linux_amd64/%{name} %{pkg_name}/cmd/%{name}
-  $GO build -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $GOLDFLAGS" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
+  $GO build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $GOLDFLAGS" -o release/linux_amd64/%{name} %{pkg_name}/cmd/%{name}
+  $GO build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $GOLDFLAGS" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
 
   mkdir -p release/bash_completion
   $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{pkg_name}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
