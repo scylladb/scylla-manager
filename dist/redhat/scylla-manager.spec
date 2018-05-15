@@ -94,7 +94,11 @@ the database management tasks.
 %files server
 %defattr(-,root,root)
 %{_bindir}/%{name}
+%{_prefix}/lib/%{name}/scyllamgr_setup
+%{_prefix}/lib/%{name}/scyllamgr_ssh_test
 %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
+%{_sbindir}/scyllamgr_setup
+%{_sbindir}/scyllamgr_ssh_test
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yaml
 %config(noreplace) %{_sysconfdir}/%{name}/*.tpl
