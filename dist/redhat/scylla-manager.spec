@@ -74,11 +74,6 @@ ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
 
 %files
 %defattr(-,root,root)
-%{_prefix}/lib/%{name}/scyllamgr_setup
-%{_prefix}/lib/%{name}/scyllamgr_ssh_test
-%{_sbindir}/scyllamgr_setup
-%{_sbindir}/scyllamgr_ssh_test
-
 
 %package server
 Summary: Scylla Manager server
