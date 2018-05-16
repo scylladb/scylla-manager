@@ -103,13 +103,6 @@ var (
 		PartKey: []string{"id"},
 	}.init()
 
-	RepairConfig = Table{
-		Name:    "repair_config",
-		Columns: []string{"cluster_id", "type", "external_id", "enabled", "segment_size_limit", "retry_limit", "retry_backoff_seconds", "parallel_shard_percent"},
-		PartKey: []string{"cluster_id"},
-		SortKey: []string{"external_id", "type"},
-	}.init()
-
 	RepairRun = Table{
 		Name:    "repair_run",
 		Columns: []string{"cluster_id", "unit_id", "id", "prev_id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time"},
