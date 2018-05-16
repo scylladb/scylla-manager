@@ -3,95 +3,16 @@
 package repair
 
 import (
-	"errors"
 	"fmt"
-	"sort"
 	"time"
 
-	"github.com/cespare/xxhash"
-	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/multierr"
 )
 
-// Unit is a set of tables in a keyspace that are repaired together.
+// Unit specifies what shall be repaired.
 type Unit struct {
-	ID        uuid.UUID `json:"id"`
-	ClusterID uuid.UUID `json:"cluster_id"`
-	Name      string    `json:"name,omitempty"`
-	Keyspace  string    `db:"keyspace_name" json:"keyspace"`
-	Tables    []string  `json:"tables"`
-}
-
-// String returns unit Name or ID if Name is is empty.
-func (u *Unit) String() string {
-	if u == nil {
-		return ""
-	}
-	if u.Name != "" {
-		return u.Name
-	}
-	return u.ID.String()
-}
-
-// Validate checks if all the fields are properly set.
-func (u *Unit) Validate() (err error) {
-	if u == nil {
-		return mermaid.ErrNilPtr
-	}
-
-	if u.ID == uuid.Nil {
-		err = multierr.Append(err, errors.New("missing ID"))
-	}
-	if u.ClusterID == uuid.Nil {
-		err = multierr.Append(err, errors.New("missing ClusterID"))
-	}
-	if _, e := uuid.Parse(u.Name); e == nil {
-		err = multierr.Append(err, errors.New("name cannot be an UUID"))
-	}
-	if u.Keyspace == "" {
-		err = multierr.Append(err, errors.New("missing Keyspace"))
-	}
-
-	return
-}
-
-// UnitFilter filters units.
-type UnitFilter struct {
-	Name string
-}
-
-// Validate checks if all the fields are properly set.
-func (f *UnitFilter) Validate() (err error) {
-	if f == nil {
-		return mermaid.ErrNilPtr
-	}
-
-	if _, e := uuid.Parse(f.Name); e == nil {
-		err = multierr.Append(err, errors.New("name cannot be an UUID"))
-	}
-
-	return
-}
-
-// genID generates unit ID based on keyspace and tables.
-func (u *Unit) genID() uuid.UUID {
-	xx := xxhash.New()
-	xx.Write([]byte(u.Keyspace))
-	l := xx.Sum64()
-	xx.Reset()
-
-	// sort
-	sort.Strings(u.Tables)
-	// skip duplicates
-	for i, t := range u.Tables {
-		if i == 0 || u.Tables[i-1] != t {
-			xx.Write([]byte(t))
-		}
-	}
-	r := xx.Sum64()
-
-	return uuid.NewFromUint64(l, r)
+	Keyspace string
+	Tables   []string
 }
 
 // Segment specifies token range: [StartToken, EndToken), StartToken is always
@@ -143,27 +64,28 @@ func (s *Status) UnmarshalText(text []byte) error {
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
-	ClusterID    uuid.UUID
-	UnitID       uuid.UUID
-	ID           uuid.UUID
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	ID        uuid.UUID
+
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
 	Keyspace     string `db:"keyspace_name"`
 	Tables       []string
 	Status       Status
 	Cause        string
-	RestartCount int
 	StartTime    time.Time
 	EndTime      time.Time
 }
 
 // RunProgress describes repair progress on per shard basis.
 type RunProgress struct {
-	ClusterID               uuid.UUID
-	UnitID                  uuid.UUID
-	RunID                   uuid.UUID
-	Host                    string
-	Shard                   int
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
+	Host      string
+	Shard     int
+
 	SegmentCount            int
 	SegmentSuccess          int
 	SegmentError            int
