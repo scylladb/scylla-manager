@@ -105,23 +105,16 @@ var (
 
 	RepairRun = Table{
 		Name:    "repair_run",
-		Columns: []string{"cluster_id", "unit_id", "id", "prev_id", "topology_hash", "keyspace_name", "tables", "status", "cause", "restart_count", "start_time", "end_time"},
+		Columns: []string{"cluster_id", "task_id", "id", "prev_id", "topology_hash", "keyspace_name", "tables", "status", "cause", "start_time", "end_time"},
 		PartKey: []string{"cluster_id"},
-		SortKey: []string{"unit_id", "id"},
+		SortKey: []string{"task_id", "id"},
 	}.init()
 
 	RepairRunProgress = Table{
 		Name:    "repair_run_progress",
-		Columns: []string{"cluster_id", "unit_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "segment_error_start_tokens", "last_start_token", "last_start_time", "last_command_id"},
-		PartKey: []string{"cluster_id", "unit_id", "run_id"},
+		Columns: []string{"cluster_id", "task_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "segment_error_start_tokens", "last_start_token", "last_start_time", "last_command_id"},
+		PartKey: []string{"cluster_id", "task_id", "run_id"},
 		SortKey: []string{"host", "shard"},
-	}.init()
-
-	RepairUnit = Table{
-		Name:    "repair_unit",
-		Columns: []string{"cluster_id", "id", "name", "keyspace_name", "tables"},
-		PartKey: []string{"cluster_id"},
-		SortKey: []string{"id"},
 	}.init()
 
 	SchedTask = Table{
