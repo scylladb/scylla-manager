@@ -627,9 +627,9 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-// StopRun marks a running repair as stopping.
-func (s *Service) StopRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) error {
-	s.logger.Debug(ctx, "StopRun",
+// StopRepair marks a running repair as stopping.
+func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.UUID) error {
+	s.logger.Debug(ctx, "StopRepair",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,
@@ -758,4 +758,4 @@ func (s *Service) Close() {
 
 // FIXME change getHostProgress to accept signle host, remove/refactor GetProgress
 // FIXME change API "clusterID, taskID, runID uuid.UUID"?
-// FIXME StopRun do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())
+// FIXME StopRepair do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())

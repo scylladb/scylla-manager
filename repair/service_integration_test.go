@@ -225,7 +225,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		putRun(t, r0)
 
-		if err := s.StopRun(ctx, clusterID, taskID, r0.ID); err != nil {
+		if err := s.StopRepair(ctx, clusterID, taskID, r0.ID); err != nil {
 			t.Fatal(err)
 		}
 
@@ -384,7 +384,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	waitNodeProgress(node0, 50)
 
 	// And
-	if err := s.StopRun(ctx, clusterID, taskID, runID); err != nil {
+	if err := s.StopRepair(ctx, clusterID, taskID, runID); err != nil {
 		t.Fatal(err)
 	}
 
