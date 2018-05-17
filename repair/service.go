@@ -78,49 +78,56 @@ func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp sc
 func (s *Service) FixRunStatus(ctx context.Context) error {
 	s.logger.Info(ctx, "Fixing run statuses")
 
-	stmt, _ := qb.Select(schema.RepairUnit.Name).ToCql()
-	q := s.session.Query(stmt).WithContext(ctx)
-	defer q.Release()
-
-	iter := gocqlx.Iter(q)
-	defer iter.Close()
-
-	var u Unit
-	for iter.StructScan(&u) {
-		last, err := s.GetLastRun(ctx, &u)
-		if err == mermaid.ErrNotFound {
-			continue
-		}
-		if err != nil {
-			return errors.Wrap(err, "failed to get last run of a unit")
-		}
-
-		switch last.Status {
-		case StatusRunning, StatusStopping:
-			last.Status = StatusStopped
-			if err := s.putRun(ctx, last); err != nil {
-				return errors.Wrap(err, "failed to update a run")
-			}
-			s.logger.Info(ctx, "Marked run as stopped",
-				"cluster_id", last.ClusterID,
-				"unit_id", u.ID,
-				"run_id", last.ID,
-			)
-		}
-	}
-
-	s.logger.Info(ctx, "Done")
-
-	return iter.Close()
+	// FIXME change impl
+	//stmt, _ := qb.Select(schema.RepairUnit.Name).ToCql()
+	//q := s.session.Query(stmt).WithContext(ctx)
+	//defer q.Release()
+	//
+	//iter := gocqlx.Iter(q)
+	//defer iter.Close()
+	//
+	//var u Unit
+	//for iter.StructScan(&u) {
+	//	last, err := s.GetLastRun(ctx, &u)
+	//	if err == mermaid.ErrNotFound {
+	//		continue
+	//	}
+	//	if err != nil {
+	//		return errors.Wrap(err, "failed to get last run of a unit")
+	//	}
+	//
+	//	switch last.Status {
+	//	case StatusRunning, StatusStopping:
+	//		last.Status = StatusStopped
+	//		if err := s.putRun(ctx, last); err != nil {
+	//			return errors.Wrap(err, "failed to update a run")
+	//		}
+	//		s.logger.Info(ctx, "Marked run as stopped",
+	//			"cluster_id", last.ClusterID,
+	//			"task_id", u.ID,
+	//			"run_id", last.ID,
+	//		)
+	//	}
+	//}
+	//
+	//s.logger.Info(ctx, "Done")
+	//
+	//return iter.Close()
+	return nil
 }
 
 // Repair starts an asynchronous repair process.
-func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
-	s.logger.Debug(ctx, "Repair", "unit", u, "run_id", runID)
+func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, u Unit) error {
+	s.logger.Debug(ctx, "Repair",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+		"unit", u,
+	)
 
-	r := Run{
-		ClusterID: u.ClusterID,
-		UnitID:    u.ID,
+	run := &Run{
+		ClusterID: clusterID,
+		TaskID:    taskID,
 		ID:        runID,
 		Keyspace:  u.Keyspace,
 		Tables:    u.Tables,
@@ -130,20 +137,15 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 	// fail updates a run and passes the error
 	fail := func(err error) error {
-		r.Status = StatusError
-		r.Cause = err.Error()
-		r.EndTime = timeutc.Now()
-		s.putRunLogError(ctx, &r)
+		run.Status = StatusError
+		run.Cause = err.Error()
+		run.EndTime = timeutc.Now()
+		s.putRunLogError(ctx, run)
 		return err
 	}
 
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")})
-	}
-
 	// get cluster
-	c, err := s.cluster(ctx, u.ClusterID)
+	c, err := s.cluster(ctx, run.ClusterID)
 	if err != nil {
 		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "client not found")})
 	}
@@ -154,26 +156,26 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	defer lock.Store(false)
 
 	// make sure no other repairs are being run on that cluster
-	if err := s.tryLockCluster(&r); err != nil {
+	if err := s.tryLockCluster(run); err != nil {
 		s.logger.Debug(ctx, "Lock error", "error", err)
 		return fail(mermaid.ParamError{Cause: ErrActiveRepair})
 	}
 	defer func() {
-		if r.Status != StatusRunning {
-			if err := s.unlockCluster(&r); err != nil {
+		if run.Status != StatusRunning {
+			if err := s.unlockCluster(run); err != nil {
 				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
 		}
 	}()
 
 	s.logger.Info(ctx, "Initialising repair",
-		"cluster_id", r.ClusterID,
-		"unit_id", r.UnitID,
-		"run_id", runID,
+		"cluster_id", run.ClusterID,
+		"task_id", run.TaskID,
+		"run_id", run.ID,
 	)
 
 	// get last started run of the unit
-	prev, err := s.GetLastStartedRun(ctx, u)
+	prev, err := s.GetLastStartedRun(ctx, run.ClusterID, run.TaskID)
 	if err != nil && err != mermaid.ErrNotFound {
 		return fail(errors.Wrap(err, "failed to get previous run"))
 	}
@@ -189,48 +191,48 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 		}
 	}
 	if prev != nil {
-		r.PrevID = prev.ID
+		run.PrevID = prev.ID
 	}
 
 	// register the run
-	if err := s.putRun(ctx, &r); err != nil {
+	if err := s.putRun(ctx, run); err != nil {
 		return fail(errors.Wrap(err, "failed to register the run"))
 	}
 
 	// get the cluster client
-	client, err := s.client(ctx, u.ClusterID)
+	client, err := s.client(ctx, run.ClusterID)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the client proxy"))
 	}
 
 	// get the cluster topology hash
-	r.TopologyHash, err = s.topologyHash(ctx, client)
+	run.TopologyHash, err = s.topologyHash(ctx, client)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get topology hash"))
 	}
 
 	// ensure topology did not change, if changed start from scratch
 	if prev != nil {
-		if r.TopologyHash != prev.TopologyHash {
+		if run.TopologyHash != prev.TopologyHash {
 			s.logger.Info(ctx, "Starting from scratch: topology changed")
 			prev = nil
-			r.PrevID = uuid.Nil
+			run.PrevID = uuid.Nil
 		}
 	}
-	if err := s.putRun(ctx, &r); err != nil {
+	if err := s.putRun(ctx, run); err != nil {
 		return fail(errors.Wrap(err, "failed to update the run"))
 	}
 
 	// check keyspace and tables
-	all, err := client.Tables(ctx, r.Keyspace)
+	all, err := client.Tables(ctx, run.Keyspace)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the client table names for keyspace"))
 	}
 	if len(all) == 0 {
-		return fail(errors.Errorf("missing or empty keyspace %q", r.Keyspace))
+		return fail(errors.Errorf("missing or empty keyspace %q", run.Keyspace))
 	}
-	if err := validateTables(r.Tables, all); err != nil {
-		return fail(errors.Wrapf(err, "keyspace %q", r.Keyspace))
+	if err := validateTables(run.Tables, all); err != nil {
+		return fail(errors.Wrapf(err, "keyspace %q", run.Keyspace))
 	}
 
 	// check the cluster partitioner
@@ -264,9 +266,9 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	// init empty progress
 	for host := range hostSegments {
 		p := RunProgress{
-			ClusterID: r.ClusterID,
-			UnitID:    r.UnitID,
-			RunID:     r.ID,
+			ClusterID: run.ClusterID,
+			TaskID:    run.TaskID,
+			RunID:     run.ID,
 			Host:      host,
 		}
 		if err := s.putRunProgress(ctx, &p); err != nil {
@@ -275,7 +277,7 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 		l := prometheus.Labels{
 			"cluster": c.String(),
-			"unit":    u.String(),
+			"unit":    run.TaskID.String(),
 			"host":    host,
 			"shard":   "0",
 		}
@@ -287,7 +289,11 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 
 	// update progress from the previous run
 	if prev != nil {
-		prog, err := s.GetProgress(ctx, u, prev.ID)
+		prog, err := s.GetProgress(ctx, &Run{
+			ClusterID: run.ClusterID,
+			TaskID:    run.TaskID,
+			ID:        run.PrevID,
+		})
 		if err != nil {
 			return fail(errors.Wrap(err, "failed to get the last run progress"))
 		}
@@ -310,21 +316,21 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 			)
 
 			prev = nil
-			r.PrevID = uuid.Nil
-			if err := s.putRun(ctx, &r); err != nil {
+			run.PrevID = uuid.Nil
+			if err := s.putRun(ctx, run); err != nil {
 				return fail(errors.Wrap(err, "failed to update the run"))
 			}
 		} else {
 			for _, p := range prog {
 				if p.started() {
-					p.RunID = r.ID
+					p.RunID = run.ID
 					if err := s.putRunProgress(ctx, p); err != nil {
 						return fail(errors.Wrapf(err, "failed to initialise the run progress %s", &p))
 					}
 
 					l := prometheus.Labels{
 						"cluster": c.String(),
-						"unit":    u.String(),
+						"unit":    run.TaskID.String(),
 						"host":    p.Host,
 						"shard":   fmt.Sprint(p.Shard),
 					}
@@ -355,54 +361,54 @@ func (s *Service) Repair(ctx context.Context, u *Unit, runID uuid.UUID) error {
 				s.logger.Error(ctx, "Panic", "panic", v)
 				fail(errors.Errorf("%s", v))
 			}
-			if err := s.unlockCluster(&r); err != nil {
+			if err := s.unlockCluster(run); err != nil {
 				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
 			cancel()
 		}()
 
-		go s.reportRepairProgress(ctx, c, u, &r)
+		go s.reportRepairProgress(ctx, c, run)
 
-		if err := s.repair(ctx, c, u, &r, client, hostSegments); err != nil {
+		if err := s.repair(ctx, c, run, client, hostSegments); err != nil {
 			fail(err)
 		}
 
-		s.logger.Info(ctx, "Status", "status", r.Status)
+		s.logger.Info(ctx, "Status", "status", run.Status)
 	}()
 
 	return nil
 }
 
-func (s *Service) tryLockCluster(r *Run) error {
+func (s *Service) tryLockCluster(run *Run) error {
 	s.activeMu.Lock()
 	defer s.activeMu.Unlock()
 
-	owner := s.active[r.ClusterID]
+	owner := s.active[run.ClusterID]
 	if owner != uuid.Nil {
 		return errors.Errorf("cluster owned by another run: %s", owner)
 	}
 
-	s.active[r.ClusterID] = r.ID
+	s.active[run.ClusterID] = run.ID
 	return nil
 }
 
-func (s *Service) unlockCluster(r *Run) error {
+func (s *Service) unlockCluster(run *Run) error {
 	s.activeMu.Lock()
 	defer s.activeMu.Unlock()
 
-	owner := s.active[r.ClusterID]
+	owner := s.active[run.ClusterID]
 	if owner == uuid.Nil {
 		return errors.Errorf("not locked")
 	}
-	if owner != r.ID {
+	if owner != run.ID {
 		return errors.Errorf("cluster owned by another run: %s", owner)
 	}
 
-	delete(s.active, r.ClusterID)
+	delete(s.active, run.ClusterID)
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, c *cluster.Cluster, u *Unit, r *Run, client *scyllaclient.Client, hostSegments map[string][]*Segment) error {
+func (s *Service) repair(ctx context.Context, c *cluster.Cluster, run *Run, client *scyllaclient.Client, hostSegments map[string][]*Segment) error {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
@@ -417,8 +423,8 @@ func (s *Service) repair(ctx context.Context, c *cluster.Cluster, u *Unit, r *Ru
 		th, err := s.topologyHash(ctx, client)
 		if err != nil {
 			s.logger.Info(ctx, "Topology check error", "error", err)
-		} else if r.TopologyHash != th {
-			return errors.Errorf("topology changed old hash: %s new hash: %s", r.TopologyHash, th)
+		} else if run.TopologyHash != th {
+			return errors.Errorf("topology changed old hash: %s new hash: %s", run.TopologyHash, th)
 		}
 
 		// ping host
@@ -429,8 +435,7 @@ func (s *Service) repair(ctx context.Context, c *cluster.Cluster, u *Unit, r *Ru
 		w := worker{
 			Config:   &s.config,
 			Cluster:  c,
-			Unit:     u,
-			Run:      r,
+			Run:      run,
 			Host:     host,
 			Segments: hostSegments[host],
 
@@ -446,42 +451,42 @@ func (s *Service) repair(ctx context.Context, c *cluster.Cluster, u *Unit, r *Ru
 			return nil
 		}
 
-		stopped, err := s.isStopped(ctx, u, r.ID)
+		stopped, err := s.isStopped(ctx, run)
 		if err != nil {
 			w.Logger.Error(ctx, "Service error", "error", err)
 		}
 
 		if stopped {
-			r.Status = StatusStopped
-			r.EndTime = timeutc.Now()
-			s.putRunLogError(ctx, r)
+			run.Status = StatusStopped
+			run.EndTime = timeutc.Now()
+			s.putRunLogError(ctx, run)
 
 			return nil
 		}
 	}
 
-	r.Status = StatusDone
-	r.EndTime = timeutc.Now()
-	s.putRunLogError(ctx, r)
+	run.Status = StatusDone
+	run.EndTime = timeutc.Now()
+	s.putRunLogError(ctx, run)
 
 	return nil
 }
 
-func (s *Service) reportRepairProgress(ctx context.Context, c *cluster.Cluster, u *Unit, r *Run) {
+func (s *Service) reportRepairProgress(ctx context.Context, c *cluster.Cluster, run *Run) {
 	t := time.NewTicker(2500 * time.Millisecond)
 	defer t.Stop()
 
 	for {
 		select {
 		case <-t.C:
-			prog, err := s.getAllHostsProgress(ctx, u, r.ID)
+			prog, err := s.getAllHostsProgress(ctx, run)
 			if err != nil {
 				s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
 			}
 			for host, percent := range hostsPercentComplete(prog) {
 				repairProgress.With(prometheus.Labels{
 					"cluster": c.String(),
-					"unit":    u.String(),
+					"unit":    run.TaskID.String(),
 					"host":    host,
 				}).Set(percent)
 			}
@@ -491,8 +496,8 @@ func (s *Service) reportRepairProgress(ctx context.Context, c *cluster.Cluster, 
 	}
 }
 
-func (s *Service) topologyHash(ctx context.Context, cluster *scyllaclient.Client) (uuid.UUID, error) {
-	tokens, err := cluster.Tokens(ctx)
+func (s *Service) topologyHash(ctx context.Context, client *scyllaclient.Client) (uuid.UUID, error) {
+	tokens, err := client.Tokens(ctx)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to get the cluster tokens")
 	}
@@ -501,24 +506,19 @@ func (s *Service) topologyHash(ctx context.Context, cluster *scyllaclient.Client
 }
 
 // GetLastRun returns the the most recent run of the unit.
-func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
-	s.logger.Debug(ctx, "GetLastRun", "unit", u)
+func (s *Service) GetLastRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetLastRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+	)
 
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
-
-	stmt, names := qb.Select(schema.RepairRun.Name).
-		Where(
-			qb.Eq("cluster_id"),
-			qb.Eq("unit_id"),
-		).Limit(1).
-		ToCql()
+	stmt, names := qb.Select(schema.RepairRun.Name).Where(
+		qb.Eq("cluster_id"), qb.Eq("task_id"),
+	).Limit(1).ToCql()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": u.ClusterID,
-		"unit_id":    u.ID,
+		"cluster_id": clusterID,
+		"task_id":    taskID,
 	})
 	defer q.Release()
 
@@ -536,23 +536,19 @@ func (s *Service) GetLastRun(ctx context.Context, u *Unit) (*Run, error) {
 
 // GetLastStartedRun returns the the most recent run of the unit that started
 // the repair.
-func (s *Service) GetLastStartedRun(ctx context.Context, u *Unit) (*Run, error) {
-	s.logger.Debug(ctx, "GetLastStartedRun", "unit", u)
+func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetLastStartedRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+	)
 
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
-
-	stmt, names := qb.Select(schema.RepairRun.Name).
-		Where(
-			qb.Eq("cluster_id"),
-			qb.Eq("unit_id"),
-		).Limit(100).ToCql()
+	stmt, names := qb.Select(schema.RepairRun.Name).Where(
+		qb.Eq("cluster_id"), qb.Eq("task_id"),
+	).Limit(100).ToCql()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": u.ClusterID,
-		"unit_id":    u.ID,
+		"cluster_id": clusterID,
+		"task_id":    taskID,
 	})
 	defer q.Release()
 
@@ -571,7 +567,7 @@ func (s *Service) GetLastStartedRun(ctx context.Context, u *Unit) (*Run, error) 
 		}
 
 		// check if repair started
-		p, err := s.getAllHostsProgress(ctx, u, r.ID)
+		p, err := s.getAllHostsProgress(ctx, r)
 		if err != nil {
 			return nil, err
 		}
@@ -585,19 +581,18 @@ func (s *Service) GetLastStartedRun(ctx context.Context, u *Unit) (*Run, error) 
 
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
-func (s *Service) GetRun(ctx context.Context, u *Unit, runID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetRun", "unit", u, "run_id", runID)
-
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
+func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
 
 	stmt, names := schema.RepairRun.Get()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": u.ClusterID,
-		"unit_id":    u.ID,
+		"cluster_id": clusterID,
+		"task_id":    taskID,
 		"id":         runID,
 	})
 	defer q.Release()
@@ -633,15 +628,14 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 }
 
 // StopRun marks a running repair as stopping.
-func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
-	s.logger.Debug(ctx, "StopRun", "unit", u, "run_id", runID)
+func (s *Service) StopRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) error {
+	s.logger.Debug(ctx, "StopRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
 
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
-
-	r, err := s.GetRun(ctx, u, runID)
+	r, err := s.GetRun(ctx, clusterID, taskID, runID)
 	if err != nil {
 		return err
 	}
@@ -651,8 +645,8 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 	}
 
 	s.logger.Info(ctx, "Stopping repair",
-		"cluster_id", r.ClusterID,
-		"unit_id", r.UnitID,
+		"cluster_id", clusterID,
+		"task_id", taskID,
 		"run_id", runID,
 	)
 
@@ -662,13 +656,9 @@ func (s *Service) StopRun(ctx context.Context, u *Unit, runID uuid.UUID) error {
 }
 
 // isStopped checks if repair is in StatusStopping or StatusStopped.
-func (s *Service) isStopped(ctx context.Context, u *Unit, runID uuid.UUID) (bool, error) {
+func (s *Service) isStopped(ctx context.Context, run *Run) (bool, error) {
 	stmt, names := schema.RepairRun.Get("status")
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": u.ClusterID,
-		"unit_id":    u.ID,
-		"id":         runID,
-	})
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(run)
 	if q.Err() != nil {
 		return false, q.Err()
 	}
@@ -683,30 +673,29 @@ func (s *Service) isStopped(ctx context.Context, u *Unit, runID uuid.UUID) (bool
 
 // GetProgress returns run progress. If nothing was found mermaid.ErrNotFound
 // is returned.
-func (s *Service) GetProgress(ctx context.Context, u *Unit, runID uuid.UUID, hosts ...string) ([]*RunProgress, error) {
-	s.logger.Debug(ctx, "GetProgress", "unit", u, "run_id", runID)
-
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
+func (s *Service) GetProgress(ctx context.Context, run *Run, hosts ...string) ([]*RunProgress, error) {
+	s.logger.Debug(ctx, "GetProgress",
+		"cluster_id", run.ClusterID,
+		"task_id", run.TaskID,
+		"run_id", run.ID,
+	)
 
 	if len(hosts) == 0 {
-		return s.getAllHostsProgress(ctx, u, runID)
+		return s.getAllHostsProgress(ctx, run)
 	}
 
-	return s.getHostProgress(ctx, u, runID, hosts...)
+	return s.getHostProgress(ctx, run, hosts...)
 }
 
-func (s *Service) getAllHostsProgress(ctx context.Context, u *Unit, runID uuid.UUID) ([]*RunProgress, error) {
+func (s *Service) getAllHostsProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
 	stmt, names := schema.RepairRunProgress.Select()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
 	defer q.Release()
 
 	q.BindMap(qb.M{
-		"cluster_id": u.ClusterID,
-		"unit_id":    u.ID,
-		"run_id":     runID,
+		"cluster_id": run.ClusterID,
+		"task_id":    run.TaskID,
+		"run_id":     run.ID,
 	})
 	if q.Err() != nil {
 		return nil, q.Err()
@@ -716,18 +705,21 @@ func (s *Service) getAllHostsProgress(ctx context.Context, u *Unit, runID uuid.U
 	return p, gocqlx.Select(&p, q.Query)
 }
 
-func (s *Service) getHostProgress(ctx context.Context, u *Unit, runID uuid.UUID, hosts ...string) ([]*RunProgress, error) {
-	stmt, names := schema.RepairRunProgress.SelectBuilder().Where(qb.Eq("host")).ToCql()
+func (s *Service) getHostProgress(ctx context.Context, run *Run, hosts ...string) ([]*RunProgress, error) {
+	stmt, names := schema.RepairRunProgress.SelectBuilder().Where(
+		qb.Eq("host"),
+	).ToCql()
+
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
 	defer q.Release()
 
-	var p []*RunProgress
-
 	m := qb.M{
-		"cluster_id": u.ClusterID,
-		"unit_id":    u.ID,
-		"run_id":     runID,
+		"cluster_id": run.ClusterID,
+		"task_id":    run.TaskID,
+		"run_id":     run.ID,
 	}
+
+	var p []*RunProgress
 
 	for _, h := range hosts {
 		m["host"] = h
@@ -758,233 +750,12 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 	return q.ExecRelease()
 }
 
-// SyncUnits ensures that for every keyspace there is a Unit. If there is no
-// unit it will be created
-func (s *Service) SyncUnits(ctx context.Context, clusterID uuid.UUID) error {
-	s.logger.Info(ctx, "Syncing units", "cluster_id", clusterID)
-
-	// get the cluster client
-	cluster, err := s.client(ctx, clusterID)
-	if err != nil {
-		return errors.Wrap(err, "failed to get the cluster proxy")
-	}
-
-	// cluster keyspaces
-	keyspaces, err := cluster.Keyspaces(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to list keyspaces")
-	}
-
-	ck := set.NewNonTS()
-	for _, k := range keyspaces {
-		ck.Add(k)
-	}
-
-	// database keyspaces
-	units, err := s.ListUnits(ctx, clusterID, &UnitFilter{})
-	if err != nil {
-		return errors.Wrap(err, "failed to list units")
-	}
-
-	dbk := set.NewNonTS()
-	for _, u := range units {
-		dbk.Add(u.Keyspace)
-	}
-
-	names := set.NewNonTS()
-	for _, u := range units {
-		names.Add(u.Name)
-	}
-
-	var dbErr error
-
-	// add missing keyspaces
-	set.Difference(ck, dbk).Each(func(i interface{}) bool {
-		u := &Unit{ClusterID: clusterID, Keyspace: i.(string)}
-
-		if !names.Has(i) {
-			u.Name = u.Keyspace
-		}
-
-		dbErr = s.PutUnit(ctx, u)
-		return dbErr == nil
-	})
-	if dbErr != nil {
-		return dbErr
-	}
-
-	// delete dropped keyspaces
-	set.Difference(dbk, ck).Each(func(i interface{}) bool {
-		k := i.(string)
-		for _, u := range units {
-			if u.Keyspace == k {
-				dbErr = s.DeleteUnit(ctx, clusterID, u.ID)
-				if dbErr != nil {
-					return false
-				}
-			}
-		}
-		return true
-	})
-
-	s.logger.Info(ctx, "Done")
-
-	return dbErr
-}
-
-// ListUnits returns all the units in the cluster.
-func (s *Service) ListUnits(ctx context.Context, clusterID uuid.UUID, f *UnitFilter) ([]*Unit, error) {
-	s.logger.Debug(ctx, "ListUnits", "cluster_id", clusterID, "filter", f)
-
-	// validate the filter
-	if err := f.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid filter")}
-	}
-
-	stmt, names := schema.RepairUnit.Select()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": clusterID,
-	})
-	defer q.Release()
-
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	var units []*Unit
-	if err := gocqlx.Select(&units, q.Query); err != nil {
-		return nil, err
-	}
-
-	// nothing to filter
-	if f.Name == "" {
-		return units, nil
-	}
-
-	filtered := units[:0]
-	for _, u := range units {
-		if u.Name == f.Name {
-			filtered = append(filtered, u)
-		}
-	}
-	for i := len(filtered); i < len(units); i++ {
-		units[i] = nil
-	}
-
-	return filtered, nil
-}
-
-// GetUnit returns repair unit based on ID or name. If nothing was found
-// mermaid.ErrNotFound is returned.
-func (s *Service) GetUnit(ctx context.Context, clusterID uuid.UUID, idOrName string) (*Unit, error) {
-	if id, err := uuid.Parse(idOrName); err == nil {
-		return s.GetUnitByID(ctx, clusterID, id)
-	}
-
-	return s.GetUnitByName(ctx, clusterID, idOrName)
-}
-
-// GetUnitByID returns repair unit based on ID. If nothing was found
-// mermaid.ErrNotFound is returned.
-func (s *Service) GetUnitByID(ctx context.Context, clusterID, id uuid.UUID) (*Unit, error) {
-	s.logger.Debug(ctx, "GetUnitByID", "cluster_id", clusterID, "id", id)
-
-	stmt, names := schema.RepairUnit.Get()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"id":         id,
-	})
-	defer q.Release()
-
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	var u Unit
-	if err := gocqlx.Get(&u, q.Query); err != nil {
-		return nil, err
-	}
-
-	return &u, nil
-}
-
-// GetUnitByName returns repair unit based on name. If nothing was found
-// mermaid.ErrNotFound is returned.
-func (s *Service) GetUnitByName(ctx context.Context, clusterID uuid.UUID, name string) (*Unit, error) {
-	s.logger.Debug(ctx, "GetUnitByName", "cluster_id", clusterID, "name", name)
-
-	units, err := s.ListUnits(ctx, clusterID, &UnitFilter{Name: name})
-	if err != nil {
-		return nil, err
-	}
-
-	switch len(units) {
-	case 0:
-		return nil, mermaid.ErrNotFound
-	case 1:
-		return units[0], nil
-	default:
-		return nil, errors.Errorf("multiple units share the same name %q", name)
-	}
-}
-
-// PutUnit upserts a repair unit, unit instance must pass Validate() checks.
-// If u.ID == uuid.Nil a new one is generated.
-func (s *Service) PutUnit(ctx context.Context, u *Unit) error {
-	s.logger.Debug(ctx, "PutUnit", "unit", u)
-	if u == nil {
-		return errors.New("nil unit")
-	}
-
-	if u.ID == uuid.Nil {
-		var err error
-		if u.ID, err = uuid.NewRandom(); err != nil {
-			return errors.Wrap(err, "couldn't generate random UUID for Unit")
-		}
-	}
-
-	// validate the unit
-	if err := u.Validate(); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid unit")}
-	}
-
-	// check for conflicting names
-	if u.Name != "" {
-		conflict, err := s.GetUnitByName(ctx, u.ClusterID, u.Name)
-		if err != mermaid.ErrNotFound {
-			if err != nil {
-				return err
-			}
-			if conflict.ID != u.ID {
-				return mermaid.ParamError{Cause: errors.Errorf("name conflict on %q", u.Name)}
-			}
-		}
-	}
-
-	stmt, names := schema.RepairUnit.Insert()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(u)
-
-	return q.ExecRelease()
-}
-
-// DeleteUnit removes repair based on ID.
-func (s *Service) DeleteUnit(ctx context.Context, clusterID, id uuid.UUID) error {
-	s.logger.Debug(ctx, "DeleteUnit", "cluster_id", clusterID, "id", id)
-
-	stmt, names := schema.RepairUnit.Delete()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"id":         id,
-	})
-
-	return q.ExecRelease()
-}
-
 // Close terminates all the worker routines.
 func (s *Service) Close() {
 	s.workerCancel()
 	s.wg.Wait()
 }
+
+// FIXME change getHostProgress to accept signle host, remove/refactor GetProgress
+// FIXME change API "clusterID, taskID, runID uuid.UUID"?
+// FIXME StopRun do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())

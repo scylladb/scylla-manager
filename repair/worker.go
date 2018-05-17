@@ -70,7 +70,6 @@ func init() {
 type worker struct {
 	Config   *Config
 	Cluster  *cluster.Cluster
-	Unit     *Unit
 	Run      *Run
 	Host     string
 	Segments []*Segment
@@ -126,7 +125,7 @@ func (w *worker) exec(ctx context.Context) error {
 
 func (w *worker) init(ctx context.Context) error {
 	// continue from a savepoint
-	prog, err := w.Service.GetProgress(ctx, w.Unit, w.Run.ID, w.Host)
+	prog, err := w.Service.GetProgress(ctx, w.Run, w.Host)
 	if err != nil {
 		return errors.Wrap(err, "failed to get host progress")
 	}
@@ -156,7 +155,7 @@ func (w *worker) init(ctx context.Context) error {
 		} else {
 			p = &RunProgress{
 				ClusterID:    w.Run.ClusterID,
-				UnitID:       w.Run.UnitID,
+				TaskID:       w.Run.TaskID,
 				RunID:        w.Run.ID,
 				Host:         w.Host,
 				Shard:        i,
@@ -166,7 +165,7 @@ func (w *worker) init(ctx context.Context) error {
 
 		labels := prometheus.Labels{
 			"cluster": w.Cluster.String(),
-			"unit":    w.Unit.String(),
+			"unit":    w.Run.TaskID.String(),
 			"host":    w.Host,
 			"shard":   fmt.Sprint(i),
 		}
@@ -378,7 +377,7 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 		return true
 	}
 
-	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Unit, w.parent.Run.ID)
+	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Run)
 	if err != nil {
 		w.logger.Error(ctx, "Service error", "error", err)
 	}
