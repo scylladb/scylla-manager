@@ -101,7 +101,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 }
 
 func (s *server) registerSchedulerRunners() {
-	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc)
+	s.schedSvc.SetRunner(sched.RepairTask, repair.Runner{Service: s.repairSvc})
 }
 
 func (s *server) initHTTPServers() {
