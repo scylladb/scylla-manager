@@ -130,7 +130,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 
 			switch r.Status {
 			case runner.StatusStarting, runner.StatusRunning, runner.StatusStopping:
-				curStatus, cause, err := s.taskRunner(&t).Status(ctx, t.ClusterID, r.ID, t.Properties)
+				curStatus, cause, err := s.taskRunner(&t).Status(ctx, r.Descriptor())
 				if err != nil {
 					s.logger.Error(ctx, "Failed to get task status", "task", t, "run", r, "error", err)
 					continue
@@ -321,7 +321,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 
 	s.updateClusterName(ctx, t)
 
-	if err := s.taskRunner(t).Run(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
+	if err := s.taskRunner(t).Run(ctx, run.Descriptor(), t.Properties); err != nil {
 		s.logger.Info(ctx, "Failed to start task",
 			"cluster_id", t.ClusterID,
 			"task_type", t.Type,
@@ -387,7 +387,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 		case <-ctx.Done():
 			ctx = log.CopyTraceID(context.Background(), ctx)
 
-			if err := s.taskRunner(t).Stop(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
+			if err := s.taskRunner(t).Stop(ctx, run.Descriptor()); err != nil {
 				s.logger.Error(ctx, "Failed to stop task",
 					"task", t,
 					"run", run,
@@ -403,7 +403,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				)
 			}
 		case now := <-ticker.C:
-			curStatus, cause, err := s.taskRunner(t).Status(ctx, t.ClusterID, run.ID, t.Properties)
+			curStatus, cause, err := s.taskRunner(t).Status(ctx, run.Descriptor())
 			if err != nil {
 				s.logger.Error(ctx, "Failed to get task status",
 					"task", t,
@@ -730,18 +730,16 @@ func (s *Service) Close() {
 	s.wg.Wait()
 }
 
-var errNilRunnerUsed = errors.New("task type maps to nil runner")
-
 type nilRunner struct{}
 
-func (nilRunner) Run(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
-	return errNilRunnerUsed
+func (nilRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
+	return errors.New("task type maps to nil runner")
 }
 
-func (nilRunner) Stop(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
-	return errNilRunnerUsed
+func (nilRunner) Stop(ctx context.Context, d runner.Descriptor) error {
+	return errors.New("task type maps to nil runner")
 }
 
-func (nilRunner) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, string, error) {
-	return "", "", errNilRunnerUsed
+func (nilRunner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
+	return "", "", errors.New("task type maps to nil runner")
 }

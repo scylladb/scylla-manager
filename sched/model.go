@@ -178,3 +178,12 @@ type Run struct {
 	StartTime time.Time     `json:"start_time"`
 	EndTime   *time.Time    `json:"end_time,omitempty"`
 }
+
+// Descriptor returns descriptor of this Run.
+func (r *Run) Descriptor() runner.Descriptor {
+	return runner.Descriptor{
+		ClusterID: r.ClusterID,
+		TaskID:    r.TaskID,
+		RunID:     r.ID,
+	}
+}
