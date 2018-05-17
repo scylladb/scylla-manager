@@ -18,7 +18,6 @@ type Config struct {
 	StopOnError           bool          `yaml:"stop_on_error"`
 	PollInterval          time.Duration `yaml:"poll_interval"`
 	ErrorBackoff          time.Duration `yaml:"error_backoff"`
-	AutoScheduleDelay     time.Duration `yaml:"auto_schedule_delay"`
 	MaxRunAge             time.Duration `yaml:"max_run_age"`
 	ShardingIgnoreMsbBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
@@ -32,7 +31,6 @@ func DefaultConfig() Config {
 		StopOnError:           false,
 		ErrorBackoff:          10 * time.Second,
 		PollInterval:          200 * time.Millisecond,
-		AutoScheduleDelay:     2 * time.Hour,
 		MaxRunAge:             36 * time.Hour,
 		ShardingIgnoreMsbBits: 12,
 	}
@@ -58,9 +56,6 @@ func (c *Config) Validate() (err error) {
 	}
 	if c.PollInterval <= 0 {
 		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
-	}
-	if c.AutoScheduleDelay <= 0 {
-		err = multierr.Append(err, errors.New("invalid auto_schedule_delay, must be > 0"))
 	}
 	if c.MaxRunAge <= 0 {
 		err = multierr.Append(err, errors.New("invalid max_run_age, must be > 0"))

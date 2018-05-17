@@ -15,9 +15,7 @@ import (
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/uuid"
 )
 
 type server struct {
@@ -99,38 +97,11 @@ func (s *server) registerListeners() {
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	s.provider.Invalidate(c.ID)
-	if c.Current == nil {
-		return nil
-	}
-
-	// create repair units
-	if err := s.repairSvc.SyncUnits(ctx, c.ID); err != nil {
-		return errors.Wrap(err, "failed to sync units")
-	}
-
-	// schedule all unit repair
-	if t, err := s.schedSvc.ListTasks(ctx, c.ID, sched.RepairAutoScheduleTask); err != nil {
-		return errors.Wrap(err, "failed to list scheduled tasks")
-	} else if len(t) == 0 {
-		if err := s.schedSvc.PutTask(ctx, repairAutoScheduleTask(c.ID)); err != nil {
-			return errors.Wrap(err, "failed to add scheduled tasks")
-		}
-	}
-
 	return nil
 }
 
 func (s *server) registerSchedulerRunners() {
 	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc)
-
-	repairAutoSchedule := repair.NewAutoScheduler(
-		s.repairSvc,
-		func(ctx context.Context, clusterID uuid.UUID, props runner.TaskProperties) error {
-			t := repairTask(clusterID, props, s.config.Repair.AutoScheduleDelay)
-			return s.schedSvc.PutTask(ctx, t)
-		},
-	)
-	s.schedSvc.SetRunner(sched.RepairAutoScheduleTask, repairAutoSchedule)
 }
 
 func (s *server) initHTTPServers() {
