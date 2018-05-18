@@ -53,62 +53,6 @@ func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*
 }
 
 /*
-DeleteClusterClusterIDRepairConfig deleteConfig cluster description
-*/
-func (a *Client) DeleteClusterClusterIDRepairConfig(params *DeleteClusterClusterIDRepairConfigParams) (*DeleteClusterClusterIDRepairConfigOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDeleteClusterClusterIDRepairConfigParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteClusterClusterIDRepairConfig",
-		Method:             "DELETE",
-		PathPattern:        "/cluster/{cluster_id}/repair/config",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DeleteClusterClusterIDRepairConfigReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DeleteClusterClusterIDRepairConfigOK), nil
-
-}
-
-/*
-DeleteClusterClusterIDRepairConfigConfigTypeExternalID deleteConfig cluster description
-*/
-func (a *Client) DeleteClusterClusterIDRepairConfigConfigTypeExternalID(params *DeleteClusterClusterIDRepairConfigConfigTypeExternalIDParams) (*DeleteClusterClusterIDRepairConfigConfigTypeExternalIDOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDeleteClusterClusterIDRepairConfigConfigTypeExternalIDParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteClusterClusterIDRepairConfigConfigTypeExternalID",
-		Method:             "DELETE",
-		PathPattern:        "/cluster/{cluster_id}/repair/config/{config_type}/{external_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DeleteClusterClusterIDRepairConfigConfigTypeExternalIDReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DeleteClusterClusterIDRepairConfigConfigTypeExternalIDOK), nil
-
-}
-
-/*
 DeleteClusterClusterIDRepairUnitUnitID deleteUnit Description
 */
 func (a *Client) DeleteClusterClusterIDRepairUnitUnitID(params *DeleteClusterClusterIDRepairUnitUnitIDParams) (*DeleteClusterClusterIDRepairUnitUnitIDOK, error) {
@@ -189,62 +133,6 @@ func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClu
 		return nil, err
 	}
 	return result.(*GetClusterClusterIDOK), nil
-
-}
-
-/*
-GetClusterClusterIDRepairConfig getConfig cluster description
-*/
-func (a *Client) GetClusterClusterIDRepairConfig(params *GetClusterClusterIDRepairConfigParams) (*GetClusterClusterIDRepairConfigOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetClusterClusterIDRepairConfigParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterClusterIDRepairConfig",
-		Method:             "GET",
-		PathPattern:        "/cluster/{cluster_id}/repair/config",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetClusterClusterIDRepairConfigReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterClusterIDRepairConfigOK), nil
-
-}
-
-/*
-GetClusterClusterIDRepairConfigConfigTypeExternalID getConfig cluster description
-*/
-func (a *Client) GetClusterClusterIDRepairConfigConfigTypeExternalID(params *GetClusterClusterIDRepairConfigConfigTypeExternalIDParams) (*GetClusterClusterIDRepairConfigConfigTypeExternalIDOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetClusterClusterIDRepairConfigConfigTypeExternalIDParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterClusterIDRepairConfigConfigTypeExternalID",
-		Method:             "GET",
-		PathPattern:        "/cluster/{cluster_id}/repair/config/{config_type}/{external_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetClusterClusterIDRepairConfigConfigTypeExternalIDReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterClusterIDRepairConfigConfigTypeExternalIDOK), nil
 
 }
 
@@ -581,62 +469,6 @@ func (a *Client) PutClusterClusterID(params *PutClusterClusterIDParams) (*PutClu
 		return nil, err
 	}
 	return result.(*PutClusterClusterIDOK), nil
-
-}
-
-/*
-PutClusterClusterIDRepairConfig updateConfig cluster description
-*/
-func (a *Client) PutClusterClusterIDRepairConfig(params *PutClusterClusterIDRepairConfigParams) (*PutClusterClusterIDRepairConfigOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPutClusterClusterIDRepairConfigParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PutClusterClusterIDRepairConfig",
-		Method:             "PUT",
-		PathPattern:        "/cluster/{cluster_id}/repair/config",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PutClusterClusterIDRepairConfigReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PutClusterClusterIDRepairConfigOK), nil
-
-}
-
-/*
-PutClusterClusterIDRepairConfigConfigTypeExternalID updateConfig cluster description
-*/
-func (a *Client) PutClusterClusterIDRepairConfigConfigTypeExternalID(params *PutClusterClusterIDRepairConfigConfigTypeExternalIDParams) (*PutClusterClusterIDRepairConfigConfigTypeExternalIDOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPutClusterClusterIDRepairConfigConfigTypeExternalIDParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PutClusterClusterIDRepairConfigConfigTypeExternalID",
-		Method:             "PUT",
-		PathPattern:        "/cluster/{cluster_id}/repair/config/{config_type}/{external_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PutClusterClusterIDRepairConfigConfigTypeExternalIDReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PutClusterClusterIDRepairConfigConfigTypeExternalIDOK), nil
 
 }
 

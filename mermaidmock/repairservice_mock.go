@@ -85,43 +85,6 @@ func (mr *MockRepairServiceMockRecorder) ListUnits(ctx, clusterID, f interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnits", reflect.TypeOf((*MockRepairService)(nil).ListUnits), ctx, clusterID, f)
 }
 
-// GetConfig mocks base method
-func (m *MockRepairService) GetConfig(ctx context.Context, src repair.LegacyConfigSource) (*repair.LegacyConfig, error) {
-	ret := m.ctrl.Call(m, "GetConfig", ctx, src)
-	ret0, _ := ret[0].(*repair.LegacyConfig)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetConfig indicates an expected call of GetConfig
-func (mr *MockRepairServiceMockRecorder) GetConfig(ctx, src interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfig", reflect.TypeOf((*MockRepairService)(nil).GetConfig), ctx, src)
-}
-
-// PutConfig mocks base method
-func (m *MockRepairService) PutConfig(ctx context.Context, src repair.LegacyConfigSource, c *repair.LegacyConfig) error {
-	ret := m.ctrl.Call(m, "PutConfig", ctx, src, c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PutConfig indicates an expected call of PutConfig
-func (mr *MockRepairServiceMockRecorder) PutConfig(ctx, src, c interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutConfig", reflect.TypeOf((*MockRepairService)(nil).PutConfig), ctx, src, c)
-}
-
-// DeleteConfig mocks base method
-func (m *MockRepairService) DeleteConfig(ctx context.Context, src repair.LegacyConfigSource) error {
-	ret := m.ctrl.Call(m, "DeleteConfig", ctx, src)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteConfig indicates an expected call of DeleteConfig
-func (mr *MockRepairServiceMockRecorder) DeleteConfig(ctx, src interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfig", reflect.TypeOf((*MockRepairService)(nil).DeleteConfig), ctx, src)
-}
-
 // GetRun mocks base method
 func (m *MockRepairService) GetRun(ctx context.Context, u *repair.Unit, runID uuid.UUID) (*repair.Run, error) {
 	ret := m.ctrl.Call(m, "GetRun", ctx, u, runID)

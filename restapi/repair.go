@@ -4,8 +4,6 @@ package restapi
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -25,10 +23,6 @@ type RepairService interface {
 	PutUnit(ctx context.Context, u *repair.Unit) error
 	DeleteUnit(ctx context.Context, clusterID, ID uuid.UUID) error
 	ListUnits(ctx context.Context, clusterID uuid.UUID, f *repair.UnitFilter) ([]*repair.Unit, error)
-
-	GetConfig(ctx context.Context, src repair.LegacyConfigSource) (*repair.LegacyConfig, error)
-	PutConfig(ctx context.Context, src repair.LegacyConfigSource, c *repair.LegacyConfig) error
-	DeleteConfig(ctx context.Context, src repair.LegacyConfigSource) error
 
 	GetRun(ctx context.Context, u *repair.Unit, runID uuid.UUID) (*repair.Run, error)
 	GetLastRun(ctx context.Context, u *repair.Unit) (*repair.Run, error)
@@ -56,19 +50,6 @@ func newRepairHandler(svc RepairService) *chi.Mux {
 		r.Put("/", h.updateUnit)
 		r.Delete("/", h.deleteUnit)
 		r.Get("/progress/{run_id}", h.repairProgress)
-	})
-
-	// config
-	m.Route("/config", func(r chi.Router) {
-		r.Get("/", h.getConfig)
-		r.Put("/", h.updateConfig)
-		r.Delete("/", h.deleteConfig)
-
-		r.Route("/{config_type}/{external_id}", func(r chi.Router) {
-			r.Get("/", h.getConfig)
-			r.Put("/", h.updateConfig)
-			r.Delete("/", h.deleteConfig)
-		})
 	})
 
 	return m
@@ -274,84 +255,4 @@ func (h *repairHandler) createProgressResponse(r *http.Request, u *repair.Unit, 
 	}
 	resp.PercentComplete = int(totalSum / float64(len(resp.Hosts)))
 	return resp, nil
-}
-
-//
-// config
-//
-
-type repairConfigRequest struct {
-	*repair.LegacyConfig
-	repair.LegacyConfigSource `json:"-"`
-}
-
-func parseConfigRequest(r *http.Request) (*repairConfigRequest, error) {
-	var cr repairConfigRequest
-	if err := render.DecodeJSON(r.Body, &cr.LegacyConfig); err != nil {
-		if err != io.EOF {
-			return nil, err
-		}
-	}
-
-	routeCtx := chi.RouteContext(r.Context())
-	if typ := routeCtx.URLParam("config_type"); typ != "" {
-		err := cr.Type.UnmarshalText([]byte(typ))
-		if err != nil {
-			return nil, errors.Wrap(err, "bad config type")
-		}
-	} else {
-		cr.Type = repair.ClusterConfig
-	}
-	switch cr.Type {
-	case repair.UnitConfig, repair.KeyspaceConfig, repair.ClusterConfig:
-	default:
-		return nil, fmt.Errorf("config type %q not allowed", cr.Type)
-	}
-
-	if id := routeCtx.URLParam("external_id"); id != "" {
-		cr.ExternalID = id
-	}
-	cr.ClusterID = mustClusterIDFromCtx(r)
-
-	return &cr, nil
-}
-
-func (h *repairHandler) getConfig(w http.ResponseWriter, r *http.Request) {
-	cr, err := parseConfigRequest(r)
-	if err != nil {
-		respondBadRequest(w, r, err)
-		return
-	}
-
-	c, err := h.svc.GetConfig(r.Context(), cr.LegacyConfigSource)
-	if err != nil {
-		respondError(w, r, err, "failed to load config")
-		return
-	}
-	render.Respond(w, r, c)
-}
-
-func (h *repairHandler) updateConfig(w http.ResponseWriter, r *http.Request) {
-	cr, err := parseConfigRequest(r)
-	if err != nil {
-		respondBadRequest(w, r, err)
-		return
-	}
-
-	if err := h.svc.PutConfig(r.Context(), cr.LegacyConfigSource, cr.LegacyConfig); err != nil {
-		respondError(w, r, err, "failed to update config")
-		return
-	}
-}
-
-func (h *repairHandler) deleteConfig(w http.ResponseWriter, r *http.Request) {
-	cr, err := parseConfigRequest(r)
-	if err != nil {
-		respondBadRequest(w, r, err)
-		return
-	}
-
-	if err := h.svc.DeleteConfig(r.Context(), cr.LegacyConfigSource); err != nil {
-		respondError(w, r, err, "failed to delete config")
-	}
 }
