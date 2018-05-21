@@ -8,7 +8,6 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	runner "github.com/scylladb/mermaid/sched/runner"
-	uuid "github.com/scylladb/mermaid/uuid"
 	reflect "reflect"
 )
 
@@ -36,20 +35,20 @@ func (m *mockRunner) EXPECT() *mockRunnerMockRecorder {
 }
 
 // Run mocks base method
-func (m *mockRunner) Run(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) error {
-	ret := m.ctrl.Call(m, "Run", arg0, arg1, arg2, arg3)
+func (m *mockRunner) Run(arg0 context.Context, arg1 runner.Descriptor, arg2 runner.Properties) error {
+	ret := m.ctrl.Call(m, "Run", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Run indicates an expected call of Run
-func (mr *mockRunnerMockRecorder) Run(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*mockRunner)(nil).Run), arg0, arg1, arg2, arg3)
+func (mr *mockRunnerMockRecorder) Run(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*mockRunner)(nil).Run), arg0, arg1, arg2)
 }
 
 // Status mocks base method
-func (m *mockRunner) Status(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) (runner.Status, string, error) {
-	ret := m.ctrl.Call(m, "Status", arg0, arg1, arg2, arg3)
+func (m *mockRunner) Status(arg0 context.Context, arg1 runner.Descriptor) (runner.Status, string, error) {
+	ret := m.ctrl.Call(m, "Status", arg0, arg1)
 	ret0, _ := ret[0].(runner.Status)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -57,18 +56,18 @@ func (m *mockRunner) Status(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 run
 }
 
 // Status indicates an expected call of Status
-func (mr *mockRunnerMockRecorder) Status(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*mockRunner)(nil).Status), arg0, arg1, arg2, arg3)
+func (mr *mockRunnerMockRecorder) Status(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*mockRunner)(nil).Status), arg0, arg1)
 }
 
 // Stop mocks base method
-func (m *mockRunner) Stop(arg0 context.Context, arg1, arg2 uuid.UUID, arg3 runner.TaskProperties) error {
-	ret := m.ctrl.Call(m, "Stop", arg0, arg1, arg2, arg3)
+func (m *mockRunner) Stop(arg0 context.Context, arg1 runner.Descriptor) error {
+	ret := m.ctrl.Call(m, "Stop", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Stop indicates an expected call of Stop
-func (mr *mockRunnerMockRecorder) Stop(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*mockRunner)(nil).Stop), arg0, arg1, arg2, arg3)
+func (mr *mockRunnerMockRecorder) Stop(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*mockRunner)(nil).Stop), arg0, arg1)
 }

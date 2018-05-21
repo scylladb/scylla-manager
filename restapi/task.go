@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
@@ -31,14 +32,22 @@ type SchedService interface {
 	GetLastRun(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
 }
 
-type schedHandler struct {
-	svc SchedService
+// RepairService is the repair service interface required by the repair REST API handlers.
+type RepairService interface {
+	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
+	GetProgress(ctx context.Context, run *repair.Run, hosts ...string) ([]*repair.RunProgress, error)
 }
 
-func newSchedHandler(svc SchedService) *chi.Mux {
+type taskHandler struct {
+	schedSvc  SchedService
+	repairSvc RepairService
+}
+
+func newTaskHandler(schedSvc SchedService, repairSvc RepairService) *chi.Mux {
 	m := chi.NewMux()
-	h := &schedHandler{
-		svc: svc,
+	h := &taskHandler{
+		schedSvc:  schedSvc,
+		repairSvc: repairSvc,
 	}
 
 	m.Route("/tasks", func(r chi.Router) {
@@ -54,12 +63,13 @@ func newSchedHandler(svc SchedService) *chi.Mux {
 		r.Put("/start", h.startTask)
 		r.Put("/stop", h.stopTask)
 		r.Get("/history", h.taskHistory)
+		r.Get("/{run_id}/progress", h.taskProgress)
 	})
 
 	return m
 }
 
-func (h *schedHandler) taskCtx(next http.Handler) http.Handler {
+func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		var taskType sched.TaskType
@@ -76,7 +86,7 @@ func (h *schedHandler) taskCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		t, err := h.svc.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
+		t, err := h.schedSvc.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
 		if err != nil {
 			respondError(w, r, err, "failed to load task")
 			return
@@ -95,7 +105,7 @@ type extendedTask struct {
 	EndTime   *time.Time    `json:"end_time,omitempty"`
 }
 
-func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
+func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	all := false
 	if a := r.FormValue("all"); a != "" {
 		var err error
@@ -121,7 +131,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tasks, err := h.svc.ListTasks(r.Context(), mustClusterIDFromCtx(r), taskType)
+	tasks, err := h.schedSvc.ListTasks(r.Context(), mustClusterIDFromCtx(r), taskType)
 	if err != nil {
 		respondError(w, r, err, "failed to list tasks")
 		return
@@ -132,7 +142,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		if !all && !t.Enabled {
 			continue
 		}
-		runs, err := h.svc.GetLastRun(r.Context(), t, 1)
+		runs, err := h.schedSvc.GetLastRun(r.Context(), t, 1)
 		if err != nil {
 			respondError(w, r, err, "failed to load task run")
 			return
@@ -158,7 +168,7 @@ func (h *schedHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, hist)
 }
 
-func (h *schedHandler) parseTask(r *http.Request) (*sched.Task, error) {
+func (h *taskHandler) parseTask(r *http.Request) (*sched.Task, error) {
 	var t sched.Task
 	if err := render.DecodeJSON(r.Body, &t); err != nil {
 		return nil, err
@@ -167,7 +177,7 @@ func (h *schedHandler) parseTask(r *http.Request) (*sched.Task, error) {
 	return &t, nil
 }
 
-func (h *schedHandler) createTask(w http.ResponseWriter, r *http.Request) {
+func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	newTask, err := h.parseTask(r)
 	if err != nil {
 		respondBadRequest(w, r, err)
@@ -178,7 +188,7 @@ func (h *schedHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.PutTask(r.Context(), newTask); err != nil {
+	if err := h.schedSvc.PutTask(r.Context(), newTask); err != nil {
 		respondError(w, r, err, "failed to create task")
 		return
 	}
@@ -188,12 +198,53 @@ func (h *schedHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *schedHandler) loadTask(w http.ResponseWriter, r *http.Request) {
+func (h *taskHandler) loadTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	render.Respond(w, r, t)
 }
 
-func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
+func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
+	t := mustTaskFromCtx(r)
+	newTask, err := h.parseTask(r)
+	if err != nil {
+		respondBadRequest(w, r, err)
+		return
+	}
+	newTask.ID = t.ID
+	newTask.Type = t.Type
+
+	if err := h.schedSvc.PutTask(r.Context(), newTask); err != nil {
+		respondError(w, r, err, "failed to update task")
+		return
+	}
+	render.Respond(w, r, newTask)
+}
+
+func (h *taskHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
+	t := mustTaskFromCtx(r)
+	if err := h.schedSvc.DeleteTask(r.Context(), t); err != nil {
+		respondError(w, r, err, "failed to delete task")
+		return
+	}
+}
+
+func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
+	t := mustTaskFromCtx(r)
+	if err := h.schedSvc.StartTask(r.Context(), t); err != nil {
+		respondError(w, r, err, "failed to start task")
+		return
+	}
+}
+
+func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
+	t := mustTaskFromCtx(r)
+	if err := h.schedSvc.StopTask(r.Context(), t); err != nil {
+		respondError(w, r, err, "failed to stop task")
+		return
+	}
+}
+
+func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 
 	limit := 10
@@ -206,7 +257,7 @@ func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	runs, err := h.svc.GetLastRun(r.Context(), t, limit)
+	runs, err := h.schedSvc.GetLastRun(r.Context(), t, limit)
 	if err != nil {
 		respondError(w, r, err, "failed to load task history")
 		return
@@ -218,43 +269,96 @@ func (h *schedHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, runs)
 }
 
-func (h *schedHandler) updateTask(w http.ResponseWriter, r *http.Request) {
+func (h *taskHandler) taskProgress(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
-	newTask, err := h.parseTask(r)
+
+	runID, err := uuid.Parse(chi.URLParam(r, "run_id"))
 	if err != nil {
 		respondBadRequest(w, r, err)
 		return
 	}
-	newTask.ID = t.ID
-	newTask.Type = t.Type
 
-	if err := h.svc.PutTask(r.Context(), newTask); err != nil {
-		respondError(w, r, err, "failed to update task")
+	run, err := h.repairSvc.GetRun(r.Context(), t.ClusterID, t.ID, runID)
+	if err != nil {
+		respondError(w, r, err, "failed to load repair run")
 		return
 	}
-	render.Respond(w, r, newTask)
+
+	prog, err := h.repairSvc.GetProgress(r.Context(), run)
+	if err != nil {
+		respondError(w, r, err, "failed to load repair run progress")
+		return
+	}
+
+	render.Respond(w, r, h.makeProgressResponse(run, prog))
 }
 
-func (h *schedHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
-	t := mustTaskFromCtx(r)
-	if err := h.svc.DeleteTask(r.Context(), t); err != nil {
-		respondError(w, r, err, "failed to delete task")
-		return
-	}
+type repairProgress struct {
+	PercentComplete int `json:"percent_complete"`
+	Total           int `json:"total"`
+	Success         int `json:"success"`
+	Error           int `json:"error"`
 }
 
-func (h *schedHandler) startTask(w http.ResponseWriter, r *http.Request) {
-	t := mustTaskFromCtx(r)
-	if err := h.svc.StartTask(r.Context(), t); err != nil {
-		respondError(w, r, err, "failed to start task")
-		return
-	}
+type repairHostProgress struct {
+	repairProgress
+	Shards map[int]*repairProgress `json:"shards"`
 }
 
-func (h *schedHandler) stopTask(w http.ResponseWriter, r *http.Request) {
-	t := mustTaskFromCtx(r)
-	if err := h.svc.StopTask(r.Context(), t); err != nil {
-		respondError(w, r, err, "failed to stop task")
-		return
+type repairProgressResponse struct {
+	Status repair.Status `json:"status"`
+	Cause  string        `json:"cause"`
+	repairProgress
+	Hosts map[string]*repairHostProgress `json:"hosts"`
+}
+
+func (h *taskHandler) makeProgressResponse(run *repair.Run, prog []*repair.RunProgress) *repairProgressResponse {
+	resp := &repairProgressResponse{
+		Status: run.Status,
+		Cause:  run.Cause,
 	}
+
+	if len(prog) == 0 {
+		return resp
+	}
+
+	resp.Hosts = make(map[string]*repairHostProgress)
+
+	for _, p := range prog {
+		if _, ok := resp.Hosts[p.Host]; !ok {
+			resp.Hosts[p.Host] = &repairHostProgress{
+				Shards: make(map[int]*repairProgress),
+			}
+		}
+
+		if p.SegmentCount == 0 {
+			resp.Hosts[p.Host].Shards[p.Shard] = &repairProgress{}
+			continue
+		}
+		resp.Hosts[p.Host].Shards[p.Shard] = &repairProgress{
+			PercentComplete: p.PercentComplete(),
+			Total:           p.SegmentCount,
+			Success:         p.SegmentSuccess,
+			Error:           p.SegmentError,
+		}
+	}
+
+	var totalSum float64
+	for _, hostProgress := range resp.Hosts {
+		var sum float64
+		for _, s := range hostProgress.Shards {
+			sum += float64(s.PercentComplete)
+			hostProgress.Total += s.Total
+			hostProgress.Success += s.Success
+			hostProgress.Error += s.Error
+		}
+		sum /= float64(len(hostProgress.Shards))
+		totalSum += sum
+		hostProgress.PercentComplete = int(sum)
+		resp.Total += hostProgress.Total
+		resp.Success += hostProgress.Success
+		resp.Error += hostProgress.Error
+	}
+	resp.PercentComplete = int(totalSum / float64(len(resp.Hosts)))
+	return resp
 }
