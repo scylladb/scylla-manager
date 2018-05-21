@@ -25,9 +25,6 @@ type RepairProgress struct {
 	// hosts
 	Hosts RepairProgressHosts `json:"hosts,omitempty"`
 
-	// keyspace
-	Keyspace string `json:"keyspace,omitempty"`
-
 	// percent complete
 	PercentComplete int32 `json:"percent_complete,omitempty"`
 
@@ -36,9 +33,6 @@ type RepairProgress struct {
 
 	// success
 	Success int32 `json:"success,omitempty"`
-
-	// tables
-	Tables []string `json:"tables"`
 
 	// total
 	Total int32 `json:"total,omitempty"`

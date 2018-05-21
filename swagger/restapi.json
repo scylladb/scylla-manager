@@ -48,58 +48,9 @@
         }
       }
     },
-    "repairUnit": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "cluster_id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "keyspace": {
-          "type": "string"
-        },
-        "tables": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "repairUnitUpdate": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "keyspace": {
-          "type": "string"
-        },
-        "tables": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "repairProgress": {
       "type": "object",
       "properties": {
-        "keyspace": {
-          "type": "string"
-        },
-        "tables": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "status": {
           "type": "string"
         },
@@ -448,148 +399,6 @@
         }
       }
     },
-    "/cluster/{cluster_id}/repair/unit/{unit_id}/progress/{run_id}": {
-      "get": {
-        "parameters": [
-          {
-            "type": "string",
-            "description": "cluster ID this API is performing on",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "unit ID requesting the stats",
-            "type": "string",
-            "name": "unit_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "repair run ID requesting the stats",
-            "name": "run_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "percentage of run completed in total and details",
-            "schema": {
-              "$ref": "#/definitions/repairProgress"
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster_id}/repair/unit/{unit_id}": {
-      "parameters": [
-        {
-          "type": "string",
-          "description": "cluster ID this API is performing on",
-          "name": "cluster_id",
-          "in": "path",
-          "required": true
-        },
-        {
-          "type": "string",
-          "description": "target unit UUID",
-          "name": "unit_id",
-          "in": "path",
-          "required": true
-        }
-      ],
-      "get": {
-        "description": "loadUnit Description",
-        "responses": {
-          "200": {
-            "description": "requested unit fields",
-            "schema": {
-              "$ref": "#/definitions/repairUnit"
-            }
-          }
-        }
-      },
-      "put": {
-        "description": "updateUnit Description",
-        "parameters": [
-          {
-            "description": "unit JSON object with updated fields",
-            "name": "unitFields",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/repairUnitUpdate"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "updated unit fields",
-            "schema": {
-              "$ref": "#/definitions/repairUnit"
-            }
-          }
-        }
-      },
-      "delete": {
-        "description": "deleteUnit Description",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/cluster/{cluster_id}/repair/units": {
-      "parameters": [
-        {
-          "type": "string",
-          "description": "cluster ID this API is performing on",
-          "name": "cluster_id",
-          "in": "path",
-          "required": true
-        }
-      ],
-      "get": {
-        "description": "listUnits Description",
-        "responses": {
-          "200": {
-            "description": "array of units",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/repairUnit"
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "description": "createUnit Description",
-        "parameters": [
-          {
-            "description": "unit JSON object with updated fields",
-            "name": "unitFields",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/repairUnitUpdate"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "headers": {
-              "Location": {
-                "description": "location of the new unit",
-                "type": "string"
-              }
-            }
-          }
-        }
-      }
-    },
     "/cluster/{cluster_id}/tasks": {
       "parameters": [
         {
@@ -837,6 +646,41 @@
               "items": {
                 "$ref": "#/definitions/taskRun"
               }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/repair/{task_id}/{run_id}/progress": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "description": "cluster ID this API is performing on",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "task ID (UUID) or name",
+            "name": "task_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "task run ID",
+            "name": "run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "percentage of run completed in total and details",
+            "schema": {
+              "$ref": "#/definitions/repairProgress"
             }
           }
         }

@@ -53,34 +53,6 @@ func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*
 }
 
 /*
-DeleteClusterClusterIDRepairUnitUnitID deleteUnit Description
-*/
-func (a *Client) DeleteClusterClusterIDRepairUnitUnitID(params *DeleteClusterClusterIDRepairUnitUnitIDParams) (*DeleteClusterClusterIDRepairUnitUnitIDOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDeleteClusterClusterIDRepairUnitUnitIDParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteClusterClusterIDRepairUnitUnitID",
-		Method:             "DELETE",
-		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DeleteClusterClusterIDRepairUnitUnitIDReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DeleteClusterClusterIDRepairUnitUnitIDOK), nil
-
-}
-
-/*
 DeleteClusterClusterIDTaskTaskTypeTaskID deleteTask Description
 */
 func (a *Client) DeleteClusterClusterIDTaskTaskTypeTaskID(params *DeleteClusterClusterIDTaskTaskTypeTaskIDParams) (*DeleteClusterClusterIDTaskTaskTypeTaskIDOK, error) {
@@ -137,86 +109,30 @@ func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClu
 }
 
 /*
-GetClusterClusterIDRepairUnitUnitID loadUnit Description
+GetClusterClusterIDTaskRepairTaskIDRunIDProgress get cluster cluster ID task repair task ID run ID progress API
 */
-func (a *Client) GetClusterClusterIDRepairUnitUnitID(params *GetClusterClusterIDRepairUnitUnitIDParams) (*GetClusterClusterIDRepairUnitUnitIDOK, error) {
+func (a *Client) GetClusterClusterIDTaskRepairTaskIDRunIDProgress(params *GetClusterClusterIDTaskRepairTaskIDRunIDProgressParams) (*GetClusterClusterIDTaskRepairTaskIDRunIDProgressOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetClusterClusterIDRepairUnitUnitIDParams()
+		params = NewGetClusterClusterIDTaskRepairTaskIDRunIDProgressParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterClusterIDRepairUnitUnitID",
+		ID:                 "GetClusterClusterIDTaskRepairTaskIDRunIDProgress",
 		Method:             "GET",
-		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}",
+		PathPattern:        "/cluster/{cluster_id}/task/repair/{task_id}/{run_id}/progress",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetClusterClusterIDRepairUnitUnitIDReader{formats: a.formats},
+		Reader:             &GetClusterClusterIDTaskRepairTaskIDRunIDProgressReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDRepairUnitUnitIDOK), nil
-
-}
-
-/*
-GetClusterClusterIDRepairUnitUnitIDProgressRunID get cluster cluster ID repair unit unit ID progress run ID API
-*/
-func (a *Client) GetClusterClusterIDRepairUnitUnitIDProgressRunID(params *GetClusterClusterIDRepairUnitUnitIDProgressRunIDParams) (*GetClusterClusterIDRepairUnitUnitIDProgressRunIDOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetClusterClusterIDRepairUnitUnitIDProgressRunIDParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterClusterIDRepairUnitUnitIDProgressRunID",
-		Method:             "GET",
-		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}/progress/{run_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetClusterClusterIDRepairUnitUnitIDProgressRunIDReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterClusterIDRepairUnitUnitIDProgressRunIDOK), nil
-
-}
-
-/*
-GetClusterClusterIDRepairUnits listUnits Description
-*/
-func (a *Client) GetClusterClusterIDRepairUnits(params *GetClusterClusterIDRepairUnitsParams) (*GetClusterClusterIDRepairUnitsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetClusterClusterIDRepairUnitsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterClusterIDRepairUnits",
-		Method:             "GET",
-		PathPattern:        "/cluster/{cluster_id}/repair/units",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetClusterClusterIDRepairUnitsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterClusterIDRepairUnitsOK), nil
+	return result.(*GetClusterClusterIDTaskRepairTaskIDRunIDProgressOK), nil
 
 }
 
@@ -361,34 +277,6 @@ func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
 }
 
 /*
-PostClusterClusterIDRepairUnits createUnit Description
-*/
-func (a *Client) PostClusterClusterIDRepairUnits(params *PostClusterClusterIDRepairUnitsParams) (*PostClusterClusterIDRepairUnitsCreated, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPostClusterClusterIDRepairUnitsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PostClusterClusterIDRepairUnits",
-		Method:             "POST",
-		PathPattern:        "/cluster/{cluster_id}/repair/units",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PostClusterClusterIDRepairUnitsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PostClusterClusterIDRepairUnitsCreated), nil
-
-}
-
-/*
 PostClusterClusterIDTasks createTask Description
 */
 func (a *Client) PostClusterClusterIDTasks(params *PostClusterClusterIDTasksParams) (*PostClusterClusterIDTasksCreated, error) {
@@ -469,34 +357,6 @@ func (a *Client) PutClusterClusterID(params *PutClusterClusterIDParams) (*PutClu
 		return nil, err
 	}
 	return result.(*PutClusterClusterIDOK), nil
-
-}
-
-/*
-PutClusterClusterIDRepairUnitUnitID updateUnit Description
-*/
-func (a *Client) PutClusterClusterIDRepairUnitUnitID(params *PutClusterClusterIDRepairUnitUnitIDParams) (*PutClusterClusterIDRepairUnitUnitIDOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPutClusterClusterIDRepairUnitUnitIDParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PutClusterClusterIDRepairUnitUnitID",
-		Method:             "PUT",
-		PathPattern:        "/cluster/{cluster_id}/repair/unit/{unit_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PutClusterClusterIDRepairUnitUnitIDReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PutClusterClusterIDRepairUnitUnitIDOK), nil
 
 }
 

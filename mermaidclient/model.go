@@ -20,9 +20,6 @@ type RepairProgressRow struct {
 	Empty    bool
 }
 
-// RepairUnit is repair.Unit representation.
-type RepairUnit = models.RepairUnit
-
 // Task is a sched.Task representation.
 type Task = models.Task
 
