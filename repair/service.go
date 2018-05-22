@@ -277,7 +277,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		l := prometheus.Labels{
 			"cluster": c.String(),
-			"unit":    run.TaskID.String(),
+			"task":    run.TaskID.String(),
 			"host":    host,
 			"shard":   "0",
 		}
@@ -330,7 +330,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 					l := prometheus.Labels{
 						"cluster": c.String(),
-						"unit":    run.TaskID.String(),
+						"task":    run.TaskID.String(),
 						"host":    p.Host,
 						"shard":   fmt.Sprint(p.Shard),
 					}
@@ -486,7 +486,7 @@ func (s *Service) reportRepairProgress(ctx context.Context, c *cluster.Cluster, 
 			for host, percent := range hostsPercentComplete(prog) {
 				repairProgress.With(prometheus.Labels{
 					"cluster": c.String(),
-					"unit":    run.TaskID.String(),
+					"task":    run.TaskID.String(),
 					"host":    host,
 				}).Set(percent)
 			}
@@ -756,6 +756,7 @@ func (s *Service) Close() {
 	s.wg.Wait()
 }
 
-// FIXME change getHostProgress to accept signle host, remove/refactor GetProgress
+// FIXME worker remove Cluster, add ClusterName to run, evaluate functions if cluster is needed
+// FIXME change getHostProgress to accept signle host, refactor GetProgress to two functions, propagate changes to restapi
 // FIXME change API "clusterID, taskID, runID uuid.UUID"?
 // FIXME StopRepair do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())

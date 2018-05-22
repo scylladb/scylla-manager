@@ -24,21 +24,21 @@ var (
 		Subsystem: "repair",
 		Name:      "segments_total",
 		Help:      "Total number of segments to repair.",
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "host", "shard"})
 
 	repairSegmentsSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_success",
 		Help:      "Number of repaired segments.",
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "host", "shard"})
 
 	repairSegmentsError = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_error",
 		Help:      "Number of segments that failed to repair.",
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "host", "shard"})
 
 	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scylla_manager",
@@ -46,14 +46,14 @@ var (
 		Name:      "duration_seconds",
 		Help:      "Duration of a single repair command.",
 		MaxAge:    30 * time.Minute,
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "host", "shard"})
 
 	repairProgress = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "progress",
 		Help:      "Current repair progress.",
-	}, []string{"cluster", "unit", "host"})
+	}, []string{"cluster", "task", "host"})
 )
 
 func init() {
@@ -165,7 +165,7 @@ func (w *worker) init(ctx context.Context) error {
 
 		labels := prometheus.Labels{
 			"cluster": w.Cluster.String(),
-			"unit":    w.Run.TaskID.String(),
+			"task":    w.Run.TaskID.String(),
 			"host":    w.Host,
 			"shard":   fmt.Sprint(i),
 		}
