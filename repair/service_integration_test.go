@@ -319,21 +319,21 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	nodeProgress := func(ip string) int {
-		prog, err := s.GetProgress(ctx, &repair.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        runID,
-		}, ip)
+		prog, err := s.GetProgress(ctx, clusterID, taskID, runID)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		v := 0
+		t := 0
 		for _, p := range prog {
-			v += p.PercentComplete()
+			if p.Host == ip {
+				v += p.PercentComplete()
+				t += 1
+			}
 		}
-		if l := len(prog); l > 0 {
-			v /= l
+		if t != 0 {
+			v /= t
 		}
 		return v
 	}
@@ -538,18 +538,21 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 	assertStatus(repair.StatusError)
 
 	// And errors are recorded
-	prog, err := s.GetProgress(ctx, &repair.Run{
-		ClusterID: clusterID,
-		TaskID:    taskID,
-		ID:        runID,
-	}, node0)
+	prog, err := s.GetProgress(ctx, clusterID, taskID, runID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(prog) != 2 {
+	hostProg := prog[:0]
+	for _, p := range prog {
+		if p.Host == node0 {
+			hostProg = append(hostProg, p)
+		}
+	}
+
+	if len(hostProg) != 2 {
 		t.Fatal("expected 2 shards")
 	}
-	for _, p := range prog {
+	for _, p := range hostProg {
 		if p.SegmentError != config.SegmentsPerRepair {
 			t.Error("expected", config.SegmentsPerRepair, "failed segments, got", p.SegmentError)
 		}

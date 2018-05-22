@@ -290,7 +290,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// update progress from the previous run
 	if prev != nil {
-		prog, err := s.GetProgress(ctx, &Run{
+		prog, err := s.getProgress(ctx, &Run{
 			ClusterID: run.ClusterID,
 			TaskID:    run.TaskID,
 			ID:        run.PrevID,
@@ -479,7 +479,7 @@ func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
 	for {
 		select {
 		case <-t.C:
-			prog, err := s.getAllHostsProgress(ctx, run)
+			prog, err := s.getProgress(ctx, run)
 			if err != nil {
 				s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
 			}
@@ -567,7 +567,7 @@ func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.
 		}
 
 		// check if repair started
-		p, err := s.getAllHostsProgress(ctx, r)
+		p, err := s.getProgress(ctx, r)
 		if err != nil {
 			return nil, err
 		}
@@ -671,24 +671,20 @@ func (s *Service) isStopped(ctx context.Context, run *Run) (bool, error) {
 	return v == StatusStopping || v == StatusStopped, nil
 }
 
-// GetProgress returns run progress. If nothing was found mermaid.ErrNotFound
-// is returned.
-func (s *Service) GetProgress(ctx context.Context, run *Run, hosts ...string) ([]*RunProgress, error) {
+// GetProgress returns run progress for all shards on all the hosts. If nothing
+// was found mermaid.ErrNotFound is returned.
+func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]*RunProgress, error) {
 	s.logger.Debug(ctx, "GetProgress",
-		"cluster_id", run.ClusterID,
-		"task_id", run.TaskID,
-		"run_id", run.ID,
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
 	)
-
-	if len(hosts) == 0 {
-		return s.getAllHostsProgress(ctx, run)
-	}
-
-	return s.getHostProgress(ctx, run, hosts...)
+	return s.getProgress(ctx, &Run{ClusterID: clusterID, TaskID: taskID, ID: runID})
 }
 
-func (s *Service) getAllHostsProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
+func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
 	stmt, names := schema.RepairRunProgress.Select()
+
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
 	defer q.Release()
 
@@ -705,7 +701,7 @@ func (s *Service) getAllHostsProgress(ctx context.Context, run *Run) ([]*RunProg
 	return p, gocqlx.Select(&p, q.Query)
 }
 
-func (s *Service) getHostProgress(ctx context.Context, run *Run, hosts ...string) ([]*RunProgress, error) {
+func (s *Service) getHostProgress(ctx context.Context, run *Run, host string) ([]*RunProgress, error) {
 	stmt, names := schema.RepairRunProgress.SelectBuilder().Where(
 		qb.Eq("host"),
 	).ToCql()
@@ -717,27 +713,15 @@ func (s *Service) getHostProgress(ctx context.Context, run *Run, hosts ...string
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
+		"host":       host,
+	}
+	q.BindMap(m)
+	if q.Err() != nil {
+		return nil, q.Err()
 	}
 
 	var p []*RunProgress
-
-	for _, h := range hosts {
-		m["host"] = h
-
-		q.BindMap(m)
-		if q.Err() != nil {
-			return nil, q.Err()
-		}
-
-		var v []*RunProgress
-		if err := gocqlx.Select(&v, q.Query); err != nil {
-			return nil, err
-		}
-
-		p = append(p, v...)
-	}
-
-	return p, nil
+	return p, gocqlx.Select(&p, q.Query)
 }
 
 // putRunProgress upserts a repair run.
@@ -756,6 +740,5 @@ func (s *Service) Close() {
 	s.wg.Wait()
 }
 
-// FIXME change getHostProgress to accept signle host, refactor GetProgress to two functions, propagate changes to restapi
 // FIXME change API "clusterID, taskID, runID uuid.UUID"?
 // FIXME StopRepair do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())

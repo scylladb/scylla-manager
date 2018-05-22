@@ -35,7 +35,7 @@ type SchedService interface {
 // RepairService is the repair service interface required by the repair REST API handlers.
 type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
-	GetProgress(ctx context.Context, run *repair.Run, hosts ...string) ([]*repair.RunProgress, error)
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]*repair.RunProgress, error)
 }
 
 type taskHandler struct {
@@ -284,7 +284,7 @@ func (h *taskHandler) taskProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prog, err := h.repairSvc.GetProgress(r.Context(), run)
+	prog, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, runID)
 	if err != nil {
 		respondError(w, r, err, "failed to load repair run progress")
 		return

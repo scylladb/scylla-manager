@@ -123,7 +123,7 @@ func (w *worker) exec(ctx context.Context) error {
 
 func (w *worker) init(ctx context.Context) error {
 	// continue from a savepoint
-	prog, err := w.Service.GetProgress(ctx, w.Run, w.Host)
+	prog, err := w.Service.getHostProgress(ctx, w.Run, w.Host)
 	if err != nil {
 		return errors.Wrap(err, "failed to get host progress")
 	}
