@@ -139,7 +139,7 @@
     "internal/murmur",
     "internal/streams"
   ]
-  revision = "181004e14a3fb735efcc826a4256369d0c96747b"
+  revision = "dd47639f787e8583e1a13e17e20a9f6c4332bc29"
 
 [[projects]]
   name = "github.com/golang/mock"

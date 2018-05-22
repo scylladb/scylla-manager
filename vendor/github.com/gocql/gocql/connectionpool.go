@@ -420,9 +420,7 @@ func (pool *hostConnPool) fill() {
 
 			// this is call with the connection pool mutex held, this call will
 			// then recursively try to lock it again. FIXME
-			if pool.session.cfg.ConvictionPolicy.AddFailure(err, pool.host) {
-				go pool.session.handleNodeDown(pool.host.ConnectAddress(), pool.port)
-			}
+			go pool.session.handleNodeDown(pool.host.ConnectAddress(), pool.port)
 			return
 		}
 
@@ -499,10 +497,10 @@ func (pool *hostConnPool) connectMany(count int) error {
 func (pool *hostConnPool) connect() (err error) {
 	// TODO: provide a more robust connection retry mechanism, we should also
 	// be able to detect hosts that come up by trying to connect to downed ones.
+	const maxAttempts = 3
 	// try to connect
 	var conn *Conn
-	reconnectionPolicy := pool.session.cfg.ReconnectionPolicy
-	for i := 0; i < reconnectionPolicy.GetMaxRetries(); i++ {
+	for i := 0; i < maxAttempts; i++ {
 		conn, err = pool.session.connect(pool.host, pool)
 		if err == nil {
 			break
@@ -514,11 +512,6 @@ func (pool *hostConnPool) connect() (err error) {
 				break
 			}
 		}
-		if gocqlDebug {
-			Logger.Printf("connection failed %q: %v, reconnecting with %T\n",
-				pool.host.ConnectAddress(), err, reconnectionPolicy)
-		}
-		time.Sleep(reconnectionPolicy.GetInterval(i))
 	}
 
 	if err != nil {
