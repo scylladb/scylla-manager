@@ -10,12 +10,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func validateHosts(ctx context.Context, hosts []string, hostInfo func(ctx context.Context, host string) (cluster, dc string, err error)) (err error) {
+func validateHosts(ctx context.Context, c *Cluster, hostInfo func(ctx context.Context, c *Cluster, host string) (cluster, dc string, err error)) (err error) {
 	clusters := set.NewNonTS()
 	dcs := set.NewNonTS()
 
-	for _, h := range hosts {
-		c, dc, e := hostInfo(ctx, h)
+	for _, h := range c.Hosts {
+		c, dc, e := hostInfo(ctx, c, h)
 		if e != nil {
 			err = multierr.Append(err, errors.Wrap(e, h))
 		} else {

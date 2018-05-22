@@ -12,11 +12,11 @@ import (
 
 // NewTransport is a convenience function that returns a modified version of
 // http.Transport that uses ProxyDialer.
-func NewTransport(config *ssh.ClientConfig) *http.Transport {
+func NewTransport(c *ssh.ClientConfig) *http.Transport {
 	return &http.Transport{
 		Dial: ProxyDialer{
 			Pool:   DefaultPool,
-			Config: config,
+			Config: c,
 		}.Dial,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -29,7 +29,7 @@ func NewTransport(config *ssh.ClientConfig) *http.Transport {
 func NewProductionTransport(c Config) (*http.Transport, error) {
 	cfg, err := NewProductionClientConfig(c)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create SSH client config")
+		return nil, errors.Wrap(err, "failed to create SSH client c")
 	}
 
 	return NewTransport(cfg), nil

@@ -5,7 +5,7 @@ package cluster
 import (
 	"bytes"
 	"context"
-	"net/http"
+	"os/user"
 	"sort"
 
 	"github.com/gocql/gocql"
@@ -28,21 +28,28 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          *gocql.Session
-	transport        http.RoundTripper
+	sshManager       *sshManager
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, t http.RoundTripper, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
+
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
+	u, err := user.Current()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get the current user")
+	}
+	sshManager := newSSHManager(u.HomeDir)
+
 	return &Service{
-		session:   session,
-		transport: t,
-		logger:    l,
+		session:    session,
+		sshManager: sshManager,
+		logger:     l,
 	}, nil
 }
 
@@ -54,16 +61,17 @@ func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) erro
 
 // Client returns cluster client.
 func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
-	if s.transport == nil {
-		return nil, errors.New("no transport")
-	}
-
 	c, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := scyllaclient.NewClient(c.Hosts, s.transport, s.logger.Named("client"))
+	transport, err := s.sshManager.createTransport(c)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := scyllaclient.NewClient(c.Hosts, transport, s.logger.Named("client"))
 	if err != nil {
 		return nil, err
 	}
@@ -186,13 +194,12 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid cluster")}
 	}
 
-	// validate hosts
-	if s.transport == nil {
-		s.logger.Info(ctx, "validation skipped: missing transport")
-	} else {
-		if err := validateHosts(ctx, c.Hosts, s.hostInfo); err != nil {
-			return mermaid.ParamError{Cause: errors.Wrap(err, "invalid hosts")}
-		}
+	if err := s.sshManager.storeIdentityFile(c); err != nil {
+		return errors.Wrap(err, "identity file save failed")
+	}
+
+	if err := validateHosts(ctx, c, s.hostInfo); err != nil {
+		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid hosts")}
 	}
 
 	// check for conflicting names
@@ -222,8 +229,13 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	return s.onChangeListener(ctx, Change{ID: c.ID, Current: c})
 }
 
-func (s *Service) hostInfo(ctx context.Context, host string) (cluster, dc string, err error) {
-	client, err := scyllaclient.NewClient([]string{host}, s.transport, s.logger.Named("client"))
+func (s *Service) hostInfo(ctx context.Context, c *Cluster, host string) (cluster, dc string, err error) {
+
+	transport, err := s.sshManager.createTransport(c)
+	if err != nil {
+		return "", "", err
+	}
+	client, err := scyllaclient.NewClient([]string{host}, transport, s.logger.Named("client"))
 	if err != nil {
 		return "", "", err
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/fsutil"
 	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )
@@ -30,15 +31,15 @@ func (c *Config) Validate() (err error) {
 		err = multierr.Append(err, errors.New("missing identity_file"))
 	}
 
+	if err := fsutil.CheckPerm(c.IdentityFile, 0400); err != nil {
+		err = multierr.Append(err, errors.New("identity_file has the wrong permissions"))
+	}
+
 	return
 }
 
 // NewProductionClientConfig returns configuration with a key based authentication.
 func NewProductionClientConfig(c Config) (*ssh.ClientConfig, error) {
-	if err := c.Validate(); err != nil {
-		return nil, err
-	}
-
 	auth, err := keyPairAuthMethod(c.IdentityFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse %q", c.IdentityFile)

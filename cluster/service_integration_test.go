@@ -6,8 +6,11 @@ package cluster_test
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"testing"
+
+	"io/ioutil"
 
 	"github.com/google/go-cmp/cmp"
 	log "github.com/scylladb/golog"
@@ -20,7 +23,20 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 
-	s, err := cluster.NewService(session, nil, log.NewDevelopment().Named("cluster"))
+	pem, err := ioutil.ReadFile("../testing/scylla_cluster/scylla_manager.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dir, err := ioutil.TempDir("", "mermaid.cluster.TestServiceStorageIntegration")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		os.Remove(dir)
+	}()
+
+	s, err := cluster.NewService(session, log.NewDevelopment().Named("cluster"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,14 +69,17 @@ func TestServiceStorageIntegration(t *testing.T) {
 		expected := make([]*cluster.Cluster, 3)
 		for i := range expected {
 			c := &cluster.Cluster{
-				ID:         uuid.NewTime(),
-				Name:       "name" + strconv.Itoa(i),
-				Hosts:      []string{"a"},
-				ShardCount: 16,
+				ID:              uuid.NewTime(),
+				Name:            "name" + strconv.Itoa(i),
+				Hosts:           []string{"172.16.1.10"},
+				ShardCount:      16,
+				SSHUser:         "scylla-manager",
+				SSHIdentityFile: pem,
 			}
 			if err := s.PutCluster(ctx, c); err != nil {
 				t.Fatal(err)
 			}
+			c.SSHIdentityFile = nil
 			expected[i] = c
 		}
 
@@ -89,12 +108,13 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("get cluster", func(t *testing.T) {
 		cleanup(t)
 
-		c0 := validCluster()
+		c0 := validCluster(pem, "scylla-manager")
 		c0.ID = uuid.Nil
 
 		if err := s.PutCluster(ctx, c0); err != nil {
 			t.Fatal(err)
 		}
+		c0.SSHIdentityFile = nil
 		if c0.ID == uuid.Nil {
 			t.Fatal("ID not updated")
 		}
@@ -126,7 +146,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put conflicting cluster", func(t *testing.T) {
 		cleanup(t)
 
-		c0 := validCluster()
+		c0 := validCluster(pem, "scylla-manager")
 
 		if err := s.PutCluster(ctx, c0); err != nil {
 			t.Fatal(err)
@@ -143,7 +163,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("put new cluster", func(t *testing.T) {
 		cleanup(t)
 
-		c := validCluster()
+		c := validCluster(pem, "scylla-manager")
 		c.ID = uuid.Nil
 
 		if err := s.PutCluster(ctx, c); err != nil {
@@ -166,7 +186,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	t.Run("delete cluster", func(t *testing.T) {
 		cleanup(t)
 
-		c := validCluster()
+		c := validCluster(pem, "scylla-manager")
 
 		if err := s.PutCluster(ctx, c); err != nil {
 			t.Fatal(err)
@@ -181,11 +201,18 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 }
 
-func validCluster() *cluster.Cluster {
-	return &cluster.Cluster{
+func validCluster(pem []byte, sshUser string) *cluster.Cluster {
+	c := &cluster.Cluster{
 		ID:         uuid.MustRandom(),
 		Name:       "name_" + uuid.MustRandom().String(),
-		Hosts:      []string{"a", "b"},
+		Hosts:      []string{"172.16.1.10", "172.16.1.2"},
 		ShardCount: 16,
+		SSHUser:    sshUser,
 	}
+
+	if len(pem) > 0 {
+		c.SSHIdentityFile = pem
+	}
+
+	return c
 }

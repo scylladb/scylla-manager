@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	log "github.com/scylladb/golog"
-	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"go.uber.org/zap/zapcore"
@@ -42,10 +41,6 @@ func TestNewConfigFromFile(t *testing.T) {
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             3,
 			Timeout:                       600 * time.Millisecond,
-		},
-		SSH: ssh.Config{
-			User:         "user",
-			IdentityFile: "identity_file",
 		},
 		Repair: repair.Config{
 			SegmentSizeLimit:      10,

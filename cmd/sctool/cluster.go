@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
@@ -23,12 +24,16 @@ var (
 	cfgClusterName       string
 	cfgClusterHosts      []string
 	cfgClusterShardCount int64
+	cfgSSHIdentityFile   string
+	cfgSSHUser           string
 )
 
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "alias `name`")
 	cmd.Flags().StringSliceVar(&cfgClusterHosts, "hosts", nil, "comma-separated `list` of hosts")
 	cmd.Flags().Int64Var(&cfgClusterShardCount, "shard-count", 0, "number of shards per node, each node must have equal number of shards")
+	cmd.Flags().StringVar(&cfgSSHIdentityFile, "ssh-identity-file", "", "SSH private key in PEM format")
+	cmd.Flags().StringVar(&cfgSSHUser, "ssh-user", "", "SSH user used to connect to scylla nodes with")
 }
 
 var clusterAddCmd = &cobra.Command{
@@ -36,11 +41,25 @@ var clusterAddCmd = &cobra.Command{
 	Short: "Adds a cluster to manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id, err := client.CreateCluster(ctx, &mermaidclient.Cluster{
+		c := &mermaidclient.Cluster{
 			Name:       cfgClusterName,
 			Hosts:      cfgClusterHosts,
 			ShardCount: cfgClusterShardCount,
-		})
+		}
+
+		if cfgSSHIdentityFile != "" {
+			b, err := ioutil.ReadFile(cfgSSHIdentityFile)
+			if err != nil {
+				return printableError{inner: err}
+			}
+			c.SSHIdentityFile = b
+			if cfgSSHUser == "" {
+				return printableError{errors.New("an ssh user is needed")}
+			}
+			c.SSHUser = cfgSSHUser
+		}
+
+		id, err := client.CreateCluster(ctx, c)
 		if err != nil {
 			return printableError{err}
 		}

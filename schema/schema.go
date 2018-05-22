@@ -99,7 +99,7 @@ func (t Table) init() Table {
 var (
 	Cluster = Table{
 		Name:    "cluster",
-		Columns: []string{"id", "name", "hosts", "shard_count"},
+		Columns: []string{"id", "name", "hosts", "shard_count", "ssh_user"},
 		PartKey: []string{"id"},
 	}.init()
 
