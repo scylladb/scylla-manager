@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -69,7 +70,7 @@ var taskListCmd = &cobra.Command{
 				}
 			}
 
-			tasks, err := client.ListSchedTasks(ctx, c.ID, taskType, all, status)
+			tasks, err := client.ListTasks(ctx, c.ID, taskType, all, status)
 			if err != nil {
 				return printableError{err}
 			}
@@ -132,7 +133,7 @@ var taskStartCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		if err := client.SchedStartTask(ctx, cfgCluster, taskType, taskID); err != nil {
+		if err := client.StartTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -153,7 +154,7 @@ var taskStopCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if err := client.SchedStopTask(ctx, cfgCluster, taskType, taskID); err != nil {
+		if err := client.StopTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -180,7 +181,7 @@ var taskHistoryCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		runs, err := client.GetSchedTaskHistory(ctx, cfgCluster, taskType, taskID, limit)
+		runs, err := client.GetTaskHistory(ctx, cfgCluster, taskType, taskID, limit)
 		if err != nil {
 			return printableError{err}
 		}
@@ -227,7 +228,7 @@ var taskUpdateCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
+		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
 			return printableError{err}
 		}
@@ -317,7 +318,7 @@ var taskDeleteCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		if err := client.SchedDeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
+		if err := client.DeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -326,4 +327,112 @@ var taskDeleteCmd = &cobra.Command{
 
 func init() {
 	register(taskDeleteCmd, taskCmd)
+}
+
+var taskProgressCmd = &cobra.Command{
+	Use:   "progress <type/task-id>",
+	Short: "Shows task progress",
+	Args:  cobra.ExactArgs(1),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		w := cmd.OutOrStdout()
+
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+		if taskType != "repair" {
+			return printableError{errors.Errorf("unexpected task type %q", taskType)}
+		}
+
+		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
+		if err != nil {
+			return printableError{err}
+		}
+
+		hist, err := client.GetTaskHistory(ctx, cfgCluster, taskType, taskID, 1)
+		if err != nil {
+			return printableError{err}
+		}
+		if len(hist) == 0 {
+			fmt.Fprintf(w, "Task did not run yet\n")
+			return nil
+		}
+		run := hist[0]
+
+		fmt.Fprintf(w, "Status:\t\t%s", run.Status)
+		if run.Cause != "" {
+			fmt.Fprintf(w, " (%s)", run.Cause)
+		}
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Start time:\t%s\n", formatTime(run.StartTime))
+		if !isZero(run.EndTime) {
+			fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
+		}
+		fmt.Fprintf(w, "Duration:\t%s\n", duration(run.StartTime, run.EndTime))
+
+		if run.Status == runner.StatusError.String() {
+			return nil
+		}
+
+		_, _, progress, rows, err := client.RepairProgress(ctx, cfgCluster, t.ID, run.ID)
+		if err != nil {
+			return printableError{err}
+		}
+		fmt.Fprintf(w, "Progress:\t%d%%\n", progress)
+
+		details, err := cmd.Flags().GetBool("details")
+		if err != nil {
+			return printableError{err}
+		}
+
+		if details {
+			printDetailedProgress(w, rows)
+			return nil
+		}
+
+		printHostOnlyProgress(w, rows)
+
+		return nil
+	},
+}
+
+func printHostOnlyProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
+	t := newTable("host", "progress", "failed segments")
+	for _, r := range rows {
+		// ignore shard details when host only requested
+		if r.Shard != -1 {
+			continue
+		}
+		if r.Empty {
+			t.AddRow(r.Host, "-", "-")
+		} else {
+			t.AddRow(r.Host, r.Progress, r.Error)
+		}
+	}
+	fmt.Fprint(w, t)
+}
+
+func printDetailedProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
+	t := newTable("host", "shard", "progress", "failed segments")
+	for _, r := range rows {
+		// ignore host-only entries when details requested
+		if r.Shard == -1 {
+			continue
+		}
+		if r.Empty {
+			t.AddRow(r.Host, "-", "-", "-")
+		} else {
+			t.AddRow(r.Host, r.Shard, r.Progress, r.Error)
+		}
+	}
+	fmt.Fprint(w, t)
+}
+
+func init() {
+	cmd := taskProgressCmd
+	register(cmd, taskCmd)
+
+	fs := cmd.Flags()
+	fs.Bool("details", false, "show detailed progress on shards")
 }
