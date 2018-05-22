@@ -76,6 +76,8 @@ type Run struct {
 	Cause        string
 	StartTime    time.Time
 	EndTime      time.Time
+
+	ClusterName string `db:"-"`
 }
 
 // RunProgress describes repair progress on per shard basis.

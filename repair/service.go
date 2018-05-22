@@ -144,11 +144,12 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return err
 	}
 
-	// get cluster
+	// get cluster name
 	c, err := s.cluster(ctx, run.ClusterID)
 	if err != nil {
-		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "client not found")})
+		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "failed to load cluster")})
 	}
+	run.ClusterName = c.String()
 
 	// lock is used to make sure that the initialisation sequence is finished
 	// before starting the repair go routine.
@@ -276,7 +277,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 
 		l := prometheus.Labels{
-			"cluster": c.String(),
+			"cluster": run.ClusterName,
 			"task":    run.TaskID.String(),
 			"host":    host,
 			"shard":   "0",
@@ -329,7 +330,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 					}
 
 					l := prometheus.Labels{
-						"cluster": c.String(),
+						"cluster": run.ClusterName,
 						"task":    run.TaskID.String(),
 						"host":    p.Host,
 						"shard":   fmt.Sprint(p.Shard),
@@ -367,9 +368,9 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			cancel()
 		}()
 
-		go s.reportRepairProgress(ctx, c, run)
+		go s.reportRepairProgress(ctx, run)
 
-		if err := s.repair(ctx, c, run, client, hostSegments); err != nil {
+		if err := s.repair(ctx, run, client, hostSegments); err != nil {
 			fail(err)
 		}
 
@@ -408,7 +409,7 @@ func (s *Service) unlockCluster(run *Run) error {
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, c *cluster.Cluster, run *Run, client *scyllaclient.Client, hostSegments map[string][]*Segment) error {
+func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Client, hostSegments map[string][]*Segment) error {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
@@ -434,7 +435,6 @@ func (s *Service) repair(ctx context.Context, c *cluster.Cluster, run *Run, clie
 
 		w := worker{
 			Config:   &s.config,
-			Cluster:  c,
 			Run:      run,
 			Host:     host,
 			Segments: hostSegments[host],
@@ -472,7 +472,7 @@ func (s *Service) repair(ctx context.Context, c *cluster.Cluster, run *Run, clie
 	return nil
 }
 
-func (s *Service) reportRepairProgress(ctx context.Context, c *cluster.Cluster, run *Run) {
+func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
 	t := time.NewTicker(2500 * time.Millisecond)
 	defer t.Stop()
 
@@ -485,7 +485,7 @@ func (s *Service) reportRepairProgress(ctx context.Context, c *cluster.Cluster, 
 			}
 			for host, percent := range hostsPercentComplete(prog) {
 				repairProgress.With(prometheus.Labels{
-					"cluster": c.String(),
+					"cluster": run.ClusterName,
 					"task":    run.TaskID.String(),
 					"host":    host,
 				}).Set(percent)
@@ -756,7 +756,6 @@ func (s *Service) Close() {
 	s.wg.Wait()
 }
 
-// FIXME worker remove Cluster, add ClusterName to run, evaluate functions if cluster is needed
 // FIXME change getHostProgress to accept signle host, refactor GetProgress to two functions, propagate changes to restapi
 // FIXME change API "clusterID, taskID, runID uuid.UUID"?
 // FIXME StopRepair do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())

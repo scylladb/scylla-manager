@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/scylladb/golog"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -69,7 +68,6 @@ func init() {
 // worker manages shardWorkers.
 type worker struct {
 	Config   *Config
-	Cluster  *cluster.Cluster
 	Run      *Run
 	Host     string
 	Segments []*Segment
@@ -164,7 +162,7 @@ func (w *worker) init(ctx context.Context) error {
 		}
 
 		labels := prometheus.Labels{
-			"cluster": w.Cluster.String(),
+			"cluster": w.Run.ClusterName,
 			"task":    w.Run.TaskID.String(),
 			"host":    w.Host,
 			"shard":   fmt.Sprint(i),
