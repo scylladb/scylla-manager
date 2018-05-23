@@ -282,7 +282,7 @@
     "migrate",
     "qb"
   ]
-  revision = "ecf0820d1d197f7252c0c2c7be055f218aeb87e1"
+  revision = "e74702cb6ac6e39c39721429a2cc33019f53190a"
 
 [[projects]]
   branch = "master"
