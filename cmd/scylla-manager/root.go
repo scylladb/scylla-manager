@@ -235,7 +235,7 @@ func migrateSchema(config *serverConfig, logger log.Logger) error {
 	}
 	defer session.Close()
 
-	cql.SetLogger(logger)
+	cql.Logger = logger
 	migrate.Callback = cql.MigrateCallback
 
 	return migrate.Migrate(context.Background(), session, config.Database.MigrateDir)

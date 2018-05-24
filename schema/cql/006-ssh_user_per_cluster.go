@@ -19,19 +19,19 @@ import (
 )
 
 func init() {
-	registerMigrationCallback("006-ssh_user_per_cluster.cql", ssh_user_per_cluster)
+	registerMigrationCallback("006-ssh_user_per_cluster.cql", sshUserPerCluster)
 }
 
 type sshConfig struct {
 	SSH *ssh.Config `yaml:"ssh,omitempty"`
 }
 
-func ssh_user_per_cluster(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
+func sshUserPerCluster(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
 	if ev != migrate.AfterMigration {
 		return nil
 	}
 
-	logger := logger.Named("006-ssh_user_per_cluster.cql")
+	logger := Logger.Named("006-ssh_user_per_cluster.cql")
 
 	u, _ := user.Current()
 	configFile := "/etc/scylla-manager.yaml.rpmsave"

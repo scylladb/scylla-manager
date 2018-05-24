@@ -12,7 +12,9 @@ import (
 )
 
 var (
-	logger log.Logger
+	// Logger is available for callers to set as they see fit
+	// Default is log.NopLogger
+	Logger = log.NopLogger
 
 	register = make(map[string]migrate.CallbackFunc)
 	lock     = &sync.Mutex{}
@@ -25,6 +27,7 @@ func registerMigrationCallback(name string, f migrate.CallbackFunc) {
 	register[name] = f
 }
 
+// MigrateCallback is the main callback dispatcher we use for custom migrations
 func MigrateCallback(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
 	lock.Lock()
 	defer lock.Unlock()
@@ -34,8 +37,4 @@ func MigrateCallback(ctx context.Context, session *gocql.Session, ev migrate.Cal
 	}
 
 	return nil
-}
-
-func SetLogger(l log.Logger) {
-	logger = l
 }
