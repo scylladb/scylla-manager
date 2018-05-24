@@ -11,14 +11,14 @@ import (
 	"github.com/scylladb/mermaid/internal/ssh"
 )
 
+type sshManager struct {
+	sshKeyStorageDir string
+}
+
 func newSSHManager(sshKeyStorageDir string) *sshManager {
 	return &sshManager{
 		sshKeyStorageDir: sshKeyStorageDir,
 	}
-}
-
-type sshManager struct {
-	sshKeyStorageDir string
 }
 
 func (m *sshManager) createTransport(c *Cluster) (http.RoundTripper, error) {

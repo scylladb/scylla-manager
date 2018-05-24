@@ -24,16 +24,16 @@ var (
 	cfgClusterName       string
 	cfgClusterHosts      []string
 	cfgClusterShardCount int64
-	cfgSSHIdentityFile   string
 	cfgSSHUser           string
+	cfgSSHIdentityFile   string
 )
 
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "alias `name`")
 	cmd.Flags().StringSliceVar(&cfgClusterHosts, "hosts", nil, "comma-separated `list` of hosts")
 	cmd.Flags().Int64Var(&cfgClusterShardCount, "shard-count", 0, "number of shards per node, each node must have equal number of shards")
-	cmd.Flags().StringVar(&cfgSSHIdentityFile, "ssh-identity-file", "", "SSH private key in PEM format")
 	cmd.Flags().StringVar(&cfgSSHUser, "ssh-user", "", "SSH user used to connect to scylla nodes with")
+	cmd.Flags().StringVar(&cfgSSHIdentityFile, "ssh-identity-file", "", "SSH private key in PEM format")
 }
 
 var clusterAddCmd = &cobra.Command{
@@ -47,17 +47,16 @@ var clusterAddCmd = &cobra.Command{
 			ShardCount: cfgClusterShardCount,
 		}
 
-		if cfgSSHIdentityFile != "" {
-			b, err := ioutil.ReadFile(cfgSSHIdentityFile)
-			if err != nil {
-				return printableError{inner: err}
-			}
-			c.SSHIdentityFile = b
-			if cfgSSHUser == "" {
-				return printableError{errors.New("an ssh user is needed")}
-			}
-			c.SSHUser = cfgSSHUser
+		if cfgSSHUser == "" || cfgSSHIdentityFile != "" {
+			return printableError{errors.New("both an ssh user and an identity file is needed")}
 		}
+
+		b, err := ioutil.ReadFile(cfgSSHIdentityFile)
+		if err != nil {
+			return printableError{inner: err}
+		}
+		c.SSHIdentityFile = b
+		c.SSHUser = cfgSSHUser
 
 		id, err := client.CreateCluster(ctx, c)
 		if err != nil {

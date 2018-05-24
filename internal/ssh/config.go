@@ -14,8 +14,8 @@ import (
 
 // Config specifies SSH configuration.
 type Config struct {
-	User         string `yaml:"user"`
-	IdentityFile string `yaml:"identity_file"`
+	User         string `yaml:"user,omitempty"`
+	IdentityFile string `yaml:"identity_file,omitempty"`
 }
 
 // Validate checks if all the fields are properly set.

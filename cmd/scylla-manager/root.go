@@ -22,6 +22,7 @@ import (
 	log "github.com/scylladb/golog"
 	gocqllog "github.com/scylladb/golog/gocql"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/schema/cql"
 	"github.com/spf13/cobra"
 )
 
@@ -127,7 +128,7 @@ var rootCmd = &cobra.Command{
 
 		// migrate schema
 		logger.Info(ctx, "Migrating schema", "dir", config.Database.MigrateDir)
-		if err := migrateSchema(config); err != nil {
+		if err := migrateSchema(config, logger); err != nil {
 			return errors.Wrapf(err, "database migration")
 		}
 		logger.Info(ctx, "Migrating schema done")
@@ -223,7 +224,7 @@ func readKeyspaceTplFile(config *serverConfig) (stmt string, err error) {
 	return buf.String(), err
 }
 
-func migrateSchema(config *serverConfig) error {
+func migrateSchema(config *serverConfig, logger log.Logger) error {
 	c := gocqlConfig(config)
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
@@ -233,6 +234,9 @@ func migrateSchema(config *serverConfig) error {
 		return err
 	}
 	defer session.Close()
+
+	cql.SetLogger(logger)
+	migrate.Callback = cql.MigrateCallback
 
 	return migrate.Migrate(context.Background(), session, config.Database.MigrateDir)
 }

@@ -6,11 +6,10 @@ package cluster_test
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
-
-	"io/ioutil"
 
 	"github.com/google/go-cmp/cmp"
 	log "github.com/scylladb/golog"
