@@ -160,9 +160,9 @@ var clusterListCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		t := newTable("cluster id", "name", "hosts", "shard count")
+		t := newTable("cluster id", "name", "hosts", "shard count", "ssh user")
 		for _, u := range units {
-			t.AddRow(u.ID, u.Name, u.Hosts, u.ShardCount)
+			t.AddRow(u.ID, u.Name, u.Hosts, u.ShardCount, u.SSHUser)
 		}
 		fmt.Fprint(cmd.OutOrStdout(), t)
 
