@@ -14,7 +14,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -48,7 +47,7 @@ func TestClusterList(t *testing.T) {
 
 	expected := []*cluster.Cluster{{ID: uuid.MustRandom(), Name: "name"}}
 
-	m := mermaidmock.NewMockClusterService(ctrl)
+	m := restapi.NewmockClusterService(ctrl)
 	m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(expected, nil)
 
 	h := restapi.New(&restapi.Services{Cluster: m}, log.Logger{})
@@ -67,7 +66,7 @@ func TestClusterCreate(t *testing.T) {
 
 	id := uuid.MustRandom()
 
-	m := mermaidmock.NewMockClusterService(ctrl)
+	m := restapi.NewmockClusterService(ctrl)
 	m.EXPECT().PutCluster(gomock.Any(), &cluster.Cluster{Name: "name"}).Do(func(_ interface{}, e *cluster.Cluster) {
 		e.ID = id
 	}).Return(nil)

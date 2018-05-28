@@ -16,7 +16,6 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/uuid"
@@ -53,7 +52,7 @@ func TestRepairAPI(t *testing.T) {
 		Path           string
 		Body           io.Reader
 		ExpectedStatus int
-		SetupMock      func(*testing.T, *gomock.Controller) *mermaidmock.MockRepairService
+		SetupMock      func(*testing.T, *gomock.Controller) restapi.RepairService
 		Check          func(*testing.T, *http.Response)
 	}{
 		{Name: "CreateUnit",
@@ -62,8 +61,8 @@ func TestRepairAPI(t *testing.T) {
 			Body:           strings.NewReader(`{"keyspace": "foo2", "tables": ["table7", "table8"]}`),
 			ExpectedStatus: http.StatusCreated,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				svc.EXPECT().PutUnit(gomock.Any(), gomock.Any()).Do(func(_ interface{}, u *repair.Unit) {
 					if u.ID != uuid.Nil {
 						t.Fatal("expected nil uuid")
@@ -97,8 +96,8 @@ func TestRepairAPI(t *testing.T) {
 			Path:           "/units",
 			ExpectedStatus: http.StatusOK,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				svc.EXPECT().ListUnits(gomock.Any(), uuid1, gomock.Any()).Return(
 					[]*repair.Unit{
 						{ID: uuid1, ClusterID: uuid1, Keyspace: "keyspace0", Tables: []string{"table1", "table2"}},
@@ -141,8 +140,8 @@ func TestRepairAPI(t *testing.T) {
 			Path:           "/units",
 			ExpectedStatus: http.StatusOK,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				svc.EXPECT().ListUnits(gomock.Any(), uuid1, gomock.Any()).Return(nil, nil)
 				return svc
 			},
@@ -168,8 +167,8 @@ func TestRepairAPI(t *testing.T) {
 			Path:           fmt.Sprintf("/unit/%s", uuid3),
 			ExpectedStatus: http.StatusNotFound,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid3.String()).Return(nil, mermaid.ErrNotFound)
 				return svc
 			},
@@ -181,8 +180,8 @@ func TestRepairAPI(t *testing.T) {
 			Path:           fmt.Sprintf("/unit/%s", uuid2),
 			ExpectedStatus: http.StatusOK,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid2.String()).Return(
 					&repair.Unit{ID: uuid2, ClusterID: uuid1, Keyspace: "keyspace0", Tables: []string{"tbl1", "tbl2"}}, nil)
 				return svc
@@ -206,8 +205,8 @@ func TestRepairAPI(t *testing.T) {
 			Path:           fmt.Sprintf("/unit/%s", uuid2),
 			ExpectedStatus: http.StatusOK,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				svc.EXPECT().GetUnit(gomock.Any(), uuid1, uuid2.String()).Return(&repair.Unit{ID: uuid2}, nil)
 				svc.EXPECT().DeleteUnit(gomock.Any(), uuid1, uuid2).Return(nil)
 				return svc
@@ -220,8 +219,8 @@ func TestRepairAPI(t *testing.T) {
 			Path:           fmt.Sprintf("/unit/%s/progress/%s", uuid3, uuid4),
 			ExpectedStatus: http.StatusOK,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				tables := []string{"tables1"}
 
 				u := &repair.Unit{
@@ -267,8 +266,8 @@ func TestRepairAPI(t *testing.T) {
 			Path:           fmt.Sprintf("/unit/%s/progress/%s", uuid3, uuid4),
 			ExpectedStatus: http.StatusOK,
 
-			SetupMock: func(t *testing.T, ctrl *gomock.Controller) *mermaidmock.MockRepairService {
-				svc := mermaidmock.NewMockRepairService(ctrl)
+			SetupMock: func(t *testing.T, ctrl *gomock.Controller) restapi.RepairService {
+				svc := restapi.NewmockRepairService(ctrl)
 				tables := []string{"tables1"}
 
 				u := &repair.Unit{
@@ -314,7 +313,7 @@ func TestRepairAPI(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			clusterStub := mermaidmock.NewMockClusterService(ctrl)
+			clusterStub := restapi.NewmockClusterService(ctrl)
 			clusterStub.EXPECT().GetCluster(gomock.Any(), gomock.Any()).Return(&cluster.Cluster{ID: uuid1}, nil)
 
 			h := restapi.New(&restapi.Services{
