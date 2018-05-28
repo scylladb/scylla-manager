@@ -12,8 +12,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/internal/fsutil"
-	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
@@ -66,11 +64,7 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 func (s *server) initServices() error {
 	var err error
 
-	transport, err := s.defaultTransport()
-	if err != nil {
-		return errors.Wrapf(err, "transport")
-	}
-	s.clusterSvc, err = cluster.NewService(s.session, transport, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
@@ -99,33 +93,12 @@ func (s *server) initServices() error {
 	return nil
 }
 
-func (s *server) defaultTransport() (http.RoundTripper, error) {
-	if s.config.SSH.User == "" {
-		return http.DefaultTransport, nil
-	}
-
-	f, err := fsutil.ExpandPath(s.config.SSH.IdentityFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to expand %q", s.config.SSH.IdentityFile)
-	}
-
-	if err := fsutil.CheckPerm(f, 0400); err != nil {
-		return nil, err
-	}
-
-	c := s.config.SSH
-	c.IdentityFile = f
-
-	return ssh.NewProductionTransport(c)
-}
-
 func (s *server) registerListeners() {
 	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
 }
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	s.provider.Invalidate(c.ID)
-
 	if c.Current == nil {
 		return nil
 	}

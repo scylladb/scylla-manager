@@ -38,6 +38,13 @@
         "shard_count": {
           "type": "integer",
           "format": "int64"
+        },
+        "ssh_user": {
+          "type":"string"
+        },
+        "ssh_identity_file":{
+          "type": "string",
+          "format": "byte"
         }
       }
     },

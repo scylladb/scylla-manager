@@ -49,7 +49,7 @@ func TestValidateHosts(t *testing.T) {
 	}
 
 	for i, test := range table {
-		f := func(_ context.Context, host string) (cluster, dc string, err error) {
+		f := func(_ context.Context, c *Cluster, host string) (cluster, dc string, err error) {
 			v, ok := test.R[host]
 			if !ok {
 				t.Fatal(i, host)
@@ -60,7 +60,7 @@ func TestValidateHosts(t *testing.T) {
 		if test.E == "" {
 			test.E = "<nil>"
 		}
-		if diff := cmp.Diff(fmt.Sprint(validateHosts(context.Background(), test.H, f)), test.E); diff != "" {
+		if diff := cmp.Diff(fmt.Sprint(validateHosts(context.Background(), &Cluster{Hosts: test.H}, f)), test.E); diff != "" {
 			t.Error(i, diff)
 		}
 	}

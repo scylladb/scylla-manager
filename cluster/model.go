@@ -11,10 +11,12 @@ import (
 
 // Cluster specifies a cluster properties.
 type Cluster struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	Hosts      []string  `json:"hosts"`
-	ShardCount int64     `json:"shard_count"`
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	Hosts           []string  `json:"hosts"`
+	ShardCount      int64     `json:"shard_count"`
+	SSHUser         string    `json:"ssh_user,omitempty"`
+	SSHIdentityFile []byte    `json:"ssh_identity_file,omitempty" db:"-"`
 }
 
 // String returns cluster Name or ID if Name is is empty.

@@ -32,13 +32,6 @@ database:
 #   keyspace: scylla_manager
 #   replication_factor: 1
 
-# Communication with Scylla nodes.
-ssh:
-  # SSH user name, user must exist on Scylla nodes.
-  user: scylla-manager
-  # PEM encoded SSH private key for user.
-  identity_file: /var/lib/scylla-manager/scylla_manager.pem
-
 # Repair service configuration.
 repair:
   # Granularity of repair. Repair works on segments, segment is a continuous

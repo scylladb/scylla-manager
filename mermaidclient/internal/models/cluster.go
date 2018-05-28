@@ -8,7 +8,9 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Cluster cluster
@@ -26,10 +28,39 @@ type Cluster struct {
 
 	// shard count
 	ShardCount int64 `json:"shard_count,omitempty"`
+
+	// ssh identity file
+	// Format: byte
+	SSHIdentityFile strfmt.Base64 `json:"ssh_identity_file,omitempty"`
+
+	// ssh user
+	SSHUser string `json:"ssh_user,omitempty"`
 }
 
 // Validate validates this cluster
 func (m *Cluster) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateSSHIdentityFile(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Cluster) validateSSHIdentityFile(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SSHIdentityFile) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("ssh_identity_file", "body", "byte", m.SSHIdentityFile.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

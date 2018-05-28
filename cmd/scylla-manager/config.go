@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
-	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/repair"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
@@ -36,7 +35,6 @@ type serverConfig struct {
 
 	Logger   log.Config    `yaml:"logger"`
 	Database dbConfig      `yaml:"database"`
-	SSH      ssh.Config    `yaml:"ssh"`
 	Repair   repair.Config `yaml:"repair"`
 }
 
@@ -93,12 +91,6 @@ func (c *serverConfig) validate() error {
 	}
 	if c.Database.ReplicationFactor <= 0 {
 		return errors.New("invalid database.replication_factor <= 0")
-	}
-
-	if c.SSH.User != "" {
-		if err := c.SSH.Validate(); err != nil {
-			return errors.Wrap(err, "ssh")
-		}
 	}
 	if err := c.Repair.Validate(); err != nil {
 		return errors.Wrap(err, "repair")
