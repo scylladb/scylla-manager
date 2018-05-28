@@ -18,7 +18,7 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-//go:generate mockgen -source sched.go -destination ../sched/schedservice_mock.go -mock_names SchedService=mockSchedService -package sched
+//go:generate mockgen -source sched.go -destination ../restapi/sched_mock.go -mock_names SchedService=mockSchedService -package restapi
 
 // SchedService is the scheduler service interface required by the scheduler REST API handlers.
 type SchedService interface {

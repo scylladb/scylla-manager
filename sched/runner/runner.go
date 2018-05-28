@@ -52,7 +52,7 @@ func (s *Status) UnmarshalText(text []byte) error {
 	return nil
 }
 
-//go:generate mockgen -source=runner.go  -destination ../../mermaidmock/schedrunner_mock.go -package mermaidmock
+//go:generate mockgen -source=runner.go  -destination ../schedrunner_mock.go -mock_names Runner=mockRunner -package sched
 
 // Runner interface should be implemented by all services being triggered by the scheduler service.
 type Runner interface {

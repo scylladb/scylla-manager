@@ -16,7 +16,6 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/mermaidmock"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
@@ -63,7 +62,7 @@ func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Contr
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.SetRunner(mockTask, mermaidmock.NewMockRunner(ctrl))
+	s.SetRunner(mockTask, NewmockRunner(ctrl))
 
 	return s, ctrl
 }
@@ -101,7 +100,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	ch := make(chan bool)
 	reschedTaskDone = func(*Task) { ch <- true }
 	newRunID := uuid.Nil
-	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[mockTask].(*mockRunner).EXPECT()
 	gomock.InOrder(
 		expect.Run(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
 			tick()
@@ -181,7 +180,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 		t.Fatal("failed to put run", storedRun, err)
 	}
 
-	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[mockTask].(*mockRunner).EXPECT()
 	gomock.InOrder(
 		expect.Status(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
@@ -249,7 +248,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	ch := make(chan bool)
 	reschedTaskDone = func(*Task) { ch <- true }
 	newRunID := uuid.Nil
-	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[mockTask].(*mockRunner).EXPECT()
 	gomock.InOrder(
 		expect.Status(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
 			tick()
@@ -335,7 +334,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	reschedTaskDone = func(*Task) { ch <- true }
 	newRunID := []uuid.UUID{uuid.Nil, uuid.Nil, uuid.Nil}
 	runNum := 0
-	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
+	expect := s.runners[mockTask].(*mockRunner).EXPECT()
 
 	calls := make([]*gomock.Call, 0, task.Sched.NumRetries)
 	for i := 0; i < task.Sched.NumRetries; i++ {

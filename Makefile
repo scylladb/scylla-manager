@@ -87,7 +87,6 @@ integration-test:
 	@echo "==> Running integration tests..."
 	@go test -cover -race -tags integration -run Integration ./internal/ssh $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
-
 	@go test -cover -race -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./sched $(INTEGRATION_TEST_ARGS)
