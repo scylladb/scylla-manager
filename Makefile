@@ -90,6 +90,7 @@ integration-test:
 
 	@go test -cover -race -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -tags integration -run Integration ./sched $(INTEGRATION_TEST_ARGS)
 
 # dev-server runs development server.
 .PHONY: dev-server

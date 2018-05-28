@@ -76,7 +76,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	ctx := context.Background()
 	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
 	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow = func() time.Time {
+	timeNow := func() time.Time {
 		return baseTime
 	}
 	oldRetryTaskWait := retryTaskWait
@@ -94,7 +94,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{StartDate: taskStart},
+		Sched: Schedule{StartDate: taskStart, NumRetries: 2},
 	}
 	putTask(t, session, ctx, task)
 
@@ -103,20 +103,19 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	newRunID := uuid.Nil
 	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
-		expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
+		expect.Run(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
 			tick()
 			newRunID = runID.(uuid.UUID)
 		}),
-
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusRunning, nil).Times(4).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopping, nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 	)
@@ -124,7 +123,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	s.LoadTasks(ctx)
 	<-ch
 	s.Close()
-	runs, err := s.GetLastRunN(ctx, task, -1)
+	runs, err := s.GetLastRun(ctx, task, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +147,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 	defer s.Close()
 	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
 	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow = func() time.Time {
+	timeNow := func() time.Time {
 		return baseTime
 	}
 	oldRetryTaskWait := retryTaskWait
@@ -166,7 +165,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 	clusterID := uuid.MustRandom()
 
 	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{StartDate: taskStart},
+		Sched: Schedule{StartDate: taskStart, NumRetries: 2},
 	}
 	putTask(t, session, ctx, task)
 
@@ -184,13 +183,13 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 
 	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
-		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 	)
 
 	s.LoadTasks(ctx)
-	runs, err := s.GetLastRunN(ctx, task, -1)
+	runs, err := s.GetLastRun(ctx, task, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +212,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	ctx := context.Background()
 	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
 	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow = func() time.Time {
+	timeNow := func() time.Time {
 		return baseTime
 	}
 	oldRetryTaskWait := retryTaskWait
@@ -252,24 +251,24 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	newRunID := uuid.Nil
 	expect := s.runners[mockTask].(*mermaidmock.MockRunner).EXPECT()
 	gomock.InOrder(
-		expect.TaskStatus(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusError, nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
+		expect.Run(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
 			tick()
 			newRunID = runID.(uuid.UUID)
 		}),
 
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusRunning, nil).Times(4).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopping, nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopped, nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 	)
@@ -277,7 +276,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	s.LoadTasks(ctx)
 	<-ch
 	s.Close()
-	runs, err := s.GetLastRunN(ctx, task, -1)
+	runs, err := s.GetLastRun(ctx, task, 10)
 	if err != nil {
 		t.Log(err)
 		t.Fatal()
@@ -310,7 +309,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	ctx := context.Background()
 	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
 	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow = func() time.Time {
+	timeNow := func() time.Time {
 		return baseTime
 	}
 	oldRetryTaskWait := retryTaskWait
@@ -341,17 +340,17 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	calls := make([]*gomock.Call, 0, task.Sched.NumRetries)
 	for i := 0; i < task.Sched.NumRetries; i++ {
 		calls = append(calls,
-			expect.RunTask(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
+			expect.Run(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
 				tick()
 				newRunID[runNum] = runID.(uuid.UUID)
 				runNum++
 			}),
 
-			expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusRunning, nil).Times(4).Do(func(_ ...interface{}) {
+			expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
 				tick()
 			}),
 
-			expect.TaskStatus(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusError, nil).Do(func(_ ...interface{}) {
+			expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
 				tick()
 			}),
 		)
@@ -363,7 +362,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 		<-ch
 	}
 	s.Close()
-	runs, err := s.GetLastRunN(ctx, task, -1)
+	runs, err := s.GetLastRun(ctx, task, 10)
 	if err != nil {
 		t.Log(err)
 		t.Fatal()
