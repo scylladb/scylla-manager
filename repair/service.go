@@ -615,7 +615,12 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 
 	r.Status = StatusStopping
 
-	return s.putRun(ctx, r)
+	stmt, names := schema.RepairRun.Update("status")
+	if err := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r).ExecRelease(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // isStopped checks if repair is in StatusStopping or StatusStopped.
@@ -702,6 +707,3 @@ func (s *Service) Close() {
 	s.workerCancel()
 	s.wg.Wait()
 }
-
-// FIXME change API "clusterID, taskID, runID uuid.UUID"?
-// FIXME StopRepair do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())
