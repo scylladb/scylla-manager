@@ -47,7 +47,7 @@ var clusterAddCmd = &cobra.Command{
 			ShardCount: cfgClusterShardCount,
 		}
 
-		if cfgSSHUser == "" || cfgSSHIdentityFile != "" {
+		if cfgSSHUser == "" || cfgSSHIdentityFile == "" {
 			return printableError{errors.New("both an ssh user and an identity file is needed")}
 		}
 
