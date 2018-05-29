@@ -498,35 +498,6 @@ func (s *Service) topologyHash(ctx context.Context, client *scyllaclient.Client)
 	return topologyHash(tokens), nil
 }
 
-// GetLastRun returns the the most recent run of the unit.
-func (s *Service) GetLastRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetLastRun",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-	)
-
-	stmt, names := qb.Select(schema.RepairRun.Name).Where(
-		qb.Eq("cluster_id"), qb.Eq("task_id"),
-	).Limit(1).ToCql()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    taskID,
-	})
-	defer q.Release()
-
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	var r Run
-	if err := gocqlx.Get(&r, q.Query); err != nil {
-		return nil, err
-	}
-
-	return &r, nil
-}
-
 // GetLastStartedRun returns the the most recent run of the unit that started
 // the repair.
 func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
