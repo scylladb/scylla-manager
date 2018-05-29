@@ -168,7 +168,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", run.ID,
 	)
 
-	// get last started run of the unit
+	// get last started run of the task
 	prev, err := s.GetLastStartedRun(ctx, run.ClusterID, run.TaskID)
 	if err != nil && err != mermaid.ErrNotFound {
 		return fail(errors.Wrap(err, "failed to get previous run"))
@@ -498,8 +498,7 @@ func (s *Service) topologyHash(ctx context.Context, client *scyllaclient.Client)
 	return topologyHash(tokens), nil
 }
 
-// GetLastStartedRun returns the the most recent run of the unit that started
-// the repair.
+// GetLastStartedRun returns the the most recent successful run of the task.
 func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetLastStartedRun",
 		"cluster_id", clusterID,
