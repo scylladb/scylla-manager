@@ -70,7 +70,7 @@ func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Contr
 	return s, ctrl
 }
 
-func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
+func TestSchedInitOneShotIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 	s, ctrl := newScheduler(t, session)
 	defer ctrl.Finish()
@@ -125,7 +125,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 		}),
 	)
 
-	s.LoadTasks(ctx)
+	s.Init(ctx)
 	<-ch
 	s.Close()
 	runs, err := s.GetLastRun(ctx, task, 10)
@@ -143,7 +143,7 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	}
 }
 
-func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
+func TestSchedInitOneShotRunningIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 	s, ctrl := newScheduler(t, session)
 	defer ctrl.Finish()
@@ -201,7 +201,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 		}),
 	)
 
-	s.LoadTasks(ctx)
+	s.Init(ctx)
 	runs, err := s.GetLastRun(ctx, task, 10)
 	if err != nil {
 		t.Fatal(err)
@@ -217,7 +217,7 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 	}
 }
 
-func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
+func TestSchedInitOneShotRetryIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 	s, ctrl := newScheduler(t, session)
 	defer ctrl.Finish()
@@ -289,7 +289,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		}),
 	)
 
-	s.LoadTasks(ctx)
+	s.Init(ctx)
 	<-ch
 	s.Close()
 	runs, err := s.GetLastRun(ctx, task, 10)
@@ -317,7 +317,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	}
 }
 
-func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
+func TestSchedInitRepeatingIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 	s, ctrl := newScheduler(t, session)
 	defer ctrl.Finish()
@@ -376,7 +376,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	}
 	gomock.InOrder(calls...)
 
-	s.LoadTasks(ctx)
+	s.Init(ctx)
 	for i := 0; i < task.Sched.NumRetries; i++ {
 		<-ch
 	}

@@ -124,7 +124,7 @@ func (s *server) startServices(ctx context.Context) error {
 		return errors.Wrapf(err, "repair service")
 	}
 
-	if err := s.schedSvc.LoadTasks(ctx); err != nil {
+	if err := s.schedSvc.Init(ctx); err != nil {
 		return errors.Wrapf(err, "schedule service")
 	}
 

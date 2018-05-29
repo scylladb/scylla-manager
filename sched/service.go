@@ -99,9 +99,10 @@ func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (
 	}, nil
 }
 
-// LoadTasks should be called on start. It attaches to running tasks if there are such,
-// marking no-longer running ones as stopped. It then proceeds to schedule future tasks.
-func (s *Service) LoadTasks(ctx context.Context) error {
+// Init should be called on start. It attaches to running tasks if there are
+// such, marking no-longer running ones as stopped. It then proceeds to schedule
+// future tasks.
+func (s *Service) Init(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks")
 
 	now := timeutc.Now()
