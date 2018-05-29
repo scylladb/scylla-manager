@@ -22,16 +22,19 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-type uuidMatcher struct {
-	uuid *uuid.UUID
+type descriptorMatcher struct {
+	d runner.Descriptor
 }
 
-func (m uuidMatcher) Matches(x interface{}) bool {
-	return *m.uuid == x.(uuid.UUID)
+func (m descriptorMatcher) Matches(v interface{}) bool {
+	if m.d.ClusterID == uuid.Nil {
+		return true
+	}
+	return m.d == v.(runner.Descriptor)
 }
 
-func (m uuidMatcher) String() string {
-	return fmt.Sprintf("uuidMatcher against: %v", m.uuid)
+func (m descriptorMatcher) String() string {
+	return fmt.Sprint(m.d)
 }
 
 func putTask(t *testing.T, session *gocql.Session, ctx context.Context, task *Task) {
@@ -82,6 +85,10 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	oldMonitorTaskInterval := monitorTaskInterval
 	retryTaskWait = 5 * time.Second
 	monitorTaskInterval = time.Millisecond
+
+	ch := make(chan bool)
+	reschedTaskDone = func(*Task) { ch <- true }
+
 	defer func() {
 		retryTaskWait = oldRetryTaskWait
 		monitorTaskInterval = oldMonitorTaskInterval
@@ -97,24 +104,23 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	}
 	putTask(t, session, ctx, task)
 
-	ch := make(chan bool)
-	reschedTaskDone = func(*Task) { ch <- true }
-	newRunID := uuid.Nil
+	m := descriptorMatcher{}
+
 	expect := s.runners[mockTask].(*mockRunner).EXPECT()
 	gomock.InOrder(
-		expect.Run(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
+		expect.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(func(_, d, _ interface{}) {
 			tick()
-			newRunID = runID.(uuid.UUID)
+			m.d = d.(runner.Descriptor)
 		}),
-		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
+			tick()
+		}),
+
+		expect.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 	)
@@ -129,8 +135,8 @@ func TestSchedLoadTasksOneShotIntegration(t *testing.T) {
 	if len(runs) != 1 {
 		t.Fatalf("len(runs) (%d) != 1", len(runs))
 	}
-	if runs[0].ID != newRunID {
-		t.Fatal("id mismatch, expected:", newRunID, "but got", runs[0].ID)
+	if runs[0].ID != m.d.RunID {
+		t.Fatal("id mismatch, expected:", m.d.RunID, "but got", runs[0].ID)
 	}
 	if runs[0].Status != runner.StatusStopped {
 		t.Fatal("wrong status", runs[0].ID, runs[0].Status)
@@ -180,9 +186,17 @@ func TestSchedLoadTasksOneShotRunningIntegration(t *testing.T) {
 		t.Fatal("failed to put run", storedRun, err)
 	}
 
+	m := descriptorMatcher{
+		d: runner.Descriptor{
+			ClusterID: storedRun.ClusterID,
+			TaskID:    storedRun.TaskID,
+			RunID:     storedRun.ID,
+		},
+	}
+
 	expect := s.runners[mockTask].(*mockRunner).EXPECT()
 	gomock.InOrder(
-		expect.Status(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 	)
@@ -218,6 +232,10 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 	oldMonitorTaskInterval := monitorTaskInterval
 	retryTaskWait = 5 * time.Second
 	monitorTaskInterval = time.Millisecond
+
+	ch := make(chan bool)
+	reschedTaskDone = func(*Task) { ch <- true }
+
 	defer func() {
 		retryTaskWait = oldRetryTaskWait
 		monitorTaskInterval = oldMonitorTaskInterval
@@ -245,29 +263,28 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		t.Fatal("failed to put run", storedRun, err)
 	}
 
-	ch := make(chan bool)
-	reschedTaskDone = func(*Task) { ch <- true }
-	newRunID := uuid.Nil
+	m := descriptorMatcher{}
+
 	expect := s.runners[mockTask].(*mockRunner).EXPECT()
 	gomock.InOrder(
-		expect.Status(gomock.Any(), clusterID, storedRun.ID, gomock.Any()).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), m).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.Run(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
+		expect.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(func(_, d, _ interface{}) {
 			tick()
-			newRunID = runID.(uuid.UUID)
+			m.d = d.(runner.Descriptor)
 		}),
 
-		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
 			tick()
 		}),
 
-		expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID}, gomock.Any()).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
+		expect.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
+			tick()
+		}),
+
+		expect.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
 		}),
 	)
@@ -288,7 +305,7 @@ func TestSchedLoadTasksOneShotRetryIntegration(t *testing.T) {
 		ID     uuid.UUID
 		Status runner.Status
 	}{
-		{newRunID, runner.StatusStopped},
+		{m.d.RunID, runner.StatusStopped},
 		{storedRun.ID, runner.StatusError},
 	} {
 		if runs[i].ID != r.ID {
@@ -315,6 +332,10 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	oldMonitorTaskInterval := monitorTaskInterval
 	retryTaskWait = 5 * time.Second
 	monitorTaskInterval = time.Millisecond
+
+	ch := make(chan bool)
+	reschedTaskDone = func(*Task) { ch <- true }
+
 	defer func() {
 		retryTaskWait = oldRetryTaskWait
 		monitorTaskInterval = oldMonitorTaskInterval
@@ -330,26 +351,25 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 	}
 	putTask(t, session, ctx, task)
 
-	ch := make(chan bool)
-	reschedTaskDone = func(*Task) { ch <- true }
-	newRunID := []uuid.UUID{uuid.Nil, uuid.Nil, uuid.Nil}
+	m := make([]descriptorMatcher, task.Sched.NumRetries, task.Sched.NumRetries)
+
 	runNum := 0
 	expect := s.runners[mockTask].(*mockRunner).EXPECT()
-
 	calls := make([]*gomock.Call, 0, task.Sched.NumRetries)
 	for i := 0; i < task.Sched.NumRetries; i++ {
+		i := i
 		calls = append(calls,
-			expect.Run(gomock.Any(), clusterID, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, runID interface{}, _ ...interface{}) {
+			expect.Run(gomock.Any(), m[i], gomock.Any()).Return(nil).Do(func(_, d, _ interface{}) {
 				tick()
-				newRunID[runNum] = runID.(uuid.UUID)
+				m[i].d = d.(runner.Descriptor)
 				runNum++
 			}),
 
-			expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
+			expect.Status(gomock.Any(), m[i]).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
 				tick()
 			}),
 
-			expect.Status(gomock.Any(), clusterID, uuidMatcher{&newRunID[i]}, gomock.Any()).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
+			expect.Status(gomock.Any(), m[i]).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
 				tick()
 			}),
 		)
@@ -370,7 +390,7 @@ func TestSchedLoadTasksRepeatingIntegration(t *testing.T) {
 		t.Fatalf("len(runs) (%d) != runNum (%d)", len(runs), runNum)
 	}
 
-	for i, id := range []uuid.UUID{newRunID[2], newRunID[1], newRunID[0]} {
+	for i, id := range []uuid.UUID{m[2].d.RunID, m[1].d.RunID, m[0].d.RunID} {
 		if runs[i].ID != id {
 			t.Fatal("id mismatch, expected:", runs[i].ID, "but got", id)
 		}
