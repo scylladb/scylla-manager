@@ -31,8 +31,8 @@ func (c *Config) Validate() (err error) {
 		err = multierr.Append(err, errors.New("missing identity_file"))
 	}
 
-	if err := fsutil.CheckPerm(c.IdentityFile, 0400); err != nil {
-		err = multierr.Append(err, errors.New("identity_file has the wrong permissions"))
+	if e := fsutil.CheckPerm(c.IdentityFile, 0400); e != nil {
+		err = multierr.Append(err, e)
 	}
 
 	return
