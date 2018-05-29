@@ -15,7 +15,7 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-//go:generate mockgen -source repair.go -destination ../mermaidmock/repairservice_mock.go -package mermaidmock
+//go:generate mockgen -destination repair_mock.go -mock_names RepairService=mockRepairService -package restapi github.com/scylladb/mermaid/restapi RepairService
 
 // RepairService is the repair service interface required by the repair REST API handlers.
 type RepairService interface {
