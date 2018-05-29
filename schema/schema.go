@@ -114,8 +114,8 @@ var (
 	RepairRun = Table{
 		Name:    "repair_run",
 		Columns: []string{"cluster_id", "task_id", "id", "prev_id", "topology_hash", "keyspace_name", "tables", "status", "cause", "start_time", "end_time"},
-		PartKey: []string{"cluster_id"},
-		SortKey: []string{"task_id", "id"},
+		PartKey: []string{"cluster_id", "task_id"},
+		SortKey: []string{"id"},
 	}.init()
 
 	RepairRunProgress = Table{
