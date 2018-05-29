@@ -72,10 +72,9 @@ func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp sc
 	}, nil
 }
 
-// FixRunStatus shall be called when the service starts to assure proper
-// functioning. It iterates over all the repair units and marks running and
+// Init shall be called when the service starts. It marks running and
 // stopping runs as stopped.
-func (s *Service) FixRunStatus(ctx context.Context) error {
+func (s *Service) Init(ctx context.Context) error {
 	s.logger.Info(ctx, "Fixing run statuses")
 
 	// list tasks

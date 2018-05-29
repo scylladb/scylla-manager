@@ -69,6 +69,62 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	}
 
+	t.Run("init", func(t *testing.T) {
+		t.Parallel()
+
+		clusterID := uuid.MustRandom()
+		task0 := uuid.MustRandom()
+		task1 := uuid.MustRandom()
+
+		r0 := &repair.Run{
+			ID:        uuid.NewTime(),
+			ClusterID: clusterID,
+			TaskID:    task0,
+			Status:    repair.StatusRunning,
+		}
+		putRun(t, r0)
+
+		r1 := &repair.Run{
+			ID:        uuid.NewTime(),
+			ClusterID: clusterID,
+			TaskID:    task0,
+			Status:    repair.StatusRunning,
+		}
+		putRun(t, r1)
+
+		r2 := &repair.Run{
+			ID:        uuid.NewTime(),
+			ClusterID: clusterID,
+			TaskID:    task1,
+			Status:    repair.StatusStopping,
+		}
+		putRun(t, r2)
+
+		r3 := &repair.Run{
+			ID:        uuid.NewTime(),
+			ClusterID: clusterID,
+			TaskID:    task1,
+			Status:    repair.StatusStopping,
+		}
+		putRun(t, r3)
+
+		if err := s.Init(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		if r, err := s.GetRun(ctx, r1.ClusterID, r1.TaskID, r1.ID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != repair.StatusStopped {
+			t.Fatal("invalid status", r.Status)
+		}
+
+		if r, err := s.GetRun(ctx, r3.ClusterID, r3.TaskID, r3.ID); err != nil {
+			t.Fatal(err)
+		} else if r.Status != repair.StatusStopped {
+			t.Fatal("invalid status", r.Status)
+		}
+	})
+
 	t.Run("get last run", func(t *testing.T) {
 		t.Parallel()
 
@@ -233,62 +289,6 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		} else if r1.Status != repair.StatusStopping {
 			t.Fatal(r1.Status)
-		}
-	})
-
-	t.Run("fix run status", func(t *testing.T) {
-		t.Parallel()
-
-		clusterID := uuid.MustRandom()
-		task0 := uuid.MustRandom()
-		task1 := uuid.MustRandom()
-
-		r0 := &repair.Run{
-			ID:        uuid.NewTime(),
-			ClusterID: clusterID,
-			TaskID:    task0,
-			Status:    repair.StatusRunning,
-		}
-		putRun(t, r0)
-
-		r1 := &repair.Run{
-			ID:        uuid.NewTime(),
-			ClusterID: clusterID,
-			TaskID:    task0,
-			Status:    repair.StatusRunning,
-		}
-		putRun(t, r1)
-
-		r2 := &repair.Run{
-			ID:        uuid.NewTime(),
-			ClusterID: clusterID,
-			TaskID:    task1,
-			Status:    repair.StatusStopping,
-		}
-		putRun(t, r2)
-
-		r3 := &repair.Run{
-			ID:        uuid.NewTime(),
-			ClusterID: clusterID,
-			TaskID:    task1,
-			Status:    repair.StatusStopping,
-		}
-		putRun(t, r3)
-
-		if err := s.FixRunStatus(ctx); err != nil {
-			t.Fatal(err)
-		}
-
-		if r, err := s.GetRun(ctx, r1.ClusterID, r1.TaskID, r1.ID); err != nil {
-			t.Fatal(err)
-		} else if r.Status != repair.StatusStopped {
-			t.Fatal("invalid status", r.Status)
-		}
-
-		if r, err := s.GetRun(ctx, r3.ClusterID, r3.TaskID, r3.ID); err != nil {
-			t.Fatal(err)
-		} else if r.Status != repair.StatusStopped {
-			t.Fatal("invalid status", r.Status)
 		}
 	})
 }
@@ -476,7 +476,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	s.Close()
 	wait()
 	s, hrt = newTestService(t, session, config)
-	s.FixRunStatus(ctx)
+	s.Init(ctx)
 
 	// And create a new task
 	runID = uuid.NewTime()

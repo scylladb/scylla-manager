@@ -120,7 +120,7 @@ func (s *server) initHTTPServers() {
 }
 
 func (s *server) startServices(ctx context.Context) error {
-	if err := s.repairSvc.FixRunStatus(ctx); err != nil {
+	if err := s.repairSvc.Init(ctx); err != nil {
 		return errors.Wrapf(err, "repair service")
 	}
 
