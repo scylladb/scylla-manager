@@ -7,8 +7,8 @@ import "github.com/spf13/cobra"
 var bashCompletionCmd = &cobra.Command{
 	Use:    "_bashcompletion",
 	Hidden: true,
-	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenBashCompletion(cmd.OutOrStdout())
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return rootCmd.GenBashCompletion(cmd.OutOrStdout())
 	},
 }
 

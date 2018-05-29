@@ -13,7 +13,7 @@ clean:
 
 # check does static code analysis.
 .PHONY: check
-check: .check-copyright .check-timeutc .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell .check-vendor
+check: .check-copyright .check-timeutc .check-misspell .check-lint .check-vendor
 
 .PHONY: .check-copyright
 .check-copyright:
@@ -35,30 +35,16 @@ check: .check-copyright .check-timeutc .check-fmt .check-vet .check-lint .check-
 		(echo $$f; false); \
 	done
 
-.PHONY: .check-fmt
-.check-fmt:
-	@go fmt ./... | tee /dev/stderr | ifne false
-
-.PHONY: .check-vet
-.check-vet:
-	@go vet ./...
-
-.PHONY: .check-lint
-.check-lint:
-	@$(GOBIN)/golint `go list ./...` \
-	| tee /dev/stderr | ifne false
-
-.PHONY: .check-ineffassign
-.check-ineffassign:
-	@$(GOBIN)/ineffassign `$(GOFILES)`
-
-.PHONY: .check-mega
-.check-mega:
-	@$(GOBIN)/megacheck ./...
-
 .PHONY: .check-misspell
 .check-misspell:
 	@$(GOBIN)/misspell ./...
+
+.PHONY: .check-lint
+.check-lint:
+	@$(GOBIN)/golangci-lint run -s --disable-all -E govet -E errcheck -E staticcheck \
+	-E gas -E typecheck -E unused -E structcheck -E varcheck -E ineffassign -E deadcode \
+	-E gofmt -E golint -E gosimple -E unconvert -E dupl -E depguard -E gocyclo \
+	--tests=false --exclude="composite literal uses unkeyed fields" ./...
 
 .PHONY: .check-vendor
 .check-vendor:
@@ -132,16 +118,14 @@ get-tools:
 	@echo "==> Installing tools at $(GOBIN)..."
 	@mkdir -p $(GOBIN)
 
-	@go get -u github.com/golang/dep/cmd/dep
-	@go get -u github.com/golang/lint/golint
-	@go get -u github.com/golang/mock/mockgen
-
-	@go get -u github.com/client9/misspell/cmd/misspell
+# development tools
 	@go get -u github.com/derekparker/delve/cmd/dlv
 	@go get -u github.com/fatih/gomodifytags
-	@go get -u github.com/google/gops
-	@go get -u github.com/gordonklaus/ineffassign
 	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
-	@go get -u honnef.co/go/tools/cmd/megacheck
+	@go get -u github.com/golang/dep/cmd/dep
+	@go get -u github.com/golang/mock/mockgen
+# linters
+	@go get -u github.com/client9/misspell/cmd/misspell
+	@go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 	@rm -Rf $(GOPATH)

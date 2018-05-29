@@ -107,11 +107,11 @@ func topologyHash(tokens []int64) uuid.UUID {
 			u = uint64(math.MaxInt64 + t)
 		}
 		binary.LittleEndian.PutUint64(b, u)
-		xx.Write(b)
+		xx.Write(b) // nolint: errcheck
 	}
 	h := xx.Sum64()
 
-	return uuid.NewFromUint64(uint64(h>>32), uint64(uint32(h)))
+	return uuid.NewFromUint64(h>>32, uint64(uint32(h)))
 }
 
 func aggregateProgress(units []Unit, prog []*RunProgress) Progress {
