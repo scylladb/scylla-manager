@@ -15,9 +15,9 @@ type Unit struct {
 	Tables   []string
 }
 
-// Segment specifies token range: [StartToken, EndToken), StartToken is always
+// segment specifies token range: [StartToken, EndToken), StartToken is always
 // less then EndToken.
-type Segment struct {
+type segment struct {
 	StartToken int64
 	EndToken   int64
 }

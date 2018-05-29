@@ -9,7 +9,7 @@ type repairIterator interface {
 }
 
 type retryIterator struct {
-	segments          []*Segment
+	segments          segments
 	progress          *RunProgress
 	segmentsPerRepair int
 
@@ -27,7 +27,7 @@ func (i *retryIterator) Next() (start, end int, ok bool) {
 	}
 
 	startToken := i.progress.SegmentErrorStartTokens[0]
-	start, _ = segmentsContainStartToken(i.segments, startToken)
+	start, _ = i.segments.containStartToken(startToken)
 	if i.end != 0 && start <= i.start {
 		return 0, 0, false
 	}
@@ -53,7 +53,7 @@ func (i *retryIterator) OnError() {
 }
 
 type forwardIterator struct {
-	segments          []*Segment
+	segments          segments
 	progress          *RunProgress
 	segmentsPerRepair int
 
@@ -68,7 +68,7 @@ func (i *forwardIterator) Next() (start, end int, ok bool) {
 
 	if i.end == 0 {
 		if i.progress.LastStartToken != 0 {
-			i.start, _ = segmentsContainStartToken(i.segments, i.progress.LastStartToken)
+			i.start, _ = i.segments.containStartToken(i.progress.LastStartToken)
 		}
 		i.end = i.start + i.segmentsPerRepair
 	} else {

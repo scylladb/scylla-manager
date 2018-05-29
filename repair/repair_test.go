@@ -32,7 +32,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 		},
 	}
 
-	dc1 := map[string][]*Segment{
+	dc1 := map[string]segments{
 		"172.16.1.3": {
 			{
 				StartToken: 9165301526494284802,
@@ -70,7 +70,7 @@ func TestSplitSegmentsToShards(t *testing.T) {
 
 	for _, shardCount := range []uint{1, 2, 3, 5, 8} {
 		p := dht.NewMurmur3Partitioner(shardCount, 12)
-		s := []*Segment{
+		s := segments{
 			{
 				StartToken: dht.Murmur3MinToken,
 				EndToken:   dht.Murmur3MinToken + 1<<50,
@@ -84,9 +84,9 @@ func TestSplitSegmentsToShards(t *testing.T) {
 				EndToken:   9143747749498840635,
 			},
 		}
-		v := splitSegmentsToShards(s, p)
+		v := s.splitToShards(p)
 
-		if err := validateShards(s, v, p); err != nil {
+		if err := s.validateShards(v, p); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -96,28 +96,28 @@ func TestValidateShardProgress(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
-		S   []*Segment
+		S   segments
 		P   *RunProgress
 		Err string
 	}{
 		{
-			S:   []*Segment{{0, 10}, {20, 30}},
+			S:   segments{{0, 10}, {20, 30}},
 			P:   &RunProgress{SegmentCount: 1},
 			Err: "shard 0: segment count mismatch got 1 expected 2",
 		},
 		{
-			S:   []*Segment{{0, 10}, {20, 30}},
+			S:   segments{{0, 10}, {20, 30}},
 			P:   &RunProgress{SegmentCount: 2, LastStartToken: -1},
 			Err: "shard 0: no segment for start token -1",
 		},
 		{
-			S:   []*Segment{{0, 10}, {20, 30}},
+			S:   segments{{0, 10}, {20, 30}},
 			P:   &RunProgress{SegmentCount: 2, SegmentErrorStartTokens: []int64{15}, LastStartToken: 20},
 			Err: "shard 0: no segment for (failed) start token 15",
 		},
 
 		{
-			S:   []*Segment{{0, 10}, {20, 30}},
+			S:   segments{{0, 10}, {20, 30}},
 			P:   &RunProgress{SegmentCount: 2, LastStartToken: 20},
 			Err: "",
 		},
@@ -125,7 +125,7 @@ func TestValidateShardProgress(t *testing.T) {
 
 	for _, test := range table {
 		msg := ""
-		if err := validateShardProgress([][]*Segment{test.S}, []*RunProgress{test.P}); err != nil {
+		if err := validateShardProgress([]segments{test.S}, []*RunProgress{test.P}); err != nil {
 			msg = err.Error()
 		}
 		if diff := cmp.Diff(msg, test.Err); diff != "" {

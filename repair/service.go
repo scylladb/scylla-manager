@@ -409,7 +409,7 @@ func (s *Service) unlockCluster(run *Run) error {
 	return nil
 }
 
-func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Client, hostSegments map[string][]*Segment) error {
+func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Client, hostSegments map[string]segments) error {
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {

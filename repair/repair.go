@@ -16,8 +16,8 @@ import (
 
 // groupSegmentsByHost extract list of primary segments (token ranges) for every
 // host in a datacenter and returns a mapping from host to list of it's segments.
-func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string][]*Segment, error) {
-	m := make(map[string][]*Segment)
+func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
+	m := make(map[string]segments)
 
 	for _, r := range ring {
 		if len(r.Hosts[dc]) == 0 {
@@ -27,106 +27,20 @@ func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string
 		host := r.Hosts[dc][0]
 		if r.StartToken > r.EndToken {
 			m[host] = append(m[host],
-				&Segment{StartToken: dht.Murmur3MinToken, EndToken: r.EndToken},
-				&Segment{StartToken: r.StartToken, EndToken: dht.Murmur3MaxToken},
+				&segment{StartToken: dht.Murmur3MinToken, EndToken: r.EndToken},
+				&segment{StartToken: r.StartToken, EndToken: dht.Murmur3MaxToken},
 			)
 		} else {
-			m[host] = append(m[host], &Segment{StartToken: r.StartToken, EndToken: r.EndToken})
+			m[host] = append(m[host], &segment{StartToken: r.StartToken, EndToken: r.EndToken})
 		}
 	}
 
 	return m, nil
 }
 
-// splitSegmentsToShards splits the segments into shards given the partitioner.
-func splitSegmentsToShards(segments []*Segment, p *dht.Murmur3Partitioner) [][]*Segment {
-	res := make([][]*Segment, p.ShardCount())
-
-	for _, s := range segments {
-		start := s.StartToken
-		end := s.EndToken
-		shard := p.ShardOf(end - 1)
-
-		for start < end {
-			prev := p.PrevShard(shard)
-			token := p.TokenForPrevShard(end, shard)
-
-			if token > start {
-				res[shard] = append(res[shard], &Segment{StartToken: token, EndToken: end})
-			} else {
-				res[shard] = append(res[shard], &Segment{StartToken: start, EndToken: end})
-			}
-
-			end = token
-			shard = prev
-		}
-	}
-
-	return res
-}
-
-// validateShards checks that the shard split of segments is sound.
-func validateShards(segments []*Segment, shards [][]*Segment, p *dht.Murmur3Partitioner) error {
-	startTokens := set.NewNonTS()
-	endTokens := set.NewNonTS()
-
-	// check that the segments belong to the correct shards
-	for shard, s := range shards {
-		for _, r := range s {
-			if p.ShardOf(r.StartToken) != uint(shard) {
-				return errors.Errorf("wrong shard of a start token %d, expected %d, got %d", r.StartToken, p.ShardOf(r.StartToken), shard)
-			}
-			if p.ShardOf(r.EndToken-1) != uint(shard) {
-				return errors.Errorf("wrong shard of an end token %d, expected %d, got %d", r.EndToken-1, p.ShardOf(r.EndToken-1), shard)
-			}
-
-			// extract tokens
-			startTokens.Add(r.StartToken)
-			endTokens.Add(r.EndToken)
-		}
-	}
-
-	// check that shards contain the original start and end tokens
-	for _, r := range segments {
-		if !startTokens.Has(r.StartToken) {
-			return errors.Errorf("no start token %d", r.StartToken)
-		}
-		if !endTokens.Has(r.EndToken) {
-			return errors.Errorf("no end token %d", r.StartToken)
-		}
-
-		startTokens.Remove(r.StartToken)
-		endTokens.Remove(r.EndToken)
-	}
-
-	// check that the range is continuous
-	var err error
-
-	startTokens.Each(func(item interface{}) bool {
-		if !endTokens.Has(item) {
-			err = errors.Errorf("missing end token for start token %d", item)
-			return false
-		}
-		return true
-	})
-	if err != nil {
-		return err
-	}
-
-	endTokens.Each(func(item interface{}) bool {
-		if !startTokens.Has(item) {
-			err = errors.Errorf("missing start token end token %d", item)
-			return false
-		}
-		return true
-	})
-
-	return err
-}
-
 // validateShardProgress checks if run progress, possibly copied from a
 // different run matches the shards.
-func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
+func validateShardProgress(shards []segments, prog []*RunProgress) error {
 	if len(prog) != len(shards) {
 		return errors.New("length mismatch")
 	}
@@ -139,12 +53,12 @@ func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
 			return errors.Errorf("shard %d: segment count mismatch got %d expected %d", p.Shard, p.SegmentCount, len(shards[i]))
 		}
 		if p.LastStartToken != 0 {
-			if _, ok := segmentsContainStartToken(shards[i], p.LastStartToken); !ok {
+			if _, ok := shards[i].containStartToken(p.LastStartToken); !ok {
 				return errors.Errorf("shard %d: no segment for start token %d", p.Shard, p.LastStartToken)
 			}
 		}
 		for _, token := range p.SegmentErrorStartTokens {
-			if _, ok := segmentsContainStartToken(shards[i], token); !ok {
+			if _, ok := shards[i].containStartToken(token); !ok {
 				return errors.Errorf("shard %d: no segment for (failed) start token %d", p.Shard, token)
 			}
 		}

@@ -70,7 +70,7 @@ type worker struct {
 	Config   *Config
 	Run      *Run
 	Host     string
-	Segments []*Segment
+	Segments segments
 
 	Service *Service
 	Client  *scyllaclient.Client
@@ -198,15 +198,15 @@ func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, erro
 	return dht.NewMurmur3Partitioner(shardCount, uint(w.Config.ShardingIgnoreMsbBits)), nil
 }
 
-func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) [][]*Segment {
-	shards := splitSegmentsToShards(w.Segments, p)
-	if err := validateShards(w.Segments, shards, p); err != nil {
+func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) []segments {
+	shards := w.Segments.splitToShards(p)
+	if err := w.Segments.validateShards(shards, p); err != nil {
 		w.Logger.Info(ctx, "Suboptimal sharding", "error", err.Error())
 	}
 
 	for i := range shards {
-		shards[i] = mergeSegments(shards[i])
-		shards[i] = splitSegments(shards[i], int64(w.Config.SegmentSizeLimit))
+		shards[i] = shards[i].merge()
+		shards[i] = shards[i].split(int64(w.Config.SegmentSizeLimit))
 	}
 
 	return shards
@@ -215,7 +215,7 @@ func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partit
 // shardWorker repairs a single shard.
 type shardWorker struct {
 	parent   *worker
-	segments []*Segment
+	segments segments
 	progress *RunProgress
 	logger   log.Logger
 
@@ -386,7 +386,7 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 	return w.parent.Client.Repair(ctx, w.parent.Host, &scyllaclient.RepairConfig{
 		Keyspace: w.parent.Run.Keyspace,
 		Tables:   w.parent.Run.Tables,
-		Ranges:   dumpSegments(w.segments[start:end]),
+		Ranges:   w.segments[start:end].dump(),
 	})
 }
 
