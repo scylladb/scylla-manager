@@ -241,6 +241,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return fail(errors.Wrap(err, "failed to update the run"))
 	}
 
+	// check the cluster partitioner
+	p, err := client.Partitioner(ctx)
+	if err != nil {
+		return fail(errors.Wrap(err, "failed to get the client partitioner name"))
+	}
+	if p != scyllaclient.Murmur3Partitioner {
+		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner))
+	}
+
 	// check keyspace and tables
 	all, err := client.Tables(ctx, run.Unit.Keyspace)
 	if err != nil {
@@ -251,15 +260,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	if err := validateTables(run.Unit.Tables, all); err != nil {
 		return fail(errors.Wrapf(err, "keyspace %q", run.Unit.Keyspace))
-	}
-
-	// check the cluster partitioner
-	p, err := client.Partitioner(ctx)
-	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the client partitioner name"))
-	}
-	if p != scyllaclient.Murmur3Partitioner {
-		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner))
 	}
 
 	// get the ring description
