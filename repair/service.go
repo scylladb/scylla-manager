@@ -144,11 +144,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	run.ClusterName = c.String()
 
-	// lock is used to make sure that the initialisation sequence is finished
-	// before starting the repair go routine.
-	lock := atomic.NewBool(true)
-	defer lock.Store(false)
-
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(run); err != nil {
 		s.logger.Debug(ctx, "Lock error", "error", err)
@@ -336,6 +331,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			}
 		}
 	}
+
+	// lock is used to make sure that the initialisation sequence is finished
+	// before starting the repair go routine.
+	lock := atomic.NewBool(true)
+	defer lock.Store(false)
 
 	// spawn async repair
 	s.logger.Info(ctx, "Starting repair")
