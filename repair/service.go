@@ -72,47 +72,40 @@ func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp sc
 	}, nil
 }
 
-// FixRunStatus shall be called when the service starts to assure proper
-// functioning. It iterates over all the repair units and marks running and
+// Init shall be called when the service starts. It marks running and
 // stopping runs as stopped.
-func (s *Service) FixRunStatus(ctx context.Context) error {
+func (s *Service) Init(ctx context.Context) error {
 	s.logger.Info(ctx, "Fixing run statuses")
 
-	// FIXME change impl
-	//stmt, _ := qb.Select(schema.RepairUnit.Name).ToCql()
-	//q := s.session.Query(stmt).WithContext(ctx)
-	//defer q.Release()
-	//
-	//iter := gocqlx.Iter(q)
-	//defer iter.Close()
-	//
-	//var u Unit
-	//for iter.StructScan(&u) {
-	//	last, err := s.GetLastRun(ctx, &u)
-	//	if err == mermaid.ErrNotFound {
-	//		continue
-	//	}
-	//	if err != nil {
-	//		return errors.Wrap(err, "failed to get last run of a unit")
-	//	}
-	//
-	//	switch last.Status {
-	//	case StatusRunning, StatusStopping:
-	//		last.Status = StatusStopped
-	//		if err := s.putRun(ctx, last); err != nil {
-	//			return errors.Wrap(err, "failed to update a run")
-	//		}
-	//		s.logger.Info(ctx, "Marked run as stopped",
-	//			"cluster_id", last.ClusterID,
-	//			"task_id", u.ID,
-	//			"run_id", last.ID,
-	//		)
-	//	}
-	//}
-	//
-	//s.logger.Info(ctx, "Done")
-	//
-	//return iter.Close()
+	// list tasks
+	var tasks []*Run
+	stmt, names := qb.Select(schema.RepairRun.Name).Distinct(schema.RepairRun.PartKey...).ToCql()
+	if err := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).SelectRelease(&tasks); err != nil {
+		return err
+	}
+
+	// get status
+	stmt, names = schema.RepairRun.Select("id", "status")
+	g := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
+	defer g.Release()
+
+	// update status
+	stmt, names = schema.RepairRun.Update("status")
+	u := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
+	defer u.Release()
+
+	for _, r := range tasks {
+		if err := g.BindStruct(r).Get(r); err != nil {
+			return err
+		}
+		if r.Status == StatusRunning || r.Status == StatusStopping {
+			r.Status = StatusStopped
+			if err := u.BindStruct(r).Exec(); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -175,7 +168,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", run.ID,
 	)
 
-	// get last started run of the unit
+	// get last started run of the task
 	prev, err := s.GetLastStartedRun(ctx, run.ClusterID, run.TaskID)
 	if err != nil && err != mermaid.ErrNotFound {
 		return fail(errors.Wrap(err, "failed to get previous run"))
@@ -505,37 +498,7 @@ func (s *Service) topologyHash(ctx context.Context, client *scyllaclient.Client)
 	return topologyHash(tokens), nil
 }
 
-// GetLastRun returns the the most recent run of the unit.
-func (s *Service) GetLastRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetLastRun",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-	)
-
-	stmt, names := qb.Select(schema.RepairRun.Name).Where(
-		qb.Eq("cluster_id"), qb.Eq("task_id"),
-	).Limit(1).ToCql()
-
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    taskID,
-	})
-	defer q.Release()
-
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	var r Run
-	if err := gocqlx.Get(&r, q.Query); err != nil {
-		return nil, err
-	}
-
-	return &r, nil
-}
-
-// GetLastStartedRun returns the the most recent run of the unit that started
-// the repair.
+// GetLastStartedRun returns the the most recent successful run of the task.
 func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetLastStartedRun",
 		"cluster_id", clusterID,
@@ -652,7 +615,12 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 
 	r.Status = StatusStopping
 
-	return s.putRun(ctx, r)
+	stmt, names := schema.RepairRun.Update("status")
+	if err := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r).ExecRelease(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // isStopped checks if repair is in StatusStopping or StatusStopped.
@@ -739,6 +707,3 @@ func (s *Service) Close() {
 	s.workerCancel()
 	s.wg.Wait()
 }
-
-// FIXME change API "clusterID, taskID, runID uuid.UUID"?
-// FIXME StopRepair do update: qb.Update(schema.RepairRun.Name).SetLit("status", StatusStopping.String())

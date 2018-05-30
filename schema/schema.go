@@ -23,11 +23,6 @@ type cql struct {
 	names []string
 }
 
-// Delete returns delete by primary key statement.
-func (t *Table) Delete() (stmt string, names []string) {
-	return t.delete.stmt, t.delete.names
-}
-
 // Get returns select by primary key statement.
 func (t *Table) Get(columns ...string) (stmt string, names []string) {
 	if len(columns) == 0 {
@@ -38,11 +33,6 @@ func (t *Table) Get(columns ...string) (stmt string, names []string) {
 		Columns(columns...).
 		Where(t.primaryKey...).
 		ToCql()
-}
-
-// Insert returns insert all columns statement.
-func (t *Table) Insert() (stmt string, names []string) {
-	return t.insert.stmt, t.insert.names
 }
 
 // Select returns select by partition key statement.
@@ -63,6 +53,24 @@ func (t *Table) SelectBuilder(columns ...string) *qb.SelectBuilder {
 	return qb.Select(t.Name).
 		Columns(columns...).
 		Where(t.primaryKey[0:len(t.PartKey)]...)
+}
+
+// Insert returns insert all columns statement.
+func (t *Table) Insert() (stmt string, names []string) {
+	return t.insert.stmt, t.insert.names
+}
+
+// Update returns update columns statement.
+func (t *Table) Update(columns ...string) (stmt string, names []string) {
+	return qb.Update(t.Name).
+		Set(columns...).
+		Where(t.primaryKey...).
+		ToCql()
+}
+
+// Delete returns delete by primary key statement.
+func (t *Table) Delete() (stmt string, names []string) {
+	return t.delete.stmt, t.delete.names
 }
 
 func (t Table) init() Table {
@@ -106,8 +114,8 @@ var (
 	RepairRun = Table{
 		Name:    "repair_run",
 		Columns: []string{"cluster_id", "task_id", "id", "prev_id", "topology_hash", "keyspace_name", "tables", "status", "cause", "start_time", "end_time"},
-		PartKey: []string{"cluster_id"},
-		SortKey: []string{"task_id", "id"},
+		PartKey: []string{"cluster_id", "task_id"},
+		SortKey: []string{"id"},
 	}.init()
 
 	RepairRunProgress = Table{
