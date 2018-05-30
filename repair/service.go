@@ -140,19 +140,19 @@ func (s *Service) unlockCluster(run *Run) error {
 }
 
 // Repair starts an asynchronous repair process.
-func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, u Unit) error {
+func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, units []Unit) error {
 	s.logger.Debug(ctx, "Repair",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,
-		"unit", u,
+		"units", units,
 	)
 
 	run := &Run{
 		ClusterID: clusterID,
 		TaskID:    taskID,
 		ID:        runID,
-		Unit:      u,
+		Units:     units,
 		Status:    runner.StatusRunning,
 		StartTime: timeutc.Now(),
 	}
@@ -287,21 +287,30 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	return nil
 }
 
-func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
+func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) (unitErr error) {
+	defer func() {
+		if v := recover(); v != nil {
+			s.logger.Error(ctx, "Panic", "panic", v)
+			unitErr = errors.Errorf("panic")
+		}
+	}()
+
+	u := run.Units[unit]
+
 	// check keyspace and tables
-	all, err := client.Tables(ctx, run.Unit.Keyspace)
+	all, err := client.Tables(ctx, u.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the client table names for keyspace")
 	}
 	if len(all) == 0 {
-		return errors.Errorf("missing or empty keyspace %q", run.Unit.Keyspace)
+		return errors.Errorf("missing or empty keyspace %q", u.Keyspace)
 	}
-	if err := validateTables(run.Unit.Tables, all); err != nil {
-		return errors.Wrapf(err, "keyspace %q", run.Unit.Keyspace)
+	if err := validateTables(u.Tables, all); err != nil {
+		return errors.Wrapf(err, "keyspace %q", u.Keyspace)
 	}
 
 	// get the ring description
-	_, ring, err := client.DescribeRing(ctx, run.Unit.Keyspace)
+	_, ring, err := client.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the ring description")
 	}
@@ -325,6 +334,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 			ClusterID: run.ClusterID,
 			TaskID:    run.TaskID,
 			RunID:     run.ID,
+			Unit:      unit,
 			Host:      host,
 		}
 		if err := s.putRunProgress(ctx, &p); err != nil {
@@ -398,17 +408,6 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 	}
 
-	return s.repairLoop(ctx, run, client, hostSegments)
-}
-
-func (s *Service) repairLoop(ctx context.Context, run *Run, client *scyllaclient.Client, hostSegments map[string]segments) (loopError error) {
-	defer func() {
-		if v := recover(); v != nil {
-			s.logger.Error(ctx, "Panic", "panic", v)
-			loopError = errors.Errorf("panic")
-		}
-	}()
-
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
@@ -435,6 +434,7 @@ func (s *Service) repairLoop(ctx context.Context, run *Run, client *scyllaclient
 		w := worker{
 			Config:   &s.config,
 			Run:      run,
+			Unit:     unit,
 			Host:     host,
 			Segments: hostSegments[host],
 
@@ -675,9 +675,9 @@ func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, er
 	return p, gocqlx.Select(&p, q.Query)
 }
 
-func (s *Service) getHostProgress(ctx context.Context, run *Run, host string) ([]*RunProgress, error) {
+func (s *Service) getHostProgress(ctx context.Context, run *Run, unit int, host string) ([]*RunProgress, error) {
 	stmt, names := schema.RepairRunProgress.SelectBuilder().Where(
-		qb.Eq("host"),
+		qb.Eq("unit"), qb.Eq("host"),
 	).ToCql()
 
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
@@ -687,6 +687,7 @@ func (s *Service) getHostProgress(ctx context.Context, run *Run, host string) ([
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
+		"unit":       unit,
 		"host":       host,
 	}
 	q.BindMap(m)
