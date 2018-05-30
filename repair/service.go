@@ -250,35 +250,73 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner))
 	}
 
+	// lock is used to make sure that the initialisation sequence is finished
+	// before starting the repair go routine.
+	lock := atomic.NewBool(true)
+	defer lock.Store(false)
+
+	// spawn async repair
+	s.logger.Info(ctx, "Starting repair")
+
+	s.wg.Add(1)
+	go func() {
+		// wait for unlock
+		for lock.Load() {
+			time.Sleep(50 * time.Millisecond)
+		}
+
+		ctx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
+
+		defer func() {
+			cancel()
+			if err := s.unlockCluster(run); err != nil {
+				s.logger.Error(ctx, "Unlock error", "error", err)
+			}
+			s.wg.Done()
+		}()
+
+		go s.reportRepairProgress(ctx, run) // closed on cancel
+
+		if err := s.repairUnit(ctx, run, 0, client); err != nil {
+			fail(err)
+		}
+
+		s.logger.Info(ctx, "Status", "status", run.Status)
+	}()
+
+	return nil
+}
+
+func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
 	// check keyspace and tables
 	all, err := client.Tables(ctx, run.Unit.Keyspace)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the client table names for keyspace"))
+		return errors.Wrap(err, "failed to get the client table names for keyspace")
 	}
 	if len(all) == 0 {
-		return fail(errors.Errorf("missing or empty keyspace %q", run.Unit.Keyspace))
+		return errors.Errorf("missing or empty keyspace %q", run.Unit.Keyspace)
 	}
 	if err := validateTables(run.Unit.Tables, all); err != nil {
-		return fail(errors.Wrapf(err, "keyspace %q", run.Unit.Keyspace))
+		return errors.Wrapf(err, "keyspace %q", run.Unit.Keyspace)
 	}
 
 	// get the ring description
-	_, ring, err := client.DescribeRing(ctx, u.Keyspace)
+	_, ring, err := client.DescribeRing(ctx, run.Unit.Keyspace)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the ring description"))
+		return errors.Wrap(err, "failed to get the ring description")
 	}
 
 	// get local datacenter name
 	dc, err := client.Datacenter(ctx)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the local datacenter name"))
+		return errors.Wrap(err, "failed to get the local datacenter name")
 	}
 	s.logger.Debug(ctx, "Using DC", "dc", dc)
 
 	// split token range into coordination hosts
 	hostSegments, err := groupSegmentsByHost(dc, ring)
 	if err != nil {
-		return fail(errors.Wrap(err, "segmentation failed"))
+		return errors.Wrap(err, "segmentation failed")
 	}
 
 	// init empty progress
@@ -290,7 +328,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			Host:      host,
 		}
 		if err := s.putRunProgress(ctx, &p); err != nil {
-			return fail(errors.Wrapf(err, "failed to initialise the run progress %s", &p))
+			return errors.Wrapf(err, "failed to initialise the run progress %s", &p)
 		}
 
 		l := prometheus.Labels{
@@ -306,14 +344,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// update progress from the previous run
-	if prev != nil {
+	if run.PrevID != uuid.Nil {
 		prog, err := s.getProgress(ctx, &Run{
 			ClusterID: run.ClusterID,
 			TaskID:    run.TaskID,
 			ID:        run.PrevID,
 		})
 		if err != nil {
-			return fail(errors.Wrap(err, "failed to get the last run progress"))
+			return errors.Wrap(err, "failed to get the last run progress")
 		}
 
 		// check if host did not change
@@ -333,17 +371,16 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				"diff", diff,
 			)
 
-			prev = nil
 			run.PrevID = uuid.Nil
 			if err := s.putRun(ctx, run); err != nil {
-				return fail(errors.Wrap(err, "failed to update the run"))
+				return errors.Wrap(err, "failed to update the run")
 			}
 		} else {
 			for _, p := range prog {
 				if p.started() {
 					p.RunID = run.ID
 					if err := s.putRunProgress(ctx, p); err != nil {
-						return fail(errors.Wrapf(err, "failed to initialise the run progress %s", &p))
+						return errors.Wrapf(err, "failed to initialise the run progress %s", &p)
 					}
 
 					l := prometheus.Labels{
@@ -361,48 +398,17 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// lock is used to make sure that the initialisation sequence is finished
-	// before starting the repair go routine.
-	lock := atomic.NewBool(true)
-	defer lock.Store(false)
-
-	// spawn async repair
-	s.logger.Info(ctx, "Starting repair")
-
-	s.wg.Add(1)
-	go func() {
-		// wait for unlock
-		for lock.Load() {
-			time.Sleep(50 * time.Millisecond)
-		}
-
-		ctx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
-
-		defer func() {
-			s.wg.Done()
-			if v := recover(); v != nil {
-				s.logger.Error(ctx, "Panic", "panic", v)
-				fail(errors.Errorf("%s", v))
-			}
-			if err := s.unlockCluster(run); err != nil {
-				s.logger.Error(ctx, "Unlock error", "error", err)
-			}
-			cancel()
-		}()
-
-		go s.reportRepairProgress(ctx, run)
-
-		if err := s.repair(ctx, run, client, hostSegments); err != nil {
-			fail(err)
-		}
-
-		s.logger.Info(ctx, "Status", "status", run.Status)
-	}()
-
-	return nil
+	return s.repairLoop(ctx, run, client, hostSegments)
 }
 
-func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Client, hostSegments map[string]segments) error {
+func (s *Service) repairLoop(ctx context.Context, run *Run, client *scyllaclient.Client, hostSegments map[string]segments) (loopError error) {
+	defer func() {
+		if v := recover(); v != nil {
+			s.logger.Error(ctx, "Panic", "panic", v)
+			loopError = errors.Errorf("panic")
+		}
+	}()
+
 	// shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
