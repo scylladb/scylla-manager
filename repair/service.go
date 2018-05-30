@@ -564,25 +564,15 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"task_id":    taskID,
 		"id":         runID,
 	})
-	defer q.Release()
-
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
 
 	var r Run
-	if err := gocqlx.Get(&r, q.Query); err != nil {
-		return nil, err
-	}
-
-	return &r, nil
+	return &r, q.GetRelease(&r)
 }
 
 // putRun upserts a repair run.
 func (s *Service) putRun(ctx context.Context, r *Run) error {
 	stmt, names := schema.RepairRun.Insert()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
-
 	return q.ExecRelease()
 }
 
@@ -622,11 +612,9 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 	r.Status = runner.StatusStopping
 
 	stmt, names := schema.RepairRun.Update("status")
-	if err := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r).ExecRelease(); err != nil {
-		return err
-	}
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 
-	return nil
+	return q.ExecRelease()
 }
 
 // isStopped checks if repair is in StatusStopping or StatusStopped.
@@ -659,20 +647,14 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
 	stmt, names := schema.RepairRunProgress.Select()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
-	defer q.Release()
-
-	q.BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
 	})
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
 
 	var p []*RunProgress
-	return p, gocqlx.Select(&p, q.Query)
+	return p, q.SelectRelease(&p)
 }
 
 func (s *Service) getHostProgress(ctx context.Context, run *Run, unit int, host string) ([]*RunProgress, error) {
@@ -680,23 +662,16 @@ func (s *Service) getHostProgress(ctx context.Context, run *Run, unit int, host 
 		qb.Eq("unit"), qb.Eq("host"),
 	).ToCql()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
-	defer q.Release()
-
-	m := qb.M{
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
 		"unit":       unit,
 		"host":       host,
-	}
-	q.BindMap(m)
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
+	})
 
 	var p []*RunProgress
-	return p, gocqlx.Select(&p, q.Query)
+	return p, q.SelectRelease(&p)
 }
 
 // putRunProgress upserts a repair run.
