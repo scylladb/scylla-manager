@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	// Logger is available for callers to set as they see fit
-	// Default is log.NopLogger
+	// Logger allows for setting a custom logger that can be used by migration
+	// callback functions, default is log.NopLogger.
 	Logger = log.NopLogger
 
 	register = make(map[string]migrate.CallbackFunc)
@@ -27,7 +27,7 @@ func registerMigrationCallback(name string, f migrate.CallbackFunc) {
 	register[name] = f
 }
 
-// MigrateCallback is the main callback dispatcher we use for custom migrations
+// MigrateCallback is the main callback dispatcher we use for custom migrations.
 func MigrateCallback(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
 	lock.Lock()
 	defer lock.Unlock()
