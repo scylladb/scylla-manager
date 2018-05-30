@@ -110,6 +110,35 @@ func (s *Service) Init(ctx context.Context) error {
 	return nil
 }
 
+func (s *Service) tryLockCluster(run *Run) error {
+	s.activeMu.Lock()
+	defer s.activeMu.Unlock()
+
+	owner := s.active[run.ClusterID]
+	if owner != uuid.Nil {
+		return errors.Errorf("cluster owned by another run: %s", owner)
+	}
+
+	s.active[run.ClusterID] = run.ID
+	return nil
+}
+
+func (s *Service) unlockCluster(run *Run) error {
+	s.activeMu.Lock()
+	defer s.activeMu.Unlock()
+
+	owner := s.active[run.ClusterID]
+	if owner == uuid.Nil {
+		return errors.Errorf("not locked")
+	}
+	if owner != run.ID {
+		return errors.Errorf("cluster owned by another run: %s", owner)
+	}
+
+	delete(s.active, run.ClusterID)
+	return nil
+}
+
 // Repair starts an asynchronous repair process.
 func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, u Unit) error {
 	s.logger.Debug(ctx, "Repair",
@@ -370,35 +399,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		s.logger.Info(ctx, "Status", "status", run.Status)
 	}()
 
-	return nil
-}
-
-func (s *Service) tryLockCluster(run *Run) error {
-	s.activeMu.Lock()
-	defer s.activeMu.Unlock()
-
-	owner := s.active[run.ClusterID]
-	if owner != uuid.Nil {
-		return errors.Errorf("cluster owned by another run: %s", owner)
-	}
-
-	s.active[run.ClusterID] = run.ID
-	return nil
-}
-
-func (s *Service) unlockCluster(run *Run) error {
-	s.activeMu.Lock()
-	defer s.activeMu.Unlock()
-
-	owner := s.active[run.ClusterID]
-	if owner == uuid.Nil {
-		return errors.Errorf("not locked")
-	}
-	if owner != run.ID {
-		return errors.Errorf("cluster owned by another run: %s", owner)
-	}
-
-	delete(s.active, run.ClusterID)
 	return nil
 }
 
