@@ -38,7 +38,7 @@ type Run struct {
 
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
-	Unit         Unit
+	Units        []Unit
 	Status       runner.Status
 	Cause        string
 	StartTime    time.Time
@@ -52,6 +52,7 @@ type RunProgress struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
+	Unit      int
 	Host      string
 	Shard     int
 

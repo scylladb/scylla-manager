@@ -2,7 +2,7 @@
 
 DROP TABLE repair_unit;
 
--- recreate / truncate repair_run and repair_run_progress we change semantics
+-- recreate repair_run and repair_run_progress we change semantics
 -- of unit_id to task_id and data would be deleted anyway due to TTL.
 
 DROP TABLE repair_run;
@@ -18,7 +18,7 @@ CREATE TABLE repair_run (
     id timeuuid,
     prev_id timeuuid,
     topology_hash uuid,
-    unit frozen<repair_unit>,
+    units list<frozen<repair_unit>>,
     status text,
     cause text,
     start_time timestamp,
@@ -26,6 +26,21 @@ CREATE TABLE repair_run (
     PRIMARY KEY ((cluster_id, task_id), id)
 ) WITH default_time_to_live = 360000 AND CLUSTERING ORDER BY (id DESC);
 
-TRUNCATE repair_run_progress;
+DROP TABLE repair_run_progress;
 
-ALTER TABLE repair_run_progress RENAME unit_id TO task_id;
+CREATE TABLE repair_run_progress (
+    cluster_id uuid,
+    task_id uuid,
+    run_id uuid,
+    unit int,
+    host text,
+    shard int,
+    segment_count int,
+    segment_success int,
+    segment_error int,
+    segment_error_start_tokens list<bigint>,
+    last_start_token bigint,
+    last_start_time timestamp,
+    last_command_id int,
+    PRIMARY KEY((cluster_id, task_id, run_id), unit, host, shard)
+) WITH default_time_to_live = 360000;
