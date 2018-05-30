@@ -306,7 +306,7 @@ type repairHostProgress struct {
 }
 
 type repairProgressResponse struct {
-	Status repair.Status `json:"status"`
+	Status runner.Status `json:"status"`
 	Cause  string        `json:"cause"`
 	repairProgress
 	Hosts map[string]*repairHostProgress `json:"hosts"`

@@ -23,6 +23,7 @@ import (
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -80,7 +81,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ID:        uuid.NewTime(),
 			ClusterID: clusterID,
 			TaskID:    task0,
-			Status:    repair.StatusRunning,
+			Status:    runner.StatusRunning,
 		}
 		putRun(t, r0)
 
@@ -88,7 +89,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ID:        uuid.NewTime(),
 			ClusterID: clusterID,
 			TaskID:    task0,
-			Status:    repair.StatusRunning,
+			Status:    runner.StatusRunning,
 		}
 		putRun(t, r1)
 
@@ -96,7 +97,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ID:        uuid.NewTime(),
 			ClusterID: clusterID,
 			TaskID:    task1,
-			Status:    repair.StatusStopping,
+			Status:    runner.StatusStopping,
 		}
 		putRun(t, r2)
 
@@ -104,7 +105,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ID:        uuid.NewTime(),
 			ClusterID: clusterID,
 			TaskID:    task1,
-			Status:    repair.StatusStopping,
+			Status:    runner.StatusStopping,
 		}
 		putRun(t, r3)
 
@@ -114,13 +115,13 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		if r, err := s.GetRun(ctx, r1.ClusterID, r1.TaskID, r1.ID); err != nil {
 			t.Fatal(err)
-		} else if r.Status != repair.StatusStopped {
+		} else if r.Status != runner.StatusStopped {
 			t.Fatal("invalid status", r.Status)
 		}
 
 		if r, err := s.GetRun(ctx, r3.ClusterID, r3.TaskID, r3.ID); err != nil {
 			t.Fatal(err)
-		} else if r.Status != repair.StatusStopped {
+		} else if r.Status != runner.StatusStopped {
 			t.Fatal("invalid status", r.Status)
 		}
 	})
@@ -135,7 +136,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusError,
+			Status:    runner.StatusError,
 		}
 		putRun(t, r0)
 
@@ -143,7 +144,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusError,
+			Status:    runner.StatusError,
 		}
 		putRun(t, r1)
 
@@ -163,7 +164,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusDone,
+			Status:    runner.StatusDone,
 		}
 		putRun(t, r0)
 
@@ -171,7 +172,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusStopped,
+			Status:    runner.StatusStopped,
 		}
 		putRun(t, r1)
 
@@ -179,7 +180,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusError,
+			Status:    runner.StatusError,
 		}
 		putRun(t, r2)
 
@@ -203,7 +204,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusDone,
+			Status:    runner.StatusDone,
 		}
 		putRun(t, r0)
 
@@ -211,7 +212,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusError,
+			Status:    runner.StatusError,
 		}
 		putRun(t, r1)
 		putRunProgress(t, r1)
@@ -220,7 +221,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusError,
+			Status:    runner.StatusError,
 		}
 		putRun(t, r2)
 
@@ -244,7 +245,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    repair.StatusRunning,
+			Status:    runner.StatusRunning,
 		}
 
 		putRun(t, r0)
@@ -255,7 +256,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		if r1, err := s.GetRun(ctx, clusterID, taskID, r0.ID); err != nil {
 			t.Fatal(err)
-		} else if r1.Status != repair.StatusStopping {
+		} else if r1.Status != runner.StatusStopping {
 			t.Fatal(r1.Status)
 		}
 	})
@@ -287,7 +288,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx       = context.Background()
 	)
 
-	assertStatus := func(expected repair.Status) {
+	assertStatus := func(expected runner.Status) {
 		if r, err := s.GetRun(ctx, clusterID, taskID, runID); err != nil {
 			t.Fatal(err)
 		} else if r.Status != expected {
@@ -343,7 +344,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// Then status is StatusRunning
-	assertStatus(repair.StatusRunning)
+	assertStatus(runner.StatusRunning)
 
 	// When wait
 	wait()
@@ -366,13 +367,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// Then status is StatusStopping
-	assertStatus(repair.StatusStopping)
+	assertStatus(runner.StatusStopping)
 
 	// When wait
 	wait()
 
 	// Then status is StatusStopped
-	assertStatus(repair.StatusStopped)
+	assertStatus(runner.StatusStopped)
 
 	// When connectivity fails
 	hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -389,7 +390,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// And status is StatusError
-	assertStatus(repair.StatusError)
+	assertStatus(runner.StatusError)
 
 	// When create a new task
 	runID = uuid.NewTime()
@@ -400,7 +401,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// Then status is StatusRunning
-	assertStatus(repair.StatusRunning)
+	assertStatus(runner.StatusRunning)
 
 	// When wait
 	wait()
@@ -421,7 +422,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	// Then status is StatusError
-	assertStatus(repair.StatusError)
+	assertStatus(runner.StatusError)
 
 	// When create a new task
 	runID = uuid.NewTime()
@@ -455,7 +456,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// Then status is StatusRunning
-	assertStatus(repair.StatusRunning)
+	assertStatus(runner.StatusRunning)
 
 	// When wait
 	wait()
@@ -488,7 +489,7 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 		ctx       = context.Background()
 	)
 
-	assertStatus := func(expected repair.Status) {
+	assertStatus := func(expected runner.Status) {
 		if r, err := s.GetRun(ctx, clusterID, taskID, runID); err != nil {
 			t.Fatal(err)
 		} else if r.Status != expected {
@@ -512,7 +513,7 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 	wait()
 
 	// Then repair stopped
-	assertStatus(repair.StatusError)
+	assertStatus(runner.StatusError)
 
 	// And errors are recorded
 	prog, err := s.GetProgress(ctx, clusterID, taskID, runID)

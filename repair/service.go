@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/timeutc"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -98,8 +99,8 @@ func (s *Service) Init(ctx context.Context) error {
 		if err := g.BindStruct(r).Get(r); err != nil {
 			return err
 		}
-		if r.Status == StatusRunning || r.Status == StatusStopping {
-			r.Status = StatusStopped
+		if r.Status == runner.StatusRunning || r.Status == runner.StatusStopping {
+			r.Status = runner.StatusStopped
 			if err := u.BindStruct(r).Exec(); err != nil {
 				return err
 			}
@@ -123,13 +124,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		TaskID:    taskID,
 		ID:        runID,
 		Unit:      u,
-		Status:    StatusRunning,
+		Status:    runner.StatusRunning,
 		StartTime: timeutc.Now(),
 	}
 
 	// fail updates a run and passes the error
 	fail := func(err error) error {
-		run.Status = StatusError
+		run.Status = runner.StatusError
 		run.Cause = err.Error()
 		run.EndTime = timeutc.Now()
 		s.putRunLogError(ctx, run)
@@ -154,7 +155,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return fail(mermaid.ParamError{Cause: ErrActiveRepair})
 	}
 	defer func() {
-		if run.Status != StatusRunning {
+		if run.Status != runner.StatusRunning {
 			if err := s.unlockCluster(run); err != nil {
 				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
@@ -175,7 +176,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if prev != nil {
 		s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
 		switch {
-		case prev.Status == StatusDone:
+		case prev.Status == runner.StatusDone:
 			s.logger.Info(ctx, "Starting from scratch: previous run is done")
 			prev = nil
 		case timeutc.Since(prev.StartTime) > s.config.MaxRunAge:
@@ -449,7 +450,7 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 		}
 
 		if stopped {
-			run.Status = StatusStopped
+			run.Status = runner.StatusStopped
 			run.EndTime = timeutc.Now()
 			s.putRunLogError(ctx, run)
 
@@ -457,7 +458,7 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 		}
 	}
 
-	run.Status = StatusDone
+	run.Status = runner.StatusDone
 	run.EndTime = timeutc.Now()
 	s.putRunLogError(ctx, run)
 
@@ -524,7 +525,7 @@ func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.
 	}
 
 	for _, r := range runs {
-		if r.Status != StatusError {
+		if r.Status != runner.StatusError {
 			return r, nil
 		}
 
@@ -602,7 +603,7 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 		return err
 	}
 
-	if r.Status != StatusRunning {
+	if r.Status != runner.StatusRunning {
 		return errors.New("not running")
 	}
 
@@ -612,7 +613,7 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 		"run_id", runID,
 	)
 
-	r.Status = StatusStopping
+	r.Status = runner.StatusStopping
 
 	stmt, names := schema.RepairRun.Update("status")
 	if err := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r).ExecRelease(); err != nil {
@@ -630,12 +631,12 @@ func (s *Service) isStopped(ctx context.Context, run *Run) (bool, error) {
 		return false, q.Err()
 	}
 
-	var v Status
+	var v runner.Status
 	if err := q.Query.Scan(&v); err != nil {
 		return false, err
 	}
 
-	return v == StatusStopping || v == StatusStopped, nil
+	return v == runner.StatusStopping || v == runner.StatusStopped, nil
 }
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing

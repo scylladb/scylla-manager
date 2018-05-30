@@ -3,12 +3,12 @@
 package repair
 
 import (
-	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -30,46 +30,6 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// Status specifies the status of a Run.
-type Status string
-
-// Status enumeration.
-const (
-	StatusRunning  Status = "running"
-	StatusDone     Status = "done"
-	StatusError    Status = "error"
-	StatusStopping Status = "stopping"
-	StatusStopped  Status = "stopped"
-)
-
-func (s Status) String() string {
-	return string(s)
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s Status) MarshalText() (text []byte, err error) {
-	return []byte(s.String()), nil
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *Status) UnmarshalText(text []byte) error {
-	switch Status(text) {
-	case StatusRunning:
-		*s = StatusRunning
-	case StatusDone:
-		*s = StatusDone
-	case StatusError:
-		*s = StatusError
-	case StatusStopping:
-		*s = StatusStopping
-	case StatusStopped:
-		*s = StatusStopped
-	default:
-		return fmt.Errorf("unrecognized Status %q", text)
-	}
-	return nil
-}
-
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
 	ClusterID uuid.UUID
@@ -79,7 +39,7 @@ type Run struct {
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
 	Unit         Unit
-	Status       Status
+	Status       runner.Status
 	Cause        string
 	StartTime    time.Time
 	EndTime      time.Time

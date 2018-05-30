@@ -25,11 +25,12 @@ type Status string
 
 // Status enumeration.
 const (
+	StatusDone     Status = "done"
+	StatusError    Status = "error"
 	StatusStarting Status = "starting"
 	StatusRunning  Status = "running"
 	StatusStopping Status = "stopping"
 	StatusStopped  Status = "stopped"
-	StatusError    Status = "error"
 )
 
 func (s Status) String() string {

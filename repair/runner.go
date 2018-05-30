@@ -46,11 +46,11 @@ func (r Runner) Status(ctx context.Context, d runner.Descriptor) (runner.Status,
 		return "", "", errors.Wrap(err, "failed to load run")
 	}
 	switch run.Status {
-	case StatusRunning, StatusStopping:
+	case runner.StatusRunning, runner.StatusStopping:
 		return runner.StatusRunning, "", nil
-	case StatusError:
+	case runner.StatusError:
 		return runner.StatusError, run.Cause, nil
-	case StatusDone, StatusStopped:
+	case runner.StatusDone, runner.StatusStopped:
 		return runner.StatusStopped, "", nil
 	default:
 		return "", "", fmt.Errorf("unsupported repair state %q", run.Status)
