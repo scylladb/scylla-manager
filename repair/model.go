@@ -4,22 +4,30 @@ package repair
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 // Unit specifies what shall be repaired.
 type Unit struct {
-	Keyspace string
+	Keyspace string `db:"keyspace_name"`
 	Tables   []string
 }
 
-// segment specifies token range: [StartToken, EndToken), StartToken is always
-// less then EndToken.
-type segment struct {
-	StartToken int64
-	EndToken   int64
+// MarshalUDT implements UDTMarshaler.
+func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
+	return gocql.Marshal(info, f.Interface())
+}
+
+// UnmarshalUDT implements UDTUnmarshaler.
+func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
+	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
 // Status specifies the status of a Run.
@@ -70,8 +78,7 @@ type Run struct {
 
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
-	Keyspace     string `db:"keyspace_name"`
-	Tables       []string
+	Unit         Unit
 	Status       Status
 	Cause        string
 	StartTime    time.Time

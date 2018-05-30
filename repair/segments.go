@@ -12,6 +12,13 @@ import (
 	"github.com/scylladb/mermaid/internal/dht"
 )
 
+// segment specifies token range: [StartToken, EndToken), StartToken is always
+// less then EndToken.
+type segment struct {
+	StartToken int64
+	EndToken   int64
+}
+
 // segments is a grouping type for []*segment to allow for easier and more
 // type safe operations on a []*segment
 type segments []*segment
