@@ -25,6 +25,58 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*repair.Service, *mermaidtest.HackableRoundTripper) {
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+
+	rt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
+
+	s, err := repair.NewService(
+		session,
+		c,
+		func(_ context.Context, id uuid.UUID) (*cluster.Cluster, error) {
+			return &cluster.Cluster{
+				ID:   id,
+				Name: "test_cluster",
+			}, nil
+		},
+		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, rt, logger.Named("scylla"))
+			if err != nil {
+				return nil, err
+			}
+			return scyllaclient.WithConfig(c, scyllaclient.Config{
+				"shard_count": float64(2),
+			}), nil
+		},
+		logger.Named("repair"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s, rt
+}
+
+func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
+	mermaidtest.ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+}
+
+var failRepairInterceptor = mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	if req.Method != http.MethodGet || !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+		return nil, nil
+	}
+
+	return &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
+		Request:    req,
+		Header:     make(http.Header, 0),
+	}, nil
+})
+
 func TestServiceRepairIntegration(t *testing.T) {
 	// fix values for testing...
 	config := repair.DefaultConfig()
@@ -305,55 +357,3 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 		}
 	}
 }
-
-func newTestService(t *testing.T, session *gocql.Session, c repair.Config) (*repair.Service, *mermaidtest.HackableRoundTripper) {
-	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
-
-	rt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
-
-	s, err := repair.NewService(
-		session,
-		c,
-		func(_ context.Context, id uuid.UUID) (*cluster.Cluster, error) {
-			return &cluster.Cluster{
-				ID:   id,
-				Name: "test_cluster",
-			}, nil
-		},
-		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			c, err := scyllaclient.NewClient(mermaidtest.ManagedClusterHosts, rt, logger.Named("scylla"))
-			if err != nil {
-				return nil, err
-			}
-			return scyllaclient.WithConfig(c, scyllaclient.Config{
-				"shard_count": float64(2),
-			}), nil
-		},
-		logger.Named("repair"),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return s, rt
-}
-
-func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
-	mermaidtest.ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
-}
-
-var failRepairInterceptor = mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-	if req.Method != http.MethodGet || !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
-		return nil, nil
-	}
-
-	return &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
-		Request:    req,
-		Header:     make(http.Header, 0),
-	}, nil
-})
