@@ -7,18 +7,22 @@ DROP TABLE repair_unit;
 
 DROP TABLE repair_run;
 
+CREATE TYPE IF NOT EXISTS repair_unit (
+    keyspace_name text,
+    tables set<text>,
+);
+
 CREATE TABLE repair_run (
     cluster_id uuid,
     task_id uuid,
     id timeuuid,
-    cause text,
-    end_time timestamp,
-    keyspace_name text,
     prev_id timeuuid,
-    start_time timestamp,
-    status text,
-    tables set<text>,
     topology_hash uuid,
+    unit frozen<repair_unit>,
+    status text,
+    cause text,
+    start_time timestamp,
+    end_time timestamp,
     PRIMARY KEY ((cluster_id, task_id), id)
 ) WITH default_time_to_live = 360000 AND CLUSTERING ORDER BY (id DESC);
 

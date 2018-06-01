@@ -122,8 +122,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		ClusterID: clusterID,
 		TaskID:    taskID,
 		ID:        runID,
-		Keyspace:  u.Keyspace,
-		Tables:    u.Tables,
+		Unit:      u,
 		Status:    StatusRunning,
 		StartTime: timeutc.Now(),
 	}
@@ -218,15 +217,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// check keyspace and tables
-	all, err := client.Tables(ctx, run.Keyspace)
+	all, err := client.Tables(ctx, run.Unit.Keyspace)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get the client table names for keyspace"))
 	}
 	if len(all) == 0 {
-		return fail(errors.Errorf("missing or empty keyspace %q", run.Keyspace))
+		return fail(errors.Errorf("missing or empty keyspace %q", run.Unit.Keyspace))
 	}
-	if err := validateTables(run.Tables, all); err != nil {
-		return fail(errors.Wrapf(err, "keyspace %q", run.Keyspace))
+	if err := validateTables(run.Unit.Tables, all); err != nil {
+		return fail(errors.Wrapf(err, "keyspace %q", run.Unit.Keyspace))
 	}
 
 	// check the cluster partitioner
