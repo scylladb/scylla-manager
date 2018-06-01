@@ -192,6 +192,19 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", run.ID,
 	)
 
+	// get the cluster client
+	client, err := s.client(ctx, run.ClusterID)
+	if err != nil {
+		return fail(errors.Wrap(err, "failed to get the client proxy"))
+	}
+
+	// validate units
+	for _, u := range run.Units {
+		if err := s.validateUnit(ctx, u, client); err != nil {
+			return fail(errors.Wrap(err, "invalid request"))
+		}
+	}
+
 	// get last started run of the task
 	prev, err := s.GetLastStartedRun(ctx, run.ClusterID, run.TaskID)
 	if err != nil && err != mermaid.ErrNotFound {
@@ -220,17 +233,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// register the run
-	if err := s.putRun(ctx, run); err != nil {
-		return fail(errors.Wrap(err, "failed to register the run"))
-	}
-
-	// get the cluster client
-	client, err := s.client(ctx, run.ClusterID)
-	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the client proxy"))
-	}
-
 	// get the cluster topology hash
 	run.TopologyHash, err = s.topologyHash(ctx, client)
 	if err != nil {
@@ -256,6 +258,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	if p != scyllaclient.Murmur3Partitioner {
 		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner))
+	}
+
+	// register the run
+	if err := s.putRun(ctx, run); err != nil {
+		return fail(errors.Wrap(err, "failed to register the run"))
 	}
 
 	// lock is used to make sure that the initialisation sequence is finished
@@ -303,6 +310,21 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	return nil
 }
 
+func (s *Service) validateUnit(ctx context.Context, u Unit, client *scyllaclient.Client) error {
+	all, err := client.Tables(ctx, u.Keyspace)
+	if err != nil {
+		return errors.Wrap(err, "failed to get keyspace info")
+	}
+	if len(all) == 0 {
+		return errors.Errorf("empty keyspace %s", u.Keyspace)
+	}
+	if err := validateSubset(u.Tables, all); err != nil {
+		return errors.Wrap(err, "keyspace %s missing tables")
+	}
+
+	return nil
+}
+
 func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) (unitErr error) {
 	defer func() {
 		if v := recover(); v != nil {
@@ -312,18 +334,6 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	}()
 
 	u := run.Units[unit]
-
-	// check keyspace and tables
-	all, err := client.Tables(ctx, u.Keyspace)
-	if err != nil {
-		return errors.Wrap(err, "failed to get the client table names for keyspace")
-	}
-	if len(all) == 0 {
-		return errors.Errorf("missing or empty keyspace %q", u.Keyspace)
-	}
-	if err := validateTables(u.Tables, all); err != nil {
-		return errors.Wrapf(err, "keyspace %q", u.Keyspace)
-	}
 
 	// get the ring description
 	_, ring, err := client.DescribeRing(ctx, u.Keyspace)

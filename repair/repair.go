@@ -67,22 +67,22 @@ func validateShardProgress(shards []segments, prog []*RunProgress) error {
 	return nil
 }
 
-// validateTables checks if tables are a subset of all the tables. Empty table
-// list is always valid.
-func validateTables(tables []string, all []string) error {
-	if len(tables) == 0 {
+// validateSubset checks if sub is a subset of all, if not returns error with
+// diff information.
+func validateSubset(sub []string, all []string) error {
+	if len(sub) == 0 {
 		return nil
 	}
 
 	s := set.NewNonTS()
-	for _, t := range tables {
+	for _, t := range sub {
 		s.Add(t)
 	}
 	for _, t := range all {
 		s.Remove(t)
 	}
 	if !s.IsEmpty() {
-		return errors.Errorf("unknown tables %s", s)
+		return errors.New(s.String())
 	}
 
 	return nil
