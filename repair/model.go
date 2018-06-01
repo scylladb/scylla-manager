@@ -45,6 +45,7 @@ type Run struct {
 	EndTime      time.Time
 
 	clusterName string
+	prevProg    []*RunProgress
 }
 
 // RunProgress describes repair progress on per shard basis.
@@ -92,9 +93,4 @@ func (p *RunProgress) PercentComplete() int {
 	}
 
 	return percent
-}
-
-// started returns true if the host / shard was ever repaired in the run.
-func (p *RunProgress) started() bool {
-	return p.LastCommandID != 0 || p.SegmentSuccess > 0 || p.SegmentError > 0
 }

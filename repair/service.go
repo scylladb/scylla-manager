@@ -210,6 +210,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	if prev != nil {
 		run.PrevID = prev.ID
+		run.prevProg, err = s.getProgress(ctx, &Run{
+			ClusterID: run.ClusterID,
+			TaskID:    run.TaskID,
+			ID:        prev.ID,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to get the last run progress")
+		}
 	}
 
 	// register the run
@@ -336,43 +344,26 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		return errors.Wrap(err, "segmentation failed")
 	}
 
-	// init empty progress
-	for host := range hostSegments {
-		p := RunProgress{
-			ClusterID: run.ClusterID,
-			TaskID:    run.TaskID,
-			RunID:     run.ID,
-			Unit:      unit,
-			Host:      host,
-		}
-		if err := s.putRunProgress(ctx, &p); err != nil {
-			return errors.Wrapf(err, "failed to initialise the run progress %s", &p)
-		}
-
-		l := prometheus.Labels{
-			"cluster": run.clusterName,
-			"task":    run.TaskID.String(),
-			"host":    host,
-			"shard":   "0",
-		}
-
-		repairSegmentsTotal.With(l).Set(0)
-		repairSegmentsSuccess.With(l).Set(0)
-		repairSegmentsError.With(l).Set(0)
-	}
-
-	// update progress from the previous run
-	if run.PrevID != uuid.Nil {
-		prog, err := s.getProgress(ctx, &Run{
-			ClusterID: run.ClusterID,
-			TaskID:    run.TaskID,
-			ID:        run.PrevID,
+	// init progress
+	var prog []RunProgress
+	if run.prevProg != nil {
+		// extract unit progress
+		n := len(run.prevProg)
+		idx := sort.Search(n, func(i int) bool {
+			return run.prevProg[i].Unit >= unit
 		})
-		if err != nil {
-			return errors.Wrap(err, "failed to get the last run progress")
+		end := sort.Search(n, func(i int) bool {
+			return run.prevProg[i].Unit >= unit+1
+		})
+		for i := idx; i < end; i++ {
+			prog = append(prog, *run.prevProg[i])
+		}
+		// fix run ID
+		for i := range prog {
+			prog[i].RunID = run.ID
 		}
 
-		// check if host did not change
+		// check if hosts did not change
 		prevHosts := set.NewNonTS()
 		for _, p := range prog {
 			prevHosts.Add(p.Host)
@@ -381,39 +372,36 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		for host := range hostSegments {
 			hosts.Add(host)
 		}
-
 		if diff := set.SymmetricDifference(prevHosts, hosts); !diff.IsEmpty() {
-			s.logger.Info(ctx, "Starting from scratch: hosts changed",
-				"old", prevHosts,
-				"new", hosts,
-				"diff", diff,
-			)
-
-			run.PrevID = uuid.Nil
-			if err := s.putRun(ctx, run); err != nil {
-				return errors.Wrap(err, "failed to update the run")
-			}
-		} else {
-			for _, p := range prog {
-				if p.started() {
-					p.RunID = run.ID
-					if err := s.putRunProgress(ctx, p); err != nil {
-						return errors.Wrapf(err, "failed to initialise the run progress %s", &p)
-					}
-
-					l := prometheus.Labels{
-						"cluster": run.clusterName,
-						"task":    run.TaskID.String(),
-						"host":    p.Host,
-						"shard":   fmt.Sprint(p.Shard),
-					}
-
-					repairSegmentsTotal.With(l).Set(float64(p.SegmentCount))
-					repairSegmentsSuccess.With(l).Set(float64(p.SegmentSuccess))
-					repairSegmentsError.With(l).Set(float64(p.SegmentError))
-				}
-			}
+			s.logger.Info(ctx, "Starting from scratch: hosts changed", "diff", diff)
+			prog = nil
 		}
+	}
+	if prog == nil {
+		for host := range hostSegments {
+			prog = append(prog, RunProgress{
+				ClusterID: run.ClusterID,
+				TaskID:    run.TaskID,
+				RunID:     run.ID,
+				Unit:      unit,
+				Host:      host,
+			})
+		}
+	}
+	for _, p := range prog {
+		if err := s.putRunProgress(ctx, &p); err != nil {
+			return errors.Wrapf(err, "failed to initialise the run progress %s", &p)
+		}
+		// init metrics
+		l := prometheus.Labels{
+			"cluster": run.clusterName,
+			"task":    run.TaskID.String(),
+			"host":    p.Host,
+			"shard":   fmt.Sprint(p.Shard),
+		}
+		repairSegmentsTotal.With(l).Set(float64(p.SegmentCount))
+		repairSegmentsSuccess.With(l).Set(float64(p.SegmentSuccess))
+		repairSegmentsError.With(l).Set(float64(p.SegmentError))
 	}
 
 	// shuffle hosts
