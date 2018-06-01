@@ -277,11 +277,19 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		go s.reportRepairProgress(ctx, run) // closed on cancel
 
-		if err := s.repairUnit(ctx, run, 0, client); err != nil {
-			fail(err)
+		for unit := range run.Units {
+			if err := s.repairUnit(ctx, run, unit, client); err != nil {
+				fail(err)
+				return
+			}
+			if run.Status == runner.StatusStopped {
+				return
+			}
 		}
 
-		s.logger.Info(ctx, "Status", "status", run.Status)
+		run.Status = runner.StatusDone
+		run.EndTime = timeutc.Now()
+		s.putRunLogError(ctx, run)
 	}()
 
 	return nil
@@ -447,6 +455,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 
 		if ctx.Err() != nil {
+			run.Status = runner.StatusStopped
 			return nil
 		}
 
@@ -454,20 +463,13 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		if err != nil {
 			w.Logger.Error(ctx, "Service error", "error", err)
 		}
-
 		if stopped {
 			run.Status = runner.StatusStopped
 			run.EndTime = timeutc.Now()
 			s.putRunLogError(ctx, run)
-
 			return nil
 		}
 	}
-
-	run.Status = runner.StatusDone
-	run.EndTime = timeutc.Now()
-	s.putRunLogError(ctx, run)
-
 	return nil
 }
 
