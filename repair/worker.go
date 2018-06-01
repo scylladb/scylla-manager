@@ -164,7 +164,7 @@ func (w *worker) init(ctx context.Context) error {
 		}
 
 		labels := prometheus.Labels{
-			"cluster": w.Run.ClusterName,
+			"cluster": w.Run.clusterName,
 			"task":    w.Run.TaskID.String(),
 			"host":    w.Host,
 			"shard":   fmt.Sprint(i),

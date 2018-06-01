@@ -171,7 +171,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err != nil {
 		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "failed to load cluster")})
 	}
-	run.ClusterName = c.String()
+	run.clusterName = c.String()
 
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(run); err != nil {
@@ -350,7 +350,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 
 		l := prometheus.Labels{
-			"cluster": run.ClusterName,
+			"cluster": run.clusterName,
 			"task":    run.TaskID.String(),
 			"host":    host,
 			"shard":   "0",
@@ -402,7 +402,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 					}
 
 					l := prometheus.Labels{
-						"cluster": run.ClusterName,
+						"cluster": run.clusterName,
 						"task":    run.TaskID.String(),
 						"host":    p.Host,
 						"shard":   fmt.Sprint(p.Shard),
@@ -486,7 +486,7 @@ func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
 			}
 			for host, percent := range hostsPercentComplete(prog) {
 				repairProgress.With(prometheus.Labels{
-					"cluster": run.ClusterName,
+					"cluster": run.clusterName,
 					"task":    run.TaskID.String(),
 					"host":    host,
 				}).Set(percent)

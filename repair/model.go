@@ -44,7 +44,7 @@ type Run struct {
 	StartTime    time.Time
 	EndTime      time.Time
 
-	ClusterName string `db:"-"`
+	clusterName string
 }
 
 // RunProgress describes repair progress on per shard basis.
