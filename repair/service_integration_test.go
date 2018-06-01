@@ -182,7 +182,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer()); diff != "" {
+		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -223,7 +223,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer()); diff != "" {
+		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
 			t.Fatal(diff)
 		}
 	})
