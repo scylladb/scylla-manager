@@ -24,7 +24,6 @@ import (
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/atomic"
 )
 
 // Service orchestrates cluster repairs.
@@ -266,9 +265,10 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// lock is used to make sure that the initialisation sequence is finished
-	// before starting the repair go routine.
-	lock := atomic.NewBool(true)
-	defer lock.Store(false)
+	// before starting the repair go routine. Otherwise code optimisations
+	// caused data races.
+	lock := make(chan struct{})
+	defer close(lock)
 
 	// spawn async repair
 	s.logger.Info(ctx, "Starting repair")
@@ -276,9 +276,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	s.wg.Add(1)
 	go func() {
 		// wait for unlock
-		for lock.Load() {
-			time.Sleep(50 * time.Millisecond)
-		}
+		<-lock
 
 		ctx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
 
