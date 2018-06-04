@@ -404,10 +404,11 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 		// init metrics
 		l := prometheus.Labels{
-			"cluster": run.clusterName,
-			"task":    run.TaskID.String(),
-			"host":    p.Host,
-			"shard":   fmt.Sprint(p.Shard),
+			"cluster":  run.clusterName,
+			"task":     run.TaskID.String(),
+			"keyspace": u.Keyspace,
+			"host":     p.Host,
+			"shard":    fmt.Sprint(p.Shard),
 		}
 		repairSegmentsTotal.With(l).Set(float64(p.SegmentCount))
 		repairSegmentsSuccess.With(l).Set(float64(p.SegmentSuccess))
@@ -484,9 +485,10 @@ func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
 			}
 			for host, percent := range hostsPercentComplete(prog) {
 				repairProgress.With(prometheus.Labels{
-					"cluster": run.clusterName,
-					"task":    run.TaskID.String(),
-					"host":    host,
+					"cluster":  run.clusterName,
+					"task":     run.TaskID.String(),
+					"keyspace": run.Units[0].Keyspace, // FIXME mmt: refactor progress!!!
+					"host":     host,
 				}).Set(percent)
 			}
 		case <-ctx.Done():
