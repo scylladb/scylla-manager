@@ -42,7 +42,7 @@ func TestTaskSplit(t *testing.T) {
 
 func TestDumpMap(t *testing.T) {
 	table := []struct {
-		M map[string]string
+		M map[string]interface{}
 		S string
 	}{
 		// Empty
@@ -51,12 +51,12 @@ func TestDumpMap(t *testing.T) {
 		},
 		// Single element
 		{
-			M: map[string]string{"a": "b"},
+			M: map[string]interface{}{"a": "b"},
 			S: "a:b",
 		},
 		// Multiple elements
 		{
-			M: map[string]string{"a": "b", "c": "d"},
+			M: map[string]interface{}{"a": "b", "c": "d"},
 			S: "a:b, c:d",
 		},
 	}

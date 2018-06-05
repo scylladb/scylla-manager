@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -23,12 +24,20 @@ type Runner struct {
 
 // Run implements runner.Runner.
 func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
-	var tables []string
-	if p[tablesKey] != "" {
-		tables = strings.Split(p[tablesKey], ",")
+	var (
+		tables []string
+		m      map[string]string
+	)
+
+	if err := json.Unmarshal(p, &m); err != nil {
+		return errors.Wrapf(err, "unable to parse runner properties: %v", p)
+	}
+
+	if m[tablesKey] != "" {
+		tables = strings.Split(m[tablesKey], ",")
 	}
 	u := Unit{
-		Keyspace: p[keyspaceKey],
+		Keyspace: m[keyspaceKey],
 		Tables:   tables,
 	}
 

@@ -4,6 +4,7 @@ package runner
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/scylladb/mermaid/uuid"
@@ -18,7 +19,7 @@ type Descriptor struct {
 
 // Properties is a collection of string key-value pairs describing
 // properties of a task.
-type Properties map[string]string
+type Properties = json.RawMessage
 
 // Status specifies the status of a Task.
 type Status string

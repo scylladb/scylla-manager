@@ -38,7 +38,7 @@ func taskJoin(taskType string, taskID interface{}) string {
 	return fmt.Sprint(taskType, "/", taskID)
 }
 
-func dumpMap(m map[string]string) string {
+func dumpMap(m map[string]interface{}) string {
 	if len(m) == 0 {
 		return "-"
 	}

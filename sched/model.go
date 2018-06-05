@@ -124,7 +124,7 @@ type Task struct {
 	Metadata   string            `json:"metadata"`
 	Enabled    bool              `json:"enabled"`
 	Sched      Schedule          `json:"schedule"`
-	Properties map[string]string `json:"properties"`
+	Properties runner.Properties `json:"properties"`
 
 	clusterName string
 }

@@ -40,7 +40,7 @@ type ExtendedTask struct {
 	Name string `json:"name,omitempty"`
 
 	// properties
-	Properties map[string]string `json:"properties,omitempty"`
+	Properties interface{} `json:"properties,omitempty"`
 
 	// schedule
 	Schedule *Schedule `json:"schedule,omitempty"`

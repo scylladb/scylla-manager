@@ -172,9 +172,7 @@
         },
         "properties": {
           "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "additionalProperties": true
         }
       }
     },
@@ -210,9 +208,7 @@
         },
         "properties": {
           "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "additionalProperties": true
         },
         "status": {
           "type": "string"
@@ -256,9 +252,7 @@
         },
         "properties": {
           "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "additionalProperties": true
         }
       }
     },

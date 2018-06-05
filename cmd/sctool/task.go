@@ -96,7 +96,9 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 			fields = append(fields, "-", "-", "-")
 		}
 
-		fields = append(fields, dumpMap(task.Properties))
+		if props, ok := task.Properties.(map[string]interface{}); ok {
+			fields = append(fields, dumpMap(props))
+		}
 
 		for _, f := range []string{
 			formatTime(task.StartTime),
