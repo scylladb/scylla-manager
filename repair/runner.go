@@ -27,11 +27,12 @@ func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Propertie
 	if p[tablesKey] != "" {
 		tables = strings.Split(p[tablesKey], ",")
 	}
-	unit := Unit{
+	u := Unit{
 		Keyspace: p[keyspaceKey],
 		Tables:   tables,
 	}
-	return r.Service.Repair(ctx, d.ClusterID, d.TaskID, d.RunID, unit)
+
+	return r.Service.Repair(ctx, d.ClusterID, d.TaskID, d.RunID, []Unit{u})
 }
 
 // Stop implements runner.Runner.

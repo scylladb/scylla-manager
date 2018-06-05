@@ -113,16 +113,16 @@ var (
 
 	RepairRun = Table{
 		Name:    "repair_run",
-		Columns: []string{"cluster_id", "task_id", "id", "prev_id", "topology_hash", "unit", "status", "cause", "start_time", "end_time"},
+		Columns: []string{"cluster_id", "task_id", "id", "prev_id", "topology_hash", "units", "status", "cause", "start_time", "end_time"},
 		PartKey: []string{"cluster_id", "task_id"},
 		SortKey: []string{"id"},
 	}.init()
 
 	RepairRunProgress = Table{
 		Name:    "repair_run_progress",
-		Columns: []string{"cluster_id", "task_id", "run_id", "host", "shard", "segment_count", "segment_success", "segment_error", "segment_error_start_tokens", "last_start_token", "last_start_time", "last_command_id"},
+		Columns: []string{"cluster_id", "task_id", "run_id", "unit", "host", "shard", "segment_count", "segment_success", "segment_error", "segment_error_start_tokens", "last_start_token", "last_start_time", "last_command_id"},
 		PartKey: []string{"cluster_id", "task_id", "run_id"},
-		SortKey: []string{"host", "shard"},
+		SortKey: []string{"unit", "host", "shard"},
 	}.init()
 
 	SchedTask = Table{

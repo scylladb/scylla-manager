@@ -23,21 +23,21 @@ var (
 		Subsystem: "repair",
 		Name:      "segments_total",
 		Help:      "Total number of segments to repair.",
-	}, []string{"cluster", "task", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairSegmentsSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_success",
 		Help:      "Number of repaired segments.",
-	}, []string{"cluster", "task", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairSegmentsError = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_error",
 		Help:      "Number of segments that failed to repair.",
-	}, []string{"cluster", "task", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scylla_manager",
@@ -45,14 +45,14 @@ var (
 		Name:      "duration_seconds",
 		Help:      "Duration of a single repair command.",
 		MaxAge:    30 * time.Minute,
-	}, []string{"cluster", "task", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairProgress = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "progress",
 		Help:      "Current repair progress.",
-	}, []string{"cluster", "task", "host"})
+	}, []string{"cluster", "task", "keyspace", "host"})
 )
 
 func init() {
@@ -69,6 +69,7 @@ func init() {
 type worker struct {
 	Config   *Config
 	Run      *Run
+	Unit     int
 	Host     string
 	Segments segments
 
@@ -123,7 +124,7 @@ func (w *worker) exec(ctx context.Context) error {
 
 func (w *worker) init(ctx context.Context) error {
 	// continue from a savepoint
-	prog, err := w.Service.getHostProgress(ctx, w.Run, w.Host)
+	prog, err := w.Service.getHostProgress(ctx, w.Run, w.Unit, w.Host)
 	if err != nil {
 		return errors.Wrap(err, "failed to get host progress")
 	}
@@ -155,6 +156,7 @@ func (w *worker) init(ctx context.Context) error {
 				ClusterID:    w.Run.ClusterID,
 				TaskID:       w.Run.TaskID,
 				RunID:        w.Run.ID,
+				Unit:         w.Unit,
 				Host:         w.Host,
 				Shard:        i,
 				SegmentCount: len(segments),
@@ -162,10 +164,11 @@ func (w *worker) init(ctx context.Context) error {
 		}
 
 		labels := prometheus.Labels{
-			"cluster": w.Run.ClusterName,
-			"task":    w.Run.TaskID.String(),
-			"host":    w.Host,
-			"shard":   fmt.Sprint(i),
+			"cluster":  w.Run.clusterName,
+			"task":     w.Run.TaskID.String(),
+			"keyspace": w.Run.Units[w.Unit].Keyspace,
+			"host":     w.Host,
+			"shard":    fmt.Sprint(i),
 		}
 
 		w.shards[i] = &shardWorker{
@@ -383,9 +386,10 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 }
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
+	u := w.parent.Run.Units[w.parent.Unit]
 	return w.parent.Client.Repair(ctx, w.parent.Host, &scyllaclient.RepairConfig{
-		Keyspace: w.parent.Run.Unit.Keyspace,
-		Tables:   w.parent.Run.Unit.Tables,
+		Keyspace: u.Keyspace,
+		Tables:   u.Tables,
 		Ranges:   w.segments[start:end].dump(),
 	})
 }
@@ -399,12 +403,14 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 	t := time.NewTicker(w.parent.Config.PollInterval)
 	defer t.Stop()
 
+	u := w.parent.Run.Units[w.parent.Unit]
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.C:
-			s, err := w.parent.Client.RepairStatus(ctx, w.parent.Host, w.parent.Run.Unit.Keyspace, id)
+			s, err := w.parent.Client.RepairStatus(ctx, w.parent.Host, u.Keyspace, id)
 			if err != nil {
 				return err
 			}

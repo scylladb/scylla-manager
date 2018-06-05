@@ -38,13 +38,14 @@ type Run struct {
 
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
-	Unit         Unit
+	Units        []Unit
 	Status       runner.Status
 	Cause        string
 	StartTime    time.Time
 	EndTime      time.Time
 
-	ClusterName string `db:"-"`
+	clusterName string
+	prevProg    []*RunProgress
 }
 
 // RunProgress describes repair progress on per shard basis.
@@ -52,6 +53,7 @@ type RunProgress struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
+	Unit      int
 	Host      string
 	Shard     int
 
@@ -91,9 +93,4 @@ func (p *RunProgress) PercentComplete() int {
 	}
 
 	return percent
-}
-
-// started returns true if the host / shard was ever repaired in the run.
-func (p *RunProgress) started() bool {
-	return p.LastCommandID != 0 || p.SegmentSuccess > 0 || p.SegmentError > 0
 }

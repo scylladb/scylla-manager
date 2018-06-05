@@ -134,7 +134,7 @@ func TestValidateShardProgress(t *testing.T) {
 	}
 }
 
-func TestValidateTables(t *testing.T) {
+func TestValidateSubset(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
@@ -153,13 +153,13 @@ func TestValidateTables(t *testing.T) {
 		{
 			T:   []string{"A", "B"},
 			A:   []string{"A", "_", "C", "D"},
-			Err: "unknown tables [B]",
+			Err: "[B]",
 		},
 	}
 
 	for _, test := range table {
 		msg := ""
-		if err := validateTables(test.T, test.A); err != nil {
+		if err := validateSubset(test.T, test.A); err != nil {
 			msg = err.Error()
 		}
 		if diff := cmp.Diff(msg, test.Err); diff != "" {

@@ -284,7 +284,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		clusterID = uuid.MustRandom()
 		taskID    = uuid.MustRandom()
 		runID     = uuid.NewTime()
-		unit      = repair.Unit{Keyspace: "test_repair"}
+		units     = []repair.Unit{{Keyspace: "test_repair"}}
 		ctx       = context.Background()
 	)
 
@@ -339,7 +339,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	// When run repair
-	if err := s.Repair(ctx, clusterID, taskID, runID, unit); err != nil {
+	if err := s.Repair(ctx, clusterID, taskID, runID, units); err != nil {
 		t.Fatal(err)
 	}
 
@@ -354,7 +354,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	// When run another repair
 	// Then run fails
-	if err := s.Repair(ctx, clusterID, taskID, uuid.NewTime(), unit); err == nil || err.Error() != "repair already in progress" {
+	if err := s.Repair(ctx, clusterID, taskID, uuid.NewTime(), units); err == nil || err.Error() != "repair already in progress" {
 		t.Fatal("expected error", err)
 	}
 
@@ -385,7 +385,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	runID = uuid.NewTime()
 
 	// Then run fails
-	if err := s.Repair(ctx, clusterID, taskID, runID, unit); err == nil || !strings.Contains(err.Error(), "test") {
+	if err := s.Repair(ctx, clusterID, taskID, runID, units); err == nil || !strings.Contains(err.Error(), "test") {
 		t.Fatal(err)
 	}
 
@@ -396,7 +396,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	runID = uuid.NewTime()
 
 	// And run repair
-	if err := s.Repair(ctx, clusterID, taskID, runID, unit); err != nil {
+	if err := s.Repair(ctx, clusterID, taskID, runID, units); err != nil {
 		t.Fatal(err)
 	}
 
@@ -428,7 +428,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	runID = uuid.NewTime()
 
 	// And run repair
-	if err := s.Repair(ctx, clusterID, taskID, runID, unit); err != nil {
+	if err := s.Repair(ctx, clusterID, taskID, runID, units); err != nil {
 		t.Fatal(err)
 	}
 
@@ -451,7 +451,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	runID = uuid.NewTime()
 
 	// And run repair
-	if err := s.Repair(ctx, clusterID, taskID, runID, unit); err != nil {
+	if err := s.Repair(ctx, clusterID, taskID, runID, units); err != nil {
 		t.Fatal(err)
 	}
 
@@ -485,7 +485,7 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 		clusterID = uuid.MustRandom()
 		taskID    = uuid.MustRandom()
 		runID     = uuid.NewTime()
-		unit      = repair.Unit{Keyspace: "test_repair"}
+		units     = []repair.Unit{{Keyspace: "test_repair"}}
 		ctx       = context.Background()
 	)
 
@@ -505,7 +505,7 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 	hrt.SetInterceptor(failRepairInterceptor)
 
 	// When run repair
-	if err := s.Repair(ctx, clusterID, taskID, runID, unit); err != nil {
+	if err := s.Repair(ctx, clusterID, taskID, runID, units); err != nil {
 		t.Fatal(err)
 	}
 
