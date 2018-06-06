@@ -99,23 +99,20 @@ func (h *repairTestHelper) waitProgress(node string, percent int) {
 }
 
 func (h *repairTestHelper) progress(node string) int {
-	prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
 	if err != nil {
 		h.t.Fatal(err)
 	}
 
-	v := 0
-	t := 0
-	for _, p := range prog {
-		if p.Host == node {
-			v += p.PercentComplete()
-			t += 1
+	for _, u := range p.Units {
+		for _, n := range u.Nodes {
+			if n.Host == node {
+				return n.PercentComplete
+			}
 		}
 	}
-	if t != 0 {
-		v /= t
-	}
-	return v
+
+	return -1
 }
 
 func newTestService(t *testing.T, session *gocql.Session, hrt *mermaidtest.HackableRoundTripper, c repair.Config) *repair.Service {
@@ -347,29 +344,29 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 	h.assertStatus(runner.StatusError)
 
 	print("And: errors are recorded")
-	prog, err := h.service.GetProgress(ctx, h.clusterID, h.taskID, h.runID)
+	p, err := h.service.GetProgress(ctx, h.clusterID, h.taskID, h.runID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	hostProg := prog[:0]
-	for _, p := range prog {
-		if p.Host == node0 {
-			hostProg = append(hostProg, p)
+	var sp []repair.ShardProgress
+	for _, u := range p.Units {
+		for _, n := range u.Nodes {
+			if n.Host == node0 {
+				sp = n.Shards
+				break
+			}
 		}
 	}
 
-	if len(hostProg) != 2 {
+	if len(sp) != 2 {
 		t.Fatal("expected 2 shards")
 	}
-	for _, p := range hostProg {
+	for _, p := range sp {
 		if p.SegmentError != config.SegmentsPerRepair {
 			t.Error("expected", config.SegmentsPerRepair, "failed segments, got", p.SegmentError)
 		}
 		if p.SegmentSuccess != 0 {
 			t.Error("expected no successful segments")
-		}
-		if len(p.SegmentErrorStartTokens) != 1 {
-			t.Error("expected 1 error start token, got", len(p.SegmentErrorStartTokens))
 		}
 	}
 }

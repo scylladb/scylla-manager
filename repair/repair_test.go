@@ -5,9 +5,11 @@ package repair
 import (
 	"testing"
 
+	"encoding/json"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"os"
 )
 
 func TestGroupSegmentsByHost(t *testing.T) {
@@ -177,6 +179,117 @@ func TestTopologyHash(t *testing.T) {
 	}
 }
 
+func TestAggregateProgress(t *testing.T) {
+	t.Parallel()
+
+	units := []Unit{
+		{Keyspace: "keyspace0"},
+		{Keyspace: "keyspace1"},
+		{Keyspace: "keyspace2"},
+	}
+
+	table := []struct {
+		U []Unit
+		P []*RunProgress
+		E string
+	}{
+		// empty units list
+		{
+			E: "test-data/aggregate_progress_empty_units_list.json",
+		},
+		// empty progress list
+		{
+			U: units,
+			E: "test-data/aggregate_progress_empty_progress_list.json",
+		},
+		// single unit, single host, single shard
+		{
+			U: units[0:1],
+			P: []*RunProgress{
+				{Host: "A", SegmentCount: 100, SegmentSuccess: 30},
+			},
+			E: "test-data/aggregate_progress_single_unit_host_shard.json",
+		},
+		// multiple units, single host, single shard
+		{
+			U: units,
+			P: []*RunProgress{
+				{Unit: 0, Host: "A", SegmentCount: 100, SegmentSuccess: 30},
+				{Unit: 1, Host: "B", SegmentCount: 100, SegmentSuccess: 40},
+				{Unit: 2, Host: "C", SegmentCount: 100, SegmentSuccess: 50},
+			},
+			E: "test-data/aggregate_progress_multiple_units_single_host_shard.json",
+		},
+	}
+
+	for _, test := range table {
+		f, err := os.Open(test.E)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var p Progress
+		if err := json.NewDecoder(f).Decode(&p); err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+
+		if diff := cmp.Diff(p, aggregateProgress(test.U, test.P), cmp.AllowUnexported(Progress{}, UnitProgress{}, NodeProgress{}, ShardProgress{})); diff != "" {
+			t.Error(diff)
+		}
+	}
+}
+
+func TestAggregateUnitProgress(t *testing.T) {
+	t.Parallel()
+
+	u := Unit{
+		Keyspace: "keyspace",
+	}
+
+	table := []struct {
+		P []*RunProgress
+		E string
+	}{
+		// empty progress list
+		{
+			E: "test-data/aggregate_unit_progress_empty_progress_list.json",
+		},
+		// multiple hosts, single shard
+		{
+			P: []*RunProgress{
+				{Host: "A", SegmentCount: 100, SegmentSuccess: 30},
+				{Host: "B", SegmentCount: 100, SegmentSuccess: 50},
+			},
+			E: "test-data/aggregate_unit_progress_multiple_hosts_single_shard.json",
+		},
+		// multiple hosts, multiple shards
+		{
+			P: []*RunProgress{
+				{Host: "A", SegmentCount: 100, SegmentSuccess: 30},
+				{Host: "A", SegmentCount: 100, SegmentSuccess: 50},
+				{Host: "B", SegmentCount: 100, SegmentSuccess: 60},
+			},
+			E: "test-data/aggregate_unit_progress_multiple_hosts_shards.json",
+		},
+	}
+
+	for _, test := range table {
+		f, err := os.Open(test.E)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var p UnitProgress
+		if err := json.NewDecoder(f).Decode(&p); err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+
+		if diff := cmp.Diff(p, aggregateUnitProgress(u, test.P), cmp.AllowUnexported(UnitProgress{}, NodeProgress{}, ShardProgress{})); diff != "" {
+			t.Error(diff)
+		}
+	}
+}
+
 func TestHostsPercentComplete(t *testing.T) {
 	t.Parallel()
 
@@ -184,9 +297,9 @@ func TestHostsPercentComplete(t *testing.T) {
 		P []*RunProgress
 		E map[string]float64
 	}{
-		// Empty progress list
+		// empty progress list
 		{},
-		// Single shard, multiple hosts
+		// single shard, multiple hosts
 		{
 			P: []*RunProgress{
 				{Host: "A", SegmentCount: 100, SegmentSuccess: 30},
@@ -194,7 +307,7 @@ func TestHostsPercentComplete(t *testing.T) {
 			},
 			E: map[string]float64{"A": 30., "B": 50, "": 40},
 		},
-		// Multiple Shards
+		// multiple Shards
 		{
 			P: []*RunProgress{
 				{Host: "A", SegmentCount: 100, SegmentSuccess: 30},

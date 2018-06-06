@@ -5,6 +5,7 @@ package repair
 import (
 	"encoding/binary"
 	"math"
+	"sort"
 
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
@@ -107,6 +108,80 @@ func topologyHash(tokens []int64) uuid.UUID {
 	h := xx.Sum64()
 
 	return uuid.NewFromUint64(uint64(h>>32), uint64(uint32(h)))
+}
+
+func aggregateProgress(units []Unit, prog []*RunProgress) Progress {
+	if len(units) == 0 {
+		return Progress{}
+	}
+
+	v := Progress{}
+
+	var (
+		idx   = 0
+		total int
+	)
+	for i, u := range units {
+		end := sort.Search(len(prog), func(j int) bool {
+			return prog[j].Unit > i
+		})
+		p := aggregateUnitProgress(u, prog[idx:end])
+		total += p.PercentComplete
+		v.Units = append(v.Units, p)
+		idx = end
+	}
+
+	v.PercentComplete = total / len(units)
+
+	return v
+}
+
+func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
+	v := UnitProgress{Unit: u}
+
+	if len(prog) == 0 {
+		return v
+	}
+
+	var (
+		host   = prog[0].Host
+		total  int
+		shards []ShardProgress
+	)
+	for _, p := range prog {
+		if p.Host != host {
+			v.Nodes = append(v.Nodes, NodeProgress{
+				progress: progress{PercentComplete: total / len(shards)},
+				Host:     host,
+				Shards:   shards,
+			})
+			host = p.Host
+			total = 0
+			shards = nil
+		}
+
+		c := p.PercentComplete()
+		total += c
+		shards = append(shards, ShardProgress{
+			progress:       progress{PercentComplete: c},
+			SegmentCount:   p.SegmentCount,
+			SegmentSuccess: p.SegmentSuccess,
+			SegmentError:   p.SegmentError,
+		})
+	}
+	v.Nodes = append(v.Nodes, NodeProgress{
+		progress: progress{PercentComplete: total / len(shards)},
+		Host:     host,
+		Shards:   shards,
+	})
+
+	total = 0
+	for _, n := range v.Nodes {
+		total += n.PercentComplete
+	}
+	v.PercentComplete = total / len(v.Nodes)
+
+	return v
 }
 
 func hostsPercentComplete(prog []*RunProgress) map[string]float64 {

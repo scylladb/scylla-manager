@@ -14,8 +14,8 @@ import (
 
 // Unit specifies what shall be repaired.
 type Unit struct {
-	Keyspace string `db:"keyspace_name"`
-	Tables   []string
+	Keyspace string   `db:"keyspace_name" json:"keyspace"`
+	Tables   []string `json:"tables,omitempty"`
 }
 
 // MarshalUDT implements UDTMarshaler.
@@ -28,6 +28,41 @@ func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
+}
+
+// progress holds generic progress data, it's a base type for other progress
+// structs.
+type progress struct {
+	PercentComplete int `json:"percent_complete"`
+}
+
+// ShardProgress specifies repair progress of a shard.
+type ShardProgress struct {
+	progress
+	SegmentCount   int `json:"segment_count"`
+	SegmentSuccess int `json:"segment_success"`
+	SegmentError   int `json:"segment_error"`
+}
+
+// NodeProgress specifies repair progress of a node.
+type NodeProgress struct {
+	progress
+	Host   string          `json:"host"`
+	Shards []ShardProgress `json:"shards,omitempty"`
+}
+
+// UnitProgress specifies repair progress of a unit.
+type UnitProgress struct {
+	progress
+	Unit  Unit           `json:"unit"`
+	Nodes []NodeProgress `json:"nodes,omitempty"`
+}
+
+// Progress specifies repair progress of a run with a possibility to dig down
+// units, nodes and shards.
+type Progress struct {
+	progress
+	Units []UnitProgress `json:"units,omitempty"`
 }
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.

@@ -615,13 +615,24 @@ func (s *Service) isStopped(ctx context.Context, run *Run) (bool, error) {
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing
 // was found mermaid.ErrNotFound is returned.
-func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]*RunProgress, error) {
+func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
 	s.logger.Debug(ctx, "GetProgress",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,
 	)
-	return s.getProgress(ctx, &Run{ClusterID: clusterID, TaskID: taskID, ID: runID})
+
+	run, err := s.GetRun(ctx, clusterID, taskID, runID)
+	if err != nil {
+		return Progress{}, err
+	}
+
+	prog, err := s.getProgress(ctx, run)
+	if err != nil {
+		return Progress{}, err
+	}
+
+	return aggregateProgress(run.Units, prog), nil
 }
 
 func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
