@@ -8,4 +8,6 @@ import "errors"
 var (
 	ErrDisabled     = errors.New("repair disabled")
 	ErrActiveRepair = errors.New("repair already in progress")
+
+	errStopped = errors.New("repair stopped")
 )

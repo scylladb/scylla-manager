@@ -292,10 +292,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		for unit := range run.Units {
 			if err := s.repairUnit(ctx, run, unit, client); err != nil {
-				fail(err)
-				return
-			}
-			if run.Status == runner.StatusStopped {
+				if errors.Cause(err) == errStopped {
+					run.Status = runner.StatusStopped
+					run.EndTime = timeutc.Now()
+					s.putRunLogError(ctx, run)
+				} else {
+					fail(err)
+				}
 				return
 			}
 		}
@@ -323,14 +326,7 @@ func (s *Service) validateUnit(ctx context.Context, u Unit, client *scyllaclient
 	return nil
 }
 
-func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) (unitErr error) {
-	defer func() {
-		if v := recover(); v != nil {
-			s.logger.Error(ctx, "Panic", "panic", v)
-			unitErr = errors.Errorf("panic")
-		}
-	}()
-
+func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
 	u := run.Units[unit]
 
 	// get the ring description
@@ -449,22 +445,6 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 		if err := w.exec(ctx); err != nil {
 			return errors.Wrapf(err, "repair error")
-		}
-
-		if ctx.Err() != nil {
-			run.Status = runner.StatusStopped
-			return nil
-		}
-
-		stopped, err := s.isStopped(ctx, run)
-		if err != nil {
-			w.Logger.Error(ctx, "Service error", "error", err)
-		}
-		if stopped {
-			run.Status = runner.StatusStopped
-			run.EndTime = timeutc.Now()
-			s.putRunLogError(ctx, run)
-			return nil
 		}
 	}
 	return nil

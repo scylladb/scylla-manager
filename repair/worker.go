@@ -5,7 +5,6 @@ package repair
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -14,7 +13,7 @@ import (
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"go.uber.org/atomic"
+	"go.uber.org/multierr"
 )
 
 var (
@@ -85,41 +84,47 @@ func (w *worker) exec(ctx context.Context) error {
 		return err
 	}
 
-	// repair shards
-	var (
-		wg     sync.WaitGroup
-		failed atomic.Bool
-	)
-	for _, s := range w.shards {
-		if s.progress.complete() {
-			s.logger.Info(ctx, "Already done, skipping")
-			s.updateMetrics()
-			continue
-		}
+	w.Logger.Info(ctx, "Repairing")
 
-		s := s // range variable reuse
-		wg.Add(1)
+	// repair shards
+	type shardError struct {
+		shard int
+		err   error
+	}
+	var (
+		wch     = make(chan shardError)
+		werr    error
+		stopped bool
+	)
+	for i, s := range w.shards {
+		i := i
+		s := s
 		go func() {
-			defer func() {
-				wg.Done()
-				if v := recover(); v != nil {
-					s.logger.Error(ctx, "Panic", "panic", v)
-					failed.Store(true)
-				}
-			}()
-			if err := s.exec(ctx); err != nil {
-				s.logger.Error(ctx, "Exec failed", "error", err)
-				failed.Store(true)
-			}
+			wch <- shardError{i, s.exec(ctx)}
 		}()
 	}
-	wg.Wait()
-
-	if failed.Load() {
-		return errors.New("shard error, see log for details")
+	for range w.shards {
+		r := <-wch
+		if r.err != nil {
+			if errors.Cause(r.err) == errStopped {
+				stopped = true
+			} else {
+				werr = multierr.Append(werr, errors.Errorf("shard %d failed", r.shard))
+			}
+		}
 	}
 
-	return nil
+	if stopped || ctx.Err() != nil {
+		w.Logger.Info(ctx, "Repair stopped")
+		return errStopped
+	}
+
+	if werr == nil {
+		w.Logger.Info(ctx, "Repair done")
+	} else {
+		w.Logger.Info(ctx, "Repair failed")
+	}
+	return werr
 }
 
 func (w *worker) init(ctx context.Context) error {
@@ -228,7 +233,19 @@ type shardWorker struct {
 	repairDurationSeconds prometheus.Summary
 }
 
-func (w *shardWorker) exec(ctx context.Context) error {
+func (w *shardWorker) exec(ctx context.Context) (err error) {
+	defer func() {
+		if err != nil {
+			w.logger.Info(ctx, "Repair failed", "error", err)
+		}
+	}()
+
+	if w.progress.complete() {
+		w.logger.Info(ctx, "Already repaired, skipping")
+		w.updateMetrics()
+		return nil
+	}
+
 	if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
 		w.logger.Info(ctx, "Starting from scratch: too many errors")
 		w.resetProgress(ctx)
@@ -258,7 +275,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 }
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
-	w.logger.Info(ctx, "Starting repair", "percent_complete", w.progress.PercentComplete())
+	w.logger.Info(ctx, "Repairing", "percent_complete", w.progress.PercentComplete())
 	w.updateMetrics()
 
 	var (
@@ -305,20 +322,14 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		}
 
 		if w.isStopped(ctx) {
-			w.logger.Info(ctx, "Stopped")
-			return nil
+			w.logger.Info(ctx, "Repair stopped")
+			return errStopped
 		}
 
 		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
-				if ctx.Err() != nil {
-					w.logger.Info(ctx, "Aborted")
-					return nil
-				}
-
 				ri.OnError()
-
 				next()
 				savepoint()
 				return errors.Wrap(err, "repair request failed")
@@ -328,12 +339,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		savepoint()
 
 		err, id = w.waitCommand(ctx, id), 0
-		if ctx.Err() != nil {
-			w.logger.Info(ctx, "Aborted")
-			return nil
-		}
 		if err != nil {
-			w.logger.Info(ctx, "Repair failed", "error", err)
 			ri.OnError()
 
 			if w.parent.Config.StopOnError {
@@ -359,7 +365,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		return errors.New("repair finished with errors")
 	}
 
-	w.logger.Info(ctx, "Done")
+	w.logger.Info(ctx, "Repair done")
 
 	return nil
 }
@@ -374,11 +380,10 @@ func (w *shardWorker) resetProgress(ctx context.Context) {
 }
 
 func (w *shardWorker) isStopped(ctx context.Context) bool {
-	if ctx.Err() != nil {
-		return true
-	}
-
 	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Run)
+	if ctx.Err() != nil {
+		stopped, err = true, nil
+	}
 	if err != nil {
 		w.logger.Error(ctx, "Service error", "error", err)
 	}
