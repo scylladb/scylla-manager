@@ -319,7 +319,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	print("Then: node1 is 50% repaired")
-	h.assertProgress(node1, 50)
+	h.assertProgress(0, node1, 50)
+
+	print("When: node1 is 99%")
+	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+	h.waitProgress(0, node1, 99)
+
+	print("Then: status is StatusError")
+	h.assertStatus(runner.StatusError)
 }
 
 func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
