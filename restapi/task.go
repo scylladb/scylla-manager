@@ -35,7 +35,7 @@ type SchedService interface {
 // RepairService is the repair service interface required by the repair REST API handlers.
 type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
-	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]*repair.RunProgress, error)
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
 }
 
 type taskHandler struct {
@@ -278,87 +278,11 @@ func (h *taskHandler) taskProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	run, err := h.repairSvc.GetRun(r.Context(), t.ClusterID, t.ID, runID)
-	if err != nil {
-		respondError(w, r, err, "failed to load repair run")
-		return
-	}
-
 	prog, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, runID)
 	if err != nil {
 		respondError(w, r, err, "failed to load repair run progress")
 		return
 	}
 
-	render.Respond(w, r, h.makeProgressResponse(run, prog))
-}
-
-type repairProgress struct {
-	PercentComplete int `json:"percent_complete"`
-	Total           int `json:"total"`
-	Success         int `json:"success"`
-	Error           int `json:"error"`
-}
-
-type repairHostProgress struct {
-	repairProgress
-	Shards map[int]*repairProgress `json:"shards"`
-}
-
-type repairProgressResponse struct {
-	Status runner.Status `json:"status"`
-	Cause  string        `json:"cause"`
-	repairProgress
-	Hosts map[string]*repairHostProgress `json:"hosts"`
-}
-
-func (h *taskHandler) makeProgressResponse(run *repair.Run, prog []*repair.RunProgress) *repairProgressResponse {
-	resp := &repairProgressResponse{
-		Status: run.Status,
-		Cause:  run.Cause,
-	}
-
-	if len(prog) == 0 {
-		return resp
-	}
-
-	resp.Hosts = make(map[string]*repairHostProgress)
-
-	for _, p := range prog {
-		if _, ok := resp.Hosts[p.Host]; !ok {
-			resp.Hosts[p.Host] = &repairHostProgress{
-				Shards: make(map[int]*repairProgress),
-			}
-		}
-
-		if p.SegmentCount == 0 {
-			resp.Hosts[p.Host].Shards[p.Shard] = &repairProgress{}
-			continue
-		}
-		resp.Hosts[p.Host].Shards[p.Shard] = &repairProgress{
-			PercentComplete: p.PercentComplete(),
-			Total:           p.SegmentCount,
-			Success:         p.SegmentSuccess,
-			Error:           p.SegmentError,
-		}
-	}
-
-	var totalSum float64
-	for _, hostProgress := range resp.Hosts {
-		var sum float64
-		for _, s := range hostProgress.Shards {
-			sum += float64(s.PercentComplete)
-			hostProgress.Total += s.Total
-			hostProgress.Success += s.Success
-			hostProgress.Error += s.Error
-		}
-		sum /= float64(len(hostProgress.Shards))
-		totalSum += sum
-		hostProgress.PercentComplete = int(sum)
-		resp.Total += hostProgress.Total
-		resp.Success += hostProgress.Success
-		resp.Error += hostProgress.Error
-	}
-	resp.PercentComplete = int(totalSum / float64(len(resp.Hosts)))
-	return resp
+	render.Respond(w, r, prog)
 }
