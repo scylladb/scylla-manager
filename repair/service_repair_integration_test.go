@@ -7,6 +7,7 @@ package repair_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -144,26 +145,36 @@ func newTestService(t *testing.T, session *gocql.Session, hrt *mermaidtest.Hacka
 	return s
 }
 
+func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
+	return mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+			return nil, nil
+		}
+
+		resp := &http.Response{
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Request:    req,
+			Header:     make(http.Header, 0),
+		}
+
+		switch req.Method {
+		case http.MethodGet:
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf(`"%s"`, s)))
+		case http.MethodPost:
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(`1`))
+		}
+
+		return resp, nil
+	})
+}
+
 func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	mermaidtest.ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
-
-var failRepairInterceptor = mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-	if req.Method != http.MethodGet || !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
-		return nil, nil
-	}
-
-	return &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(`"FAILED"`)),
-		Request:    req,
-		Header:     make(http.Header, 0),
-	}, nil
-})
 
 func TestServiceRepairIntegration(t *testing.T) {
 	// set config values for testing
@@ -256,7 +267,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h.assertProgress(node0, 50)
 
 	print("When: errors occur")
-	h.hrt.SetInterceptor(failRepairInterceptor)
+	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
 	time.AfterFunc(5*time.Second, func() {
 		h.hrt.SetInterceptor(nil)
 	})
@@ -330,7 +341,7 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
 
 	print("When: repair fails")
-	h.hrt.SetInterceptor(failRepairInterceptor)
+	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
 
 	print("And: repair")
 	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
