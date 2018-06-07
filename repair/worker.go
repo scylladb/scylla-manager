@@ -236,7 +236,10 @@ type shardWorker struct {
 func (w *shardWorker) exec(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
-			w.logger.Info(ctx, "Repair failed", "error", err)
+			w.logger.Info(ctx, "Repair failed",
+				"percent_complete", w.progress.PercentComplete(),
+				"error", err,
+			)
 		}
 	}()
 
@@ -322,7 +325,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		}
 
 		if w.isStopped(ctx) {
-			w.logger.Info(ctx, "Repair stopped")
+			w.logger.Info(ctx, "Repair stopped", "percent_complete", w.progress.PercentComplete())
 			return errStopped
 		}
 
