@@ -79,18 +79,18 @@ func (h *repairTestHelper) assertStatus(expected runner.Status) {
 	}
 }
 
-func (h *repairTestHelper) assertProgress(node string, percent int) {
+func (h *repairTestHelper) assertProgress(unit int, node string, percent int) {
 	h.t.Helper()
 
-	p := h.progress(node)
+	p := h.progress(unit, node)
 	if p < percent {
 		h.t.Fatal("no progress", "expected", percent, "got", p)
 	}
 }
 
-func (h *repairTestHelper) waitProgress(node string, percent int) {
+func (h *repairTestHelper) waitProgress(unit int, node string, percent int) {
 	for {
-		p := h.progress(node)
+		p := h.progress(unit, node)
 		if p >= percent {
 			break
 		}
@@ -99,17 +99,15 @@ func (h *repairTestHelper) waitProgress(node string, percent int) {
 	}
 }
 
-func (h *repairTestHelper) progress(node string) int {
+func (h *repairTestHelper) progress(unit int, node string) int {
 	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
 	if err != nil {
 		h.t.Fatal(err)
 	}
 
-	for _, u := range p.Units {
-		for _, n := range u.Nodes {
-			if n.Host == node {
-				return n.PercentComplete
-			}
+	for _, n := range p.Units[unit].Nodes {
+		if n.Host == node {
+			return n.PercentComplete
 		}
 	}
 
@@ -163,9 +161,9 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 
 		switch req.Method {
 		case http.MethodGet:
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf(`"%s"`, s)))
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", s)))
 		case http.MethodPost:
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(`1`))
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString("1"))
 		}
 
 		return resp, nil
@@ -185,8 +183,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	var (
 		h     = newRepairTestHelper(t, config)
-		units = []repair.Unit{{Keyspace: "test_repair"}}
-		ctx   = context.Background()
+		units = []repair.Unit{
+			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
+		}
+		ctx = context.Background()
 	)
 
 	defer h.service.Close()
@@ -194,7 +194,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	print("Given: keyspace test_repair")
 	clusterSession := mermaidtest.CreateManagedClusterSession(t)
 	createKeyspace(t, clusterSession, "test_repair")
-	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
+	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 
 	print("When: run repair")
 	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
@@ -208,7 +208,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	print("Then: repair of node0 advances")
-	h.assertProgress(node0, 1)
+	h.assertProgress(0, node0, 1)
 
 	print("And: another repair fails")
 	if err := h.service.Repair(ctx, h.clusterID, h.taskID, uuid.NewTime(), units); err == nil || err.Error() != "repair already in progress" {
@@ -216,7 +216,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	print("When: node0 is 50% repaired")
-	h.waitProgress(node0, 50)
+	h.waitProgress(0, node0, 50)
 
 	print("And: stop repair")
 	if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
@@ -264,7 +264,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	print("Then: repair of node0 continues")
-	h.assertProgress(node0, 50)
+	h.assertProgress(0, node0, 50)
 
 	print("When: errors occur")
 	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
@@ -273,7 +273,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	print("When: node0 is repaired")
-	h.waitProgress(node0, 97)
+	h.waitProgress(0, node0, 97)
 
 	print("And: wait")
 	wait()
@@ -293,10 +293,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	wait()
 
 	print("Then: node0 is 100% repaired ")
-	h.assertProgress(node0, 100)
+	h.assertProgress(0, node0, 100)
 
 	print("When: node1 is 50% repaired")
-	h.waitProgress(node1, 50)
+	h.waitProgress(0, node1, 50)
 
 	print("And: restart service")
 	h.service.Close()
