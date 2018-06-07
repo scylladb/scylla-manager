@@ -3,14 +3,10 @@
 package mermaidclient
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"net"
 	"net/http"
 	"net/url"
-	"sort"
-	"strconv"
 	"sync"
 
 	api "github.com/go-openapi/runtime/client"
@@ -121,67 +117,18 @@ func (c Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
 }
 
 // RepairProgress returns repair progress.
-func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (status, cause string, progress int, rows []RepairProgressRow, err error) {
-	var resp *operations.GetClusterClusterIDTaskRepairTaskIDRunIDProgressOK
-	resp, err = c.operations.GetClusterClusterIDTaskRepairTaskIDRunIDProgress(&operations.GetClusterClusterIDTaskRepairTaskIDRunIDProgressParams{
+func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (*RepairProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskRepairTaskIDRunIDProgress(&operations.GetClusterClusterIDTaskRepairTaskIDRunIDProgressParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskID:    taskID,
 		RunID:     runID,
 	})
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	for host, h := range resp.Payload.Hosts {
-		ip := net.ParseIP(host)
-		if ip == nil {
-			err = errors.Wrap(err, "cannot parse response")
-			return
-		}
-
-		rows = append(rows, RepairProgressRow{
-			Host:     ip,
-			Shard:    -1,
-			Progress: int(h.PercentComplete),
-			Error:    int(h.Error),
-			Empty:    h.Total == 0,
-		})
-
-		var shard int64
-		for shardStr, s := range h.Shards {
-			shard, err = strconv.ParseInt(shardStr, 10, 64)
-			if err != nil {
-				err = errors.Wrap(err, "cannot parse response")
-				return
-			}
-
-			rows = append(rows, RepairProgressRow{
-				Host:     ip,
-				Shard:    int(shard),
-				Progress: int(s.PercentComplete),
-				Error:    int(s.Error),
-				Empty:    h.Total == 0,
-			})
-		}
-	}
-
-	sort.Slice(rows, func(i, j int) bool {
-		switch bytes.Compare(rows[i].Host, rows[j].Host) {
-		case -1:
-			return true
-		case 0:
-			return rows[i].Shard < rows[j].Shard
-		default:
-			return false
-		}
-	})
-
-	status = resp.Payload.Status
-	cause = resp.Payload.Cause
-	progress = int(resp.Payload.PercentComplete)
-
-	return
+	return resp.Payload, nil
 }
 
 // Version returns server version.

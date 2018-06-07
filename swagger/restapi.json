@@ -40,80 +40,82 @@
           "format": "int64"
         },
         "ssh_user": {
-          "type":"string"
+          "type": "string"
         },
-        "ssh_identity_file":{
+        "ssh_identity_file": {
           "type": "string",
           "format": "byte"
+        }
+      }
+    },
+    "repairUnit": {
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "repairProgress": {
       "type": "object",
       "properties": {
-        "status": {
-          "type": "string"
-        },
-        "cause": {
-          "type": "string"
-        },
         "percent_complete": {
           "type": "number",
           "format": "int32"
         },
-        "total": {
-          "type": "number",
-          "format": "int32"
-        },
-        "success": {
-          "type": "number",
-          "format": "int32"
-        },
-        "error": {
-          "type": "number",
-          "format": "int32"
-        },
-        "hosts": {
-          "type": "object",
-          "additionalProperties": {
+        "units": {
+          "type": "array",
+          "items": {
             "type": "object",
             "properties": {
               "percent_complete": {
                 "type": "number",
                 "format": "int32"
               },
-              "total": {
-                "type": "number",
-                "format": "int32"
+              "unit": {
+                "$ref": "#/definitions/repairUnit"
               },
-              "success": {
-                "type": "number",
-                "format": "int32"
-              },
-              "error": {
-                "type": "number",
-                "format": "int32"
-              },
-              "shards": {
-                "type": "object",
-                "additionalProperties": {
+              "nodes": {
+                "type": "array",
+                "items": {
                   "type": "object",
                   "properties": {
                     "percent_complete": {
                       "type": "number",
                       "format": "int32"
                     },
-                    "total": {
-                      "type": "number",
-                      "format": "int32"
+                    "host": {
+                      "type": "string"
                     },
-                    "success": {
-                      "type": "number",
-                      "format": "int32"
-                    },
-                    "error": {
-                      "type": "number",
-                      "format": "int32"
+                    "shards": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "percent_complete": {
+                            "type": "number",
+                            "format": "int32"
+                          },
+                          "segment_count": {
+                            "type": "number",
+                            "format": "int32"
+                          },
+                          "segment_success": {
+                            "type": "number",
+                            "format": "int32"
+                          },
+                          "segment_error": {
+                            "type": "number",
+                            "format": "int32"
+                          }
+                        }
+                      }
                     }
                   }
                 }

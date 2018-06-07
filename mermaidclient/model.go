@@ -3,22 +3,11 @@
 package mermaidclient
 
 import (
-	"net"
-
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
 // Cluster is cluster.Cluster representation.
 type Cluster = models.Cluster
-
-// RepairProgressRow contains shard progress info.
-type RepairProgressRow struct {
-	Host     net.IP
-	Shard    int
-	Progress int
-	Error    int
-	Empty    bool
-}
 
 // Task is a sched.Task representation.
 type Task = models.Task
@@ -31,3 +20,6 @@ type Schedule = models.Schedule
 
 // TaskRun is a sched.TaskRun representation.
 type TaskRun = models.TaskRun
+
+// RepairProgress contains shard progress info.
+type RepairProgress = models.RepairProgress

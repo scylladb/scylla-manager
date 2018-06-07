@@ -362,73 +362,64 @@ var taskProgressCmd = &cobra.Command{
 		}
 		run := hist[0]
 
-		fmt.Fprintf(w, "Status:\t\t%s", run.Status)
-		if run.Cause != "" {
-			fmt.Fprintf(w, " (%s)", run.Cause)
-		}
-		fmt.Fprintln(w)
-		fmt.Fprintf(w, "Start time:\t%s\n", formatTime(run.StartTime))
-		if !isZero(run.EndTime) {
-			fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
-		}
-		fmt.Fprintf(w, "Duration:\t%s\n", duration(run.StartTime, run.EndTime))
+		printProgressHeader(w, run)
 
 		if run.Status == runner.StatusError.String() {
 			return nil
 		}
 
-		_, _, progress, rows, err := client.RepairProgress(ctx, cfgCluster, t.ID, run.ID)
+		prog, err := client.RepairProgress(ctx, cfgCluster, t.ID, run.ID)
 		if err != nil {
 			return printableError{err}
 		}
-		fmt.Fprintf(w, "Progress:\t%d%%\n", progress)
+
+		printRepairUnitProgress(w, prog)
 
 		details, err := cmd.Flags().GetBool("details")
 		if err != nil {
 			return printableError{err}
 		}
-
 		if details {
-			printDetailedProgress(w, rows)
-			return nil
+			printRepairUnitDetailedProgress(w, prog)
 		}
-
-		printHostOnlyProgress(w, rows)
-
 		return nil
 	},
 }
 
-func printHostOnlyProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
-	t := newTable("host", "progress", "failed segments")
-	for _, r := range rows {
-		// ignore shard details when host only requested
-		if r.Shard != -1 {
-			continue
-		}
-		if r.Empty {
-			t.AddRow(r.Host, "-", "-")
-		} else {
-			t.AddRow(r.Host, r.Progress, r.Error)
-		}
+func printProgressHeader(w io.Writer, run *mermaidclient.TaskRun) {
+	fmt.Fprintf(w, "Status:\t\t%s", run.Status)
+	if run.Cause != "" {
+		fmt.Fprintf(w, " (%s)", run.Cause)
 	}
-	fmt.Fprint(w, t)
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Start time:\t%s\n", formatTime(run.StartTime))
+	if !isZero(run.EndTime) {
+		fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
+	}
+	fmt.Fprintf(w, "Duration:\t%s\n", duration(run.StartTime, run.EndTime))
+	fmt.Fprintln(w)
 }
 
-func printDetailedProgress(w io.Writer, rows []mermaidclient.RepairProgressRow) {
-	t := newTable("host", "shard", "progress", "failed segments")
-	for _, r := range rows {
-		// ignore host-only entries when details requested
-		if r.Shard == -1 {
-			continue
-		}
-		if r.Empty {
-			t.AddRow(r.Host, "-", "-", "-")
-		} else {
-			t.AddRow(r.Host, r.Shard, r.Progress, r.Error)
-		}
+func printRepairUnitProgress(w io.Writer, prog *mermaidclient.RepairProgress) {
+	t := newTable("keyspace", "progress")
+	t.AddRow("total", fmt.Sprintf("%d%%", prog.PercentComplete))
+	for _, u := range prog.Units {
+		t.AddRow(u.Unit.Keyspace, fmt.Sprintf("%d%%", u.PercentComplete))
 	}
-	fmt.Fprint(w, t)
+	fmt.Fprintln(w, t)
+}
+
+func printRepairUnitDetailedProgress(w io.Writer, prog *mermaidclient.RepairProgress) {
+	for _, u := range prog.Units {
+		fmt.Fprintln(w, u.Unit.Keyspace)
+		t := newTable("host", "shard", "progress", "segment_count", "segment_success", "segment_error")
+		for _, n := range u.Nodes {
+			for i, s := range n.Shards {
+				t.AddRow(n.Host, i, fmt.Sprintf("%d%%", u.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
+			}
+		}
+		fmt.Fprintln(w, t)
+	}
 }
 
 func init() {
@@ -436,5 +427,5 @@ func init() {
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
-	fs.Bool("details", false, "show detailed progress on shards")
+	fs.Bool("details", false, "show detailed progress")
 }
