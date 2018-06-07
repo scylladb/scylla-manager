@@ -186,7 +186,7 @@ func (c *Client) GetTask(ctx context.Context, clusterID, taskType string, taskID
 }
 
 // GetTaskHistory returns a run history of task of a given type and task ID.
-func (c *Client) GetTaskHistory(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, limit int) ([]*TaskRun, error) {
+func (c *Client) GetTaskHistory(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, limit int64) ([]*TaskRun, error) {
 	params := &operations.GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -194,8 +194,7 @@ func (c *Client) GetTaskHistory(ctx context.Context, clusterID, taskType string,
 		TaskID:    taskID.String(),
 	}
 
-	l := int32(limit)
-	params.Limit = &l
+	params.Limit = &limit
 
 	resp, err := c.operations.GetClusterClusterIDTaskTaskTypeTaskIDHistory(params)
 	if err != nil {

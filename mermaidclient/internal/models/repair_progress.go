@@ -19,7 +19,7 @@ import (
 type RepairProgress struct {
 
 	// percent complete
-	PercentComplete int32 `json:"percent_complete,omitempty"`
+	PercentComplete int64 `json:"percent_complete,omitempty"`
 
 	// units
 	Units []*RepairProgressUnitsItems `json:"units"`

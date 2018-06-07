@@ -178,7 +178,7 @@ var taskHistoryCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		limit, err := cmd.Flags().GetInt("limit")
+		limit, err := cmd.Flags().GetInt64("limit")
 		if err != nil {
 			return printableError{err}
 		}
@@ -273,7 +273,7 @@ var taskUpdateCmd = &cobra.Command{
 			if err != nil {
 				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 			}
-			t.Schedule.IntervalDays = int32(interval)
+			t.Schedule.IntervalDays = int64(interval)
 			changed = true
 		}
 		if f := cmd.Flag("num-retries"); f.Changed {
@@ -281,7 +281,7 @@ var taskUpdateCmd = &cobra.Command{
 			if err != nil {
 				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 			}
-			t.Schedule.NumRetries = int32(numRetries)
+			t.Schedule.NumRetries = int64(numRetries)
 			changed = true
 		}
 		if !changed {

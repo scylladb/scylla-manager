@@ -22,7 +22,7 @@ type RepairProgressUnitsItems struct {
 	Nodes []*RepairProgressUnitsItemsNodesItems `json:"nodes"`
 
 	// percent complete
-	PercentComplete int32 `json:"percent_complete,omitempty"`
+	PercentComplete int64 `json:"percent_complete,omitempty"`
 
 	// unit
 	Unit *RepairUnit `json:"unit,omitempty"`

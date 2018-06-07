@@ -37,7 +37,7 @@
         },
         "shard_count": {
           "type": "integer",
-          "format": "int64"
+          "format": "int"
         },
         "ssh_user": {
           "type": "string"
@@ -67,7 +67,7 @@
       "properties": {
         "percent_complete": {
           "type": "number",
-          "format": "int32"
+          "format": "int"
         },
         "units": {
           "type": "array",
@@ -76,7 +76,7 @@
             "properties": {
               "percent_complete": {
                 "type": "number",
-                "format": "int32"
+                "format": "int"
               },
               "unit": {
                 "$ref": "#/definitions/repairUnit"
@@ -88,7 +88,7 @@
                   "properties": {
                     "percent_complete": {
                       "type": "number",
-                      "format": "int32"
+                      "format": "int"
                     },
                     "host": {
                       "type": "string"
@@ -100,19 +100,19 @@
                         "properties": {
                           "percent_complete": {
                             "type": "number",
-                            "format": "int32"
+                            "format": "int"
                           },
                           "segment_count": {
                             "type": "number",
-                            "format": "int32"
+                            "format": "int"
                           },
                           "segment_success": {
                             "type": "number",
-                            "format": "int32"
+                            "format": "int"
                           },
                           "segment_error": {
                             "type": "number",
-                            "format": "int32"
+                            "format": "int"
                           }
                         }
                       }
@@ -134,11 +134,11 @@
         },
         "interval_days": {
           "type": "number",
-          "format": "int32"
+          "format": "int"
         },
         "num_retries": {
           "type": "number",
-          "format": "int32"
+          "format": "int"
         }
       }
     },
@@ -628,7 +628,7 @@
             "name": "limit",
             "in": "query",
             "type": "integer",
-            "format": "int32",
+            "format": "int",
             "description": "limit the number of task runs returned",
             "required": false
           }

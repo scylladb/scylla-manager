@@ -22,7 +22,7 @@ type RepairProgressUnitsItemsNodesItems struct {
 	Host string `json:"host,omitempty"`
 
 	// percent complete
-	PercentComplete int32 `json:"percent_complete,omitempty"`
+	PercentComplete int64 `json:"percent_complete,omitempty"`
 
 	// shards
 	Shards []*RepairProgressUnitsItemsNodesItemsShardsItems `json:"shards"`

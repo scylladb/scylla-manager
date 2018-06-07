@@ -18,10 +18,10 @@ import (
 type Schedule struct {
 
 	// interval days
-	IntervalDays int32 `json:"interval_days,omitempty"`
+	IntervalDays int64 `json:"interval_days,omitempty"`
 
 	// num retries
-	NumRetries int32 `json:"num_retries,omitempty"`
+	NumRetries int64 `json:"num_retries,omitempty"`
 
 	// start date
 	// Format: date-time

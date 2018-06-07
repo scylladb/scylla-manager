@@ -37,14 +37,14 @@ var repairCmd = &cobra.Command{
 		if err != nil {
 			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 		}
-		t.Schedule.IntervalDays = int32(interval)
+		t.Schedule.IntervalDays = int64(interval)
 
 		f = cmd.Flag("num-retries")
 		numRetries, err := strconv.Atoi(f.Value.String())
 		if err != nil {
 			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 		}
-		t.Schedule.NumRetries = int32(numRetries)
+		t.Schedule.NumRetries = int64(numRetries)
 
 		id, err := client.CreateTask(ctx, cfgCluster, t)
 		if err != nil {

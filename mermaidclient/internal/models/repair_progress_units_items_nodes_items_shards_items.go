@@ -16,16 +16,16 @@ import (
 type RepairProgressUnitsItemsNodesItemsShardsItems struct {
 
 	// percent complete
-	PercentComplete int32 `json:"percent_complete,omitempty"`
+	PercentComplete int64 `json:"percent_complete,omitempty"`
 
 	// segment count
-	SegmentCount int32 `json:"segment_count,omitempty"`
+	SegmentCount int64 `json:"segment_count,omitempty"`
 
 	// segment error
-	SegmentError int32 `json:"segment_error,omitempty"`
+	SegmentError int64 `json:"segment_error,omitempty"`
 
 	// segment success
-	SegmentSuccess int32 `json:"segment_success,omitempty"`
+	SegmentSuccess int64 `json:"segment_success,omitempty"`
 }
 
 // Validate validates this repair progress units items nodes items shards items
