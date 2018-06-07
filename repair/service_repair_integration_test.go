@@ -29,14 +29,18 @@ import (
 
 var (
 	print = mermaidtest.Print
-	wait  = func() {
-		time.Sleep(2 * time.Second)
-	}
 )
 
 const (
 	node0 = "172.16.1.3"
 	node1 = "172.16.1.10"
+)
+
+const (
+	_interval = 100 * time.Millisecond
+	now       = 0
+	shortWait = time.Second
+	longWait  = 20 * time.Second
 )
 
 type repairTestHelper struct {
@@ -69,37 +73,30 @@ func newRepairTestHelper(t *testing.T, c repair.Config) *repairTestHelper {
 	}
 }
 
-func (h *repairTestHelper) assertStatus(expected runner.Status) {
+func (h *repairTestHelper) assertStatus(s runner.Status, wait time.Duration) {
 	h.t.Helper()
 
-	if r, err := h.service.GetRun(context.Background(), h.clusterID, h.taskID, h.runID); err != nil {
-		h.t.Fatal(err)
-	} else if r.Status != expected {
-		h.t.Fatal("wrong status", r, "expected", expected, "got", r.Status)
-	}
-}
-
-func (h *repairTestHelper) assertProgress(unit int, node string, percent int) {
-	h.t.Helper()
-
-	p := h.progress(unit, node)
-	if p < percent {
-		h.t.Fatal("no progress", "expected", percent, "got", p)
-	}
-}
-
-func (h *repairTestHelper) waitProgress(unit int, node string, percent int) {
-	for {
-		p := h.progress(unit, node)
-		if p >= percent {
-			break
+	mermaidtest.WaitCond(h.t, func() bool {
+		r, err := h.service.GetRun(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
 		}
+		return r.Status == s
+	}, _interval, wait)
+}
 
-		time.Sleep(500 * time.Millisecond)
-	}
+func (h *repairTestHelper) assertProgress(unit int, node string, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	mermaidtest.WaitCond(h.t, func() bool {
+		p := h.progress(unit, node)
+		return p >= percent
+	}, _interval, wait)
 }
 
 func (h *repairTestHelper) progress(unit int, node string) int {
+	h.t.Helper()
+
 	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
 	if err != nil {
 		h.t.Fatal(err)
@@ -202,13 +199,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	print("Then: status is StatusRunning")
-	h.assertStatus(runner.StatusRunning)
+	h.assertStatus(runner.StatusRunning, now)
 
-	print("When: wait")
-	wait()
-
-	print("Then: repair of node0 advances")
-	h.assertProgress(0, node0, 1)
+	print("And: repair of node0 advances")
+	h.assertProgress(0, node0, 1, shortWait)
 
 	print("And: another repair fails")
 	if err := h.service.Repair(ctx, h.clusterID, h.taskID, uuid.NewTime(), units); err == nil || err.Error() != "repair already in progress" {
@@ -216,25 +210,23 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	print("When: node0 is 50% repaired")
-	h.waitProgress(0, node0, 50)
+	h.assertProgress(0, node0, 50, longWait)
 
 	print("And: stop repair")
 	if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
 		t.Fatal(err)
 	}
 
-	print("Then status is StatusStopping")
-	h.assertStatus(runner.StatusStopping)
+	print("Then: status is StatusStopping")
+	h.assertStatus(runner.StatusStopping, now)
 
-	print("When: wait")
-	wait()
-
-	print("Then status is StatusStopped")
-	h.assertStatus(runner.StatusStopped)
+	print("Then: status is StatusStopped")
+	h.assertStatus(runner.StatusStopped, shortWait)
 
 	print("When: connectivity fails")
 	h.hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		defer h.hrt.SetInterceptor(nil)
+		// run once
+		h.hrt.SetInterceptor(nil)
 		return nil, errors.New("test")
 	}))
 
@@ -247,7 +239,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	print("And: status is StatusError")
-	h.assertStatus(runner.StatusError)
+	h.assertStatus(runner.StatusError, now)
 
 	print("When: create a new task")
 	h.runID = uuid.NewTime()
@@ -258,13 +250,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	print("Then: status is StatusRunning")
-	h.assertStatus(runner.StatusRunning)
+	h.assertStatus(runner.StatusRunning, now)
 
-	print("When: wait")
-	wait()
-
-	print("Then: repair of node0 continues")
-	h.assertProgress(0, node0, 50)
+	print("And: repair of node0 continues")
+	h.assertProgress(0, node0, 50, shortWait)
 
 	print("When: errors occur")
 	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
@@ -273,13 +262,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	print("When: node0 is repaired")
-	h.waitProgress(0, node0, 97)
-
-	print("And: wait")
-	wait()
+	h.assertProgress(0, node0, 97, longWait)
 
 	print("Then: status is StatusError")
-	h.assertStatus(runner.StatusError)
+	h.assertStatus(runner.StatusError, shortWait)
 
 	print("When: create a new task")
 	h.runID = uuid.NewTime()
@@ -289,18 +275,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	print("And: wait")
-	wait()
-
 	print("Then: node0 is 100% repaired ")
-	h.assertProgress(0, node0, 100)
+	h.assertProgress(0, node0, 100, shortWait)
 
 	print("When: node1 is 50% repaired")
-	h.waitProgress(0, node1, 50)
+	h.assertProgress(0, node1, 50, longWait)
 
 	print("And: restart service")
 	h.service.Close()
-	wait()
 	h.service = newTestService(t, h.session, h.hrt, config)
 	h.service.Init(ctx)
 
@@ -313,20 +295,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	print("Then: status is StatusRunning")
-	h.assertStatus(runner.StatusRunning)
-
-	print("When: wait")
-	wait()
-
-	print("Then: node1 is 50% repaired")
-	h.assertProgress(0, node1, 50)
+	h.assertStatus(runner.StatusRunning, now)
+	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 
 	print("When: node1 is 99%")
-	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
-	h.waitProgress(0, node1, 99)
+	h.assertProgress(0, node1, 99, longWait)
 
 	print("Then: status is StatusError")
-	h.assertStatus(runner.StatusError)
+	h.assertStatus(runner.StatusError, shortWait)
 }
 
 func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
@@ -355,11 +331,8 @@ func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	print("And: wait")
-	wait()
-
 	print("Then: repair is stopped")
-	h.assertStatus(runner.StatusError)
+	h.assertStatus(runner.StatusError, shortWait)
 
 	print("And: errors are recorded")
 	p, err := h.service.GetProgress(ctx, h.clusterID, h.taskID, h.runID)
