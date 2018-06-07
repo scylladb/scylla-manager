@@ -289,38 +289,3 @@ func TestAggregateUnitProgress(t *testing.T) {
 		}
 	}
 }
-
-func TestHostsPercentComplete(t *testing.T) {
-	t.Parallel()
-
-	table := []struct {
-		P []*RunProgress
-		E map[string]float64
-	}{
-		// empty progress list
-		{},
-		// single shard, multiple hosts
-		{
-			P: []*RunProgress{
-				{Host: "A", SegmentCount: 100, SegmentSuccess: 30},
-				{Host: "B", SegmentCount: 100, SegmentSuccess: 50},
-			},
-			E: map[string]float64{"A": 30., "B": 50, "": 40},
-		},
-		// multiple Shards
-		{
-			P: []*RunProgress{
-				{Host: "A", SegmentCount: 100, SegmentSuccess: 30},
-				{Host: "A", SegmentCount: 100, SegmentSuccess: 50},
-				{Host: "B", SegmentCount: 100, SegmentSuccess: 60},
-			},
-			E: map[string]float64{"A": 40., "B": 60, "": 50},
-		},
-	}
-
-	for _, test := range table {
-		if diff := cmp.Diff(test.E, hostsPercentComplete(test.P)); diff != "" {
-			t.Error(diff)
-		}
-	}
-}

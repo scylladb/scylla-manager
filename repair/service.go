@@ -461,13 +461,17 @@ func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
 			if err != nil {
 				s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
 			}
-			for host, percent := range hostsPercentComplete(prog) {
-				repairProgress.With(prometheus.Labels{
-					"cluster":  run.clusterName,
-					"task":     run.TaskID.String(),
-					"keyspace": run.Units[0].Keyspace, // FIXME mmt: refactor progress!!!
-					"host":     host,
-				}).Set(percent)
+
+			p := aggregateProgress(run.Units, prog)
+			for _, u := range p.Units {
+				for _, n := range u.Nodes {
+					repairProgress.With(prometheus.Labels{
+						"cluster":  run.clusterName,
+						"task":     run.TaskID.String(),
+						"keyspace": u.Unit.Keyspace,
+						"host":     n.Host,
+					}).Set(float64(n.PercentComplete))
+				}
 			}
 		case <-ctx.Done():
 			return
