@@ -227,30 +227,4 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(diff)
 		}
 	})
-
-	t.Run("stop run", func(t *testing.T) {
-		t.Parallel()
-
-		clusterID := uuid.MustRandom()
-		taskID := uuid.MustRandom()
-
-		r0 := &repair.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        uuid.NewTime(),
-			Status:    runner.StatusRunning,
-		}
-
-		putRun(t, r0)
-
-		if err := s.StopRepair(ctx, clusterID, taskID, r0.ID); err != nil {
-			t.Fatal(err)
-		}
-
-		if r1, err := s.GetRun(ctx, clusterID, taskID, r0.ID); err != nil {
-			t.Fatal(err)
-		} else if r1.Status != runner.StatusStopping {
-			t.Fatal(r1.Status)
-		}
-	})
 }

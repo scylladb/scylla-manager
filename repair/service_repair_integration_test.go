@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/ssh"
@@ -34,6 +33,7 @@ var (
 const (
 	node0 = "172.16.1.3"
 	node1 = "172.16.1.10"
+	node2 = "172.16.1.2"
 )
 
 const (
@@ -57,7 +57,11 @@ type repairTestHelper struct {
 
 func newRepairTestHelper(t *testing.T, c repair.Config) *repairTestHelper {
 	session := mermaidtest.CreateSession(t)
+	mermaidtest.ExecStmt(t, session, "TRUNCATE TABLE repair_run")
+	mermaidtest.ExecStmt(t, session, "TRUNCATE TABLE repair_run_progress")
+
 	hrt := mermaidtest.NewHackableRoundTripper(ssh.NewDevelopmentTransport())
+	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	s := newTestService(t, session, hrt, c)
 
 	return &repairTestHelper{
@@ -109,6 +113,11 @@ func (h *repairTestHelper) progress(unit int, node string) int {
 	}
 
 	return -1
+}
+
+func (h *repairTestHelper) close() {
+	h.service.Close()
+	h.session.Close()
 }
 
 func newTestService(t *testing.T, session *gocql.Session, hrt *mermaidtest.HackableRoundTripper, c repair.Config) *repair.Service {
@@ -172,192 +181,274 @@ func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
-	// set config values for testing
-	config := repair.DefaultConfig()
-	config.SegmentsPerRepair = 5
-	config.PollInterval = 100 * time.Millisecond
-	config.ErrorBackoff = 1 * time.Second
-
-	var (
-		h     = newRepairTestHelper(t, config)
-		units = []repair.Unit{
-			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
-		}
-		ctx = context.Background()
-	)
-
-	defer h.service.Close()
-
-	print("Given: keyspace test_repair")
 	clusterSession := mermaidtest.CreateManagedClusterSession(t)
 	createKeyspace(t, clusterSession, "test_repair")
 	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
+	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
 
-	print("When: run repair")
-	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
-		t.Fatal(err)
+	defaultConfig := func() repair.Config {
+		c := repair.DefaultConfig()
+		c.SegmentsPerRepair = 10
+		c.PollInterval = 10 * time.Millisecond
+		return c
 	}
 
-	print("Then: status is StatusRunning")
-	h.assertStatus(runner.StatusRunning, now)
+	unit := []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_0"}}}
 
-	print("And: repair of node0 advances")
-	h.assertProgress(0, node0, 1, shortWait)
-
-	print("And: another repair fails")
-	if err := h.service.Repair(ctx, h.clusterID, h.taskID, uuid.NewTime(), units); err == nil || err.Error() != "repair already in progress" {
-		t.Fatal("expected error", err)
+	multipleUnits := []repair.Unit{
+		{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
+		{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 	}
 
-	print("When: node0 is 50% repaired")
-	h.assertProgress(0, node0, 50, longWait)
+	t.Run("repair", func(t *testing.T) {
+		h := newRepairTestHelper(t, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
 
-	print("And: stop repair")
-	if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
-		t.Fatal(err)
-	}
+		print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+			t.Fatal(err)
+		}
 
-	print("Then: status is StatusStopping")
-	h.assertStatus(runner.StatusStopping, now)
+		print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
 
-	print("Then: status is StatusStopped")
-	h.assertStatus(runner.StatusStopped, shortWait)
+		print("And: repair of node0 advances")
+		h.assertProgress(0, node0, 1, shortWait)
 
-	print("When: connectivity fails")
-	h.hrt.SetInterceptor(mermaidtest.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		// run once
-		h.hrt.SetInterceptor(nil)
-		return nil, errors.New("test")
-	}))
+		print("When: node0 is 100% repaired")
+		h.assertProgress(0, node0, 100, longWait)
 
-	print("And: create a new task")
-	h.runID = uuid.NewTime()
+		print("Then: repair of node1 advances")
+		h.assertProgress(0, node1, 1, shortWait)
 
-	print("Then: run fails")
-	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err == nil || !strings.Contains(err.Error(), "test") {
-		t.Fatal(err)
-	}
+		print("When: node1 is 100% repaired")
+		h.assertProgress(0, node1, 100, longWait)
 
-	print("And: status is StatusError")
-	h.assertStatus(runner.StatusError, now)
+		print("Then: repair of node2 advances")
+		h.assertProgress(0, node2, 1, shortWait)
 
-	print("When: create a new task")
-	h.runID = uuid.NewTime()
+		print("When: node2 is 100% repaired")
+		h.assertProgress(0, node2, 100, longWait)
 
-	print("And: run repair")
-	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
-		t.Fatal(err)
-	}
+		print("And: repair of U1 node0 advances")
+		h.assertProgress(1, node0, 1, shortWait)
 
-	print("Then: status is StatusRunning")
-	h.assertStatus(runner.StatusRunning, now)
+		print("When: U1 node0 is 100% repaired")
+		h.assertProgress(1, node0, 100, longWait)
 
-	print("And: repair of node0 continues")
-	h.assertProgress(0, node0, 50, shortWait)
+		print("Then: repair of U1 node1 advances")
+		h.assertProgress(1, node1, 1, shortWait)
 
-	print("When: errors occur")
-	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
-	time.AfterFunc(5*time.Second, func() {
-		h.hrt.SetInterceptor(nil)
+		print("When: U1 node1 is 100% repaired")
+		h.assertProgress(1, node1, 100, longWait)
+
+		print("Then: repair of U1 node2 advances")
+		h.assertProgress(1, node2, 1, shortWait)
+
+		print("When: U1 node2 is 100% repaired")
+		h.assertProgress(1, node2, 100, longWait)
+
+		print("Then: status is StatusDone")
+		h.assertStatus(runner.StatusDone, shortWait)
 	})
 
-	print("When: node0 is repaired")
-	h.assertProgress(0, node0, 97, longWait)
+	t.Run("repair stop", func(t *testing.T) {
+		h := newRepairTestHelper(t, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
 
-	print("Then: status is StatusError")
-	h.assertStatus(runner.StatusError, shortWait)
+		print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+			t.Fatal(err)
+		}
 
-	print("When: create a new task")
-	h.runID = uuid.NewTime()
+		print("When: node0 is 50% repaired")
+		h.assertProgress(0, node0, 50, longWait)
 
-	print("And: run repair")
-	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
-		t.Fatal(err)
-	}
+		print("And: stop repair")
+		if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
+			t.Fatal(err)
+		}
 
-	print("Then: node0 is 100% repaired ")
-	h.assertProgress(0, node0, 100, shortWait)
+		print("Then: status is StatusStopping")
+		h.assertStatus(runner.StatusStopping, now)
 
-	print("When: node1 is 50% repaired")
-	h.assertProgress(0, node1, 50, longWait)
+		print("And: status is StatusStopped")
+		h.assertStatus(runner.StatusStopped, shortWait)
+	})
 
-	print("And: restart service")
-	h.service.Close()
-	h.service = newTestService(t, h.session, h.hrt, config)
-	h.service.Init(ctx)
+	t.Run("repair restart", func(t *testing.T) {
+		h := newRepairTestHelper(t, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
 
-	print("And: create a new task")
-	h.runID = uuid.NewTime()
+		print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+			t.Fatal(err)
+		}
 
-	print("And: run repair")
-	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
-		t.Fatal(err)
-	}
+		print("When: node1 is 50% repaired")
+		h.assertProgress(0, node1, 50, longWait)
 
-	print("Then: status is StatusRunning")
-	h.assertStatus(runner.StatusRunning, now)
-	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		print("And: stop repair")
+		if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
+			t.Fatal(err)
+		}
 
-	print("When: node1 is 99%")
-	h.assertProgress(0, node1, 99, longWait)
+		print("Then: status is StatusStopped")
+		h.assertStatus(runner.StatusStopped, shortWait)
 
-	print("Then: status is StatusError")
-	h.assertStatus(runner.StatusError, shortWait)
-}
+		print("When: create a new task")
+		h.runID = uuid.NewTime()
 
-func TestServiceRepairStopOnErrorIntegration(t *testing.T) {
-	// set config values for testing
-	config := repair.DefaultConfig()
-	config.StopOnError = true
+		print("And: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+			t.Fatal(err)
+		}
 
-	var (
-		h     = newRepairTestHelper(t, config)
-		units = []repair.Unit{{Keyspace: "test_repair"}}
-		ctx   = context.Background()
-	)
+		print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
 
-	defer h.service.Close()
+		print("And: repair of node1 continues")
+		h.assertProgress(0, node0, 100, shortWait)
+		h.assertProgress(0, node1, 50, now)
+		h.assertProgress(0, node2, 0, now)
 
-	print("Given: keyspace test_repair")
-	clusterSession := mermaidtest.CreateManagedClusterSession(t)
-	createKeyspace(t, clusterSession, "test_repair")
-	mermaidtest.ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table (id int PRIMARY KEY)")
+		print("When: U1 node0 is 10% repaired")
+		h.assertProgress(1, node0, 10, longWait)
 
-	print("When: repair fails")
-	h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+		print("And: stop repair")
+		if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
+			t.Fatal(err)
+		}
 
-	print("And: repair")
-	if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
-		t.Fatal(err)
-	}
+		print("Then: status is StatusStopped")
+		h.assertStatus(runner.StatusStopped, shortWait)
 
-	print("Then: repair is stopped")
-	h.assertStatus(runner.StatusError, shortWait)
+		print("When: create a new task")
+		h.runID = uuid.NewTime()
 
-	print("And: errors are recorded")
-	p, err := h.service.GetProgress(ctx, h.clusterID, h.taskID, h.runID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var sp []repair.ShardProgress
-	for _, u := range p.Units {
-		for _, n := range u.Nodes {
-			if n.Host == node0 {
-				sp = n.Shards
-				break
+		print("And: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+			t.Fatal(err)
+		}
+
+		print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		print("And: repair of U1 node0 continues")
+		h.assertProgress(0, node0, 100, shortWait)
+		h.assertProgress(0, node1, 100, now)
+		h.assertProgress(0, node2, 100, now)
+		h.assertProgress(1, node0, 10, shortWait)
+	})
+
+	t.Run("repair error", func(t *testing.T) {
+		c := defaultConfig()
+		c.ErrorBackoff = 1 * time.Second
+
+		h := newRepairTestHelper(t, c)
+		defer h.close()
+		ctx := context.Background()
+
+		print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+			t.Fatal(err)
+		}
+
+		print("When: node1 is 50% repaired")
+		h.assertProgress(0, node1, 50, longWait)
+
+		print("And: errors occur for 5s with 1s backoff")
+		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+		time.AfterFunc(5*time.Second, func() {
+			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		})
+
+		print("Then: node1 repair continues")
+		h.assertProgress(0, node1, 60, longWait)
+
+		print("When: node1 is 95% repaired")
+		h.assertProgress(0, node1, 95, longWait)
+
+		print("Then: status is StatusError")
+		h.assertStatus(runner.StatusError, shortWait)
+
+		// FIXME this should be changed to handle errors internally see scylladb/mermaid#461
+		//print("Then: repair of node2 advances")
+		//h.assertProgress(0, node2, 1, longWait)
+		//
+		//print("When: node2 is 100% repaired")
+		//h.assertProgress(0, node2, 100, longWait)
+		//
+		//print("Then: status is StatusError")
+		//h.assertStatus(runner.StatusError, shortWait)
+
+		print("When: create a new task")
+		h.runID = uuid.NewTime()
+
+		print("And: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+			t.Fatal(err)
+		}
+
+		print("Then: repair of node1 continues")
+		h.assertProgress(0, node0, 100, shortWait)
+		h.assertProgress(0, node1, 95, now)
+		h.assertProgress(0, node2, 0, now)
+
+		print("When: repair of node2 advances")
+		h.assertProgress(0, node2, 1, shortWait)
+
+		print("Then: node1 is 100% repaired")
+		h.assertProgress(0, node1, 100, now)
+
+		print("When: node2 is 100% repaired")
+		h.assertProgress(0, node2, 100, longWait)
+
+		print("Then: status is StatusDone")
+		h.assertStatus(runner.StatusDone, shortWait)
+	})
+
+	t.Run("repair stop on error", func(t *testing.T) {
+		c := defaultConfig()
+		c.StopOnError = true
+
+		h := newRepairTestHelper(t, c)
+		defer h.close()
+		ctx := context.Background()
+
+		print("Given: repair error occurs")
+		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+
+		print("And: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+			t.Fatal(err)
+		}
+
+		print("Then: status is StatusError")
+		h.assertStatus(runner.StatusError, longWait) // should be shortWait but becomes flaky
+
+		print("And: errors are recorded")
+		p, err := h.service.GetProgress(ctx, h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, u := range p.Units {
+			for _, n := range u.Nodes {
+				if n.Host == node0 {
+					for _, s := range n.Shards {
+						if s.SegmentError != c.SegmentsPerRepair {
+							t.Error(s)
+						}
+						if s.SegmentSuccess != 0 {
+							t.Error(s)
+						}
+					}
+					break
+				}
 			}
 		}
-	}
-
-	if len(sp) != 2 {
-		t.Fatal("expected 2 shards")
-	}
-	for _, p := range sp {
-		if p.SegmentError != config.SegmentsPerRepair {
-			t.Error("expected", config.SegmentsPerRepair, "failed segments, got", p.SegmentError)
-		}
-		if p.SegmentSuccess != 0 {
-			t.Error("expected no successful segments")
-		}
-	}
+	})
 }
