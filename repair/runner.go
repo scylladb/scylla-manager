@@ -4,17 +4,10 @@ package repair
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/sched/runner"
-)
-
-const (
-	keyspaceKey = "keyspace"
-	tablesKey   = "tables"
 )
 
 // Runner is an adapter to connect Service to scheduler.
@@ -24,24 +17,12 @@ type Runner struct {
 
 // Run implements runner.Runner.
 func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
-	var (
-		tables []string
-		m      map[string]string
-	)
-
-	if err := json.Unmarshal(p, &m); err != nil {
-		return errors.Wrapf(err, "unable to parse runner properties: %v", p)
+	units, err := r.Service.GetUnits(ctx, d.ClusterID, p)
+	if err != nil {
+		return errors.Wrap(err, "failed to load units")
 	}
 
-	if m[tablesKey] != "" {
-		tables = strings.Split(m[tablesKey], ",")
-	}
-	u := Unit{
-		Keyspace: m[keyspaceKey],
-		Tables:   tables,
-	}
-
-	return r.Service.Repair(ctx, d.ClusterID, d.TaskID, d.RunID, []Unit{u})
+	return r.Service.Repair(ctx, d.ClusterID, d.TaskID, d.RunID, units)
 }
 
 // Stop implements runner.Runner.

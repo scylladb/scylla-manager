@@ -36,6 +36,7 @@ type SchedService interface {
 type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
+	GetUnits(ctx context.Context, clusterID uuid.UUID, p runner.Properties) ([]repair.Unit, error)
 }
 
 type taskHandler struct {
@@ -185,6 +186,11 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	}
 	if newTask.ID != uuid.Nil {
 		respondBadRequest(w, r, errors.Errorf("unexpected ID %q", newTask.ID))
+		return
+	}
+
+	if _, err := h.repairSvc.GetUnits(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
+		respondError(w, r, err, "failed to load units")
 		return
 	}
 

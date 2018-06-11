@@ -6,13 +6,17 @@ import (
 	"encoding/binary"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/dht"
+	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // groupSegmentsByHost extract list of primary segments (token ranges) for every
@@ -182,4 +186,68 @@ func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
 	v.PercentComplete = total / len(v.Nodes)
 
 	return v
+}
+
+func sortUnits(units []Unit, inclExcl inexlist.InExList) {
+	positions := make(map[string]int)
+	for _, u := range units {
+		if p := inclExcl.FirstMatch(u.Keyspace); p >= 0 {
+			positions[u.Keyspace] = p
+		} else {
+			positions[u.Keyspace] = inclExcl.Size()
+		}
+	}
+
+	sort.SliceStable(units, func(i, j int) bool {
+		h1 := xxhash.Sum64String(units[i].Keyspace)
+		h2 := xxhash.Sum64String(units[j].Keyspace)
+		return h1 > h2
+	})
+
+	if len(positions) == 0 {
+		return
+	}
+
+	sort.SliceStable(units, func(i, j int) bool {
+		return positions[units[i].Keyspace] < positions[units[j].Keyspace]
+	})
+}
+
+func validateFilters(filters []string) error {
+	var errs error
+	for i, f := range filters {
+		err := validateFilter(filters[i])
+		if err != nil {
+			errs = multierr.Append(errs, errors.Wrapf(err, "%q on position %d", f, i))
+			continue
+		}
+	}
+	return mermaid.ErrValidate(errs, "invalid filters")
+}
+
+func validateFilter(filter string) error {
+	if filter == "*" || filter == "!*" {
+		return nil
+	}
+	if strings.HasPrefix(filter, ".") {
+		return errors.New("missing keyspace")
+	}
+	return nil
+}
+
+func decorateFilters(filters []string) []string {
+	for i, f := range filters {
+		if strings.Contains(f, ".") {
+			continue
+		}
+		if strings.HasSuffix(f, "*") {
+			filters[i] = strings.TrimSuffix(f, "*") + "*.*"
+		} else {
+			filters[i] += ".*"
+		}
+	}
+
+	filters = append(filters, "!system.*")
+
+	return filters
 }
