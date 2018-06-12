@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  db:
+    image: scylladb/scylla:${SCYLLA_VERSION}
+    networks:
+      public:
+        ipv4_address: 192.168.100.100
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090
+    network_mode: host

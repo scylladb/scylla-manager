@@ -6,7 +6,7 @@ logger:
 
 database:
   hosts:
-    - 172.16.1.100
+    - 192.168.100.100
   keyspace_tpl_file: dist/etc/create_keyspace.cql.tpl
   migrate_dir: schema/cql
   timeout: 1s
