@@ -9,30 +9,30 @@ import (
 
 // WaitCond waits for a condition to become true, checking it in a given
 // interval. When wait passes and condition is not met then an error is reported.
-func WaitCond(tb testing.TB, cond func() bool, interval, wait time.Duration) {
-	tb.Helper()
+func WaitCond(t *testing.T, cond func() bool, interval, wait time.Duration) {
+	t.Helper()
 
 	if wait <= 0 {
 		if !cond() {
-			tb.Fatal()
+			t.Fatal()
 		} else {
 			return
 		}
 	}
 
-	t := time.NewTicker(interval)
-	defer t.Stop()
+	c := time.NewTicker(interval)
+	defer c.Stop()
 	d := time.NewTimer(wait)
 	defer d.Stop()
 
 	for {
 		select {
-		case <-t.C:
+		case <-c.C:
 			if cond() {
 				return
 			}
 		case <-d.C:
-			tb.Fatal("timeout", wait)
+			t.Fatal("timeout", wait)
 		}
 	}
 }
