@@ -87,7 +87,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 
 	// validate the filter
 	if err := f.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid filter")}
+		return nil, err
 	}
 
 	stmt, _ := qb.Select(schema.Cluster.Name).ToCql()
@@ -191,15 +191,15 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 
 	// validate cluster
 	if err := c.Validate(); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid cluster")}
+		return mermaid.ErrValidate(err, "invalid cluster")
 	}
 
 	if err := s.sshManager.storeIdentityFile(c); err != nil {
-		return errors.Wrap(err, "identity file save failed")
+		return errors.Wrap(err, "failed to save identity file")
 	}
 
 	if err := validateHosts(ctx, c, s.hostInfo); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid hosts")}
+		return mermaid.ErrValidate(err, "invalid hosts")
 	}
 
 	// check for conflicting names
@@ -210,7 +210,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 				return err
 			}
 			if conflict.ID != c.ID {
-				return mermaid.ParamError{Cause: errors.Errorf("name conflict on %q", c.Name)}
+				return mermaid.ErrValidate(errors.Errorf("name %q is already taken", c.Name), "invalid name")
 			}
 		}
 	}

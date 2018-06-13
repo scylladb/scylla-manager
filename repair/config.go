@@ -37,11 +37,12 @@ func DefaultConfig() Config {
 }
 
 // Validate checks if all the fields are properly set.
-func (c *Config) Validate() (err error) {
+func (c *Config) Validate() error {
 	if c == nil {
 		return mermaid.ErrNilPtr
 	}
 
+	var err error
 	if c.SegmentSizeLimit < 0 {
 		err = multierr.Append(err, errors.New("invalid segment_size_limit, must be > 0 or 0 for no limit"))
 	}
@@ -64,5 +65,5 @@ func (c *Config) Validate() (err error) {
 		err = multierr.Append(err, errors.New("invalid murmur3_partitioner_ignore_msb_bits, must be >= 0"))
 	}
 
-	return
+	return err
 }

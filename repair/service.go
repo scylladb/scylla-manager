@@ -168,14 +168,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// get cluster name
 	c, err := s.cluster(ctx, run.ClusterID)
 	if err != nil {
-		return fail(mermaid.ParamError{Cause: errors.Wrap(err, "failed to load cluster")})
+		return fail(errors.Wrap(err, "invalid cluster"))
 	}
 	run.clusterName = c.String()
 
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(run); err != nil {
 		s.logger.Debug(ctx, "Lock error", "error", err)
-		return fail(mermaid.ParamError{Cause: ErrActiveRepair})
+		return fail(ErrActiveRepair)
 	}
 	defer func() {
 		if run.Status != runner.StatusRunning {
@@ -198,9 +198,9 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// validate units
-	for _, u := range run.Units {
+	for i, u := range run.Units {
 		if err := s.validateUnit(ctx, u, client); err != nil {
-			return fail(errors.Wrap(err, "invalid request"))
+			return fail(errors.Wrapf(err, "unit %d invalid", i))
 		}
 	}
 
@@ -317,10 +317,10 @@ func (s *Service) validateUnit(ctx context.Context, u Unit, client *scyllaclient
 		return errors.Wrap(err, "failed to get keyspace info")
 	}
 	if len(all) == 0 {
-		return errors.Errorf("empty keyspace %s", u.Keyspace)
+		return mermaid.ErrValidate(errors.Errorf("empty keyspace %s", u.Keyspace), "invalid unit")
 	}
 	if err := validateSubset(u.Tables, all); err != nil {
-		return errors.Wrap(err, "keyspace %s missing tables")
+		return mermaid.ErrValidate(errors.Wrap(err, "keyspace %s missing tables"), "invalid unit")
 	}
 
 	return nil

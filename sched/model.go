@@ -130,11 +130,12 @@ type Task struct {
 }
 
 // Validate checks if all the required fields are properly set.
-func (t *Task) Validate() (err error) {
+func (t *Task) Validate() error {
 	if t == nil {
 		return mermaid.ErrNilPtr
 	}
 
+	var err error
 	if t.ID == uuid.Nil {
 		err = multierr.Append(err, errors.New("missing ID"))
 	}
@@ -163,7 +164,7 @@ func (t *Task) Validate() (err error) {
 		err = multierr.Append(err, errors.New("missing start date"))
 	}
 
-	return
+	return err
 }
 
 // Run describes a running instance of a Task.
