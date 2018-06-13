@@ -66,19 +66,15 @@ var clusterAddCmd = &cobra.Command{
 		w := cmd.OutOrStdout()
 		fmt.Fprintln(w, id)
 
-		// FIXME fix that when proper repair is in place repair_auto_schedule
-		//tasks, err := client.ListTasks(ctx, id, "repair_auto_schedule", false, "")
-		//if err != nil {
-		//	return printableError{err}
-		//}
-		//
-		//if len(tasks) > 0 {
-		//	s := tasks[0].Schedule
-		//	werr := cmd.OutOrStderr()
-		//	fmt.Fprintf(werr, clipper, id, formatTime(s.StartDate), s.IntervalDays, id)
-		//}
-		werr := cmd.OutOrStderr()
-		fmt.Fprintf(werr, clipper, id, "FIXME", -1, id)
+		tasks, err := client.ListTasks(ctx, id, "repair", false, "")
+		if err != nil {
+			return printableError{err}
+		}
+		if len(tasks) > 0 {
+			s := tasks[0].Schedule
+			w := cmd.OutOrStderr()
+			fmt.Fprintf(w, clipper, id, formatTime(s.StartDate), s.IntervalDays, id)
+		}
 
 		return nil
 	},
