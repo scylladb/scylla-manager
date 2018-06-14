@@ -36,8 +36,22 @@ func init() {
 
 var initOnce sync.Once
 
-// CreateSession recreates the database on scylla manager cluster and returns a new gocql.Session.
+// CreateSession recreates the database on scylla manager cluster and returns
+// a new gocql.Session.
 func CreateSession(tb testing.TB) *gocql.Session {
+	session := createSessionFromCluster(tb, createCluster(*flagCluster))
+
+	if err := migrate.Migrate(context.Background(), session, "../schema/cql"); err != nil {
+		tb.Fatal("migrate:", err)
+	}
+
+	return session
+}
+
+// CreateSessionWithoutMigration clears the database on scylla manager cluster
+// and returns a new gocql.Session. This is only useful for testing migrations
+// you probably should be using CreateSession instead.
+func CreateSessionWithoutMigration(tb testing.TB) *gocql.Session {
 	return createSessionFromCluster(tb, createCluster(*flagCluster))
 }
 
@@ -75,10 +89,6 @@ func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocq
 	session, err := cluster.CreateSession()
 	if err != nil {
 		tb.Fatal("createSession:", err)
-	}
-
-	if err := migrate.Migrate(context.Background(), session, "../schema/cql"); err != nil {
-		tb.Fatal("migrate:", err)
 	}
 
 	return session
