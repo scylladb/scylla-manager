@@ -159,7 +159,7 @@ func (p *Pool) close() error {
 
 	var err error
 	for _, conn := range p.conns {
-		multierr.Append(err, conn.client.Close())
+		err = multierr.Append(err, conn.client.Close())
 	}
 	p.conns = nil
 
