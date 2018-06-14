@@ -47,7 +47,7 @@ func (c *Cluster) Validate() error {
 		err = multierr.Append(err, errors.New("invalid shard_count"))
 	}
 
-	return err
+	return mermaid.ErrValidate(err, "invalid cluster")
 }
 
 // Filter filters Clusters.

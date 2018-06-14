@@ -164,7 +164,7 @@ func (t *Task) Validate() error {
 		err = multierr.Append(err, errors.New("missing start date"))
 	}
 
-	return err
+	return mermaid.ErrValidate(err, "invalid task")
 }
 
 // Run describes a running instance of a Task.

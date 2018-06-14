@@ -191,7 +191,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 
 	// validate cluster
 	if err := c.Validate(); err != nil {
-		return mermaid.ErrValidate(err, "invalid cluster")
+		return err
 	}
 
 	if err := s.sshManager.storeIdentityFile(c); err != nil {
@@ -199,7 +199,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	}
 
 	if err := validateHosts(ctx, c, s.hostInfo); err != nil {
-		return mermaid.ErrValidate(err, "invalid hosts")
+		return err
 	}
 
 	// check for conflicting names

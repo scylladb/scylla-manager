@@ -599,7 +599,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 
 	if err := t.Validate(); err != nil {
-		return mermaid.ErrValidate(err, "invalid task")
+		return err
 	}
 
 	if t.Sched.StartDate.Before(timeutc.Now()) {
@@ -680,10 +680,10 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 
 	// validate the task
 	if err := t.Validate(); err != nil {
-		return nil, mermaid.ErrValidate(err, "invalid task")
+		return nil, err
 	}
 	if limit <= 0 {
-		return nil, mermaid.ErrValidate(errors.New("must be > 0"), "invalid limit")
+		return nil, mermaid.ErrValidate(errors.New("limit must be > 0"), "")
 	}
 
 	b := qb.Select(schema.SchedRun.Name).Where(

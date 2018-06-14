@@ -27,19 +27,19 @@ func TestValidateHosts(t *testing.T) {
 			// Error
 			H: []string{"a", "b"},
 			R: map[string]res{"a": {E: errors.New("error")}, "b": {C: "a", DC: "b"}},
-			E: "a: error",
+			E: "invalid hosts: failed to get node a info: error",
 		},
 		{
 			// Cluster mixup
 			H: []string{"a", "b"},
 			R: map[string]res{"a": {C: "a", DC: "b"}, "b": {C: "b", DC: "b"}},
-			E: "mixed clusters",
+			E: "invalid hosts: mixed clusters",
 		},
 		{
 			// DC mixup
 			H: []string{"a", "b"},
 			R: map[string]res{"a": {C: "a", DC: "b"}, "b": {C: "a", DC: "a"}},
-			E: "mixed datacenters",
+			E: "invalid hosts: mixed datacenters",
 		},
 		{
 			// OK
