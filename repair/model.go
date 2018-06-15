@@ -129,3 +129,8 @@ func (p *RunProgress) PercentComplete() int {
 
 	return percent
 }
+
+// taskProperties is the main data structure of the runner.Properties blob.
+type taskProperties struct {
+	Filter []string `json:"filter"`
+}

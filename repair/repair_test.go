@@ -3,13 +3,14 @@
 package repair
 
 import (
+	"encoding/json"
+	"os"
 	"testing"
 
-	"encoding/json"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"os"
 )
 
 func TestGroupSegmentsByHost(t *testing.T) {
@@ -286,6 +287,71 @@ func TestAggregateUnitProgress(t *testing.T) {
 
 		if diff := cmp.Diff(p, aggregateUnitProgress(u, test.P), cmp.AllowUnexported(UnitProgress{}, NodeProgress{}, ShardProgress{})); diff != "" {
 			t.Error(diff)
+		}
+	}
+}
+
+func TestValidateFilters(t *testing.T) {
+	table := []struct {
+		F []string
+		E string
+	}{
+		//known invalid cases
+		{
+			F: []string{".*kalle.*"},
+			E: "invalid filters: \".*kalle.*\" on position 0: missing keyspace",
+		},
+		{
+			F: []string{".*"},
+			E: "invalid filters: \".*\" on position 0: missing keyspace",
+		},
+	}
+
+	for i, test := range table {
+		if err := validateFilters(test.F); err == nil || err.Error() != test.E {
+			t.Error(i, "got", err, "expected", test.E)
+		}
+	}
+}
+
+func TestDecorateFilters(t *testing.T) {
+	table := []struct {
+		F []string
+		E []string
+	}{
+		{
+			F: []string{},
+			E: []string{"!system.*"},
+		},
+		{
+			F: []string{"*"},
+			E: []string{"*.*", "!system.*"},
+		},
+		{
+			F: []string{"kalle"},
+			E: []string{"kalle.*", "!system.*"},
+		},
+		{
+			F: []string{"kalle*"},
+			E: []string{"kalle*.*", "!system.*"},
+		},
+		{
+			F: []string{"*kalle"},
+			E: []string{"*kalle.*", "!system.*"},
+		},
+		{
+			F: []string{"kalle.*"},
+			E: []string{"kalle.*", "!system.*"},
+		}, {
+			F: []string{"*kalle.*"},
+			E: []string{"*kalle.*", "!system.*"},
+		},
+	}
+
+	for i, test := range table {
+		f := decorateFilters(test.F)
+		if !cmp.Equal(test.E, f, cmpopts.EquateEmpty()) {
+			t.Error(i, "expected", test.E, "got", f)
 		}
 	}
 }

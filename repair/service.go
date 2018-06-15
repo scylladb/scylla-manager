@@ -4,8 +4,10 @@ package repair
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
@@ -136,6 +139,65 @@ func (s *Service) unlockCluster(run *Run) error {
 
 	delete(s.active, run.ClusterID)
 	return nil
+}
+
+// GetUnits loads this clusters available repair units filtered through the supplied filter read from the properties.
+// If no units are found or the filter contains any invalid filter a validation error is returned.
+func (s *Service) GetUnits(ctx context.Context, clusterID uuid.UUID, p runner.Properties) ([]Unit, error) {
+	tp := &taskProperties{}
+	if err := json.Unmarshal(p, tp); err != nil {
+		return nil, errors.Wrapf(err, "unable to parse runner properties: %v", p)
+	}
+
+	if err := validateFilters(tp.Filter); err != nil {
+		return nil, err
+	}
+
+	inclExcl, err := inexlist.ParseInExList(decorateFilters(tp.Filter))
+	if err != nil {
+		return nil, err
+	}
+
+	c, _ := s.client(ctx, clusterID)
+	keyspaces, err := c.Keyspaces(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read keyspaces")
+	}
+
+	var units []Unit
+
+	for _, keyspace := range keyspaces {
+		tables, err := c.Tables(ctx, keyspace)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to read table for keyspace", keyspace)
+		}
+
+		prefix := keyspace + "."
+		for i := 0; i < len(tables); i++ {
+			tables[i] = prefix + tables[i]
+		}
+
+		filtered := inclExcl.Filter(tables)
+		for i := 0; i < len(filtered); i++ {
+			filtered[i] = strings.TrimPrefix(filtered[i], prefix)
+		}
+
+		if len(filtered) > 0 {
+			units = append(units, Unit{
+				Keyspace: keyspace,
+				Tables:   filtered,
+			})
+		}
+	}
+
+	if len(units) == 0 {
+		return nil, mermaid.ErrValidate(errors.Errorf("no matching units found for filter"), "")
+	}
+
+	//Sort up according to the provided patterns
+	sortUnits(units, inclExcl)
+
+	return units, nil
 }
 
 // Repair starts an asynchronous repair process.
