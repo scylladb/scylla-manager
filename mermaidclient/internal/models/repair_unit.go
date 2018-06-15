@@ -15,17 +15,8 @@ import (
 // swagger:model repairUnit
 type RepairUnit struct {
 
-	// cluster id
-	ClusterID string `json:"cluster_id,omitempty"`
-
-	// id
-	ID string `json:"id,omitempty"`
-
 	// keyspace
 	Keyspace string `json:"keyspace,omitempty"`
-
-	// name
-	Name string `json:"name,omitempty"`
 
 	// tables
 	Tables []string `json:"tables"`

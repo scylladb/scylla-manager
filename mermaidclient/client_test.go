@@ -26,7 +26,7 @@ func TestClientError(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, err = c.ListRepairUnits(ctx, "name")
+	_, err = c.ListClusters(ctx)
 	if err == nil {
 		t.Fatal("expected error")
 	}

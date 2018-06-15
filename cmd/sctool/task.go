@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -69,7 +70,7 @@ var taskListCmd = &cobra.Command{
 				}
 			}
 
-			tasks, err := client.ListSchedTasks(ctx, c.ID, taskType, all, status)
+			tasks, err := client.ListTasks(ctx, c.ID, taskType, all, status)
 			if err != nil {
 				return printableError{err}
 			}
@@ -95,7 +96,9 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 			fields = append(fields, "-", "-", "-")
 		}
 
-		fields = append(fields, dumpMap(task.Properties))
+		if props, ok := task.Properties.(map[string]interface{}); ok {
+			fields = append(fields, dumpMap(props))
+		}
 
 		for _, f := range []string{
 			formatTime(task.StartTime),
@@ -132,7 +135,7 @@ var taskStartCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		if err := client.SchedStartTask(ctx, cfgCluster, taskType, taskID); err != nil {
+		if err := client.StartTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -153,7 +156,7 @@ var taskStopCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if err := client.SchedStopTask(ctx, cfgCluster, taskType, taskID); err != nil {
+		if err := client.StopTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -175,12 +178,12 @@ var taskHistoryCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		limit, err := cmd.Flags().GetInt("limit")
+		limit, err := cmd.Flags().GetInt64("limit")
 		if err != nil {
 			return printableError{err}
 		}
 
-		runs, err := client.GetSchedTaskHistory(ctx, cfgCluster, taskType, taskID, limit)
+		runs, err := client.GetTaskHistory(ctx, cfgCluster, taskType, taskID, limit)
 		if err != nil {
 			return printableError{err}
 		}
@@ -227,7 +230,7 @@ var taskUpdateCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		t, err := client.GetSchedTask(ctx, cfgCluster, taskType, taskID)
+		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
 			return printableError{err}
 		}
@@ -270,7 +273,7 @@ var taskUpdateCmd = &cobra.Command{
 			if err != nil {
 				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 			}
-			t.Schedule.IntervalDays = int32(interval)
+			t.Schedule.IntervalDays = int64(interval)
 			changed = true
 		}
 		if f := cmd.Flag("num-retries"); f.Changed {
@@ -278,7 +281,7 @@ var taskUpdateCmd = &cobra.Command{
 			if err != nil {
 				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 			}
-			t.Schedule.NumRetries = int32(numRetries)
+			t.Schedule.NumRetries = int64(numRetries)
 			changed = true
 		}
 		if !changed {
@@ -317,7 +320,7 @@ var taskDeleteCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		if err := client.SchedDeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
+		if err := client.DeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -326,4 +329,103 @@ var taskDeleteCmd = &cobra.Command{
 
 func init() {
 	register(taskDeleteCmd, taskCmd)
+}
+
+var taskProgressCmd = &cobra.Command{
+	Use:   "progress <type/task-id>",
+	Short: "Shows task progress",
+	Args:  cobra.ExactArgs(1),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		w := cmd.OutOrStdout()
+
+		taskType, taskID, err := taskSplit(args[0])
+		if err != nil {
+			return printableError{err}
+		}
+		if taskType != "repair" {
+			return printableError{errors.Errorf("unexpected task type %q", taskType)}
+		}
+
+		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
+		if err != nil {
+			return printableError{err}
+		}
+
+		hist, err := client.GetTaskHistory(ctx, cfgCluster, taskType, taskID, 1)
+		if err != nil {
+			return printableError{err}
+		}
+		if len(hist) == 0 {
+			fmt.Fprintf(w, "Task did not run yet\n")
+			return nil
+		}
+		run := hist[0]
+
+		printProgressHeader(w, run)
+
+		if run.Status == runner.StatusError.String() {
+			return nil
+		}
+
+		prog, err := client.RepairProgress(ctx, cfgCluster, t.ID, run.ID)
+		if err != nil {
+			return printableError{err}
+		}
+
+		printRepairUnitProgress(w, prog)
+
+		details, err := cmd.Flags().GetBool("details")
+		if err != nil {
+			return printableError{err}
+		}
+		if details {
+			printRepairUnitDetailedProgress(w, prog)
+		}
+		return nil
+	},
+}
+
+func printProgressHeader(w io.Writer, run *mermaidclient.TaskRun) {
+	fmt.Fprintf(w, "Status:\t\t%s", run.Status)
+	if run.Cause != "" {
+		fmt.Fprintf(w, " (%s)", run.Cause)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Start time:\t%s\n", formatTime(run.StartTime))
+	if !isZero(run.EndTime) {
+		fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
+	}
+	fmt.Fprintf(w, "Duration:\t%s\n", duration(run.StartTime, run.EndTime))
+	fmt.Fprintln(w)
+}
+
+func printRepairUnitProgress(w io.Writer, prog *mermaidclient.RepairProgress) {
+	t := newTable("keyspace", "progress")
+	t.AddRow("total", fmt.Sprintf("%d%%", prog.PercentComplete))
+	for _, u := range prog.Units {
+		t.AddRow(u.Unit.Keyspace, fmt.Sprintf("%d%%", u.PercentComplete))
+	}
+	fmt.Fprintln(w, t)
+}
+
+func printRepairUnitDetailedProgress(w io.Writer, prog *mermaidclient.RepairProgress) {
+	for _, u := range prog.Units {
+		fmt.Fprintln(w, u.Unit.Keyspace)
+		t := newTable("host", "shard", "progress", "segment_count", "segment_success", "segment_error")
+		for _, n := range u.Nodes {
+			for i, s := range n.Shards {
+				t.AddRow(n.Host, i, fmt.Sprintf("%d%%", u.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
+			}
+		}
+		fmt.Fprintln(w, t)
+	}
+}
+
+func init() {
+	cmd := taskProgressCmd
+	register(cmd, taskCmd)
+
+	fs := cmd.Flags()
+	fs.Bool("details", false, "show detailed progress")
 }

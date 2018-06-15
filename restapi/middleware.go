@@ -5,11 +5,45 @@ package restapi
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/scylladb/golog"
 )
+
+func heartbeatMiddleware(endpoint string) func(http.Handler) http.Handler {
+	f := func(h http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "GET" && strings.EqualFold(r.URL.Path, endpoint) {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			h.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
+	return f
+}
+
+// prometheusMiddleware exposes promhttp.Handler as chi middleware. This is
+// implemented this way to avoid interference with other middleware.
+func prometheusMiddleware(endpoint string) func(http.Handler) http.Handler {
+	f := func(next http.Handler) http.Handler {
+		h := promhttp.Handler()
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet && strings.EqualFold(r.URL.Path, endpoint) {
+				h.ServeHTTP(w, r)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	return f
+}
 
 func traceIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

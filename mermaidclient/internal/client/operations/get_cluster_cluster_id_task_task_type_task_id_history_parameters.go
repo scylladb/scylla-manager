@@ -72,7 +72,7 @@ type GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams struct {
 	  limit the number of task runs returned
 
 	*/
-	Limit *int32
+	Limit *int64
 	/*TaskID
 	  task ID (UUID) or name
 
@@ -134,13 +134,13 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) SetClusterID(cluste
 }
 
 // WithLimit adds the limit to the get cluster cluster ID task task type task ID history params
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) WithLimit(limit *int32) *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams {
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) WithLimit(limit *int64) *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams {
 	o.SetLimit(limit)
 	return o
 }
 
 // SetLimit adds the limit to the get cluster cluster ID task task type task ID history params
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) SetLimit(limit *int32) {
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) SetLimit(limit *int64) {
 	o.Limit = limit
 }
 
@@ -182,11 +182,11 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) WriteToRequest(r ru
 	if o.Limit != nil {
 
 		// query param limit
-		var qrLimit int32
+		var qrLimit int64
 		if o.Limit != nil {
 			qrLimit = *o.Limit
 		}
-		qLimit := swag.FormatInt32(qrLimit)
+		qLimit := swag.FormatInt64(qrLimit)
 		if qLimit != "" {
 			if err := r.SetQueryParam("limit", qLimit); err != nil {
 				return err

@@ -1,0 +1,23 @@
+{
+  "percent_complete": 0,
+  "units": [
+    {
+      "percent_complete": 0,
+      "unit": {
+        "keyspace": "keyspace0"
+      }
+    },
+    {
+      "percent_complete": 0,
+      "unit": {
+        "keyspace": "keyspace1"
+      }
+    },
+    {
+      "percent_complete": 0,
+      "unit": {
+        "keyspace": "keyspace2"
+      }
+    }
+  ]
+}

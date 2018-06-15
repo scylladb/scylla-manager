@@ -12,10 +12,6 @@ import (
 	"github.com/scylladb/mermaid"
 )
 
-func init() {
-	render.Respond = httpErrorRender
-}
-
 // Services contains REST API services.
 type Services struct {
 	Cluster   ClusterService
@@ -27,27 +23,19 @@ type Services struct {
 func New(svc *Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(traceIDMiddleware)
-	r.Use(recoverPanicsMiddleware)
+	r.Use(
+		heartbeatMiddleware("/ping"),
+		prometheusMiddleware("/metrics"),
+		traceIDMiddleware,
+		recoverPanicsMiddleware,
+		middleware.RequestLogger(httpLogger{logger}),
+		render.SetContentType(render.ContentTypeJSON),
+	)
 
-	r.Use(heartbeat("/ping"))
-	r.Use(prometheusMiddleware("/metrics"))
-
-	r.Use(middleware.RequestLogger(httpLogger{logger}))
-	r.Use(render.SetContentType(render.ContentTypeJSON))
-
-	if svc.Cluster != nil {
-		r.Mount("/api/v1/", newClusterHandler(svc.Cluster))
-	}
-	if svc.Repair != nil {
-		r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
-			Mount("/api/v1/cluster/{cluster_id}/repair/", newRepairHandler(svc.Repair))
-	}
-	if svc.Scheduler != nil {
-		r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
-			Mount("/api/v1/cluster/{cluster_id}/", newSchedHandler(svc.Scheduler))
-	}
 	r.Get("/api/v1/version", newVersionHandler())
+
+	r.Mount("/api/v1/", newClusterHandler(svc.Cluster))
+	r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).Mount("/api/v1/cluster/{cluster_id}/", newTaskHandler(svc.Scheduler, svc.Repair))
 
 	// NotFound registered last due to https://github.com/go-chi/chi/issues/297
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +43,10 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	})
 
 	return r
+}
+
+func init() {
+	render.Respond = httpErrorRender
 }
 
 func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {

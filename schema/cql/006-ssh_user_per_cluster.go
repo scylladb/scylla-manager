@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/gocqlx/qb"
+	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/schema"
@@ -19,20 +20,14 @@ import (
 )
 
 func init() {
-	registerMigrationCallback("006-ssh_user_per_cluster.cql", sshUserPerCluster)
+	registerMigrationCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, copySSHInfoToClusterAfter006)
 }
 
 type sshConfig struct {
 	SSH *ssh.Config `yaml:"ssh,omitempty"`
 }
 
-func sshUserPerCluster(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
-	if ev != migrate.AfterMigration {
-		return nil
-	}
-
-	logger := Logger.Named("006-ssh_user_per_cluster.cql")
-
+func copySSHInfoToClusterAfter006(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 	u, _ := user.Current()
 	configFile := "/etc/scylla-manager.yaml.rpmsave"
 	config := &ssh.Config{
@@ -44,15 +39,19 @@ func sshUserPerCluster(ctx context.Context, session *gocql.Session, ev migrate.C
 		yaml.NewDecoder(f).Decode(&sshConfig{SSH: config})
 	}
 
-	var clusters []*cluster.Cluster
 	stmt, names := qb.Select(schema.Cluster.Name).ToCql()
-	if err := gocqlx.Query(session.Query(stmt).WithContext(ctx), names).SelectRelease(&clusters); err != nil {
+	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+
+	var clusters []*cluster.Cluster
+	if err := q.SelectRelease(&clusters); err != nil {
 		return err
 	}
 
-	toDir := filepath.Dir(config.IdentityFile)
 	stmt, names = schema.Cluster.Insert()
-	query := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+	q = gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+	defer q.Release()
+
+	toDir := filepath.Dir(config.IdentityFile)
 	for _, c := range clusters {
 		if err := os.Link(config.IdentityFile, filepath.Join(toDir, c.ID.String())); err != nil {
 			logger.Info(ctx, "unable to link ssh identity file",
@@ -60,7 +59,7 @@ func sshUserPerCluster(ctx context.Context, session *gocql.Session, ev migrate.C
 			continue
 		}
 		c.SSHUser = config.User
-		if err := query.BindStruct(c).Exec(); err != nil {
+		if err := q.BindStruct(c).Exec(); err != nil {
 			return err
 		}
 	}

@@ -131,6 +131,21 @@
   revision = "9286f6d0e5c1ffc7cf2bda1d59291dc3c4f2f828"
 
 [[projects]]
+  name = "github.com/gobwas/glob"
+  packages = [
+    ".",
+    "compiler",
+    "match",
+    "syntax",
+    "syntax/ast",
+    "syntax/lexer",
+    "util/runes",
+    "util/strings"
+  ]
+  revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
+  version = "v0.2.3"
+
+[[projects]]
   branch = "master"
   name = "github.com/gocql/gocql"
   packages = [
@@ -163,6 +178,7 @@
   name = "github.com/google/go-cmp"
   packages = [
     "cmp",
+    "cmp/cmpopts",
     "cmp/internal/diff",
     "cmp/internal/function",
     "cmp/internal/value"
@@ -399,6 +415,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9b3b24f7564bf286103089dcbf03eb77393de932faae45dface0611e3c758f4a"
+  inputs-digest = "24eb541ad4e71f3272ce8a34d1afc8618ad09d43fa6ac593424f1f88f3a7cbdc"
   solver-name = "gps-cdcl"
   solver-version = 1

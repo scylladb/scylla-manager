@@ -3,167 +3,95 @@
 package repair
 
 import (
-	"errors"
-	"fmt"
-	"sort"
+	"reflect"
 	"time"
 
-	"github.com/cespare/xxhash"
-	"github.com/scylladb/mermaid"
+	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/multierr"
 )
 
-// Unit is a set of tables in a keyspace that are repaired together.
+// Unit specifies what shall be repaired.
 type Unit struct {
-	ID        uuid.UUID `json:"id"`
-	ClusterID uuid.UUID `json:"cluster_id"`
-	Name      string    `json:"name,omitempty"`
-	Keyspace  string    `db:"keyspace_name" json:"keyspace"`
-	Tables    []string  `json:"tables"`
+	Keyspace string   `db:"keyspace_name" json:"keyspace"`
+	Tables   []string `json:"tables,omitempty"`
 }
 
-// String returns unit Name or ID if Name is is empty.
-func (u *Unit) String() string {
-	if u == nil {
-		return ""
-	}
-	if u.Name != "" {
-		return u.Name
-	}
-	return u.ID.String()
+// MarshalUDT implements UDTMarshaler.
+func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
+	return gocql.Marshal(info, f.Interface())
 }
 
-// Validate checks if all the fields are properly set.
-func (u *Unit) Validate() (err error) {
-	if u == nil {
-		return mermaid.ErrNilPtr
-	}
-
-	if u.ID == uuid.Nil {
-		err = multierr.Append(err, errors.New("missing ID"))
-	}
-	if u.ClusterID == uuid.Nil {
-		err = multierr.Append(err, errors.New("missing ClusterID"))
-	}
-	if _, e := uuid.Parse(u.Name); e == nil {
-		err = multierr.Append(err, errors.New("name cannot be an UUID"))
-	}
-	if u.Keyspace == "" {
-		err = multierr.Append(err, errors.New("missing Keyspace"))
-	}
-
-	return
+// UnmarshalUDT implements UDTUnmarshaler.
+func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
+	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// UnitFilter filters units.
-type UnitFilter struct {
-	Name string
+// progress holds generic progress data, it's a base type for other progress
+// structs.
+type progress struct {
+	PercentComplete int `json:"percent_complete"`
 }
 
-// Validate checks if all the fields are properly set.
-func (f *UnitFilter) Validate() (err error) {
-	if f == nil {
-		return mermaid.ErrNilPtr
-	}
-
-	if _, e := uuid.Parse(f.Name); e == nil {
-		err = multierr.Append(err, errors.New("name cannot be an UUID"))
-	}
-
-	return
+// ShardProgress specifies repair progress of a shard.
+type ShardProgress struct {
+	progress
+	SegmentCount   int `json:"segment_count"`
+	SegmentSuccess int `json:"segment_success"`
+	SegmentError   int `json:"segment_error"`
 }
 
-// genID generates unit ID based on keyspace and tables.
-func (u *Unit) genID() uuid.UUID {
-	xx := xxhash.New()
-	xx.Write([]byte(u.Keyspace))
-	l := xx.Sum64()
-	xx.Reset()
-
-	// sort
-	sort.Strings(u.Tables)
-	// skip duplicates
-	for i, t := range u.Tables {
-		if i == 0 || u.Tables[i-1] != t {
-			xx.Write([]byte(t))
-		}
-	}
-	r := xx.Sum64()
-
-	return uuid.NewFromUint64(l, r)
+// NodeProgress specifies repair progress of a node.
+type NodeProgress struct {
+	progress
+	Host   string          `json:"host"`
+	Shards []ShardProgress `json:"shards,omitempty"`
 }
 
-// Segment specifies token range: [StartToken, EndToken), StartToken is always
-// less then EndToken.
-type Segment struct {
-	StartToken int64
-	EndToken   int64
+// UnitProgress specifies repair progress of a unit.
+type UnitProgress struct {
+	progress
+	Unit  Unit           `json:"unit"`
+	Nodes []NodeProgress `json:"nodes,omitempty"`
 }
 
-// Status specifies the status of a Run.
-type Status string
-
-// Status enumeration.
-const (
-	StatusRunning  Status = "running"
-	StatusDone     Status = "done"
-	StatusError    Status = "error"
-	StatusStopping Status = "stopping"
-	StatusStopped  Status = "stopped"
-)
-
-func (s Status) String() string {
-	return string(s)
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s Status) MarshalText() (text []byte, err error) {
-	return []byte(s.String()), nil
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *Status) UnmarshalText(text []byte) error {
-	switch Status(text) {
-	case StatusRunning:
-		*s = StatusRunning
-	case StatusDone:
-		*s = StatusDone
-	case StatusError:
-		*s = StatusError
-	case StatusStopping:
-		*s = StatusStopping
-	case StatusStopped:
-		*s = StatusStopped
-	default:
-		return fmt.Errorf("unrecognized Status %q", text)
-	}
-	return nil
+// Progress specifies repair progress of a run with a possibility to dig down
+// units, nodes and shards.
+type Progress struct {
+	progress
+	Units []UnitProgress `json:"units,omitempty"`
 }
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
 type Run struct {
-	ClusterID    uuid.UUID
-	UnitID       uuid.UUID
-	ID           uuid.UUID
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	ID        uuid.UUID
+
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
-	Keyspace     string `db:"keyspace_name"`
-	Tables       []string
-	Status       Status
+	Units        []Unit
+	Status       runner.Status
 	Cause        string
-	RestartCount int
 	StartTime    time.Time
 	EndTime      time.Time
+
+	clusterName string
+	prevProg    []*RunProgress
 }
 
 // RunProgress describes repair progress on per shard basis.
 type RunProgress struct {
-	ClusterID               uuid.UUID
-	UnitID                  uuid.UUID
-	RunID                   uuid.UUID
-	Host                    string
-	Shard                   int
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
+	Unit      int
+	Host      string
+	Shard     int
+
 	SegmentCount            int
 	SegmentSuccess          int
 	SegmentError            int
@@ -202,7 +130,7 @@ func (p *RunProgress) PercentComplete() int {
 	return percent
 }
 
-// started returns true if the host / shard was ever repaired in the run.
-func (p *RunProgress) started() bool {
-	return p.LastCommandID != 0 || p.SegmentSuccess > 0 || p.SegmentError > 0
+// taskProperties is the main data structure of the runner.Properties blob.
+type taskProperties struct {
+	Filter []string `json:"filter"`
 }

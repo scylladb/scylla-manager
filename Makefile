@@ -79,17 +79,18 @@ unit-test:
 	@echo "==> Running tests (race)..."
 	@go test -cover -race ./...
 
-INTEGRATION_TEST_ARGS := -cluster 172.16.1.100 -managed-cluster 172.16.1.10
+INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.51.11
 
 # integration-test runs integration tests.
 .PHONY: integration-test
 integration-test:
 	@echo "==> Running integration tests..."
-	@go test -cover -race -tags integration -run Integration ./internal/ssh $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -tags integration -run Integration ./sched $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./internal/ssh $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./sched $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./schema/cql $(INTEGRATION_TEST_ARGS)
 
 # dev-server runs development server.
 .PHONY: dev-server
@@ -97,7 +98,7 @@ dev-server:
 	@echo "==> Building development server..."
 	@go build -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo "==> Running development server..."
-	@./scylla-manager.dev -c testing/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
+	@./scylla-manager.dev -c testing/scylla-manager/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
 
 # dev-server-debug runs development server with dlv debugger.
 .PHONY: dev-server-debug

@@ -31,11 +31,12 @@ func (c *Cluster) String() string {
 }
 
 // Validate checks if all the fields are properly set.
-func (c *Cluster) Validate() (err error) {
+func (c *Cluster) Validate() error {
 	if c == nil {
-		return mermaid.ErrNilPtr
+		return errors.Wrap(mermaid.ErrNilPtr, "invalid filter")
 	}
 
+	var err error
 	if _, e := uuid.Parse(c.Name); e == nil {
 		err = multierr.Append(err, errors.New("name cannot be an UUID"))
 	}
@@ -46,7 +47,7 @@ func (c *Cluster) Validate() (err error) {
 		err = multierr.Append(err, errors.New("invalid shard_count"))
 	}
 
-	return
+	return mermaid.ErrValidate(err, "invalid cluster")
 }
 
 // Filter filters Clusters.
@@ -55,14 +56,15 @@ type Filter struct {
 }
 
 // Validate checks if all the fields are properly set.
-func (f *Filter) Validate() (err error) {
+func (f *Filter) Validate() error {
 	if f == nil {
 		return mermaid.ErrNilPtr
 	}
 
+	var err error
 	if _, e := uuid.Parse(f.Name); e == nil {
 		err = multierr.Append(err, errors.New("name cannot be an UUID"))
 	}
 
-	return
+	return err
 }

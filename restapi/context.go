@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -17,7 +16,6 @@ type ctxt byte
 const (
 	ctxClusterID ctxt = iota
 	ctxCluster
-	ctxRepairUnit
 	ctxTask
 )
 
@@ -35,14 +33,6 @@ func mustClusterFromCtx(r *http.Request) *cluster.Cluster {
 		panic("missing cluster in context")
 	}
 	return c
-}
-
-func mustUnitFromCtx(r *http.Request) *repair.Unit {
-	u, ok := r.Context().Value(ctxRepairUnit).(*repair.Unit)
-	if !ok {
-		panic("missing repair unit in context")
-	}
-	return u
 }
 
 func mustTaskFromCtx(r *http.Request) *sched.Task {

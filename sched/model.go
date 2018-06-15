@@ -21,10 +21,9 @@ type TaskType string
 
 // TaskType enumeration
 const (
-	UnknownTask            TaskType = "unknown"
-	BackupTask             TaskType = "backup"
-	RepairAutoScheduleTask TaskType = "repair_auto_schedule"
-	RepairTask             TaskType = "repair"
+	UnknownTask TaskType = "unknown"
+	BackupTask  TaskType = "backup"
+	RepairTask  TaskType = "repair"
 
 	mockTask TaskType = "mock"
 )
@@ -45,8 +44,6 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = UnknownTask
 	case BackupTask:
 		*t = BackupTask
-	case RepairAutoScheduleTask:
-		*t = RepairAutoScheduleTask
 	case RepairTask:
 		*t = RepairTask
 	case mockTask:
@@ -127,17 +124,18 @@ type Task struct {
 	Metadata   string            `json:"metadata"`
 	Enabled    bool              `json:"enabled"`
 	Sched      Schedule          `json:"schedule"`
-	Properties map[string]string `json:"properties"`
+	Properties runner.Properties `json:"properties"`
 
 	clusterName string
 }
 
 // Validate checks if all the required fields are properly set.
-func (t *Task) Validate() (err error) {
+func (t *Task) Validate() error {
 	if t == nil {
 		return mermaid.ErrNilPtr
 	}
 
+	var err error
 	if t.ID == uuid.Nil {
 		err = multierr.Append(err, errors.New("missing ID"))
 	}
@@ -166,7 +164,7 @@ func (t *Task) Validate() (err error) {
 		err = multierr.Append(err, errors.New("missing start date"))
 	}
 
-	return
+	return mermaid.ErrValidate(err, "invalid task")
 }
 
 // Run describes a running instance of a Task.
@@ -180,4 +178,13 @@ type Run struct {
 	Owner     string        `json:"owner"`
 	StartTime time.Time     `json:"start_time"`
 	EndTime   *time.Time    `json:"end_time,omitempty"`
+}
+
+// Descriptor returns descriptor of this Run.
+func (r *Run) Descriptor() runner.Descriptor {
+	return runner.Descriptor{
+		ClusterID: r.ClusterID,
+		TaskID:    r.TaskID,
+		RunID:     r.ID,
+	}
 }

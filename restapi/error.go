@@ -34,22 +34,21 @@ func respondBadRequest(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 func respondError(w http.ResponseWriter, r *http.Request, err error, msg string) {
-	if err == mermaid.ErrNotFound {
+	cause := errors.Cause(err)
+
+	switch {
+	case cause == mermaid.ErrNotFound:
 		render.Respond(w, r, &httpError{
-			Err:        err,
+			Err:        cause,
 			StatusCode: http.StatusNotFound,
 			Message:    "specified resource not found",
 			TraceID:    log.TraceID(r.Context()),
 		})
-		return
-	}
-
-	switch err.(type) {
-	case mermaid.ParamError:
+	case mermaid.IsErrValidate(cause):
 		render.Respond(w, r, &httpError{
-			Err:        err,
+			Err:        cause,
 			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrap(err, msg).Error(),
+			Message:    errors.Wrap(cause, msg).Error(),
 			TraceID:    log.TraceID(r.Context()),
 		})
 	default:

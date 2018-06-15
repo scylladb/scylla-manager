@@ -22,7 +22,7 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 
-	pem, err := ioutil.ReadFile("../testing/scylla_cluster/scylla_manager.pem")
+	pem, err := ioutil.ReadFile("../testing/scylla-manager/cluster.pem")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			c := &cluster.Cluster{
 				ID:              uuid.NewTime(),
 				Name:            "name" + strconv.Itoa(i),
-				Hosts:           []string{"172.16.1.10"},
+				Hosts:           mermaidtest.ManagedClusterHosts,
 				ShardCount:      16,
 				SSHUser:         "scylla-manager",
 				SSHIdentityFile: pem,
@@ -204,7 +204,7 @@ func validCluster(pem []byte, sshUser string) *cluster.Cluster {
 	c := &cluster.Cluster{
 		ID:         uuid.MustRandom(),
 		Name:       "name_" + uuid.MustRandom().String(),
-		Hosts:      []string{"172.16.1.10", "172.16.1.2"},
+		Hosts:      mermaidtest.ManagedClusterHosts,
 		ShardCount: 16,
 		SSHUser:    sshUser,
 	}

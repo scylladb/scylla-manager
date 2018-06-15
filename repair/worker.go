@@ -5,17 +5,15 @@ package repair
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/scylladb/golog"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"go.uber.org/atomic"
+	"go.uber.org/multierr"
 )
 
 var (
@@ -24,21 +22,21 @@ var (
 		Subsystem: "repair",
 		Name:      "segments_total",
 		Help:      "Total number of segments to repair.",
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairSegmentsSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_success",
 		Help:      "Number of repaired segments.",
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairSegmentsError = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "segments_error",
 		Help:      "Number of segments that failed to repair.",
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scylla_manager",
@@ -46,14 +44,14 @@ var (
 		Name:      "duration_seconds",
 		Help:      "Duration of a single repair command.",
 		MaxAge:    30 * time.Minute,
-	}, []string{"cluster", "unit", "host", "shard"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 
 	repairProgress = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "progress",
 		Help:      "Current repair progress.",
-	}, []string{"cluster", "unit", "host"})
+	}, []string{"cluster", "task", "keyspace", "host"})
 )
 
 func init() {
@@ -69,11 +67,10 @@ func init() {
 // worker manages shardWorkers.
 type worker struct {
 	Config   *Config
-	Cluster  *cluster.Cluster
-	Unit     *Unit
 	Run      *Run
+	Unit     int
 	Host     string
-	Segments []*Segment
+	Segments segments
 
 	Service *Service
 	Client  *scyllaclient.Client
@@ -87,46 +84,52 @@ func (w *worker) exec(ctx context.Context) error {
 		return err
 	}
 
-	// repair shards
-	var (
-		wg     sync.WaitGroup
-		failed atomic.Bool
-	)
-	for _, s := range w.shards {
-		if s.progress.complete() {
-			s.logger.Info(ctx, "Already done, skipping")
-			s.updateMetrics()
-			continue
-		}
+	w.Logger.Info(ctx, "Repairing")
 
-		s := s // range variable reuse
-		wg.Add(1)
+	// repair shards
+	type shardError struct {
+		shard int
+		err   error
+	}
+	var (
+		wch     = make(chan shardError)
+		werr    error
+		stopped bool
+	)
+	for i, s := range w.shards {
+		i := i
+		s := s
 		go func() {
-			defer func() {
-				wg.Done()
-				if v := recover(); v != nil {
-					s.logger.Error(ctx, "Panic", "panic", v)
-					failed.Store(true)
-				}
-			}()
-			if err := s.exec(ctx); err != nil {
-				s.logger.Error(ctx, "Exec failed", "error", err)
-				failed.Store(true)
-			}
+			wch <- shardError{i, s.exec(ctx)}
 		}()
 	}
-	wg.Wait()
-
-	if failed.Load() {
-		return errors.New("shard error, see log for details")
+	for range w.shards {
+		r := <-wch
+		if r.err != nil {
+			if errors.Cause(r.err) == errStopped {
+				stopped = true
+			} else {
+				werr = multierr.Append(werr, errors.Errorf("shard %d failed", r.shard))
+			}
+		}
 	}
 
-	return nil
+	if stopped || ctx.Err() != nil {
+		w.Logger.Info(ctx, "Repair stopped")
+		return errStopped
+	}
+
+	if werr == nil {
+		w.Logger.Info(ctx, "Repair done")
+	} else {
+		w.Logger.Info(ctx, "Repair failed")
+	}
+	return werr
 }
 
 func (w *worker) init(ctx context.Context) error {
 	// continue from a savepoint
-	prog, err := w.Service.GetProgress(ctx, w.Unit, w.Run.ID, w.Host)
+	prog, err := w.Service.getHostProgress(ctx, w.Run, w.Unit, w.Host)
 	if err != nil {
 		return errors.Wrap(err, "failed to get host progress")
 	}
@@ -156,8 +159,9 @@ func (w *worker) init(ctx context.Context) error {
 		} else {
 			p = &RunProgress{
 				ClusterID:    w.Run.ClusterID,
-				UnitID:       w.Run.UnitID,
+				TaskID:       w.Run.TaskID,
 				RunID:        w.Run.ID,
+				Unit:         w.Unit,
 				Host:         w.Host,
 				Shard:        i,
 				SegmentCount: len(segments),
@@ -165,10 +169,11 @@ func (w *worker) init(ctx context.Context) error {
 		}
 
 		labels := prometheus.Labels{
-			"cluster": w.Cluster.String(),
-			"unit":    w.Unit.String(),
-			"host":    w.Host,
-			"shard":   fmt.Sprint(i),
+			"cluster":  w.Run.clusterName,
+			"task":     w.Run.TaskID.String(),
+			"keyspace": w.Run.Units[w.Unit].Keyspace,
+			"host":     w.Host,
+			"shard":    fmt.Sprint(i),
 		}
 
 		w.shards[i] = &shardWorker{
@@ -201,15 +206,15 @@ func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, erro
 	return dht.NewMurmur3Partitioner(shardCount, uint(w.Config.ShardingIgnoreMsbBits)), nil
 }
 
-func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) [][]*Segment {
-	shards := splitSegmentsToShards(w.Segments, p)
-	if err := validateShards(w.Segments, shards, p); err != nil {
+func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) []segments {
+	shards := w.Segments.splitToShards(p)
+	if err := w.Segments.validateShards(shards, p); err != nil {
 		w.Logger.Info(ctx, "Suboptimal sharding", "error", err.Error())
 	}
 
 	for i := range shards {
-		shards[i] = mergeSegments(shards[i])
-		shards[i] = splitSegments(shards[i], int64(w.Config.SegmentSizeLimit))
+		shards[i] = shards[i].merge()
+		shards[i] = shards[i].split(int64(w.Config.SegmentSizeLimit))
 	}
 
 	return shards
@@ -218,7 +223,7 @@ func (w *worker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partit
 // shardWorker repairs a single shard.
 type shardWorker struct {
 	parent   *worker
-	segments []*Segment
+	segments segments
 	progress *RunProgress
 	logger   log.Logger
 
@@ -228,7 +233,22 @@ type shardWorker struct {
 	repairDurationSeconds prometheus.Summary
 }
 
-func (w *shardWorker) exec(ctx context.Context) error {
+func (w *shardWorker) exec(ctx context.Context) (err error) {
+	defer func() {
+		if err != nil {
+			w.logger.Info(ctx, "Repair failed",
+				"percent_complete", w.progress.PercentComplete(),
+				"error", err,
+			)
+		}
+	}()
+
+	if w.progress.complete() {
+		w.logger.Info(ctx, "Already repaired, skipping")
+		w.updateMetrics()
+		return nil
+	}
+
 	if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
 		w.logger.Info(ctx, "Starting from scratch: too many errors")
 		w.resetProgress(ctx)
@@ -258,7 +278,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 }
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
-	w.logger.Info(ctx, "Starting repair", "percent_complete", w.progress.PercentComplete())
+	w.logger.Info(ctx, "Repairing", "percent_complete", w.progress.PercentComplete())
 	w.updateMetrics()
 
 	var (
@@ -305,20 +325,14 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		}
 
 		if w.isStopped(ctx) {
-			w.logger.Info(ctx, "Stopped")
-			return nil
+			w.logger.Info(ctx, "Repair stopped", "percent_complete", w.progress.PercentComplete())
+			return errStopped
 		}
 
 		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
-				if ctx.Err() != nil {
-					w.logger.Info(ctx, "Aborted")
-					return nil
-				}
-
 				ri.OnError()
-
 				next()
 				savepoint()
 				return errors.Wrap(err, "repair request failed")
@@ -328,12 +342,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		savepoint()
 
 		err, id = w.waitCommand(ctx, id), 0
-		if ctx.Err() != nil {
-			w.logger.Info(ctx, "Aborted")
-			return nil
-		}
 		if err != nil {
-			w.logger.Info(ctx, "Repair failed", "error", err)
 			ri.OnError()
 
 			if w.parent.Config.StopOnError {
@@ -359,7 +368,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		return errors.New("repair finished with errors")
 	}
 
-	w.logger.Info(ctx, "Done")
+	w.logger.Info(ctx, "Repair done")
 
 	return nil
 }
@@ -374,11 +383,10 @@ func (w *shardWorker) resetProgress(ctx context.Context) {
 }
 
 func (w *shardWorker) isStopped(ctx context.Context) bool {
+	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Run)
 	if ctx.Err() != nil {
-		return true
+		stopped, err = true, nil
 	}
-
-	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Unit, w.parent.Run.ID)
 	if err != nil {
 		w.logger.Error(ctx, "Service error", "error", err)
 	}
@@ -386,10 +394,11 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 }
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
+	u := w.parent.Run.Units[w.parent.Unit]
 	return w.parent.Client.Repair(ctx, w.parent.Host, &scyllaclient.RepairConfig{
-		Keyspace: w.parent.Run.Keyspace,
-		Tables:   w.parent.Run.Tables,
-		Ranges:   dumpSegments(w.segments[start:end]),
+		Keyspace: u.Keyspace,
+		Tables:   u.Tables,
+		Ranges:   w.segments[start:end].dump(),
 	})
 }
 
@@ -402,12 +411,14 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 	t := time.NewTicker(w.parent.Config.PollInterval)
 	defer t.Stop()
 
+	u := w.parent.Run.Units[w.parent.Unit]
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.C:
-			s, err := w.parent.Client.RepairStatus(ctx, w.parent.Host, w.parent.Run.Keyspace, id)
+			s, err := w.parent.Client.RepairStatus(ctx, w.parent.Host, u.Keyspace, id)
 			if err != nil {
 				return err
 			}

@@ -3,6 +3,8 @@
 package mermaid
 
 import (
+	"fmt"
+
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 )
@@ -13,15 +15,34 @@ var (
 	ErrNilPtr   = errors.New("nil")
 )
 
-// ParamError marks error as caused by invalid parameter passed to a function.
-type ParamError struct {
-	Cause error
+// ErrValidate marks error as a validation error, if err is not nil.
+func ErrValidate(err error, msg string) error {
+	if err == nil {
+		return nil
+	}
+	return errValidate{
+		msg: msg,
+		err: err,
+	}
+}
+
+// IsErrValidate checks if given error is a validation error.
+func IsErrValidate(err error) bool {
+	_, ok := err.(errValidate)
+	return ok
+}
+
+// errValidate is a validation error caused by inner error.
+type errValidate struct {
+	msg string
+	err error
 }
 
 // Error implements error.
-func (e ParamError) Error() string {
-	if e.Cause == nil {
-		panic("missing cause")
+func (e errValidate) Error() string {
+	if e.msg == "" {
+		return e.err.Error()
 	}
-	return e.Cause.Error()
+
+	return fmt.Sprintf("%s: %s", e.msg, e.err)
 }

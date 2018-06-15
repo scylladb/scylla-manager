@@ -73,11 +73,6 @@ var (
 	reschedTaskDone = func(*Task) {}
 )
 
-// RetryFor converts task best before date into number of retries.
-func RetryFor(d time.Duration) int {
-	return int(int64(d) / int64(retryTaskWait))
-}
-
 // NewService creates a new service instance.
 func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
@@ -99,9 +94,10 @@ func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (
 	}, nil
 }
 
-// LoadTasks should be called on start. It attaches to running tasks if there are such,
-// marking no-longer running ones as stopped. It then proceeds to schedule future tasks.
-func (s *Service) LoadTasks(ctx context.Context) error {
+// Init should be called on start. It attaches to running tasks if there are
+// such, marking no-longer running ones as stopped. It then proceeds to schedule
+// future tasks.
+func (s *Service) Init(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks")
 
 	now := timeutc.Now()
@@ -130,7 +126,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 
 			switch r.Status {
 			case runner.StatusStarting, runner.StatusRunning, runner.StatusStopping:
-				curStatus, cause, err := s.taskRunner(&t).Status(ctx, t.ClusterID, r.ID, t.Properties)
+				curStatus, cause, err := s.taskRunner(&t).Status(ctx, r.Descriptor())
 				if err != nil {
 					s.logger.Error(ctx, "Failed to get task status", "task", t, "run", r, "error", err)
 					continue
@@ -321,7 +317,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 
 	s.updateClusterName(ctx, t)
 
-	if err := s.taskRunner(t).Run(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
+	if err := s.taskRunner(t).Run(ctx, run.Descriptor(), t.Properties); err != nil {
 		s.logger.Info(ctx, "Failed to start task",
 			"cluster_id", t.ClusterID,
 			"task_type", t.Type,
@@ -387,7 +383,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 		case <-ctx.Done():
 			ctx = log.CopyTraceID(context.Background(), ctx)
 
-			if err := s.taskRunner(t).Stop(ctx, run.ClusterID, run.ID, t.Properties); err != nil {
+			if err := s.taskRunner(t).Stop(ctx, run.Descriptor()); err != nil {
 				s.logger.Error(ctx, "Failed to stop task",
 					"task", t,
 					"run", run,
@@ -403,7 +399,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				)
 			}
 		case now := <-ticker.C:
-			curStatus, cause, err := s.taskRunner(t).Status(ctx, t.ClusterID, run.ID, t.Properties)
+			curStatus, cause, err := s.taskRunner(t).Status(ctx, run.Descriptor())
 			if err != nil {
 				s.logger.Error(ctx, "Failed to get task status",
 					"task", t,
@@ -598,11 +594,11 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 
 	if err := t.Validate(); err != nil {
-		return mermaid.ParamError{Cause: errors.Wrap(err, "invalid task")}
+		return err
 	}
 
 	if t.Sched.StartDate.Before(timeutc.Now()) {
-		return mermaid.ParamError{Cause: errors.New("start date in the past")}
+		return mermaid.ErrValidate(errors.New("start date in the past"), "invalid schedule")
 	}
 
 	stmt, names := schema.SchedTask.Insert()
@@ -679,10 +675,10 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 
 	// validate the task
 	if err := t.Validate(); err != nil {
-		return nil, mermaid.ParamError{Cause: errors.Wrap(err, "invalid task")}
+		return nil, err
 	}
 	if limit <= 0 {
-		return nil, mermaid.ParamError{Cause: errors.New("limit must be > 0")}
+		return nil, mermaid.ErrValidate(errors.New("limit must be > 0"), "")
 	}
 
 	b := qb.Select(schema.SchedRun.Name).Where(
@@ -730,18 +726,16 @@ func (s *Service) Close() {
 	s.wg.Wait()
 }
 
-var errNilRunnerUsed = errors.New("task type maps to nil runner")
-
 type nilRunner struct{}
 
-func (nilRunner) Run(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
-	return errNilRunnerUsed
+func (nilRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
+	return errors.New("task type maps to nil runner")
 }
 
-func (nilRunner) Stop(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) error {
-	return errNilRunnerUsed
+func (nilRunner) Stop(ctx context.Context, d runner.Descriptor) error {
+	return errors.New("task type maps to nil runner")
 }
 
-func (nilRunner) Status(ctx context.Context, clusterID, runID uuid.UUID, props runner.TaskProperties) (runner.Status, string, error) {
-	return "", "", errNilRunnerUsed
+func (nilRunner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
+	return "", "", errors.New("task type maps to nil runner")
 }

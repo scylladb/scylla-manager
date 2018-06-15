@@ -36,13 +36,31 @@ func init() {
 
 var initOnce sync.Once
 
-// CreateSession recreates the database on scylla manager cluster and returns a new gocql.Session.
+// CreateSession recreates the database on scylla manager cluster and returns
+// a new gocql.Session.
 func CreateSession(tb testing.TB) *gocql.Session {
+	tb.Helper()
+
+	session := createSessionFromCluster(tb, createCluster(*flagCluster))
+	if err := migrate.Migrate(context.Background(), session, "../schema/cql"); err != nil {
+		tb.Fatal("migrate:", err)
+	}
+	return session
+}
+
+// CreateSessionWithoutMigration clears the database on scylla manager cluster
+// and returns a new gocql.Session. This is only useful for testing migrations
+// you probably should be using CreateSession instead.
+func CreateSessionWithoutMigration(tb testing.TB) *gocql.Session {
+	tb.Helper()
+
 	return createSessionFromCluster(tb, createCluster(*flagCluster))
 }
 
 // CreateManagedClusterSession returns a new gocql.Session to the managed data cluster.
 func CreateManagedClusterSession(tb testing.TB) *gocql.Session {
+	tb.Helper()
+
 	cluster := createCluster(ManagedClusterHosts...)
 	session, err := cluster.CreateSession()
 	if err != nil {
@@ -67,6 +85,8 @@ func createCluster(hosts ...string) *gocql.ClusterConfig {
 }
 
 func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocql.Session {
+	tb.Helper()
+
 	initOnce.Do(func() {
 		createTestKeyspace(tb, cluster, "test_scylla_manager")
 	})
@@ -77,14 +97,12 @@ func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocq
 		tb.Fatal("createSession:", err)
 	}
 
-	if err := migrate.Migrate(context.Background(), session, "../schema/cql"); err != nil {
-		tb.Fatal("migrate:", err)
-	}
-
 	return session
 }
 
 func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string) {
+	tb.Helper()
+
 	c := *cluster
 	c.Keyspace = "system"
 	c.Timeout = 30 * time.Second
@@ -104,6 +122,8 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 }
 
 func dropAllKeyspaces(tb testing.TB, session *gocql.Session) {
+	tb.Helper()
+
 	q := session.Query("select keyspace_name from system_schema.keyspaces")
 	defer q.Release()
 
@@ -120,11 +140,15 @@ func dropAllKeyspaces(tb testing.TB, session *gocql.Session) {
 }
 
 func dropKeyspace(tb testing.TB, session *gocql.Session, keyspace string) {
+	tb.Helper()
+
 	ExecStmt(tb, session, "DROP KEYSPACE IF EXISTS "+keyspace)
 }
 
 // ExecStmt executes given statement.
 func ExecStmt(tb testing.TB, session *gocql.Session, stmt string) {
+	tb.Helper()
+
 	if err := session.Query(stmt).RetryPolicy(nil).Exec(); err != nil {
 		tb.Fatal("exec failed", stmt, err)
 	}

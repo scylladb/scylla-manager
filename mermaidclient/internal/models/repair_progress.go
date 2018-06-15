@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -16,39 +18,18 @@ import (
 // swagger:model repairProgress
 type RepairProgress struct {
 
-	// cause
-	Cause string `json:"cause,omitempty"`
-
-	// error
-	Error int32 `json:"error,omitempty"`
-
-	// hosts
-	Hosts RepairProgressHosts `json:"hosts,omitempty"`
-
-	// keyspace
-	Keyspace string `json:"keyspace,omitempty"`
-
 	// percent complete
-	PercentComplete int32 `json:"percent_complete,omitempty"`
+	PercentComplete int64 `json:"percent_complete,omitempty"`
 
-	// status
-	Status string `json:"status,omitempty"`
-
-	// success
-	Success int32 `json:"success,omitempty"`
-
-	// tables
-	Tables []string `json:"tables"`
-
-	// total
-	Total int32 `json:"total,omitempty"`
+	// units
+	Units []*RepairProgressUnitsItems `json:"units"`
 }
 
 // Validate validates this repair progress
 func (m *RepairProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateHosts(formats); err != nil {
+	if err := m.validateUnits(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -58,17 +39,26 @@ func (m *RepairProgress) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RepairProgress) validateHosts(formats strfmt.Registry) error {
+func (m *RepairProgress) validateUnits(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Hosts) { // not required
+	if swag.IsZero(m.Units) { // not required
 		return nil
 	}
 
-	if err := m.Hosts.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("hosts")
+	for i := 0; i < len(m.Units); i++ {
+		if swag.IsZero(m.Units[i]) { // not required
+			continue
 		}
-		return err
+
+		if m.Units[i] != nil {
+			if err := m.Units[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("units" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

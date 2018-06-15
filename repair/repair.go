@@ -5,19 +5,24 @@ package repair
 import (
 	"encoding/binary"
 	"math"
+	"sort"
+	"strings"
 
 	"github.com/cespare/xxhash"
 	"github.com/fatih/set"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/dht"
+	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // groupSegmentsByHost extract list of primary segments (token ranges) for every
 // host in a datacenter and returns a mapping from host to list of it's segments.
-func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string][]*Segment, error) {
-	m := make(map[string][]*Segment)
+func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
+	m := make(map[string]segments)
 
 	for _, r := range ring {
 		if len(r.Hosts[dc]) == 0 {
@@ -27,106 +32,20 @@ func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string
 		host := r.Hosts[dc][0]
 		if r.StartToken > r.EndToken {
 			m[host] = append(m[host],
-				&Segment{StartToken: dht.Murmur3MinToken, EndToken: r.EndToken},
-				&Segment{StartToken: r.StartToken, EndToken: dht.Murmur3MaxToken},
+				&segment{StartToken: dht.Murmur3MinToken, EndToken: r.EndToken},
+				&segment{StartToken: r.StartToken, EndToken: dht.Murmur3MaxToken},
 			)
 		} else {
-			m[host] = append(m[host], &Segment{StartToken: r.StartToken, EndToken: r.EndToken})
+			m[host] = append(m[host], &segment{StartToken: r.StartToken, EndToken: r.EndToken})
 		}
 	}
 
 	return m, nil
 }
 
-// splitSegmentsToShards splits the segments into shards given the partitioner.
-func splitSegmentsToShards(segments []*Segment, p *dht.Murmur3Partitioner) [][]*Segment {
-	res := make([][]*Segment, p.ShardCount())
-
-	for _, s := range segments {
-		start := s.StartToken
-		end := s.EndToken
-		shard := p.ShardOf(end - 1)
-
-		for start < end {
-			prev := p.PrevShard(shard)
-			token := p.TokenForPrevShard(end, shard)
-
-			if token > start {
-				res[shard] = append(res[shard], &Segment{StartToken: token, EndToken: end})
-			} else {
-				res[shard] = append(res[shard], &Segment{StartToken: start, EndToken: end})
-			}
-
-			end = token
-			shard = prev
-		}
-	}
-
-	return res
-}
-
-// validateShards checks that the shard split of segments is sound.
-func validateShards(segments []*Segment, shards [][]*Segment, p *dht.Murmur3Partitioner) error {
-	startTokens := set.NewNonTS()
-	endTokens := set.NewNonTS()
-
-	// check that the segments belong to the correct shards
-	for shard, s := range shards {
-		for _, r := range s {
-			if p.ShardOf(r.StartToken) != uint(shard) {
-				return errors.Errorf("wrong shard of a start token %d, expected %d, got %d", r.StartToken, p.ShardOf(r.StartToken), shard)
-			}
-			if p.ShardOf(r.EndToken-1) != uint(shard) {
-				return errors.Errorf("wrong shard of an end token %d, expected %d, got %d", r.EndToken-1, p.ShardOf(r.EndToken-1), shard)
-			}
-
-			// extract tokens
-			startTokens.Add(r.StartToken)
-			endTokens.Add(r.EndToken)
-		}
-	}
-
-	// check that shards contain the original start and end tokens
-	for _, r := range segments {
-		if !startTokens.Has(r.StartToken) {
-			return errors.Errorf("no start token %d", r.StartToken)
-		}
-		if !endTokens.Has(r.EndToken) {
-			return errors.Errorf("no end token %d", r.StartToken)
-		}
-
-		startTokens.Remove(r.StartToken)
-		endTokens.Remove(r.EndToken)
-	}
-
-	// check that the range is continuous
-	var err error
-
-	startTokens.Each(func(item interface{}) bool {
-		if !endTokens.Has(item) {
-			err = errors.Errorf("missing end token for start token %d", item)
-			return false
-		}
-		return true
-	})
-	if err != nil {
-		return err
-	}
-
-	endTokens.Each(func(item interface{}) bool {
-		if !startTokens.Has(item) {
-			err = errors.Errorf("missing start token end token %d", item)
-			return false
-		}
-		return true
-	})
-
-	return err
-}
-
 // validateShardProgress checks if run progress, possibly copied from a
 // different run matches the shards.
-func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
+func validateShardProgress(shards []segments, prog []*RunProgress) error {
 	if len(prog) != len(shards) {
 		return errors.New("length mismatch")
 	}
@@ -139,12 +58,12 @@ func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
 			return errors.Errorf("shard %d: segment count mismatch got %d expected %d", p.Shard, p.SegmentCount, len(shards[i]))
 		}
 		if p.LastStartToken != 0 {
-			if _, ok := segmentsContainStartToken(shards[i], p.LastStartToken); !ok {
+			if _, ok := shards[i].containStartToken(p.LastStartToken); !ok {
 				return errors.Errorf("shard %d: no segment for start token %d", p.Shard, p.LastStartToken)
 			}
 		}
 		for _, token := range p.SegmentErrorStartTokens {
-			if _, ok := segmentsContainStartToken(shards[i], token); !ok {
+			if _, ok := shards[i].containStartToken(token); !ok {
 				return errors.Errorf("shard %d: no segment for (failed) start token %d", p.Shard, token)
 			}
 		}
@@ -153,22 +72,22 @@ func validateShardProgress(shards [][]*Segment, prog []*RunProgress) error {
 	return nil
 }
 
-// validateTables checks if tables are a subset of all the tables. Empty table
-// list is always valid.
-func validateTables(tables []string, all []string) error {
-	if len(tables) == 0 {
+// validateSubset checks if sub is a subset of all, if not returns error with
+// diff information.
+func validateSubset(sub []string, all []string) error {
+	if len(sub) == 0 {
 		return nil
 	}
 
 	s := set.NewNonTS()
-	for _, t := range tables {
+	for _, t := range sub {
 		s.Add(t)
 	}
 	for _, t := range all {
 		s.Remove(t)
 	}
 	if !s.IsEmpty() {
-		return errors.Errorf("unknown tables %s", s)
+		return errors.New(s.String())
 	}
 
 	return nil
@@ -195,39 +114,140 @@ func topologyHash(tokens []int64) uuid.UUID {
 	return uuid.NewFromUint64(uint64(h>>32), uint64(uint32(h)))
 }
 
-func hostsPercentComplete(prog []*RunProgress) map[string]float64 {
-	if len(prog) == 0 {
-		return nil
+func aggregateProgress(units []Unit, prog []*RunProgress) Progress {
+	if len(units) == 0 {
+		return Progress{}
 	}
 
-	v := make(map[string]float64)
+	v := Progress{}
 
-	total := 0.
-	hosts := 0.
-
-	ht := 0.
-	hs := 0.
-	lh := prog[0].Host
-	for _, p := range prog {
-		if lh != p.Host {
-			v[lh] = ht / hs
-			total += ht / hs
-			hosts++
-
-			ht = 0
-			hs = 0
-			lh = p.Host
-		}
-
-		ht += float64(p.PercentComplete())
-		hs++
+	var (
+		idx   = 0
+		total int
+	)
+	for i, u := range units {
+		end := sort.Search(len(prog), func(j int) bool {
+			return prog[j].Unit > i
+		})
+		p := aggregateUnitProgress(u, prog[idx:end])
+		total += p.PercentComplete
+		v.Units = append(v.Units, p)
+		idx = end
 	}
 
-	v[lh] = ht / hs
-	total += ht / hs
-	hosts++
-
-	v[""] = total / hosts
+	v.PercentComplete = total / len(units)
 
 	return v
+}
+
+func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
+	v := UnitProgress{Unit: u}
+
+	if len(prog) == 0 {
+		return v
+	}
+
+	var (
+		host   = prog[0].Host
+		total  int
+		shards []ShardProgress
+	)
+	for _, p := range prog {
+		if p.Host != host {
+			v.Nodes = append(v.Nodes, NodeProgress{
+				progress: progress{PercentComplete: total / len(shards)},
+				Host:     host,
+				Shards:   shards,
+			})
+			host = p.Host
+			total = 0
+			shards = nil
+		}
+
+		c := p.PercentComplete()
+		total += c
+		shards = append(shards, ShardProgress{
+			progress:       progress{PercentComplete: c},
+			SegmentCount:   p.SegmentCount,
+			SegmentSuccess: p.SegmentSuccess,
+			SegmentError:   p.SegmentError,
+		})
+	}
+	v.Nodes = append(v.Nodes, NodeProgress{
+		progress: progress{PercentComplete: total / len(shards)},
+		Host:     host,
+		Shards:   shards,
+	})
+
+	total = 0
+	for _, n := range v.Nodes {
+		total += n.PercentComplete
+	}
+	v.PercentComplete = total / len(v.Nodes)
+
+	return v
+}
+
+func sortUnits(units []Unit, inclExcl inexlist.InExList) {
+	positions := make(map[string]int)
+	for _, u := range units {
+		if p := inclExcl.FirstMatch(u.Keyspace); p >= 0 {
+			positions[u.Keyspace] = p
+		} else {
+			positions[u.Keyspace] = inclExcl.Size()
+		}
+	}
+
+	sort.SliceStable(units, func(i, j int) bool {
+		h1 := xxhash.Sum64String(units[i].Keyspace)
+		h2 := xxhash.Sum64String(units[j].Keyspace)
+		return h1 > h2
+	})
+
+	if len(positions) == 0 {
+		return
+	}
+
+	sort.SliceStable(units, func(i, j int) bool {
+		return positions[units[i].Keyspace] < positions[units[j].Keyspace]
+	})
+}
+
+func validateFilters(filters []string) error {
+	var errs error
+	for i, f := range filters {
+		err := validateFilter(filters[i])
+		if err != nil {
+			errs = multierr.Append(errs, errors.Wrapf(err, "%q on position %d", f, i))
+			continue
+		}
+	}
+	return mermaid.ErrValidate(errs, "invalid filters")
+}
+
+func validateFilter(filter string) error {
+	if filter == "*" || filter == "!*" {
+		return nil
+	}
+	if strings.HasPrefix(filter, ".") {
+		return errors.New("missing keyspace")
+	}
+	return nil
+}
+
+func decorateFilters(filters []string) []string {
+	for i, f := range filters {
+		if strings.Contains(f, ".") {
+			continue
+		}
+		if strings.HasSuffix(f, "*") {
+			filters[i] = strings.TrimSuffix(f, "*") + "*.*"
+		} else {
+			filters[i] += ".*"
+		}
+	}
+
+	filters = append(filters, "!system.*")
+
+	return filters
 }
