@@ -248,10 +248,6 @@ var taskUpdateCmd = &cobra.Command{
 			}
 			changed = true
 		}
-		if f := cmd.Flag("metadata"); f.Changed {
-			t.Metadata = f.Value.String()
-			changed = true
-		}
 		if f := cmd.Flag("tags"); f.Changed {
 			var err error
 			t.Tags, err = cmd.Flags().GetStringSlice("tags")
@@ -305,7 +301,6 @@ func init() {
 	fs := cmd.Flags()
 	fs.StringP("name", "n", "", "task name")
 	fs.BoolP("enabled", "e", true, "enabled")
-	fs.StringP("metadata", "m", "", "task metadata")
 	fs.StringSlice("tags", nil, "tags")
 }
 

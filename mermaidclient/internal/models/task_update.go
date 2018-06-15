@@ -19,9 +19,6 @@ type TaskUpdate struct {
 	// enabled
 	Enabled bool `json:"enabled,omitempty"`
 
-	// metadata
-	Metadata string `json:"metadata,omitempty"`
-
 	// name
 	Name string `json:"name,omitempty"`
 

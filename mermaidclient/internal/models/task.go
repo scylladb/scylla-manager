@@ -25,9 +25,6 @@ type Task struct {
 	// id
 	ID string `json:"id,omitempty"`
 
-	// metadata
-	Metadata string `json:"metadata,omitempty"`
-
 	// name
 	Name string `json:"name,omitempty"`
 

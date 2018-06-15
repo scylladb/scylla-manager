@@ -151,7 +151,6 @@ func (c *Client) CreateTask(ctx context.Context, clusterID string, t *Task) (uui
 		TaskFields: &models.TaskUpdate{
 			Type:       t.Type,
 			Enabled:    t.Enabled,
-			Metadata:   t.Metadata,
 			Name:       t.Name,
 			Schedule:   t.Schedule,
 			Tags:       t.Tags,
@@ -249,7 +248,6 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID, taskType string, tas
 		TaskID:    taskID.String(),
 		TaskFields: &models.TaskUpdate{
 			Enabled:    t.Enabled,
-			Metadata:   t.Metadata,
 			Name:       t.Name,
 			Schedule:   t.Schedule,
 			Tags:       t.Tags,

@@ -121,7 +121,6 @@ type Task struct {
 	ID         uuid.UUID         `json:"id"`
 	Name       string            `json:"name"`
 	Tags       []string          `json:"tags"`
-	Metadata   string            `json:"metadata"`
 	Enabled    bool              `json:"enabled"`
 	Sched      Schedule          `json:"schedule"`
 	Properties runner.Properties `json:"properties"`

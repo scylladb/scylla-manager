@@ -127,7 +127,7 @@ var (
 
 	SchedTask = Table{
 		Name:    "scheduler_task",
-		Columns: []string{"cluster_id", "type", "id", "name", "tags", "metadata", "enabled", "sched", "properties"},
+		Columns: []string{"cluster_id", "type", "id", "name", "tags", "enabled", "sched", "properties"},
 		PartKey: []string{"cluster_id"},
 		SortKey: []string{"type", "id"},
 	}.init()

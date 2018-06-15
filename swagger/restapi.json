@@ -163,9 +163,6 @@
             "type": "string"
           }
         },
-        "metadata": {
-          "type": "string"
-        },
         "enabled": {
           "type": "boolean"
         },
@@ -198,9 +195,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "metadata": {
-          "type": "string"
         },
         "enabled": {
           "type": "boolean"
@@ -242,9 +236,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "metadata": {
-          "type": "string"
         },
         "enabled": {
           "type": "boolean"
