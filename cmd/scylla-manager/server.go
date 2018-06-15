@@ -97,6 +97,15 @@ func (s *server) registerListeners() {
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	s.provider.Invalidate(c.ID)
+
+	if c.Current == nil {
+		return nil
+	}
+
+	if err := s.schedSvc.PutTask(ctx, autoRepairTask(c.ID)); err != nil {
+		return errors.Wrap(err, "failed to add scheduled tasks")
+	}
+
 	return nil
 }
 
