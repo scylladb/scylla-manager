@@ -26,7 +26,6 @@ func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session *goc
 	if err := q.SelectRelease(&clusters); err != nil {
 		return err
 	}
-	q.Release()
 
 	const insertTaskCql = `INSERT INTO scheduler_task(cluster_id, type, id, enabled, sched, properties) VALUES (?, 'repair', uuid(), true, {start_date: ?, interval_days: ?, num_retries: ?}, ?)`
 	iq := session.Query(insertTaskCql).WithContext(ctx)
