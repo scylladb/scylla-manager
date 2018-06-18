@@ -32,6 +32,7 @@ type serverConfig struct {
 	HTTPS       string `yaml:"https"`
 	TLSCertFile string `yaml:"tls_cert_file"`
 	TLSKeyFile  string `yaml:"tls_key_file"`
+	Prometheus  string `yaml:"prometheus"`
 
 	Logger   log.Config    `yaml:"logger"`
 	Database dbConfig      `yaml:"database"`
@@ -53,7 +54,8 @@ func defaultConfig() *serverConfig {
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
 		},
-		Repair: repair.DefaultConfig(),
+		Prometheus: ":56090",
+		Repair:     repair.DefaultConfig(),
 	}
 }
 

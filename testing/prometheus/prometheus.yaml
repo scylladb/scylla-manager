@@ -3,4 +3,4 @@ global:
 scrape_configs:
   - job_name: 'scylla-manager'
     static_configs:
-      - targets: ['localhost:56080']
+      - targets: ['localhost:56090']

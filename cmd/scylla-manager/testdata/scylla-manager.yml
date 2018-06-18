@@ -6,6 +6,8 @@ tls_cert_file: tls.cert
 
 tls_key_file: tls.key
 
+prometheus: 127.0.0.1:9090
+
 logger:
   mode: stderr
   level: debug
