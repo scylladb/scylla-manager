@@ -37,7 +37,9 @@ var rootCmd = &cobra.Command{
 		// requireFlags cluster
 		if needsCluster(cmd) {
 			if os.Getenv("SCYLLA_MANAGER_CLUSTER") == "" {
-				cmd.Root().MarkFlagRequired("cluster")
+				if err := cmd.Root().MarkFlagRequired("cluster"); err != nil {
+					return err
+				}
 			}
 		}
 

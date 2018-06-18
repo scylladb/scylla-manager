@@ -36,7 +36,9 @@ func copySSHInfoToClusterAfter006(ctx context.Context, session *gocql.Session, l
 	}
 
 	if f, err := os.Open(configFile); err == nil {
-		yaml.NewDecoder(f).Decode(&sshConfig{SSH: config})
+		if err := yaml.NewDecoder(f).Decode(&sshConfig{SSH: config}); err != nil {
+			return err
+		}
 	}
 
 	stmt, names := qb.Select(schema.Cluster.Name).ToCql()

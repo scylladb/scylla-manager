@@ -21,7 +21,9 @@ func register(cmd *cobra.Command, parent *cobra.Command) {
 
 func requireFlags(cmd *cobra.Command, flags ...string) {
 	for _, f := range flags {
-		cmd.MarkFlagRequired(f)
+		if err := cmd.MarkFlagRequired(f); err != nil {
+			panic(err)
+		}
 	}
 }
 
