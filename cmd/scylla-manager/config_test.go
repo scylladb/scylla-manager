@@ -26,6 +26,7 @@ func TestNewConfigFromFile(t *testing.T) {
 		HTTPS:       "127.0.0.1:443",
 		TLSCertFile: "tls.cert",
 		TLSKeyFile:  "tls.key",
+		Prometheus:  "127.0.0.1:9090",
 		Logger: log.Config{
 			Mode:  log.StderrMode,
 			Level: zapcore.DebugLevel,

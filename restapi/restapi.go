@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 )
@@ -25,7 +26,6 @@ func New(svc *Services, logger log.Logger) http.Handler {
 
 	r.Use(
 		heartbeatMiddleware("/ping"),
-		prometheusMiddleware("/metrics"),
 		traceIDMiddleware,
 		recoverPanicsMiddleware,
 		middleware.RequestLogger(httpLogger{logger}),
@@ -42,6 +42,13 @@ func New(svc *Services, logger log.Logger) http.Handler {
 		respondError(w, r, mermaid.ErrNotFound, "")
 	})
 
+	return r
+}
+
+// NewPrometheus returns an http.Handler exposing Prometheus metrics on '/metrics'.
+func NewPrometheus() http.Handler {
+	r := chi.NewRouter()
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	return r
 }
 

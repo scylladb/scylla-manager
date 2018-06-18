@@ -28,9 +28,10 @@ type server struct {
 	repairSvc  *repair.Service
 	schedSvc   *sched.Service
 
-	httpServer  *http.Server
-	httpsServer *http.Server
-	errCh       chan error
+	httpServer       *http.Server
+	httpsServer      *http.Server
+	prometheusServer *http.Server
+	errCh            chan error
 }
 
 func newServer(config *serverConfig, logger log.Logger) (*server, error) {
@@ -126,6 +127,9 @@ func (s *server) initHTTPServers() {
 	if s.config.HTTPS != "" {
 		s.httpsServer = &http.Server{Addr: s.config.HTTPS, Handler: h}
 	}
+	if s.config.Prometheus != "" {
+		s.prometheusServer = &http.Server{Addr: s.config.Prometheus, Handler: restapi.NewPrometheus()}
+	}
 }
 
 func (s *server) startServices(ctx context.Context) error {
@@ -154,6 +158,13 @@ func (s *server) startHTTPServers(ctx context.Context) {
 			s.errCh <- s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile)
 		}()
 	}
+
+	if s.prometheusServer != nil {
+		s.logger.Info(ctx, "Starting Prometheus HTTP", "address", s.prometheusServer.Addr)
+		go func() {
+			s.errCh <- s.prometheusServer.ListenAndServe()
+		}()
+	}
 }
 
 func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
@@ -161,28 +172,12 @@ func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
 	defer cancel()
 
 	var wg sync.WaitGroup
-	if s.httpServer != nil {
-		s.logger.Info(ctx, "Closing HTTP")
+	wg.Add(3)
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := s.httpServer.Shutdown(tctx); err != nil {
-				s.logger.Info(ctx, "Closing HTTP error", "error", err)
-			}
-		}()
-	}
-	if s.httpsServer != nil {
-		s.logger.Info(ctx, "Closing HTTPS")
+	shutdownHTTPServer(tctx, s.httpServer, &wg, s.logger)
+	shutdownHTTPServer(tctx, s.httpsServer, &wg, s.logger)
+	shutdownHTTPServer(tctx, s.prometheusServer, &wg, s.logger)
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := s.httpsServer.Shutdown(tctx); err != nil {
-				s.logger.Info(ctx, "Closing HTTPS error", "error", err)
-			}
-		}()
-	}
 	wg.Wait()
 }
 
@@ -193,9 +188,25 @@ func (s *server) close() {
 	if s.httpsServer != nil {
 		s.httpsServer.Close()
 	}
+	if s.prometheusServer != nil {
+		s.prometheusServer.Close()
+	}
 
 	s.schedSvc.Close()
 	s.repairSvc.Close()
 
 	s.session.Close()
+}
+
+func shutdownHTTPServer(ctx context.Context, s *http.Server, wg *sync.WaitGroup, l log.Logger) {
+	if s != nil {
+		go func() {
+			defer wg.Done()
+			if err := s.Shutdown(ctx); err != nil {
+				l.Info(ctx, "Closing HTTP(S) server failed", "addr", s.Addr, "error", err)
+			} else {
+				l.Info(ctx, "Closing HTTP(S) server done", "addr", s.Addr)
+			}
+		}()
+	}
 }
