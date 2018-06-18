@@ -14,7 +14,7 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/mermaidtest"
+	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
@@ -24,7 +24,7 @@ import (
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
-	session := mermaidtest.CreateSession(t)
+	session := CreateSession(t)
 
 	s, err := repair.NewService(
 		session,
@@ -182,7 +182,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
+		if diff := cmp.Diff(r, r1, UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -223,7 +223,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(r, r1, mermaidtest.UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
+		if diff := cmp.Diff(r, r1, UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
 			t.Fatal(diff)
 		}
 	})
