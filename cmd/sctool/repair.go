@@ -29,12 +29,12 @@ var repairCmd = &cobra.Command{
 		}
 		t.Schedule.StartDate = startDate
 
-		f = cmd.Flag("interval")
-		interval, err := strconv.Atoi(f.Value.String())
+		f = cmd.Flag("interval-days")
+		intervalDays, err := strconv.Atoi(f.Value.String())
 		if err != nil {
 			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 		}
-		t.Schedule.IntervalDays = int64(interval)
+		t.Schedule.IntervalDays = int64(intervalDays)
 
 		f = cmd.Flag("num-retries")
 		numRetries, err := strconv.Atoi(f.Value.String())

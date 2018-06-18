@@ -16,7 +16,7 @@ import (
 func taskInitCommonFlags(cmd *cobra.Command) {
 	fs := cmd.Flags()
 	fs.StringP("start-date", "s", "now", "task start date in RFC3339 form or now[+duration]")
-	fs.UintP("interval", "i", 0, "task schedule interval in `days`")
+	fs.UintP("interval-days", "i", 0, "task schedule interval in `days`")
 	fs.UintP("num-retries", "r", 3, "task schedule number of retries")
 }
 
@@ -264,12 +264,12 @@ var taskUpdateCmd = &cobra.Command{
 			t.Schedule.StartDate = startDate
 			changed = true
 		}
-		if f := cmd.Flag("interval"); f.Changed {
-			interval, err := strconv.Atoi(f.Value.String())
+		if f := cmd.Flag("interval-days"); f.Changed {
+			intervalDays, err := strconv.Atoi(f.Value.String())
 			if err != nil {
 				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
 			}
-			t.Schedule.IntervalDays = int64(interval)
+			t.Schedule.IntervalDays = int64(intervalDays)
 			changed = true
 		}
 		if f := cmd.Flag("num-retries"); f.Changed {
