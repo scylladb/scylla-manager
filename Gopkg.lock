@@ -183,8 +183,8 @@
     "cmp/internal/function",
     "cmp/internal/value"
   ]
-  revision = "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
-  version = "v0.1.0"
+  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
+  version = "v0.2.0"
 
 [[projects]]
   name = "github.com/google/gops"
@@ -415,6 +415,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a7dfa59075ae8dc8f793f07157b902c5b575cac632250c3f403a1d688e42ba73"
+  inputs-digest = "4b7530cf0f14f8065ecbdd0c2af8423617b584765771822d6d6f316982ac4653"
   solver-name = "gps-cdcl"
   solver-version = 1
