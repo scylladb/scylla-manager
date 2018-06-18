@@ -210,12 +210,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/jmoiron/sqlx"
-  packages = ["reflectx"]
-  revision = "2aeb6a910c2b94f2d5eb53d9895d80e27264ec41"
-
-[[projects]]
-  branch = "master"
   name = "github.com/kardianos/osext"
   packages = ["."]
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
@@ -291,14 +285,15 @@
   revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
 
 [[projects]]
-  branch = "master"
   name = "github.com/scylladb/gocqlx"
   packages = [
     ".",
     "migrate",
-    "qb"
+    "qb",
+    "reflectx"
   ]
-  revision = "1fec441dbc41cecacdd0dd5de1616ab3ed78541e"
+  revision = "d5caed56c3077d57270f424d63df3e650f55801a"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -415,6 +410,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4b7530cf0f14f8065ecbdd0c2af8423617b584765771822d6d6f316982ac4653"
+  inputs-digest = "573b5a14ae88be134d765e90ffc510e57301f3a4657885c32d80e492a55c8d7e"
   solver-name = "gps-cdcl"
   solver-version = 1

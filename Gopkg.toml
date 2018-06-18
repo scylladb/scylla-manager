@@ -58,8 +58,8 @@
   name = "github.com/hailocab/go-hostpool"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/scylladb/gocqlx"
+  version = "1.0.0"
 
 [[constraint]]
   name = "go.uber.org/zap"
