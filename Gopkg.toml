@@ -51,19 +51,19 @@
 
 [[constraint]]
   name = "github.com/google/go-cmp"
-  version = "0.1.0"
+  version = "0.2.0"
 
 [[constraint]]
   branch = "master"
   name = "github.com/hailocab/go-hostpool"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/scylladb/gocqlx"
+  version = "1.0.0"
 
 [[constraint]]
   name = "go.uber.org/zap"
-  version = "1.6.0"
+  version = "1.8.0"
 
 [[constraint]]
   branch = "master"
@@ -71,7 +71,7 @@
 
 [[constraint]]
   name = "github.com/go-chi/chi"
-  version = "~3.1.3"
+  version = "3.3.2"
 
 [[constraint]]
   name = "github.com/golang/mock"
@@ -92,3 +92,7 @@
 [[constraint]]
   name = "github.com/gobwas/glob"
   version = "0.2.3"
+
+[prune]
+  go-tests = true
+  unused-packages = true

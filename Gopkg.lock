@@ -52,8 +52,8 @@
     ".",
     "middleware"
   ]
-  revision = "25354a53cca531cb2efd3f1d3c565d90ff04d802"
-  version = "v3.1.5"
+  revision = "e83ac2304db3c50cf03d96a2fcd39009d458bc35"
+  version = "v3.3.2"
 
 [[projects]]
   name = "github.com/go-chi/render"
@@ -183,8 +183,8 @@
     "cmp/internal/function",
     "cmp/internal/value"
   ]
-  revision = "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
-  version = "v0.1.0"
+  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
+  version = "v0.2.0"
 
 [[projects]]
   name = "github.com/google/gops"
@@ -207,12 +207,6 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/jmoiron/sqlx"
-  packages = ["reflectx"]
-  revision = "2aeb6a910c2b94f2d5eb53d9895d80e27264ec41"
 
 [[projects]]
   branch = "master"
@@ -291,14 +285,15 @@
   revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
 
 [[projects]]
-  branch = "master"
   name = "github.com/scylladb/gocqlx"
   packages = [
     ".",
     "migrate",
-    "qb"
+    "qb",
+    "reflectx"
   ]
-  revision = "1fec441dbc41cecacdd0dd5de1616ab3ed78541e"
+  revision = "d5caed56c3077d57270f424d63df3e650f55801a"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -415,6 +410,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a3318f357cec2d15d250c2f1f396dac230a8626cd99778c9f9558b386dafda98"
+  inputs-digest = "de691f39610dfd850270d0bb0cb18c2d6c5b13f5577135d77828a60df2cafc17"
   solver-name = "gps-cdcl"
   solver-version = 1
