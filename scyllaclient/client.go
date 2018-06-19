@@ -25,8 +25,8 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
 )
 
-// DefaultPort is Scylla API port.
-var DefaultPort = "10000"
+// DefaultAPIPort is Scylla API port.
+var DefaultAPIPort = "10000"
 
 var disableOpenAPIDebugOnce sync.Once
 
@@ -91,7 +91,7 @@ func withPort(host string) string {
 		return host
 	}
 
-	return fmt.Sprint(host, ":", DefaultPort)
+	return fmt.Sprint(host, ":", DefaultAPIPort)
 }
 
 // ClusterName returns cluster name.
