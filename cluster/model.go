@@ -14,7 +14,6 @@ type Cluster struct {
 	ID              uuid.UUID `json:"id"`
 	Name            string    `json:"name"`
 	Hosts           []string  `json:"hosts"`
-	ShardCount      int64     `json:"shard_count"`
 	SSHUser         string    `json:"ssh_user,omitempty"`
 	SSHIdentityFile []byte    `json:"ssh_identity_file,omitempty" db:"-"`
 }
@@ -42,9 +41,6 @@ func (c *Cluster) Validate() error {
 	}
 	if len(c.Hosts) == 0 {
 		err = multierr.Append(err, errors.New("missing hosts"))
-	}
-	if c.ShardCount <= 0 {
-		err = multierr.Append(err, errors.New("invalid shard_count"))
 	}
 
 	return mermaid.ErrValidate(err, "invalid cluster")
