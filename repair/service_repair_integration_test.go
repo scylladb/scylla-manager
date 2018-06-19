@@ -129,13 +129,7 @@ func newTestService(t *testing.T, session *gocql.Session, hrt *HackableRoundTrip
 			}, nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			c, err := scyllaclient.NewClient(ManagedClusterHosts, hrt, logger.Named("scylla"))
-			if err != nil {
-				return nil, err
-			}
-			return scyllaclient.WithConfig(c, scyllaclient.Config{
-				"shard_count": float64(2),
-			}), nil
+			return scyllaclient.NewClient(ManagedClusterHosts, hrt, logger.Named("scylla"))
 		},
 		logger.Named("repair"),
 	)

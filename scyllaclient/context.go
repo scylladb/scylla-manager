@@ -12,6 +12,6 @@ const (
 	ctxHost ctxt = iota
 )
 
-func withHostPort(ctx context.Context, host string) context.Context {
-	return context.WithValue(ctx, ctxHost, withPort(host))
+func forceHost(ctx context.Context, host string) context.Context {
+	return context.WithValue(ctx, ctxHost, withPort(host, DefaultAPIPort))
 }

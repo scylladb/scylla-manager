@@ -17,15 +17,6 @@ const (
 	Murmur3Partitioner = "org.apache.cassandra.dht.Murmur3Partitioner"
 )
 
-// Config is a node run configuration.
-type Config map[string]interface{}
-
-// ShardCount returns value for shard_count key as uint.
-func (c Config) ShardCount() (uint, bool) {
-	v, ok := c["shard_count"].(float64)
-	return uint(v), ok
-}
-
 // TokenRange specifies which hosts hold data between start and end token.
 type TokenRange struct {
 	StartToken int64

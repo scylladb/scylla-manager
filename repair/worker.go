@@ -193,15 +193,9 @@ func (w *worker) init(ctx context.Context) error {
 }
 
 func (w *worker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, error) {
-	c, err := w.Client.HostConfig(ctx, w.Host)
+	shardCount, err := w.Client.ShardCount(ctx, w.Host)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get host config")
-	}
-
-	// create partitioner
-	shardCount, ok := c.ShardCount()
-	if !ok {
-		return nil, errors.New("config missing shard_count")
+		return nil, errors.Wrap(err, "failed to get shard count")
 	}
 	return dht.NewMurmur3Partitioner(shardCount, uint(w.Config.ShardingIgnoreMsbBits)), nil
 }

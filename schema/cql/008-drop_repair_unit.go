@@ -12,7 +12,6 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/schema"
 )
 
 func init() {
@@ -20,7 +19,7 @@ func init() {
 }
 
 func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session *gocql.Session, logger log.Logger) error {
-	stmt, names := qb.Select(schema.Cluster.Name).ToCql()
+	stmt, names := qb.Select("cluster").Columns("id").ToCql()
 	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	var clusters []*cluster.Cluster
 	if err := q.SelectRelease(&clusters); err != nil {
