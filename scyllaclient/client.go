@@ -3,6 +3,7 @@
 package scyllaclient
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net"
@@ -26,7 +27,10 @@ import (
 )
 
 // DefaultAPIPort is Scylla API port.
-var DefaultAPIPort = "10000"
+var (
+	DefaultAPIPort        = "10000"
+	DefaultPrometheusPort = "9180"
+)
 
 var disableOpenAPIDebugOnce sync.Once
 
@@ -37,15 +41,6 @@ type Client struct {
 	transport  http.RoundTripper
 	operations *operations.Client
 	logger     log.Logger
-
-	config Config
-}
-
-// WithConfig is a temporary solution until core exposes the configuration API.
-// https://github.com/scylladb/scylla/issues/2761
-func WithConfig(c *Client, config Config) *Client {
-	c.config = config
-	return c
 }
 
 // NewClient creates a new client.
@@ -56,7 +51,7 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 
 	addrs := make([]string, len(hosts))
 	for i, h := range hosts {
-		addrs[i] = withPort(h)
+		addrs[i] = withPort(h, DefaultAPIPort)
 	}
 	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
 
@@ -85,13 +80,13 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 	}, nil
 }
 
-func withPort(host string) string {
-	_, port, _ := net.SplitHostPort(host)
-	if port != "" {
-		return host
+func withPort(hostPort, port string) string {
+	_, p, _ := net.SplitHostPort(hostPort)
+	if p != "" {
+		return hostPort
 	}
 
-	return fmt.Sprint(host, ":", DefaultAPIPort)
+	return fmt.Sprint(hostPort, ":", port)
 }
 
 // ClusterName returns cluster name.
@@ -185,18 +180,10 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 	return dcs.Slice(), trs, nil
 }
 
-// HostConfig returns configuration of a node.
-func (c *Client) HostConfig(ctx context.Context, host string) (Config, error) {
-	if c.config == nil {
-		return nil, errors.New("no host config")
-	}
-	return c.config, nil
-}
-
 // HostPendingCompactions returns number of pending compactions on a host.
 func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
 	resp, err := c.operations.GetAllPendingCompactions(&operations.GetAllPendingCompactionsParams{
-		Context: withHostPort(ctx, host),
+		Context: forceHost(ctx, host),
 	})
 	if err != nil {
 		return 0, err
@@ -227,7 +214,7 @@ type RepairConfig struct {
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
 	p := operations.RepairAsyncParams{
-		Context:  withHostPort(ctx, host),
+		Context:  forceHost(ctx, host),
 		Keyspace: config.Keyspace,
 		Ranges:   &config.Ranges,
 	}
@@ -247,7 +234,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
 	resp, err := c.operations.RepairAsyncStatus(&operations.RepairAsyncStatusParams{
-		Context:  withHostPort(ctx, host),
+		Context:  forceHost(ctx, host),
 		Keyspace: keyspace,
 		ID:       id,
 	})
@@ -256,6 +243,37 @@ func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int
 	}
 
 	return CommandStatus(resp.Payload), nil
+}
+
+// ShardCount returns number of shards in a node.
+func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   host,
+		Path:   "/metrics",
+	}
+
+	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+	r = r.WithContext(context.WithValue(ctx, ctxHost, withPort(host, DefaultPrometheusPort)))
+
+	resp, err := c.transport.RoundTrip(r)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	var shards uint
+	s := bufio.NewScanner(resp.Body)
+	for s.Scan() {
+		if strings.HasPrefix(s.Text(), "scylla_database_total_writes{") {
+			shards++
+		}
+	}
+
+	return shards, nil
 }
 
 // Tables returns a slice of table names in a given keyspace.
@@ -313,7 +331,7 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	r = r.WithContext(withHostPort(ctx, host))
+	r = r.WithContext(forceHost(ctx, host))
 
 	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)

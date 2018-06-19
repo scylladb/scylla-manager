@@ -71,14 +71,7 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 		return nil, err
 	}
 
-	client, err := scyllaclient.NewClient(c.Hosts, transport, s.logger.Named("client"))
-	if err != nil {
-		return nil, err
-	}
-
-	return scyllaclient.WithConfig(client, scyllaclient.Config{
-		"shard_count": float64(c.ShardCount),
-	}), nil
+	return scyllaclient.NewClient(c.Hosts, transport, s.logger.Named("client"))
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.

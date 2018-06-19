@@ -17,10 +17,10 @@ import (
 func TestWithPort(t *testing.T) {
 	t.Parallel()
 
-	if h := withPort("host"); h != "host:10000" {
+	if h := withPort("host", "10000"); h != "host:10000" {
 		t.Fatal(h)
 	}
-	if h := withPort("host:80"); h != "host:80" {
+	if h := withPort("host:80", "10000"); h != "host:80" {
 		t.Fatal(h)
 	}
 }
@@ -184,6 +184,23 @@ func TestClientRepairStatusForWrongID(t *testing.T) {
 	_, err := c.RepairStatus(context.Background(), h, "scylla_manager", 5)
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestClientShardCount(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/metrics")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	v, err := c.ShardCount(context.Background(), h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 4 {
+		t.Fatal(v)
 	}
 }
 
