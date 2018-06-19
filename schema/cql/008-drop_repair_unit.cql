@@ -19,6 +19,7 @@ CREATE TABLE repair_run (
     prev_id timeuuid,
     topology_hash uuid,
     units list<frozen<repair_unit>>,
+    token_ranges text,
     status text,
     cause text,
     start_time timestamp,

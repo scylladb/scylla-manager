@@ -87,7 +87,6 @@ func init() {
 
 	clusterInitCommonFlags(cmd)
 	requireFlags(cmd, "hosts")
-	requireFlags(cmd, "shard-count")
 }
 
 var clusterUpdateCmd = &cobra.Command{

@@ -35,36 +35,80 @@ func TestGroupSegmentsByHost(t *testing.T) {
 		},
 	}
 
-	dc1 := map[string]segments{
-		"172.16.1.3": {
-			{
-				StartToken: 9165301526494284802,
-				EndToken:   9190445181212206709,
+	table := []struct {
+		DC string
+		TR TokenRangesKind
+		S  map[string]segments
+	}{
+		{
+			DC: "dc1",
+			TR: PrimaryTokenRanges,
+			S: map[string]segments{
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+				},
+				"172.16.1.10": {
+					{9142565851149460331, 9143747749498840635},
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
 			},
 		},
-		"172.16.1.10": {
-			{
-				StartToken: 9142565851149460331,
-				EndToken:   9143747749498840635,
+		{
+			DC: "dc1",
+			TR: NonPrimaryTokenRanges,
+			S: map[string]segments{
+				"172.16.1.2": {
+					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+				"172.16.1.3": {
+					{9142565851149460331, 9143747749498840635},
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+				"172.16.1.10": {
+					{9165301526494284802, 9190445181212206709},
+				},
 			},
-			{
-				StartToken: dht.Murmur3MinToken,
-				EndToken:   9121190935171762434,
-			},
-			{
-				StartToken: 9138850273782950336,
-				EndToken:   dht.Murmur3MaxToken,
+		},
+		{
+			DC: "dc1",
+			TR: AllTonenRanges,
+			S: map[string]segments{
+				"172.16.1.2": {
+					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+				"172.16.1.10": {
+					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
 			},
 		},
 	}
 
-	hostSegments, err := groupSegmentsByHost("dc1", trs)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for i, test := range table {
+		hostSegments, err := groupSegmentsByHost(test.DC, test.TR, trs)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if diff := cmp.Diff(dc1, hostSegments); diff != "" {
-		t.Fatal(diff)
+		if diff := cmp.Diff(test.S, hostSegments); diff != "" {
+			t.Fatal(i, diff)
+		}
 	}
 }
 
@@ -236,7 +280,12 @@ func TestAggregateProgress(t *testing.T) {
 		}
 		f.Close()
 
-		if diff := cmp.Diff(p, aggregateProgress(test.U, test.P), opt); diff != "" {
+		r := &Run{
+			Units:       test.U,
+			TokenRanges: PrimaryTokenRanges,
+		}
+
+		if diff := cmp.Diff(p, aggregateProgress(r, test.P), opt); diff != "" {
 			t.Error(diff)
 		}
 	}

@@ -19,5 +19,6 @@
         "keyspace": "keyspace2"
       }
     }
-  ]
+  ],
+  "token_ranges": "pr"
 }

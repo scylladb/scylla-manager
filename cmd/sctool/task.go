@@ -368,6 +368,7 @@ var taskProgressCmd = &cobra.Command{
 			return printableError{err}
 		}
 
+		printRepairProgressHeader(w, prog)
 		printRepairUnitProgress(w, prog)
 
 		details, err := cmd.Flags().GetBool("details")
@@ -392,6 +393,11 @@ func printProgressHeader(w io.Writer, run *mermaidclient.TaskRun) {
 		fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
 	}
 	fmt.Fprintf(w, "Duration:\t%s\n", duration(run.StartTime, run.EndTime))
+	fmt.Fprintln(w)
+}
+
+func printRepairProgressHeader(w io.Writer, prog *mermaidclient.RepairProgress) {
+	fmt.Fprintf(w, "Token ranges:\t\t%s\n", prog.Ranges)
 	fmt.Fprintln(w)
 }
 

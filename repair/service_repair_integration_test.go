@@ -35,7 +35,7 @@ const (
 const (
 	_interval = 100 * time.Millisecond
 	now       = 0
-	shortWait = time.Second
+	shortWait = 2 * time.Second
 	longWait  = 20 * time.Second
 )
 
@@ -183,11 +183,17 @@ func TestServiceRepairIntegration(t *testing.T) {
 		return c
 	}
 
-	unit := []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_0"}}}
+	singleUnit := repair.Target{
+		Units:       []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_0"}}},
+		TokenRanges: repair.PrimaryTokenRanges,
+	}
 
-	multipleUnits := []repair.Unit{
-		{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
-		{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
+	multipleUnits := repair.Target{
+		Units: []repair.Unit{
+			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
+			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
+		},
+		TokenRanges: repair.PrimaryTokenRanges,
 	}
 
 	t.Run("repair", func(t *testing.T) {
@@ -249,7 +255,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
 			t.Fatal(err)
 		}
 
@@ -343,7 +349,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
 			t.Fatal(err)
 		}
 
@@ -379,7 +385,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
 			t.Fatal(err)
 		}
 
@@ -413,7 +419,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
 
 		Print("And: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
 			t.Fatal(err)
 		}
 
