@@ -184,8 +184,9 @@ func (s *Service) GetUnits(ctx context.Context, clusterID uuid.UUID, p runner.Pr
 
 		if len(filtered) > 0 {
 			units = append(units, Unit{
-				Keyspace: keyspace,
-				Tables:   filtered,
+				Keyspace:  keyspace,
+				Tables:    filtered,
+				allTables: len(filtered) == len(tables),
 			})
 		}
 	}

@@ -16,6 +16,8 @@ import (
 type Unit struct {
 	Keyspace string   `db:"keyspace_name" json:"keyspace"`
 	Tables   []string `json:"tables,omitempty"`
+
+	allTables bool
 }
 
 // MarshalUDT implements UDTMarshaler.

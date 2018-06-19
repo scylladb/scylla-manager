@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/mermaid/internal/inexlist"
 )
 
@@ -125,13 +126,15 @@ func TestSortUnits(t *testing.T) {
 		},
 	}
 
+	opt := cmpopts.IgnoreUnexported(Unit{})
+
 	for i, test := range table {
 		inclExcl, _ := inexlist.ParseInExList(test.P)
 
 		oldUnits := make([]Unit, len(test.U))
 		copy(oldUnits, test.U)
 		sortUnits(test.U, inclExcl)
-		if !cmp.Equal(test.E, test.U) {
+		if !cmp.Equal(test.E, test.U, opt) {
 			t.Errorf("position %d, pattern %v, expected %v, got %v", i, test.P, test.E, test.U)
 		}
 	}

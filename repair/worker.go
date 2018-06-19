@@ -395,11 +395,14 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
 	u := w.parent.Run.Units[w.parent.Unit]
-	return w.parent.Client.Repair(ctx, w.parent.Host, &scyllaclient.RepairConfig{
+	cfg := &scyllaclient.RepairConfig{
 		Keyspace: u.Keyspace,
-		Tables:   u.Tables,
 		Ranges:   w.segments[start:end].dump(),
-	})
+	}
+	if !u.allTables {
+		cfg.Tables = u.Tables
+	}
+	return w.parent.Client.Repair(ctx, w.parent.Host, cfg)
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
