@@ -6,7 +6,7 @@ services:
     volumes:
       - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
-    command: --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.51.11 --broadcast-address 192.168.100.11 --broadcast-rpc-address 192.168.100.11
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.51.11 --broadcast-address 192.168.100.11 --broadcast-rpc-address 192.168.100.11
     networks:
       public:
         ipv4_address: 192.168.100.11
@@ -18,7 +18,7 @@ services:
     volumes:
       - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
-    command: --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.51.12 --broadcast-address 192.168.100.12 --broadcast-rpc-address 192.168.100.12
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.51.12 --broadcast-address 192.168.100.12 --broadcast-rpc-address 192.168.100.12
     networks:
       public:
         ipv4_address: 192.168.100.12
@@ -30,7 +30,7 @@ services:
     volumes:
       - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
-    command: --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.51.13 --broadcast-address 192.168.100.13 --broadcast-rpc-address 192.168.100.13
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.51.13 --broadcast-address 192.168.100.13 --broadcast-rpc-address 192.168.100.13
     networks:
       public:
         ipv4_address: 192.168.100.13
@@ -42,7 +42,7 @@ services:
     volumes:
       - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
-    command: --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.52.21 --broadcast-address 192.168.100.21 --broadcast-rpc-address 192.168.100.21
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.52.21 --broadcast-address 192.168.100.21 --broadcast-rpc-address 192.168.100.21
     networks:
       public:
         ipv4_address: 192.168.100.21
@@ -54,7 +54,7 @@ services:
     volumes:
       - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
-    command: --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.52.22 --broadcast-address 192.168.100.22 --broadcast-rpc-address 192.168.100.22
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.52.22 --broadcast-address 192.168.100.22 --broadcast-rpc-address 192.168.100.22
     networks:
       public:
         ipv4_address: 192.168.100.22
@@ -66,7 +66,7 @@ services:
     volumes:
       - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
-    command: --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.52.23 --broadcast-address 192.168.100.23 --broadcast-rpc-address 192.168.100.23
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21 --listen-address 192.168.52.23 --broadcast-address 192.168.100.23 --broadcast-rpc-address 192.168.100.23
     networks:
       public:
         ipv4_address: 192.168.100.23
