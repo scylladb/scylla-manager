@@ -359,7 +359,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 					run.EndTime = timeutc.Now()
 					s.putRunLogError(ctx, run)
 				} else {
-					fail(err) // nolint: errcheck
+					fail(err) // nolint
 				}
 				return
 			}

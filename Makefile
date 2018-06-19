@@ -44,7 +44,13 @@ check: .check-copyright .check-timeutc .check-misspell .check-lint .check-vendor
 	@$(GOBIN)/golangci-lint run -s --disable-all -E govet -E errcheck -E staticcheck \
 	-E gas -E typecheck -E unused -E structcheck -E varcheck -E ineffassign -E deadcode \
 	-E gofmt -E golint -E gosimple -E unconvert -E dupl -E depguard -E gocyclo \
-	--tests=false --exclude="composite literal uses unkeyed fields" ./...
+	--tests=false \
+	--exclude-use-default=false \
+	--exclude='composite literal uses unkeyed fields' \
+	--exclude='Error return value of `.+\.Close` is not checked' \
+	--exclude='G104' \
+	--exclude='G304' \
+	./...
 
 .PHONY: .check-vendor
 .check-vendor:

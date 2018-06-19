@@ -107,7 +107,7 @@ func topologyHash(tokens []int64) uuid.UUID {
 			u = uint64(math.MaxInt64 + t)
 		}
 		binary.LittleEndian.PutUint64(b, u)
-		xx.Write(b) // nolint: errcheck
+		xx.Write(b) // nolint
 	}
 	h := xx.Sum64()
 
