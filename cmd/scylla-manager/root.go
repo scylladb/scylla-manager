@@ -94,7 +94,7 @@ var rootCmd = &cobra.Command{
 			} else {
 				logger.Info(ctx, "Bye")
 			}
-			logger.Sync() // nolint: errcheck
+			logger.Sync() // nolint
 		}()
 
 		// set gocql logger
