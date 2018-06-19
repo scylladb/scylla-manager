@@ -248,6 +248,9 @@ func decorateFilters(filters []string) []string {
 	}
 
 	filters = append(filters, "!system.*")
+	if len(filters) == 1 {
+		filters = append(filters, "*.*")
+	}
 
 	return filters
 }

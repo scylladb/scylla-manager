@@ -325,7 +325,7 @@ func TestDecorateFilters(t *testing.T) {
 	}{
 		{
 			F: []string{},
-			E: []string{"!system.*"},
+			E: []string{"!system.*", "*.*"},
 		},
 		{
 			F: []string{"*"},
