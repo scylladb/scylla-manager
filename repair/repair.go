@@ -236,6 +236,10 @@ func validateFilter(filter string) error {
 }
 
 func decorateFilters(filters []string) []string {
+	if len(filters) == 0 {
+		filters = append(filters, "*.*")
+	}
+
 	for i, f := range filters {
 		if strings.Contains(f, ".") {
 			continue
@@ -248,9 +252,6 @@ func decorateFilters(filters []string) []string {
 	}
 
 	filters = append(filters, "!system.*")
-	if len(filters) == 1 {
-		filters = append(filters, "*.*")
-	}
 
 	return filters
 }

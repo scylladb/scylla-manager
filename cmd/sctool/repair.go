@@ -73,6 +73,6 @@ func init() {
 	register(repairCmd, rootCmd)
 
 	cmd.Flags().StringSliceP("filter", "F", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
-	requireFlags(cmd, "filter")
+
 	taskInitCommonFlags(cmd)
 }
