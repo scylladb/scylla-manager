@@ -21,17 +21,15 @@ func init() {
 }
 
 var (
-	cfgClusterName       string
-	cfgClusterHosts      []string
-	cfgClusterShardCount int64
-	cfgSSHUser           string
-	cfgSSHIdentityFile   string
+	cfgClusterName     string
+	cfgClusterHosts    []string
+	cfgSSHUser         string
+	cfgSSHIdentityFile string
 )
 
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "alias `name`")
 	cmd.Flags().StringSliceVar(&cfgClusterHosts, "hosts", nil, "comma-separated `list` of hosts")
-	cmd.Flags().Int64Var(&cfgClusterShardCount, "shard-count", 0, "number of shards per node, each node must have equal number of shards")
 	cmd.Flags().StringVar(&cfgSSHUser, "ssh-user", "", "SSH user used to connect to cluster nodes")
 	cmd.Flags().StringVar(&cfgSSHIdentityFile, "ssh-identity-file", "", "SSH private key in PEM format")
 }
@@ -42,9 +40,8 @@ var clusterAddCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := &mermaidclient.Cluster{
-			Name:       cfgClusterName,
-			Hosts:      cfgClusterHosts,
-			ShardCount: cfgClusterShardCount,
+			Name:  cfgClusterName,
+			Hosts: cfgClusterHosts,
 		}
 
 		if cfgSSHUser != "" && cfgSSHIdentityFile == "" {
@@ -112,10 +109,6 @@ var clusterUpdateCmd = &cobra.Command{
 			cluster.Hosts = cfgClusterHosts
 			ok = true
 		}
-		if cmd.Flags().Changed("shard-count") {
-			cluster.ShardCount = cfgClusterShardCount
-			ok = true
-		}
 		if !ok {
 			return errors.New("nothing to do")
 		}
@@ -163,9 +156,9 @@ var clusterListCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		t := newTable("cluster id", "name", "hosts", "shard count", "ssh user")
+		t := newTable("cluster id", "name", "hosts", "ssh user")
 		for _, u := range units {
-			t.AddRow(u.ID, u.Name, u.Hosts, u.ShardCount, u.SSHUser)
+			t.AddRow(u.ID, u.Name, u.Hosts, u.SSHUser)
 		}
 		fmt.Fprint(cmd.OutOrStdout(), t)
 
