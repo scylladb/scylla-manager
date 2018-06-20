@@ -26,9 +26,6 @@ type Cluster struct {
 	// name
 	Name string `json:"name,omitempty"`
 
-	// shard count
-	ShardCount int64 `json:"shard_count,omitempty"`
-
 	// ssh identity file
 	// Format: byte
 	SSHIdentityFile strfmt.Base64 `json:"ssh_identity_file,omitempty"`
