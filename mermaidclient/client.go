@@ -7,6 +7,8 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 	"sync"
 
 	api "github.com/go-openapi/runtime/client"
@@ -48,7 +50,8 @@ func NewClient(rawurl string) (Client, error) {
 
 	r := api.NewWithClient(u.Host, u.Path, []string{u.Scheme}, httpClient)
 	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
-	r.Debug = false
+	// we change that to SCTOOL_DUMP_HTTP
+	r.Debug, _ = strconv.ParseBool(os.Getenv("SCTOOL_DUMP_HTTP"))
 
 	return Client{operations: operations.New(r, strfmt.Default)}, nil
 }
