@@ -173,11 +173,9 @@ func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
 
 	var wg sync.WaitGroup
 	wg.Add(3)
-
 	shutdownHTTPServer(tctx, s.httpServer, &wg, s.logger)
 	shutdownHTTPServer(tctx, s.httpsServer, &wg, s.logger)
 	shutdownHTTPServer(tctx, s.prometheusServer, &wg, s.logger)
-
 	wg.Wait()
 }
 
@@ -199,14 +197,17 @@ func (s *server) close() {
 }
 
 func shutdownHTTPServer(ctx context.Context, s *http.Server, wg *sync.WaitGroup, l log.Logger) {
-	if s != nil {
-		go func() {
-			defer wg.Done()
-			if err := s.Shutdown(ctx); err != nil {
-				l.Info(ctx, "Closing HTTP(S) server failed", "addr", s.Addr, "error", err)
-			} else {
-				l.Info(ctx, "Closing HTTP(S) server done", "addr", s.Addr)
-			}
-		}()
+	if s == nil {
+		wg.Done()
+		return
 	}
+
+	go func() {
+		defer wg.Done()
+		if err := s.Shutdown(ctx); err != nil {
+			l.Info(ctx, "Closing HTTP(S) server failed", "addr", s.Addr, "error", err)
+		} else {
+			l.Info(ctx, "Closing HTTP(S) server done", "addr", s.Addr)
+		}
+	}()
 }
