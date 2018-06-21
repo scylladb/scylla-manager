@@ -544,6 +544,13 @@
           "name": "task_id",
           "in": "path",
           "required": true
+        },
+        {
+          "type": "boolean",
+          "description": "continue a stopped task",
+          "name": "continue",
+          "in": "query",
+          "required": true
         }
       ],
       "put": {

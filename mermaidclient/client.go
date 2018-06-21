@@ -207,12 +207,13 @@ func (c *Client) GetTaskHistory(ctx context.Context, clusterID, taskType string,
 }
 
 // StartTask starts executing a task.
-func (c *Client) StartTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID) error {
+func (c *Client) StartTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, cont bool) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStart(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStartParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskType:  taskType,
 		TaskID:    taskID.String(),
+		Continue:  cont,
 	})
 
 	return err

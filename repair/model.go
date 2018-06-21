@@ -108,6 +108,7 @@ type Progress struct {
 type Target struct {
 	Units       []Unit
 	TokenRanges TokenRangesKind
+	Opts        runner.Opts
 }
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.

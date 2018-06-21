@@ -27,7 +27,7 @@ type SchedService interface {
 	PutTask(ctx context.Context, t *sched.Task) error
 	DeleteTask(ctx context.Context, t *sched.Task) error
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
-	StartTask(ctx context.Context, t *sched.Task) error
+	StartTask(ctx context.Context, t *sched.Task, opts runner.Opts) error
 	StopTask(ctx context.Context, t *sched.Task) error
 	GetLastRun(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
 }
@@ -236,10 +236,26 @@ func (h *taskHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 
 func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
-	if err := h.schedSvc.StartTask(r.Context(), t); err != nil {
+
+	opts, err := h.optsFromRequest(r)
+	if err != nil {
+		respondBadRequest(w, r, err)
+	}
+
+	if err := h.schedSvc.StartTask(r.Context(), t, opts); err != nil {
 		respondError(w, r, err, "failed to start task")
 		return
 	}
+}
+
+func (h *taskHandler) optsFromRequest(r *http.Request) (opts runner.Opts, err error) {
+	opts = runner.DefaultOpts
+	if cont := r.FormValue("continue"); cont != "" {
+		if opts.Continue, err = strconv.ParseBool(cont); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {

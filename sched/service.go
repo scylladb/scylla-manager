@@ -443,15 +443,17 @@ func (s *Service) updateClusterName(ctx context.Context, t *Task) {
 }
 
 // StartTask starts execution of a task immediately, regardless of the task's schedule.
-func (s *Service) StartTask(ctx context.Context, t *Task) error {
-	s.logger.Debug(ctx, "StartTask", "task", t)
+func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) error {
+	s.logger.Debug(ctx, "StartTask", "task", t, "opts", opts)
 	if t == nil {
 		return errors.New("nil task")
 	}
-
 	s.cancelTask(t)
+
 	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
+	triggerCtx = runner.WithOpts(triggerCtx, opts)
 	doneCh := make(chan struct{})
+
 	s.taskLock.Lock()
 	s.tasks[t.ID] = cancelableTrigger{
 		cancel: cancel,
@@ -459,6 +461,7 @@ func (s *Service) StartTask(ctx context.Context, t *Task) error {
 	}
 	go s.execTrigger(triggerCtx, t, doneCh)
 	s.taskLock.Unlock()
+
 	return nil
 }
 

@@ -159,6 +159,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 		return Target{}, err
 	}
 	t.TokenRanges = tp.TokenRanges
+	t.Opts = runner.OptsFromContext(ctx)
 
 	return t, nil
 }
@@ -270,6 +271,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"cluster_id", run.ClusterID,
 		"task_id", run.TaskID,
 		"run_id", run.ID,
+		"target", t,
 	)
 
 	// get the cluster client
@@ -285,50 +287,19 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// get last started run of the task
-	prev, err := s.GetLastStartedRun(ctx, run.ClusterID, run.TaskID)
-	if err != nil && err != mermaid.ErrNotFound {
-		return fail(errors.Wrap(err, "failed to get previous run"))
-	}
-	if prev != nil {
-		s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
-		switch {
-		case prev.Status == runner.StatusDone:
-			s.logger.Info(ctx, "Starting from scratch: previous run is done")
-			prev = nil
-		case timeutc.Since(prev.StartTime) > s.config.MaxRunAge:
-			s.logger.Info(ctx, "Starting from scratch: previous run is too old")
-			prev = nil
-		}
-	}
-	if prev != nil {
-		run.PrevID = prev.ID
-		run.prevProg, err = s.getProgress(ctx, &Run{
-			ClusterID: run.ClusterID,
-			TaskID:    run.TaskID,
-			ID:        prev.ID,
-		})
-		if err != nil {
-			return errors.Wrap(err, "failed to get the last run progress")
-		}
-	}
-
 	// get the cluster topology hash
 	run.TopologyHash, err = s.topologyHash(ctx, client)
 	if err != nil {
 		return fail(errors.Wrap(err, "failed to get topology hash"))
 	}
 
-	// ensure topology did not change, if changed start from scratch
-	if prev != nil {
-		if run.TopologyHash != prev.TopologyHash {
-			s.logger.Info(ctx, "Starting from scratch: topology changed")
-			prev = nil
-			run.PrevID = uuid.Nil
+	if t.Opts.Continue {
+		if err := s.decorateWithPrevRun(ctx, run); err != nil {
+			return fail(err)
 		}
-	}
-	if err := s.putRun(ctx, run); err != nil {
-		return fail(errors.Wrap(err, "failed to update the run"))
+		if run.PrevID != uuid.Nil {
+			s.putRunLogError(ctx, run)
+		}
 	}
 
 	// check the cluster partitioner
@@ -402,6 +373,45 @@ func (s *Service) validateUnit(ctx context.Context, u Unit, client *scyllaclient
 	}
 	if err := validateSubset(u.Tables, all); err != nil {
 		return mermaid.ErrValidate(errors.Wrap(err, "keyspace %s missing tables"), "invalid unit")
+	}
+
+	return nil
+}
+
+// decorateWithPrevRun gets task previous run and if it can be continued
+// sets PrevID on the given run.
+func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
+	prev, err := s.GetLastStartedRun(ctx, run.ClusterID, run.TaskID)
+	if err == mermaid.ErrNotFound {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "failed to get previous run")
+	}
+
+	// check if can continue from prev
+	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
+	switch {
+	case prev.Status == runner.StatusDone:
+		s.logger.Info(ctx, "Starting from scratch: previous run is done")
+		return nil
+	case timeutc.Since(prev.StartTime) > s.config.MaxRunAge:
+		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
+		return nil
+	case prev.TopologyHash != run.TopologyHash:
+		s.logger.Info(ctx, "Starting from scratch: topology changed")
+		return nil
+	}
+
+	// decorate run
+	run.PrevID = prev.ID
+	run.prevProg, err = s.getProgress(ctx, &Run{
+		ClusterID: run.ClusterID,
+		TaskID:    run.TaskID,
+		ID:        prev.ID,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to get the last run progress")
 	}
 
 	return nil

@@ -186,6 +186,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	singleUnit := repair.Target{
 		Units:       []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_0"}}},
 		TokenRanges: repair.PrimaryTokenRanges,
+		Opts:        runner.DefaultOpts,
 	}
 
 	multipleUnits := repair.Target{
@@ -194,6 +195,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 		},
 		TokenRanges: repair.PrimaryTokenRanges,
+		Opts:        runner.DefaultOpts,
 	}
 
 	t.Run("repair", func(t *testing.T) {
@@ -338,6 +340,48 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertProgress(0, node1, 100, now)
 		h.assertProgress(0, node2, 100, now)
 		h.assertProgress(1, node0, 10, shortWait)
+	})
+
+	t.Run("repair restart no continue", func(t *testing.T) {
+		h := newRepairTestHelper(t, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		unit := singleUnit
+		unit.Opts.Continue = false
+
+		Print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: node0 is 50% repaired")
+		h.assertProgress(0, node0, 50, longWait)
+
+		Print("And: stop repair")
+		if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusStopped")
+		h.assertStatus(runner.StatusStopped, shortWait)
+
+		Print("When: create a new task")
+		h.runID = uuid.NewTime()
+
+		Print("And: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("And: repair of node0 starts from scratch")
+		h.assertProgress(0, node0, 1, shortWait)
+		if h.progress(0, node0) >= 50 {
+			t.Fatal("node0 should start from schratch")
+		}
 	})
 
 	t.Run("repair error", func(t *testing.T) {
