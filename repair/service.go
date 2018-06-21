@@ -141,14 +141,32 @@ func (s *Service) unlockCluster(run *Run) error {
 	return nil
 }
 
-// GetUnits loads this clusters available repair units filtered through the supplied filter read from the properties.
-// If no units are found or the filter contains any invalid filter a validation error is returned.
-func (s *Service) GetUnits(ctx context.Context, clusterID uuid.UUID, p runner.Properties) ([]Unit, error) {
-	tp := &taskProperties{}
-	if err := json.Unmarshal(p, tp); err != nil {
-		return nil, errors.Wrapf(err, "unable to parse runner properties: %v", p)
+// GetTarget converts runner properties into repair Target.
+func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties) (Target, error) {
+	var tp taskProperties
+
+	if err := json.Unmarshal(p, &tp); err != nil {
+		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "unable to parse runner properties: %s", p), "")
 	}
 
+	var (
+		t   Target
+		err error
+	)
+
+	t.Units, err = s.getUnits(ctx, clusterID, &tp)
+	if err != nil {
+		return Target{}, err
+	}
+	t.TokenRanges = tp.TokenRanges
+
+	return t, nil
+}
+
+// getUnits loads this clusters available repair units filtered through the
+// supplied filter read from the properties. If no units are found or the filter
+// contains any invalid filter a validation error is returned.
+func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskProperties) ([]Unit, error) {
 	if err := validateFilters(tp.Filter); err != nil {
 		return nil, err
 	}
@@ -195,28 +213,28 @@ func (s *Service) GetUnits(ctx context.Context, clusterID uuid.UUID, p runner.Pr
 		return nil, mermaid.ErrValidate(errors.Errorf("no matching units found for filter"), "")
 	}
 
-	//Sort up according to the provided patterns
 	sortUnits(units, inclExcl)
 
 	return units, nil
 }
 
 // Repair starts an asynchronous repair process.
-func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, units []Unit) error {
+func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, t Target) error {
 	s.logger.Debug(ctx, "Repair",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,
-		"units", units,
+		"target", t,
 	)
 
 	run := &Run{
-		ClusterID: clusterID,
-		TaskID:    taskID,
-		ID:        runID,
-		Units:     units,
-		Status:    runner.StatusRunning,
-		StartTime: timeutc.Now(),
+		ClusterID:   clusterID,
+		TaskID:      taskID,
+		ID:          runID,
+		Units:       t.Units,
+		TokenRanges: t.TokenRanges,
+		Status:      runner.StatusRunning,
+		StartTime:   timeutc.Now(),
 	}
 
 	// fail updates a run and passes the error
@@ -406,7 +424,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	s.logger.Debug(ctx, "Using DC", "dc", dc)
 
 	// split token range into coordination hosts
-	hostSegments, err := groupSegmentsByHost(dc, ring)
+	hostSegments, err := groupSegmentsByHost(dc, run.TokenRanges, ring)
 	if err != nil {
 		return errors.Wrap(err, "segmentation failed")
 	}
@@ -525,7 +543,7 @@ func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
 				s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
 			}
 
-			p := aggregateProgress(run.Units, prog)
+			p := aggregateProgress(run, prog)
 			for _, u := range p.Units {
 				for _, n := range u.Nodes {
 					repairProgress.With(prometheus.Labels{
@@ -699,7 +717,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return Progress{}, err
 	}
 
-	return aggregateProgress(run.Units, prog), nil
+	return aggregateProgress(run, prog), nil
 }
 
 func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {

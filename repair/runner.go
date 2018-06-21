@@ -17,12 +17,12 @@ type Runner struct {
 
 // Run implements runner.Runner.
 func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
-	units, err := r.Service.GetUnits(ctx, d.ClusterID, p)
+	t, err := r.Service.GetTarget(ctx, d.ClusterID, p)
 	if err != nil {
 		return errors.Wrap(err, "failed to load units")
 	}
 
-	return r.Service.Repair(ctx, d.ClusterID, d.TaskID, d.RunID, units)
+	return r.Service.Repair(ctx, d.ClusterID, d.TaskID, d.RunID, t)
 }
 
 // Stop implements runner.Runner.

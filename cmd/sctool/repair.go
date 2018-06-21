@@ -12,6 +12,38 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type tokenRangesKind string
+
+const (
+	pr  tokenRangesKind = "pr"
+	npr tokenRangesKind = "npr"
+	all tokenRangesKind = "all"
+)
+
+func (r tokenRangesKind) String() string {
+	return string(r)
+}
+
+func (r *tokenRangesKind) Set(s string) error {
+	switch tokenRangesKind(s) {
+	case pr:
+		*r = pr
+	case npr:
+		*r = npr
+	case all:
+		*r = all
+	default:
+		return errors.New("valid values are: pr, npr, all")
+	}
+	return nil
+}
+
+func (tokenRangesKind) Type() string {
+	return "token ranges"
+}
+
+var repairTokenRanges = pr
+
 var repairCmd = &cobra.Command{
 	Use:   "repair",
 	Short: "Schedule repair",
@@ -55,6 +87,7 @@ var repairCmd = &cobra.Command{
 
 		props := make(map[string]interface{})
 		props["filter"] = filter
+		props["token_ranges"] = repairTokenRanges.String()
 		t.Properties = props
 
 		id, err := client.CreateTask(ctx, cfgCluster, t)
@@ -72,7 +105,8 @@ func init() {
 	cmd := repairCmd
 	register(repairCmd, rootCmd)
 
-	cmd.Flags().StringSliceP("filter", "F", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
-
+	fs := cmd.Flags()
+	fs.StringSliceP("filter", "F", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
+	fs.Var(&repairTokenRanges, "token-ranges", "token ranges: pr - primary token ranges, npr - non primary token ranges, all - pr and npr")
 	taskInitCommonFlags(cmd)
 }

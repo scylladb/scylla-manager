@@ -21,7 +21,7 @@ import (
 
 // groupSegmentsByHost extract list of primary segments (token ranges) for every
 // host in a datacenter and returns a mapping from host to list of it's segments.
-func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
+func groupSegmentsByHost(dc string, tr TokenRangesKind, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
 	m := make(map[string]segments)
 
 	for _, r := range ring {
@@ -29,14 +29,25 @@ func groupSegmentsByHost(dc string, ring []*scyllaclient.TokenRange) (map[string
 			return nil, errors.Errorf("token range %d:%d not present in dc %s", r.StartToken, r.EndToken, dc)
 		}
 
-		host := r.Hosts[dc][0]
-		if r.StartToken > r.EndToken {
-			m[host] = append(m[host],
-				&segment{StartToken: dht.Murmur3MinToken, EndToken: r.EndToken},
-				&segment{StartToken: r.StartToken, EndToken: dht.Murmur3MaxToken},
-			)
-		} else {
-			m[host] = append(m[host], &segment{StartToken: r.StartToken, EndToken: r.EndToken})
+		var hosts []string
+		switch tr {
+		case PrimaryTokenRanges:
+			hosts = r.Hosts[dc][0:1]
+		case NonPrimaryTokenRanges:
+			hosts = r.Hosts[dc][1:]
+		case AllTonenRanges:
+			hosts = r.Hosts[dc]
+		}
+
+		for _, h := range hosts {
+			if r.StartToken > r.EndToken {
+				m[h] = append(m[h],
+					&segment{StartToken: dht.Murmur3MinToken, EndToken: r.EndToken},
+					&segment{StartToken: r.StartToken, EndToken: dht.Murmur3MaxToken},
+				)
+			} else {
+				m[h] = append(m[h], &segment{StartToken: r.StartToken, EndToken: r.EndToken})
+			}
 		}
 	}
 
@@ -114,18 +125,20 @@ func topologyHash(tokens []int64) uuid.UUID {
 	return uuid.NewFromUint64(h>>32, uint64(uint32(h)))
 }
 
-func aggregateProgress(units []Unit, prog []*RunProgress) Progress {
-	if len(units) == 0 {
+func aggregateProgress(run *Run, prog []*RunProgress) Progress {
+	if len(run.Units) == 0 {
 		return Progress{}
 	}
 
-	v := Progress{}
+	v := Progress{
+		TokenRanges: run.TokenRanges,
+	}
 
 	var (
 		idx   = 0
 		total int
 	)
-	for i, u := range units {
+	for i, u := range run.Units {
 		end := sort.Search(len(prog), func(j int) bool {
 			return prog[j].Unit > i
 		})
@@ -135,7 +148,7 @@ func aggregateProgress(units []Unit, prog []*RunProgress) Progress {
 		idx = end
 	}
 
-	v.PercentComplete = total / len(units)
+	v.PercentComplete = total / len(run.Units)
 
 	return v
 }

@@ -21,6 +21,9 @@ type RepairProgress struct {
 	// percent complete
 	PercentComplete int64 `json:"percent_complete,omitempty"`
 
+	// ranges
+	Ranges string `json:"ranges,omitempty"`
+
 	// units
 	Units []*RepairProgressUnitsItems `json:"units"`
 }

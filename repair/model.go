@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
@@ -14,7 +15,7 @@ import (
 
 // Unit specifies what shall be repaired.
 type Unit struct {
-	Keyspace string   `db:"keyspace_name" json:"keyspace"`
+	Keyspace string   `json:"keyspace" db:"keyspace_name"`
 	Tables   []string `json:"tables,omitempty"`
 
 	allTables bool
@@ -30,6 +31,41 @@ func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
+}
+
+// TokenRangesKind specifies token ranges to be repaired, PrimaryTokenRanges,
+// NonPrimaryTokenRanges or AllTonenRanges.
+type TokenRangesKind string
+
+// TokenRangesKind enumeration
+const (
+	PrimaryTokenRanges    TokenRangesKind = "pr"
+	NonPrimaryTokenRanges TokenRangesKind = "npr"
+	AllTonenRanges        TokenRangesKind = "all"
+)
+
+func (r TokenRangesKind) String() string {
+	return string(r)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (r TokenRangesKind) MarshalText() (text []byte, err error) {
+	return []byte(r.String()), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (r *TokenRangesKind) UnmarshalText(text []byte) error {
+	switch TokenRangesKind(text) {
+	case PrimaryTokenRanges:
+		*r = PrimaryTokenRanges
+	case NonPrimaryTokenRanges:
+		*r = NonPrimaryTokenRanges
+	case AllTonenRanges:
+		*r = AllTonenRanges
+	default:
+		return errors.Errorf("unrecognised token ranges kind %q", text)
+	}
+	return nil
 }
 
 // progress holds generic progress data, it's a base type for other progress
@@ -64,7 +100,14 @@ type UnitProgress struct {
 // units, nodes and shards.
 type Progress struct {
 	progress
-	Units []UnitProgress `json:"units,omitempty"`
+	Units       []UnitProgress  `json:"units,omitempty"`
+	TokenRanges TokenRangesKind `json:"token_ranges"`
+}
+
+// Target specifies what shall be repaired.
+type Target struct {
+	Units       []Unit
+	TokenRanges TokenRangesKind
 }
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
@@ -76,6 +119,7 @@ type Run struct {
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
 	Units        []Unit
+	TokenRanges  TokenRangesKind
 	Status       runner.Status
 	Cause        string
 	StartTime    time.Time
@@ -134,5 +178,6 @@ func (p *RunProgress) PercentComplete() int {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Filter []string `json:"filter"`
+	Filter      []string        `json:"filter"`
+	TokenRanges TokenRangesKind `json:"token_ranges"`
 }
