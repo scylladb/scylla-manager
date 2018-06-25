@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -67,6 +68,11 @@ type PutClusterClusterIDTaskTaskTypeTaskIDStartParams struct {
 
 	*/
 	ClusterID string
+	/*Continue
+	  continue a stopped task
+
+	*/
+	Continue bool
 	/*TaskID
 	  task ID (UUID) or name
 
@@ -127,6 +133,17 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) SetClusterID(clusterI
 	o.ClusterID = clusterID
 }
 
+// WithContinue adds the continueVar to the put cluster cluster ID task task type task ID start params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) WithContinue(continueVar bool) *PutClusterClusterIDTaskTaskTypeTaskIDStartParams {
+	o.SetContinue(continueVar)
+	return o
+}
+
+// SetContinue adds the continue to the put cluster cluster ID task task type task ID start params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) SetContinue(continueVar bool) {
+	o.Continue = continueVar
+}
+
 // WithTaskID adds the taskID to the put cluster cluster ID task task type task ID start params
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) WithTaskID(taskID string) *PutClusterClusterIDTaskTaskTypeTaskIDStartParams {
 	o.SetTaskID(taskID)
@@ -160,6 +177,15 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) WriteToRequest(r runt
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
 		return err
+	}
+
+	// query param continue
+	qrContinue := o.Continue
+	qContinue := swag.FormatBool(qrContinue)
+	if qContinue != "" {
+		if err := r.SetQueryParam("continue", qContinue); err != nil {
+			return err
+		}
 	}
 
 	// path param task_id

@@ -135,7 +135,12 @@ var taskStartCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		if err := client.StartTask(ctx, cfgCluster, taskType, taskID); err != nil {
+		cont, err := cmd.Flags().GetBool("continue")
+		if err != nil {
+			return printableError{err}
+		}
+
+		if err := client.StartTask(ctx, cfgCluster, taskType, taskID, cont); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -143,7 +148,11 @@ var taskStartCmd = &cobra.Command{
 }
 
 func init() {
-	register(taskStartCmd, taskCmd)
+	cmd := taskStartCmd
+	register(cmd, taskCmd)
+
+	fs := cmd.Flags()
+	fs.Bool("continue", true, "try resuming last run")
 }
 
 var taskStopCmd = &cobra.Command{
