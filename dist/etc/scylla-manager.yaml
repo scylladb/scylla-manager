@@ -56,10 +56,6 @@ repair:
   # will stop and the next repair will start from the beginning.
   segment_error_limit: 100
 
-  # Fail-fast, set to true if you want repair to stop on first error. Unlike
-  # segment_error_limit this allows for resuming the stopped repair.
-  stop_on_error: false
-
   # Set wait time if Scylla failed to execute a repair command. Note that if
   # stop_on_error is true this has no effect.
   error_backoff: 10s

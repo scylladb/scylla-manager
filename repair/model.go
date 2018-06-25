@@ -107,6 +107,7 @@ type Progress struct {
 // Target specifies what shall be repaired.
 type Target struct {
 	Units       []Unit
+	FailFast    bool
 	TokenRanges TokenRangesKind
 	Opts        runner.Opts
 }
@@ -127,6 +128,7 @@ type Run struct {
 	EndTime      time.Time
 
 	clusterName string
+	failFast    bool
 	prevProg    []*RunProgress
 }
 
@@ -180,5 +182,6 @@ func (p *RunProgress) PercentComplete() int {
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
 	Filter      []string        `json:"filter"`
+	FailFast    bool            `json:"fail_fast"`
 	TokenRanges TokenRangesKind `json:"token_ranges"`
 }

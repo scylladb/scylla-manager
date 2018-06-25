@@ -149,17 +149,17 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "unable to parse runner properties: %s", p), "")
 	}
 
-	var (
-		t   Target
-		err error
-	)
+	t := Target{
+		FailFast:    tp.FailFast,
+		TokenRanges: tp.TokenRanges,
+		Opts:        runner.OptsFromContext(ctx),
+	}
 
+	var err error
 	t.Units, err = s.getUnits(ctx, clusterID, &tp)
 	if err != nil {
-		return Target{}, err
+		return t, err
 	}
-	t.TokenRanges = tp.TokenRanges
-	t.Opts = runner.OptsFromContext(ctx)
 
 	return t, nil
 }
@@ -236,6 +236,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		TokenRanges: t.TokenRanges,
 		Status:      runner.StatusRunning,
 		StartTime:   timeutc.Now(),
+
+		failFast: t.FailFast,
 	}
 
 	// fail updates a run and passes the error

@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"go.uber.org/atomic"
 	"go.uber.org/multierr"
 )
 
@@ -77,6 +78,7 @@ type worker struct {
 	Logger  log.Logger
 
 	shards []*shardWorker
+	abrt   atomic.Bool
 }
 
 func (w *worker) exec(ctx context.Context) error {
@@ -108,9 +110,12 @@ func (w *worker) exec(ctx context.Context) error {
 		if r.err != nil {
 			if errors.Cause(r.err) == errStopped {
 				stopped = true
-			} else {
-				werr = multierr.Append(werr, errors.Errorf("shard %d failed", r.shard))
+				continue
 			}
+			if w.Run.failFast {
+				w.abrt.Store(true)
+			}
+			werr = multierr.Append(werr, errors.Errorf("shard %d failed", r.shard))
 		}
 	}
 
@@ -318,9 +323,16 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			break
 		}
 
+		// run was stopped
 		if w.isStopped(ctx) {
 			w.logger.Info(ctx, "Repair stopped", "percent_complete", w.progress.PercentComplete())
 			return errStopped
+		}
+
+		// fail fast
+		if w.isAborted(ctx) {
+			w.logger.Info(ctx, "Repair stopped", "percent_complete", w.progress.PercentComplete())
+			return nil
 		}
 
 		if id == 0 {
@@ -339,7 +351,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		if err != nil {
 			ri.OnError()
 
-			if w.parent.Config.StopOnError {
+			if w.parent.Run.failFast {
 				next()
 				savepoint()
 				return errors.New("repair stopped on error")
@@ -385,6 +397,10 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 		w.logger.Error(ctx, "Service error", "error", err)
 	}
 	return stopped
+}
+
+func (w *shardWorker) isAborted(_ context.Context) bool {
+	return w.parent.abrt.Load()
 }
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {

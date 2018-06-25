@@ -15,7 +15,6 @@ type Config struct {
 	SegmentSizeLimit      int           `yaml:"segment_size_limit"`
 	SegmentsPerRepair     int           `yaml:"segments_per_repair"`
 	SegmentErrorLimit     int           `yaml:"segment_error_limit"`
-	StopOnError           bool          `yaml:"stop_on_error"`
 	PollInterval          time.Duration `yaml:"poll_interval"`
 	ErrorBackoff          time.Duration `yaml:"error_backoff"`
 	MaxRunAge             time.Duration `yaml:"max_run_age"`
@@ -28,7 +27,6 @@ func DefaultConfig() Config {
 		SegmentSizeLimit:      0,
 		SegmentsPerRepair:     1,
 		SegmentErrorLimit:     100,
-		StopOnError:           false,
 		ErrorBackoff:          10 * time.Second,
 		PollInterval:          200 * time.Millisecond,
 		MaxRunAge:             36 * time.Hour,

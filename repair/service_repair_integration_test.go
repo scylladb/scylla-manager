@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -451,19 +452,37 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStatus(runner.StatusDone, shortWait)
 	})
 
-	t.Run("repair stop on error", func(t *testing.T) {
+	t.Run("repair fail fast", func(t *testing.T) {
 		c := defaultConfig()
-		c.StopOnError = true
-
 		h := newRepairTestHelper(t, c)
 		defer h.close()
 		ctx := context.Background()
 
-		Print("Given: repair error occurs")
-		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+		unit := singleUnit
+		unit.FailFast = true
+
+		Print("Given: one repair fails")
+		var (
+			mu sync.Mutex
+			ic = repairInterceptor(scyllaclient.CommandFailed)
+		)
+		h.hrt.SetInterceptor(RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+			if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+				return nil, nil
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+			resp, err = ic.RoundTrip(req)
+
+			if req.Method == http.MethodGet {
+				ic = repairInterceptor(scyllaclient.CommandSuccessful)
+			}
+			return
+		}))
 
 		Print("And: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, unit); err != nil {
 			t.Fatal(err)
 		}
 
@@ -475,20 +494,22 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		se := 0
+		ss := 0
 		for _, u := range p.Units {
 			for _, n := range u.Nodes {
-				if n.Host == node0 {
-					for _, s := range n.Shards {
-						if s.SegmentError != c.SegmentsPerRepair {
-							t.Error(s)
-						}
-						if s.SegmentSuccess != 0 {
-							t.Error(s)
-						}
-					}
-					break
+				for _, s := range n.Shards {
+					se += s.SegmentError
+					ss += s.SegmentSuccess
 				}
 			}
+		}
+		if se != c.SegmentsPerRepair {
+			t.Fatal("expected", c.SegmentsPerRepair, "got", se)
+		}
+		if ss > c.SegmentsPerRepair {
+			t.Fatal("expected", c.SegmentsPerRepair, "got", ss) // sometimes can be 0
 		}
 	})
 }
