@@ -6,8 +6,9 @@ import "errors"
 
 // Repair errors
 var (
-	ErrDisabled     = errors.New("repair disabled")
 	ErrActiveRepair = errors.New("repair already in progress")
+	ErrDisabled     = errors.New("repair disabled")
 
+	errFailed  = errors.New("repair done with errors")
 	errStopped = errors.New("repair stopped")
 )

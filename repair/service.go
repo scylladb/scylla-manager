@@ -511,36 +511,59 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		return xxhash.Sum64String(hosts[i]) < xxhash.Sum64String(hosts[j])
 	})
 
-	for _, host := range hosts {
-		// ensure topology did not change
-		th, err := s.topologyHash(ctx, client)
-		if err != nil {
-			s.logger.Info(ctx, "Topology check error", "error", err)
-		} else if run.TopologyHash != th {
-			return errors.Errorf("topology changed old hash: %s new hash: %s", run.TopologyHash, th)
-		}
-
-		// ping host
-		if _, err := client.Ping(ctx, host); err != nil {
-			return errors.Wrapf(err, "host %s not available", host)
-		}
-
-		w := worker{
-			Config:   &s.config,
-			Run:      run,
-			Unit:     unit,
-			Host:     host,
-			Segments: hostSegments[host],
-
-			Service: s,
-			Client:  client,
-			Logger:  s.logger.Named("worker").With("host", host),
-		}
-		if err := w.exec(ctx); err != nil {
-			return errors.Wrapf(err, "repair error")
+	// calculate number of tries
+	allComplete := true
+	for _, p := range prog {
+		if !p.complete() || !p.completeWithErrors() {
+			allComplete = false
 		}
 	}
-	return nil
+	tries := 1
+	if !allComplete {
+		tries++
+	}
+
+	for ; tries > 0; tries-- {
+		failed := false
+		for _, host := range hosts {
+			// ensure topology did not change
+			th, err := s.topologyHash(ctx, client)
+			if err != nil {
+				s.logger.Info(ctx, "Topology check error", "error", err)
+			} else if run.TopologyHash != th {
+				return errors.Errorf("topology changed old hash: %s new hash: %s", run.TopologyHash, th)
+			}
+
+			// ping host
+			if _, err := client.Ping(ctx, host); err != nil {
+				return errors.Wrapf(err, "host %s not available", host)
+			}
+
+			w := worker{
+				Config:   &s.config,
+				Run:      run,
+				Unit:     unit,
+				Host:     host,
+				Segments: hostSegments[host],
+
+				Service: s,
+				Client:  client,
+				Logger:  s.logger.Named("worker").With("host", host),
+			}
+			if err := w.exec(ctx); err != nil {
+				if errors.Cause(err) == errFailed && !run.failFast {
+					failed = true
+				} else {
+					return err
+				}
+			}
+		}
+		if !failed {
+			return nil
+		}
+	}
+
+	return errFailed
 }
 
 func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
