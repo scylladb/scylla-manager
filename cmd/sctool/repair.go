@@ -48,10 +48,13 @@ var repairCmd = &cobra.Command{
 	Use:   "repair",
 	Short: "Schedule repair",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		props := make(map[string]interface{})
+
 		t := &mermaidclient.Task{
-			Type:     "repair",
-			Enabled:  true,
-			Schedule: new(mermaidclient.Schedule),
+			Type:       "repair",
+			Enabled:    true,
+			Schedule:   new(mermaidclient.Schedule),
+			Properties: props,
 		}
 
 		f := cmd.Flag("start-date")
@@ -84,11 +87,18 @@ var repairCmd = &cobra.Command{
 		for i := range filter {
 			filter[i] = strings.Replace(filter[i], "\\", "", -1)
 		}
-
-		props := make(map[string]interface{})
 		props["filter"] = filter
+
+		failFast, err := cmd.Flags().GetBool("fail-fast")
+		if err != nil {
+			return printableError{err}
+		}
+		if failFast {
+			t.Schedule.NumRetries = 0
+			props["fail_fast"] = true
+		}
+
 		props["token_ranges"] = repairTokenRanges.String()
-		t.Properties = props
 
 		id, err := client.CreateTask(ctx, cfgCluster, t)
 		if err != nil {
@@ -107,6 +117,7 @@ func init() {
 
 	fs := cmd.Flags()
 	fs.StringSliceP("filter", "F", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
+	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Var(&repairTokenRanges, "token-ranges", "token ranges: pr - primary token ranges, npr - non primary token ranges, all - pr and npr")
 	taskInitCommonFlags(cmd)
 }
