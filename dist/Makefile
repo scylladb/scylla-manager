@@ -4,11 +4,6 @@ VERSION := 1.1.0
 RELEASE := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION_NAME := $(VERSION)-$(RELEASE)
 
-.PHONY: clean
-clean:
-	@rm -Rf /tmp/mermaid_rpm.*
-	@rm -Rf release
-
 release: release/scylla-manager-$(VERSION_NAME).tar
 release/scylla-manager-$(VERSION_NAME).tar:
 	@echo "==> Archiving..."
@@ -38,6 +33,11 @@ release/rpm: release/scylla-manager-$(VERSION_NAME).tar
 release/docker: release/rpm
 	@echo "==> Building docker image..."
 	docker build --build-arg VERSION_NAME=$(VERSION_NAME) -t scylla-manager:$(VERSION_NAME) -f docker/Dockerfile .
+
+.PHONY: clean
+clean:
+	@rm -Rf /tmp/mermaid_rpm.*
+	@rm -Rf release
 
 .PHONY: inspect
 inspect:
