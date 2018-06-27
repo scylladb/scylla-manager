@@ -161,8 +161,8 @@ func (s segments) splitToShards(p *dht.Murmur3Partitioner) []segments {
 
 // validateShards checks that the shard split of segments is sound.
 func (s segments) validateShards(shards []segments, p *dht.Murmur3Partitioner) error {
-	startTokens := set.NewNonTS()
-	endTokens := set.NewNonTS()
+	startTokens := set.New(set.NonThreadSafe)
+	endTokens := set.New(set.NonThreadSafe)
 
 	// check that the s belong to the correct shards
 	for shard, s := range shards {

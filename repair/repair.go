@@ -90,7 +90,7 @@ func validateSubset(sub []string, all []string) error {
 		return nil
 	}
 
-	s := set.NewNonTS()
+	s := set.New(set.NonThreadSafe)
 	for _, t := range sub {
 		s.Add(t)
 	}

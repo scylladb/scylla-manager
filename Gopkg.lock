@@ -41,10 +41,10 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/fatih/set"
   packages = ["."]
-  revision = "57907de300222151a123d29255ed17f5ed43fad3"
-  version = "v0.1.0"
+  revision = "24e92685f4763e7a95dbcae78a571bdc8dc7f766"
 
 [[projects]]
   name = "github.com/go-chi/chi"
@@ -387,6 +387,12 @@
   version = "v0.3.0"
 
 [[projects]]
+  name = "gopkg.in/fatih/set.v0"
+  packages = ["."]
+  revision = "57907de300222151a123d29255ed17f5ed43fad3"
+  version = "v0.1.0"
+
+[[projects]]
   name = "gopkg.in/inf.v0"
   packages = ["."]
   revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
@@ -410,6 +416,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de691f39610dfd850270d0bb0cb18c2d6c5b13f5577135d77828a60df2cafc17"
+  inputs-digest = "e92f85f6450761c776d3d84a3e6573d82e2b676288b23f53d55e8e7e2d5c6ea7"
   solver-name = "gps-cdcl"
   solver-version = 1

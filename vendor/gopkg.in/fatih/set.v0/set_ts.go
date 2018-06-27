@@ -1,6 +1,8 @@
 package set
 
-import "sync"
+import (
+	"sync"
+)
 
 // Set defines a thread safe set data structure.
 type Set struct {
@@ -11,14 +13,22 @@ type Set struct {
 // New creates and initialize a new Set. It's accept a variable number of
 // arguments to populate the initial set. If nothing passed a Set with zero
 // size is created.
-func newTS() *Set {
+func New(items ...interface{}) *Set {
 	s := &Set{}
 	s.m = make(map[interface{}]struct{})
 
 	// Ensure interface compliance
 	var _ Interface = s
 
+	s.Add(items...)
 	return s
+}
+
+// New creates and initalizes a new Set interface. It accepts a variable
+// number of arguments to populate the initial set. If nothing is passed a
+// zero size Set based on the struct is created.
+func (s *Set) New(items ...interface{}) Interface {
+	return New(items...)
 }
 
 // Add includes the specified items (one or more) to the set. The underlying
@@ -114,16 +124,13 @@ func (s *Set) IsEqual(t Interface) bool {
 		defer conv.l.RUnlock()
 	}
 
-	// return false if they are no the same size
-	if sameSize := len(s.m) == t.Size(); !sameSize {
-		return false
-	}
-
 	equal := true
-	t.Each(func(item interface{}) bool {
-		_, equal = s.m[item]
-		return equal // if false, Each() will end
-	})
+	if equal = len(s.m) == t.Size(); equal {
+		t.Each(func(item interface{}) (equal bool) {
+			_, equal = s.m[item]
+			return
+		})
+	}
 
 	return equal
 }
@@ -174,11 +181,7 @@ func (s *Set) List() []interface{} {
 
 // Copy returns a new Set with a copy of s.
 func (s *Set) Copy() Interface {
-	u := newTS()
-	for item := range s.m {
-		u.Add(item)
-	}
-	return u
+	return New(s.List()...)
 }
 
 // Merge is like Union, however it modifies the current set it's applied on

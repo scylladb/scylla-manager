@@ -5,10 +5,10 @@ package cluster
 import (
 	"context"
 
-	"github.com/fatih/set"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"go.uber.org/multierr"
+	"gopkg.in/fatih/set.v0"
 )
 
 func validateHosts(ctx context.Context, c *Cluster, hostInfo func(ctx context.Context, c *Cluster, host string) (cluster, dc string, err error)) error {
