@@ -94,9 +94,11 @@ func (w *worker) exec(ctx context.Context) error {
 		err   error
 	}
 	var (
-		wch     = make(chan shardError)
-		werr    error
+		wch  = make(chan shardError)
+		werr error
+
 		stopped bool
+		failed  bool
 	)
 	for i, s := range w.shards {
 		i := i
@@ -108,14 +110,17 @@ func (w *worker) exec(ctx context.Context) error {
 	for range w.shards {
 		r := <-wch
 		if r.err != nil {
-			if errors.Cause(r.err) == errStopped {
-				stopped = true
-				continue
-			}
 			if w.Run.failFast {
 				w.abrt.Store(true)
 			}
-			werr = multierr.Append(werr, errors.Errorf("shard %d failed", r.shard))
+			switch errors.Cause(r.err) {
+			case errStopped:
+				stopped = true
+			case errFailed:
+				failed = true
+			default:
+				werr = multierr.Append(werr, errors.Errorf("shard %d failed", r.shard))
+			}
 		}
 	}
 
@@ -123,8 +128,11 @@ func (w *worker) exec(ctx context.Context) error {
 		w.Logger.Info(ctx, "Repair stopped")
 		return errStopped
 	}
-
 	if werr == nil {
+		if failed {
+			w.Logger.Info(ctx, "Repair done with errors")
+			return errFailed
+		}
 		w.Logger.Info(ctx, "Repair done")
 	} else {
 		w.Logger.Info(ctx, "Repair failed")
@@ -366,16 +374,16 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		savepoint()
 
 		if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
-			return errors.New("number of errors exceeded")
+			return errors.New("maximal number of failed segments exceeded")
 		}
 	}
 
 	if w.progress.SegmentError > 0 {
-		return errors.New("repair finished with errors")
+		w.logger.Info(ctx, "Repair done with errors")
+		return errFailed
 	}
 
 	w.logger.Info(ctx, "Repair done")
-
 	return nil
 }
 

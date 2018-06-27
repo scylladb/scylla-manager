@@ -385,7 +385,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("repair error", func(t *testing.T) {
+	t.Run("repair error retry", func(t *testing.T) {
 		c := defaultConfig()
 		c.ErrorBackoff = 1 * time.Second
 
@@ -413,46 +413,20 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("When: node1 is 95% repaired")
 		h.assertProgress(0, node1, 95, longWait)
 
-		Print("Then: status is StatusError")
-		h.assertStatus(runner.StatusError, shortWait)
-
-		// FIXME this should be changed to handle errors internally see scylladb/mermaid#461
-		//Print("Then: repair of node2 advances")
-		//h.assertProgress(0, node2, 1, longWait)
-		//
-		//Print("When: node2 is 100% repaired")
-		//h.assertProgress(0, node2, 100, longWait)
-		//
-		//Print("Then: status is StatusError")
-		//h.assertStatus(runner.StatusError, shortWait)
-
-		Print("When: create a new task")
-		h.runID = uuid.NewTime()
-
-		Print("And: run repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
-			t.Fatal(err)
-		}
-
-		Print("Then: repair of node1 continues")
-		h.assertProgress(0, node0, 100, shortWait)
-		h.assertProgress(0, node1, 95, now)
-		h.assertProgress(0, node2, 0, now)
-
-		Print("When: repair of node2 advances")
-		h.assertProgress(0, node2, 1, shortWait)
-
-		Print("Then: node1 is 100% repaired")
-		h.assertProgress(0, node1, 100, now)
+		Print("Then: repair of node2 advances")
+		h.assertProgress(0, node2, 1, longWait)
 
 		Print("When: node2 is 100% repaired")
 		h.assertProgress(0, node2, 100, longWait)
 
-		Print("Then: status is StatusDone")
+		Print("Then: node1 is retries repair")
+		h.assertProgress(0, node1, 100, shortWait)
+
+		Print("And: status is StatusDone")
 		h.assertStatus(runner.StatusDone, shortWait)
 	})
 
-	t.Run("repair fail fast", func(t *testing.T) {
+	t.Run("repair error fail fast", func(t *testing.T) {
 		c := defaultConfig()
 		h := newRepairTestHelper(t, c)
 		defer h.close()
