@@ -461,11 +461,11 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 
 		// check if hosts did not change
-		prevHosts := set.NewNonTS()
+		prevHosts := set.New(set.NonThreadSafe)
 		for _, p := range prog {
 			prevHosts.Add(p.Host)
 		}
-		hosts := set.NewNonTS()
+		hosts := set.New(set.NonThreadSafe)
 		for host := range hostSegments {
 			hosts.Add(host)
 		}
