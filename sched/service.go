@@ -26,21 +26,21 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "task",
 		Name:      "active_count",
-		Help:      "Total number of active tasks.",
-	}, []string{"cluster", "type"})
+		Help:      "Total number of active (in-flight) tasks.",
+	}, []string{"cluster", "type", "task"})
 
-	taskStatusTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	taskRunTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "task",
-		Name:      "status_total",
-		Help:      "Total number of tasks .",
-	}, []string{"cluster", "type", "status"})
+		Name:      "run_total",
+		Help:      "Total number of task runs.",
+	}, []string{"cluster", "type", "task", "status"})
 )
 
 func init() {
 	prometheus.MustRegister(
 		taskActiveCount,
-		taskStatusTotal,
+		taskRunTotal,
 	)
 }
 
@@ -347,6 +347,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 	taskActiveCount.With(prometheus.Labels{
 		"cluster": t.clusterName,
 		"type":    t.Type.String(),
+		"task":    t.ID.String(),
 	}).Inc()
 
 	run.Status = runner.StatusRunning
@@ -369,11 +370,13 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 		taskActiveCount.With(prometheus.Labels{
 			"cluster": t.clusterName,
 			"type":    t.Type.String(),
+			"task":    t.ID.String(),
 		}).Dec()
 
-		taskStatusTotal.With(prometheus.Labels{
+		taskRunTotal.With(prometheus.Labels{
 			"cluster": t.clusterName,
 			"type":    t.Type.String(),
+			"task":    t.ID.String(),
 			"status":  run.Status.String(),
 		}).Inc()
 	}()
