@@ -28,9 +28,10 @@ check: .check-copyright .check-timeutc .check-misspell .check-lint .check-vendor
 .PHONY: .check-timeutc
 .check-timeutc:
 	@set -e; for f in `$(GOFILES)`; do \
-		[[ $$f =~ /scyllaclient/internal/ ]] || \
+		[[ $$f =~ /internal/timeutc/ ]] || \
+		[[ $$f =~ /internal/retryablehttp/ ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
-		[[ $$f =~ /timeutc/ ]] || \
+		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		[ "`grep 'time.\(Now\|Parse(\|Since\)' $$f`" == "" ] || \
 		(echo $$f; false); \
 	done
