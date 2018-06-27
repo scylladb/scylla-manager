@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
 )
@@ -55,10 +56,17 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 	}
 	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
 
-	t := transport{
+	t := retryablehttp.NewTransport(transport{
 		parent: rt,
 		pool:   pool,
 		logger: l,
+	}, l)
+	t.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+		// do not retry ping
+		if resp != nil && resp.Request.URL.Path == "/" {
+			return false, nil
+		}
+		return retryablehttp.DefaultRetryPolicy(resp, err)
 	}
 
 	disableOpenAPIDebugOnce.Do(func() {
