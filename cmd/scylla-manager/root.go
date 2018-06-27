@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"text/template"
 	"time"
@@ -96,6 +97,7 @@ var rootCmd = &cobra.Command{
 			}
 			logger.Sync() // nolint
 		}()
+		logger.Debug(ctx, "Using config", "config", obfuscatePasswords(config))
 
 		// set gocql logger
 		gocql.Logger = gocqllog.StdLogger{
@@ -262,4 +264,10 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	}
 
 	return c
+}
+
+func obfuscatePasswords(config *serverConfig) serverConfig {
+	cfg := *config
+	cfg.Database.Password = strings.Repeat("*", len(cfg.Database.Password))
+	return cfg
 }
