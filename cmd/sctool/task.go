@@ -425,7 +425,7 @@ func printRepairUnitDetailedProgress(w io.Writer, prog *mermaidclient.RepairProg
 		t := newTable("host", "shard", "progress", "segment_count", "segment_success", "segment_error")
 		for _, n := range u.Nodes {
 			for i, s := range n.Shards {
-				t.AddRow(n.Host, i, fmt.Sprintf("%d%%", u.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
+				t.AddRow(n.Host, i, fmt.Sprintf("%d%%", s.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
 			}
 		}
 		fmt.Fprintln(w, t)
