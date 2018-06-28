@@ -42,7 +42,7 @@ func taskJoin(taskType string, taskID interface{}) string {
 
 func dumpMap(m map[string]interface{}) string {
 	if len(m) == 0 {
-		return "-"
+		return ""
 	}
 
 	keys := make([]string, 0, len(m))
@@ -56,4 +56,8 @@ func dumpMap(m map[string]interface{}) string {
 		s = append(s, fmt.Sprint(k, ":", m[k]))
 	}
 	return strings.Join(s, ", ")
+}
+
+func formatPercent(p int64) string {
+	return fmt.Sprint(p, "%")
 }

@@ -37,6 +37,8 @@ func groupSegmentsByHost(dc string, tr TokenRangesKind, ring []*scyllaclient.Tok
 			hosts = r.Hosts[dc][1:]
 		case AllTonenRanges:
 			hosts = r.Hosts[dc]
+		default:
+			return nil, errors.New("no token ranges specified")
 		}
 
 		for _, h := range hosts {

@@ -143,7 +143,10 @@ func (s *Service) unlockCluster(run *Run) error {
 
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties) (Target, error) {
-	var tp taskProperties
+	tp := taskProperties{
+		FailFast:    false,
+		TokenRanges: PrimaryTokenRanges,
+	}
 
 	if err := json.Unmarshal(p, &tp); err != nil {
 		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "unable to parse runner properties: %s", p), "")

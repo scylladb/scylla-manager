@@ -36,6 +36,10 @@ type ExtendedTask struct {
 	// name
 	Name string `json:"name,omitempty"`
 
+	// next activation
+	// Format: date-time
+	NextActivation strfmt.DateTime `json:"next_activation,omitempty"`
+
 	// properties
 	Properties interface{} `json:"properties,omitempty"`
 
@@ -64,6 +68,10 @@ func (m *ExtendedTask) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateNextActivation(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateSchedule(formats); err != nil {
 		res = append(res, err)
 	}
@@ -85,6 +93,19 @@ func (m *ExtendedTask) validateEndTime(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("end_time", "body", "date-time", m.EndTime.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ExtendedTask) validateNextActivation(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.NextActivation) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("next_activation", "body", "date-time", m.NextActivation.String(), formats); err != nil {
 		return err
 	}
 

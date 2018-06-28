@@ -196,7 +196,7 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 		s.logger.Error(ctx, "Failed to get history of task", "task", t, "error", err)
 		return
 	}
-	activation := t.Sched.nextActivation(now, runs)
+	activation := t.Sched.NextActivation(now, runs)
 	if activation.IsZero() {
 		s.logger.Debug(ctx, "No activation", "task", t)
 		return

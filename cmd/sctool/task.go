@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -82,36 +81,23 @@ var taskListCmd = &cobra.Command{
 }
 
 func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
-	t := newTable("task", "start date", "int.", "ret.", "properties", "run start", "status")
-	for _, task := range tasks {
-		if !all && !task.Enabled {
-			continue
+	p := newTable("task", "next run", "ret.", "properties", "status")
+	for _, t := range tasks {
+		id := taskJoin(t.Type, t.ID)
+		if all && !t.Enabled {
+			id = "*" + id
 		}
-
-		fields := make([]interface{}, 0, 8)
-		fields = append(fields, taskJoin(task.Type, task.ID))
-		if task.Schedule != nil {
-			fields = append(fields, formatTime(task.Schedule.StartDate), task.Schedule.IntervalDays, task.Schedule.NumRetries)
-		} else {
-			fields = append(fields, "-", "-", "-")
+		r := formatTime(t.NextActivation)
+		if t.Schedule.IntervalDays != 0 {
+			r += fmt.Sprint(" (+", t.Schedule.IntervalDays, " days)")
 		}
-
-		if props, ok := task.Properties.(map[string]interface{}); ok {
-			fields = append(fields, dumpMap(props))
+		s := t.Status
+		if t.Cause != "" {
+			s += " " + t.Cause
 		}
-
-		for _, f := range []string{
-			formatTime(task.StartTime),
-			task.Status,
-		} {
-			if f == "" {
-				f = "-"
-			}
-			fields = append(fields, f)
-		}
-		t.AddRow(fields...)
+		p.AddRow(id, r, t.Schedule.NumRetries, dumpMap(t.Properties.(map[string]interface{})), s)
 	}
-	fmt.Fprint(w, t)
+	fmt.Fprint(w, p)
 }
 
 func init() {
@@ -119,9 +105,9 @@ func init() {
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
-	fs.Bool("all", false, "list disabled tasks as well")
-	fs.String("status", "", "filter tasks according to last run status")
-	fs.StringP("type", "", "", "task type")
+	fs.BoolP("all", "a", false, "list disabled tasks as well")
+	fs.StringP("status", "s", "", "filter tasks according to last run status")
+	fs.StringP("type", "t", "", "task type")
 }
 
 var taskStartCmd = &cobra.Command{
@@ -196,24 +182,14 @@ var taskHistoryCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		t := newTable("id", "start time", "duration", "status", "cause")
+
+		t := newTable("id", "start time", "end time", "duration", "status")
 		for _, r := range runs {
-			fields := []interface{}{r.ID}
-			for _, f := range []string{
-				formatTime(r.StartTime),
-				duration(r.StartTime, r.EndTime),
-			} {
-				if f == "" {
-					f = "-"
-				}
-				fields = append(fields, f)
+			s := r.Status
+			if r.Cause != "" {
+				s += " " + r.Cause
 			}
-			cause := "-"
-			if r.Status == "error" {
-				cause = r.Cause
-			}
-			fields = append(fields, r.Status, cause)
-			t.AddRow(fields...)
+			t.AddRow(r.ID, formatTime(r.StartTime), formatTime(r.EndTime), formatDuration(r.StartTime, r.EndTime), s)
 		}
 		fmt.Fprint(cmd.OutOrStdout(), t)
 
@@ -225,7 +201,7 @@ func init() {
 	cmd := taskHistoryCmd
 	register(cmd, taskCmd)
 
-	cmd.Flags().Int("limit", 10, "limit the number of returned results")
+	cmd.Flags().Int64("limit", 10, "limit the number of returned results")
 }
 
 var taskUpdateCmd = &cobra.Command{
@@ -366,69 +342,92 @@ var taskProgressCmd = &cobra.Command{
 		}
 		run := hist[0]
 
-		printProgressHeader(w, run)
-
-		if run.Status == runner.StatusError.String() {
-			return nil
-		}
+		p := newTable()
+		addProgressHeader(p, run)
 
 		prog, err := client.RepairProgress(ctx, cfgCluster, t.ID, run.ID)
 		if err != nil {
 			return printableError{err}
 		}
+		if prog.PercentComplete == 0 {
+			if _, err := w.Write([]byte(p.String())); err != nil {
+				return printableError{err}
+			}
+			return nil
+		}
 
-		printRepairProgressHeader(w, prog)
-		printRepairUnitProgress(w, prog)
+		addRepairProgressHeader(p, prog)
+		p.AddSeparator()
+		addRepairUnitProgress(p, prog)
+		if _, err := w.Write([]byte(p.String())); err != nil {
+			return printableError{err}
+		}
 
 		details, err := cmd.Flags().GetBool("details")
 		if err != nil {
 			return printableError{err}
 		}
 		if details {
-			printRepairUnitDetailedProgress(w, prog)
+			d := newTable()
+			for i, u := range prog.Units {
+				if i > 0 {
+					d.AddSeparator()
+				}
+				d.AddRow(u.Unit.Keyspace, "shard", "progress", "segment_count", "segment_success", "segment_error")
+				if len(u.Nodes) > 0 {
+					d.AddSeparator()
+					addRepairUnitDetailedProgress(d, u)
+				}
+			}
+			if _, err := w.Write([]byte(d.String())); err != nil {
+				return printableError{err}
+			}
 		}
+
 		return nil
 	},
 }
 
-func printProgressHeader(w io.Writer, run *mermaidclient.TaskRun) {
-	fmt.Fprintf(w, "Status:\t\t%s", run.Status)
+func addProgressHeader(t *table, run *mermaidclient.TaskRun) {
+	t.AddRow("Status", run.Status)
 	if run.Cause != "" {
-		fmt.Fprintf(w, " (%s)", run.Cause)
+		t.AddRow("Cause", run.Cause)
 	}
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Start time:\t%s\n", formatTime(run.StartTime))
+	t.AddRow("Start time", formatTime(run.StartTime))
 	if !isZero(run.EndTime) {
-		fmt.Fprintf(w, "End time:\t%s\n", formatTime(run.EndTime))
+		t.AddRow("End time", formatTime(run.EndTime))
 	}
-	fmt.Fprintf(w, "Duration:\t%s\n", duration(run.StartTime, run.EndTime))
-	fmt.Fprintln(w)
+	t.AddRow("Duration", formatDuration(run.StartTime, run.EndTime))
 }
 
-func printRepairProgressHeader(w io.Writer, prog *mermaidclient.RepairProgress) {
-	fmt.Fprintf(w, "Token ranges:\t\t%s\n", prog.Ranges)
-	fmt.Fprintln(w)
-}
-
-func printRepairUnitProgress(w io.Writer, prog *mermaidclient.RepairProgress) {
-	t := newTable("keyspace", "progress")
-	t.AddRow("total", fmt.Sprintf("%d%%", prog.PercentComplete))
-	for _, u := range prog.Units {
-		t.AddRow(u.Unit.Keyspace, fmt.Sprintf("%d%%", u.PercentComplete))
+func addRepairProgressHeader(t *table, prog *mermaidclient.RepairProgress) {
+	t.AddRow("Progress", formatPercent(prog.PercentComplete))
+	if prog.Ranges != "" {
+		t.AddRow("Token ranges", prog.Ranges)
 	}
-	fmt.Fprintln(w, t)
 }
 
-func printRepairUnitDetailedProgress(w io.Writer, prog *mermaidclient.RepairProgress) {
+func addRepairUnitProgress(t *table, prog *mermaidclient.RepairProgress) {
 	for _, u := range prog.Units {
-		fmt.Fprintln(w, u.Unit.Keyspace)
-		t := newTable("host", "shard", "progress", "segment_count", "segment_success", "segment_error")
+		var se int64
 		for _, n := range u.Nodes {
-			for i, s := range n.Shards {
-				t.AddRow(n.Host, i, fmt.Sprintf("%d%%", s.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
+			for _, s := range n.Shards {
+				se += s.SegmentError
 			}
 		}
-		fmt.Fprintln(w, t)
+		p := formatPercent(u.PercentComplete)
+		if se > 0 {
+			p += " (has errors)"
+		}
+		t.AddRow(u.Unit.Keyspace, p)
+	}
+}
+
+func addRepairUnitDetailedProgress(t *table, u *mermaidclient.RepairUnitProgress) {
+	for _, n := range u.Nodes {
+		for i, s := range n.Shards {
+			t.AddRow(n.Host, i, fmt.Sprintf("%d%%", s.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
+		}
 	}
 }
 

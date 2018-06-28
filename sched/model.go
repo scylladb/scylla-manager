@@ -73,7 +73,8 @@ func (s *Schedule) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) e
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-func (s *Schedule) nextActivation(now time.Time, runs []*Run) time.Time {
+// NextActivation generates an new start time based on schedule and run history.
+func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 	n := len(runs)
 	if n == 0 && s.StartDate.After(now.Add(taskStartNowSlack)) {
 		return s.StartDate
