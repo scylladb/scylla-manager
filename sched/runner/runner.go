@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -71,3 +72,21 @@ type Runner interface {
 	Stop(ctx context.Context, d Descriptor) error
 	Status(ctx context.Context, d Descriptor) (Status, string, error)
 }
+
+type nopRunner struct{}
+
+func (nopRunner) Run(ctx context.Context, d Descriptor, p Properties) error {
+	return errors.New("Nop runner")
+}
+
+func (nopRunner) Stop(ctx context.Context, d Descriptor) error {
+	return errors.New("Nop runner")
+}
+
+func (nopRunner) Status(ctx context.Context, d Descriptor) (Status, string, error) {
+	return "", "", errors.New("Nop runner")
+}
+
+// NopRunner is a runner implementation that does nothing and always returns
+// error.
+var NopRunner = nopRunner{}

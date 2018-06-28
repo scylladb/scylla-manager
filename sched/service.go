@@ -180,7 +180,7 @@ func (s *Service) taskRunner(t *Task) runner.Runner {
 		return r
 	}
 
-	return nilRunner{}
+	return runner.NopRunner
 }
 
 // SetRunner assigns a given runner for a given task type.
@@ -730,18 +730,4 @@ func (s *Service) Close() {
 	s.tasks = nil
 	s.taskLock.Unlock()
 	s.wg.Wait()
-}
-
-type nilRunner struct{}
-
-func (nilRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
-	return errors.New("task type maps to nil runner")
-}
-
-func (nilRunner) Stop(ctx context.Context, d runner.Descriptor) error {
-	return errors.New("task type maps to nil runner")
-}
-
-func (nilRunner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
-	return "", "", errors.New("task type maps to nil runner")
 }
