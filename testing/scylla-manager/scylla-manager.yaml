@@ -12,4 +12,4 @@ database:
   timeout: 1s
 
 repair:
-  auto_schedule_start_time_margin: 1m
+  segments_per_repair: 10
