@@ -4,7 +4,6 @@ package repair
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/sched/runner"
@@ -36,14 +35,5 @@ func (r Runner) Status(ctx context.Context, d runner.Descriptor) (runner.Status,
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to load run")
 	}
-	switch run.Status {
-	case runner.StatusRunning, runner.StatusStopping:
-		return runner.StatusRunning, "", nil
-	case runner.StatusError:
-		return runner.StatusError, run.Cause, nil
-	case runner.StatusDone, runner.StatusStopped:
-		return runner.StatusStopped, "", nil
-	default:
-		return "", "", fmt.Errorf("unsupported repair state %q", run.Status)
-	}
+	return run.Status, run.Cause, nil
 }
