@@ -95,6 +95,20 @@ func (h *repairTestHelper) assertProgress(unit int, node string, percent int, wa
 	}, _interval, wait)
 }
 
+func (h *repairTestHelper) assertDC(dc string, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p := h.dcs()
+		for _, d := range p {
+			if d == dc {
+				return true
+			}
+		}
+		return false
+	}, _interval, wait)
+}
+
 func (h *repairTestHelper) progress(unit int, node string) int {
 	h.t.Helper()
 
@@ -110,6 +124,17 @@ func (h *repairTestHelper) progress(unit int, node string) int {
 	}
 
 	return -1
+}
+
+func (h *repairTestHelper) dcs() []string {
+	h.t.Helper()
+
+	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	return p.DC
 }
 
 func (h *repairTestHelper) close() {
@@ -185,7 +210,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 
 	singleUnit := repair.Target{
-		Units:       []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_0"}}},
+		Units: []repair.Unit{
+			{
+				Keyspace: "test_repair",
+				Tables:   []string{"test_table_0"},
+			},
+		},
+		DC:          []string{"dc1", "dc2"},
 		TokenRanges: repair.PrimaryTokenRanges,
 		Opts:        runner.DefaultOpts,
 	}
@@ -195,6 +226,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
 			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 		},
+		DC:          []string{"dc1", "dc2"},
 		TokenRanges: repair.PrimaryTokenRanges,
 		Opts:        runner.DefaultOpts,
 	}
@@ -250,6 +282,26 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: status is StatusDone")
 		h.assertStatus(runner.StatusDone, shortWait)
+	})
+
+	t.Run("repair dc", func(t *testing.T) {
+		h := newRepairTestHelper(t, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		units := multipleUnits
+		units.DC = []string{"dc2"}
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("Then: DC is dc2")
+		h.assertDC("dc2", longWait)
 	})
 
 	t.Run("repair stop", func(t *testing.T) {

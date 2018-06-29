@@ -5,13 +5,16 @@ package scyllaclient
 import (
 	"context"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	log "github.com/scylladb/golog"
+	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 func TestWithPort(t *testing.T) {
@@ -100,6 +103,35 @@ func TestClientDescribeRing(t *testing.T) {
 	}
 	if diff := cmp.Diff(trs[0], expected); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestClientDatacenters(t *testing.T) {
+	t.Parallel()
+
+	m := func(req *http.Request) string {
+		if strings.HasPrefix(req.URL.Path, "/storage_service/host_id") {
+			return "testdata/host_id_map.json"
+		}
+		if strings.HasPrefix(req.URL.Path, "/snitch/datacenter") {
+			if req.FormValue("host") == "192.168.100.12" {
+				return "testdata/host_id_dc_1.json"
+			}
+			return "testdata/host_id_dc_2.json"
+		}
+		return ""
+	}
+
+	s := mockServerMatching(t, m)
+	defer s.Close()
+
+	c := testClient(s)
+	dcs, err := c.Datacenters(context.Background())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(dcs) != 2 {
+		t.Errorf("expected 2 dcs got %d", len(dcs))
 	}
 }
 
@@ -254,10 +286,65 @@ func TestClientPing(t *testing.T) {
 	}
 }
 
+func TestPickNRandomHosts(t *testing.T) {
+	table := []struct {
+		H []string
+		N int
+		E int
+	}{
+		{
+			H: []string{"a"},
+			N: 1,
+			E: 1,
+		},
+		{
+			H: []string{"a"},
+			N: 4,
+			E: 1,
+		},
+		{
+			H: []string{"a", "a"},
+			N: 2,
+			E: 2,
+		},
+		{
+			H: []string{"a", "b", "c"},
+			N: 2,
+			E: 2,
+		},
+	}
+
+	r := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
+	for i, test := range table {
+		picked := pickNRandomHosts(r, test.N, test.H)
+		if len(picked) != test.E {
+			t.Errorf("picked %d hosts, expected %d in test %d", len(picked), test.E, i)
+		}
+	}
+}
+
+// Matcher defines a function used to determine the file to return from a given mockServer call.
+type Matcher func(req *http.Request) string
+
+// FileMatcher is a simple matcher created for backwards compatibility.
+func FileMatcher(file string) Matcher {
+	return func(req *http.Request) string {
+		return file
+	}
+}
+
 func mockServer(t *testing.T, file string) *httptest.Server {
+	return mockServerMatching(t, FileMatcher(file))
+}
+
+func mockServerMatching(t *testing.T, m Matcher) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+
 		// emulate ScyllaDB bug
 		r.Header.Set("Content-Type", "text/plain")
+
+		file := m(r)
 
 		f, err := os.Open(file)
 		if err != nil {

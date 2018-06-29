@@ -101,12 +101,14 @@ type UnitProgress struct {
 type Progress struct {
 	progress
 	Units       []UnitProgress  `json:"units,omitempty"`
+	DC          []string        `json:"dcs,omitempty"`
 	TokenRanges TokenRangesKind `json:"token_ranges"`
 }
 
 // Target specifies what shall be repaired.
 type Target struct {
 	Units       []Unit
+	DC          []string
 	FailFast    bool
 	TokenRanges TokenRangesKind
 	Opts        runner.Opts
@@ -121,6 +123,7 @@ type Run struct {
 	PrevID       uuid.UUID
 	TopologyHash uuid.UUID
 	Units        []Unit
+	DC           []string
 	TokenRanges  TokenRangesKind
 	Status       runner.Status
 	Cause        string
@@ -181,7 +184,8 @@ func (p *RunProgress) PercentComplete() int {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Filter      []string        `json:"filter"`
-	FailFast    bool            `json:"fail_fast"`
+	Keyspace    []string        `json:"keyspace"`
+	DC          []string        `json:"dc"`
 	TokenRanges TokenRangesKind `json:"token_ranges"`
+	FailFast    bool            `json:"fail_fast"`
 }

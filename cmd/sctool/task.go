@@ -402,6 +402,9 @@ func addProgressHeader(t *table, run *mermaidclient.TaskRun) {
 
 func addRepairProgressHeader(t *table, prog *mermaidclient.RepairProgress) {
 	t.AddRow("Progress", formatPercent(prog.PercentComplete))
+	if len(prog.Dcs) > 0 {
+		t.AddRow("Datacenters", prog.Dcs)
+	}
 	if prog.Ranges != "" {
 		t.AddRow("Token ranges", prog.Ranges)
 	}

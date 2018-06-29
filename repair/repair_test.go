@@ -344,7 +344,7 @@ func TestAggregateUnitProgress(t *testing.T) {
 	}
 }
 
-func TestValidateFilters(t *testing.T) {
+func TestValidateKeyspaceFilters(t *testing.T) {
 	table := []struct {
 		F []string
 		E string
@@ -361,7 +361,7 @@ func TestValidateFilters(t *testing.T) {
 	}
 
 	for i, test := range table {
-		if err := validateFilters(test.F); err == nil || err.Error() != test.E {
+		if err := validateKeyspaceFilters(test.F); err == nil || err.Error() != test.E {
 			t.Error(i, "got", err, "expected", test.E)
 		}
 	}
@@ -402,7 +402,7 @@ func TestDecorateFilters(t *testing.T) {
 	}
 
 	for i, test := range table {
-		f := decorateFilters(test.F)
+		f := decorateKeyspaceFilters(test.F)
 		if !cmp.Equal(test.E, f, cmpopts.EquateEmpty()) {
 			t.Error(i, "expected", test.E, "got", f)
 		}

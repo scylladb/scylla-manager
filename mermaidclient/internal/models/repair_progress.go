@@ -18,6 +18,9 @@ import (
 // swagger:model repairProgress
 type RepairProgress struct {
 
+	// dcs
+	Dcs []string `json:"dcs"`
+
 	// percent complete
 	PercentComplete int64 `json:"percent_complete,omitempty"`
 

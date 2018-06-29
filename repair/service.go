@@ -159,6 +159,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 	}
 
 	var err error
+	t.DC, err = s.getRunDCs(ctx, clusterID, &tp)
+	if err != nil {
+		return t, err
+	}
+
 	t.Units, err = s.getUnits(ctx, clusterID, &tp)
 	if err != nil {
 		return t, err
@@ -171,11 +176,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 // supplied filter read from the properties. If no units are found or the filter
 // contains any invalid filter a validation error is returned.
 func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskProperties) ([]Unit, error) {
-	if err := validateFilters(tp.Filter); err != nil {
+	if err := validateKeyspaceFilters(tp.Keyspace); err != nil {
 		return nil, err
 	}
 
-	inclExcl, err := inexlist.ParseInExList(decorateFilters(tp.Filter))
+	inclExcl, err := inexlist.ParseInExList(decorateKeyspaceFilters(tp.Keyspace))
 	if err != nil {
 		return nil, err
 	}
@@ -199,27 +204,59 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskPro
 			tables[i] = prefix + tables[i]
 		}
 
-		filtered := inclExcl.Filter(tables)
-		for i := 0; i < len(filtered); i++ {
-			filtered[i] = strings.TrimPrefix(filtered[i], prefix)
+		filteredTables := inclExcl.Filter(tables)
+		for i := 0; i < len(filteredTables); i++ {
+			filteredTables[i] = strings.TrimPrefix(filteredTables[i], prefix)
 		}
 
-		if len(filtered) > 0 {
-			units = append(units, Unit{
-				Keyspace:  keyspace,
-				Tables:    filtered,
-				allTables: len(filtered) == len(tables),
-			})
+		if len(filteredTables) == 0 {
+			continue
 		}
+
+		unit := Unit{
+			Keyspace:  keyspace,
+			Tables:    filteredTables,
+			allTables: len(filteredTables) == len(tables),
+		}
+
+		units = append(units, unit)
 	}
 
 	if len(units) == 0 {
-		return nil, mermaid.ErrValidate(errors.Errorf("no matching units found for filter"), "")
+		return nil, mermaid.ErrValidate(errors.Errorf("no matching units found for filters, ks=%s, dc=%s", tp.Keyspace, tp.DC), "")
 	}
 
 	sortUnits(units, inclExcl)
 
 	return units, nil
+}
+
+// getRunDCs loads this clusters available datacenters filtered through the
+// supplied filter read from the properties. If no DCs are found or the filter
+// contains any invalid filter a validation error is returned.
+func (s *Service) getRunDCs(ctx context.Context, clusterID uuid.UUID, tp *taskProperties) ([]string, error) {
+	dcInclExcl, err := inexlist.ParseInExList(decorateDCFilters(tp.DC))
+	if err != nil {
+		return nil, err
+	}
+
+	c, _ := s.client(ctx, clusterID)
+	dcMap, err := c.Datacenters(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to read datacenters")
+	}
+
+	dcs := make([]string, 0, len(dcMap))
+	for dc := range dcMap {
+		dcs = append(dcs, dc)
+	}
+
+	filteredDCs := dcInclExcl.Filter(dcs)
+	if len(filteredDCs) == 0 {
+		return nil, mermaid.ErrValidate(errors.Errorf("no matching dc found for dc=%s", tp.DC), "")
+	}
+
+	return filteredDCs, nil
 }
 
 // Repair starts an asynchronous repair process.
@@ -236,6 +273,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		TaskID:      taskID,
 		ID:          runID,
 		Units:       t.Units,
+		DC:          t.DC,
 		TokenRanges: t.TokenRanges,
 		Status:      runner.StatusRunning,
 		StartTime:   timeutc.Now(),
@@ -426,15 +464,14 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	u := run.Units[unit]
 
 	// get the ring description
-	_, ring, err := client.DescribeRing(ctx, u.Keyspace)
+	ksDcs, ring, err := client.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the ring description")
 	}
 
-	// get local datacenter name
-	dc, err := client.Datacenter(ctx)
+	dc, err := s.getCoordinatorDC(ctx, run.DC, ksDcs, client)
 	if err != nil {
-		return errors.Wrap(err, "failed to get the local datacenter name")
+		return errors.Wrap(err, "unable to find dc")
 	}
 	s.logger.Debug(ctx, "Using DC", "dc", dc)
 
@@ -567,6 +604,46 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	}
 
 	return errFailed
+}
+
+func (s *Service) getCoordinatorDC(ctx context.Context, runDCs []string, ksDcs []string, client *scyllaclient.Client) (string, error) {
+	localDC, err := client.Datacenter(ctx)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to get local datacenter")
+	}
+
+	runDCsSet := set.New(set.NonThreadSafe)
+	for _, dc := range runDCs {
+		runDCsSet.Add(dc)
+	}
+	if runDCsSet.Has(localDC) {
+		return localDC, nil
+	}
+
+	allDCs, err := client.Datacenters(ctx)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to get cluster datacenters")
+	}
+	allDCsSet := set.New(set.NonThreadSafe)
+	for dc := range allDCs {
+		allDCsSet.Add(dc)
+	}
+	if runDCsSet.IsEmpty() {
+		return "", errors.New("no filtered dcs available in unit")
+	}
+	commonDC := set.Intersection(allDCsSet, runDCsSet)
+	if commonDC.IsEmpty() {
+		return "", errors.Errorf("no common dcs between the filtered and keyspace dcs")
+	}
+
+	dcHosts := make(map[string][]string)
+	for dc, hosts := range allDCs {
+		if commonDC.Has(dc) {
+			dcHosts[dc] = hosts
+		}
+	}
+
+	return client.ClosestDC(ctx, dcHosts)
 }
 
 func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {

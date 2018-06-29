@@ -6,6 +6,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"math"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -25,6 +27,7 @@ import (
 	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
+	"go.uber.org/multierr"
 )
 
 // DefaultAPIPort is Scylla API port.
@@ -121,7 +124,66 @@ func (c *Client) Datacenter(ctx context.Context) (string, error) {
 	return resp.Payload, nil
 }
 
-// Keyspaces retrurn a list of all the keyspaces.
+type dcHost struct {
+	dc   string
+	host string
+	err  error
+}
+
+// Datacenters returns the available datacenters in this cluster.
+func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
+	resp, err := c.operations.GetHostIDMap(operations.NewGetHostIDMapParams().WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(chan dcHost, len(resp.Payload)+1)
+
+	for _, p := range resp.Payload {
+		go func(ctx context.Context, out chan dcHost, host string) {
+			dc, err := c.HostDatacenter(ctx, host)
+			if err != nil {
+				out <- dcHost{
+					err: err,
+				}
+				return
+			}
+			out <- dcHost{
+				dc:   dc,
+				host: host,
+			}
+		}(ctx, out, p.Key)
+	}
+
+	res := make(map[string][]string)
+	var errs error
+
+	for i := 0; i < len(resp.Payload); i++ {
+		dcHost := <-out
+		if dcHost.err != nil {
+			errs = multierr.Append(errs, err)
+			continue
+		}
+		if dc, ok := res[dcHost.dc]; ok {
+			res[dcHost.dc] = append(dc, dcHost.host)
+		} else {
+			res[dcHost.dc] = []string{dcHost.host}
+		}
+	}
+
+	return res, errs
+}
+
+// HostDatacenter looks up the datacenter that the given host belongs to.
+func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error) {
+	resp, err := c.operations.GetDatacenter(operations.NewGetDatacenterParams().WithContext(ctx).WithHost(&host))
+	if err != nil {
+		return "", err
+	}
+	return resp.Payload, nil
+}
+
+// Keyspaces return a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 	resp, err := c.operations.GetKeyspaces(&operations.GetKeyspacesParams{
 		Context: ctx,
@@ -188,6 +250,84 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 	return dcs.Slice(), trs, nil
 }
 
+// ClosestDC takes set of DCs with hosts and return the one that is closest.
+// Close is determined as the lowest latency over 10 Ping() invocations across a
+// random selection of hosts for each DC.
+func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) (string, error) {
+	if len(dcs) == 0 {
+		return "", errors.Errorf("no dcs to choose from")
+	}
+
+	var (
+		fastestDC   string
+		fastestTime int64 = math.MaxInt64
+	)
+	r := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
+	for dc, hosts := range dcs {
+		hosts = pickNRandomHosts(r, 2, hosts)
+		ts, err := c.measureHosts(ctx, hosts)
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to measure the latency of the hosts %s", hosts)
+		}
+		if ts < fastestTime {
+			fastestDC = dc
+			fastestTime = ts
+		}
+	}
+
+	return fastestDC, nil
+}
+
+func pickNRandomHosts(r *rand.Rand, n int, hosts []string) []string {
+	if n >= len(hosts) {
+		return hosts
+	}
+
+	idxs := make(map[int]struct{})
+	rh := make([]string, 0, n)
+	for ; n > 0; n-- {
+		idx := r.Intn(len(hosts))
+		if _, ok := idxs[idx]; !ok {
+			idxs[idx] = struct{}{}
+			rh = append(rh, hosts[idx])
+		} else {
+			n++
+		}
+	}
+	return rh
+}
+
+func (c *Client) measureHosts(ctx context.Context, hosts []string) (int64, error) {
+	var min int64 = math.MaxInt64
+	for _, host := range hosts {
+		cur, err := c.measure(ctx, host, 3)
+		if err != nil {
+			return 0, err
+		}
+		if cur < min {
+			min = cur
+		}
+	}
+	return min, nil
+}
+func (c *Client) measure(ctx context.Context, host string, laps int) (int64, error) {
+	_, err := c.Ping(ctx, host)
+	if err != nil {
+		return 0, err
+	}
+	var sum int64
+
+	for i := 0; i < laps; i++ {
+		d, err := c.Ping(ctx, host)
+		if err != nil {
+			return 0, err
+		}
+		sum += int64(d)
+	}
+
+	return sum / int64(laps), nil
+}
+
 // HostPendingCompactions returns number of pending compactions on a host.
 func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
 	resp, err := c.operations.GetAllPendingCompactions(&operations.GetAllPendingCompactionsParams{
@@ -216,6 +356,7 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 type RepairConfig struct {
 	Keyspace string
 	Tables   []string
+	DC       []string
 	Ranges   string
 }
 
@@ -225,6 +366,11 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 		Context:  forceHost(ctx, host),
 		Keyspace: config.Keyspace,
 		Ranges:   &config.Ranges,
+	}
+
+	if len(config.DC) > 0 {
+		dcs := strings.Join(config.DC, ",")
+		p.DataCenters = &dcs
 	}
 	if config.Tables != nil {
 		tables := strings.Join(config.Tables, ",")

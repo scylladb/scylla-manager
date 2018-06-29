@@ -413,8 +413,10 @@ func (w *shardWorker) isAborted(_ context.Context) bool {
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
 	u := w.parent.Run.Units[w.parent.Unit]
+
 	cfg := &scyllaclient.RepairConfig{
 		Keyspace: u.Keyspace,
+		DC:       w.parent.Run.DC,
 		Ranges:   w.segments[start:end].dump(),
 	}
 	if !u.allTables {

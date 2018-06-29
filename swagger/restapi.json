@@ -119,6 +119,12 @@
             }
           }
         },
+        "dcs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "ranges": {
           "type": "string"
         }

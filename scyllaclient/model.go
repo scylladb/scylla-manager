@@ -23,3 +23,9 @@ type TokenRange struct {
 	EndToken   int64
 	Hosts      map[string][]string
 }
+
+// DC specifies a datacenter and it's hosts.
+type DC struct {
+	Name  string
+	Hosts []string
+}

@@ -78,17 +78,19 @@ var repairCmd = &cobra.Command{
 		}
 		t.Schedule.NumRetries = int64(numRetries)
 
-		if f = cmd.Flag("filter"); f.Changed {
-			filter, err := cmd.Flags().GetStringSlice("filter")
+		if f = cmd.Flag("keyspace"); f.Changed {
+			keyspace, err := cmd.Flags().GetStringSlice("keyspace")
 			if err != nil {
 				return printableError{err}
 			}
-			// accommodate for escaping of bash expansions, we can safely remove '\'
-			// as it's not a valid char in keyspace or table name
-			for i := range filter {
-				filter[i] = strings.Replace(filter[i], "\\", "", -1)
+			props["keyspace"] = unescapeFilters(keyspace)
+		}
+		if f = cmd.Flag("dc"); f.Changed {
+			dc, err := cmd.Flags().GetStringSlice("dc")
+			if err != nil {
+				return printableError{err}
 			}
-			props["filter"] = filter
+			props["dc"] = unescapeFilters(dc)
 		}
 
 		failFast, err := cmd.Flags().GetBool("fail-fast")
@@ -120,8 +122,18 @@ func init() {
 	register(repairCmd, rootCmd)
 
 	fs := cmd.Flags()
-	fs.StringSliceP("filter", "F", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
 	fs.Bool("fail-fast", false, "stop repair on first error")
+	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
+	fs.StringSlice("dc", nil, "comma-separated `list` of data centers glob patterns, i.e. dc1,!otherdc*")
 	fs.Var(&repairTokenRanges, "token-ranges", "token ranges: pr - primary token ranges, npr - non primary token ranges, all - pr and npr")
 	taskInitCommonFlags(cmd)
+}
+
+// accommodate for escaping of bash expansions, we can safely remove '\'
+// as it's not a valid char in keyspace or table name
+func unescapeFilters(strs []string) []string {
+	for i := range strs {
+		strs[i] = strings.Replace(strs[i], "\\", "", -1)
+	}
+	return strs
 }

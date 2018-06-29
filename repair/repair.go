@@ -133,6 +133,7 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 	}
 
 	v := Progress{
+		DC:          run.DC,
 		TokenRanges: run.TokenRanges,
 	}
 
@@ -228,10 +229,10 @@ func sortUnits(units []Unit, inclExcl inexlist.InExList) {
 	})
 }
 
-func validateFilters(filters []string) error {
+func validateKeyspaceFilters(filters []string) error {
 	var errs error
 	for i, f := range filters {
-		err := validateFilter(filters[i])
+		err := validateKeyspaceFilter(filters[i])
 		if err != nil {
 			errs = multierr.Append(errs, errors.Wrapf(err, "%q on position %d", f, i))
 			continue
@@ -240,7 +241,7 @@ func validateFilters(filters []string) error {
 	return mermaid.ErrValidate(errs, "invalid filters")
 }
 
-func validateFilter(filter string) error {
+func validateKeyspaceFilter(filter string) error {
 	if filter == "*" || filter == "!*" {
 		return nil
 	}
@@ -250,7 +251,7 @@ func validateFilter(filter string) error {
 	return nil
 }
 
-func decorateFilters(filters []string) []string {
+func decorateKeyspaceFilters(filters []string) []string {
 	if len(filters) == 0 {
 		filters = append(filters, "*.*")
 	}
@@ -268,5 +269,12 @@ func decorateFilters(filters []string) []string {
 
 	filters = append(filters, "!system.*")
 
+	return filters
+}
+
+func decorateDCFilters(filters []string) []string {
+	if len(filters) == 0 {
+		filters = append(filters, "*")
+	}
 	return filters
 }
