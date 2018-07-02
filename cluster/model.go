@@ -13,7 +13,7 @@ import (
 type Cluster struct {
 	ID              uuid.UUID `json:"id"`
 	Name            string    `json:"name"`
-	Hosts           []string  `json:"hosts"`
+	Host            string    `json:"host"`
 	SSHUser         string    `json:"ssh_user,omitempty"`
 	SSHIdentityFile []byte    `json:"ssh_identity_file,omitempty" db:"-"`
 }
@@ -39,8 +39,8 @@ func (c *Cluster) Validate() error {
 	if _, e := uuid.Parse(c.Name); e == nil {
 		err = multierr.Append(err, errors.New("name cannot be an UUID"))
 	}
-	if len(c.Hosts) == 0 {
-		err = multierr.Append(err, errors.New("missing hosts"))
+	if c.Host == "" {
+		err = multierr.Append(err, errors.New("missing host"))
 	}
 
 	return mermaid.ErrValidate(err, "invalid cluster")

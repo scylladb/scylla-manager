@@ -70,7 +70,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			c := &cluster.Cluster{
 				ID:              uuid.NewTime(),
 				Name:            "name" + strconv.Itoa(i),
-				Hosts:           mermaidtest.ManagedClusterHosts,
+				Host:            mermaidtest.ManagedClusterHosts[0],
 				SSHUser:         "scylla-manager",
 				SSHIdentityFile: pem,
 			}
@@ -203,7 +203,7 @@ func validCluster(pem []byte, sshUser string) *cluster.Cluster {
 	c := &cluster.Cluster{
 		ID:      uuid.MustRandom(),
 		Name:    "name_" + uuid.MustRandom().String(),
-		Hosts:   mermaidtest.ManagedClusterHosts,
+		Host:    mermaidtest.ManagedClusterHosts[0],
 		SSHUser: sshUser,
 	}
 

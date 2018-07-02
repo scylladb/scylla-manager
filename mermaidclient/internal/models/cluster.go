@@ -17,8 +17,8 @@ import (
 // swagger:model cluster
 type Cluster struct {
 
-	// hosts
-	Hosts []string `json:"hosts"`
+	// host
+	Host string `json:"host,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`
