@@ -136,7 +136,7 @@ func (s *Service) Init(ctx context.Context) error {
 					t := t
 					s.attachTask(ctx, &t, r)
 					continue
-				case runner.StatusStopped, runner.StatusError:
+				case runner.StatusDone, runner.StatusStopped, runner.StatusError:
 					r.Status = curStatus
 					r.EndTime = &now
 					if curStatus == runner.StatusError {
@@ -180,7 +180,7 @@ func (s *Service) taskRunner(t *Task) runner.Runner {
 		return r
 	}
 
-	return nilRunner{}
+	return runner.NopRunner
 }
 
 // SetRunner assigns a given runner for a given task type.
@@ -284,7 +284,7 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan 
 		s.logger.Debug(ctx, "Task canceled, not re-scheduling", "task", t)
 		return
 	}
-	if t.Sched.IntervalDays == 0 && run.Status == runner.StatusStopped {
+	if t.Sched.IntervalDays == 0 && (run.Status == runner.StatusDone || run.Status == runner.StatusStopped) {
 		s.logger.Debug(ctx, "One-shot task, not re-scheduling", "task", t)
 		return
 	}
@@ -412,7 +412,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				continue
 			}
 			switch curStatus {
-			case runner.StatusStopped, runner.StatusError:
+			case runner.StatusDone, runner.StatusStopped, runner.StatusError:
 				run.Status = curStatus
 				run.EndTime = &now
 				if curStatus == runner.StatusError {
@@ -730,18 +730,4 @@ func (s *Service) Close() {
 	s.tasks = nil
 	s.taskLock.Unlock()
 	s.wg.Wait()
-}
-
-type nilRunner struct{}
-
-func (nilRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
-	return errors.New("task type maps to nil runner")
-}
-
-func (nilRunner) Stop(ctx context.Context, d runner.Descriptor) error {
-	return errors.New("task type maps to nil runner")
-}
-
-func (nilRunner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
-	return "", "", errors.New("task type maps to nil runner")
 }

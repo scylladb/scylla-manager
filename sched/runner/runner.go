@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -26,12 +27,12 @@ type Status string
 
 // Status enumeration.
 const (
-	StatusDone     Status = "done"
-	StatusError    Status = "error"
-	StatusStarting Status = "starting"
-	StatusRunning  Status = "running"
-	StatusStopping Status = "stopping"
-	StatusStopped  Status = "stopped"
+	StatusDone     Status = "DONE"
+	StatusError    Status = "ERROR"
+	StatusStarting Status = "STARTING"
+	StatusRunning  Status = "RUNNING"
+	StatusStopping Status = "STOPPING"
+	StatusStopped  Status = "STOPPED"
 )
 
 func (s Status) String() string {
@@ -71,3 +72,21 @@ type Runner interface {
 	Stop(ctx context.Context, d Descriptor) error
 	Status(ctx context.Context, d Descriptor) (Status, string, error)
 }
+
+type nopRunner struct{}
+
+func (nopRunner) Run(ctx context.Context, d Descriptor, p Properties) error {
+	return errors.New("Nop runner")
+}
+
+func (nopRunner) Stop(ctx context.Context, d Descriptor) error {
+	return errors.New("Nop runner")
+}
+
+func (nopRunner) Status(ctx context.Context, d Descriptor) (Status, string, error) {
+	return "", "", errors.New("Nop runner")
+}
+
+// NopRunner is a runner implementation that does nothing and always returns
+// error.
+var NopRunner = nopRunner{}
