@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/google/go-cmp/cmp"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/ssh"
@@ -95,20 +96,6 @@ func (h *repairTestHelper) assertProgress(unit int, node string, percent int, wa
 	}, _interval, wait)
 }
 
-func (h *repairTestHelper) assertDC(dc string, wait time.Duration) {
-	h.t.Helper()
-
-	WaitCond(h.t, func() bool {
-		p := h.dcs()
-		for _, d := range p {
-			if d == dc {
-				return true
-			}
-		}
-		return false
-	}, _interval, wait)
-}
-
 func (h *repairTestHelper) progress(unit int, node string) int {
 	h.t.Helper()
 
@@ -124,17 +111,6 @@ func (h *repairTestHelper) progress(unit int, node string) int {
 	}
 
 	return -1
-}
-
-func (h *repairTestHelper) dcs() []string {
-	h.t.Helper()
-
-	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
-	if err != nil {
-		h.t.Fatal(err)
-	}
-
-	return p.DC
 }
 
 func (h *repairTestHelper) close() {
@@ -300,8 +276,24 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: status is StatusRunning")
 		h.assertStatus(runner.StatusRunning, now)
 
-		Print("Then: DC is dc2")
-		h.assertDC("dc2", longWait)
+		Print("When: status is StatusDone")
+		h.assertStatus(runner.StatusDone, longWait)
+
+		Print("Then: dc2 is used for repair")
+		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if diff := cmp.Diff(prog.DC, []string{"dc2"}); diff != "" {
+			h.t.Fatal(diff)
+		}
+		for _, u := range prog.Units {
+			for _, n := range u.Nodes {
+				if n.Host == node0 || n.Host == node1 || n.Host == node2 {
+					t.Fatal(n.Host)
+				}
+			}
+		}
 	})
 
 	t.Run("repair stop", func(t *testing.T) {
