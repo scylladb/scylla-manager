@@ -18,11 +18,12 @@ func TestCreateDefaultRepairTaskForClusterAfter008Integration(t *testing.T) {
 	session := CreateSessionWithoutMigration(t)
 
 	Print("Given: clusters")
+	cb := migrationCallback("008-drop_repair_unit.cql", migrate.AfterMigration)
 	registerMigrationCallback("008-drop_repair_unit.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 		const insertClusterCql = `INSERT INTO cluster (id) VALUES (uuid())`
 		ExecStmt(t, session, insertClusterCql)
 		ExecStmt(t, session, insertClusterCql)
-		return createDefaultRepairTaskForClusterAfter008(ctx, session, logger)
+		return cb(ctx, session, logger)
 	})
 
 	Print("When: migrate")
