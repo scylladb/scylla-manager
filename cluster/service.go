@@ -5,7 +5,7 @@ package cluster
 import (
 	"bytes"
 	"context"
-	"os/user"
+	"net/http"
 	"sort"
 
 	"github.com/gocql/gocql"
@@ -14,6 +14,8 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/kv"
+	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -39,28 +41,24 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          *gocql.Session
-	sshManager       *sshManager
+	keyStore         kv.Store
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, l log.Logger) (*Service, error) {
-
+func NewService(session *gocql.Session, keyStore kv.Store, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
-
-	u, err := user.Current()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get the current user")
+	if keyStore == nil {
+		return nil, errors.New("invalid keyStore")
 	}
-	sshManager := newSSHManager(u.HomeDir)
 
 	return &Service{
-		session:    session,
-		sshManager: sshManager,
-		logger:     l,
+		session:  session,
+		keyStore: keyStore,
+		logger:   l,
 	}, nil
 }
 
@@ -78,7 +76,7 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 		return nil, err
 	}
 
-	transport, err := s.sshManager.createTransport(c)
+	transport, err := s.createTransport(c)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +95,27 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	s.logger.Info(ctx, "New client", "clusterID", clusterID, "dc", closest)
 
 	return scyllaclient.NewClient(dcs[closest], transport, s.logger.Named("client"))
+}
+
+func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
+	if c.SSHUser == "" {
+		return http.DefaultTransport, nil
+	}
+
+	b, err := s.keyStore.Get(c.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	config := ssh.Config{
+		User:         c.SSHUser,
+		IdentityFile: b,
+	}
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	return ssh.NewProductionTransport(config)
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.
@@ -193,7 +212,7 @@ func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, 
 
 // PutCluster upserts a cluster, cluster instance must pass Validate() checks.
 // If u.ID == uuid.Nil a new one is generated.
-func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
+func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 	s.logger.Debug(ctx, "PutCluster", "cluster", c)
 	if c == nil {
 		return mermaid.ErrNilPtr
@@ -228,10 +247,17 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		}
 	}
 
-	// store identity file
-	if err := s.sshManager.storeIdentityFile(c); err != nil {
+	// save identity file
+	if err := s.keyStore.Put(c.ID, c.SSHIdentityFile); err != nil {
 		return errors.Wrap(err, "failed to save identity file")
 	}
+	defer func() {
+		if ferr != nil {
+			if err := s.keyStore.Put(c.ID, nil); err != nil {
+				s.logger.Debug(ctx, "post error delete failed", "error", err)
+			}
+		}
+	}()
 
 	// validate hosts connectivity
 	if err := s.validateHostsConnectivity(ctx, c); err != nil {
@@ -253,7 +279,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
-	transport, err := s.sshManager.createTransport(c)
+	transport, err := s.createTransport(c)
 	if err != nil {
 		return errors.Wrap(err, "failed to create transport")
 	}
@@ -289,6 +315,10 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 	})
 
 	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	if err := s.keyStore.Put(id, nil); err != nil {
 		return err
 	}
 
