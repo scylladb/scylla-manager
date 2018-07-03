@@ -366,8 +366,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	defer close(lock)
 
 	// spawn async repair
-	s.logger.Info(ctx, "Starting repair")
-
 	s.wg.Add(1)
 	go func() {
 		// wait for unlock
@@ -473,7 +471,10 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	if err != nil {
 		return errors.Wrap(err, "unable to find dc")
 	}
-	s.logger.Debug(ctx, "Using DC", "dc", dc)
+	s.logger.Info(ctx, "Repairing",
+		"keyspace", u.Keyspace,
+		"coordinator_dc", dc,
+	)
 
 	// split token range into coordination hosts
 	hostSegments, err := groupSegmentsByHost(dc, run.TokenRanges, ring)

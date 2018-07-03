@@ -62,6 +62,7 @@ func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) erro
 
 // Client returns cluster client.
 func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
 	c, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
 		return nil, err
@@ -83,6 +84,8 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Info(ctx, "New client", "clusterID", clusterID, "dc", closest)
+
 	return scyllaclient.NewClient(dcs[closest], transport, s.logger.Named("client"))
 }
 

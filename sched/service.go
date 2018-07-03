@@ -381,34 +381,30 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 		}).Inc()
 	}()
 
+	logger := s.logger.With(
+		"cluster_id", t.ClusterID,
+		"task_type", t.Type,
+		"task_id", t.ID,
+		"run_id", run.ID,
+	)
+
 	for {
 		select {
 		case <-ctx.Done():
 			ctx = log.CopyTraceID(context.Background(), ctx)
 
 			if err := s.taskRunner(t).Stop(ctx, run.Descriptor()); err != nil {
-				s.logger.Error(ctx, "Failed to stop task",
-					"task", t,
-					"run", run,
-					"error", err,
-				)
+				logger.Error(ctx, "Failed to stop task", "error", err)
 				continue
 			}
 			run.Status = runner.StatusStopping
 			if err := s.putRun(ctx, run); err != nil {
-				s.logger.Error(ctx, "Failed to write run",
-					"run", run,
-					"error", err,
-				)
+				logger.Error(ctx, "Failed to write run", "error", err)
 			}
 		case now := <-ticker.C:
 			curStatus, cause, err := s.taskRunner(t).Status(ctx, run.Descriptor())
 			if err != nil {
-				s.logger.Error(ctx, "Failed to get task status",
-					"task", t,
-					"run", run,
-					"error", err,
-				)
+				logger.Error(ctx, "Failed to get task status", "error", err)
 				continue
 			}
 			switch curStatus {
@@ -419,17 +415,9 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 					run.Cause = cause
 				}
 				if err := s.putRun(ctx, run); err != nil {
-					s.logger.Error(ctx, "Failed to write run",
-						"run", run,
-						"error", err,
-					)
+					logger.Error(ctx, "Failed to write run", "error", err)
 				}
-
-				s.logger.Info(ctx, "Status",
-					"status", curStatus,
-					"cause", cause,
-				)
-
+				logger.Info(ctx, "Status", "status", curStatus, "cause", cause)
 				return
 			}
 		}
