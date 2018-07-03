@@ -20,10 +20,20 @@ import (
 	"go.uber.org/multierr"
 )
 
-// Change holds ID of a modified cluster and it's current value.
+// ChangeType specifies type on Change.
+type ChangeType int8
+
+// ChangeType enumeration
+const (
+	Create ChangeType = iota
+	Update
+	Delete
+)
+
+// Change specifies cluster modification.
 type Change struct {
-	ID      uuid.UUID
-	Current *Cluster
+	ID   uuid.UUID
+	Type ChangeType
 }
 
 // Service manages cluster configurations.
@@ -189,12 +199,15 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		return mermaid.ErrNilPtr
 	}
 
+	t := Update
 	if c.ID == uuid.Nil {
+		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
+		t = Create
+
 		var err error
 		if c.ID, err = uuid.NewRandom(); err != nil {
 			return errors.Wrap(err, "couldn't generate random UUID for Cluster")
 		}
-		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
 	}
 
 	// validate cluster
@@ -236,7 +249,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		return nil
 	}
 
-	return s.onChangeListener(ctx, Change{ID: c.ID, Current: c})
+	return s.onChangeListener(ctx, Change{ID: c.ID, Type: t})
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
@@ -283,5 +296,5 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 		return nil
 	}
 
-	return s.onChangeListener(ctx, Change{ID: id})
+	return s.onChangeListener(ctx, Change{ID: id, Type: Delete})
 }
