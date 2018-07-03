@@ -35,10 +35,15 @@ func TestServiceStorageIntegration(t *testing.T) {
 		os.Remove(dir)
 	}()
 
+	var change cluster.Change
 	s, err := cluster.NewService(session, log.NewDevelopment().Named("cluster"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	s.SetOnChangeListener(func(ctx context.Context, c cluster.Change) error {
+		change = c
+		return nil
+	})
 
 	ctx := context.Background()
 
@@ -170,12 +175,35 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if c.ID == uuid.Nil {
 			t.Fatal("id not set")
 		}
+		if change.ID != c.ID {
+			t.Fatal("id mismatch")
+		}
+		if change.Type != cluster.Create {
+			t.Fatal("invalid type", change)
+		}
+	})
+
+	t.Run("put existing cluster", func(t *testing.T) {
+		cleanup(t)
+
+		c := validCluster(pem, "scylla-manager")
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		if change.ID != c.ID {
+			t.Fatal("id mismatch")
+		}
+		if change.Type != cluster.Update {
+			t.Fatal("invalid type", change)
+		}
 	})
 
 	t.Run("delete missing cluster", func(t *testing.T) {
 		cleanup(t)
 
-		err := s.DeleteCluster(ctx, uuid.MustRandom())
+		id := uuid.MustRandom()
+
+		err := s.DeleteCluster(ctx, id)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -195,6 +223,12 @@ func TestServiceStorageIntegration(t *testing.T) {
 		_, err := s.GetClusterByID(ctx, c.ID)
 		if err != mermaid.ErrNotFound {
 			t.Fatal(err)
+		}
+		if change.ID != c.ID {
+			t.Fatal("id mismatch")
+		}
+		if change.Type != cluster.Delete {
+			t.Fatal("invalid type", change)
 		}
 	})
 }
