@@ -23,3 +23,6 @@ type TaskRun = models.TaskRun
 
 // RepairProgress contains shard progress info.
 type RepairProgress = models.RepairProgress
+
+// RepairUnitProgress contains unit progress info.
+type RepairUnitProgress = models.RepairProgressUnitsItems

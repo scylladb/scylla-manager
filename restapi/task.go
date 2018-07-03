@@ -4,15 +4,18 @@ package restapi
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"net/url"
 	"path"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/sched/runner"
@@ -100,10 +103,11 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 
 type extendedTask struct {
 	*sched.Task
-	Status    runner.Status `json:"status,omitempty"`
-	Cause     string        `json:"cause,omitempty"`
-	StartTime *time.Time    `json:"start_time,omitempty"`
-	EndTime   *time.Time    `json:"end_time,omitempty"`
+	Status         runner.Status `json:"status,omitempty"`
+	Cause          string        `json:"cause,omitempty"`
+	StartTime      *time.Time    `json:"start_time,omitempty"`
+	EndTime        *time.Time    `json:"end_time,omitempty"`
+	NextActivation *time.Time    `json:"next_activation,omitempty"`
 }
 
 func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
@@ -143,19 +147,14 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		if !all && !t.Enabled {
 			continue
 		}
-		runs, err := h.schedSvc.GetLastRun(r.Context(), t, 1)
+
+		e := extendedTask{Task: t}
+
+		runs, err := h.schedSvc.GetLastRun(r.Context(), t, t.Sched.NumRetries)
 		if err != nil {
 			respondError(w, r, err, "failed to load task run")
 			return
 		}
-		if len(runs) == 0 && status != "" {
-			continue
-		}
-		if status != "" && runs[0].Status != status {
-			continue
-		}
-
-		e := extendedTask{Task: t}
 		if len(runs) > 0 {
 			e.Status = runs[0].Status
 			e.Cause = runs[0].Cause
@@ -164,8 +163,25 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			}
 			e.EndTime = runs[0].EndTime
 		}
+		if a := t.Sched.NextActivation(timeutc.Now(), runs); a.After(timeutc.Now()) {
+			e.NextActivation = &a
+		}
+
 		hist = append(hist, e)
 	}
+
+	sort.Slice(hist, func(i, j int) bool {
+		l := int64(math.MaxInt64)
+		if hist[i].NextActivation != nil {
+			l = hist[i].NextActivation.Unix()
+		}
+		r := int64(math.MaxInt64)
+		if hist[j].NextActivation != nil {
+			r = hist[j].NextActivation.Unix()
+		}
+		return l < r
+	})
+
 	render.Respond(w, r, hist)
 }
 

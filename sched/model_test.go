@@ -96,7 +96,7 @@ func TestSchedNextActivation(t *testing.T) {
 	for i, tc := range table {
 		tc := tc
 		t.Run(fmt.Sprintf("TestCase-%d", i), func(t *testing.T) {
-			if activation := tc.schedule.nextActivation(now, tc.history); activation != tc.nextActivation {
+			if activation := tc.schedule.NextActivation(now, tc.history); activation != tc.nextActivation {
 				t.Logf("expected activation: %v, computed: %v", tc.nextActivation, activation)
 				t.Fail()
 			}

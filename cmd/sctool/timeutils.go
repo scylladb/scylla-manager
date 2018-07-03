@@ -56,11 +56,7 @@ func formatTime(t strfmt.DateTime) string {
 	return time.Time(t).Local().Format(time.RFC822)
 }
 
-func isZero(t strfmt.DateTime) bool {
-	return time.Time(t).IsZero()
-}
-
-func duration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
+func formatDuration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
 	var d time.Duration
 	if isZero(t1) {
 		d = timeutc.Now().Sub(time.Time(t0))
@@ -69,4 +65,8 @@ func duration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
 	}
 
 	return fmt.Sprint(d.Truncate(time.Second))
+}
+
+func isZero(t strfmt.DateTime) bool {
+	return time.Time(t).IsZero()
 }

@@ -47,7 +47,7 @@ func TestDumpMap(t *testing.T) {
 	}{
 		// Empty
 		{
-			S: "-",
+			S: "",
 		},
 		// Single element
 		{

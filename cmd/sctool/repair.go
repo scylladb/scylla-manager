@@ -78,16 +78,18 @@ var repairCmd = &cobra.Command{
 		}
 		t.Schedule.NumRetries = int64(numRetries)
 
-		filter, err := cmd.Flags().GetStringSlice("filter")
-		if err != nil {
-			return printableError{err}
+		if f = cmd.Flag("filter"); f.Changed {
+			filter, err := cmd.Flags().GetStringSlice("filter")
+			if err != nil {
+				return printableError{err}
+			}
+			// accommodate for escaping of bash expansions, we can safely remove '\'
+			// as it's not a valid char in keyspace or table name
+			for i := range filter {
+				filter[i] = strings.Replace(filter[i], "\\", "", -1)
+			}
+			props["filter"] = filter
 		}
-		// accommodate for escaping of bash expansions, we can safely remove '\'
-		// as it's not a valid char in keyspace or table name
-		for i := range filter {
-			filter[i] = strings.Replace(filter[i], "\\", "", -1)
-		}
-		props["filter"] = filter
 
 		failFast, err := cmd.Flags().GetBool("fail-fast")
 		if err != nil {
@@ -98,7 +100,9 @@ var repairCmd = &cobra.Command{
 			props["fail_fast"] = true
 		}
 
-		props["token_ranges"] = repairTokenRanges.String()
+		if f = cmd.Flag("token-ranges"); f.Changed {
+			props["token_ranges"] = repairTokenRanges.String()
+		}
 
 		id, err := client.CreateTask(ctx, cfgCluster, t)
 		if err != nil {
