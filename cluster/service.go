@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // Change holds ID of a modified cluster and it's current value.
@@ -61,6 +62,7 @@ func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) erro
 
 // Client returns cluster client.
 func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
 	c, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
 		return nil, err
@@ -70,8 +72,21 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	if err != nil {
 		return nil, err
 	}
+	client, err := scyllaclient.NewClient([]string{c.Host}, transport, s.logger.Named("client"))
+	if err != nil {
+		return nil, err
+	}
+	dcs, err := client.Datacenters(ctx)
+	if err != nil {
+		return nil, err
+	}
+	closest, err := client.ClosestDC(ctx, dcs)
+	if err != nil {
+		return nil, err
+	}
+	s.logger.Info(ctx, "New client", "clusterID", clusterID, "dc", closest)
 
-	return scyllaclient.NewClient(c.Hosts, transport, s.logger.Named("client"))
+	return scyllaclient.NewClient(dcs[closest], transport, s.logger.Named("client"))
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.
@@ -187,14 +202,6 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 		return err
 	}
 
-	if err := s.sshManager.storeIdentityFile(c); err != nil {
-		return errors.Wrap(err, "failed to save identity file")
-	}
-
-	if err := validateHosts(ctx, c, s.hostInfo); err != nil {
-		return err
-	}
-
 	// check for conflicting names
 	if c.Name != "" {
 		conflict, err := s.GetClusterByName(ctx, c.Name)
@@ -206,6 +213,16 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 				return mermaid.ErrValidate(errors.Errorf("name %q is already taken", c.Name), "invalid name")
 			}
 		}
+	}
+
+	// store identity file
+	if err := s.sshManager.storeIdentityFile(c); err != nil {
+		return errors.Wrap(err, "failed to save identity file")
+	}
+
+	// validate hosts connectivity
+	if err := s.validateHostsConnectivity(ctx, c); err != nil {
+		return mermaid.ErrValidate(err, "connectivity to all nodes is required")
 	}
 
 	stmt, names := schema.Cluster.Insert()
@@ -222,27 +239,30 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) error {
 	return s.onChangeListener(ctx, Change{ID: c.ID, Current: c})
 }
 
-func (s *Service) hostInfo(ctx context.Context, c *Cluster, host string) (cluster, dc string, err error) {
-
+func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
 	transport, err := s.sshManager.createTransport(c)
 	if err != nil {
-		return "", "", err
+		return errors.Wrap(err, "failed to create transport")
 	}
-	client, err := scyllaclient.NewClient([]string{host}, transport, s.logger.Named("client"))
+	client, err := scyllaclient.NewClient([]string{c.Host}, transport, s.logger.Named("client"))
 	if err != nil {
-		return "", "", err
+		return errors.Wrap(err, "failed to create client")
+	}
+	dcs, err := client.Datacenters(ctx)
+	if err != nil {
+		return err
 	}
 
-	cluster, err = client.ClusterName(ctx)
-	if err != nil {
-		return
+	var errs error
+	for dc, hosts := range dcs {
+		for _, host := range hosts {
+			_, err := client.Ping(ctx, host)
+			if err != nil {
+				errs = multierr.Append(errs, errors.Wrapf(err, "%s %s", dc, host))
+			}
+		}
 	}
-	dc, err = client.Datacenter(ctx)
-	if err != nil {
-		return
-	}
-
-	return
+	return errs
 }
 
 // DeleteCluster removes cluster based on ID.

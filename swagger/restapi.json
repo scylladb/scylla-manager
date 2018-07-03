@@ -29,11 +29,8 @@
         "name": {
           "type": "string"
         },
-        "hosts": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "host": {
+          "type": "string"
         },
         "ssh_user": {
           "type": "string"
