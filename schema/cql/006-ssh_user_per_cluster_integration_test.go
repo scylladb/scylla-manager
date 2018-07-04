@@ -20,6 +20,9 @@ import (
 )
 
 func TestCopySSHInfoToClusterAfter006Integration(t *testing.T) {
+	saveRegister()
+	defer restoreRegister()
+
 	session := CreateSessionWithoutMigration(t)
 
 	Print("Given: config files")

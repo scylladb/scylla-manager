@@ -41,7 +41,12 @@ var initOnce sync.Once
 func CreateSession(tb testing.TB) *gocql.Session {
 	tb.Helper()
 
-	session := createSessionFromCluster(tb, createCluster(*flagCluster))
+	cluster := createCluster(*flagCluster)
+	initOnce.Do(func() {
+		createTestKeyspace(tb, cluster, "test_scylla_manager")
+	})
+	session := createSessionFromCluster(tb, cluster)
+
 	if err := migrate.Migrate(context.Background(), session, "../schema/cql"); err != nil {
 		tb.Fatal("migrate:", err)
 	}
@@ -54,7 +59,9 @@ func CreateSession(tb testing.TB) *gocql.Session {
 func CreateSessionWithoutMigration(tb testing.TB) *gocql.Session {
 	tb.Helper()
 
-	return createSessionFromCluster(tb, createCluster(*flagCluster))
+	cluster := createCluster(*flagCluster)
+	createTestKeyspace(tb, cluster, "test_scylla_manager")
+	return createSessionFromCluster(tb, cluster)
 }
 
 // CreateManagedClusterSession returns a new gocql.Session to the managed data cluster.
@@ -86,11 +93,6 @@ func createCluster(hosts ...string) *gocql.ClusterConfig {
 
 func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocql.Session {
 	tb.Helper()
-
-	initOnce.Do(func() {
-		createTestKeyspace(tb, cluster, "test_scylla_manager")
-	})
-
 	cluster.Keyspace = "test_scylla_manager"
 	session, err := cluster.CreateSession()
 	if err != nil {
