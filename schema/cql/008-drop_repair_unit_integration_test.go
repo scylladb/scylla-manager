@@ -15,6 +15,9 @@ import (
 )
 
 func TestCreateDefaultRepairTaskForClusterAfter008Integration(t *testing.T) {
+	saveRegister()
+	defer restoreRegister()
+
 	session := CreateSessionWithoutMigration(t)
 
 	Print("Given: clusters")

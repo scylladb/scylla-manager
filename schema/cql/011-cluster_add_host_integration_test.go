@@ -16,6 +16,9 @@ import (
 )
 
 func TestClusterMoveHostsToHost011IntegrationTest(t *testing.T) {
+	saveRegister()
+	defer restoreRegister()
+
 	session := CreateSessionWithoutMigration(t)
 
 	Print("Given: clusters")
