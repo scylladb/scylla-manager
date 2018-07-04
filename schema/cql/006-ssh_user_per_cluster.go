@@ -5,7 +5,6 @@ package cql
 import (
 	"context"
 	"os"
-	"os/user"
 	"path/filepath"
 
 	"github.com/gocql/gocql"
@@ -13,59 +12,64 @@ import (
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/gocqlx/qb"
 	log "github.com/scylladb/golog"
-	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/uuid"
 	"gopkg.in/yaml.v2"
 )
 
 func init() {
-	registerMigrationCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, copySSHInfoToClusterAfter006)
+	h := copySSHInfoToCluster006{
+		oldConfigFile: "/etc/scylla-manager/scylla-manager.yaml.rpmsave",
+		dir:           "/var/lib/scylla-manager/.certs",
+	}
+	registerMigrationCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, h.After)
 }
 
-type config struct {
-	SSH sshConfig `yaml:"ssh,omitempty"`
+type copySSHInfoToCluster006 struct {
+	oldConfigFile string
+	dir           string
 }
 
-type sshConfig struct {
-	User         string `yaml:"user,omitempty"`
-	IdentityFile string `yaml:"identity_file,omitempty"`
-}
-
-func copySSHInfoToClusterAfter006(ctx context.Context, session *gocql.Session, logger log.Logger) error {
-	u, _ := user.Current()
-	f := "/etc/scylla-manager.yaml.rpmsave"
-	cfg := sshConfig{
-		User:         "scylla-manager",
-		IdentityFile: filepath.Join(u.HomeDir, "scylla_manager.pem"),
+func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+	type sshConfig struct {
+		User         string `yaml:"user,omitempty"`
+		IdentityFile string `yaml:"identity_file,omitempty"`
 	}
 
-	if f, err := os.Open(f); err == nil {
-		if err := yaml.NewDecoder(f).Decode(&config{SSH: cfg}); err != nil {
+	cfg := sshConfig{
+		User:         "scylla-manager",
+		IdentityFile: "/var/lib/scylla-manager/scylla_manager.pem",
+	}
+
+	if f, err := os.Open(h.oldConfigFile); err == nil {
+		if err := yaml.NewDecoder(f).Decode(struct {
+			SSH *sshConfig `yaml:"ssh,omitempty"`
+		}{&cfg}); err != nil {
 			return err
 		}
 	}
 
-	stmt, names := qb.Select(schema.Cluster.Name).ToCql()
+	stmt, names := qb.Select("cluster").Columns("id").ToCql()
 	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
-
-	var clusters []*cluster.Cluster
-	if err := q.SelectRelease(&clusters); err != nil {
+	var ids []uuid.UUID
+	if err := q.SelectRelease(&ids); err != nil {
 		return err
 	}
 
-	stmt, names = schema.Cluster.Insert()
-	q = gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
-	defer q.Release()
+	const updateClusterCql = `INSERT INTO cluster(id, ssh_user) VALUES (?, ?)`
+	iq := session.Query(updateClusterCql).WithContext(ctx)
+	defer iq.Release()
 
-	toDir := filepath.Dir(cfg.IdentityFile)
-	for _, c := range clusters {
-		if err := os.Link(cfg.IdentityFile, filepath.Join(toDir, c.ID.String())); err != nil {
-			logger.Info(ctx, "unable to link ssh identity file",
-				"identity_file", filepath.Join(toDir, c.ID.String()), "error", err)
+	for _, id := range ids {
+		identityFile := filepath.Join(h.dir, id.String())
+		if err := os.Link(cfg.IdentityFile, identityFile); err != nil {
+			logger.Info(ctx, "failed to link ssh identity file",
+				"from", cfg.IdentityFile,
+				"to", identityFile,
+				"error", err,
+			)
 			continue
 		}
-		c.SSHUser = cfg.User
-		if err := q.BindStruct(c).Exec(); err != nil {
+		if err := iq.Bind(id, cfg.User).Exec(); err != nil {
 			return err
 		}
 	}
