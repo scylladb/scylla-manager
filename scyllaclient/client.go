@@ -357,6 +357,7 @@ type RepairConfig struct {
 	Keyspace string
 	Tables   []string
 	DC       []string
+	Hosts    []string
 	Ranges   string
 }
 
@@ -368,13 +369,17 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 		Ranges:   &config.Ranges,
 	}
 
+	if config.Tables != nil {
+		tables := strings.Join(config.Tables, ",")
+		p.ColumnFamilies = &tables
+	}
 	if len(config.DC) > 0 {
 		dcs := strings.Join(config.DC, ",")
 		p.DataCenters = &dcs
 	}
-	if config.Tables != nil {
-		tables := strings.Join(config.Tables, ",")
-		p.ColumnFamilies = &tables
+	if len(config.Hosts) > 0 {
+		hosts := strings.Join(config.Hosts, ",")
+		p.Hosts = &hosts
 	}
 
 	resp, err := c.operations.RepairAsync(&p)

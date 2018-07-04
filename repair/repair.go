@@ -20,6 +20,10 @@ import (
 
 // validateHostsBelongToCluster checks that the hosts belong to the cluster.
 func validateHostsBelongToCluster(dcMap map[string][]string, hosts ...string) error {
+	if len(hosts) == 0 {
+		return nil
+	}
+
 	all := newSet(nil)
 	for _, dcHosts := range dcMap {
 		for _, h := range dcHosts {

@@ -85,6 +85,7 @@ var repairCmd = &cobra.Command{
 			}
 			props["keyspace"] = unescapeFilters(keyspace)
 		}
+
 		if f = cmd.Flag("dc"); f.Changed {
 			dc, err := cmd.Flags().GetStringSlice("dc")
 			if err != nil {
@@ -92,12 +93,25 @@ var repairCmd = &cobra.Command{
 			}
 			props["dc"] = unescapeFilters(dc)
 		}
+
 		if f = cmd.Flag("host"); f.Changed {
 			host, err := cmd.Flags().GetString("host")
 			if err != nil {
 				return printableError{err}
 			}
 			props["host"] = host
+		}
+
+		if f = cmd.Flag("with-hosts"); f.Changed {
+			hosts, err := cmd.Flags().GetStringSlice("with-hosts")
+			if err != nil {
+				return printableError{err}
+			}
+			props["with_hosts"] = hosts
+		}
+
+		if f = cmd.Flag("token-ranges"); f.Changed {
+			props["token_ranges"] = repairTokenRanges.String()
 		}
 
 		failFast, err := cmd.Flags().GetBool("fail-fast")
@@ -107,10 +121,6 @@ var repairCmd = &cobra.Command{
 		if failFast {
 			t.Schedule.NumRetries = 0
 			props["fail_fast"] = true
-		}
-
-		if f = cmd.Flag("token-ranges"); f.Changed {
-			props["token_ranges"] = repairTokenRanges.String()
 		}
 
 		id, err := client.CreateTask(ctx, cfgCluster, t)
@@ -129,11 +139,12 @@ func init() {
 	register(repairCmd, rootCmd)
 
 	fs := cmd.Flags()
-	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
 	fs.StringSlice("dc", nil, "comma-separated `list` of data centers glob patterns, i.e. dc1,!otherdc*")
 	fs.String("host", "", "host to repair, by default all hosts are repaired")
+	fs.StringSlice("with-hosts", nil, "comma-separated `list` of hosts to repair with")
 	fs.Var(&repairTokenRanges, "token-ranges", "token ranges: pr - primary token ranges, npr - non primary token ranges, all - pr and npr")
+	fs.Bool("fail-fast", false, "stop repair on first error")
 	taskInitCommonFlags(cmd)
 }
 

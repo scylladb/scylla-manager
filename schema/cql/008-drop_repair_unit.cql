@@ -22,6 +22,7 @@ CREATE TABLE repair_run (
     units list<frozen<repair_unit>>,
     dc list<text>,
     host text,
+    with_hosts list<text>,
     token_ranges text,
     status text,
     cause text,

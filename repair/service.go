@@ -144,8 +144,8 @@ func (s *Service) unlockCluster(run *Run) error {
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties) (Target, error) {
 	tp := taskProperties{
-		FailFast:    false,
 		TokenRanges: PrimaryTokenRanges,
+		FailFast:    false,
 	}
 
 	if err := json.Unmarshal(p, &tp); err != nil {
@@ -154,8 +154,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 
 	t := Target{
 		Host:        tp.Host,
-		FailFast:    tp.FailFast,
+		WithHosts:   tp.WithHosts,
 		TokenRanges: tp.TokenRanges,
+		FailFast:    tp.FailFast,
 		Opts:        runner.OptsFromContext(ctx),
 	}
 
@@ -168,10 +169,12 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 		return t, err
 	}
 
+	hosts := t.WithHosts
 	if t.Host != "" {
-		if err := validateHostsBelongToCluster(dcMap, t.Host); err != nil {
-			return Target{}, mermaid.ErrValidate(err, "")
-		}
+		hosts = append(hosts, t.Host)
+	}
+	if err := validateHostsBelongToCluster(dcMap, hosts...); err != nil {
+		return Target{}, mermaid.ErrValidate(err, "")
 	}
 
 	t.Units, err = s.getUnits(ctx, clusterID, &tp)
@@ -286,6 +289,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		DC:          t.DC,
 		Host:        t.Host,
 		TokenRanges: t.TokenRanges,
+		WithHosts:   t.WithHosts,
 		Status:      runner.StatusRunning,
 		StartTime:   timeutc.Now(),
 
@@ -467,6 +471,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	}
 	run.Units = prev.Units
 	run.DC = prev.DC
+	run.WithHosts = prev.WithHosts
 	run.TokenRanges = prev.TokenRanges
 
 	return nil

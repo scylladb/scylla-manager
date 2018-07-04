@@ -111,8 +111,9 @@ type Target struct {
 	Units       []Unit
 	DC          []string
 	Host        string
-	FailFast    bool
+	WithHosts   []string
 	TokenRanges TokenRangesKind
+	FailFast    bool
 	Opts        runner.Opts
 }
 
@@ -127,6 +128,7 @@ type Run struct {
 	Units        []Unit
 	DC           []string
 	Host         string
+	WithHosts    []string
 	TokenRanges  TokenRangesKind
 	Status       runner.Status
 	Cause        string
@@ -190,6 +192,7 @@ type taskProperties struct {
 	Keyspace    []string        `json:"keyspace"`
 	DC          []string        `json:"dc"`
 	Host        string          `json:"host"`
+	WithHosts   []string        `json:"with_hosts"`
 	TokenRanges TokenRangesKind `json:"token_ranges"`
 	FailFast    bool            `json:"fail_fast"`
 }
