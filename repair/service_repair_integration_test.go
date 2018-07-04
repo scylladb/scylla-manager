@@ -429,6 +429,59 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("repair restart task properties changed", func(t *testing.T) {
+		h := newRepairTestHelper(t, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: node1 is 50% repaired")
+		h.assertProgress(0, node1, 50, longWait)
+
+		Print("And: stop repair")
+		if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusStopped")
+		h.assertStatus(runner.StatusStopped, shortWait)
+
+		Print("When: create a new task")
+		h.runID = uuid.NewTime()
+
+		Print("And: run repair with modified units")
+		modifiedUnits := multipleUnits
+		modifiedUnits.Units = []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_1"}}}
+		modifiedUnits.DC = []string{"dc2"}
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, modifiedUnits); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("And: repair of node1 continues")
+		h.assertProgress(0, node0, 100, shortWait)
+		h.assertProgress(0, node1, 50, now)
+		h.assertProgress(0, node2, 0, now)
+
+		Print("And: dc1 is used for repair")
+		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if diff := cmp.Diff(prog.DC, multipleUnits.DC); diff != "" {
+			h.t.Fatal(diff, prog)
+		}
+		if len(prog.Units) != 2 {
+			t.Fatal(prog.Units)
+		}
+	})
+
 	t.Run("repair error retry", func(t *testing.T) {
 		c := defaultConfig()
 		c.ErrorBackoff = 1 * time.Second

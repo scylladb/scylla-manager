@@ -454,6 +454,9 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get the last run progress")
 	}
+	run.Units = prev.Units
+	run.DC = prev.DC
+	run.TokenRanges = prev.TokenRanges
 
 	return nil
 }
@@ -467,14 +470,21 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		return errors.Wrap(err, "failed to get the ring description")
 	}
 
-	dc, err := s.getCoordinatorDC(ctx, run.DC, ksDcs, client)
-	if err != nil {
-		return errors.Wrap(err, "unable to find dc")
+	var dc string
+	switch {
+	case u.CoordinatorDC != "":
+		dc = u.CoordinatorDC
+	default:
+		dc, err = s.getCoordinatorDC(ctx, run.DC, ksDcs, client)
+		if err != nil {
+			return errors.Wrap(err, "unable to find dc")
+		}
 	}
 	s.logger.Info(ctx, "Repairing",
 		"keyspace", u.Keyspace,
 		"coordinator_dc", dc,
 	)
+	run.Units[unit].CoordinatorDC = dc // would be persisted by caller
 
 	// split token range into coordination hosts
 	hostSegments, err := groupSegmentsByHost(dc, run.TokenRanges, ring)
