@@ -277,7 +277,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStatus(runner.StatusRunning, now)
 
 		Print("When: status is StatusDone")
-		h.assertStatus(runner.StatusDone, longWait)
+		h.assertStatus(runner.StatusDone, 2 * longWait)
 
 		Print("Then: dc2 is used for repair")
 		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
