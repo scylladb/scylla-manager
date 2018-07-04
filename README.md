@@ -1,4 +1,4 @@
-# Mermaid the Scylla manager
+# Mermaid the Scylla Manager
 
 ![Ariel](.github/logo.png)
 
