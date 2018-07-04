@@ -15,8 +15,9 @@ import (
 
 // Unit specifies what shall be repaired.
 type Unit struct {
-	Keyspace string   `json:"keyspace" db:"keyspace_name"`
-	Tables   []string `json:"tables,omitempty"`
+	Keyspace      string   `json:"keyspace" db:"keyspace_name"`
+	Tables        []string `json:"tables,omitempty"`
+	CoordinatorDC string   `json:"-"`
 
 	allTables bool
 }

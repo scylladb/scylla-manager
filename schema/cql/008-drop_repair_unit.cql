@@ -10,6 +10,7 @@ DROP TABLE repair_run;
 CREATE TYPE IF NOT EXISTS repair_unit (
     keyspace_name text,
     tables set<text>,
+    coordinator_dc text
 );
 
 CREATE TABLE repair_run (
