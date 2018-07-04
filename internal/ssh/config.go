@@ -3,19 +3,16 @@
 package ssh
 
 import (
-	"io/ioutil"
-
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/fsutil"
 	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )
 
 // Config specifies SSH configuration.
 type Config struct {
-	User         string `yaml:"user,omitempty"`
-	IdentityFile string `yaml:"identity_file,omitempty"`
+	User         string
+	IdentityFile []byte
 }
 
 // Validate checks if all the fields are properly set.
@@ -27,14 +24,9 @@ func (c *Config) Validate() (err error) {
 	if c.User == "" {
 		err = multierr.Append(err, errors.New("missing user"))
 	}
-	if c.IdentityFile == "" {
+	if len(c.IdentityFile) == 0 {
 		err = multierr.Append(err, errors.New("missing identity_file"))
 	}
-
-	if e := fsutil.CheckPerm(c.IdentityFile, 0400); e != nil {
-		err = multierr.Append(err, e)
-	}
-
 	return
 }
 
@@ -42,7 +34,7 @@ func (c *Config) Validate() (err error) {
 func NewProductionClientConfig(c Config) (*ssh.ClientConfig, error) {
 	auth, err := keyPairAuthMethod(c.IdentityFile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %q", c.IdentityFile)
+		return nil, errors.Wrap(err, "failed to parse identity file")
 	}
 
 	return &ssh.ClientConfig{
@@ -52,13 +44,8 @@ func NewProductionClientConfig(c Config) (*ssh.ClientConfig, error) {
 	}, nil
 }
 
-func keyPairAuthMethod(identityFile string) (ssh.AuthMethod, error) {
-	b, err := ioutil.ReadFile(identityFile)
-	if err != nil {
-		return nil, err
-	}
-
-	signer, err := ssh.ParsePrivateKey(b)
+func keyPairAuthMethod(pemBytes []byte) (ssh.AuthMethod, error) {
+	signer, err := ssh.ParsePrivateKey(pemBytes)
 	if err != nil {
 		return nil, err
 	}

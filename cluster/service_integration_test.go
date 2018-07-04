@@ -15,6 +15,7 @@ import (
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -34,20 +35,20 @@ func TestServiceStorageIntegration(t *testing.T) {
 	defer func() {
 		os.Remove(dir)
 	}()
+	keyStore, err := kv.NewFsStore(dir)
 
-	var change cluster.Change
-	s, err := cluster.NewService(session, log.NewDevelopment().Named("cluster"))
+	s, err := cluster.NewService(session, keyStore, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	var change cluster.Change
 	s.SetOnChangeListener(func(ctx context.Context, c cluster.Change) error {
 		change = c
 		return nil
 	})
 
-	ctx := context.Background()
-
-	cleanup := func(t *testing.T) {
+	setup := func(t *testing.T) {
 		q := session.Query("TRUNCATE cluster")
 		defer q.Release()
 		if err := q.Exec(); err != nil {
@@ -55,8 +56,10 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	}
 
-	t.Run("list empty clusters", func(t *testing.T) {
-		cleanup(t)
+	ctx := context.Background()
+
+	t.Run("list empty", func(t *testing.T) {
+		setup(t)
 
 		clusters, err := s.ListClusters(ctx, &cluster.Filter{})
 		if err != nil {
@@ -67,8 +70,8 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("list clusters", func(t *testing.T) {
-		cleanup(t)
+	t.Run("list not empty", func(t *testing.T) {
+		setup(t)
 
 		expected := make([]*cluster.Cluster, 3)
 		for i := range expected {
@@ -97,7 +100,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("get missing cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		c, err := s.GetClusterByID(ctx, uuid.MustRandom())
 		if err != mermaid.ErrNotFound {
@@ -109,7 +112,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("get cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		c0 := validCluster(pem, "scylla-manager")
 		c0.ID = uuid.Nil
@@ -139,7 +142,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("put nil cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		if err := s.PutCluster(ctx, nil); err == nil {
 			t.Fatal("expected validation error")
@@ -147,7 +150,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("put conflicting cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		c0 := validCluster(pem, "scylla-manager")
 
@@ -164,7 +167,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("put new cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		c := validCluster(pem, "scylla-manager")
 		c.ID = uuid.Nil
@@ -184,7 +187,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("put existing cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		c := validCluster(pem, "scylla-manager")
 		if err := s.PutCluster(ctx, c); err != nil {
@@ -199,7 +202,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("delete missing cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		id := uuid.MustRandom()
 
@@ -210,7 +213,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	t.Run("delete cluster", func(t *testing.T) {
-		cleanup(t)
+		setup(t)
 
 		c := validCluster(pem, "scylla-manager")
 
@@ -220,8 +223,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := s.DeleteCluster(ctx, c.ID); err != nil {
 			t.Fatal(err)
 		}
-		_, err := s.GetClusterByID(ctx, c.ID)
-		if err != mermaid.ErrNotFound {
+		if _, err := s.GetClusterByID(ctx, c.ID); err != mermaid.ErrNotFound {
 			t.Fatal(err)
 		}
 		if change.ID != c.ID {

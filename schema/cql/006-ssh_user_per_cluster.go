@@ -14,7 +14,6 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/schema"
 	"gopkg.in/yaml.v2"
 )
@@ -23,20 +22,25 @@ func init() {
 	registerMigrationCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, copySSHInfoToClusterAfter006)
 }
 
+type config struct {
+	SSH sshConfig `yaml:"ssh,omitempty"`
+}
+
 type sshConfig struct {
-	SSH *ssh.Config `yaml:"ssh,omitempty"`
+	User         string `yaml:"user,omitempty"`
+	IdentityFile string `yaml:"identity_file,omitempty"`
 }
 
 func copySSHInfoToClusterAfter006(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 	u, _ := user.Current()
-	configFile := "/etc/scylla-manager.yaml.rpmsave"
-	config := &ssh.Config{
+	f := "/etc/scylla-manager.yaml.rpmsave"
+	cfg := sshConfig{
 		User:         "scylla-manager",
 		IdentityFile: filepath.Join(u.HomeDir, "scylla_manager.pem"),
 	}
 
-	if f, err := os.Open(configFile); err == nil {
-		if err := yaml.NewDecoder(f).Decode(&sshConfig{SSH: config}); err != nil {
+	if f, err := os.Open(f); err == nil {
+		if err := yaml.NewDecoder(f).Decode(&config{SSH: cfg}); err != nil {
 			return err
 		}
 	}
@@ -53,14 +57,14 @@ func copySSHInfoToClusterAfter006(ctx context.Context, session *gocql.Session, l
 	q = gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	defer q.Release()
 
-	toDir := filepath.Dir(config.IdentityFile)
+	toDir := filepath.Dir(cfg.IdentityFile)
 	for _, c := range clusters {
-		if err := os.Link(config.IdentityFile, filepath.Join(toDir, c.ID.String())); err != nil {
+		if err := os.Link(cfg.IdentityFile, filepath.Join(toDir, c.ID.String())); err != nil {
 			logger.Info(ctx, "unable to link ssh identity file",
 				"identity_file", filepath.Join(toDir, c.ID.String()), "error", err)
 			continue
 		}
-		c.SSHUser = config.User
+		c.SSHUser = cfg.User
 		if err := q.BindStruct(c).Exec(); err != nil {
 			return err
 		}

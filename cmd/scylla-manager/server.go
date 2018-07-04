@@ -5,6 +5,8 @@ package main
 import (
 	"context"
 	"net/http"
+	"os/user"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
@@ -63,7 +66,16 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 func (s *server) initServices() error {
 	var err error
 
-	s.clusterSvc, err = cluster.NewService(s.session, s.logger.Named("cluster"))
+	u, err := user.Current()
+	if err != nil {
+		return errors.Wrap(err, "failed to get user")
+	}
+	keyStore, err := kv.NewFsStore(filepath.Join(u.HomeDir, ".certs"))
+	if err != nil {
+		return errors.Wrap(err, "failed to create key store")
+	}
+
+	s.clusterSvc, err = cluster.NewService(s.session, keyStore, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
