@@ -53,8 +53,7 @@ type repairTestHelper struct {
 	t *testing.T
 }
 
-func newRepairTestHelper(t *testing.T, c repair.Config) *repairTestHelper {
-	session := CreateSession(t)
+func newRepairTestHelper(t *testing.T, session *gocql.Session, c repair.Config) *repairTestHelper {
 	ExecStmt(t, session, "TRUNCATE TABLE repair_run")
 	ExecStmt(t, session, "TRUNCATE TABLE repair_run_progress")
 
@@ -115,7 +114,6 @@ func (h *repairTestHelper) progress(unit int, node string) int {
 
 func (h *repairTestHelper) close() {
 	h.service.Close()
-	h.session.Close()
 }
 
 func newTestService(t *testing.T, session *gocql.Session, hrt *HackableRoundTripper, c repair.Config) *repair.Service {
@@ -211,8 +209,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		return c
 	}
 
+	session := CreateSession(t)
+
 	t.Run("repair", func(t *testing.T) {
-		h := newRepairTestHelper(t, defaultConfig())
+		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
@@ -265,7 +265,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair dc", func(t *testing.T) {
-		h := newRepairTestHelper(t, defaultConfig())
+		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
@@ -301,7 +301,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair host", func(t *testing.T) {
-		h := newRepairTestHelper(t, defaultConfig())
+		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
@@ -340,7 +340,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair stop", func(t *testing.T) {
-		h := newRepairTestHelper(t, defaultConfig())
+		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
@@ -365,7 +365,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair restart", func(t *testing.T) {
-		h := newRepairTestHelper(t, defaultConfig())
+		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
@@ -431,7 +431,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair restart no continue", func(t *testing.T) {
-		h := newRepairTestHelper(t, defaultConfig())
+		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
@@ -473,7 +473,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair restart task properties changed", func(t *testing.T) {
-		h := newRepairTestHelper(t, defaultConfig())
+		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
@@ -529,7 +529,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		c := defaultConfig()
 		c.ErrorBackoff = 1 * time.Second
 
-		h := newRepairTestHelper(t, c)
+		h := newRepairTestHelper(t, session, c)
 		defer h.close()
 		ctx := context.Background()
 
@@ -568,7 +568,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	t.Run("repair error fail fast", func(t *testing.T) {
 		c := defaultConfig()
-		h := newRepairTestHelper(t, c)
+		h := newRepairTestHelper(t, session, c)
 		defer h.close()
 		ctx := context.Background()
 
