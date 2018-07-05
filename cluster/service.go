@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"runtime"
 	"sort"
 
 	"github.com/gocql/gocql"
@@ -279,6 +280,11 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
+	type dcHost struct {
+		dc   string
+		host string
+		err  error
+	}
 	transport, err := s.createTransport(c)
 	if err != nil {
 		return errors.Wrap(err, "failed to create transport")
@@ -292,12 +298,29 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 		return err
 	}
 
-	var errs error
+	// some simple heuristics to buffer the channel
+	out := make(chan dcHost, runtime.NumCPU()+1)
+
 	for dc, hosts := range dcs {
 		for _, host := range hosts {
-			_, err := client.Ping(ctx, host)
-			if err != nil {
-				errs = multierr.Append(errs, errors.Wrapf(err, "%s %s", dc, host))
+			go func(ctx context.Context, dc, host string) {
+				dh := dcHost{
+					dc:   dc,
+					host: host,
+				}
+				_, dh.err = client.Ping(ctx, host)
+				out <- dh
+			}(ctx, dc, host)
+		}
+	}
+
+	var errs error
+	for _, hosts := range dcs {
+		for range hosts {
+			e := <-out
+			s.logger.Debug(ctx, "Ping received", "dc", e.dc, "host", e.host, "error", e.err)
+			if e.err != nil {
+				errs = multierr.Append(errs, errors.Wrapf(e.err, "%s %s", e.dc, e.host))
 			}
 		}
 	}

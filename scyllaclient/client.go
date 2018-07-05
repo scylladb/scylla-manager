@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -137,7 +138,7 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 		return nil, err
 	}
 
-	out := make(chan dcHost, len(resp.Payload)+1)
+	out := make(chan dcHost, runtime.NumCPU()+1)
 
 	for _, p := range resp.Payload {
 		go func(ctx context.Context, out chan dcHost, host string) {
