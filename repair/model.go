@@ -110,6 +110,7 @@ type Progress struct {
 type Target struct {
 	Units       []Unit
 	DC          []string
+	Host        string
 	FailFast    bool
 	TokenRanges TokenRangesKind
 	Opts        runner.Opts
@@ -125,6 +126,7 @@ type Run struct {
 	TopologyHash uuid.UUID
 	Units        []Unit
 	DC           []string
+	Host         string
 	TokenRanges  TokenRangesKind
 	Status       runner.Status
 	Cause        string
@@ -187,6 +189,7 @@ func (p *RunProgress) PercentComplete() int {
 type taskProperties struct {
 	Keyspace    []string        `json:"keyspace"`
 	DC          []string        `json:"dc"`
+	Host        string          `json:"host"`
 	TokenRanges TokenRangesKind `json:"token_ranges"`
 	FailFast    bool            `json:"fail_fast"`
 }

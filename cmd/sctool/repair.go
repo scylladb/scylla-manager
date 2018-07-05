@@ -92,6 +92,13 @@ var repairCmd = &cobra.Command{
 			}
 			props["dc"] = unescapeFilters(dc)
 		}
+		if f = cmd.Flag("host"); f.Changed {
+			host, err := cmd.Flags().GetString("host")
+			if err != nil {
+				return printableError{err}
+			}
+			props["host"] = host
+		}
 
 		failFast, err := cmd.Flags().GetBool("fail-fast")
 		if err != nil {
@@ -125,6 +132,7 @@ func init() {
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, i.e. keyspace,!keyspace.table_prefix_*")
 	fs.StringSlice("dc", nil, "comma-separated `list` of data centers glob patterns, i.e. dc1,!otherdc*")
+	fs.String("host", "", "host to repair, by default all hosts are repaired")
 	fs.Var(&repairTokenRanges, "token-ranges", "token ranges: pr - primary token ranges, npr - non primary token ranges, all - pr and npr")
 	taskInitCommonFlags(cmd)
 }

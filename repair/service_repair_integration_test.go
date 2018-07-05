@@ -172,6 +172,32 @@ func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
 
+func singleUnit() repair.Target {
+	return repair.Target{
+		Units: []repair.Unit{
+			{
+				Keyspace: "test_repair",
+				Tables:   []string{"test_table_0"},
+			},
+		},
+		DC:          []string{"dc1", "dc2"},
+		TokenRanges: repair.PrimaryTokenRanges,
+		Opts:        runner.DefaultOpts,
+	}
+}
+
+func multipleUnits() repair.Target {
+	return repair.Target{
+		Units: []repair.Unit{
+			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
+			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
+		},
+		DC:          []string{"dc1", "dc2"},
+		TokenRanges: repair.PrimaryTokenRanges,
+		Opts:        runner.DefaultOpts,
+	}
+}
+
 func TestServiceRepairIntegration(t *testing.T) {
 	clusterSession := CreateManagedClusterSession(t)
 	createKeyspace(t, clusterSession, "test_repair")
@@ -185,35 +211,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		return c
 	}
 
-	singleUnit := repair.Target{
-		Units: []repair.Unit{
-			{
-				Keyspace: "test_repair",
-				Tables:   []string{"test_table_0"},
-			},
-		},
-		DC:          []string{"dc1", "dc2"},
-		TokenRanges: repair.PrimaryTokenRanges,
-		Opts:        runner.DefaultOpts,
-	}
-
-	multipleUnits := repair.Target{
-		Units: []repair.Unit{
-			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
-			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
-		},
-		DC:          []string{"dc1", "dc2"},
-		TokenRanges: repair.PrimaryTokenRanges,
-		Opts:        runner.DefaultOpts,
-	}
-
 	t.Run("repair", func(t *testing.T) {
 		h := newRepairTestHelper(t, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
 
 		Print("When: run repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -265,7 +269,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer h.close()
 		ctx := context.Background()
 
-		units := multipleUnits
+		units := multipleUnits()
 		units.DC = []string{"dc2"}
 
 		Print("When: run repair")
@@ -277,7 +281,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStatus(runner.StatusRunning, now)
 
 		Print("When: status is StatusDone")
-		h.assertStatus(runner.StatusDone, 2 * longWait)
+		h.assertStatus(runner.StatusDone, 2*longWait)
 
 		Print("Then: dc2 is used for repair")
 		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
@@ -290,7 +294,46 @@ func TestServiceRepairIntegration(t *testing.T) {
 		for _, u := range prog.Units {
 			for _, n := range u.Nodes {
 				if n.Host == node0 || n.Host == node1 || n.Host == node2 {
-					t.Fatal(n.Host)
+					t.Error(n.Host)
+				}
+			}
+		}
+	})
+
+	t.Run("repair host", func(t *testing.T) {
+		h := newRepairTestHelper(t, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		units := multipleUnits()
+		units.Host = node0
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("And: repair of node0 advances")
+		h.assertProgress(0, node0, 1, shortWait)
+
+		Print("When: node0 is 100% repaired")
+		h.assertProgress(0, node0, 100, longWait)
+
+		Print("Then: status is StatusDone")
+		h.assertStatus(runner.StatusDone, 2*longWait)
+
+		Print(fmt.Sprintf("Then: host %s is used for repair", node0))
+		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		for _, u := range prog.Units {
+			for _, n := range u.Nodes {
+				if n.Host != node0 {
+					t.Error(n.Host)
 				}
 			}
 		}
@@ -302,7 +345,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -327,7 +370,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -346,7 +389,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -373,7 +416,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -392,7 +435,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer h.close()
 		ctx := context.Background()
 
-		unit := singleUnit
+		unit := singleUnit()
 		unit.Opts.Continue = false
 
 		Print("Given: repair")
@@ -435,7 +478,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, multipleUnits()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -454,7 +497,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair with modified units")
-		modifiedUnits := multipleUnits
+		modifiedUnits := multipleUnits()
 		modifiedUnits.Units = []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_1"}}}
 		modifiedUnits.DC = []string{"dc2"}
 		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, modifiedUnits); err != nil {
@@ -474,7 +517,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if err != nil {
 			h.t.Fatal(err)
 		}
-		if diff := cmp.Diff(prog.DC, multipleUnits.DC); diff != "" {
+		if diff := cmp.Diff(prog.DC, multipleUnits().DC); diff != "" {
 			h.t.Fatal(diff, prog)
 		}
 		if len(prog.Units) != 2 {
@@ -491,7 +534,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit); err != nil {
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -529,7 +572,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer h.close()
 		ctx := context.Background()
 
-		unit := singleUnit
+		unit := singleUnit()
 		unit.FailFast = true
 
 		Print("Given: one repair fails")

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/cespare/xxhash"
-	"github.com/fatih/set"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/dht"
@@ -18,6 +17,27 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/multierr"
 )
+
+// validateHostsBelongToCluster checks that the hosts belong to the cluster.
+func validateHostsBelongToCluster(dcMap map[string][]string, hosts ...string) error {
+	all := newSet(nil)
+	for _, dcHosts := range dcMap {
+		for _, h := range dcHosts {
+			all.Add(h)
+		}
+	}
+
+	var missing []string
+	for _, h := range hosts {
+		if !all.Has(h) {
+			missing = append(missing, h)
+		}
+	}
+	if len(missing) > 0 {
+		return errors.Errorf("no such hosts %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
 
 // groupSegmentsByHost extract list of primary segments (token ranges) for every
 // host in a datacenter and returns a mapping from host to list of it's segments.
@@ -92,10 +112,7 @@ func validateSubset(sub []string, all []string) error {
 		return nil
 	}
 
-	s := set.New(set.NonThreadSafe)
-	for _, t := range sub {
-		s.Add(t)
-	}
+	s := newSet(sub)
 	for _, t := range all {
 		s.Remove(t)
 	}

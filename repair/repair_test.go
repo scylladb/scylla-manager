@@ -13,6 +13,41 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
+func TestValidateHostsBelongToCluster(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		DC map[string][]string
+		H  []string
+		E  string
+	}{
+		{},
+		{
+			H: []string{"foobar"},
+			E: "no such hosts foobar",
+		},
+		{
+			DC: map[string][]string{"dc1": {"172.16.1.3", "172.16.1.2", "172.16.1.10"}, "dc2": {"172.16.1.4", "172.16.1.20", "172.16.1.5"}},
+			H:  []string{"172.16.1.3", "172.16.1.5"},
+		},
+		{
+			DC: map[string][]string{"dc1": {"172.16.1.3", "172.16.1.2", "172.16.1.10"}, "dc2": {"172.16.1.4", "172.16.1.20", "172.16.1.5"}},
+			H:  []string{"172.16.1.3", "172.16.1.5", "foo", "bar"},
+			E:  "no such hosts foo, bar",
+		},
+	}
+
+	for i, test := range table {
+		msg := ""
+		if err := validateHostsBelongToCluster(test.DC, test.H...); err != nil {
+			msg = err.Error()
+		}
+		if diff := cmp.Diff(msg, test.E); diff != "" {
+			t.Error(i, diff)
+		}
+	}
+}
+
 func TestGroupSegmentsByHost(t *testing.T) {
 	t.Parallel()
 

@@ -21,6 +21,7 @@ CREATE TABLE repair_run (
     topology_hash uuid,
     units list<frozen<repair_unit>>,
     dc list<text>,
+    host text,
     token_ranges text,
     status text,
     cause text,
