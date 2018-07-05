@@ -481,12 +481,12 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	u := run.Units[unit]
 
 	// get the ring description
-	ksDcs, ring, err := client.DescribeRing(ctx, u.Keyspace)
+	ksDCs, ring, err := client.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the ring description")
 	}
 
-	dc, err := s.resolveDC(ctx, client, u, run, ksDcs)
+	dc, err := s.resolveDC(ctx, client, u, run, ksDCs)
 	if err != nil {
 		return err
 	}
@@ -637,7 +637,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	return errFailed
 }
 
-func (s *Service) resolveDC(ctx context.Context, client *scyllaclient.Client, u Unit, run *Run, ksDcs []string) (string, error) {
+func (s *Service) resolveDC(ctx context.Context, client *scyllaclient.Client, u Unit, run *Run, ksDCs []string) (string, error) {
 	var (
 		dc  string
 		err error
@@ -648,47 +648,43 @@ func (s *Service) resolveDC(ctx context.Context, client *scyllaclient.Client, u 
 	case run.Host != "":
 		dc, err = client.HostDatacenter(ctx, run.Host)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to find dc")
+			return "", errors.Wrap(err, "failed to resolve coordinator DC")
 		}
 	default:
-		dc, err = s.getCoordinatorDC(ctx, client, run.DC, ksDcs)
+		dc, err = s.getCoordinatorDC(ctx, client, run.DC, ksDCs)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to find dc")
+			return "", errors.Wrap(err, "failed to resolve coordinator DC")
 		}
 	}
 	return dc, nil
 }
 
-func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Client, runDCs []string, ksDcs []string) (string, error) {
-	localDC, err := client.Datacenter(ctx)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to get local datacenter")
+func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Client, runDCs []string, ksDCs []string) (string, error) {
+	runSet := set.Intersection(newSet(runDCs), newSet(ksDCs))
+	if runSet.IsEmpty() {
+		return "", errors.New("no matching DCs")
 	}
 
-	runDCsSet := newSet(runDCs)
-	if runDCsSet.Has(localDC) {
-		return localDC, nil
+	local, err := client.Datacenter(ctx)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get local DC")
+	}
+	if runSet.Has(local) {
+		return local, nil
 	}
 
-	allDCs, err := client.Datacenters(ctx)
+	all, err := client.Datacenters(ctx)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to get cluster datacenters")
+		return "", errors.Wrapf(err, "failed to get datacenters")
 	}
-	allDCsSet := set.New(set.NonThreadSafe)
-	for dc := range allDCs {
-		allDCsSet.Add(dc)
-	}
-	if runDCsSet.IsEmpty() {
-		return "", errors.New("no filtered dcs available in unit")
-	}
-	commonDC := set.Intersection(allDCsSet, runDCsSet)
-	if commonDC.IsEmpty() {
-		return "", errors.Errorf("no common dcs between the filtered and keyspace dcs")
+	allSet := newSet(nil)
+	for dc := range all {
+		allSet.Add(dc)
 	}
 
 	dcHosts := make(map[string][]string)
-	for dc, hosts := range allDCs {
-		if commonDC.Has(dc) {
+	for dc, hosts := range all {
+		if runSet.Has(dc) {
 			dcHosts[dc] = hosts
 		}
 	}

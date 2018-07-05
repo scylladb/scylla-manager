@@ -86,6 +86,18 @@ func (h *repairTestHelper) assertStatus(s runner.Status, wait time.Duration) {
 	}, _interval, wait)
 }
 
+func (h *repairTestHelper) assertCause(cause string, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		r, err := h.service.GetRun(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		return strings.Contains(r.Cause, cause)
+	}, _interval, wait)
+}
+
 func (h *repairTestHelper) assertProgress(unit int, node string, percent int, wait time.Duration) {
 	h.t.Helper()
 
@@ -298,6 +310,38 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 			}
 		}
+	})
+
+	t.Run("repair dc local keyspace mismatch", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: dc2 only keyspace")
+		ExecStmt(t, clusterSession, "CREATE KEYSPACE IF NOT EXISTS test_repair_dc2 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc2': 3}")
+		ExecStmt(t, clusterSession, "CREATE TABLE IF NOT EXISTS test_repair_dc2.test_table_0 (id int PRIMARY KEY)")
+
+		units := singleUnit()
+		units.Units = []repair.Unit{
+			{
+				Keyspace: "test_repair_dc2",
+			},
+		}
+		units.DC = []string{"dc1"}
+
+		Print("When: run repair with dc1")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("When: status is StatusError")
+		h.assertStatus(runner.StatusError, shortWait)
+
+		Print("And: cause is no matching DCs")
+		h.assertCause("no matching DCs", now)
 	})
 
 	t.Run("repair host", func(t *testing.T) {
