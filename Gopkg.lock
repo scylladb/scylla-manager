@@ -387,12 +387,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  name = "gopkg.in/fatih/set.v0"
-  packages = ["."]
-  revision = "57907de300222151a123d29255ed17f5ed43fad3"
-  version = "v0.1.0"
-
-[[projects]]
   name = "gopkg.in/inf.v0"
   packages = ["."]
   revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
@@ -416,6 +410,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "efafdd0e123bb2545556fc8d1383fa61beb0b910223a60097abddf0fcffc0600"
+  inputs-digest = "8cc000864288bc127974d6efc80c20ba3ce72138cd1b2f55af4f4f54e7e8d404"
   solver-name = "gps-cdcl"
   solver-version = 1
