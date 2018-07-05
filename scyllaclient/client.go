@@ -65,12 +65,12 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 		pool:   pool,
 		logger: l,
 	}, l)
-	t.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+	t.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
 		// do not retry ping
 		if resp != nil && resp.Request.URL.Path == "/" {
 			return false, nil
 		}
-		return retryablehttp.DefaultRetryPolicy(resp, err)
+		return retryablehttp.DefaultRetryPolicy(req, resp, err)
 	}
 
 	disableOpenAPIDebugOnce.Do(func() {

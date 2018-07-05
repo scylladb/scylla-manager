@@ -6,6 +6,7 @@ package retryablehttp
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -175,10 +176,10 @@ func TestClient_CheckRetry(t *testing.T) {
 
 	retryErr := errors.New("retryError")
 	called := 0
-	transport.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
 		if called < 1 {
 			called++
-			return DefaultRetryPolicy(resp, err)
+			return DefaultRetryPolicy(req, resp, err)
 		}
 
 		return false, retryErr
@@ -196,6 +197,32 @@ func TestClient_CheckRetry(t *testing.T) {
 	}
 }
 
+func TestClient_CheckCanceled(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "test_500_body", http.StatusInternalServerError)
+	}))
+	defer ts.Close()
+
+	client, transport := NewClient()
+	called := 0
+
+	req, _ := http.NewRequest("GET", ts.URL, nil)
+	ctx, cancel := context.WithCancel(req.Context())
+	req = req.WithContext(ctx)
+	cancel()
+
+	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
+		called++
+		return DefaultRetryPolicy(req, resp, err)
+	}
+
+	client.Do(req)
+
+	if called != 1 {
+		t.Fatalf("CheckRetry called %d times, expected 1", called)
+	}
+}
+
 func TestClient_CheckRetryStop(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "test_500_body", http.StatusInternalServerError)
@@ -206,7 +233,7 @@ func TestClient_CheckRetryStop(t *testing.T) {
 
 	// Verify that this stops retries on the first try, with no errors from the client.
 	called := 0
-	transport.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
 		called++
 		return false, nil
 	}

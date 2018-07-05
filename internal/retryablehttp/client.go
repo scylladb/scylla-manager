@@ -44,7 +44,7 @@ type LenReader interface {
 // Client will close any response body when retrying, but if the retry is
 // aborted it is up to the CheckResponse callback to properly close any
 // response body before returning.
-type CheckRetry func(resp *http.Response, err error) (bool, error)
+type CheckRetry func(req *http.Request, resp *http.Response, err error) (bool, error)
 
 // Backoff specifies a policy for how long to wait between retries.
 // It is called after a failing request to determine the amount of time
@@ -93,7 +93,13 @@ func NewTransport(parent http.RoundTripper, logger golog.Logger) *Transport {
 
 // DefaultRetryPolicy provides a default callback for Client.CheckRetry, which
 // will retry on connection errors and server errors.
-func DefaultRetryPolicy(resp *http.Response, err error) (bool, error) {
+func DefaultRetryPolicy(req *http.Request, resp *http.Response, err error) (bool, error) {
+	if req != nil {
+		if err := req.Context().Err(); err != nil {
+			return false, err
+		}
+	}
+
 	if err != nil {
 		return true, err
 	}
@@ -194,7 +200,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 
 		// Check if we should continue with retries.
-		checkOK, checkErr := t.CheckRetry(resp, err)
+		checkOK, checkErr := t.CheckRetry(r, resp, err)
 
 		// Now decide if we should continue.
 		if !checkOK {
