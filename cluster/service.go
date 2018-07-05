@@ -262,7 +262,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 
 	// validate hosts connectivity
 	if err := s.validateHostsConnectivity(ctx, c); err != nil {
-		return mermaid.ErrValidate(err, "connectivity to all nodes is required")
+		return mermaid.ErrValidate(err, "")
 	}
 
 	stmt, names := schema.Cluster.Insert()
@@ -295,7 +295,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	}
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to connect to host")
 	}
 
 	// some simple heuristics to buffer the channel
@@ -324,7 +324,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 			}
 		}
 	}
-	return errs
+	return errors.Wrap(errs, "failed to connect to nodes")
 }
 
 // DeleteCluster removes cluster based on ID.

@@ -193,6 +193,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		resp, err = t.parent.RoundTrip(r)
 		if err != nil {
 			t.logger.Info(r.Context(), "request failed",
+				"host", r.Host,
 				"method", r.Method,
 				"uri", r.URL.RequestURI(),
 				"error", err,
@@ -229,6 +230,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		wait := t.Backoff(t.RetryWaitMin, t.RetryWaitMax, i, resp)
 		t.logger.Info(r.Context(), "retrying",
+			"host", r.Host,
 			"method", r.Method,
 			"uri", r.URL.RequestURI(),
 			"wait", wait,
