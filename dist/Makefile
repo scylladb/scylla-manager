@@ -1,6 +1,6 @@
 all: clean release
 
-VERSION := 1.1.0
+VERSION := 1.2.0
 RELEASE := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION_NAME := $(VERSION)-$(RELEASE)
 
