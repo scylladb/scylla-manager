@@ -13,6 +13,10 @@ import (
 	"github.com/scylladb/mermaid"
 )
 
+func init() {
+	render.Respond = httpErrorRender
+}
+
 // Services contains REST API services.
 type Services struct {
 	Cluster   ClusterService
@@ -50,32 +54,4 @@ func NewPrometheus() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	return r
-}
-
-func init() {
-	render.Respond = httpErrorRender
-}
-
-func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {
-	if err, ok := v.(error); ok {
-		httpErr, _ := v.(*httpError)
-		if httpErr == nil {
-			httpErr = &httpError{
-				Err:        err,
-				StatusCode: http.StatusInternalServerError,
-				Message:    "unexpected error, consult logs",
-				TraceID:    log.TraceID(r.Context()),
-			}
-		}
-
-		if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
-			le.AddFields("Error", httpErr.Error())
-		}
-
-		render.Status(r, httpErr.StatusCode)
-		render.DefaultResponder(w, r, httpErr)
-		return
-	}
-
-	render.DefaultResponder(w, r, v)
 }

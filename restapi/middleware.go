@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 	log "github.com/scylladb/golog"
 )
 
@@ -49,6 +50,30 @@ func recoverPanicsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {
+	if err, ok := v.(error); ok {
+		httpErr, _ := v.(*httpError)
+		if httpErr == nil {
+			httpErr = &httpError{
+				Err:        err,
+				StatusCode: http.StatusInternalServerError,
+				Message:    "unexpected error, consult logs",
+				TraceID:    log.TraceID(r.Context()),
+			}
+		}
+
+		if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
+			le.AddError(err)
+		}
+
+		render.Status(r, httpErr.StatusCode)
+		render.DefaultResponder(w, r, httpErr)
+		return
+	}
+
+	render.DefaultResponder(w, r, v)
+}
+
 // httpLogger implements a middleware.logFormatter for use with middleware.RequestLogger.
 type httpLogger struct {
 	l log.Logger
@@ -64,22 +89,40 @@ func (h httpLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 type httpLogEntry struct {
 	req *http.Request
 	l   log.Logger
+	err error
 }
 
 func (e *httpLogEntry) Write(status, bytes int, elapsed time.Duration) {
-	e.l.Debug(e.req.Context(), "HTTP",
-		"status", status,
-		"bytes", bytes,
-		"duration", fmt.Sprintf("%dms", elapsed/1000000),
-	)
+	f := e.l.Debug
+
+	switch {
+	case status >= 500:
+		f = e.l.Error
+	case status >= 400:
+		f = e.l.Info
+	}
+
+	if e.err == nil {
+		f(e.req.Context(), "HTTP",
+			"status", status,
+			"bytes", bytes,
+			"duration", fmt.Sprintf("%dms", elapsed/1000000),
+		)
+	} else {
+		f(e.req.Context(), "HTTP",
+			"status", status,
+			"bytes", bytes,
+			"duration", fmt.Sprintf("%dms", elapsed/1000000),
+			"error", e.err,
+		)
+	}
 }
 
 func (e *httpLogEntry) Panic(v interface{}, stack []byte) {
 	e.l.Error(e.req.Context(), "Panic", "panic", v)
 }
 
-// AddFields appends additional log.Logger key-value pairs to the request
-// log entry e.
-func (e *httpLogEntry) AddFields(f ...interface{}) {
-	e.l = e.l.With(f...)
+// AddError add error information to the log entry when it's printed.
+func (e *httpLogEntry) AddError(err error) {
+	e.err = err
 }
