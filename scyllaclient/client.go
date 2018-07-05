@@ -142,17 +142,11 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 
 	for _, p := range resp.Payload {
 		go func(ctx context.Context, out chan dcHost, host string) {
-			dc, err := c.HostDatacenter(ctx, host)
-			if err != nil {
-				out <- dcHost{
-					err: err,
-				}
-				return
-			}
-			out <- dcHost{
-				dc:   dc,
+			dh := dcHost{
 				host: host,
 			}
+			dh.dc, dh.err = c.HostDatacenter(ctx, host)
+			out <- dh
 		}(ctx, out, p.Key)
 	}
 
