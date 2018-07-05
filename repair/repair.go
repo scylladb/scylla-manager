@@ -222,6 +222,9 @@ func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
 	}
 	v.PercentComplete = total / len(v.Nodes)
 
+	sort.Slice(v.Nodes, func(i, j int) bool {
+		return v.Nodes[i].PercentComplete > v.Nodes[j].PercentComplete
+	})
 	return v
 }
 

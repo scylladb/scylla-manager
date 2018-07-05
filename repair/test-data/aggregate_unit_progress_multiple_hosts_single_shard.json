@@ -5,18 +5,6 @@
   },
   "nodes": [
     {
-      "percent_complete": 30,
-      "host": "A",
-      "shards": [
-        {
-          "percent_complete": 30,
-          "segment_count": 100,
-          "segment_success": 30,
-          "segment_error": 0
-        }
-      ]
-    },
-    {
       "percent_complete": 50,
       "host": "B",
       "shards": [
@@ -24,6 +12,18 @@
           "percent_complete": 50,
           "segment_count": 100,
           "segment_success": 50,
+          "segment_error": 0
+        }
+      ]
+    },
+    {
+      "percent_complete": 30,
+      "host": "A",
+      "shards": [
+        {
+          "percent_complete": 30,
+          "segment_count": 100,
+          "segment_success": 30,
           "segment_error": 0
         }
       ]
