@@ -72,7 +72,12 @@ check: .check-copyright .check-timeutc .check-misspell .check-lint .check-vendor
 
 .PHONY: .check-vendor
 .check-vendor:
+ifneq ($(USER), jenkins)
+	@echo "==> Running vendor check..."
 	@$(GOBIN)/dep ensure -no-vendor -dry-run
+else
+	@echo "==> Skipping vendor check since I am Jenkins..."
+endif
 
 .PHONY: test
 test: ## Run unit and integration tests
