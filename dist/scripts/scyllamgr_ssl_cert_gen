@@ -5,15 +5,34 @@ set -e
 KEY_FILE="/var/lib/scylla-manager/scylla_manager.key"
 CRT_FILE="/var/lib/scylla-manager/scylla_manager.crt"
 SUBJECT="/C=US/ST=Scylla/L=Scylla/O=Scylla/OU=Scylla/CN=scylla.com"
+PRESERVE_FILES="keep"
+HAVE_FILES=0
+SILENT="verbose"
+FAIL_MODE="lazy"
 
 print_usage() {
     echo "scyllamgr_ssl_cert_gen --subject <the_subject>"
     echo "  -s --subject				specify certificate info, default=\"${SUBJECT}\""
+    echo "     --overwrite              regenerate and overwrite the existing certificate files, default is false"
+    echo "     --silent                 suppress error messages, default is false"
+    echo "     --fail-fast              fail as possible when an error happens, default false"
     echo "  -h --help	    			display help info"
 }
 
 while [ $# -gt 0 ]; do
     case "$1" in
+        "--fail-fast")
+            FAIL_MODE="fast"
+            shift 1
+            ;;
+        "--silent")
+            SILENT="silent"
+            shift 1
+            ;;
+        "--overwrite")
+            PRESERVE_FILES="overwrite"
+            shift 1
+            ;;
         "-s"|"--subject")
             SUBJECT="$2"
             shift 2
@@ -33,16 +52,33 @@ if [ "`id -u`" -ne 0 ]; then
 fi
 
 if [ -f ${KEY_FILE} ]; then
-    echo "key '$KEY_FILE' exists, to regenerate please delete it as well as the certificate '$CRT_FILE'"
-    exit 1
+    HAVE_FILES=1
+    if [ "$SILENT" = "verbose" ]; then
+        echo "key '$KEY_FILE' exists, to regenerate please delete it as well as the certificate '$CRT_FILE'"
+    fi
+    if [ "$FAIL_MODE" = "fast" ]; then
+        exit 1
+    fi
 fi
 
 if [ -f ${CRT_FILE} ]; then
-    echo "certificate '$CRT_FILE' exists, to regenerate please delete it as well as the key '$KEY_FILE'"
-    exit 1
+    HAVE_FILES=1
+    if [ "$SILENT" = "verbose" ]; then
+        echo "certificate '$CRT_FILE' exists, to regenerate please delete it as well as the key '$KEY_FILE'"
+    fi
+    if [ "$FAIL_MODE" = "fast" ]; then
+        exit 1
+    fi
 fi
 
-openssl genrsa -out ${KEY_FILE} 4096
-openssl req -new -x509 -sha512 -subj "${SUBJECT}" -key ${KEY_FILE} -out ${CRT_FILE} -days 365
-chown scylla-manager:scylla-manager ${KEY_FILE}
-chown scylla-manager:scylla-manager ${CRT_FILE}
+if [ $HAVE_FILES -eq 0 ]; then
+    openssl genrsa -out ${KEY_FILE} 4096
+    openssl req -new -x509 -sha512 -subj "${SUBJECT}" -key ${KEY_FILE} -out ${CRT_FILE} -days 365
+    chown scylla-manager:scylla-manager ${KEY_FILE}
+    chown scylla-manager:scylla-manager ${CRT_FILE}
+elif [ "$PRESERVE_FILES" = "overwrite" ]; then
+    openssl genrsa -out ${KEY_FILE} 4096
+    openssl req -new -x509 -sha512 -subj "${SUBJECT}" -key ${KEY_FILE} -out ${CRT_FILE} -days 365
+    chown scylla-manager:scylla-manager ${KEY_FILE}
+    chown scylla-manager:scylla-manager ${CRT_FILE}
+fi
