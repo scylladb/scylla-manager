@@ -72,9 +72,7 @@ check: .check-copyright .check-timeutc .check-misspell .check-lint .check-vendor
 
 .PHONY: .check-vendor
 .check-vendor:
-ifneq ($(USER), jenkins)
-	@$(GOBIN)/dep ensure -no-vendor -dry-run
-endif
+	@$(GOBIN)/dep check
 
 .PHONY: test
 test: ## Run unit and integration tests
