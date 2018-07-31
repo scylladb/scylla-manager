@@ -1,6 +1,4 @@
 %define debug_package %{nil}
-%global go_version 1.10.3
-%global go_url https://storage.googleapis.com/golang/go%{go_version}.linux-amd64.tar.gz
 %global pkg_name github.com/scylladb/mermaid
 
 Name:           scylla-manager
@@ -15,7 +13,7 @@ Source0:        %{name}-%{version}-%{release}.tar.gz
 
 BuildRequires:  curl
 ExclusiveArch:  x86_64
-Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla-manager-client = %{version}-%{release} psmisc
+Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla-manager-client = %{version}-%{release}
 
 %description
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
@@ -26,29 +24,18 @@ well as scylla database server.
 %setup -q -T -b 0 -n %{name}-%{version}-%{release}
 
 %build
-curl -sSq -L %{go_url} | tar zxf - -C %{_builddir}
 mkdir -p src/%{dirname:%{pkg_name}}
 ln -s $PWD src/%{pkg_name}
 
-(
-  set -e
+GOROOT=$PWD/../go
+GO="${GOROOT}/bin/go"
+GOLDFLAGS="-w -extldflags '-static' -X %{pkg_name}.version=%{version}-%{release}"
 
-  export GOROOT=%{_builddir}/go
-  export GOPATH=$PWD
+GOPATH=${PWD} GOOS=linux GOARCH=amd64 CGO_ENABLED=0 ${GO} build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) ${GOLDFLAGS}" -o release/linux_amd64/%{name} %{pkg_name}/cmd/%{name}
+GOPATH=${PWD} GOOS=linux GOARCH=amd64 CGO_ENABLED=0 ${GO} build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) ${GOLDFLAGS}" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
 
-  export GOOS=linux
-  export GOARCH=amd64
-  export CGO_ENABLED=0
-
-  GO=$GOROOT/bin/go
-  GOLDFLAGS="-w -extldflags '-static' -X %{pkg_name}.version=%{version}-%{release}"
-
-  $GO build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $GOLDFLAGS" -o release/linux_amd64/%{name} %{pkg_name}/cmd/%{name}
-  $GO build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $GOLDFLAGS" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
-
-  mkdir -p release/bash_completion
-  $GO run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{pkg_name}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
-)
+mkdir -p release/bash_completion
+${GO} run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{pkg_name}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
 
 %install
 mkdir -p %{buildroot}%{_bindir}/
@@ -80,6 +67,7 @@ Summary: Scylla Manager server
 
 %{?systemd_requires}
 BuildRequires: systemd
+Requires: openssl psmisc
 
 %description server
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row

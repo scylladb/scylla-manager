@@ -1,0 +1,34 @@
+Source: scylla-manager-server
+Section: databases
+Priority: extra
+Maintainer: Takuya ASADA <syuu@scylladb.com>
+Build-Depends: debhelper (>= 5), bash-completion, curl, ca-certificates, dh-systemd
+Homepage: http://www.scylladb.com
+Standards-Version: 3.9.5
+
+Package: scylla-manager-server
+Architecture: amd64
+Section: databases
+Depends: openssl, psmisc
+Description: Scylla Manager
+ Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+ database. This package provides the Scylla Manager server that manages 
+ routine tasks for Scylla DB clusters.
+
+Package: scylla-manager-client
+Architecture: amd64
+Section: databases
+Depends: bash-completion
+Description: Scylla Manager CLI
+ Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+ database. This package provides sctool, the CLI for interacting with the
+ Scylla Manager server.
+
+Package: scylla-manager
+Architecture: amd64
+Section: databases
+Depends: scylla-enterprise, scylla-manager-server, scylla-manager-client
+Description: Scylla Manager Metapackage
+ Scylla is a highly scalable, eventually consistent, distributed, partitioned row
+ database. This package is a meta package that installs all scylla-manager* packages as
+ well as scylla database server.

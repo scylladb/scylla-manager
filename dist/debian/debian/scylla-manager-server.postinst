@@ -1,0 +1,1 @@
+/bin/sh /usr/sbin/scyllamgr_ssl_cert_gen --silent

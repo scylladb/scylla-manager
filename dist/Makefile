@@ -1,23 +1,41 @@
-all: clean release
+all: help
+
+GIT_ROOT := $(shell git rev-parse --show-toplevel)
 
 VERSION := 1.2.0
 RELEASE := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION_NAME := $(VERSION)-$(RELEASE)
 
-release: release/scylla-manager-$(VERSION_NAME).tar
-release/scylla-manager-$(VERSION_NAME).tar:
+DEB_TARGET ?= "stretch"
+
+GO_VERSION := 1.10.3
+GO_HASH := fa1b0e45d3b647c252f51f5e1204aba049cde4af177ef9f2181f43004f901035
+GO_URL := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
+GO_BUNDLE := .go$(GO_VERSION).linux-amd64.tar.gz
+
+$(GO_BUNDLE):
+	@echo "==> Downloading Go $(GO_VERSION)..."
+	@curl -sSq $(GO_URL) -o $(GO_BUNDLE)
+	@[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" == "$(GO_HASH)" ]
+
+.PHONY: clean
+clean: ## Remove release and all the temporary files
+	@rm -Rf /tmp/mermaid_rpm.*
+	@rm -Rf release
+
+release/scylla-manager-$(VERSION_NAME).tar.gz:
 	@echo "==> Archiving..."
 	@mkdir -p release
-	@cd `git rev-parse --show-toplevel`; git archive --format tar.gz \
+	@cd $(GIT_ROOT); git archive --format tar.gz \
 	--prefix scylla-manager-$(VERSION_NAME)/ \
 	-o $(PWD)/release/scylla-manager-$(VERSION_NAME).tar.gz HEAD
 
-release: release/rpm
-release/rpm: release/scylla-manager-$(VERSION_NAME).tar
-	@echo "==> Building RPM..."
+release/rpm: $(GO_BUNDLE) release/scylla-manager-$(VERSION_NAME).tar.gz ## Create RPM package
 	$(eval RPMBUILD := $(shell mktemp -t -d mermaid_rpm.XXXX))
+	@echo "==> Building RPM in $(RPMBUILD)..."
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
+	@tar -xzf $(GO_BUNDLE) -C $(RPMBUILD)/BUILD
 	@cp release/scylla-manager-$(VERSION_NAME).tar.gz $(RPMBUILD)/SOURCES
 
 	@rpmbuild -bb --target x86_64 --quiet \
@@ -28,17 +46,25 @@ release/rpm: release/scylla-manager-$(VERSION_NAME).tar
 
 	@mkdir -p release/rpm
 	@cp $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
+	@rm -Rf $(RPMBUILD)
+
+release/deb: release/scylla-manager-$(VERSION_NAME).tar.gz ## Create DEB package
+	@echo "==> Building DEB for $(DEB_TARGET)..."
+	@mkdir -p release/deb
+
+	@cd $(GIT_ROOT); cp dist/release/scylla-manager-$(VERSION_NAME).tar.gz ../scylla-manager-server_$(VERSION_NAME).orig.tar.gz
+	@cd $(GIT_ROOT); MERMAID_VERSION=$(VERSION) MERMAID_RELEASE=$(RELEASE) ./dist/debian/build_deb.sh --target $(DEB_TARGET)
+	@cd $(GIT_ROOT); rm -rf debian
 
 .PHONY: release/docker
-release/docker: release/rpm
+release/docker: release/rpm ## Create docker image based on RPM package
 	@echo "==> Building docker image..."
 	docker build --build-arg VERSION_NAME=$(VERSION_NAME) -t scylla-manager:$(VERSION_NAME) -f docker/Dockerfile .
 
-.PHONY: clean
-clean:
-	@rm -Rf /tmp/mermaid_rpm.*
-	@rm -Rf release
-
-.PHONY: inspect
-inspect:
+.PHONY: inspect/rpm
+inspect/rpm: ## Display RPM package meta-data
 	@rpm -qpli release/rpm/scylla-manager{,-server,-client}-$(VERSION_NAME).x86_64.rpm
+
+.PHONY: help
+help:
+	@awk -F ':|##' '/^[^\t].+?:.*?##/ {printf "\033[36m%-25s\033[0m %s\n", $$1, $$NF}' $(MAKEFILE_LIST)

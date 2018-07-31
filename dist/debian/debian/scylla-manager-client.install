@@ -1,0 +1,2 @@
+release/linux_amd64/sctool usr/bin
+release/bash_completion/sctool.bash etc/bash_completion.d

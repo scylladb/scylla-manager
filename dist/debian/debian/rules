@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+
+pkg_name   := github.com/scylladb/mermaid
+builddir   := /tmp/mermaid_deb
+
+GO         := /tmp/go/bin/go
+GO_VERSION := 1.10.3
+GO_HASH    := fa1b0e45d3b647c252f51f5e1204aba049cde4af177ef9f2181f43004f901035
+GO_URL     := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
+GO_BUNDLE := /tmp/go$(GO_VERSION).linux-amd64.tar.gz
+GOLDFLAGS  := -w -extldflags '-static' -X $(pkg_name).version=$(shell dpkg-parsechangelog --show-field Version)
+
+%:
+	dh $@ --with=systemd
+
+override_dh_auto_clean:
+	rm -Rf $(builddir)
+
+override_dh_auto_build:
+	@curl -sSq $(GO_URL) -o $(GO_BUNDLE)
+	@[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "$(GO_HASH)" ]
+	tar -zxf $(GO_BUNDLE) -C /tmp
+	mkdir -p $(builddir)/src/github.com/scylladb
+	ln -s `pwd` $(builddir)/src/github.com/scylladb/mermaid
+
+	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" -o release/linux_amd64/scylla-manager $(pkg_name)/cmd/scylla-manager
+	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" -o release/linux_amd64/sctool $(pkg_name)/cmd/sctool
+	mkdir -p release/bash_completion
+	release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
+
+override_dh_auto_test:
+
+override_dh_systemd_enable:
+	dh_systemd_enable --no-enable
+
+override_dh_systemd_start:
+	dh_systemd_start --restart-after-upgrade
+
