@@ -21,9 +21,10 @@ type TaskType string
 
 // TaskType enumeration
 const (
-	UnknownTask TaskType = "unknown"
-	BackupTask  TaskType = "backup"
-	RepairTask  TaskType = "repair"
+	UnknownTask     TaskType = "unknown"
+	BackupTask      TaskType = "backup"
+	HealthCheckTask TaskType = "healthcheck"
+	RepairTask      TaskType = "repair"
 
 	mockTask TaskType = "mock"
 )
@@ -44,6 +45,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = UnknownTask
 	case BackupTask:
 		*t = BackupTask
+	case HealthCheckTask:
+		*t = HealthCheckTask
 	case RepairTask:
 		*t = RepairTask
 	case mockTask:

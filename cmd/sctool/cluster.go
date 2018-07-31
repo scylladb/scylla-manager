@@ -21,17 +21,17 @@ func init() {
 }
 
 var (
-	cfgClusterName     string
-	cfgClusterHost     string
-	cfgSSHUser         string
-	cfgSSHIdentityFile string
+	cfgClusterName            string
+	cfgClusterHost            string
+	cfgClusterSSHUser         string
+	cfgClusterSSHIdentityFile string
 )
 
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "alias `name`")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
-	cmd.Flags().StringVar(&cfgSSHUser, "ssh-user", "", "SSH user used to connect to cluster nodes")
-	cmd.Flags().StringVar(&cfgSSHIdentityFile, "ssh-identity-file", "", "SSH private key in PEM format")
+	cmd.Flags().StringVar(&cfgClusterSSHUser, "ssh-user", "", "SSH user used to connect to cluster nodes")
+	cmd.Flags().StringVar(&cfgClusterSSHIdentityFile, "ssh-identity-file", "", "SSH private key in PEM format")
 }
 
 var clusterAddCmd = &cobra.Command{
@@ -44,19 +44,19 @@ var clusterAddCmd = &cobra.Command{
 			Host: cfgClusterHost,
 		}
 
-		if cfgSSHUser != "" && cfgSSHIdentityFile == "" {
+		if cfgClusterSSHUser != "" && cfgClusterSSHIdentityFile == "" {
 			return printableError{errors.New("missing flag \"ssh-identity-file\"")}
 		}
-		if cfgSSHIdentityFile != "" && cfgSSHUser == "" {
+		if cfgClusterSSHIdentityFile != "" && cfgClusterSSHUser == "" {
 			return printableError{errors.New("missing flag \"ssh-user\"")}
 		}
-		if cfgSSHUser != "" && cfgSSHIdentityFile != "" {
-			b, err := ioutil.ReadFile(cfgSSHIdentityFile)
+		if cfgClusterSSHUser != "" && cfgClusterSSHIdentityFile != "" {
+			b, err := ioutil.ReadFile(cfgClusterSSHIdentityFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
 			c.SSHIdentityFile = b
-			c.SSHUser = cfgSSHUser
+			c.SSHUser = cfgClusterSSHUser
 		}
 
 		id, err := client.CreateCluster(ctx, c)
@@ -109,11 +109,11 @@ var clusterUpdateCmd = &cobra.Command{
 			ok = true
 		}
 		if cmd.Flags().Changed("ssh-user") {
-			cluster.SSHUser = cfgSSHUser
+			cluster.SSHUser = cfgClusterSSHUser
 			ok = true
 		}
 		if cmd.Flags().Changed("ssh-identity-file") {
-			b, err := ioutil.ReadFile(cfgSSHIdentityFile)
+			b, err := ioutil.ReadFile(cfgClusterSSHIdentityFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
@@ -162,14 +162,14 @@ var clusterListCmd = &cobra.Command{
 	Short: "Shows managed clusters",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		units, err := client.ListClusters(ctx)
+		clusters, err := client.ListClusters(ctx)
 		if err != nil {
 			return printableError{err}
 		}
 
 		t := newTable("cluster id", "name", "host", "ssh user")
-		for _, u := range units {
-			t.AddRow(u.ID, u.Name, u.Host, u.SSHUser)
+		for _, c := range clusters {
+			t.AddRow(c.ID, c.Name, c.Host, c.SSHUser)
 		}
 		fmt.Fprint(cmd.OutOrStdout(), t)
 

@@ -14,11 +14,11 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
-	"github.com/scylladb/mermaid/scyllaclient"
 )
 
 type server struct {
@@ -26,7 +26,6 @@ type server struct {
 	session *gocql.Session
 	logger  log.Logger
 
-	provider   *scyllaclient.CachedProvider
 	clusterSvc *cluster.Service
 	repairSvc  *repair.Service
 	schedSvc   *sched.Service
@@ -79,13 +78,12 @@ func (s *server) initServices() error {
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
-	s.provider = scyllaclient.NewCachedProvider(s.clusterSvc.Client)
 
 	s.repairSvc, err = repair.NewService(
 		s.session,
 		s.config.Repair,
 		s.clusterSvc.GetClusterByID,
-		s.provider.Client,
+		s.clusterSvc.Client,
 		s.logger.Named("repair"),
 	)
 	if err != nil {
@@ -109,8 +107,6 @@ func (s *server) registerListeners() {
 }
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
-	s.provider.Invalidate(c.ID)
-
 	if c.Type == cluster.Create {
 		if err := s.schedSvc.PutTask(ctx, autoRepairTask(c.ID)); err != nil {
 			return errors.Wrap(err, "failed to add scheduled tasks")
@@ -121,6 +117,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 }
 
 func (s *server) registerSchedulerRunners() {
+	s.schedSvc.SetRunner(sched.HealthCheckTask, healthcheck.NewRunner(s.clusterSvc.GetClusterByID, s.clusterSvc.Client))
 	s.schedSvc.SetRunner(sched.RepairTask, repair.Runner{Service: s.repairSvc})
 }
 
@@ -200,8 +197,8 @@ func (s *server) close() {
 		s.prometheusServer.Close()
 	}
 
-	s.schedSvc.Close()
 	s.repairSvc.Close()
+	s.schedSvc.Close()
 
 	s.session.Close()
 }

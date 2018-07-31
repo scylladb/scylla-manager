@@ -49,11 +49,13 @@ func parseStartDate(value string) (strfmt.DateTime, error) {
 	return strfmt.DateTime(now), nil
 }
 
+const rfc822WithSec = "02 Jan 06 15:04:05 MST"
+
 func formatTime(t strfmt.DateTime) string {
 	if isZero(t) {
 		return ""
 	}
-	return time.Time(t).Local().Format(time.RFC822)
+	return time.Time(t).Local().Format(rfc822WithSec)
 }
 
 func formatDuration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {

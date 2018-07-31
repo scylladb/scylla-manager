@@ -335,7 +335,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// get the cluster client
 	client, err := s.client(ctx, run.ClusterID)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the client proxy"))
+		return fail(errors.Wrap(err, "failed to get client proxy"))
 	}
 
 	// validate units
@@ -363,7 +363,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// check the cluster partitioner
 	p, err := client.Partitioner(ctx)
 	if err != nil {
-		return fail(errors.Wrap(err, "failed to get the client partitioner name"))
+		return fail(errors.Wrap(err, "failed to get client partitioner name"))
 	}
 	if p != scyllaclient.Murmur3Partitioner {
 		return fail(errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner))

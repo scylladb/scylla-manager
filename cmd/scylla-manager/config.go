@@ -28,19 +28,19 @@ type dbConfig struct {
 }
 
 type serverConfig struct {
-	HTTP        string `yaml:"http"`
-	HTTPS       string `yaml:"https"`
-	TLSCertFile string `yaml:"tls_cert_file"`
-	TLSKeyFile  string `yaml:"tls_key_file"`
-	Prometheus  string `yaml:"prometheus"`
-
-	Logger   log.Config    `yaml:"logger"`
-	Database dbConfig      `yaml:"database"`
-	Repair   repair.Config `yaml:"repair"`
+	HTTP        string        `yaml:"http"`
+	HTTPS       string        `yaml:"https"`
+	TLSCertFile string        `yaml:"tls_cert_file"`
+	TLSKeyFile  string        `yaml:"tls_key_file"`
+	Prometheus  string        `yaml:"prometheus"`
+	Logger      log.Config    `yaml:"logger"`
+	Database    dbConfig      `yaml:"database"`
+	Repair      repair.Config `yaml:"repair"`
 }
 
 func defaultConfig() *serverConfig {
 	return &serverConfig{
+		Prometheus: ":56090",
 		Logger: log.Config{
 			Mode:  log.SyslogMode,
 			Level: zapcore.InfoLevel,
@@ -54,8 +54,7 @@ func defaultConfig() *serverConfig {
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
 		},
-		Prometheus: ":56090",
-		Repair:     repair.DefaultConfig(),
+		Repair: repair.DefaultConfig(),
 	}
 }
 

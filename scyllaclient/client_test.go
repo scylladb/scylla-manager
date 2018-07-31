@@ -135,6 +135,22 @@ func TestClientDatacenters(t *testing.T) {
 	}
 }
 
+func TestHosts(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/host_id_map.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Hosts(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v) != 2 {
+		t.Fatal(v)
+	}
+}
+
 func TestClientHostPendingCompactions(t *testing.T) {
 	t.Parallel()
 

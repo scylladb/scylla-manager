@@ -154,7 +154,7 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 	res := make(map[string][]string)
 	var errs error
 
-	for i := 0; i < len(resp.Payload); i++ {
+	for range resp.Payload {
 		dcHost := <-out
 		if dcHost.err != nil {
 			errs = multierr.Append(errs, err)
@@ -177,6 +177,20 @@ func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error
 		return "", err
 	}
 	return resp.Payload, nil
+}
+
+// Hosts returns a list of all hosts in a cluster.
+func (c *Client) Hosts(ctx context.Context) ([]string, error) {
+	resp, err := c.operations.GetHostIDMap(operations.NewGetHostIDMapParams().WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	v := make([]string, len(resp.Payload))
+	for i := 0; i < len(resp.Payload); i++ {
+		v[i] = resp.Payload[i].Key
+	}
+	return v, nil
 }
 
 // Keyspaces return a list of all the keyspaces.

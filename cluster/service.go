@@ -43,6 +43,7 @@ type Change struct {
 type Service struct {
 	session          *gocql.Session
 	keyStore         kv.Store
+	clientCache      *scyllaclient.CachedProvider
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
@@ -56,11 +57,14 @@ func NewService(session *gocql.Session, keyStore kv.Store, l log.Logger) (*Servi
 		return nil, errors.New("invalid keyStore")
 	}
 
-	return &Service{
+	s := &Service{
 		session:  session,
 		keyStore: keyStore,
 		logger:   l,
-	}, nil
+	}
+	s.clientCache = scyllaclient.NewCachedProvider(s.client)
+
+	return s, nil
 }
 
 // SetOnChangeListener sets a function that would be invoked when a cluster
@@ -72,6 +76,10 @@ func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) erro
 // Client returns cluster client.
 func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
 	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
+	return s.clientCache.Client(ctx, clusterID)
+}
+
+func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
 	c, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
 		return nil, err
@@ -79,7 +87,7 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 
 	transport, err := s.createTransport(c)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create transport")
 	}
 	client, err := scyllaclient.NewClient([]string{c.Host}, transport, s.logger.Named("client"))
 	if err != nil {
@@ -276,10 +284,13 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		return err
 	}
 
+	if t == Update {
+		s.clientCache.Invalidate(c.ID)
+	}
+
 	if s.onChangeListener == nil {
 		return nil
 	}
-
 	return s.onChangeListener(ctx, Change{ID: c.ID, Type: t})
 }
 
@@ -349,10 +360,11 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
+	s.clientCache.Invalidate(id)
+
 	if s.onChangeListener == nil {
 		return nil
 	}
-
 	return s.onChangeListener(ctx, Change{ID: id, Type: Delete})
 }
 
