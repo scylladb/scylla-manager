@@ -74,7 +74,7 @@ var clusterAddCmd = &cobra.Command{
 		if len(tasks) > 0 {
 			s := tasks[0].Schedule
 			w := cmd.OutOrStderr()
-			fmt.Fprintf(w, clipper, id, formatTime(s.StartDate), s.IntervalDays, id)
+			fmt.Fprintf(w, clipper, id, formatTime(s.StartDate), s.Interval, id)
 		}
 
 		return nil

@@ -160,7 +160,7 @@ func (s *Service) Init(ctx context.Context) error {
 			}
 		}
 
-		if t.Sched.IntervalDays > 0 || t.Sched.StartDate.After(now) {
+		if t.Sched.Interval > 0 || t.Sched.StartDate.After(now) {
 			t := t
 			s.schedTask(ctx, now, &t)
 		}
@@ -288,7 +288,7 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan 
 		s.logger.Debug(ctx, "Task canceled, not re-scheduling", "task", t)
 		return
 	}
-	if t.Sched.IntervalDays == 0 && (run.Status == runner.StatusDone || run.Status == runner.StatusStopped) {
+	if t.Sched.Interval == 0 && (run.Status == runner.StatusDone || run.Status == runner.StatusStopped) {
 		s.logger.Debug(ctx, "One-shot task, not re-scheduling", "task", t)
 		return
 	}

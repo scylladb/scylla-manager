@@ -134,9 +134,8 @@
           "type": "string",
           "format": "date-time"
         },
-        "interval_days": {
-          "type": "number",
-          "format": "int"
+        "interval": {
+          "type": "string"
         },
         "num_retries": {
           "type": "number",

@@ -14,9 +14,9 @@ import (
 
 func makeSchedule(startDate time.Time, interval, numRetries int) Schedule {
 	return Schedule{
-		StartDate:    startDate,
-		IntervalDays: interval,
-		NumRetries:   numRetries,
+		StartDate:  startDate,
+		Interval:   Duration(time.Duration(interval) * 24 * time.Hour),
+		NumRetries: numRetries,
 	}
 }
 
@@ -36,6 +36,8 @@ func makeHistory(startDate time.Time, runStatus ...runner.Status) []*Run {
 }
 
 func TestSchedNextActivation(t *testing.T) {
+	t.Parallel()
+
 	now := timeutc.Now()
 	t0 := now.AddDate(0, 0, -7)
 	t1 := t0.AddDate(0, 0, 2)

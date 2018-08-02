@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -60,23 +59,20 @@ var repairCmd = &cobra.Command{
 		f := cmd.Flag("start-date")
 		startDate, err := parseStartDate(f.Value.String())
 		if err != nil {
-			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			return printableError{err}
 		}
 		t.Schedule.StartDate = startDate
 
-		f = cmd.Flag("interval-days")
-		intervalDays, err := strconv.Atoi(f.Value.String())
+		d, err := cmd.Flags().GetDuration("interval")
 		if err != nil {
-			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			return printableError{err}
 		}
-		t.Schedule.IntervalDays = int64(intervalDays)
+		t.Schedule.Interval = d.String()
 
-		f = cmd.Flag("num-retries")
-		numRetries, err := strconv.Atoi(f.Value.String())
+		t.Schedule.NumRetries, err = cmd.Flags().GetInt64("num-retries")
 		if err != nil {
-			return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+			return printableError{err}
 		}
-		t.Schedule.NumRetries = int64(numRetries)
 
 		if f = cmd.Flag("keyspace"); f.Changed {
 			keyspace, err := cmd.Flags().GetStringSlice("keyspace")
@@ -145,7 +141,7 @@ func init() {
 	fs.StringSlice("with-hosts", nil, "comma-separated `list` of hosts to repair with")
 	fs.Var(&repairTokenRanges, "token-ranges", "token ranges: pr - primary token ranges, npr - non primary token ranges, all - pr and npr")
 	fs.Bool("fail-fast", false, "stop repair on first error")
-	taskInitCommonFlags(cmd)
+	taskInitCommonFlags(fs)
 }
 
 // accommodate for escaping of bash expansions, we can safely remove '\'

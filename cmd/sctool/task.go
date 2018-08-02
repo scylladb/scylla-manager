@@ -10,13 +10,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
-func taskInitCommonFlags(cmd *cobra.Command) {
-	fs := cmd.Flags()
+func taskInitCommonFlags(fs *pflag.FlagSet) {
 	fs.StringP("start-date", "s", "now", "task start date in RFC3339 form or now[+duration]")
-	fs.UintP("interval-days", "i", 0, "task schedule interval in `days`")
-	fs.UintP("num-retries", "r", 3, "task schedule number of retries")
+	fs.DurationP("interval", "i", 0, "task schedule interval")
+	fs.Int64P("num-retries", "r", 3, "task schedule number of retries")
 }
 
 var taskCmd = &cobra.Command{
@@ -88,8 +88,8 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 			id = "*" + id
 		}
 		r := formatTime(t.NextActivation)
-		if t.Schedule.IntervalDays != 0 {
-			r += fmt.Sprint(" (+", t.Schedule.IntervalDays, " days)")
+		if t.Schedule.Interval != "" {
+			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
 		}
 		s := t.Status
 		if t.Cause != "" {
@@ -226,43 +226,40 @@ var taskUpdateCmd = &cobra.Command{
 			changed = true
 		}
 		if f := cmd.Flag("enabled"); f.Changed {
-			var err error
 			t.Enabled, err = strconv.ParseBool(f.Value.String())
 			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+				return printableError{err}
 			}
 			changed = true
 		}
 		if f := cmd.Flag("tags"); f.Changed {
-			var err error
 			t.Tags, err = cmd.Flags().GetStringSlice("tags")
 			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+				return printableError{err}
 			}
 			changed = true
 		}
 		if f := cmd.Flag("start-date"); f.Changed {
 			startDate, err := parseStartDate(f.Value.String())
 			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+				return printableError{err}
 			}
 			t.Schedule.StartDate = startDate
 			changed = true
 		}
-		if f := cmd.Flag("interval-days"); f.Changed {
-			intervalDays, err := strconv.Atoi(f.Value.String())
+		if f := cmd.Flag("interval"); f.Changed {
+			d, err := cmd.Flags().GetDuration("interval")
 			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+				return printableError{err}
 			}
-			t.Schedule.IntervalDays = int64(intervalDays)
+			t.Schedule.Interval = d.String()
 			changed = true
 		}
 		if f := cmd.Flag("num-retries"); f.Changed {
-			numRetries, err := strconv.Atoi(f.Value.String())
+			t.Schedule.NumRetries, err = cmd.Flags().GetInt64("num-retries")
 			if err != nil {
-				return printableError{errors.Wrapf(err, "bad %q value: %s", f.Name, f.Value.String())}
+				return printableError{err}
 			}
-			t.Schedule.NumRetries = int64(numRetries)
 			changed = true
 		}
 		if !changed {
@@ -281,12 +278,11 @@ func init() {
 	cmd := taskUpdateCmd
 	register(cmd, taskCmd)
 
-	taskInitCommonFlags(cmd)
-
 	fs := cmd.Flags()
 	fs.StringP("name", "n", "", "task name")
 	fs.BoolP("enabled", "e", true, "enabled")
 	fs.StringSlice("tags", nil, "tags")
+	taskInitCommonFlags(fs)
 }
 
 var taskDeleteCmd = &cobra.Command{

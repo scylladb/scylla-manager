@@ -17,8 +17,8 @@ import (
 // swagger:model schedule
 type Schedule struct {
 
-	// interval days
-	IntervalDays int64 `json:"interval_days,omitempty"`
+	// interval
+	Interval string `json:"interval,omitempty"`
 
 	// num retries
 	NumRetries int64 `json:"num_retries,omitempty"`

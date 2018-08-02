@@ -56,9 +56,9 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 
 // Schedule defines a periodic schedule.
 type Schedule struct {
-	StartDate    time.Time `json:"start_date"`
-	IntervalDays int       `json:"interval_days"`
-	NumRetries   int       `json:"num_retries"`
+	StartDate  time.Time `json:"start_date"`
+	Interval   Duration  `json:"interval" db:"interval_seconds"`
+	NumRetries int       `json:"num_retries"`
 }
 
 // MarshalUDT implements UDTMarshaler.
@@ -118,9 +118,9 @@ func (s *Schedule) consecutiveErrorCount(runs []*Run) int {
 }
 
 func (s *Schedule) nextActivation(lastStart, now time.Time) time.Time {
-	if s.IntervalDays > 0 {
+	if s.Interval > 0 {
 		for lastStart.Before(now) {
-			lastStart = lastStart.AddDate(0, 0, s.IntervalDays)
+			lastStart = lastStart.Add(s.Interval.Duration())
 		}
 		return lastStart
 	}
@@ -166,7 +166,7 @@ func (t *Task) Validate() error {
 		errs = multierr.Append(errs, tp.UnmarshalText([]byte(t.Type)))
 	}
 
-	if t.Sched.IntervalDays < 0 {
+	if t.Sched.Interval < 0 {
 		errs = multierr.Append(errs, errors.New("negative interval days"))
 	}
 	if t.Sched.NumRetries < 0 {
