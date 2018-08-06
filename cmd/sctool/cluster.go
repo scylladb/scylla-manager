@@ -108,6 +108,17 @@ var clusterUpdateCmd = &cobra.Command{
 			cluster.Host = cfgClusterHost
 			ok = true
 		}
+		if cmd.Flags().Changed("ssh-user") {
+			cluster.SSHUser = cfgSSHUser
+			ok = true
+		}
+		if cmd.Flags().Changed("ssh-identity-file") {
+			b, err := ioutil.ReadFile(cfgSSHIdentityFile)
+			if err != nil {
+				return printableError{inner: err}
+			}
+			cluster.SSHIdentityFile = b
+		}
 		if !ok {
 			return errors.New("nothing to do")
 		}

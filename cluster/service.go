@@ -249,20 +249,24 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 	}
 
 	// save identity file
-	if err := s.keyStore.Put(c.ID, c.SSHIdentityFile); err != nil {
-		return errors.Wrap(err, "failed to save identity file")
+	if shouldSaveIdentityFile(c.SSHUser, c.SSHIdentityFile) {
+		if err := s.keyStore.Put(c.ID, c.SSHIdentityFile); err != nil {
+			return errors.Wrap(err, "failed to save identity file")
+		}
 	}
 	defer func() {
 		if ferr != nil {
-			if err := s.keyStore.Put(c.ID, nil); err != nil {
-				s.logger.Debug(ctx, "post error delete failed", "error", err)
+			if shouldSaveIdentityFile(c.SSHUser, c.SSHIdentityFile) {
+				if err := s.keyStore.Put(c.ID, nil); err != nil {
+					s.logger.Debug(ctx, "post error delete failed", "error", err)
+				}
 			}
 		}
 	}()
 
 	// validate hosts connectivity
 	if err := s.validateHostsConnectivity(ctx, c); err != nil {
-		return mermaid.ErrValidate(err, "")
+		return mermaid.ErrValidate(err, "host connectivity check failed")
 	}
 
 	stmt, names := schema.Cluster.Insert()
@@ -350,4 +354,11 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return s.onChangeListener(ctx, Change{ID: id, Type: Delete})
+}
+
+func shouldSaveIdentityFile(sshUser string, sshIdentityFile []byte) bool {
+	if len(sshIdentityFile) > 0 {
+		return true
+	}
+	return sshUser == ""
 }
