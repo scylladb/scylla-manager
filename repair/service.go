@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash"
-	"github.com/fatih/set"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	log "github.com/scylladb/golog"
@@ -532,15 +532,15 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 
 		// check if hosts did not change
-		prevHosts := set.New(set.NonThreadSafe)
+		prevHosts := strset.New()
 		for _, p := range prog {
 			prevHosts.Add(p.Host)
 		}
-		hosts := set.New(set.NonThreadSafe)
+		hosts := strset.New()
 		for host := range hostSegments {
 			hosts.Add(host)
 		}
-		if diff := set.SymmetricDifference(prevHosts, hosts); !diff.IsEmpty() {
+		if diff := strset.SymmetricDifference(prevHosts, hosts); !diff.IsEmpty() {
 			s.logger.Info(ctx, "Starting from scratch: hosts changed", "diff", diff)
 			prog = nil
 		}
@@ -660,7 +660,7 @@ func (s *Service) resolveDC(ctx context.Context, client *scyllaclient.Client, u 
 }
 
 func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Client, runDCs []string, ksDCs []string) (string, error) {
-	runSet := set.Intersection(newSet(runDCs), newSet(ksDCs))
+	runSet := strset.Intersection(strset.New(runDCs...), strset.New(ksDCs...))
 	if runSet.IsEmpty() {
 		return "", errors.New("no matching DCs")
 	}
@@ -677,7 +677,7 @@ func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Cli
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get datacenters")
 	}
-	allSet := newSet(nil)
+	allSet := strset.New()
 	for dc := range all {
 		allSet.Add(dc)
 	}

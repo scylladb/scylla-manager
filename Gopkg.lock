@@ -53,14 +53,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:aa8f2068c522b3bbbc2a2f99f715b97fbc9c355b6d0bcf3770582adffdc2f37f"
-  name = "github.com/fatih/set"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "24e92685f4763e7a95dbcae78a571bdc8dc7f766"
-
-[[projects]]
   digest = "1:4eda9f7bf70f5145b3b9ed3f18ac93e9b1a0e38906eb69e526380c34861e2b07"
   name = "github.com/go-chi/chi"
   packages = [
@@ -361,6 +353,17 @@
   revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
 
 [[projects]]
+  branch = "master"
+  digest = "1:1495d0aa85ffbc7684ee25ca375c0b9f91f14b07ed6a3807877d81d09f6132cb"
+  name = "github.com/scylladb/go-set"
+  packages = [
+    "i64set",
+    "strset",
+  ]
+  pruneopts = "UT"
+  revision = "26ab33e713bb9bd79a7b06cedddf8604c67aca32"
+
+[[projects]]
   digest = "1:f009dfd6caac3e6b7b99949aa7e5e46d86abc24afe7c9ab14cf76187e683e3d6"
   name = "github.com/scylladb/gocqlx"
   packages = [
@@ -515,7 +518,6 @@
   input-imports = [
     "github.com/apcera/termtables",
     "github.com/cespare/xxhash",
-    "github.com/fatih/set",
     "github.com/go-chi/chi",
     "github.com/go-chi/chi/middleware",
     "github.com/go-chi/render",
@@ -536,6 +538,8 @@
     "github.com/pkg/errors",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
+    "github.com/scylladb/go-set/i64set",
+    "github.com/scylladb/go-set/strset",
     "github.com/scylladb/gocqlx",
     "github.com/scylladb/gocqlx/migrate",
     "github.com/scylladb/gocqlx/qb",

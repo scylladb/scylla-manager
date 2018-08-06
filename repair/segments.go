@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/fatih/set"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/i64set"
 	"github.com/scylladb/mermaid/internal/dht"
 )
 
@@ -161,8 +161,8 @@ func (s segments) splitToShards(p *dht.Murmur3Partitioner) []segments {
 
 // validateShards checks that the shard split of segments is sound.
 func (s segments) validateShards(shards []segments, p *dht.Murmur3Partitioner) error {
-	startTokens := set.New(set.NonThreadSafe)
-	endTokens := set.New(set.NonThreadSafe)
+	startTokens := i64set.New()
+	endTokens := i64set.New()
 
 	// check that the s belong to the correct shards
 	for shard, s := range shards {
@@ -196,7 +196,7 @@ func (s segments) validateShards(shards []segments, p *dht.Murmur3Partitioner) e
 	// check that the range is continuous
 	var err error
 
-	startTokens.Each(func(item interface{}) bool {
+	startTokens.Each(func(item int64) bool {
 		if !endTokens.Has(item) {
 			err = errors.Errorf("missing end token for start token %d", item)
 			return false
@@ -207,7 +207,7 @@ func (s segments) validateShards(shards []segments, p *dht.Murmur3Partitioner) e
 		return err
 	}
 
-	endTokens.Each(func(item interface{}) bool {
+	endTokens.Each(func(item int64) bool {
 		if !startTokens.Has(item) {
 			err = errors.Errorf("missing start token end token %d", item)
 			return false

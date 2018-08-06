@@ -10,6 +10,7 @@ import (
 
 	"github.com/cespare/xxhash"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/internal/inexlist"
@@ -24,7 +25,7 @@ func validateHostsBelongToCluster(dcMap map[string][]string, hosts ...string) er
 		return nil
 	}
 
-	all := newSet(nil)
+	all := strset.New()
 	for _, dcHosts := range dcMap {
 		for _, h := range dcHosts {
 			all.Add(h)
@@ -116,7 +117,7 @@ func validateSubset(sub []string, all []string) error {
 		return nil
 	}
 
-	s := newSet(sub)
+	s := strset.New(sub...)
 	for _, t := range all {
 		s.Remove(t)
 	}

@@ -23,6 +23,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/hailocab/go-hostpool" // shipped with gocql
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/retryablehttp"
@@ -212,7 +213,7 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 	}
 
 	var (
-		dcs = mermaid.Uniq{}
+		dcs = strset.New()
 		trs = make([]*TokenRange, len(resp.Payload))
 	)
 	for i, p := range resp.Payload {
@@ -231,18 +232,18 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 		}
 
 		// group hosts into datacenters
-		if len(dcs) == 0 {
+		if dcs.Size() == 0 {
 			r.Hosts = make(map[string][]string, 5)
 		} else {
-			r.Hosts = make(map[string][]string, len(dcs))
+			r.Hosts = make(map[string][]string, dcs.Size())
 		}
 		for _, e := range p.EndpointDetails {
-			dcs.Put(e.Datacenter)
+			dcs.Add(e.Datacenter)
 			r.Hosts[e.Datacenter] = append(r.Hosts[e.Datacenter], e.Host)
 		}
 	}
 
-	return dcs.Slice(), trs, nil
+	return dcs.List(), trs, nil
 }
 
 // ClosestDC takes set of DCs with hosts and return the one that is closest.

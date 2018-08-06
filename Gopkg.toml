@@ -21,10 +21,6 @@
 #  version = "2.4.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/fatih/set"
-
-[[constraint]]
   name = "github.com/cespare/xxhash"
   version = "1.0.0"
 
@@ -99,3 +95,6 @@
 [prune]
   go-tests = true
   unused-packages = true
+[[constraint]]
+  branch = "master"
+  name = "github.com/scylladb/go-set"
