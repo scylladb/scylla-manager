@@ -43,7 +43,7 @@ func NewClient(rawurl string) (Client, error) {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // nolint: gas
+				InsecureSkipVerify: true,
 			},
 		},
 	}

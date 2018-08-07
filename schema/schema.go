@@ -106,35 +106,88 @@ func (t Table) init() Table {
 // Tables listing
 var (
 	Cluster = Table{
-		Name:    "cluster",
-		Columns: []string{"id", "name", "host", "ssh_user"},
+		Name: "cluster",
+		Columns: []string{
+			"id",
+			"name",
+			"host",
+			"ssh_user",
+		},
 		PartKey: []string{"id"},
 	}.init()
 
 	RepairRun = Table{
-		Name:    "repair_run",
-		Columns: []string{"cluster_id", "task_id", "id", "prev_id", "topology_hash", "units", "dc", "host", "with_hosts", "token_ranges", "status", "cause", "start_time", "end_time"},
+		Name: "repair_run",
+		Columns: []string{
+			"cluster_id",
+			"task_id",
+			"id",
+			"prev_id",
+			"topology_hash",
+			"units",
+			"dc",
+			"host",
+			"with_hosts",
+			"token_ranges",
+			"status",
+			"cause",
+			"start_time",
+			"end_time",
+		},
 		PartKey: []string{"cluster_id", "task_id"},
 		SortKey: []string{"id"},
 	}.init()
 
 	RepairRunProgress = Table{
-		Name:    "repair_run_progress",
-		Columns: []string{"cluster_id", "task_id", "run_id", "unit", "host", "shard", "segment_count", "segment_success", "segment_error", "segment_error_start_tokens", "last_start_token", "last_start_time", "last_command_id"},
+		Name: "repair_run_progress",
+		Columns: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+			"unit",
+			"host",
+			"shard",
+			"segment_count",
+			"segment_success",
+			"segment_error",
+			"segment_error_start_tokens",
+			"last_start_token",
+			"last_start_time",
+			"last_command_id",
+		},
 		PartKey: []string{"cluster_id", "task_id", "run_id"},
 		SortKey: []string{"unit", "host", "shard"},
 	}.init()
 
 	SchedTask = Table{
-		Name:    "scheduler_task",
-		Columns: []string{"cluster_id", "type", "id", "name", "tags", "enabled", "sched", "properties"},
+		Name: "scheduler_task",
+		Columns: []string{
+			"cluster_id",
+			"type",
+			"id",
+			"name",
+			"tags",
+			"enabled",
+			"sched",
+			"properties",
+		},
 		PartKey: []string{"cluster_id"},
 		SortKey: []string{"type", "id"},
 	}.init()
 
 	SchedRun = Table{
-		Name:    "scheduler_task_run",
-		Columns: []string{"cluster_id", "type", "task_id", "id", "status", "cause", "owner", "start_time", "end_time"},
+		Name: "scheduler_task_run",
+		Columns: []string{
+			"cluster_id",
+			"type",
+			"task_id",
+			"id",
+			"status",
+			"cause",
+			"owner",
+			"start_time",
+			"end_time",
+		},
 		PartKey: []string{"cluster_id", "type", "task_id"},
 		SortKey: []string{"id"},
 	}.init()

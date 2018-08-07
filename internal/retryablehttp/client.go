@@ -130,7 +130,7 @@ func DefaultBackoff(min, max time.Duration, attemptNum int, resp *http.Response)
 // perform linear backoff based on the attempt number and with jitter to
 // prevent a thundering herd.
 //
-// min and max here are *not* absolute values. The number to be multipled by
+// min and max here are *not* absolute values. The number to be multiplied by
 // the attempt number will be chosen at random from between them, thus they are
 // bounding the jitter.
 //

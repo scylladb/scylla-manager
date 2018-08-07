@@ -6,22 +6,23 @@ endif
 
 GOFILES := go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
+define dl
+	@curl -sSq -L $(2) -o $(GOBIN)/$(1) && chmod u+x $(GOBIN)/$(1)
+endef
+
+define dl_tgz
+	@curl -sSq -L $(2) | tar zxf - --strip 1 -C $(GOBIN) '*/$(1)'
+endef
+
 .PHONY: setup
 setup: GOPATH := $(shell mktemp -d)
 setup: ## Install required tools
 	@echo "==> Installing tools at $(GOBIN) ..."
 	@mkdir -p $(GOBIN)
-
-# development tools
-	@go get -u github.com/derekparker/delve/cmd/dlv
-	@go get -u github.com/fatih/gomodifytags
-	@go get -u github.com/go-swagger/go-swagger/cmd/swagger
-	@go get -u github.com/golang/dep/cmd/dep
+	@$(call dl,dep,https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64)
+	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.9.3/golangci-lint-1.9.3-linux-amd64.tar.gz)
+	@$(call dl,swagger,https://github.com/go-swagger/go-swagger/releases/download/0.15.0/swagger_linux_amd64)
 	@go get -u github.com/golang/mock/mockgen
-# linters
-	@go get -u github.com/client9/misspell/cmd/misspell
-	@go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-
 	@rm -Rf $(GOPATH)
 
 .PHONY: fmt
@@ -30,7 +31,7 @@ fmt: ## Format source code
 
 .PHONY: check
 check: ## Perform static code analysis
-check: .check-copyright .check-timeutc .check-misspell .check-lint .check-vendor
+check: .check-copyright .check-timeutc .check-lint .check-vendor
 
 .PHONY: .check-copyright
 .check-copyright:
@@ -53,22 +54,9 @@ check: .check-copyright .check-timeutc .check-misspell .check-lint .check-vendor
 		(echo $$f; false); \
 	done
 
-.PHONY: .check-misspell
-.check-misspell:
-	@$(GOBIN)/misspell ./...
-
 .PHONY: .check-lint
 .check-lint:
-	@$(GOBIN)/golangci-lint run -s --disable-all -E govet -E errcheck -E staticcheck \
-	-E gas -E typecheck -E unused -E structcheck -E varcheck -E ineffassign -E deadcode \
-	-E gofmt -E golint -E gosimple -E unconvert -E dupl -E depguard -E gocyclo \
-	--tests=false \
-	--exclude-use-default=false \
-	--exclude='composite literal uses unkeyed fields' \
-	--exclude='Error return value of `.+\.Close` is not checked' \
-	--exclude='G104' \
-	--exclude='G304' \
-	./...
+	@$(GOBIN)/golangci-lint run ./...
 
 .PHONY: .check-vendor
 .check-vendor:
