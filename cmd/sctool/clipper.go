@@ -7,7 +7,7 @@ const clipper = ` __
 @  @     export SCYLLA_MANAGER_CLUSTER=%s
 |  |
 || |/    Repair will run on %s and will be repeated every %d days.
-|| ||    To see the repair units run: sctool repair unit list -c %s
+|| ||    To see the currently scheduled tasks: sctool task list -c %s
 |\_/|
 \___/
 
