@@ -38,6 +38,7 @@ interactive_ask_service() {
     done
 }
 
+ENABLE_SCYLLA=0
 ENABLE_SERVICE=1
 
 if [ $# -ne 0 ]; then
@@ -47,8 +48,19 @@ else
 fi
 
 if [ $INTERACTIVE -eq 1 ]; then
+    if [ -f /usr/lib/scylla/scylla_setup ]; then
+        interactive_ask_service "Do you want to configure and enable the ScyllaDB instance used for this installation?" "Answer yes to configure and automatically start ScyllaDB when the node boots; answer no to skip this step." "yes" &&:
+        ENABLE_SCYLLA=$?
+    fi
     interactive_ask_service "Do you want to enable ScyllaDB management services?" "Answer yes to automatically start Scylla Manager when the node boots; answer no to skip this step." "yes" &&:
     ENABLE_SERVICE=$?
+fi
+
+if [ $ENABLE_SCYLLA -eq 1 ]; then
+    /usr/lib/scylla/scylla_dev_mode_setup --developer-mode 1
+    if is_systemd; then
+        systemctl enable scylla-server.service
+    fi
 fi
 
 if [ $ENABLE_SERVICE -eq 1 ]; then
