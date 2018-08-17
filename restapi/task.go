@@ -153,7 +153,11 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			Status: runner.StatusNew,
 		}
 
-		runs, err := h.schedSvc.GetLastRun(r.Context(), t, t.Sched.NumRetries)
+		limit := t.Sched.NumRetries
+		if limit == 0 {
+			limit = 1
+		}
+		runs, err := h.schedSvc.GetLastRun(r.Context(), t, limit)
 		if err != nil {
 			respondError(w, r, err, "failed to load task run")
 			return

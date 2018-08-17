@@ -191,7 +191,11 @@ func (s *Service) SetRunner(tp TaskType, r runner.Runner) {
 }
 
 func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
-	runs, err := s.GetLastRun(ctx, t, t.Sched.NumRetries)
+	limit := t.Sched.NumRetries
+	if limit == 0 {
+		limit = 1
+	}
+	runs, err := s.GetLastRun(ctx, t, limit)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get history of task", "task", t, "error", err)
 		return
