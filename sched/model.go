@@ -73,39 +73,51 @@ func (s *Schedule) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) e
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// NextActivation generates an new start time based on schedule and run history.
+// NextActivation generates new start time based on schedule and run history.
 func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
-	n := len(runs)
-	if n == 0 && s.StartDate.After(now.Add(taskStartNowSlack)) {
+	// if not started yet report scheduled start date
+	if len(runs) == 0 && s.StartDate.After(now.Add(taskStartNowSlack)) {
 		return s.StartDate
 	}
+
 	lastStart := s.StartDate
 	lastStatus := runner.StatusError
-	if n > 0 {
+	if len(runs) > 0 {
 		lastStart = runs[0].StartTime
 		lastStatus = runs[0].Status
 	}
 
-	if s.NumRetries > 0 {
-		// check no more than NumRetries Runs were attempted
-		retries := 0
-		for _, r := range runs {
-			if r.Status == runner.StatusStopped {
-				break
-			}
-			retries++
-		}
-		if lastStatus != runner.StatusStopped && retries < s.NumRetries {
-			t := lastStart.Add(retryTaskWait)
-			if t.Before(now) {
-				// previous activation was is in the past, and didn't occur. Try again now.
-				return now.Add(taskStartNowSlack)
-			}
-			return t
-		}
+	// if running or done report next activation according to schedule
+	if lastStatus != runner.StatusError {
+		return s.nextActivation(lastStart, now)
 	}
 
-	// advance start date with idealized periods
+	// if error and no retries available report next activation according to schedule
+	if s.consecutiveErrorCount(runs) >= s.NumRetries {
+		return s.nextActivation(lastStart, now)
+	}
+
+	// if retries available add retryTaskWait
+	t := lastStart.Add(retryTaskWait)
+	if t.Before(now) {
+		// previous activation was is in the past, and didn't occur, try again now
+		return now.Add(taskStartNowSlack)
+	}
+	return t
+}
+
+func (s *Schedule) consecutiveErrorCount(runs []*Run) int {
+	errs := 0
+	for _, r := range runs {
+		if r.Status != runner.StatusError {
+			break
+		}
+		errs++
+	}
+	return errs
+}
+
+func (s *Schedule) nextActivation(lastStart, now time.Time) time.Time {
 	if s.IntervalDays > 0 {
 		for lastStart.Before(now) {
 			lastStart = lastStart.AddDate(0, 0, s.IntervalDays)
@@ -135,36 +147,36 @@ func (t *Task) Validate() error {
 		return mermaid.ErrNilPtr
 	}
 
-	var err error
+	var errs error
 	if t.ID == uuid.Nil {
-		err = multierr.Append(err, errors.New("missing ID"))
+		errs = multierr.Append(errs, errors.New("missing ID"))
 	}
 	if t.ClusterID == uuid.Nil {
-		err = multierr.Append(err, errors.New("missing ClusterID"))
+		errs = multierr.Append(errs, errors.New("missing ClusterID"))
 	}
 	if _, e := uuid.Parse(t.Name); e == nil {
-		err = multierr.Append(err, errors.New("name cannot be an UUID"))
+		errs = multierr.Append(errs, errors.New("name cannot be an UUID"))
 	}
 
 	switch t.Type {
 	case "", UnknownTask:
-		err = multierr.Append(err, errors.New("no TaskType specified"))
+		errs = multierr.Append(errs, errors.New("no TaskType specified"))
 	default:
 		var tp TaskType
-		err = multierr.Append(err, tp.UnmarshalText([]byte(t.Type)))
+		errs = multierr.Append(errs, tp.UnmarshalText([]byte(t.Type)))
 	}
 
 	if t.Sched.IntervalDays < 0 {
-		err = multierr.Append(err, errors.New("negative interval days"))
+		errs = multierr.Append(errs, errors.New("negative interval days"))
 	}
 	if t.Sched.NumRetries < 0 {
-		err = multierr.Append(err, errors.New("negative num retries"))
+		errs = multierr.Append(errs, errors.New("negative num retries"))
 	}
 	if t.Sched.StartDate.IsZero() {
-		err = multierr.Append(err, errors.New("missing start date"))
+		errs = multierr.Append(errs, errors.New("missing start date"))
 	}
 
-	return mermaid.ErrValidate(err, "invalid task")
+	return mermaid.ErrValidate(errs, "invalid task")
 }
 
 // Run describes a running instance of a Task.

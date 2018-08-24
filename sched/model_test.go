@@ -3,7 +3,6 @@
 package sched
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -51,7 +50,7 @@ func TestSchedNextActivation(t *testing.T) {
 			schedule:       makeSchedule(t0, 7, 3),
 			nextActivation: now.Add(taskStartNowSlack),
 		},
-		// no history, start in future > tastStartNowSlack
+		// no history, start in future > taskStartNowSlack
 		{
 			schedule:       makeSchedule(now.Add(taskStartNowSlack+time.Second), 7, 3),
 			nextActivation: now.Add(taskStartNowSlack + time.Second),
@@ -61,45 +60,71 @@ func TestSchedNextActivation(t *testing.T) {
 			schedule:       makeSchedule(now.Add(time.Second), 7, 3),
 			nextActivation: now.Add(retryTaskWait + time.Second),
 		},
-		// short (old) history 1
+		// short history 1, retry
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError),
 			nextActivation: now.Add(taskStartNowSlack),
 		},
-		// short (old) history 2
+		// short history 2, retry
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError, runner.StatusError),
 			nextActivation: now.Add(taskStartNowSlack),
 		},
-		// short (recent) history
+		// short (recent) history, retry
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(now.Add(-retryTaskWait/2), runner.StatusError),
 			nextActivation: now.Add(retryTaskWait / 2),
 		},
-		// full history, too many activations to retry again, waiting for full interval period.
+		// full history, too many activations to retry, full interval
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
 			nextActivation: t1.Add(2*retryTaskWait).AddDate(0, 0, 7),
 		},
-		// full (old) history, retries allowed.
+		// full history with DONE, retry
+		{
+			schedule:       makeSchedule(t0, 7, 3),
+			history:        makeHistory(t1, runner.StatusError, runner.StatusDone, runner.StatusError),
+			nextActivation: now.Add(taskStartNowSlack),
+		},
+		// full history with STOPPED, retry
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError, runner.StatusStopped, runner.StatusError),
 			nextActivation: now.Add(taskStartNowSlack),
 		},
+		// one shot, short history 1, retry
+		{
+			schedule:       makeSchedule(t0, 0, 3),
+			history:        makeHistory(t1, runner.StatusError),
+			nextActivation: now.Add(taskStartNowSlack),
+		},
+		// one shot, short history 2, retry
+		{
+			schedule:       makeSchedule(t0, 0, 3),
+			history:        makeHistory(t1, runner.StatusError, runner.StatusError),
+			nextActivation: now.Add(taskStartNowSlack),
+		},
+		// one shot, full history, too many activations to retry, no retry
+		{
+			schedule:       makeSchedule(t0, 0, 3),
+			history:        makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
+			nextActivation: time.Time{},
+		},
+		// no retry, short history 1, full interval
+		{
+			schedule:       makeSchedule(t0, 7, 0),
+			history:        makeHistory(t1, runner.StatusError),
+			nextActivation: t1.AddDate(0, 0, 7),
+		},
 	}
 
-	for i, tc := range table {
-		tc := tc
-		t.Run(fmt.Sprintf("TestCase-%d", i), func(t *testing.T) {
-			if activation := tc.schedule.NextActivation(now, tc.history); activation != tc.nextActivation {
-				t.Logf("expected activation: %v, computed: %v", tc.nextActivation, activation)
-				t.Fail()
-			}
-		})
+	for i, test := range table {
+		if activation := test.schedule.NextActivation(now, test.history); activation != test.nextActivation {
+			t.Error(i, "expected", test.nextActivation, "got", activation)
+		}
 	}
 }
