@@ -27,12 +27,13 @@ type Status string
 
 // Status enumeration.
 const (
-	StatusDone     Status = "DONE"
-	StatusError    Status = "ERROR"
+	StatusNew      Status = "NEW"
 	StatusStarting Status = "STARTING"
 	StatusRunning  Status = "RUNNING"
 	StatusStopping Status = "STOPPING"
 	StatusStopped  Status = "STOPPED"
+	StatusDone     Status = "DONE"
+	StatusError    Status = "ERROR"
 )
 
 func (s Status) String() string {
@@ -47,6 +48,8 @@ func (s Status) MarshalText() (text []byte, err error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *Status) UnmarshalText(text []byte) error {
 	switch Status(text) {
+	case StatusNew:
+		*s = StatusNew
 	case StatusStarting:
 		*s = StatusStarting
 	case StatusRunning:
@@ -55,6 +58,8 @@ func (s *Status) UnmarshalText(text []byte) error {
 		*s = StatusStopping
 	case StatusStopped:
 		*s = StatusStopped
+	case StatusDone:
+		*s = StatusDone
 	case StatusError:
 		*s = StatusError
 	default:
