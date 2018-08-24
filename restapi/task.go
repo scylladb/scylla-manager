@@ -148,7 +148,10 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		e := extendedTask{Task: t}
+		e := extendedTask{
+			Task:   t,
+			Status: runner.StatusNew,
+		}
 
 		runs, err := h.schedSvc.GetLastRun(r.Context(), t, t.Sched.NumRetries)
 		if err != nil {
