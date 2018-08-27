@@ -48,6 +48,14 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Sessi
 		}
 	}
 
+	_, err := os.Stat(cfg.IdentityFile)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
 	stmt, names := qb.Select("cluster").Columns("id").ToCql()
 	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	var ids []uuid.UUID
@@ -69,6 +77,14 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Sessi
 			)
 			continue
 		}
+		if err := os.Chmod(identityFile, 0600); err != nil {
+			logger.Info(ctx, "failed to change identity file permissions",
+				"file", identityFile,
+				"error", err,
+			)
+			continue
+		}
+
 		if err := iq.Bind(id, cfg.User).Exec(); err != nil {
 			return err
 		}
