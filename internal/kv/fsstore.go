@@ -46,7 +46,7 @@ func (m *FsStore) Put(id uuid.UUID, data []byte) error {
 }
 
 func (m *FsStore) save(clusterID uuid.UUID, data []byte) error {
-	if err := ioutil.WriteFile(m.identityFile(clusterID), data, 0400); err != nil {
+	if err := ioutil.WriteFile(m.identityFile(clusterID), data, 0600); err != nil {
 		return errors.Wrapf(err, "unable to store identity file %q", m.identityFile(clusterID))
 	}
 	return nil

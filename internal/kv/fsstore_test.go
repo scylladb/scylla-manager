@@ -47,6 +47,26 @@ func TestFsStore(t *testing.T) {
 		}
 	})
 
+	t.Run("update", func(t *testing.T) {
+		id := uuid.MustRandom()
+		data0 := []byte("test0")
+		data1 := []byte("test1")
+
+		if err := s.Put(id, data0); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.Put(id, data1); err != nil {
+			t.Fatal(err)
+		}
+		v, err := s.Get(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(v, data1); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
 	t.Run("delete", func(t *testing.T) {
 		id := uuid.MustRandom()
 		data := []byte("test")
@@ -61,5 +81,4 @@ func TestFsStore(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
-
 }
