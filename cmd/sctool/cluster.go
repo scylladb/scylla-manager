@@ -118,6 +118,7 @@ var clusterUpdateCmd = &cobra.Command{
 				return printableError{inner: err}
 			}
 			cluster.SSHIdentityFile = b
+			ok = true
 		}
 		if !ok {
 			return errors.New("nothing to do")
