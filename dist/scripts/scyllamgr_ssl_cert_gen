@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
 
-set -e
+set -eu -o pipefail
 
 KEY_FILE="/var/lib/scylla-manager/scylla_manager.key"
 CRT_FILE="/var/lib/scylla-manager/scylla_manager.crt"
@@ -47,7 +50,7 @@ if [ -f ${KEY_FILE} -o -f ${CRT_FILE} ]; then
     exit 0
 fi
 
-openssl genrsa -out ${KEY_FILE} 4096
+openssl genrsa -out ${KEY_FILE} 4096 &> /dev/null
 openssl req -new -x509 -sha512 -subj "${SUBJECT}" -key ${KEY_FILE} -out ${CRT_FILE} -days 365
 chown scylla-manager:scylla-manager ${KEY_FILE}
 chown scylla-manager:scylla-manager ${CRT_FILE}

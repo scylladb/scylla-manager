@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
+
+set -eu -o pipefail
 
 SSH_LOCAL_PORT=10010
 SSH_USER=scylla-manager
-SSH_IDENTITY_FILE=/var/lib/scylla-manager/scylla_manager.pem
-SSH_OPTS="-q -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+SSH_IDENTITY_FILE=
+SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
-CURL_OPTS="-s -f -o /dev/null"
+CURL_OPTS="-sS -f -o /dev/null"
 
 print_usage() {
-    echo "scyllamgr_ssh_test --user remote_user --identity-file identity_file host..."
+    echo "scyllamgr_ssh_test --user remote_user --identity-file identity_file [HOST]..."
     echo "  -u --user				specify SSH user name, default ${SSH_USER}"
-    echo "  -i --identity-file			specify SSH identity file path, default ${SSH_IDENTITY_FILE}"
+    echo "  -i --identity-file			specify SSH identity file path"
     echo "  -p --local-port			specify local port for SSH tunnel, default ${SSH_LOCAL_PORT}"
     echo "  -v --verbose				display debug info"
 }
@@ -30,7 +35,8 @@ while [ $# -gt 0 ]; do
             shift 2
             ;;
         "-v"|"--verbose")
-            VERBOSE="-v"
+            SSH_OPTS+=" -v"
+            CURL_OPTS+=" -v"
             shift 1
             ;;
         "-h" | "--help")
@@ -42,8 +48,19 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-fuser -s -n tcp ${SSH_LOCAL_PORT}
-if [ $? == 0 ]; then
+if [ $# == 0 ]; then
+    echo -e "no hosts to test\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${SSH_IDENTITY_FILE} ]; then
+    echo -e "missing --identity-file\n"
+    print_usage
+    exit 1
+fi
+
+if fuser -s -n tcp ${SSH_LOCAL_PORT}; then
     echo "port ${SSH_LOCAL_PORT} is used"
     exit 1
 fi
@@ -51,17 +68,11 @@ fi
 res=0
 
 for host in $@; do
-    (
-        ssh -i ${SSH_IDENTITY_FILE} -N -f ${SSH_OPTS} ${VERBOSE} -L ${SSH_LOCAL_PORT}:localhost:10000 ${SSH_USER}@${host} && \
-        curl ${CURL_OPTS} ${VERBOSE} localhost:${SSH_LOCAL_PORT}/storage_service/cluster_name && \
-        echo "${host}	OK"
-    )
-    if [ $? != 0 ]; then
+    if ! ssh -i ${SSH_IDENTITY_FILE} -N -f ${SSH_OPTS} -L ${SSH_LOCAL_PORT}:localhost:10000 ${SSH_USER}@${host} && curl ${CURL_OPTS} localhost:${SSH_LOCAL_PORT}/storage_service/cluster_name; then
         echo "${host}	FAILED"
         res=1
     fi
-
-    fuser -s -n tcp ${SSH_LOCAL_PORT} -k -15
+    fuser -s -n tcp ${SSH_LOCAL_PORT} -k -15 ||:
 done
 
 exit ${res}

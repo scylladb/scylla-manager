@@ -1,11 +1,13 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 #
-#  Copyright (C) 2017 ScyllaDB
+# Copyright 2017 ScyllaDB
+#
+
+set -eu -o pipefail
 
 is_systemd() {
     grep -q '^systemd$' /proc/1/comm
 }
-
 
 interactive_ask_service() {
     echo $1
