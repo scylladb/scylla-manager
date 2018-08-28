@@ -36,8 +36,6 @@ func init() {
 	)
 }
 
-const pingTimeout = 5 * time.Second
-
 // Runner runs health checks.
 type Runner struct {
 	cluster cluster.ProviderFunc
@@ -60,9 +58,6 @@ type hostRTT struct {
 
 // Run implements runner.Runner.
 func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
-	ctx, cancel := context.WithTimeout(ctx, pingTimeout)
-	defer cancel()
-
 	// get cluster name
 	c, err := r.cluster(ctx, d.ClusterID)
 	if err != nil {
@@ -83,7 +78,8 @@ func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Propertie
 	for _, h := range hosts {
 		v := hostRTT{host: h}
 		go func() {
-			v.rtt, v.err = cqlping.Ping(ctx, v.host)
+			const pingTimeout = 250 * time.Millisecond
+			v.rtt, v.err = cqlping.Ping(ctx, pingTimeout, v.host)
 			out <- v
 		}()
 	}
