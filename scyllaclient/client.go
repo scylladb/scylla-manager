@@ -320,15 +320,17 @@ func (c *Client) measureHosts(ctx context.Context, hosts []string) (int64, error
 	}
 	return min, nil
 }
+
 func (c *Client) measure(ctx context.Context, host string, laps int) (int64, error) {
-	_, err := c.Ping(ctx, host)
+	const pingTimeout = 250 * time.Second
+	_, err := c.Ping(ctx, pingTimeout, host)
 	if err != nil {
 		return 0, err
 	}
 	var sum int64
 
 	for i := 0; i < laps; i++ {
-		d, err := c.Ping(ctx, host)
+		d, err := c.Ping(ctx, pingTimeout, host)
 		if err != nil {
 			return 0, err
 		}
@@ -489,7 +491,12 @@ func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 }
 
 // Ping checks if host is available using HTTP ping.
-func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
+func (c *Client) Ping(ctx context.Context, timeout time.Duration, host string) (time.Duration, error) {
+	t := timeutc.Now()
+
+	ctx, cancel := context.WithDeadline(ctx, t.Add(timeout))
+	defer cancel()
+
 	u := url.URL{
 		Scheme: "http",
 		Host:   host,
@@ -502,10 +509,9 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	}
 	r = r.WithContext(forceHost(ctx, host))
 
-	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)
 	if err != nil {
-		return 0, err
+		return timeutc.Since(t), err
 	}
 	defer resp.Body.Close()
 

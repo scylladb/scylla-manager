@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"runtime"
 	"sort"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -323,7 +324,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 					dc:   dc,
 					host: host,
 				}
-				_, dh.err = client.Ping(ctx, host)
+				_, dh.err = client.Ping(ctx, time.Second, host)
 				out <- dh
 			}(ctx, dc, host)
 		}

@@ -606,7 +606,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 			}
 
 			// ping host
-			if _, err := client.Ping(ctx, host); err != nil {
+			if _, err := client.Ping(ctx, time.Second, host); err != nil {
 				return errors.Wrapf(err, "host %s not available", host)
 			}
 
