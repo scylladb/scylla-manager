@@ -1,3 +1,7 @@
+-- Scheduler
+
+TRUNCATE TABLE scheduler_task;
+
 -- Repair
 
 DROP TABLE repair_unit;
