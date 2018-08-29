@@ -92,12 +92,12 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 
 	// if running or done report next activation according to schedule
 	if lastStatus != runner.StatusError {
-		return s.nextActivation(lastStart, now)
+		return s.nextActivation(now)
 	}
 
 	// if error and no retries available report next activation according to schedule
 	if s.consecutiveErrorCount(runs) >= s.NumRetries {
-		return s.nextActivation(lastStart, now)
+		return s.nextActivation(now)
 	}
 
 	// if retries available add retryTaskWait
@@ -120,8 +120,9 @@ func (s *Schedule) consecutiveErrorCount(runs []*Run) int {
 	return errs
 }
 
-func (s *Schedule) nextActivation(lastStart, now time.Time) time.Time {
+func (s *Schedule) nextActivation(now time.Time) time.Time {
 	if s.Interval > 0 {
+		lastStart := s.StartDate.Add(now.Sub(s.StartDate).Round(s.Interval.Duration()))
 		for lastStart.Before(now) {
 			lastStart = lastStart.Add(s.Interval.Duration())
 		}

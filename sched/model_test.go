@@ -84,7 +84,7 @@ func TestSchedNextActivation(t *testing.T) {
 		{
 			schedule:       makeSchedule(t0, 7, 3),
 			history:        makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
-			nextActivation: t1.Add(2*retryTaskWait).AddDate(0, 0, 7),
+			nextActivation: t0.AddDate(0, 0, 7),
 		},
 		// full history with DONE, retry
 		{
@@ -120,7 +120,7 @@ func TestSchedNextActivation(t *testing.T) {
 		{
 			schedule:       makeSchedule(t0, 7, 0),
 			history:        makeHistory(t1, runner.StatusError),
-			nextActivation: t1.AddDate(0, 0, 7),
+			nextActivation: t0.AddDate(0, 0, 7),
 		},
 	}
 
