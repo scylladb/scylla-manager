@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
+
+set -eu -o pipefail
+
+SSH_USER=""
+SSH_IDENTITY_FILE=""
+SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+MANAGER_USER="scylla-manager"
+MANAGER_IDENTITY_FILE=""
+
+DISCOVER=0
+
+print_usage() {
+    echo "scyllamgr_ssh_setup -u [USERNAME] -i [PATH_TO_PRIVATE_KEY] --m [MANAGER_USERNAME] -o [PATH_TO_MANAGER_PRIVATE_KEY] [HOST]..."
+    echo "  -u --user				SSH user name used to connect to hosts"
+    echo "  -i --identity-file			path to identity file containing SSH private key"
+    echo "  -m --manager-user			user name that will be created and configured on hosts, default ${MANAGER_USER}"
+    echo "  -o --manager-identity-file		path to identity file containing SSH private key for MANAGER_USERNAME, if there is no such file it will be created"
+    echo "  -d --discover				use first host to discover and setup all hosts in a cluster"
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        "-u"|"--user")
+            SSH_USER="$2"
+            shift 2
+            ;;
+        "-i"|"--identity-file")
+            SSH_IDENTITY_FILE="$2"
+            shift 2
+            ;;
+        "-m"|"--manager-user")
+            MANAGER_USER="$2"
+            shift 2
+            ;;
+        "-o"|"--manager-identity-file")
+            MANAGER_IDENTITY_FILE="$2"
+            shift 2
+            ;;
+        "-d"|"--discover")
+            DISCOVER=1
+            shift 1
+            ;;
+        "-h" | "--help")
+            print_usage
+            exit 0
+            ;;
+        *)
+            break
+    esac
+done
+
+# Validate inputs
+
+if [ $# == 0 ]; then
+    echo -e "no hosts to setup\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${SSH_USER} ]; then
+    echo -e "missing --user\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${SSH_IDENTITY_FILE} ]; then
+    echo -e "missing --identity-file\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${MANAGER_USER} ]; then
+    echo -e "missing --manager-user\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${MANAGER_IDENTITY_FILE} ]; then
+    echo -e "missing --manager-identity-file\n"
+    print_usage
+    exit 1
+fi
+
+# Create manager SSH key if needed
+
+if [ ! -f "${MANAGER_IDENTITY_FILE}" ]; then
+    ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" > /dev/null && chmod 0400 "${MANAGER_IDENTITY_FILE}"
+fi
+
+if [ ! -f "${MANAGER_IDENTITY_FILE}.pub" ]; then
+    echo -e "no public key for ${MANAGER_IDENTITY_FILE}\n"
+    print_usage
+    exit 1
+fi
+
+# Load manager SSH public key
+
+MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
+
+# Discover hosts if needed
+
+HOSTS=$@
+if [ ${DISCOVER} == 1 ]; then
+    HOSTS=`ssh ${SSH_OPTS} -i "${SSH_IDENTITY_FILE}" "${SSH_USER}@${1}" 2>/dev/null curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
+fi
+
+ret=0
+
+for host in ${HOSTS}; do
+    if ssh ${SSH_OPTS} -i "${SSH_IDENTITY_FILE}" "${SSH_USER}@${host}" &> /dev/null << EOF ||:
+    set -eu -o pipefail
+    sudo su -
+
+    # Create system user (and group)
+    getent group "${MANAGER_USER}"  || sudo /usr/sbin/groupadd -r "${MANAGER_USER}"
+    getent passwd "${MANAGER_USER}" || sudo /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s /sbin/nologin -r "${MANAGER_USER}"
+
+    # Add public key to authorized_keys
+    mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
+    echo -e "# Added by Scylla Manager" >> "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
+    echo -e "${MANAGER_PUBLIC_KEY}" >> "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
+
+    # Fix ownership
+    chown -R "${MANAGER_USER}:${MANAGER_USER}" "/var/lib/${MANAGER_USER}/.ssh"
+EOF
+    then
+        echo "${host}	OK"
+    else
+        echo "${host}	FAILED"
+        ret=1
+    fi
+done
+
+exit ${ret}

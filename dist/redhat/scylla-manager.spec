@@ -56,6 +56,7 @@ install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
 
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssh_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssh_test %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
 
@@ -67,7 +68,7 @@ Summary: Scylla Manager server
 
 %{?systemd_requires}
 BuildRequires: systemd
-Requires: openssl psmisc
+Requires: curl jq openssl psmisc
 
 %description server
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
@@ -78,9 +79,11 @@ the database management tasks.
 %defattr(-,root,root)
 %{_bindir}/%{name}
 %{_prefix}/lib/%{name}/scyllamgr_setup
+%{_prefix}/lib/%{name}/scyllamgr_ssh_setup
 %{_prefix}/lib/%{name}/scyllamgr_ssh_test
 %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
 %{_sbindir}/scyllamgr_setup
+%{_sbindir}/scyllamgr_ssh_setup
 %{_sbindir}/scyllamgr_ssh_test
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yaml

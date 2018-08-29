@@ -10,7 +10,7 @@ CRT_FILE="/var/lib/scylla-manager/scylla_manager.crt"
 SUBJECT="/C=US/ST=Scylla/L=Scylla/O=Scylla/OU=Scylla/CN=scylla.com"
 
 print_usage() {
-    echo "scyllamgr_ssl_cert_gen --subject <the_subject>"
+    echo "scyllamgr_ssl_cert_gen --subject [SUBJECT]"
     echo "  -s --silent                 suppress error messages, default is false"
     echo "     --subject                specify certificate info, default is '${SUBJECT}'"
     echo "  -h --help                   display help info"

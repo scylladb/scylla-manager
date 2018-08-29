@@ -5,18 +5,18 @@
 
 set -eu -o pipefail
 
-SSH_LOCAL_PORT=10010
-SSH_USER=scylla-manager
-SSH_IDENTITY_FILE=
+SSH_LOCAL_PORT="10010"
+SSH_USER="scylla-manager"
+SSH_IDENTITY_FILE=""
 SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 CURL_OPTS="-sS -f -o /dev/null"
 
 print_usage() {
-    echo "scyllamgr_ssh_test --user remote_user --identity-file identity_file [HOST]..."
-    echo "  -u --user				specify SSH user name, default ${SSH_USER}"
-    echo "  -i --identity-file			specify SSH identity file path"
-    echo "  -p --local-port			specify local port for SSH tunnel, default ${SSH_LOCAL_PORT}"
+    echo "scyllamgr_ssh_test -u [USERNAME] -i [PATH_TO_PRIVATE_KEY] [HOST]..."
+    echo "  -u --user				SSH user name used to connect to hosts, default ${SSH_USER}"
+    echo "  -i --identity-file			path to identity file containing SSH private key"
+    echo "  -p --local-port			local port used by the script for SSH tunneling, default ${SSH_LOCAL_PORT}"
     echo "  -v --verbose				display debug info"
 }
 
@@ -48,8 +48,16 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# Validate inputs
+
 if [ $# == 0 ]; then
     echo -e "no hosts to test\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${SSH_USER} ]; then
+    echo -e "missing --user\n"
     print_usage
     exit 1
 fi
@@ -65,14 +73,17 @@ if fuser -s -n tcp ${SSH_LOCAL_PORT}; then
     exit 1
 fi
 
-res=0
+ret=0
 
 for host in $@; do
-    if ! ssh -i ${SSH_IDENTITY_FILE} -N -f ${SSH_OPTS} -L ${SSH_LOCAL_PORT}:localhost:10000 ${SSH_USER}@${host} && curl ${CURL_OPTS} localhost:${SSH_LOCAL_PORT}/storage_service/cluster_name; then
+    if ssh -i "${SSH_IDENTITY_FILE}" -N -f ${SSH_OPTS} -L ${SSH_LOCAL_PORT}:localhost:10000 "${SSH_USER}@${host}" \
+    && curl ${CURL_OPTS} "localhost:${SSH_LOCAL_PORT}/storage_service/cluster_name"; then
+        echo "${host}	OK"
+    else
         echo "${host}	FAILED"
-        res=1
+        ret=1
     fi
     fuser -s -n tcp ${SSH_LOCAL_PORT} -k -15 ||:
 done
 
-exit ${res}
+exit ${ret}
