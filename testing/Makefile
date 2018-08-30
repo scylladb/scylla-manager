@@ -15,10 +15,16 @@ up: ## Start docker containers
 	@$(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
 	@until $(CQLSH) 192.168.51.11 -e "DESCRIBE SCHEMA" &> /dev/null; do sleep 1; done
-	@echo "==> Installing keys"
-	@cd scylla-manager && ./install_keys.sh
 	@echo "==> Creating tables"
 	@$(CQLSH) 192.168.51.11 -f init.cql
+	@echo "==> Installing root SSH key"
+	@./install_root_key
+	@echo "==> Installing scylla-manager SSH key"
+# Gossip is sometimes too slow to discover all hosts at this point, hosts are
+# listed to avoid flakyness
+	@../dist/scripts/scyllamgr_ssh_setup -u root -i /tmp/scyllamgr_root.pem \
+	-m scylla-manager -o /tmp/scyllamgr_cluster.pem \
+	192.168.100.11 192.168.100.12 192.168.100.13 192.168.100.21 192.168.100.22 192.168.100.23
 
 .PHONY: down
 down: ## Stop docker containers

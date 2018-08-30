@@ -2,15 +2,15 @@ ARG SCYLLA_VERSION
 
 FROM scylladb/scylla:${SCYLLA_VERSION}
 
-# Install sshd:
+# Install sshd
 RUN yum makecache && \
-    yum -y install openssh-server passwd && \
+    yum -y install openssh-server passwd sudo && \
     yum clean all
 RUN mkdir /var/run/sshd
 RUN /usr/sbin/sshd-keygen
 
-# Create scylla-manager user:
-RUN useradd scylla-manager && echo -e "test\ntest" | (passwd --stdin scylla-manager)
-
-# Supervisord configuration:
+# Supervisord configuration
 ADD etc/supervisord.conf.d/sshd.conf /etc/supervisord.conf.d/sshd.conf
+
+# Set root password
+RUN echo -e "root\nroot" | passwd --stdin root
