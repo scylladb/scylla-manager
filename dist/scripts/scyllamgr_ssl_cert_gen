@@ -52,5 +52,4 @@ fi
 
 openssl genrsa -out ${KEY_FILE} 4096 &> /dev/null
 openssl req -new -x509 -sha512 -subj "${SUBJECT}" -key ${KEY_FILE} -out ${CRT_FILE} -days 365
-chown scylla-manager:scylla-manager ${KEY_FILE}
-chown scylla-manager:scylla-manager ${CRT_FILE}
+chown scylla-manager:scylla-manager ${KEY_FILE} ${CRT_FILE}
