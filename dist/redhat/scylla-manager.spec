@@ -33,9 +33,8 @@ GOLDFLAGS="-w -extldflags '-static' -X %{pkg_name}.version=%{version}-%{release}
 
 GOPATH=${PWD} GOOS=linux GOARCH=amd64 CGO_ENABLED=0 ${GO} build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) ${GOLDFLAGS}" -o release/linux_amd64/%{name} %{pkg_name}/cmd/%{name}
 GOPATH=${PWD} GOOS=linux GOARCH=amd64 CGO_ENABLED=0 ${GO} build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) ${GOLDFLAGS}" -o release/linux_amd64/sctool %{pkg_name}/cmd/sctool
-
 mkdir -p release/bash_completion
-${GO} run `$GO list -f '{{range .GoFiles}}{{ $.Dir }}/{{ . }} {{end}}' %{pkg_name}/cmd/sctool/` _bashcompletion > release/bash_completion/sctool.bash
+./release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
 
 %install
 mkdir -p %{buildroot}%{_bindir}/
