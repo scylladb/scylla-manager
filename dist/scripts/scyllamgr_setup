@@ -40,6 +40,11 @@ interactive_ask_service() {
     done
 }
 
+if [ "`id -u`" -ne 0 ]; then
+    echo "Requires root permission."
+    exit 1
+fi
+
 ENABLE_SCYLLA=0
 ENABLE_SERVICE=1
 
