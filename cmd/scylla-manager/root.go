@@ -106,17 +106,8 @@ var rootCmd = &cobra.Command{
 		}
 
 		// wait for database
-		for {
-			if err := tryConnect(config); err != nil {
-				const wait = 5 * time.Second
-				logger.Info(ctx, "Could not connect to database",
-					"sleep", wait,
-					"error", err,
-				)
-				time.Sleep(wait)
-			} else {
-				break
-			}
+		if err := waitForDatabase(ctx, config, logger); err != nil {
+			return err
 		}
 
 		// create manager keyspace
@@ -174,6 +165,27 @@ func logger(config *serverConfig) (log.Logger, error) {
 		return log.NewDevelopmentWithLevel(config.Logger.Level), nil
 	}
 	return log.NewProduction(config.Logger)
+}
+
+func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logger) error {
+	const (
+		wait        = 5 * time.Second
+		maxAttempts = 60
+	)
+
+	for i := 0; i < maxAttempts; i++ {
+		if err := tryConnect(config); err != nil {
+			logger.Info(ctx, "Could not connect to database",
+				"sleep", wait,
+				"error", err,
+			)
+			time.Sleep(wait)
+		} else {
+			return nil
+		}
+	}
+
+	return errors.New("could not connect to database, max attempts reached")
 }
 
 func tryConnect(config *serverConfig) error {
