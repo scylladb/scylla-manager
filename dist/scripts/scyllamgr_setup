@@ -56,10 +56,10 @@ fi
 
 if [ $INTERACTIVE -eq 1 ]; then
     if [ -f /usr/lib/scylla/scylla_setup ]; then
-        interactive_ask_service "Do you want to configure and enable the ScyllaDB instance used for this installation?" "Answer yes to configure and automatically start ScyllaDB when the node boots; answer no to skip this step." "yes" &&:
+        interactive_ask_service "Do you want to configure and enable the local ScyllaDB instance as a backend storage for this Scylla Manager installation?" "Answer yes to configure and automatically start ScyllaDB when the node boots; answer no to skip this step." "yes" &&:
         ENABLE_SCYLLA=$?
     fi
-    interactive_ask_service "Do you want to enable ScyllaDB management services?" "Answer yes to automatically start Scylla Manager when the node boots; answer no to skip this step." "yes" &&:
+    interactive_ask_service "Do you want to enable Scylla Manager?" "Answer yes to automatically start Scylla Manager when the node boots; answer no to skip this step." "yes" &&:
     ENABLE_SERVICE=$?
 fi
 

@@ -28,10 +28,10 @@ var (
 )
 
 func clusterInitCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "alias `name`")
+	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "`alias` you can give to your cluster")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
-	cmd.Flags().StringVar(&cfgClusterSSHUser, "ssh-user", "", "SSH user used to connect to cluster nodes")
-	cmd.Flags().StringVar(&cfgClusterSSHIdentityFile, "ssh-identity-file", "", "SSH private key in PEM format")
+	cmd.Flags().StringVar(&cfgClusterSSHUser, "ssh-user", "", "SSH user `name` used to connect to the cluster nodes")
+	cmd.Flags().StringVar(&cfgClusterSSHIdentityFile, "ssh-identity-file", "", "`path` to identity file containing SSH private key")
 }
 
 var clusterAddCmd = &cobra.Command{
