@@ -56,14 +56,20 @@ if [ $# == 0 ]; then
     exit 1
 fi
 
-if [ -z ${SSH_USER} ]; then
+if [ -z "${SSH_USER}" ]; then
     echo -e "missing --user\n"
     print_usage
     exit 1
 fi
 
-if [ -z ${SSH_IDENTITY_FILE} ]; then
+if [ -z "${SSH_IDENTITY_FILE}" ]; then
     echo -e "missing --identity-file\n"
+    print_usage
+    exit 1
+fi
+
+if [ ! -f "${SSH_IDENTITY_FILE}" -o ! -r "${SSH_IDENTITY_FILE}" ]; then
+    echo -e "cannot read file ${SSH_IDENTITY_FILE}\n"
     print_usage
     exit 1
 fi

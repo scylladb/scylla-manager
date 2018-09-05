@@ -74,14 +74,26 @@ if [ -z ${SSH_IDENTITY_FILE} ]; then
     exit 1
 fi
 
-if [ -z ${MANAGER_USER} ]; then
+if [ ! -f "${SSH_IDENTITY_FILE}" -o ! -r "${SSH_IDENTITY_FILE}" ]; then
+    echo -e "cannot read file ${SSH_IDENTITY_FILE}\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z "${MANAGER_USER}" ]; then
     echo -e "missing --manager-user\n"
     print_usage
     exit 1
 fi
 
-if [ -z ${MANAGER_IDENTITY_FILE} ]; then
+if [ -z "${MANAGER_IDENTITY_FILE}" ]; then
     echo -e "missing --manager-identity-file\n"
+    print_usage
+    exit 1
+fi
+
+if [ ! -w "${MANAGER_IDENTITY_FILE}" ]; then
+    echo -e "cannot write to file ${MANAGER_IDENTITY_FILE}\n"
     print_usage
     exit 1
 fi
