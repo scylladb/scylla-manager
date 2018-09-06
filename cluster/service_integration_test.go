@@ -23,7 +23,7 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 
-	pem, err := ioutil.ReadFile("../testing/scylla-manager/cluster.pem")
+	pem, err := ioutil.ReadFile("/tmp/scyllamgr_cluster.pem")
 	if err != nil {
 		t.Fatal(err)
 	}

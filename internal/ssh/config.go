@@ -57,8 +57,8 @@ func keyPairAuthMethod(pemBytes []byte) (ssh.AuthMethod, error) {
 // authentication.
 func NewDevelopmentClientConfig() *ssh.ClientConfig {
 	return &ssh.ClientConfig{
-		User:            "scylla-manager",
-		Auth:            []ssh.AuthMethod{ssh.Password("test")},
+		User:            "root",
+		Auth:            []ssh.AuthMethod{ssh.Password("root")},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 }
