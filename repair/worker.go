@@ -286,6 +286,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	w.logger.Info(ctx, "Repairing", "percent_complete", w.progress.PercentComplete())
+	w.updateProgress(ctx)
 	w.updateMetrics()
 
 	var (
@@ -355,21 +356,20 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 		savepoint()
 
-		err, id = w.waitCommand(ctx, id), 0
+		err = w.waitCommand(ctx, id)
 		if err != nil {
 			ri.OnError()
-
 			if w.parent.Run.failFast {
 				next()
 				savepoint()
 				return errors.New("repair stopped on error")
 			}
-
 			time.Sleep(w.parent.Config.ErrorBackoff)
 		} else {
 			ri.OnSuccess()
 		}
 
+		id = 0
 		next()
 		savepoint()
 
