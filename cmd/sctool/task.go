@@ -345,12 +345,6 @@ var taskProgressCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if prog.PercentComplete == 0 {
-			if _, err := w.Write([]byte(p.String())); err != nil {
-				return printableError{err}
-			}
-			return nil
-		}
 
 		addRepairProgressHeader(p, prog)
 		p.AddSeparator()
