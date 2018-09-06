@@ -168,9 +168,6 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 	if err != nil {
 		return t, err
 	}
-	if len(tp.DC) == 0 {
-		t.DC = nil
-	}
 
 	hosts := t.WithHosts
 	if t.Host != "" {
