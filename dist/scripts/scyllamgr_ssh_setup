@@ -92,20 +92,18 @@ if [ -z "${MANAGER_IDENTITY_FILE}" ]; then
     exit 1
 fi
 
-if [ ! -w "${MANAGER_IDENTITY_FILE}" ]; then
-    echo -e "cannot write to file ${MANAGER_IDENTITY_FILE}\n"
-    print_usage
-    exit 1
-fi
-
 # Create manager SSH key if needed
 
 if [ ! -f "${MANAGER_IDENTITY_FILE}" ]; then
-    ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" > /dev/null && chmod 0400 "${MANAGER_IDENTITY_FILE}"
+    if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" > /dev/null && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
+        echo -e "cannot generate private key in ${MANAGER_IDENTITY_FILE}\n"
+        print_usage
+        exit 1
+    fi
 fi
 
-if [ ! -f "${MANAGER_IDENTITY_FILE}.pub" ]; then
-    echo -e "no public key for ${MANAGER_IDENTITY_FILE}\n"
+if [ ! -f "${MANAGER_IDENTITY_FILE}.pub" -o ! -r "${MANAGER_IDENTITY_FILE}.pub" ]; then
+    echo -e "cannot read file ${MANAGER_IDENTITY_FILE}.pub\n"
     print_usage
     exit 1
 fi
