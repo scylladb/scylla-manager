@@ -496,23 +496,11 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	)
 	run.Units[unit].CoordinatorDC = dc // would be persisted by caller
 
-	// split token range into coordination hosts
-	hostSegments, err := groupSegmentsByHost(dc, run.TokenRanges, ring)
+	hostSegments, err := s.hostSegments(run, dc, ring)
 	if err != nil {
 		return errors.Wrap(err, "segmentation failed")
 	}
 
-	if run.Host != "" {
-		if segs, ok := hostSegments[run.Host]; ok {
-			hostSegments = map[string]segments{
-				run.Host: segs,
-			}
-		} else {
-			return errors.Errorf("no segments available for the host %s")
-		}
-	}
-
-	// init progress
 	var prog []RunProgress
 	if run.prevProg != nil {
 		// extract unit progress
@@ -690,6 +678,30 @@ func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Cli
 	}
 
 	return client.ClosestDC(ctx, dcHosts)
+}
+
+func (s *Service) hostSegments(run *Run, dc string, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
+	// split token range into coordination hosts
+	hs, err := groupSegmentsByHost(dc, run.WithHosts, run.TokenRanges, ring)
+	if err != nil {
+		return nil, err
+	}
+	// repair-with hosts are not coordinator hosts
+	for _, host := range run.WithHosts {
+		delete(hs, host)
+	}
+	// if we have a specific host other hosts are removed
+	if run.Host != "" {
+		if segs, ok := hs[run.Host]; ok {
+			hs = map[string]segments{
+				run.Host: segs,
+			}
+		} else {
+			return nil, errors.Errorf("no segments available for the host %s")
+		}
+	}
+
+	return hs, nil
 }
 
 func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {

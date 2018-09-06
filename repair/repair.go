@@ -44,16 +44,33 @@ func validateHostsBelongToCluster(dcMap map[string][]string, hosts ...string) er
 	return nil
 }
 
-// groupSegmentsByHost extract list of primary segments (token ranges) for every
-// host in a datacenter and returns a mapping from host to list of it's segments.
-func groupSegmentsByHost(dc string, tr TokenRangesKind, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
+// groupSegmentsByHost extract list of segments (token ranges) for hosts
+// in a datacenter and returns a mapping from host to list of it's segments.
+// If hosts is not empty the mapping contains only segments that belong to
+// at least host in hosts.
+func groupSegmentsByHost(dc string, hosts []string, tr TokenRangesKind, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
 	m := make(map[string]segments)
+	hs := strset.New(hosts...)
 
 	for _, r := range ring {
 		if len(r.Hosts[dc]) == 0 {
 			return nil, errors.Errorf("token range %d:%d not present in dc %s", r.StartToken, r.EndToken, dc)
 		}
 
+		// ignore segments that not are not replicated by any of the hosts
+		if !hs.IsEmpty() {
+			ok := false
+			for _, h := range r.Hosts[dc] {
+				if hs.Has(h) {
+					ok = true
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
+
+		// select hosts based on kind of token ranges
 		var hosts []string
 		switch tr {
 		case PrimaryTokenRanges:

@@ -51,7 +51,7 @@ func TestValidateHostsBelongToCluster(t *testing.T) {
 func TestGroupSegmentsByHost(t *testing.T) {
 	t.Parallel()
 
-	trs := []*scyllaclient.TokenRange{
+	rf3 := []*scyllaclient.TokenRange{
 		{
 			StartToken: 9165301526494284802,
 			EndToken:   9190445181212206709,
@@ -70,14 +70,36 @@ func TestGroupSegmentsByHost(t *testing.T) {
 		},
 	}
 
+	rf2 := []*scyllaclient.TokenRange{
+		{
+			StartToken: 9165301526494284802,
+			EndToken:   9190445181212206709,
+			Hosts:      map[string][]string{"dc1": {"172.16.1.3", "172.16.1.2"}, "dc2": {"172.16.1.4", "172.16.1.20"}},
+		},
+		{
+			StartToken: 9142565851149460331,
+			EndToken:   9143747749498840635,
+			Hosts:      map[string][]string{"dc1": {"172.16.1.10", "172.16.1.2"}, "dc2": {"172.16.1.20", "172.16.1.4"}},
+		},
+		// start - end replaced
+		{
+			StartToken: 9138850273782950336,
+			EndToken:   9121190935171762434,
+			Hosts:      map[string][]string{"dc1": {"172.16.1.10", "172.16.1.3"}, "dc2": {"172.16.1.20", "172.16.1.5"}},
+		},
+	}
+
 	table := []struct {
-		DC string
-		TR TokenRangesKind
-		S  map[string]segments
+		Ring []*scyllaclient.TokenRange
+		DC   string
+		H    []string
+		T    TokenRangesKind
+		S    map[string]segments
 	}{
 		{
-			DC: "dc1",
-			TR: PrimaryTokenRanges,
+			Ring: rf3,
+			DC:   "dc1",
+			T:    PrimaryTokenRanges,
 			S: map[string]segments{
 				"172.16.1.3": {
 					{9165301526494284802, 9190445181212206709},
@@ -90,8 +112,23 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			},
 		},
 		{
-			DC: "dc1",
-			TR: NonPrimaryTokenRanges,
+			Ring: rf2,
+			DC:   "dc1",
+			H:    []string{"172.16.1.2"},
+			T:    PrimaryTokenRanges,
+			S: map[string]segments{
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+				},
+				"172.16.1.10": {
+					{9142565851149460331, 9143747749498840635},
+				},
+			},
+		},
+		{
+			Ring: rf3,
+			DC:   "dc1",
+			T:    NonPrimaryTokenRanges,
 			S: map[string]segments{
 				"172.16.1.2": {
 					{9165301526494284802, 9190445181212206709},
@@ -110,8 +147,21 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			},
 		},
 		{
-			DC: "dc1",
-			TR: AllTonenRanges,
+			Ring: rf2,
+			DC:   "dc1",
+			H:    []string{"172.16.1.2"},
+			T:    NonPrimaryTokenRanges,
+			S: map[string]segments{
+				"172.16.1.2": {
+					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
+				},
+			},
+		},
+		{
+			Ring: rf3,
+			DC:   "dc1",
+			T:    AllTonenRanges,
 			S: map[string]segments{
 				"172.16.1.2": {
 					{9165301526494284802, 9190445181212206709},
@@ -130,19 +180,37 @@ func TestGroupSegmentsByHost(t *testing.T) {
 					{9142565851149460331, 9143747749498840635},
 					{dht.Murmur3MinToken, 9121190935171762434},
 					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+			},
+		},
+		{
+			Ring: rf2,
+			DC:   "dc1",
+			H:    []string{"172.16.1.2"},
+			T:    AllTonenRanges,
+			S: map[string]segments{
+				"172.16.1.2": {
+					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
+				},
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+				},
+				"172.16.1.10": {
+					{9142565851149460331, 9143747749498840635},
 				},
 			},
 		},
 	}
 
 	for i, test := range table {
-		hostSegments, err := groupSegmentsByHost(test.DC, test.TR, trs)
+		hostSegments, err := groupSegmentsByHost(test.DC, test.H, test.T, test.Ring)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		if diff := cmp.Diff(test.S, hostSegments); diff != "" {
-			t.Fatal(i, diff)
+			t.Error(i, diff)
 		}
 	}
 }
