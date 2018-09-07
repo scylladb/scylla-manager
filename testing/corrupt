@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
+
+set -eu -o pipefail
+
+COMPOSE=./docker-compose
+
+NODE=
+KEYSPACE="test_keyspace_rf3"
+
+print_usage() {
+    echo "corrupt -w [SERVICE] -k [KEYSPACE] [SERVICES]..."
+    echo "  -w --write			service used to write to with c-s"
+    echo "  -k --keyspace			keyspace to write to with c-s, default ${KEYSPACE}"
+    echo
+    echo "Example: corrupt -w dc1_node_1 dc1_node_2 dc1_node_3"
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        "-w"|"--write")
+            NODE="$2"
+            shift 2
+            ;;
+        "-k"|"--keyspace")
+            KEYSPACE="$2"
+            shift 2
+            ;;
+        "-h" | "--help")
+            print_usage
+            exit 0
+            ;;
+        *)
+            break
+    esac
+done
+
+# Validate inputs
+
+if [ $# == 0 ]; then
+    echo -e "no services to corrupt\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${NODE} ]; then
+    echo -e "missing --node\n"
+    print_usage
+    exit 1
+fi
+
+if [ -z ${KEYSPACE} ]; then
+    echo -e "missing --keyspace\n"
+    print_usage
+    exit 1
+fi
+
+# Common functions
+
+node_priv_ip() {
+    docker inspect \
+    -f '{{with index .NetworkSettings.Networks "mermaid_dc1_private"}}{{.IPAddress}}{{end}}{{with index .NetworkSettings.Networks "mermaid_dc2_private"}}{{.IPAddress}}{{end}}' \
+    mermaid_$1_1
+}
+
+# Pause services
+
+for s in $@; do
+    ${COMPOSE} pause ${s}
+done
+
+sleep 2
+
+# Write to NODE
+
+echo -n "Cassandra-stress mermaid_${NODE}_1 ... "
+cassandra-stress write no-warmup cl=ONE n=100000 -schema "keyspace=${KEYSPACE}" \
+-mode cql3 native -pop seq=1..100000 -node `node_priv_ip $NODE` &> /dev/null
+echo "$(tput setaf 2)done$(tput sgr0)"
+
+# Unpause services
+
+for s in $@; do
+    ${COMPOSE} unpause ${s}
+done
