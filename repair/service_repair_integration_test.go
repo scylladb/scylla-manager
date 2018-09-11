@@ -383,6 +383,26 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("repair abort", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit()); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: node0 is 50% repaired")
+		h.assertProgress(0, node0, 50, longWait)
+
+		Print("And: service close")
+		h.service.Close()
+
+		Print("Then: status is StatusStopping")
+		h.assertStatus(runner.StatusAborted, shortWait)
+	})
+
 	t.Run("repair stop", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()

@@ -93,7 +93,7 @@ func (s *Service) Init(ctx context.Context) error {
 	defer g.Release()
 
 	// update status
-	stmt, names = schema.RepairRun.Update("status")
+	stmt, names = schema.RepairRun.Update("status", "cause")
 	u := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
 	defer u.Release()
 
@@ -102,7 +102,8 @@ func (s *Service) Init(ctx context.Context) error {
 			return err
 		}
 		if r.Status == runner.StatusRunning || r.Status == runner.StatusStopping {
-			r.Status = runner.StatusStopped
+			r.Status = runner.StatusAborted
+			r.Cause = "service killed"
 			if err := u.BindStruct(r).Exec(); err != nil {
 				return err
 			}
@@ -374,7 +375,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return fail(errors.Wrap(err, "failed to register the run"))
 	}
 
-	// lock is used to make sure that the initialisation sequence is finished
+	// Lock is used to make sure that the initialisation sequence is finished
 	// before starting the repair go routine. Otherwise code optimisations
 	// caused data races.
 	lock := make(chan struct{})
@@ -386,7 +387,10 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		// wait for unlock
 		<-lock
 
-		ctx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
+		var (
+			parentCtx   = ctx
+			ctx, cancel = context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
+		)
 
 		defer func() {
 			cancel()
@@ -400,11 +404,20 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		for unit := range run.Units {
 			if err := s.repairUnit(ctx, run, unit, client); err != nil {
-				if errors.Cause(err) == errStopped {
+				// Use parentCtx context, so that when worker context is canceled
+				// error is properly saved.
+				switch errors.Cause(err) {
+				case errAborted:
+					run.Status = runner.StatusAborted
+					run.Cause = "service stopped"
+					run.EndTime = timeutc.Now()
+					s.putRunLogError(parentCtx, run)
+				case errStopped:
 					run.Status = runner.StatusStopped
 					run.EndTime = timeutc.Now()
-					s.putRunLogError(ctx, run)
-				} else {
+					s.putRunLogError(parentCtx, run)
+				default:
+					// fail user parentCtx by default
 					fail(err) // nolint
 				}
 				return
@@ -610,7 +623,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 				Logger:  s.logger.Named("worker").With("host", host),
 			}
 			if err := w.exec(ctx); err != nil {
-				if errors.Cause(err) == errFailed && !run.failFast {
+				if errors.Cause(err) == errDoneWithErrors && !run.failFast {
 					failed = true
 				} else {
 					return err
@@ -622,7 +635,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 	}
 
-	return errFailed
+	return errDoneWithErrors
 }
 
 func (s *Service) resolveDC(ctx context.Context, client *scyllaclient.Client, u Unit, run *Run, ksDCs []string) (string, error) {

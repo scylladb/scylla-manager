@@ -93,13 +93,14 @@ func (w *worker) exec(ctx context.Context) error {
 		shard int
 		err   error
 	}
-	var (
-		wch  = make(chan shardError)
-		werr error
 
+	var (
+		wch     = make(chan shardError)
+		werr    error
 		stopped bool
 		failed  bool
 	)
+
 	for i, s := range w.shards {
 		i := i
 		s := s
@@ -107,6 +108,7 @@ func (w *worker) exec(ctx context.Context) error {
 			wch <- shardError{i, s.exec(ctx)}
 		}()
 	}
+
 	for range w.shards {
 		r := <-wch
 		if r.err != nil {
@@ -116,28 +118,32 @@ func (w *worker) exec(ctx context.Context) error {
 			switch errors.Cause(r.err) {
 			case errStopped:
 				stopped = true
-			case errFailed:
+			case errDoneWithErrors:
 				failed = true
 			default:
-				werr = multierr.Append(werr, errors.Errorf("shard %d failed", r.shard))
+				werr = multierr.Append(werr, errors.Errorf("shard %d error", r.shard))
 			}
 		}
 	}
 
-	if stopped || ctx.Err() != nil {
+	if ctx.Err() != nil {
+		return errAborted
+	}
+	if werr != nil {
+		w.Logger.Info(ctx, "Repair failed")
+		return werr
+	}
+	if stopped {
 		w.Logger.Info(ctx, "Repair stopped")
 		return errStopped
 	}
-	if werr == nil {
-		if failed {
-			w.Logger.Info(ctx, "Repair done with errors")
-			return errFailed
-		}
-		w.Logger.Info(ctx, "Repair done")
-	} else {
-		w.Logger.Info(ctx, "Repair failed")
+	if failed {
+		w.Logger.Info(ctx, "Repair done with errors")
+		return errDoneWithErrors
 	}
-	return werr
+
+	w.Logger.Info(ctx, "Repair done")
+	return nil
 }
 
 func (w *worker) init(ctx context.Context) error {
@@ -380,7 +386,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 	if w.progress.SegmentError > 0 {
 		w.logger.Info(ctx, "Repair done with errors")
-		return errFailed
+		return errDoneWithErrors
 	}
 
 	w.logger.Info(ctx, "Repair done")
@@ -398,9 +404,6 @@ func (w *shardWorker) resetProgress() {
 
 func (w *shardWorker) isStopped(ctx context.Context) bool {
 	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Run)
-	if ctx.Err() != nil {
-		stopped, err = true, nil
-	}
 	if err != nil {
 		w.logger.Error(ctx, "Service error", "error", err)
 	}

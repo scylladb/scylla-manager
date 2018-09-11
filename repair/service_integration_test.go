@@ -108,14 +108,24 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		if r, err := s.GetRun(ctx, r1.ClusterID, r1.TaskID, r1.ID); err != nil {
 			t.Fatal(err)
-		} else if r.Status != runner.StatusStopped {
-			t.Fatal("invalid status", r.Status)
+		} else {
+			if r.Status != runner.StatusAborted {
+				t.Fatal("invalid status", r.Status)
+			}
+			if r.Cause == "" {
+				t.Fatal("missing cause")
+			}
 		}
 
 		if r, err := s.GetRun(ctx, r3.ClusterID, r3.TaskID, r3.ID); err != nil {
 			t.Fatal(err)
-		} else if r.Status != runner.StatusStopped {
-			t.Fatal("invalid status", r.Status)
+		} else {
+			if r.Status != runner.StatusAborted {
+				t.Fatal("invalid status", r.Status)
+			}
+			if r.Cause == "" {
+				t.Fatal("missing cause")
+			}
 		}
 	})
 
