@@ -136,12 +136,10 @@ func (s *Service) Init(ctx context.Context) error {
 					t := t
 					s.attachTask(ctx, &t, r)
 					continue
-				case runner.StatusDone, runner.StatusStopped, runner.StatusError:
+				case runner.StatusDone, runner.StatusStopped, runner.StatusError, runner.StatusAborted:
 					r.Status = curStatus
 					r.EndTime = &now
-					if curStatus == runner.StatusError {
-						r.Cause = cause
-					}
+					r.Cause = cause
 				default:
 					s.logger.Error(ctx, "Unexpected task status",
 						"task", t,
@@ -412,12 +410,10 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				continue
 			}
 			switch curStatus {
-			case runner.StatusDone, runner.StatusStopped, runner.StatusError:
+			case runner.StatusDone, runner.StatusStopped, runner.StatusError, runner.StatusAborted:
 				run.Status = curStatus
 				run.EndTime = &now
-				if curStatus == runner.StatusError {
-					run.Cause = cause
-				}
+				run.Cause = cause
 				if err := s.putRun(ctx, run); err != nil {
 					logger.Error(ctx, "Failed to write run", "error", err)
 				}

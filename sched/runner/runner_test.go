@@ -13,6 +13,7 @@ func TestStatusMarshalText(t *testing.T) {
 		StatusStopped,
 		StatusDone,
 		StatusError,
+		StatusAborted,
 	}
 
 	var v Status

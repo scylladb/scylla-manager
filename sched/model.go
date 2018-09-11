@@ -90,13 +90,16 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 		lastStatus = runs[0].Status
 	}
 
-	// if running or done report next activation according to schedule
-	if lastStatus != runner.StatusError {
-		return s.nextActivation(now)
-	}
-
-	// if error and no retries available report next activation according to schedule
-	if s.consecutiveErrorCount(runs) >= s.NumRetries {
+	switch lastStatus {
+	case runner.StatusAborted:
+		// skip, always retry aborted
+	case runner.StatusError:
+		// if no retries available report next activation according to schedule
+		if s.consecutiveErrorCount(runs) >= s.NumRetries {
+			return s.nextActivation(now)
+		}
+	default:
+		// if running or done report next activation according to schedule
 		return s.nextActivation(now)
 	}
 

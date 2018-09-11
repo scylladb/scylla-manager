@@ -34,6 +34,7 @@ const (
 	StatusStopped  Status = "STOPPED"
 	StatusDone     Status = "DONE"
 	StatusError    Status = "ERROR"
+	StatusAborted  Status = "ABORTED"
 )
 
 func (s Status) String() string {
@@ -62,6 +63,8 @@ func (s *Status) UnmarshalText(text []byte) error {
 		*s = StatusDone
 	case StatusError:
 		*s = StatusError
+	case StatusAborted:
+		*s = StatusAborted
 	default:
 		return fmt.Errorf("unrecognized Status %q", text)
 	}

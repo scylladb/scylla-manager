@@ -122,6 +122,18 @@ func TestSchedNextActivation(t *testing.T) {
 			history:        makeHistory(t1, runner.StatusError),
 			nextActivation: t0.AddDate(0, 0, 7),
 		},
+		// one shot aborted, full history, retry
+		{
+			schedule:       makeSchedule(t0, 0, 3),
+			history:        makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusAborted),
+			nextActivation: now.Add(taskStartNowSlack),
+		},
+		// no retry aborted, short history 1, retry
+		{
+			schedule:       makeSchedule(t0, 7, 0),
+			history:        makeHistory(t1, runner.StatusAborted),
+			nextActivation: now.Add(taskStartNowSlack),
+		},
 	}
 
 	for i, test := range table {
