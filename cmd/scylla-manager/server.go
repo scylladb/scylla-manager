@@ -197,8 +197,9 @@ func (s *server) close() {
 		s.prometheusServer.Close()
 	}
 
+	s.clusterSvc.Close()
 	s.repairSvc.Close()
-	s.schedSvc.Close()
+	s.schedSvc.Close() // must be closed last
 
 	s.session.Close()
 }

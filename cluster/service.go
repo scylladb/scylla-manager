@@ -375,3 +375,8 @@ func shouldSaveIdentityFile(sshUser string, sshIdentityFile []byte) bool {
 	}
 	return sshUser == ""
 }
+
+// Close closes all SSH connections to cluster.
+func (s *Service) Close() {
+	ssh.DefaultPool.Close()
+}
