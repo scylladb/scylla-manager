@@ -78,7 +78,7 @@ type worker struct {
 	Logger  log.Logger
 
 	shards []*shardWorker
-	abrt   atomic.Bool
+	ffabrt atomic.Bool
 }
 
 func (w *worker) exec(ctx context.Context) error {
@@ -113,7 +113,7 @@ func (w *worker) exec(ctx context.Context) error {
 		r := <-wch
 		if r.err != nil {
 			if w.Run.failFast {
-				w.abrt.Store(true)
+				w.ffabrt.Store(true)
 			}
 			switch errors.Cause(r.err) {
 			case errStopped:
@@ -127,6 +127,7 @@ func (w *worker) exec(ctx context.Context) error {
 	}
 
 	if ctx.Err() != nil {
+		w.Logger.Info(ctx, "Repair aborted")
 		return errAborted
 	}
 	if werr != nil {
@@ -247,19 +248,10 @@ type shardWorker struct {
 }
 
 func (w *shardWorker) exec(ctx context.Context) (err error) {
-	defer func() {
-		if err != nil {
-			w.logger.Info(ctx, "Repair failed",
-				"percent_complete", w.progress.PercentComplete(),
-				"error", err,
-			)
-		}
-	}()
-
 	if w.progress.complete() {
 		w.logger.Info(ctx, "Already repaired, skipping")
 		w.updateMetrics()
-		return nil
+		return
 	}
 
 	if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
@@ -267,11 +259,21 @@ func (w *shardWorker) exec(ctx context.Context) (err error) {
 		w.resetProgress()
 	}
 
+	w.logger.Info(ctx, "Repairing", "percent_complete", w.progress.PercentComplete())
+
 	if w.progress.completeWithErrors() {
-		return w.repair(ctx, w.newRetryIterator())
+		err = w.repair(ctx, w.newRetryIterator())
+	} else {
+		err = w.repair(ctx, w.newForwardIterator())
 	}
 
-	return w.repair(ctx, w.newForwardIterator())
+	if err == nil {
+		w.logger.Info(ctx, "Repair ended", "percent_complete", w.progress.PercentComplete())
+	} else {
+		w.logger.Info(ctx, "Repair ended", "percent_complete", w.progress.PercentComplete(), "error", err)
+	}
+
+	return
 }
 
 func (w *shardWorker) newRetryIterator() *retryIterator {
@@ -291,7 +293,6 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 }
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
-	w.logger.Info(ctx, "Repairing", "percent_complete", w.progress.PercentComplete())
 	w.updateProgress(ctx)
 	w.updateMetrics()
 
@@ -340,13 +341,11 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 		// run was stopped
 		if w.isStopped(ctx) {
-			w.logger.Info(ctx, "Repair stopped", "percent_complete", w.progress.PercentComplete())
 			return errStopped
 		}
 
-		// fail fast
-		if w.isAborted(ctx) {
-			w.logger.Info(ctx, "Repair stopped", "percent_complete", w.progress.PercentComplete())
+		// fail fast abort triggered, return immediately
+		if w.parent.ffabrt.Load() {
 			return nil
 		}
 
@@ -385,11 +384,9 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	}
 
 	if w.progress.SegmentError > 0 {
-		w.logger.Info(ctx, "Repair done with errors")
 		return errDoneWithErrors
 	}
 
-	w.logger.Info(ctx, "Repair done")
 	return nil
 }
 
@@ -408,10 +405,6 @@ func (w *shardWorker) isStopped(ctx context.Context) bool {
 		w.logger.Error(ctx, "Service error", "error", err)
 	}
 	return stopped
-}
-
-func (w *shardWorker) isAborted(_ context.Context) bool {
-	return w.parent.abrt.Load()
 }
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
