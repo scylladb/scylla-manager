@@ -100,73 +100,79 @@ func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (
 func (s *Service) Init(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks")
 
-	now := timeutc.Now()
-
-	stmt, _ := qb.Select(schema.SchedTask.Name).ToCql()
-	q := s.session.Query(stmt).WithContext(ctx)
+	stmt, names := qb.Select(schema.SchedTask.Name).ToCql()
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
 	defer q.Release()
 
-	iter := gocqlx.Iter(q)
-	defer iter.Close()
+	var (
+		t   Task
+		now = timeutc.Now()
+	)
 
-	var t Task
+	iter := gocqlx.Iter(q.Query)
 	for iter.StructScan(&t) {
 		if !t.Enabled {
 			continue
 		}
-
 		runs, err := s.GetLastRun(ctx, &t, 1)
 		if err != nil {
-			s.logger.Error(ctx, "Failed to get last run of task", "task", t, "error", err)
-			continue
+			return err
 		}
 
-		if n := len(runs); n > 0 {
+		if len(runs) > 0 {
 			r := runs[0]
 
-			switch r.Status {
-			case runner.StatusStarting, runner.StatusRunning, runner.StatusStopping:
-				curStatus, cause, err := s.taskRunner(&t).Status(ctx, r.Descriptor())
+			// If task was active try to get the current status. If it's still
+			// active then just attach to it otherwise update the status to the
+			// current value and try to schedule.
+			if r.Status == runner.StatusStarting || r.Status == runner.StatusRunning || r.Status == runner.StatusStopping {
+				curStatus, curCause, err := s.taskRunner(&t).Status(ctx, r.Descriptor())
 				if err != nil {
-					s.logger.Error(ctx, "Failed to get task status", "task", t, "run", r, "error", err)
-					continue
+					if errors.Cause(err) != mermaid.ErrNotFound {
+						return err
+					}
+					// if run data disappeared invent something...
+					if r.Status == runner.StatusStopping {
+						curStatus = runner.StatusStopped
+					} else {
+						curStatus = runner.StatusAborted
+						curCause = "run data missing"
+					}
 				}
-				switch curStatus {
-				case runner.StatusRunning, runner.StatusStopping:
-					t := t
-					s.attachTask(ctx, &t, r)
-					continue
-				case runner.StatusDone, runner.StatusStopped, runner.StatusError, runner.StatusAborted:
-					r.Status = curStatus
-					r.EndTime = &now
-					r.Cause = cause
-				default:
-					s.logger.Error(ctx, "Unexpected task status",
-						"task", t,
-						"run", r,
-						"status", curStatus,
-					)
-					continue
-				}
-				if err := s.putRun(ctx, r); err != nil {
-					s.logger.Error(ctx, "Failed to write run",
-						"run", r,
-						"error", err,
-					)
-					return err
+
+				if curStatus != "" {
+					switch curStatus {
+					case runner.StatusStarting, runner.StatusRunning, runner.StatusStopping:
+						t := t
+						s.attachTask(ctx, &t, r)
+						continue
+					case runner.StatusDone, runner.StatusStopped, runner.StatusError, runner.StatusAborted:
+						r.Status = curStatus
+						r.Cause = curCause
+						r.EndTime = &now
+						if err := s.putRun(ctx, r); err != nil {
+							return err
+						}
+					default:
+						s.logger.Error(ctx, "Unexpected task status",
+							"task", t,
+							"run", r,
+							"status", curStatus,
+						)
+					}
 				}
 			}
 		}
 
-		if t.Sched.Interval > 0 || t.Sched.StartDate.After(now) {
-			t := t
-			s.schedTask(ctx, now, &t)
-		}
+		t := t
+		s.schedTask(ctx, now, &t)
+	}
+	if err := iter.Close(); err != nil {
+		return errors.Wrap(err, "failed to get tasks iterator")
 	}
 
-	s.logger.Info(ctx, "Done")
-
-	return iter.Close()
+	s.logger.Info(ctx, "Tasks loaded")
+	return nil
 }
 
 func (s *Service) taskRunner(t *Task) runner.Runner {
