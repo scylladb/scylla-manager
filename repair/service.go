@@ -78,8 +78,6 @@ func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp sc
 // Init shall be called when the service starts. It marks running and
 // stopping runs as stopped.
 func (s *Service) Init(ctx context.Context) error {
-	s.logger.Info(ctx, "Fixing run statuses")
-
 	// list tasks
 	var tasks []*Run
 	stmt, names := qb.Select(schema.RepairRun.Name).Distinct(schema.RepairRun.PartKey...).ToCql()

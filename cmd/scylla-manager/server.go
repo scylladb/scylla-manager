@@ -50,19 +50,16 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 		errCh: make(chan error, 2),
 	}
 
-	if err := s.initServices(); err != nil {
+	if err := s.makeServices(); err != nil {
 		return nil, err
 	}
 
-	s.registerListeners()
-	s.registerSchedulerRunners()
-
-	s.initHTTPServers()
+	s.makeHTTPServers()
 
 	return s, nil
 }
 
-func (s *server) initServices() error {
+func (s *server) makeServices() error {
 	var err error
 
 	u, err := user.Current()
@@ -78,6 +75,7 @@ func (s *server) initServices() error {
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
+	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
 
 	s.repairSvc, err = repair.NewService(
 		s.session,
@@ -99,11 +97,11 @@ func (s *server) initServices() error {
 		return errors.Wrapf(err, "scheduler service")
 	}
 
-	return nil
-}
+	// register runners
+	s.schedSvc.SetRunner(sched.HealthCheckTask, healthcheck.NewRunner(s.clusterSvc.GetClusterByID, s.clusterSvc.Client))
+	s.schedSvc.SetRunner(sched.RepairTask, repair.Runner{Service: s.repairSvc})
 
-func (s *server) registerListeners() {
-	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
+	return nil
 }
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
@@ -116,12 +114,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	return nil
 }
 
-func (s *server) registerSchedulerRunners() {
-	s.schedSvc.SetRunner(sched.HealthCheckTask, healthcheck.NewRunner(s.clusterSvc.GetClusterByID, s.clusterSvc.Client))
-	s.schedSvc.SetRunner(sched.RepairTask, repair.Runner{Service: s.repairSvc})
-}
-
-func (s *server) initHTTPServers() {
+func (s *server) makeHTTPServers() {
 	h := restapi.New(&restapi.Services{
 		Cluster:   s.clusterSvc,
 		Repair:    s.repairSvc,
@@ -139,15 +132,13 @@ func (s *server) initHTTPServers() {
 	}
 }
 
-func (s *server) startServices(ctx context.Context) error {
+func (s *server) initServices(ctx context.Context) error {
 	if err := s.repairSvc.Init(ctx); err != nil {
 		return errors.Wrapf(err, "repair service")
 	}
-
 	if err := s.schedSvc.Init(ctx); err != nil {
 		return errors.Wrapf(err, "schedule service")
 	}
-
 	return nil
 }
 

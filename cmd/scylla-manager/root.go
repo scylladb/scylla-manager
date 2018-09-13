@@ -91,7 +91,7 @@ var rootCmd = &cobra.Command{
 		}
 		defer func() {
 			if runError != nil {
-				logger.Error(ctx, "Bye", "error", errors.Cause(runError))
+				logger.Error(ctx, "Bye", "error", runError)
 			} else {
 				logger.Info(ctx, "Bye")
 			}
@@ -131,7 +131,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrapf(err, "server init")
 		}
-		if err := s.startServices(ctx); err != nil {
+		if err := s.initServices(ctx); err != nil {
 			return errors.Wrapf(err, "server start")
 		}
 		s.startHTTPServers(ctx)
