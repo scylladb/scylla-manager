@@ -2,6 +2,8 @@
 
 // +build all integration
 
+//go:generate mockgen -destination mock_runner_test.go -mock_names Runner=MockRunner -package sched github.com/scylladb/mermaid/sched/runner Runner
+
 package sched
 
 import (
@@ -65,7 +67,7 @@ func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Contr
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.SetRunner(mockTask, NewmockRunner(ctrl))
+	s.SetRunner(mockTask, NewMockRunner(ctrl))
 
 	return s, ctrl
 }
@@ -106,7 +108,7 @@ func TestSchedInitOneShotIntegration(t *testing.T) {
 
 	m := descriptorMatcher{}
 
-	expect := s.runners[mockTask].(*mockRunner).EXPECT()
+	expect := s.runners[mockTask].(*MockRunner).EXPECT()
 	gomock.InOrder(
 		expect.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(func(_, d, _ interface{}) {
 			tick()
@@ -194,7 +196,7 @@ func TestSchedInitOneShotRunningIntegration(t *testing.T) {
 		},
 	}
 
-	expect := s.runners[mockTask].(*mockRunner).EXPECT()
+	expect := s.runners[mockTask].(*MockRunner).EXPECT()
 	gomock.InOrder(
 		expect.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
 			tick()
@@ -265,7 +267,7 @@ func TestSchedInitOneShotRetryIntegration(t *testing.T) {
 
 	m := descriptorMatcher{}
 
-	expect := s.runners[mockTask].(*mockRunner).EXPECT()
+	expect := s.runners[mockTask].(*MockRunner).EXPECT()
 	gomock.InOrder(
 		expect.Status(gomock.Any(), m).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
 			tick()
@@ -354,7 +356,7 @@ func TestSchedInitRepeatingIntegration(t *testing.T) {
 	m := make([]descriptorMatcher, task.Sched.NumRetries, task.Sched.NumRetries)
 
 	runNum := 0
-	expect := s.runners[mockTask].(*mockRunner).EXPECT()
+	expect := s.runners[mockTask].(*MockRunner).EXPECT()
 	calls := make([]*gomock.Call, 0, task.Sched.NumRetries)
 	for i := 0; i < task.Sched.NumRetries; i++ {
 		i := i

@@ -39,7 +39,7 @@ check: .check-copyright .check-timeutc .check-lint .check-vendor
 	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
-		[[ $$f =~ .*_mock[.]go ]] || \
+		[[ $$f =~ /mock_.*_test[.]go ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
 		(echo $$f; false); \
 	done

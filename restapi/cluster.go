@@ -15,8 +15,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-//go:generate mockgen -destination cluster_mock.go -mock_names ClusterService=mockClusterService -package restapi github.com/scylladb/mermaid/restapi ClusterService
-
 // ClusterService is the cluster service interface required by the repair REST
 // API handlers.
 type ClusterService interface {

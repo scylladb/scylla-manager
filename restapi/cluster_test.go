@@ -1,5 +1,7 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:generate mockgen -destination mock_clusterservice_test.go -mock_names ClusterService=MockClusterService -package restapi github.com/scylladb/mermaid/restapi ClusterService
+
 package restapi_test
 
 import (
@@ -47,7 +49,7 @@ func TestClusterList(t *testing.T) {
 
 	expected := []*cluster.Cluster{{ID: uuid.MustRandom(), Name: "name"}}
 
-	m := restapi.NewmockClusterService(ctrl)
+	m := restapi.NewMockClusterService(ctrl)
 	m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(expected, nil)
 
 	h := restapi.New(&restapi.Services{Cluster: m}, log.Logger{})
@@ -66,7 +68,7 @@ func TestClusterCreate(t *testing.T) {
 
 	id := uuid.MustRandom()
 
-	m := restapi.NewmockClusterService(ctrl)
+	m := restapi.NewMockClusterService(ctrl)
 	m.EXPECT().PutCluster(gomock.Any(), &cluster.Cluster{Name: "name"}).Do(func(_ interface{}, e *cluster.Cluster) {
 		e.ID = id
 	}).Return(nil)
