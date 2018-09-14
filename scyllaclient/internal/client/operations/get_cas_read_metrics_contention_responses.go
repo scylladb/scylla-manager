@@ -45,7 +45,7 @@ func NewGetCasReadMetricsContentionOK() *GetCasReadMetricsContentionOK {
 GetCasReadMetricsContentionOK get cas read metrics contention o k
 */
 type GetCasReadMetricsContentionOK struct {
-	Payload GetCasReadMetricsContentionOKBody
+	Payload interface{}
 }
 
 func (o *GetCasReadMetricsContentionOK) Error() string {
@@ -61,8 +61,3 @@ func (o *GetCasReadMetricsContentionOK) readResponse(response runtime.ClientResp
 
 	return nil
 }
-
-/*GetCasReadMetricsContentionOKBody get cas read metrics contention o k body
-swagger:model GetCasReadMetricsContentionOKBody
-*/
-type GetCasReadMetricsContentionOKBody interface{}

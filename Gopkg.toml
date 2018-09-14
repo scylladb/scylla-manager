@@ -25,24 +25,45 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
+  name = "github.com/go-openapi/analysis"
+  version = "0.16.0"
+
+[[constraint]]
   name = "github.com/go-openapi/errors"
+  version = "0.16.0"
+
 
 [[constraint]]
-  branch = "master"
+  name = "github.com/go-openapi/jsonpointer"
+  version = "0.16.0"
+
+[[constraint]]
+  name = "github.com/go-openapi/jsonreference"
+  version = "0.16.0"
+
+[[constraint]]
+  name = "github.com/go-openapi/loads"
+  version = "0.16.0"
+
+[[constraint]]
   name = "github.com/go-openapi/runtime"
+  version = "0.16.0"
 
 [[constraint]]
-  branch = "master"
+  name = "github.com/go-openapi/spec"
+  version = "0.16.0"
+
+[[constraint]]
   name = "github.com/go-openapi/strfmt"
+  version = "0.16.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/go-openapi/swag"
+  version = "0.16.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/go-openapi/validate"
+  version = "0.16.0"
 
 [[constraint]]
   branch = "master"

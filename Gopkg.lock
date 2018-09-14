@@ -72,48 +72,50 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:d0c5ea8e9e9a7940ee9f778f0ef255dc9ac83407ce8f3402ca00b7e45eaeff45"
+  digest = "1:50d6bc4aa3e70803230bb98a4b0e0f1331fefc2eb324e087adf7e986b8da082e"
   name = "github.com/go-openapi/analysis"
-  packages = ["."]
+  packages = [
+    ".",
+    "internal",
+  ]
   pruneopts = "UT"
-  revision = "863ac7f90e00e88e507095639a8457bbbf3c2ec9"
+  revision = "7c1bef8f6d9fa6148ce0d8a0ebf5339a084a6639"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:74ea4db5ab69cf8aea2b7eb4c539e3ae4c1d8e3c66e38a149ff47137b5a1ea99"
+  digest = "1:7a90552bf0ad97b41a4ac036d42aad77956c19b28398188ff7a5cc70b0c8bbf4"
   name = "github.com/go-openapi/errors"
   packages = ["."]
   pruneopts = "UT"
-  revision = "7bcb96a367bac6b76e6e42fa84155bb5581dcff8"
+  revision = "b2b2befaf267d082d779bcef52d682a47c779517"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:2997679181d901ac8aaf4330d11138ecf3974c6d3334995ff36f20cbd597daf8"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   pruneopts = "UT"
   revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:1ae3f233d75a731b164ca9feafd8ed646cbedf1784095876ed6988ce8aa88b1f"
   name = "github.com/go-openapi/jsonreference"
   packages = ["."]
   pruneopts = "UT"
   revision = "3fb327e6747da3043567ee86abd02bb6376b6be2"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:ff04019588fc028ac28c3c565ce5316461a4641df197555041ee66cf45d213e3"
   name = "github.com/go-openapi/loads"
   packages = ["."]
   pruneopts = "UT"
   revision = "2a2b323bab96e6b1fdee110e57d959322446e9c9"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:d3d4a6983dad8175f1f55679c9340b7405785ccb56bdc236376c51237163b9ac"
+  digest = "1:c25a920b07bc286d3cf03cf32bfdf97c3281ec3638dac77658b6bbbb4c8c61a8"
   name = "github.com/go-openapi/runtime"
   packages = [
     ".",
@@ -126,39 +128,40 @@
     "security",
   ]
   pruneopts = "UT"
-  revision = "c0cae94704c76c8643896d8054080f91e920105b"
+  revision = "9a3091f566c0811ef4d54b535179bc0fc484a11f"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:31578bb933822079ede7a69d7dd3f2c2c280b5ff8f6114d37a78bb07f95873bb"
+  digest = "1:3e5bdbd2a071c72c778c28fd7b5dfde95cdfbcef412f364377e031877205e418"
   name = "github.com/go-openapi/spec"
   packages = ["."]
   pruneopts = "UT"
-  revision = "bcff419492eeeb01f76e77d2ebc714dc97b607f5"
+  revision = "384415f06ee238aae1df5caad877de6ceac3a5c4"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:21d5505516f3a00465014ca2aa3bf01ef633c6d6be9a008cbb545350408f1dff"
+  digest = "1:c19e41854708ff52816cff12f30d454135f350a1e4fe6ab62a8be8df75458eb0"
   name = "github.com/go-openapi/strfmt"
   packages = ["."]
   pruneopts = "UT"
-  revision = "481808443b00a14745fada967cb5eeff0f9b1df2"
+  revision = "913ee058e387ac83a67e2d9f13acecdcd5769fc6"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ec7e31653be60f0add6fb60bdc91c21056b9e7bc870cfdcea18ebc45e4dfd916"
+  digest = "1:c80984d4a9bb79539743aff5af91b595d84f513700150b0ed73c1697d1200d54"
   name = "github.com/go-openapi/swag"
   packages = ["."]
   pruneopts = "UT"
-  revision = "811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5"
+  revision = "becd2f08beafcca035645a8a101e0e3e18140458"
+  version = "0.16.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:e1ff6900abe62aaad4a76f486cef2b341b86342bd600f320376f22492e24cdb4"
+  digest = "1:b0fa3721f1aeaf3aca9678376b393dffdfdd7415d65db9207ca7bcaf3f893f7f"
   name = "github.com/go-openapi/validate"
   packages = ["."]
   pruneopts = "UT"
-  revision = "9286f6d0e5c1ffc7cf2bda1d59291dc3c4f2f828"
+  revision = "7c1911976134d3a24d0c03127505163c9f16aa3b"
+  version = "0.16.0"
 
 [[projects]]
   digest = "1:9ae31ce33b4bab257668963e844d98765b44160be4ee98cafc44637a213e530d"
@@ -525,10 +528,15 @@
     "github.com/go-chi/chi",
     "github.com/go-chi/chi/middleware",
     "github.com/go-chi/render",
+    "github.com/go-openapi/analysis",
     "github.com/go-openapi/errors",
+    "github.com/go-openapi/jsonpointer",
+    "github.com/go-openapi/jsonreference",
+    "github.com/go-openapi/loads",
     "github.com/go-openapi/runtime",
     "github.com/go-openapi/runtime/client",
     "github.com/go-openapi/runtime/middleware",
+    "github.com/go-openapi/spec",
     "github.com/go-openapi/strfmt",
     "github.com/go-openapi/swag",
     "github.com/go-openapi/validate",

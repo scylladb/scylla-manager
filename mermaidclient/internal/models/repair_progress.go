@@ -28,7 +28,7 @@ type RepairProgress struct {
 	Ranges string `json:"ranges,omitempty"`
 
 	// units
-	Units []*RepairProgressUnitsItems `json:"units"`
+	Units []*RepairProgressUnitsItems0 `json:"units"`
 }
 
 // Validate validates this repair progress
@@ -81,6 +81,210 @@ func (m *RepairProgress) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *RepairProgress) UnmarshalBinary(b []byte) error {
 	var res RepairProgress
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// RepairProgressUnitsItems0 repair progress units items0
+// swagger:model RepairProgressUnitsItems0
+type RepairProgressUnitsItems0 struct {
+
+	// nodes
+	Nodes []*RepairProgressUnitsItems0NodesItems0 `json:"nodes"`
+
+	// percent complete
+	PercentComplete int64 `json:"percent_complete,omitempty"`
+
+	// unit
+	Unit *RepairUnit `json:"unit,omitempty"`
+}
+
+// Validate validates this repair progress units items0
+func (m *RepairProgressUnitsItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateNodes(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUnit(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *RepairProgressUnitsItems0) validateNodes(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Nodes) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Nodes); i++ {
+		if swag.IsZero(m.Nodes[i]) { // not required
+			continue
+		}
+
+		if m.Nodes[i] != nil {
+			if err := m.Nodes[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("nodes" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *RepairProgressUnitsItems0) validateUnit(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Unit) { // not required
+		return nil
+	}
+
+	if m.Unit != nil {
+		if err := m.Unit.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("unit")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *RepairProgressUnitsItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *RepairProgressUnitsItems0) UnmarshalBinary(b []byte) error {
+	var res RepairProgressUnitsItems0
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// RepairProgressUnitsItems0NodesItems0 repair progress units items0 nodes items0
+// swagger:model RepairProgressUnitsItems0NodesItems0
+type RepairProgressUnitsItems0NodesItems0 struct {
+
+	// host
+	Host string `json:"host,omitempty"`
+
+	// percent complete
+	PercentComplete int64 `json:"percent_complete,omitempty"`
+
+	// shards
+	Shards []*RepairProgressUnitsItems0NodesItems0ShardsItems0 `json:"shards"`
+}
+
+// Validate validates this repair progress units items0 nodes items0
+func (m *RepairProgressUnitsItems0NodesItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateShards(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *RepairProgressUnitsItems0NodesItems0) validateShards(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Shards) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Shards); i++ {
+		if swag.IsZero(m.Shards[i]) { // not required
+			continue
+		}
+
+		if m.Shards[i] != nil {
+			if err := m.Shards[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("shards" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *RepairProgressUnitsItems0NodesItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *RepairProgressUnitsItems0NodesItems0) UnmarshalBinary(b []byte) error {
+	var res RepairProgressUnitsItems0NodesItems0
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// RepairProgressUnitsItems0NodesItems0ShardsItems0 repair progress units items0 nodes items0 shards items0
+// swagger:model RepairProgressUnitsItems0NodesItems0ShardsItems0
+type RepairProgressUnitsItems0NodesItems0ShardsItems0 struct {
+
+	// percent complete
+	PercentComplete int64 `json:"percent_complete,omitempty"`
+
+	// segment count
+	SegmentCount int64 `json:"segment_count,omitempty"`
+
+	// segment error
+	SegmentError int64 `json:"segment_error,omitempty"`
+
+	// segment success
+	SegmentSuccess int64 `json:"segment_success,omitempty"`
+}
+
+// Validate validates this repair progress units items0 nodes items0 shards items0
+func (m *RepairProgressUnitsItems0NodesItems0ShardsItems0) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *RepairProgressUnitsItems0NodesItems0ShardsItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *RepairProgressUnitsItems0NodesItems0ShardsItems0) UnmarshalBinary(b []byte) error {
+	var res RepairProgressUnitsItems0NodesItems0ShardsItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

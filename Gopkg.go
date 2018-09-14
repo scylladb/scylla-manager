@@ -10,4 +10,10 @@ package mermaid
 
 import (
 	_ "github.com/golang/mock/mockgen"
+
+	_ "github.com/go-openapi/analysis"
+	_ "github.com/go-openapi/jsonpointer"
+	_ "github.com/go-openapi/jsonreference"
+	_ "github.com/go-openapi/loads"
+	_ "github.com/go-openapi/spec"
 )

@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // Cluster cluster
@@ -54,9 +53,7 @@ func (m *Cluster) validateSSHIdentityFile(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("ssh_identity_file", "body", "byte", m.SSHIdentityFile.String(), formats); err != nil {
-		return err
-	}
+	// Format "byte" (base64 string) is already validated when unmarshalled
 
 	return nil
 }

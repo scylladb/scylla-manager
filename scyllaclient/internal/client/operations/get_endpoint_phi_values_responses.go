@@ -45,7 +45,7 @@ func NewGetEndpointPhiValuesOK() *GetEndpointPhiValuesOK {
 GetEndpointPhiValuesOK get endpoint phi values o k
 */
 type GetEndpointPhiValuesOK struct {
-	Payload GetEndpointPhiValuesOKBody
+	Payload interface{}
 }
 
 func (o *GetEndpointPhiValuesOK) Error() string {
@@ -61,8 +61,3 @@ func (o *GetEndpointPhiValuesOK) readResponse(response runtime.ClientResponse, c
 
 	return nil
 }
-
-/*GetEndpointPhiValuesOKBody get endpoint phi values o k body
-swagger:model GetEndpointPhiValuesOKBody
-*/
-type GetEndpointPhiValuesOKBody interface{}
