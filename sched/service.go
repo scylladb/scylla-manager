@@ -69,8 +69,6 @@ var (
 	retryTaskWait       = 10 * time.Minute
 	taskStartNowSlack   = 10 * time.Second
 	monitorTaskInterval = time.Second
-
-	reschedTaskDone = func(*Task) {}
 )
 
 // NewService creates a new service instance.
@@ -152,7 +150,7 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 	}
 	activation := t.Sched.NextActivation(now, runs)
 	if activation.IsZero() {
-		s.logger.Debug(ctx, "No activation", "task", t)
+		s.logger.Info(ctx, "No activation", "task", t)
 		return
 	}
 	if !now.Before(activation) {
@@ -190,7 +188,6 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 }
 
 func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan struct{}) {
-	defer reschedTaskDone(t)
 	defer close(done)
 
 	s.taskLock.Lock()
@@ -204,7 +201,7 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan 
 		s.logger.Debug(ctx, "Task canceled, not re-scheduling", "task", t)
 		return
 	}
-	if t.Sched.Interval == 0 && (run.Status == runner.StatusDone || run.Status == runner.StatusStopped) {
+	if t.Sched.Interval == 0 && (run.Status == runner.StatusDone || run.Status == runner.StatusStopped || run.Status == runner.StatusAborted) {
 		s.logger.Debug(ctx, "One-shot task, not re-scheduling", "task", t)
 		return
 	}

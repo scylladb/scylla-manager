@@ -4,28 +4,397 @@
 
 //go:generate mockgen -destination mock_runner_test.go -mock_names Runner=MockRunner -package sched github.com/scylladb/mermaid/sched/runner Runner
 
-package sched
+package sched_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/golang/mock/gomock"
-	"github.com/scylladb/gocqlx"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/mermaidtest"
+	. "github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/sched/runner"
-	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/zap/zapcore"
 )
+
+const (
+	mockTask sched.TaskType = "mock"
+
+	_interval = 2 * time.Millisecond
+	_wait     = 2 * time.Second
+
+	retryTaskWait       = 50 * time.Millisecond
+	taskStartNowSlack   = 5 * time.Millisecond
+	monitorTaskInterval = 10 * time.Millisecond
+
+	// use ONLY retries < 5, this should be a safe margin
+	interval = sched.Duration(10 * retryTaskWait)
+)
+
+type schedTestHelper struct {
+	session *gocql.Session
+	service *sched.Service
+	ctrl    *gomock.Controller
+	runner  *sched.MockRunner
+
+	clusterID uuid.UUID
+	taskID    uuid.UUID
+	runID     uuid.UUID
+
+	t *testing.T
+}
+
+func newSchedTestHelper(t *testing.T, session *gocql.Session) *schedTestHelper {
+	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task")
+	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task_run")
+
+	sched.SetRetryTaskWait(retryTaskWait)
+	sched.SetTaskStartNowSlack(taskStartNowSlack)
+	sched.SetMonitorTaskInterval(monitorTaskInterval)
+
+	s := newTestService(t, session)
+	h := &schedTestHelper{
+		session: session,
+		service: s,
+
+		clusterID: uuid.MustRandom(),
+		taskID:    uuid.MustRandom(),
+		runID:     uuid.NewTime(),
+
+		t: t,
+	}
+	h.resetMock()
+
+	return h
+}
+
+func (h *schedTestHelper) resetMock() {
+	if h.ctrl != nil {
+		h.ctrl.Finish()
+	}
+
+	h.ctrl = gomock.NewController(h.t)
+	h.runner = sched.NewMockRunner(h.ctrl)
+	h.service.SetRunner(mockTask, h.runner)
+}
+
+func (h *schedTestHelper) assertMockCalled() {
+	time.Sleep(5 * retryTaskWait)
+	h.resetMock()
+}
+
+func (h *schedTestHelper) assertStatus(ctx context.Context, task *sched.Task, s runner.Status) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		runs, err := h.service.GetLastRun(ctx, task, 1)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if len(runs) == 0 {
+			return false
+		}
+		return runs[0].Status == s
+	}, _interval, _wait)
+}
+
+func (h *schedTestHelper) close() {
+	h.ctrl.Finish()
+	h.service.Close()
+}
+
+func (h *schedTestHelper) makeTask(s sched.Schedule) *sched.Task {
+	return &sched.Task{
+		ClusterID: h.clusterID,
+		Type:      mockTask,
+		ID:        h.taskID,
+		Enabled:   true,
+		Sched:     s,
+	}
+}
+
+func newTestService(t *testing.T, session *gocql.Session) *sched.Service {
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+
+	s, err := sched.NewService(
+		session,
+		func(_ context.Context, id uuid.UUID) (*cluster.Cluster, error) {
+			return &cluster.Cluster{
+				ID:   id,
+				Name: "test_cluster",
+			}, nil
+		},
+		logger.Named("repair"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func TestServiceScheduleIntegration(t *testing.T) {
+	session := CreateSession(t)
+
+	now := func() time.Time {
+		return timeutc.Now().Add(2 * taskStartNowSlack)
+	}
+
+	t.Run("task stop", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		m := descriptorMatcher{}
+		e := h.runner.EXPECT()
+		gomock.InOrder(
+			// run
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).AnyTimes(),
+			// stop
+			e.Stop(gomock.Any(), m).Return(nil).Return(nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil),
+		)
+
+		Print("When: task is scheduled")
+		task := h.makeTask(sched.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, runner.StatusRunning)
+
+		Print("When: task is stopped")
+		if err := h.service.StopTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task stops")
+		h.assertStatus(ctx, task, runner.StatusStopped)
+	})
+
+	t.Run("task start", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled with start in future")
+		task := h.makeTask(sched.Schedule{
+			StartDate: time.Unix(1<<60, 0),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: nothing happens")
+		h.assertMockCalled()
+
+		Print("Given: task will run")
+		m := descriptorMatcher{}
+		e := h.runner.EXPECT()
+		gomock.InOrder(
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusDone, "", nil),
+		)
+
+		Print("When: task is started")
+		if err := h.service.StartTask(ctx, task, runner.Opts{}); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, runner.StatusRunning)
+		h.assertStatus(ctx, task, runner.StatusDone)
+	})
+
+	t.Run("task start error retry", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: run will fail")
+		m := descriptorMatcher{}
+		e := h.runner.EXPECT()
+		// AnyTimes is used because the test is flaky otherwise
+		e.Run(gomock.Any(), m, gomock.Any()).Return(errors.New("test error")).Do(m.set).AnyTimes()
+
+		Print("When: task is scheduled with retry once")
+		task := h.makeTask(sched.Schedule{
+			StartDate:  now(),
+			NumRetries: 1,
+			Interval:   interval,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is ran two times")
+		h.assertStatus(ctx, task, runner.StatusStarting)
+		h.assertStatus(ctx, task, runner.StatusError)
+		h.assertStatus(ctx, task, runner.StatusStarting)
+		h.assertStatus(ctx, task, runner.StatusError)
+	})
+
+	testReschedule := func(status runner.Status) func(t *testing.T) {
+		return func(t *testing.T) {
+			h := newSchedTestHelper(t, session)
+			defer h.close()
+			ctx := context.Background()
+
+			armMock := func() {
+				m := descriptorMatcher{}
+				e := h.runner.EXPECT()
+				gomock.InOrder(
+					e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+					e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+					e.Status(gomock.Any(), m).Return(status, "", nil),
+				)
+			}
+
+			Print("Given: run ends with a given status")
+			armMock()
+
+			Print("When: task is scheduled")
+			task := h.makeTask(sched.Schedule{
+				StartDate: now(),
+				Interval:  sched.Duration(10 * retryTaskWait),
+			})
+			if err := h.service.PutTask(ctx, task); err != nil {
+				t.Fatal(err)
+			}
+
+			Print("Then: task stops")
+			h.assertStatus(ctx, task, runner.StatusRunning)
+			h.assertStatus(ctx, task, status)
+			h.assertMockCalled()
+
+			Print("Given: run ends with a given status")
+			armMock()
+
+			Print("And: task is executed in intervals")
+			h.assertStatus(ctx, task, runner.StatusRunning)
+			h.assertStatus(ctx, task, status)
+			h.assertMockCalled()
+		}
+	}
+	t.Run("done reschedule", testReschedule(runner.StatusDone))
+	t.Run("stopped reschedule", testReschedule(runner.StatusStopped))
+	t.Run("error reschedule", testReschedule(runner.StatusError))
+
+	t.Run("error retry", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		armMock := func() {
+			m := descriptorMatcher{}
+			e := h.runner.EXPECT()
+			gomock.InOrder(
+				// run
+				e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+				e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+				e.Status(gomock.Any(), m).Return(runner.StatusError, "", nil),
+				// retry
+				e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+				e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+				e.Status(gomock.Any(), m).Return(runner.StatusError, "", nil),
+			)
+		}
+
+		Print("Given: run will fail twice")
+		armMock()
+
+		Print("When: task is scheduled with retry once")
+		task := h.makeTask(sched.Schedule{
+			StartDate:  now(),
+			NumRetries: 1,
+			Interval:   interval,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is ran two times")
+		h.assertStatus(ctx, task, runner.StatusRunning)
+		h.assertStatus(ctx, task, runner.StatusError)
+		h.assertStatus(ctx, task, runner.StatusRunning)
+		h.assertStatus(ctx, task, runner.StatusError)
+		h.assertMockCalled()
+
+		Print("Given: run will fail twice")
+		armMock()
+
+		Print("Then: task is ran two times in next interval")
+		h.assertStatus(ctx, task, runner.StatusRunning)
+		h.assertStatus(ctx, task, runner.StatusError)
+		h.assertStatus(ctx, task, runner.StatusRunning)
+		h.assertStatus(ctx, task, runner.StatusError)
+		h.assertMockCalled()
+	})
+
+	t.Run("aborted always retry", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: run will always abort")
+		m := descriptorMatcher{}
+		e := h.runner.EXPECT()
+		gomock.InOrder(
+			// run
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
+			// retry
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
+			// retry
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
+			// retry
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
+		)
+
+		Print("When: task is scheduled with retry once")
+		task := h.makeTask(sched.Schedule{
+			StartDate:  now(),
+			NumRetries: 1,
+			Interval:   interval,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is always retried")
+		for i := 0; i < 4; i++ {
+			h.assertStatus(ctx, task, runner.StatusRunning)
+			h.assertStatus(ctx, task, runner.StatusAborted)
+		}
+	})
+}
 
 type descriptorMatcher struct {
 	d runner.Descriptor
+}
+
+func (m descriptorMatcher) String() string {
+	return fmt.Sprint(m.d)
 }
 
 func (m descriptorMatcher) Matches(v interface{}) bool {
@@ -35,369 +404,6 @@ func (m descriptorMatcher) Matches(v interface{}) bool {
 	return m.d == v.(runner.Descriptor)
 }
 
-func (m descriptorMatcher) String() string {
-	return fmt.Sprint(m.d)
-}
-
-func putTask(t *testing.T, session *gocql.Session, ctx context.Context, task *Task) {
-	t.Helper()
-	if err := task.Validate(); err != nil {
-		t.Fatal(err)
-	}
-
-	stmt, names := schema.SchedTask.Insert()
-	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names).BindStruct(task)
-
-	if err := q.ExecRelease(); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func newScheduler(t *testing.T, session *gocql.Session) (*Service, *gomock.Controller) {
-	t.Helper()
-	ctrl := gomock.NewController(t)
-
-	cp := func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
-		return &cluster.Cluster{
-			ID: id,
-		}, nil
-	}
-
-	s, err := NewService(session, cp, log.NewDevelopment().Named("sched"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	s.SetRunner(mockTask, NewMockRunner(ctrl))
-
-	return s, ctrl
-}
-
-func TestSchedInitOneShotIntegration(t *testing.T) {
-	session := mermaidtest.CreateSession(t)
-	s, ctrl := newScheduler(t, session)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
-	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow := func() time.Time {
-		return baseTime
-	}
-	oldRetryTaskWait := retryTaskWait
-	oldMonitorTaskInterval := monitorTaskInterval
-	retryTaskWait = 5 * time.Second
-	monitorTaskInterval = time.Millisecond
-
-	ch := make(chan bool)
-	reschedTaskDone = func(*Task) { ch <- true }
-
-	defer func() {
-		retryTaskWait = oldRetryTaskWait
-		monitorTaskInterval = oldMonitorTaskInterval
-		timeNow = time.Now
-		reschedTaskDone = func(*Task) {}
-	}()
-
-	taskStart := timeutc.Now().Add(taskStartNowSlack + time.Second)
-	clusterID := uuid.MustRandom()
-
-	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{StartDate: taskStart, NumRetries: 2},
-	}
-	putTask(t, session, ctx, task)
-
-	m := descriptorMatcher{}
-
-	expect := s.runners[mockTask].(*MockRunner).EXPECT()
-	gomock.InOrder(
-		expect.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(func(_, d, _ interface{}) {
-			tick()
-			m.d = d.(runner.Descriptor)
-		}),
-		expect.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-	)
-
-	s.Init(ctx)
-	<-ch
-	s.Close()
-	runs, err := s.GetLastRun(ctx, task, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(runs) != 1 {
-		t.Fatalf("len(runs) (%d) != 1", len(runs))
-	}
-	if runs[0].ID != m.d.RunID {
-		t.Fatal("id mismatch, expected:", m.d.RunID, "but got", runs[0].ID)
-	}
-	if runs[0].Status != runner.StatusStopped {
-		t.Fatal("wrong status", runs[0].ID, runs[0].Status)
-	}
-}
-
-func TestSchedInitOneShotRunningIntegration(t *testing.T) {
-	session := mermaidtest.CreateSession(t)
-	s, ctrl := newScheduler(t, session)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-	defer s.Close()
-	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
-	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow := func() time.Time {
-		return baseTime
-	}
-	oldRetryTaskWait := retryTaskWait
-	oldMonitorTaskInterval := monitorTaskInterval
-	retryTaskWait = 5 * time.Second
-	monitorTaskInterval = time.Millisecond
-	defer func() {
-		retryTaskWait = oldRetryTaskWait
-		monitorTaskInterval = oldMonitorTaskInterval
-		timeNow = time.Now
-		reschedTaskDone = func(*Task) {}
-	}()
-
-	taskStart := timeutc.Now().Add(time.Second)
-	clusterID := uuid.MustRandom()
-
-	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{StartDate: taskStart, NumRetries: 2},
-	}
-	putTask(t, session, ctx, task)
-
-	storedRun := &Run{
-		ID:        uuid.NewTime(),
-		Type:      task.Type,
-		ClusterID: clusterID,
-		TaskID:    task.ID,
-		Status:    runner.StatusRunning,
-		StartTime: taskStart,
-	}
-	if err := s.putRun(ctx, storedRun); err != nil {
-		t.Fatal("failed to put run", storedRun, err)
-	}
-
-	m := descriptorMatcher{
-		d: runner.Descriptor{
-			ClusterID: storedRun.ClusterID,
-			TaskID:    storedRun.TaskID,
-			RunID:     storedRun.ID,
-		},
-	}
-
-	expect := s.runners[mockTask].(*MockRunner).EXPECT()
-	gomock.InOrder(
-		expect.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-	)
-
-	s.Init(ctx)
-	runs, err := s.GetLastRun(ctx, task, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(runs) != 1 {
-		t.Fatalf("len(runs) (%d) != 1", len(runs))
-	}
-	if runs[0].ID != storedRun.ID {
-		t.Fatal("id mismatch, expected:", storedRun.ID, "but got", runs[0].ID)
-	}
-	if runs[0].Status != runner.StatusStopped {
-		t.Fatal("wrong status", runs[0].ID, runs[0].Status)
-	}
-}
-
-func TestSchedInitOneShotRetryIntegration(t *testing.T) {
-	session := mermaidtest.CreateSession(t)
-	s, ctrl := newScheduler(t, session)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
-	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow := func() time.Time {
-		return baseTime
-	}
-	oldRetryTaskWait := retryTaskWait
-	oldMonitorTaskInterval := monitorTaskInterval
-	retryTaskWait = 5 * time.Second
-	monitorTaskInterval = time.Millisecond
-
-	ch := make(chan bool)
-	reschedTaskDone = func(*Task) { ch <- true }
-
-	defer func() {
-		retryTaskWait = oldRetryTaskWait
-		monitorTaskInterval = oldMonitorTaskInterval
-		timeNow = time.Now
-		reschedTaskDone = func(*Task) {}
-	}()
-
-	taskStart := timeutc.Now().Add(time.Second)
-	clusterID := uuid.MustRandom()
-
-	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{StartDate: taskStart, NumRetries: 2},
-	}
-	putTask(t, session, ctx, task)
-
-	storedRun := &Run{
-		ID:        uuid.NewTime(),
-		Type:      task.Type,
-		ClusterID: clusterID,
-		TaskID:    task.ID,
-		Status:    runner.StatusRunning,
-		StartTime: taskStart,
-	}
-	if err := s.putRun(ctx, storedRun); err != nil {
-		t.Fatal("failed to put run", storedRun, err)
-	}
-
-	m := descriptorMatcher{}
-
-	expect := s.runners[mockTask].(*MockRunner).EXPECT()
-	gomock.InOrder(
-		expect.Status(gomock.Any(), m).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(func(_, d, _ interface{}) {
-			tick()
-			m.d = d.(runner.Descriptor)
-		}),
-
-		expect.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-
-		expect.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil).Do(func(_ ...interface{}) {
-			tick()
-		}),
-	)
-
-	s.Init(ctx)
-	<-ch
-	s.Close()
-	runs, err := s.GetLastRun(ctx, task, 10)
-	if err != nil {
-		t.Log(err)
-		t.Fatal()
-	}
-	if len(runs) != 2 {
-		t.Fatalf("len(runs) (%d) != 2", len(runs))
-	}
-
-	for i, r := range []struct {
-		ID     uuid.UUID
-		Status runner.Status
-	}{
-		{m.d.RunID, runner.StatusStopped},
-		{storedRun.ID, runner.StatusError},
-	} {
-		if runs[i].ID != r.ID {
-			t.Fatal("id mismatch, expected:", runs[i].ID, "but got", r.ID)
-		}
-		if runs[i].Status != r.Status {
-			t.Fatal("wrong status", r.ID, "expected", runs[i].Status, "got", r.Status)
-		}
-	}
-}
-
-func TestSchedInitRepeatingIntegration(t *testing.T) {
-	session := mermaidtest.CreateSession(t)
-	s, ctrl := newScheduler(t, session)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-	baseTime := time.Date(2017, 11, 27, 14, 20, 0, 0, time.Local)
-	tick := func() { baseTime = baseTime.Add(time.Second) }
-	timeNow := func() time.Time {
-		return baseTime
-	}
-	oldRetryTaskWait := retryTaskWait
-	oldMonitorTaskInterval := monitorTaskInterval
-	retryTaskWait = 5 * time.Second
-	monitorTaskInterval = time.Millisecond
-
-	ch := make(chan bool)
-	reschedTaskDone = func(*Task) { ch <- true }
-
-	defer func() {
-		retryTaskWait = oldRetryTaskWait
-		monitorTaskInterval = oldMonitorTaskInterval
-		timeNow = time.Now
-		reschedTaskDone = func(*Task) {}
-	}()
-
-	taskStart := timeutc.Now().Add(time.Second)
-	clusterID := uuid.MustRandom()
-
-	task := &Task{ClusterID: clusterID, Type: mockTask, ID: uuid.MustRandom(), Name: "task1", Enabled: true,
-		Sched: Schedule{Interval: Duration(2 * 24 * time.Hour), NumRetries: 3, StartDate: taskStart},
-	}
-	putTask(t, session, ctx, task)
-
-	m := make([]descriptorMatcher, task.Sched.NumRetries, task.Sched.NumRetries)
-
-	runNum := 0
-	expect := s.runners[mockTask].(*MockRunner).EXPECT()
-	calls := make([]*gomock.Call, 0, task.Sched.NumRetries)
-	for i := 0; i < task.Sched.NumRetries; i++ {
-		i := i
-		calls = append(calls,
-			expect.Run(gomock.Any(), m[i], gomock.Any()).Return(nil).Do(func(_, d, _ interface{}) {
-				tick()
-				m[i].d = d.(runner.Descriptor)
-				runNum++
-			}),
-
-			expect.Status(gomock.Any(), m[i]).Return(runner.StatusRunning, "", nil).Times(4).Do(func(_ ...interface{}) {
-				tick()
-			}),
-
-			expect.Status(gomock.Any(), m[i]).Return(runner.StatusError, "", nil).Do(func(_ ...interface{}) {
-				tick()
-			}),
-		)
-	}
-	gomock.InOrder(calls...)
-
-	s.Init(ctx)
-	for i := 0; i < task.Sched.NumRetries; i++ {
-		<-ch
-	}
-	s.Close()
-	runs, err := s.GetLastRun(ctx, task, 10)
-	if err != nil {
-		t.Log(err)
-		t.Fatal()
-	}
-	if len(runs) != runNum {
-		t.Fatalf("len(runs) (%d) != runNum (%d)", len(runs), runNum)
-	}
-
-	for i, id := range []uuid.UUID{m[2].d.RunID, m[1].d.RunID, m[0].d.RunID} {
-		if runs[i].ID != id {
-			t.Fatal("id mismatch, expected:", runs[i].ID, "but got", id)
-		}
-		if runs[i].Status != runner.StatusError {
-			t.Fatal("wrong status", id, runs[i].Status)
-		}
-	}
+func (m descriptorMatcher) set(_, d, _ interface{}) {
+	m.d = d.(runner.Descriptor)
 }
