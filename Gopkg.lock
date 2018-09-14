@@ -191,9 +191,13 @@
   revision = "dd47639f787e8583e1a13e17e20a9f6c4332bc29"
 
 [[projects]]
-  digest = "1:bc38c7c481812e178d85160472e231c5e1c9a7f5845d67e23ee4e706933c10d8"
+  digest = "1:7ded16107bddae6f7ad4bf105887304d35b13db44882bf516cb2d1854adb3fe2"
   name = "github.com/golang/mock"
-  packages = ["gomock"]
+  packages = [
+    "gomock",
+    "mockgen",
+    "mockgen/model",
+  ]
   pruneopts = "UT"
   revision = "c34cdb4725f4c3844d095133c6e40e448b86589b"
   version = "v1.1.1"
@@ -531,6 +535,7 @@
     "github.com/gobwas/glob",
     "github.com/gocql/gocql",
     "github.com/golang/mock/gomock",
+    "github.com/golang/mock/mockgen",
     "github.com/google/go-cmp/cmp",
     "github.com/google/go-cmp/cmp/cmpopts",
     "github.com/google/gops/agent",

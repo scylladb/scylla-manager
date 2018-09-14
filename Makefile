@@ -19,10 +19,11 @@ setup: GOPATH := $(shell mktemp -d)
 setup: ## Install required tools
 	@echo "==> Installing tools at $(GOBIN) ..."
 	@mkdir -p $(GOBIN)
+	@ln -s $(PWD)/vendor $(GOPATH)/src
 	@$(call dl,dep,https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64)
 	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.9.3/golangci-lint-1.9.3-linux-amd64.tar.gz)
 	@$(call dl,swagger,https://github.com/go-swagger/go-swagger/releases/download/0.15.0/swagger_linux_amd64)
-	@go get -u github.com/golang/mock/mockgen
+	@go install github.com/golang/mock/mockgen
 	@rm -Rf $(GOPATH)
 
 .PHONY: fmt
