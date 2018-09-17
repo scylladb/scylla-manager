@@ -208,7 +208,7 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskPro
 	for _, keyspace := range keyspaces {
 		tables, err := c.Tables(ctx, keyspace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to read table for keyspace", keyspace)
+			return nil, errors.Wrapf(err, "unable to read table for keyspace %s", keyspace)
 		}
 
 		prefix := keyspace + "."
@@ -557,7 +557,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 	}
 	for _, p := range prog {
 		if err := s.putRunProgress(ctx, &p); err != nil {
-			return errors.Wrapf(err, "failed to initialise the run progress %s", &p)
+			return errors.Wrapf(err, "failed to initialise the run progress %v", &p)
 		}
 		// init metrics
 		l := prometheus.Labels{
@@ -708,7 +708,7 @@ func (s *Service) hostSegments(run *Run, dc string, ring []*scyllaclient.TokenRa
 				run.Host: segs,
 			}
 		} else {
-			return nil, errors.Errorf("no segments available for the host %s")
+			return nil, errors.Errorf("no segments available for the host %s", run.Host)
 		}
 	}
 
