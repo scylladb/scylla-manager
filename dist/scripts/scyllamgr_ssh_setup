@@ -122,7 +122,7 @@ fi
 ret=0
 
 for host in ${HOSTS}; do
-    if ssh ${SSH_OPTS} -i "${SSH_IDENTITY_FILE}" "${SSH_USER}@${host}" &> /dev/null << EOF ||:
+    if ssh ${SSH_OPTS} -i "${SSH_IDENTITY_FILE}" "${SSH_USER}@${host}" &> /dev/null << EOF
     set -eu -o pipefail
     sudo su -
 
