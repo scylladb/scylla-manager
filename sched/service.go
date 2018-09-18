@@ -262,6 +262,7 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 
 	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		defer s.reschedTask(triggerCtx, t, run, doneCh)
 
 		run.Status = runner.StatusRunning
@@ -280,7 +281,7 @@ func (s *Service) attachTask(ctx context.Context, t *Task, run *Run) {
 func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan struct{}) {
 	defer reschedTaskDone(t)
 	defer close(done)
-	defer s.wg.Done()
+
 	s.taskLock.Lock()
 	if prevTrigger, ok := s.tasks[t.ID]; ok {
 		delete(s.tasks, t.ID)
@@ -313,7 +314,8 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 	}
 
 	s.wg.Add(1)
-	defer s.reschedTask(ctx, t, run, done) // reschedTask calls s.wg.Done()
+	defer s.wg.Done()
+	defer s.reschedTask(ctx, t, run, done)
 
 	if err := s.putRun(ctx, run); err != nil {
 		s.logger.Error(ctx, "Failed to write run",
