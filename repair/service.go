@@ -75,42 +75,6 @@ func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp sc
 	}, nil
 }
 
-// Init shall be called when the service starts. It marks running and
-// stopping runs as stopped.
-func (s *Service) Init(ctx context.Context) error {
-	// list tasks
-	var tasks []*Run
-	stmt, names := qb.Select(schema.RepairRun.Name).Distinct(schema.RepairRun.PartKey...).ToCql()
-	if err := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).SelectRelease(&tasks); err != nil {
-		return err
-	}
-
-	// get status
-	stmt, names = schema.RepairRun.Select("id", "status")
-	g := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
-	defer g.Release()
-
-	// update status
-	stmt, names = schema.RepairRun.Update("status", "cause")
-	u := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
-	defer u.Release()
-
-	for _, r := range tasks {
-		if err := g.BindStruct(r).Get(r); err != nil {
-			return err
-		}
-		if r.Status == runner.StatusRunning || r.Status == runner.StatusStopping {
-			r.Status = runner.StatusAborted
-			r.Cause = "service killed"
-			if err := u.BindStruct(r).Exec(); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 func (s *Service) tryLockCluster(run *Run) error {
 	s.activeMu.Lock()
 	defer s.activeMu.Unlock()

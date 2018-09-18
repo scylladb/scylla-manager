@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
+	"github.com/scylladb/mermaid/schema"
 )
 
 type server struct {
@@ -132,11 +133,22 @@ func (s *server) makeHTTPServers() {
 	}
 }
 
-func (s *server) initServices(ctx context.Context) error {
-	if err := s.repairSvc.Init(ctx); err != nil {
-		return errors.Wrapf(err, "repair service")
+func (s *server) initDatabase(ctx context.Context) error {
+	var tables = []*schema.Table{
+		&schema.RepairRun,
+		&schema.SchedRun,
 	}
-	if err := s.schedSvc.Init(ctx); err != nil {
+	for _, t := range tables {
+		err := schema.FixRunStatus(ctx, s.session, t)
+		if err != nil {
+			return errors.Wrapf(err, "init service failed")
+		}
+	}
+	return nil
+}
+
+func (s *server) startServices(ctx context.Context) error {
+	if err := s.schedSvc.LoadTasks(ctx); err != nil {
 		return errors.Wrapf(err, "schedule service")
 	}
 	return nil
