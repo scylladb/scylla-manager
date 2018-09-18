@@ -25,4 +25,4 @@ type TaskRun = models.TaskRun
 type RepairProgress = models.RepairProgress
 
 // RepairUnitProgress contains unit progress info.
-type RepairUnitProgress = models.RepairProgressUnitsItems
+type RepairUnitProgress = models.RepairProgressUnitsItems0
