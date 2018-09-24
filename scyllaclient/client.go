@@ -511,6 +511,9 @@ func (c *Client) Ping(ctx context.Context, timeout time.Duration, host string) (
 
 	resp, err := c.transport.RoundTrip(r)
 	if err != nil {
+		if errors.Cause(err) == context.DeadlineExceeded {
+			return timeutc.Since(t), errors.New("ping timed out")
+		}
 		return timeutc.Since(t), err
 	}
 	defer resp.Body.Close()

@@ -593,7 +593,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		tries++
 	}
 
-	pingTimeout := 5 * time.Second
+	const pingTimeout = 5 * time.Second
 	for ; tries > 0; tries-- {
 		failed := false
 		for _, host := range hosts {
