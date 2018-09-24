@@ -723,24 +723,30 @@ func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
 	for {
 		select {
 		case <-t.C:
-			prog, err := s.getProgress(ctx, run)
-			if err != nil {
-				s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
-			}
-
-			p := aggregateProgress(run, prog)
-			for _, u := range p.Units {
-				for _, n := range u.Nodes {
-					repairProgress.With(prometheus.Labels{
-						"cluster":  run.clusterName,
-						"task":     run.TaskID.String(),
-						"keyspace": u.Unit.Keyspace,
-						"host":     n.Host,
-					}).Set(float64(n.PercentComplete))
-				}
-			}
+			s.reportRepairProgressMetric(ctx, run)
 		case <-ctx.Done():
+			// we need to update metrics one last time
+			s.reportRepairProgressMetric(context.Background(), run)
 			return
+		}
+	}
+}
+
+func (s *Service) reportRepairProgressMetric(ctx context.Context, run *Run) {
+	prog, err := s.getProgress(ctx, run)
+	if err != nil {
+		s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
+	}
+
+	p := aggregateProgress(run, prog)
+	for _, u := range p.Units {
+		for _, n := range u.Nodes {
+			repairProgress.With(prometheus.Labels{
+				"cluster":  run.clusterName,
+				"task":     run.TaskID.String(),
+				"keyspace": u.Unit.Keyspace,
+				"host":     n.Host,
+			}).Set(float64(n.PercentComplete))
 		}
 	}
 }
