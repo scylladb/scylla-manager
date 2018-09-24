@@ -316,7 +316,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 
 	// some simple heuristics to buffer the channel
 	out := make(chan dcHost, runtime.NumCPU()+1)
-
+	pingTimeout := 5 * time.Second
 	for dc, hosts := range dcs {
 		for _, host := range hosts {
 			go func(ctx context.Context, dc, host string) {
@@ -324,7 +324,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 					dc:   dc,
 					host: host,
 				}
-				_, dh.err = client.Ping(ctx, time.Second, host)
+				_, dh.err = client.Ping(ctx, pingTimeout, host)
 				out <- dh
 			}(ctx, dc, host)
 		}

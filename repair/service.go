@@ -593,6 +593,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		tries++
 	}
 
+	pingTimeout := 5 * time.Second
 	for ; tries > 0; tries-- {
 		failed := false
 		for _, host := range hosts {
@@ -605,7 +606,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 			}
 
 			// ping host
-			if _, err := client.Ping(ctx, time.Second, host); err != nil {
+			if _, err := client.Ping(ctx, pingTimeout, host); err != nil {
 				return errors.Wrapf(err, "host %s not available", host)
 			}
 
