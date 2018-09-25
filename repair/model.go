@@ -19,6 +19,7 @@ type Unit struct {
 	Tables        []string `json:"tables,omitempty"`
 	CoordinatorDC string   `json:"-"`
 
+	allDCs    bool
 	allTables bool
 }
 

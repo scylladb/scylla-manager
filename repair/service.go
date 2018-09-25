@@ -506,6 +506,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		"coordinator_dc", dc,
 	)
 	run.Units[unit].CoordinatorDC = dc // would be persisted by caller
+	run.Units[unit].allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
 
 	hostSegments, err := s.hostSegments(run, dc, ring)
 	if err != nil {

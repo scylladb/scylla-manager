@@ -412,9 +412,11 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 
 	cfg := &scyllaclient.RepairConfig{
 		Keyspace: u.Keyspace,
-		DC:       w.parent.Run.DC,
 		Ranges:   w.segments[start:end].dump(),
 		Hosts:    w.parent.Run.WithHosts,
+	}
+	if !u.allDCs {
+		cfg.DC = w.parent.Run.DC
 	}
 	if !u.allTables {
 		cfg.Tables = u.Tables
