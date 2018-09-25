@@ -94,8 +94,13 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 	case runner.StatusAborted:
 		// skip, always retry aborted
 	case runner.StatusError:
-		// if no retries available report next activation according to schedule
-		if s.consecutiveErrorCount(runs) > s.NumRetries {
+		// limit consecutive errors to current interval
+		threshold := time.Time{}
+		if s.Interval != 0 {
+			threshold = now.Add(-s.Interval.Duration() / 2)
+		}
+		if s.consecutiveErrorCount(runs, threshold) > s.NumRetries {
+			// if no retries available report next activation according to schedule
 			return s.nextActivation(now)
 		}
 	default:
@@ -112,10 +117,13 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 	return t
 }
 
-func (s *Schedule) consecutiveErrorCount(runs []*Run) int {
+func (s *Schedule) consecutiveErrorCount(runs []*Run, threshold time.Time) int {
 	errs := 0
 	for _, r := range runs {
 		if r.Status != runner.StatusError {
+			break
+		}
+		if r.StartTime.Before(threshold) {
 			break
 		}
 		errs++

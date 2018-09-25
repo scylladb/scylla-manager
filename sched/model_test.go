@@ -12,10 +12,10 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-func makeSchedule(startDate time.Time, interval, numRetries int) Schedule {
+func makeSchedule(startDate time.Time, intervalDays, numRetries int) Schedule {
 	return Schedule{
 		StartDate:  startDate,
-		Interval:   Duration(time.Duration(interval) * 24 * time.Hour),
+		Interval:   Duration(time.Duration(intervalDays) * 24 * time.Hour),
 		NumRetries: numRetries,
 	}
 }
@@ -40,7 +40,7 @@ func TestSchedNextActivation(t *testing.T) {
 
 	now := timeutc.Now()
 	t0 := now.AddDate(0, 0, -7)
-	t1 := t0.AddDate(0, 0, 2)
+	t1 := now.AddDate(0, 0, -2)
 
 	table := []struct {
 		S Schedule
@@ -85,6 +85,12 @@ func TestSchedNextActivation(t *testing.T) {
 			S: makeSchedule(t0, 7, 2),
 			H: makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
 			A: t0.AddDate(0, 0, 7),
+		},
+		// full history, old activations, retry
+		{
+			S: makeSchedule(t0, 7, 2),
+			H: append(makeHistory(t1, runner.StatusError), makeHistory(now.AddDate(0, 0, -5), runner.StatusError, runner.StatusError)...),
+			A: now.Add(taskStartNowSlack),
 		},
 		// full history with DONE, retry
 		{
