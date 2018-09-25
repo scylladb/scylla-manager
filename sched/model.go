@@ -95,7 +95,7 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 		// skip, always retry aborted
 	case runner.StatusError:
 		// if no retries available report next activation according to schedule
-		if s.consecutiveErrorCount(runs) >= s.NumRetries {
+		if s.consecutiveErrorCount(runs) > s.NumRetries {
 			return s.nextActivation(now)
 		}
 	default:
