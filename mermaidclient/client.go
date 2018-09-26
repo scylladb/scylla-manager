@@ -76,7 +76,6 @@ func (c Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, er
 
 // GetCluster returns a cluster for a given ID.
 func (c Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, error) {
-
 	resp, err := c.operations.GetClusterClusterID(&operations.GetClusterClusterIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -90,7 +89,7 @@ func (c Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, err
 
 // UpdateCluster updates cluster.
 func (c Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
-	_, err := c.operations.PutClusterClusterID(&operations.PutClusterClusterIDParams{
+	_, err := c.operations.PutClusterClusterID(&operations.PutClusterClusterIDParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: cluster.ID,
 		Cluster:   cluster,
@@ -100,7 +99,7 @@ func (c Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
 
 // DeleteCluster removes cluster.
 func (c Client) DeleteCluster(ctx context.Context, clusterID string) error {
-	_, err := c.operations.DeleteClusterClusterID(&operations.DeleteClusterClusterIDParams{
+	_, err := c.operations.DeleteClusterClusterID(&operations.DeleteClusterClusterIDParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
 	})
@@ -208,7 +207,7 @@ func (c *Client) GetTaskHistory(ctx context.Context, clusterID, taskType string,
 
 // StartTask starts executing a task.
 func (c *Client) StartTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, cont bool) error {
-	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStart(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStartParams{
+	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStart(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStartParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskType:  taskType,
@@ -221,7 +220,7 @@ func (c *Client) StartTask(ctx context.Context, clusterID, taskType string, task
 
 // StopTask stops executing a task.
 func (c *Client) StopTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID) error {
-	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStop(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStopParams{
+	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStop(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStopParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskType:  taskType,
@@ -233,7 +232,7 @@ func (c *Client) StopTask(ctx context.Context, clusterID, taskType string, taskI
 
 // DeleteTask stops executing a task.
 func (c *Client) DeleteTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID) error {
-	_, err := c.operations.DeleteClusterClusterIDTaskTaskTypeTaskID(&operations.DeleteClusterClusterIDTaskTaskTypeTaskIDParams{
+	_, err := c.operations.DeleteClusterClusterIDTaskTaskTypeTaskID(&operations.DeleteClusterClusterIDTaskTaskTypeTaskIDParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskType:  taskType,
@@ -245,7 +244,7 @@ func (c *Client) DeleteTask(ctx context.Context, clusterID, taskType string, tas
 
 // UpdateTask updates an existing task unit.
 func (c *Client) UpdateTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, t *Task) error {
-	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskID(&operations.PutClusterClusterIDTaskTaskTypeTaskIDParams{
+	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskID(&operations.PutClusterClusterIDTaskTaskTypeTaskIDParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskType:  taskType,

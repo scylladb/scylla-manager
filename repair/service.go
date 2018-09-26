@@ -161,7 +161,10 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskPro
 		return nil, err
 	}
 
-	c, _ := s.client(ctx, clusterID)
+	c, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get client")
+	}
 	keyspaces, err := c.Keyspaces(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read keyspaces")
@@ -216,7 +219,10 @@ func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, tp *taskPrope
 		return nil, nil, err
 	}
 
-	c, _ := s.client(ctx, clusterID)
+	c, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to get client")
+	}
 	dcMap, err := c.Datacenters(ctx)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to read datacenters")

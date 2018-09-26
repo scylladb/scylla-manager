@@ -337,7 +337,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 }
 
 func (s *Service) updateClusterName(ctx context.Context, t *Task) {
-	c, _ := s.cluster(ctx, t.ClusterID)
+	c, _ := s.cluster(ctx, t.ClusterID) // nolint: errcheck
 	if c != nil {
 		t.clusterName = c.String()
 	} else {
