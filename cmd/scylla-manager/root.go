@@ -53,12 +53,19 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		// in debug mode launch gops agent
 		if cfgDeveloperMode {
+			// launch gops agent
 			if err := agent.Listen(agent.Options{ShutdownCleanup: false}); err != nil {
 				return errors.Wrapf(err, "gops agent startup")
 			}
 			defer agent.Close()
+		} else {
+			// try redirect std streams
+			if f, err := redirectStdStreams(); err != nil {
+				fmt.Fprintf(cmd.OutOrStdout(), "%s\n", errors.Wrap(err, "failed to redirect streams"))
+			} else {
+				defer f.Close()
+			}
 		}
 
 		// try to make absolute path
