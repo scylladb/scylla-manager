@@ -112,7 +112,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 	}
 
 	if err := json.Unmarshal(p, &tp); err != nil {
-		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "unable to parse runner properties: %s", p), "")
+		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", p), "")
 	}
 
 	t := Target{
@@ -164,7 +164,7 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskPro
 	c, _ := s.client(ctx, clusterID)
 	keyspaces, err := c.Keyspaces(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read keyspaces")
+		return nil, errors.Wrapf(err, "failed to read keyspaces")
 	}
 
 	var units []Unit
@@ -172,7 +172,7 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskPro
 	for _, keyspace := range keyspaces {
 		tables, err := c.Tables(ctx, keyspace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to read table for keyspace %s", keyspace)
+			return nil, errors.Wrapf(err, "failed to read table for keyspace %s", keyspace)
 		}
 
 		prefix := keyspace + "."
@@ -219,7 +219,7 @@ func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, tp *taskPrope
 	c, _ := s.client(ctx, clusterID)
 	dcMap, err := c.Datacenters(ctx)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to read datacenters")
+		return nil, nil, errors.Wrap(err, "failed to read datacenters")
 	}
 
 	dcs := make([]string, 0, len(dcMap))
