@@ -21,7 +21,7 @@ setup: ## Install required tools
 	@mkdir -p $(GOBIN)
 	@ln -s $(PWD)/vendor $(GOPATH)/src
 	@$(call dl,dep,https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64)
-	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.9.3/golangci-lint-1.9.3-linux-amd64.tar.gz)
+	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.10.2/golangci-lint-1.10.2-linux-amd64.tar.gz)
 	@$(call dl,swagger,https://github.com/go-swagger/go-swagger/releases/download/0.16.0/swagger_linux_amd64)
 	@go install github.com/golang/mock/mockgen
 	@rm -Rf $(GOPATH)
