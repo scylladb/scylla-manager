@@ -95,7 +95,7 @@ dev-server: ## Run development server
 .PHONY: dev-server-debug
 dev-server-debug: ## Run development server with dlv debugger
 	@echo "==> Building development server..."
-	@go build -gcflags='-N -l' -o ./scylla-manager.dev ./cmd/scylla-manager
+	@go build -gcflags='-N -l' -race -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo "==> Running development server in debug mode..."
 	@$(GOBIN)/dlv --listen=:2345 --headless=true --api-version=2 exec ./scylla-manager.dev -- -c testing/scylla-manager.yaml --developer-mode
 
