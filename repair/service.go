@@ -368,8 +368,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			s.wg.Done()
 		}()
 
-		go s.reportRepairProgress(ctx, run) // closed on cancel
-
 		for unit := range run.Units {
 			if err := s.repairUnit(ctx, run, unit, client); err != nil {
 				// Use parentCtx context, so that when worker context is canceled
@@ -685,41 +683,6 @@ func (s *Service) hostSegments(run *Run, dc string, ring []*scyllaclient.TokenRa
 	}
 
 	return hs, nil
-}
-
-func (s *Service) reportRepairProgress(ctx context.Context, run *Run) {
-	t := time.NewTicker(2500 * time.Millisecond)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-t.C:
-			s.reportRepairProgressMetric(ctx, run)
-		case <-ctx.Done():
-			// we need to update metrics one last time
-			s.reportRepairProgressMetric(context.Background(), run)
-			return
-		}
-	}
-}
-
-func (s *Service) reportRepairProgressMetric(ctx context.Context, run *Run) {
-	prog, err := s.getProgress(ctx, run)
-	if err != nil {
-		s.logger.Error(ctx, "Failed to get hosts progress", "error", err)
-	}
-
-	p := aggregateProgress(run, prog)
-	for _, u := range p.Units {
-		for _, n := range u.Nodes {
-			repairProgress.With(prometheus.Labels{
-				"cluster":  run.clusterName,
-				"task":     run.TaskID.String(),
-				"keyspace": u.Unit.Keyspace,
-				"host":     n.Host,
-			}).Set(float64(n.PercentComplete))
-		}
-	}
 }
 
 func (s *Service) topologyHash(ctx context.Context, client *scyllaclient.Client) (uuid.UUID, error) {

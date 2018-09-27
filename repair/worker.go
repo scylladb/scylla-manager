@@ -17,54 +17,6 @@ import (
 	"go.uber.org/multierr"
 )
 
-var (
-	repairSegmentsTotal = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "repair",
-		Name:      "segments_total",
-		Help:      "Total number of segments to repair.",
-	}, []string{"cluster", "task", "keyspace", "host", "shard"})
-
-	repairSegmentsSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "repair",
-		Name:      "segments_success",
-		Help:      "Number of repaired segments.",
-	}, []string{"cluster", "task", "keyspace", "host", "shard"})
-
-	repairSegmentsError = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "repair",
-		Name:      "segments_error",
-		Help:      "Number of segments that failed to repair.",
-	}, []string{"cluster", "task", "keyspace", "host", "shard"})
-
-	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "repair",
-		Name:      "duration_seconds",
-		Help:      "Duration of a single repair command.",
-		MaxAge:    30 * time.Minute,
-	}, []string{"cluster", "task", "keyspace", "host", "shard"})
-
-	repairProgress = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "repair",
-		Name:      "progress",
-		Help:      "Current repair progress.",
-	}, []string{"cluster", "task", "keyspace", "host"})
-)
-
-func init() {
-	prometheus.MustRegister(
-		repairSegmentsTotal,
-		repairSegmentsSuccess,
-		repairSegmentsError,
-		repairDurationSeconds,
-		repairProgress,
-	)
-}
-
 // worker manages shardWorkers.
 type worker struct {
 	Config   *Config
@@ -101,6 +53,7 @@ func (w *worker) exec(ctx context.Context) error {
 		failed  bool
 	)
 
+	// run shard workers
 	for i, s := range w.shards {
 		i := i
 		s := s
@@ -108,7 +61,11 @@ func (w *worker) exec(ctx context.Context) error {
 			wch <- shardError{i, s.exec(ctx)}
 		}()
 	}
+	// run metrics updater
+	u := newProgressMetricsUpdater(w.Run, w.Service.getProgress, w.Logger)
+	go u.Run(ctx, 5*time.Second)
 
+	// join shard workers
 	for range w.shards {
 		r := <-wch
 		if r.err != nil {
@@ -125,6 +82,8 @@ func (w *worker) exec(ctx context.Context) error {
 			}
 		}
 	}
+	// join metrics updater
+	u.Stop()
 
 	if ctx.Err() != nil {
 		w.Logger.Info(ctx, "Repair aborted")
