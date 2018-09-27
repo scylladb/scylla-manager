@@ -17,14 +17,22 @@ override_dh_auto_clean:
 	rm -Rf $(builddir)
 
 override_dh_auto_build:
-	@curl -sSq $(GO_URL) -o $(GO_BUNDLE)
-	@[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "$(GO_HASH)" ]
+	curl -sSq $(GO_URL) -o $(GO_BUNDLE)
+	[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "$(GO_HASH)" ]
 	tar -zxf $(GO_BUNDLE) -C /tmp
 	mkdir -p $(builddir)/src/github.com/scylladb
 	ln -s `pwd` $(builddir)/src/github.com/scylladb/mermaid
 
-	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" -o release/linux_amd64/scylla-manager $(pkg_name)/cmd/scylla-manager
-	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a -ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" -o release/linux_amd64/sctool $(pkg_name)/cmd/sctool
+	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a \
+	-gcflags "all=-trimpath=$(GOPATH)" \
+	-ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" \
+	-o release/linux_amd64/scylla-manager $(pkg_name)/cmd/scylla-manager
+
+	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a \
+	-gcflags "all=-trimpath=$(GOPATH)" \
+	-ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" \
+	-o release/linux_amd64/sctool $(pkg_name)/cmd/sctool
+
 	mkdir -p release/bash_completion
 	release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
 
