@@ -88,20 +88,9 @@ integration-test: ## Run integration tests
 .PHONY: dev-server
 dev-server: ## Run development server
 	@echo "==> Building development server..."
-	@go build -o ./scylla-manager.dev ./cmd/scylla-manager
+	@go build -race -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo "==> Running development server..."
 	@./scylla-manager.dev -c testing/scylla-manager/scylla-manager.yaml --developer-mode; rm -f ./scylla-manager.dev
-
-.PHONY: dev-server-debug
-dev-server-debug: ## Run development server with dlv debugger
-	@echo "==> Building development server..."
-	@go build -gcflags='-N -l' -race -o ./scylla-manager.dev ./cmd/scylla-manager
-	@echo "==> Running development server in debug mode..."
-	@$(GOBIN)/dlv --listen=:2345 --headless=true --api-version=2 exec ./scylla-manager.dev -- -c testing/scylla-manager.yaml --developer-mode
-
-.PHONY: dev-server-kill
-dev-server-kill: ## Stop all dev-server instances
-	@killall -9 scylla-manager.dev
 
 .PHONY: dev-cli
 dev-cli: ## Build development cli binary
