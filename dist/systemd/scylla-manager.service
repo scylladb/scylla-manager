@@ -11,7 +11,7 @@ Group=scylla-manager
 ExecStart=/usr/bin/scylla-manager
 TimeoutStartSec=900
 KillMode=process
-Restart=on-abnormal
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
