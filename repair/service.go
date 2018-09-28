@@ -478,7 +478,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 
 	hostSegments, err := s.hostSegments(run, dc, ring)
 	if err != nil {
-		return errors.Wrap(err, "segmentation failed")
+		return errors.Wrapf(err, "segmentation failed for keyspace %s", u.Keyspace)
 	}
 
 	var prog []RunProgress
