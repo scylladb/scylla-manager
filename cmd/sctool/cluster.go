@@ -17,7 +17,8 @@ var clusterCmd = &cobra.Command{
 }
 
 func init() {
-	register(clusterCmd, rootCmd)
+	cmd := clusterCmd
+	register(cmd, rootCmd)
 }
 
 var (
@@ -36,7 +37,7 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 
 var clusterAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Adds a cluster to manager",
+	Short: "Add a cluster to manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := &mermaidclient.Cluster{
@@ -83,6 +84,7 @@ var clusterAddCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterAddCmd
+	withScyllaDocs(cmd, "/add-a-cluster/", "/sctool/#cluster-add")
 	register(cmd, clusterCmd)
 
 	clusterInitCommonFlags(cmd)
@@ -91,7 +93,7 @@ func init() {
 
 var clusterUpdateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Modifies a cluster",
+	Short: "Modify a cluster",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cluster, err := client.GetCluster(ctx, cfgCluster)
@@ -134,6 +136,7 @@ var clusterUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterUpdateCmd
+	withScyllaDocs(cmd, "/sctool/#cluster-update")
 	register(cmd, clusterCmd)
 
 	clusterInitCommonFlags(cmd)
@@ -141,7 +144,7 @@ func init() {
 
 var clusterDeleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Deletes a cluster from manager",
+	Short: "Delete a cluster from manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := client.DeleteCluster(ctx, cfgCluster); err != nil {
@@ -154,12 +157,13 @@ var clusterDeleteCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterDeleteCmd
+	withScyllaDocs(cmd, "/sctool/#cluster-delete")
 	register(cmd, clusterCmd)
 }
 
 var clusterListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Shows managed clusters",
+	Short: "Show managed clusters",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusters, err := client.ListClusters(ctx)
@@ -178,5 +182,7 @@ var clusterListCmd = &cobra.Command{
 }
 
 func init() {
-	register(clusterListCmd, clusterCmd)
+	cmd := clusterListCmd
+	withScyllaDocs(cmd, "/sctool/#cluster-list")
+	register(cmd, clusterCmd)
 }

@@ -20,7 +20,7 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "sctool",
-	Short: "Scylla Manager client",
+	Short: "Scylla Manager " + docsVersion,
 
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if cmd.IsAdditionalHelpTopicCommand() || cmd.Hidden {

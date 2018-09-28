@@ -132,6 +132,7 @@ var repairCmd = &cobra.Command{
 
 func init() {
 	cmd := repairCmd
+	withScyllaDocs(cmd, "/sctool/#scheduling-repairs")
 	register(repairCmd, rootCmd)
 
 	fs := cmd.Flags()

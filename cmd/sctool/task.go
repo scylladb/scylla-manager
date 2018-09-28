@@ -30,7 +30,7 @@ func init() {
 
 var taskListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Shows available tasks and their last run status",
+	Short: "Show available tasks and their last run status",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fs := cmd.Flags()
@@ -102,6 +102,7 @@ func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
 
 func init() {
 	cmd := taskListCmd
+	withScyllaDocs(cmd, "/sctool/#task-list")
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
@@ -112,7 +113,7 @@ func init() {
 
 var taskStartCmd = &cobra.Command{
 	Use:   "start <type/task-id>",
-	Short: "Starts executing a task",
+	Short: "Start executing a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -135,6 +136,7 @@ var taskStartCmd = &cobra.Command{
 
 func init() {
 	cmd := taskStartCmd
+	withScyllaDocs(cmd, "/sctool/#task-start")
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
@@ -143,7 +145,7 @@ func init() {
 
 var taskStopCmd = &cobra.Command{
 	Use:   "stop <type/task-id>",
-	Short: "Stops executing a task",
+	Short: "Stop executing a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -159,12 +161,14 @@ var taskStopCmd = &cobra.Command{
 }
 
 func init() {
-	register(taskStopCmd, taskCmd)
+	cmd := taskStopCmd
+	withScyllaDocs(cmd, "/sctool/#task-stop")
+	register(cmd, taskCmd)
 }
 
 var taskHistoryCmd = &cobra.Command{
 	Use:   "history <type/task-id>",
-	Short: "list run history of a task",
+	Short: "Show run history of a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -199,6 +203,7 @@ var taskHistoryCmd = &cobra.Command{
 
 func init() {
 	cmd := taskHistoryCmd
+	withScyllaDocs(cmd, "/sctool/#task-history")
 	register(cmd, taskCmd)
 
 	cmd.Flags().Int64("limit", 10, "limit the number of returned results")
@@ -206,7 +211,7 @@ func init() {
 
 var taskUpdateCmd = &cobra.Command{
 	Use:   "update <type/task-id>",
-	Short: "Modifies a task",
+	Short: "Modify a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -276,6 +281,7 @@ var taskUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := taskUpdateCmd
+	withScyllaDocs(cmd, "/sctool/#task-update")
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
@@ -287,7 +293,7 @@ func init() {
 
 var taskDeleteCmd = &cobra.Command{
 	Use:   "delete <type/task-id>",
-	Short: "Deletes a task schedule",
+	Short: "Delete a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -304,12 +310,14 @@ var taskDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	register(taskDeleteCmd, taskCmd)
+	cmd := taskDeleteCmd
+	withScyllaDocs(cmd, "/sctool/#task-delete")
+	register(cmd, taskCmd)
 }
 
 var taskProgressCmd = &cobra.Command{
 	Use:   "progress <type/task-id>",
-	Short: "Shows task progress",
+	Short: "Show a task progress",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -426,6 +434,7 @@ func addRepairUnitDetailedProgress(t *table, u *mermaidclient.RepairUnitProgress
 
 func init() {
 	cmd := taskProgressCmd
+	withScyllaDocs(cmd, "/sctool/#task-progress")
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
