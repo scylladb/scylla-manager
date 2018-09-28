@@ -15,7 +15,7 @@ MANAGER_IDENTITY_FILE=""
 DISCOVER=0
 
 print_usage() {
-    echo "scyllamgr_ssh_setup -u [USERNAME] -i [PATH_TO_PRIVATE_KEY] --m [MANAGER_USERNAME] -o [PATH_TO_MANAGER_PRIVATE_KEY] [HOST]..."
+    echo "scyllamgr_ssh_setup -u <username> -i <path to private key> --m <manager username> -o <path to manager private key> [HOST...]"
     echo "  -u --user				SSH user name used to connect to hosts"
     echo "  -i --identity-file			path to identity file containing SSH private key"
     echo "  -m --manager-user			user name that will be created and configured on hosts, default ${MANAGER_USER}"
