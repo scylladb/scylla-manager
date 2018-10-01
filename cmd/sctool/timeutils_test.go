@@ -14,17 +14,14 @@ import (
 func TestParseStartDate(t *testing.T) {
 	const epsilon = 50 * time.Millisecond
 
-	now := timeutc.Now()
-	nowSafe := now.Add(nowSafety)
-
 	table := []struct {
 		S string
-		T time.Time
+		D time.Duration
 		E string
 	}{
 		{
 			S: "now",
-			T: nowSafe,
+			D: nowSafety,
 		},
 		{
 			S: "now-5s",
@@ -35,18 +32,18 @@ func TestParseStartDate(t *testing.T) {
 		},
 		{
 			S: "now+1h",
-			T: now.Add(time.Hour),
+			D: time.Hour,
 		},
 		{
-			S: now.Add(-5 * time.Second).Format(time.RFC3339),
+			S: timeutc.Now().Add(-5 * time.Second).Format(time.RFC3339),
 			E: "start date cannot be in the past"},
 		{
-			S: now.Add(5 * time.Second).Format(time.RFC3339),
+			S: timeutc.Now().Add(5 * time.Second).Format(time.RFC3339),
 			E: "start date must be at least in",
 		},
 		{
-			S: now.Add(time.Hour).Format(time.RFC3339),
-			T: now.Add(time.Hour),
+			S: timeutc.Now().Add(time.Hour).Format(time.RFC3339),
+			D: time.Hour,
 		},
 	}
 
@@ -64,12 +61,14 @@ func TestParseStartDate(t *testing.T) {
 			continue
 		}
 
-		diff := time.Time(startDate).Sub(test.T)
+		s := truncateToSecond(time.Time(startDate))
+		now := truncateToSecond(time.Time(timeutc.Now()))
+		diff := now.Add(test.D).Sub(s)
 		if diff < 0 {
 			diff *= -1
 		}
 		if diff > epsilon {
-			t.Fatal(i, startDate, test.T, diff)
+			t.Fatal(i, startDate, test.D, diff, test.S)
 		}
 	}
 }
@@ -86,4 +85,8 @@ func TestFormatTimeNonZero(t *testing.T) {
 	if s := formatTime(strfmt.DateTime(timeutc.Now())); !strings.Contains(s, tz) {
 		t.Error(s)
 	}
+}
+
+func truncateToSecond(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, t.Location())
 }

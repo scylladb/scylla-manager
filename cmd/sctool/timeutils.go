@@ -17,20 +17,11 @@ const nowSafety = 30 * time.Second
 func parseStartDate(value string) (strfmt.DateTime, error) {
 	now := timeutc.Now()
 
-	if !strings.HasPrefix(value, "now") {
-		t, err := timeutc.Parse(time.RFC3339, value)
-		if err != nil {
-			return strfmt.DateTime(t), err
-		}
-		if t.Before(now) {
-			return strfmt.DateTime(time.Time{}), errors.New("start date cannot be in the past")
-		}
-		if t.Before(now.Add(nowSafety)) {
-			return strfmt.DateTime(time.Time{}), errors.Errorf("start date must be at least in %s", nowSafety)
-		}
+	if value == "now" {
+		return strfmt.DateTime(now.Add(nowSafety)), nil
 	}
 
-	if value != "now" {
+	if strings.HasPrefix(value, "now") {
 		d, err := time.ParseDuration(value[3:])
 		if err != nil {
 			return strfmt.DateTime{}, err
@@ -41,12 +32,21 @@ func parseStartDate(value string) (strfmt.DateTime, error) {
 		if d < nowSafety {
 			return strfmt.DateTime(time.Time{}), errors.Errorf("start date must be at least in %s", nowSafety)
 		}
-		now = now.Add(d)
-	} else {
-		now = now.Add(nowSafety)
+		return strfmt.DateTime(now.Add(d)), nil
 	}
 
-	return strfmt.DateTime(now), nil
+	// No more heuristics, assume the user passed a date formatted string
+	t, err := timeutc.Parse(time.RFC3339, value)
+	if err != nil {
+		return strfmt.DateTime(t), err
+	}
+	if t.Before(now) {
+		return strfmt.DateTime(time.Time{}), errors.New("start date cannot be in the past")
+	}
+	if t.Before(now.Add(nowSafety)) {
+		return strfmt.DateTime(time.Time{}), errors.Errorf("start date must be at least in %s", nowSafety)
+	}
+	return strfmt.DateTime(t), nil
 }
 
 const rfc822WithSec = "02 Jan 06 15:04:05 MST"
