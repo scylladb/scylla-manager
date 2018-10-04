@@ -96,6 +96,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 		T    TokenRangesKind
 		S    map[string]segments
 	}{
+		// PrimaryTokenRanges with RF3
 		{
 			Ring: rf3,
 			DC:   "dc1",
@@ -111,6 +112,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 				},
 			},
 		},
+		// PrimaryTokenRanges with RF2
 		{
 			Ring: rf2,
 			DC:   "dc1",
@@ -125,6 +127,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 				},
 			},
 		},
+		// NonPrimaryTokenRanges with RF3
 		{
 			Ring: rf3,
 			DC:   "dc1",
@@ -146,6 +149,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 				},
 			},
 		},
+		// NonPrimaryTokenRanges with RF2
 		{
 			Ring: rf2,
 			DC:   "dc1",
@@ -158,6 +162,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 				},
 			},
 		},
+		// AllTonenRanges with RF3
 		{
 			Ring: rf3,
 			DC:   "dc1",
@@ -183,6 +188,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 				},
 			},
 		},
+		// AllTonenRanges with RF2
 		{
 			Ring: rf2,
 			DC:   "dc1",
@@ -193,6 +199,21 @@ func TestGroupSegmentsByHost(t *testing.T) {
 					{9165301526494284802, 9190445181212206709},
 					{9142565851149460331, 9143747749498840635},
 				},
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+				},
+				"172.16.1.10": {
+					{9142565851149460331, 9143747749498840635},
+				},
+			},
+		},
+		// PrimaryTokenRanges with RF2 and host from dc2
+		{
+			Ring: rf2,
+			DC:   "dc1",
+			H:    []string{"172.16.1.4"},
+			T:    PrimaryTokenRanges,
+			S: map[string]segments{
 				"172.16.1.3": {
 					{9165301526494284802, 9190445181212206709},
 				},

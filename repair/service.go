@@ -667,10 +667,6 @@ func (s *Service) hostSegments(run *Run, dc string, ring []*scyllaclient.TokenRa
 	if err != nil {
 		return nil, err
 	}
-	// repair-with hosts are not coordinator hosts
-	for _, host := range run.WithHosts {
-		delete(hs, host)
-	}
 	// if we have a specific host other hosts are removed
 	if run.Host != "" {
 		if segs, ok := hs[run.Host]; ok {
@@ -679,6 +675,11 @@ func (s *Service) hostSegments(run *Run, dc string, ring []*scyllaclient.TokenRa
 			}
 		} else {
 			return nil, errors.Errorf("no segments available for the host %s", run.Host)
+		}
+	} else {
+		// repair-with hosts are not coordinator hosts
+		for _, host := range run.WithHosts {
+			delete(hs, host)
 		}
 	}
 

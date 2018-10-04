@@ -57,12 +57,15 @@ func groupSegmentsByHost(dc string, hosts []string, tr TokenRangesKind, ring []*
 			return nil, errors.Errorf("dc %s does not contain all the tokens please check the replication strategy", dc)
 		}
 
-		// ignore segments that not are not replicated by any of the hosts
+		// ignore segments that not are not replicated by any of the hosts in any DC
 		if !hs.IsEmpty() {
 			ok := false
-			for _, h := range r.Hosts[dc] {
-				if hs.Has(h) {
-					ok = true
+			for _, dcHosts := range r.Hosts {
+				for _, h := range dcHosts{
+					if hs.Has(h) {
+						ok = true
+						break
+					}
 				}
 			}
 			if !ok {
