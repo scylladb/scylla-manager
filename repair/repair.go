@@ -61,7 +61,7 @@ func groupSegmentsByHost(dc string, hosts []string, tr TokenRangesKind, ring []*
 		if !hs.IsEmpty() {
 			ok := false
 			for _, dcHosts := range r.Hosts {
-				for _, h := range dcHosts{
+				for _, h := range dcHosts {
 					if hs.Has(h) {
 						ok = true
 						break
