@@ -64,7 +64,7 @@ if [ -e debian ] || [ -e build/release ]; then
 fi
 if is_debian_variant; then
     sudo apt-get -y update
-    pkg_install install dh-systemd
+    pkg_install dh-systemd
 fi
 if is_redhat_variant && [ ! -f /usr/libexec/git-core/git-submodule ]; then
     sudo yum install -y git
