@@ -75,7 +75,7 @@ Summary: Scylla Manager server
 
 %{?systemd_requires}
 BuildRequires: systemd
-Requires: curl jq openssl psmisc
+Requires: bash curl jq openssl psmisc
 
 %description server
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
@@ -105,7 +105,7 @@ getent passwd %{name} || /usr/sbin/useradd \
  -g %{name} -d %{_sharedstatedir}/%{name} -s /sbin/nologin -r %{name} &> /dev/null || :
 
 %post server
-/usr/bin/sh %{_sbindir}/scyllamgr_ssl_cert_gen
+%{_sbindir}/scyllamgr_ssl_cert_gen --silent
 %systemd_post %{name}.service
 
 %preun server
