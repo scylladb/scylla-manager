@@ -360,15 +360,15 @@
   revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
 
 [[projects]]
-  branch = "master"
-  digest = "1:1495d0aa85ffbc7684ee25ca375c0b9f91f14b07ed6a3807877d81d09f6132cb"
+  digest = "1:f45446ccc56855d2633cdeae00a127663c6e072ed4e1936f5810c3ec487511a1"
   name = "github.com/scylladb/go-set"
   packages = [
     "i64set",
     "strset",
   ]
   pruneopts = "UT"
-  revision = "26ab33e713bb9bd79a7b06cedddf8604c67aca32"
+  revision = "538a353339f71d1290a04e6abb40c398bc745704"
+  version = "v1.0.1"
 
 [[projects]]
   digest = "1:f009dfd6caac3e6b7b99949aa7e5e46d86abc24afe7c9ab14cf76187e683e3d6"
