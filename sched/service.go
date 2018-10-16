@@ -56,6 +56,7 @@ type Service struct {
 	tasks    map[uuid.UUID]cancelableTrigger
 	wg       sync.WaitGroup
 	taskLock sync.Mutex
+	closed   bool
 }
 
 type cancelableTrigger struct {
@@ -89,6 +90,7 @@ func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (
 		cronCtx: log.WithTraceID(context.Background()),
 		runners: make(map[TaskType]runner.Runner),
 		tasks:   make(map[uuid.UUID]cancelableTrigger),
+		closed:  false,
 	}, nil
 }
 
@@ -169,6 +171,12 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 
 	doneCh := make(chan struct{})
 	s.taskLock.Lock()
+	defer s.taskLock.Unlock()
+
+	if s.closed {
+		s.logger.Debug(ctx, "Service closed, not re-scheduling", "task", t)
+		return
+	}
 	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t, doneCh) })
 	s.tasks[t.ID] = cancelableTrigger{
 		timer: timer,
@@ -180,13 +188,18 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 		},
 		done: doneCh,
 	}
-	s.taskLock.Unlock()
 }
 
 func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan struct{}) {
 	defer close(done)
 
 	s.taskLock.Lock()
+	if s.closed {
+		s.taskLock.Unlock()
+		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
+		return
+	}
+
 	if prevTrigger, ok := s.tasks[t.ID]; ok {
 		delete(s.tasks, t.ID)
 		defer prevTrigger.cancel()
@@ -358,6 +371,11 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 	doneCh := make(chan struct{})
 
 	s.taskLock.Lock()
+	if s.closed {
+		s.taskLock.Unlock()
+		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
+		return errors.New("scheduler closed, please check the server status and logs")
+	}
 	s.tasks[t.ID] = cancelableTrigger{
 		cancel: cancel,
 		done:   doneCh,
@@ -371,6 +389,12 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 func (s *Service) cancelTask(t *Task) {
 	var doneCh chan struct{}
 	s.taskLock.Lock()
+
+	if s.closed {
+		s.taskLock.Unlock()
+		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
+		return
+	}
 	if trigger, ok := s.tasks[t.ID]; ok {
 		delete(s.tasks, t.ID)
 		doneCh = trigger.done
@@ -628,6 +652,7 @@ func (s *Service) Close() {
 		t.cancel()
 	}
 	s.tasks = nil
+	s.closed = true
 	s.taskLock.Unlock()
 	s.wg.Wait()
 }
