@@ -46,17 +46,19 @@ func init() {
 
 // Service schedules tasks.
 type Service struct {
-	session   *gocql.Session
-	cluster   cluster.ProviderFunc
-	runners   map[TaskType]runner.Runner
-	runnersMu sync.Mutex
-	logger    log.Logger
+	session *gocql.Session
+	cluster cluster.ProviderFunc
+	logger  log.Logger
 
-	cronCtx  context.Context
-	tasks    map[uuid.UUID]cancelableTrigger
-	wg       sync.WaitGroup
-	taskLock sync.Mutex
-	closed   bool
+	runnersMu sync.Mutex
+	runners   map[TaskType]runner.Runner
+
+	cronCtx context.Context
+	wg      sync.WaitGroup
+
+	tasksMu sync.Mutex
+	tasks   map[uuid.UUID]cancelableTrigger
+	closed  bool
 }
 
 type cancelableTrigger struct {
@@ -170,8 +172,8 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
 
 	doneCh := make(chan struct{})
-	s.taskLock.Lock()
-	defer s.taskLock.Unlock()
+	s.tasksMu.Lock()
+	defer s.tasksMu.Unlock()
 
 	if s.closed {
 		s.logger.Debug(ctx, "Service closed, not re-scheduling", "task", t)
@@ -193,9 +195,9 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan struct{}) {
 	defer close(done)
 
-	s.taskLock.Lock()
+	s.tasksMu.Lock()
 	if s.closed {
-		s.taskLock.Unlock()
+		s.tasksMu.Unlock()
 		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
 		return
 	}
@@ -204,7 +206,7 @@ func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan 
 		delete(s.tasks, t.ID)
 		defer prevTrigger.cancel()
 	}
-	s.taskLock.Unlock()
+	s.tasksMu.Unlock()
 
 	if ctx.Err() != nil {
 		s.logger.Debug(ctx, "Task canceled, not re-scheduling", "task", t)
@@ -370,9 +372,9 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 	triggerCtx = runner.WithOpts(triggerCtx, opts)
 	doneCh := make(chan struct{})
 
-	s.taskLock.Lock()
+	s.tasksMu.Lock()
 	if s.closed {
-		s.taskLock.Unlock()
+		s.tasksMu.Unlock()
 		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
 		return errors.New("scheduler closed, please check the server status and logs")
 	}
@@ -381,17 +383,17 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 		done:   doneCh,
 	}
 	go s.execTrigger(triggerCtx, t, doneCh)
-	s.taskLock.Unlock()
+	s.tasksMu.Unlock()
 
 	return nil
 }
 
 func (s *Service) cancelTask(t *Task) {
 	var doneCh chan struct{}
-	s.taskLock.Lock()
+	s.tasksMu.Lock()
 
 	if s.closed {
-		s.taskLock.Unlock()
+		s.tasksMu.Unlock()
 		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
 		return
 	}
@@ -400,7 +402,7 @@ func (s *Service) cancelTask(t *Task) {
 		doneCh = trigger.done
 		trigger.cancel()
 	}
-	s.taskLock.Unlock()
+	s.tasksMu.Unlock()
 	if doneCh != nil {
 		<-doneCh
 	}
@@ -647,12 +649,12 @@ func (s *Service) putRun(ctx context.Context, r *Run) error {
 
 // Close cancels all future task timers and waits for all running goroutines to terminate.
 func (s *Service) Close() {
-	s.taskLock.Lock()
+	s.tasksMu.Lock()
 	for _, t := range s.tasks {
 		t.cancel()
 	}
 	s.tasks = nil
 	s.closed = true
-	s.taskLock.Unlock()
+	s.tasksMu.Unlock()
 	s.wg.Wait()
 }
