@@ -13,7 +13,7 @@ Source0:        %{name}-%{version}-%{release}.tar.gz
 
 BuildRequires:  curl
 ExclusiveArch:  x86_64
-Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla-manager-client = %{version}-%{release}
+Requires: scylla scylla-manager-server = %{version}-%{release} scylla-manager-client = %{version}-%{release}
 
 %description
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
