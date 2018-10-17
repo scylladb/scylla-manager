@@ -102,7 +102,7 @@ the database management tasks.
 %pre server
 getent group  %{name} || /usr/sbin/groupadd -r %{name} &> /dev/null || :
 getent passwd %{name} || /usr/sbin/useradd \
- -g %{name} -d %{_sharedstatedir}/%{name} -s /sbin/nologin -r %{name} &> /dev/null || :
+ -g %{name} -d %{_sharedstatedir}/%{name} -m -s /sbin/nologin -r %{name} &> /dev/null || :
 
 %post server
 %{_sbindir}/scyllamgr_ssl_cert_gen --silent

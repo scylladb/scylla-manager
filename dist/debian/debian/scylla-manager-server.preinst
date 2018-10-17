@@ -1,2 +1,2 @@
 getent group  scylla-manager || /usr/sbin/groupadd -r scylla-manager > /dev/null
-getent passwd scylla-manager || /usr/sbin/useradd -g scylla-manager -d /var/lib/scylla-manager -s /sbin/nologin -r scylla-manager > /dev/null 
+getent passwd scylla-manager || /usr/sbin/useradd -g scylla-manager -d /var/lib/scylla-manager -m -s /sbin/nologin -r scylla-manager > /dev/null
