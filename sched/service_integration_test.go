@@ -9,12 +9,12 @@ package sched_test
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/timeutc"
@@ -146,6 +146,71 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	now := func() time.Time {
 		return timeutc.Now().Add(2 * taskStartNowSlack)
 	}
+
+	t.Run("task once", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: a task is scheduled")
+		task := h.makeTask(sched.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: the task is added")
+
+		task.ID = uuid.MustRandom()
+		Print("When: another task task of the same type is scheduled")
+		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+			Print("Then: the task is rejected")
+			return
+		}
+		t.Fatal("two tasks of the same type could be added")
+	})
+
+	t.Run("task once update", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: a task is scheduled")
+		task := h.makeTask(sched.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: the task is added")
+
+		tasks, err := h.service.ListTasks(ctx, h.clusterID, task.Type)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cnt1 := len(tasks)
+		task.Name = "new name"
+		Print("When: the same task is changed and scheduled again")
+		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		tasks, err = h.service.ListTasks(ctx, h.clusterID, task.Type)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cnt2 := len(tasks)
+		if cnt1 != cnt2 {
+			t.Fatalf("wrong number of tasks after two PutOnce")
+		}
+		for _, ts := range tasks {
+			if ts.ID == task.ID {
+				if ts.Name != task.Name {
+					t.Fatalf("expected task name %s, got %s", task.Name, ts.Name)
+				}
+			}
+		}
+		Print("Then: the task is updated")
+	})
 
 	t.Run("task stop", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)

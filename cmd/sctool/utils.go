@@ -3,13 +3,15 @@
 package main
 
 import (
-	"fmt"
-	"sort"
-	"strings"
+	"io"
 
-	"github.com/scylladb/mermaid/uuid"
+	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 )
+
+func render(w io.Writer, d mermaidclient.TableRenderer) error {
+	return d.Render(w)
+}
 
 func register(cmd *cobra.Command, parent *cobra.Command) {
 	// fix defaults
@@ -25,39 +27,4 @@ func requireFlags(cmd *cobra.Command, flags ...string) {
 			panic(err)
 		}
 	}
-}
-
-func taskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
-	i := strings.LastIndex(s, "/")
-	if i != -1 {
-		taskType = s[:i]
-	}
-	taskID, err = uuid.Parse(s[i+1:])
-	return
-}
-
-func taskJoin(taskType string, taskID interface{}) string {
-	return fmt.Sprint(taskType, "/", taskID)
-}
-
-func dumpMap(m map[string]interface{}) string {
-	if len(m) == 0 {
-		return ""
-	}
-
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	s := make([]string, 0, len(m))
-	for _, k := range keys {
-		s = append(s, fmt.Sprint(k, ":", m[k]))
-	}
-	return strings.Join(s, ", ")
-}
-
-func formatPercent(p int64) string {
-	return fmt.Sprint(p, "%")
 }

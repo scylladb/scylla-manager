@@ -10,7 +10,21 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-func autoRepairTask(clusterID uuid.UUID) *sched.Task {
+func makeAutoHealthCheckTask(clusterID uuid.UUID) *sched.Task {
+	return &sched.Task{
+		ClusterID: clusterID,
+		Type:      sched.HealthCheckTask,
+		Enabled:   true,
+		Sched: sched.Schedule{
+			Interval:   sched.Duration(15 * time.Second),
+			StartDate:  timeutc.Now().Add(30 * time.Second),
+			NumRetries: 0,
+		},
+		Properties: []byte{'{', '}'},
+	}
+}
+
+func makeAutoRepairTask(clusterID uuid.UUID) *sched.Task {
 	return &sched.Task{
 		ClusterID: clusterID,
 		Type:      sched.RepairTask,

@@ -107,7 +107,7 @@ func (c Client) DeleteCluster(ctx context.Context, clusterID string) error {
 }
 
 // ListClusters returns clusters.
-func (c Client) ListClusters(ctx context.Context) ([]*Cluster, error) {
+func (c Client) ListClusters(ctx context.Context) (ClusterSlice, error) {
 	resp, err := c.operations.GetClusters(&operations.GetClustersParams{
 		Context: ctx,
 	})
@@ -130,7 +130,22 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID str
 		return nil, err
 	}
 
-	return resp.Payload, nil
+	return &RepairProgress{
+		RepairProgress: resp.Payload,
+	}, nil
+}
+
+// ClusterStatus returns health check progress.
+func (c Client) ClusterStatus(ctx context.Context, clusterID string) (ClusterStatus, error) {
+	resp, err := c.operations.GetClusterClusterIDStatus(&operations.GetClusterClusterIDStatusParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ClusterStatus(resp.Payload), nil
 }
 
 // Version returns server version.
@@ -187,7 +202,7 @@ func (c *Client) GetTask(ctx context.Context, clusterID, taskType string, taskID
 }
 
 // GetTaskHistory returns a run history of task of a given type and task ID.
-func (c *Client) GetTaskHistory(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, limit int64) ([]*TaskRun, error) {
+func (c *Client) GetTaskHistory(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, limit int64) (TaskRunSlice, error) {
 	params := &operations.GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -261,7 +276,7 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID, taskType string, tas
 }
 
 // ListTasks returns uled tasks within a clusterID, optionaly filtered by task type tp.
-func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string) ([]*ExtendedTask, error) {
+func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string) (ExtendedTasks, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -270,8 +285,12 @@ func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all 
 		Status:    &status,
 	})
 	if err != nil {
-		return nil, err
+		return ExtendedTasks{}, err
 	}
 
-	return resp.Payload, nil
+	et := ExtendedTasks{
+		All: all,
+	}
+	et.ExtendedTaskSlice = resp.Payload
+	return et, nil
 }

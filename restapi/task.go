@@ -26,6 +26,7 @@ import (
 type SchedService interface {
 	GetTask(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType, idOrName string) (*sched.Task, error)
 	PutTask(ctx context.Context, t *sched.Task) error
+	PutTaskOnce(ctx context.Context, t *sched.Task) error
 	DeleteTask(ctx context.Context, t *sched.Task) error
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
 	StartTask(ctx context.Context, t *sched.Task, opts runner.Opts) error
@@ -206,14 +207,23 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
-		respondError(w, r, err, "failed to create repair target")
-		return
+	if newTask.Type == sched.RepairTask {
+		if _, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
+			respondError(w, r, err, "failed to create repair target")
+			return
+		}
 	}
 
-	if err := h.schedSvc.PutTask(r.Context(), newTask); err != nil {
-		respondError(w, r, err, "failed to create task")
-		return
+	if newTask.Type == sched.HealthCheckTask {
+		if err := h.schedSvc.PutTaskOnce(r.Context(), newTask); err != nil {
+			respondError(w, r, err, "failed to create task")
+			return
+		}
+	} else {
+		if err := h.schedSvc.PutTask(r.Context(), newTask); err != nil {
+			respondError(w, r, err, "failed to create task")
+			return
+		}
 	}
 
 	taskURL := r.URL.ResolveReference(&url.URL{Path: path.Join("task", newTask.Type.String(), newTask.ID.String())})
@@ -317,11 +327,17 @@ func (h *taskHandler) taskProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prog, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, runID)
-	if err != nil {
-		respondError(w, r, err, "failed to load repair run progress")
+	switch t.Type {
+	case sched.RepairTask:
+		prog, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, runID)
+		if err != nil {
+			respondError(w, r, err, "failed to load repair run progress")
+			return
+		}
+		render.Respond(w, r, prog)
+		return
+	default:
+		respondBadRequest(w, r, errors.Errorf("unsupported task type %s", t.Type))
 		return
 	}
-
-	render.Respond(w, r, prog)
 }

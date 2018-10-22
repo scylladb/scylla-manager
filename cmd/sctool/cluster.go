@@ -72,10 +72,10 @@ var clusterAddCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if len(tasks) > 0 {
-			s := tasks[0].Schedule
+		if len(tasks.ExtendedTaskSlice) > 0 {
+			s := tasks.ExtendedTaskSlice[0].Schedule
 			w := cmd.OutOrStderr()
-			fmt.Fprintf(w, clipper, id, formatTime(s.StartDate), s.Interval, id)
+			fmt.Fprintf(w, clipper, id, mermaidclient.FormatTime(s.StartDate), s.Interval, id)
 		}
 
 		return nil
@@ -170,14 +170,7 @@ var clusterListCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-
-		t := newTable("cluster id", "name", "host", "ssh user")
-		for _, c := range clusters {
-			t.AddRow(c.ID, c.Name, c.Host, c.SSHUser)
-		}
-		fmt.Fprint(cmd.OutOrStdout(), t)
-
-		return nil
+		return render(cmd.OutOrStdout(), clusters)
 	},
 }
 

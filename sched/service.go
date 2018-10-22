@@ -517,6 +517,36 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 	}
 }
 
+// PutTaskOnce upserts a task. Only one task of the same type can exist for the current cluster.
+// If attempting to create a task of the same type a validation error is returned.
+// The task instance must pass Validate() checks.
+func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
+	s.logger.Debug(ctx, "PutTaskOnce", "task", t)
+
+	if err := t.Validate(); err != nil {
+		return err
+	}
+
+	hs, err := s.ListTasks(ctx, t.ClusterID, t.Type)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create health check for cluster %s", t.ClusterID)
+	}
+
+	if len(hs) == 0 {
+		// Create a new task
+		return s.PutTask(ctx, t)
+	}
+
+	for _, h := range hs {
+		if h.ID == t.ID {
+			// Update an existing task
+			return s.PutTask(ctx, t)
+		}
+	}
+
+	return mermaid.ErrValidate(errors.Errorf("a task of type %s exists for cluster %s", t.Type, t.ClusterID), "")
+}
+
 // PutTask upserts a task, the task instance must pass Validate() checks.
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "PutTask", "task", t)

@@ -75,6 +75,11 @@ func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp sc
 	}, nil
 }
 
+// Runner creates an runner.Runner instance that handles repairs.
+func (s *Service) Runner() runner.Runner {
+	return repairRunner{service: s}
+}
+
 func (s *Service) tryLockCluster(run *Run) error {
 	s.activeMu.Lock()
 	defer s.activeMu.Unlock()

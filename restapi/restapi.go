@@ -19,9 +19,10 @@ func init() {
 
 // Services contains REST API services.
 type Services struct {
-	Cluster   ClusterService
-	Repair    RepairService
-	Scheduler SchedService
+	Cluster     ClusterService
+	HealthCheck HealthCheckService
+	Repair      RepairService
+	Scheduler   SchedService
 }
 
 // New returns an http.Handler implementing mermaid v1 REST API.
@@ -37,9 +38,11 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	)
 
 	r.Get("/api/v1/version", newVersionHandler())
-
 	r.Mount("/api/v1/", newClusterHandler(svc.Cluster))
-	r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).Mount("/api/v1/cluster/{cluster_id}/", newTaskHandler(svc.Scheduler, svc.Repair))
+	r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
+		Mount("/api/v1/cluster/{cluster_id}/status", newStatusHandler(svc.Cluster, svc.HealthCheck))
+	r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
+		Mount("/api/v1/cluster/{cluster_id}/", newTaskHandler(svc.Scheduler, svc.Repair))
 
 	// NotFound registered last due to https://github.com/go-chi/chi/issues/297
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {

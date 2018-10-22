@@ -4,10 +4,10 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -68,36 +68,18 @@ var taskListCmd = &cobra.Command{
 					fmt.Fprintln(w, c.ID)
 				}
 			}
-
 			tasks, err := client.ListTasks(ctx, c.ID, taskType, all, status)
 			if err != nil {
 				return printableError{err}
 			}
-			printTasks(w, tasks, all)
+
+			if err := render(w, tasks); err != nil {
+				return printableError{err}
+			}
 		}
 
 		return nil
 	},
-}
-
-func printTasks(w io.Writer, tasks []*mermaidclient.ExtendedTask, all bool) {
-	p := newTable("task", "next run", "ret.", "properties", "status")
-	for _, t := range tasks {
-		id := taskJoin(t.Type, t.ID)
-		if all && !t.Enabled {
-			id = "*" + id
-		}
-		r := formatTime(t.NextActivation)
-		if t.Schedule.Interval != "" {
-			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
-		}
-		s := t.Status
-		if t.Cause != "" {
-			s += " " + t.Cause
-		}
-		p.AddRow(id, r, t.Schedule.NumRetries, dumpMap(t.Properties.(map[string]interface{})), s)
-	}
-	fmt.Fprint(w, p)
 }
 
 func init() {
@@ -117,7 +99,7 @@ var taskStartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := taskSplit(args[0])
+		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
 			return printableError{err}
 		}
@@ -149,7 +131,7 @@ var taskStopCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := taskSplit(args[0])
+		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
 			return printableError{err}
 		}
@@ -172,7 +154,7 @@ var taskHistoryCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := taskSplit(args[0])
+		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
 			return printableError{err}
 		}
@@ -187,17 +169,7 @@ var taskHistoryCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		t := newTable("id", "start time", "end time", "duration", "status")
-		for _, r := range runs {
-			s := r.Status
-			if r.Cause != "" {
-				s += " " + r.Cause
-			}
-			t.AddRow(r.ID, formatTime(r.StartTime), formatTime(r.EndTime), formatDuration(r.StartTime, r.EndTime), s)
-		}
-		fmt.Fprint(cmd.OutOrStdout(), t)
-
-		return nil
+		return render(cmd.OutOrStdout(), runs)
 	},
 }
 
@@ -215,7 +187,7 @@ var taskUpdateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := taskSplit(args[0])
+		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
 			return printableError{err}
 		}
@@ -245,7 +217,7 @@ var taskUpdateCmd = &cobra.Command{
 			changed = true
 		}
 		if f := cmd.Flag("start-date"); f.Changed {
-			startDate, err := parseStartDate(f.Value.String())
+			startDate, err := mermaidclient.ParseStartDate(f.Value.String())
 			if err != nil {
 				return printableError{err}
 			}
@@ -297,7 +269,7 @@ var taskDeleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := taskSplit(args[0])
+		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
 			return printableError{err}
 		}
@@ -323,11 +295,13 @@ var taskProgressCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		w := cmd.OutOrStdout()
 
-		taskType, taskID, err := taskSplit(args[0])
+		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
 			return printableError{err}
 		}
-		if taskType != "repair" {
+
+		taskTypes := strset.New("repair", "healthcheck")
+		if !taskTypes.Has(taskType) {
 			return printableError{errors.Errorf("unexpected task type %q", taskType)}
 		}
 
@@ -346,90 +320,19 @@ var taskProgressCmd = &cobra.Command{
 		}
 		run := hist[0]
 
-		p := newTable()
-		addProgressHeader(p, run)
-
 		prog, err := client.RepairProgress(ctx, cfgCluster, t.ID, run.ID)
 		if err != nil {
 			return printableError{err}
 		}
+		prog.Run = run
 
-		addRepairProgressHeader(p, prog)
-		p.AddSeparator()
-		addRepairUnitProgress(p, prog)
-		if _, err := w.Write([]byte(p.String())); err != nil {
-			return printableError{err}
-		}
-
-		details, err := cmd.Flags().GetBool("details")
+		prog.Detailed, err = cmd.Flags().GetBool("details")
 		if err != nil {
 			return printableError{err}
 		}
-		if details {
-			d := newTable()
-			for i, u := range prog.Units {
-				if i > 0 {
-					d.AddSeparator()
-				}
-				d.AddRow(u.Unit.Keyspace, "shard", "progress", "segment_count", "segment_success", "segment_error")
-				if len(u.Nodes) > 0 {
-					d.AddSeparator()
-					addRepairUnitDetailedProgress(d, u)
-				}
-			}
-			if _, err := w.Write([]byte(d.String())); err != nil {
-				return printableError{err}
-			}
-		}
 
-		return nil
+		return render(w, prog)
 	},
-}
-
-func addProgressHeader(t *table, run *mermaidclient.TaskRun) {
-	t.AddRow("Status", run.Status)
-	if run.Cause != "" {
-		t.AddRow("Cause", run.Cause)
-	}
-	t.AddRow("Start time", formatTime(run.StartTime))
-	if !isZero(run.EndTime) {
-		t.AddRow("End time", formatTime(run.EndTime))
-	}
-	t.AddRow("Duration", formatDuration(run.StartTime, run.EndTime))
-}
-
-func addRepairProgressHeader(t *table, prog *mermaidclient.RepairProgress) {
-	t.AddRow("Progress", formatPercent(prog.PercentComplete))
-	if len(prog.Dcs) > 0 {
-		t.AddRow("Datacenters", prog.Dcs)
-	}
-	if prog.Ranges != "" {
-		t.AddRow("Token ranges", prog.Ranges)
-	}
-}
-
-func addRepairUnitProgress(t *table, prog *mermaidclient.RepairProgress) {
-	for _, u := range prog.Units {
-		var se int64
-		for _, n := range u.Nodes {
-			for _, s := range n.Shards {
-				se += s.SegmentError
-			}
-		}
-		p := formatPercent(u.PercentComplete)
-		if se > 0 {
-			p += " (has errors)"
-		}
-		t.AddRow(u.Unit.Keyspace, p)
-	}
-}
-
-func addRepairUnitDetailedProgress(t *table, u *mermaidclient.RepairUnitProgress) {
-	for _, n := range u.Nodes {
-		for i, s := range n.Shards {
-			t.AddRow(n.Host, i, fmt.Sprintf("%d%%", s.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
-		}
-	}
 }
 
 func init() {

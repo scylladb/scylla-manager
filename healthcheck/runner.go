@@ -13,41 +13,12 @@ import (
 	"github.com/scylladb/mermaid/internal/cqlping"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/uuid"
 )
 
-var cqlStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-	Namespace: "scylla_manager",
-	Subsystem: "healthcheck",
-	Name:      "cql_status",
-	Help:      "Host native port status",
-}, []string{"cluster", "host"})
-
-var cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-	Namespace: "scylla_manager",
-	Subsystem: "cluster",
-	Name:      "cql_rtt_ms",
-	Help:      "Host native port RTT",
-}, []string{"cluster", "host"})
-
-func init() {
-	prometheus.MustRegister(
-		cqlStatus,
-		cqlRTT,
-	)
-}
-
-// Runner runs health checks.
-type Runner struct {
+type healthCheckRunner struct {
 	cluster cluster.ProviderFunc
 	client  scyllaclient.ProviderFunc
-}
-
-// NewRunner creates new Runner.
-func NewRunner(cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc) *Runner {
-	return &Runner{
-		cluster: cp,
-		client:  sp,
-	}
 }
 
 type hostRTT struct {
@@ -57,21 +28,11 @@ type hostRTT struct {
 }
 
 // Run implements runner.Runner.
-func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
+func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
 	// get cluster name
-	c, err := r.cluster(ctx, d.ClusterID)
+	c, hosts, err := r.getClusterAndHosts(ctx, d.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "invalid cluster")
-	}
-
-	client, err := r.client(ctx, d.ClusterID)
-	if err != nil {
-		return errors.Wrap(err, "failed to get client proxy")
-	}
-
-	hosts, err := client.Hosts(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to get hosts")
 	}
 
 	out := make(chan hostRTT, runtime.NumCPU()+1)
@@ -88,8 +49,8 @@ func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Propertie
 		v := <-out
 
 		l := prometheus.Labels{
-			"cluster": c.String(),
-			"host":    v.host,
+			clusterKey: c.String(),
+			hostKey:    v.host,
 		}
 
 		if v.err != nil {
@@ -105,11 +66,30 @@ func (r Runner) Run(ctx context.Context, d runner.Descriptor, p runner.Propertie
 }
 
 // Stop implements runner.Runner.
-func (r Runner) Stop(ctx context.Context, d runner.Descriptor) error {
+func (r healthCheckRunner) Stop(ctx context.Context, d runner.Descriptor) error {
 	return nil
 }
 
 // Status implements runner.Runner.
-func (r Runner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
+func (r healthCheckRunner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
 	return runner.StatusDone, "", nil
+}
+
+func (r healthCheckRunner) getClusterAndHosts(ctx context.Context, clusterID uuid.UUID) (*cluster.Cluster, []string, error) {
+	c, err := r.cluster(ctx, clusterID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "invalid cluster")
+	}
+
+	client, err := r.client(ctx, clusterID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to get client proxy")
+	}
+
+	hosts, err := client.Hosts(ctx)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to get hosts")
+	}
+
+	return c, hosts, nil
 }

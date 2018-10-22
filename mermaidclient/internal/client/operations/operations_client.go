@@ -109,6 +109,34 @@ func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClu
 }
 
 /*
+GetClusterClusterIDStatus get cluster cluster ID status API
+*/
+func (a *Client) GetClusterClusterIDStatus(params *GetClusterClusterIDStatusParams) (*GetClusterClusterIDStatusOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDStatusParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDStatus",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/status",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDStatusReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterClusterIDStatusOK), nil
+
+}
+
+/*
 GetClusterClusterIDTaskRepairTaskIDRunIDProgress get cluster cluster ID task repair task ID run ID progress API
 */
 func (a *Client) GetClusterClusterIDTaskRepairTaskIDRunIDProgress(params *GetClusterClusterIDTaskRepairTaskIDRunIDProgressParams) (*GetClusterClusterIDTaskRepairTaskIDRunIDProgressOK, error) {

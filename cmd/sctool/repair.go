@@ -57,7 +57,7 @@ var repairCmd = &cobra.Command{
 		}
 
 		f := cmd.Flag("start-date")
-		startDate, err := parseStartDate(f.Value.String())
+		startDate, err := mermaidclient.ParseStartDate(f.Value.String())
 		if err != nil {
 			return printableError{err}
 		}
@@ -124,7 +124,7 @@ var repairCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		fmt.Fprintln(cmd.OutOrStdout(), taskJoin("repair", id))
+		fmt.Fprintln(cmd.OutOrStdout(), mermaidclient.TaskJoin("repair", id))
 
 		return nil
 	},

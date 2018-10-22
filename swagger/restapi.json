@@ -55,6 +55,23 @@
         }
       }
     },
+    "clusterStatus": {
+      "type": "array",
+      "items": {
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "cql_status": {
+            "type": "string"
+          },
+          "cql_rtt_ms": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      }
+    },
     "repairProgress": {
       "type": "object",
       "properties": {
@@ -387,6 +404,27 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "description": "cluster ID this API is performing on",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "the ping statuses of the hosts that are part of the cluster",
+            "schema": {
+              "$ref": "#/definitions/clusterStatus"
+            }
           }
         }
       }

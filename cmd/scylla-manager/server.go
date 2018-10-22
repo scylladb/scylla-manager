@@ -28,6 +28,7 @@ type server struct {
 	logger  log.Logger
 
 	clusterSvc *cluster.Service
+	healthSvc  *healthcheck.Service
 	repairSvc  *repair.Service
 	schedSvc   *sched.Service
 
@@ -77,6 +78,7 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "cluster service")
 	}
 	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
+	s.healthSvc = healthcheck.NewService(s.clusterSvc.GetClusterByID, s.clusterSvc.Client, s.logger.Named("healthcheck"))
 
 	s.repairSvc, err = repair.NewService(
 		s.session,
@@ -99,16 +101,19 @@ func (s *server) makeServices() error {
 	}
 
 	// register runners
-	s.schedSvc.SetRunner(sched.HealthCheckTask, healthcheck.NewRunner(s.clusterSvc.GetClusterByID, s.clusterSvc.Client))
-	s.schedSvc.SetRunner(sched.RepairTask, repair.Runner{Service: s.repairSvc})
+	s.schedSvc.SetRunner(sched.HealthCheckTask, s.healthSvc.Runner())
+	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc.Runner())
 
 	return nil
 }
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	if c.Type == cluster.Create {
-		if err := s.schedSvc.PutTask(ctx, autoRepairTask(c.ID)); err != nil {
-			return errors.Wrap(err, "failed to add scheduled tasks")
+		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckTask(c.ID)); err != nil {
+			return errors.Wrap(err, "failed to add automatically scheduled health check")
+		}
+		if err := s.schedSvc.PutTask(ctx, makeAutoRepairTask(c.ID)); err != nil {
+			return errors.Wrap(err, "failed to add automatically scheduled weekly repair")
 		}
 	}
 
@@ -117,9 +122,10 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 
 func (s *server) makeHTTPServers() {
 	h := restapi.New(&restapi.Services{
-		Cluster:   s.clusterSvc,
-		Repair:    s.repairSvc,
-		Scheduler: s.schedSvc,
+		Cluster:     s.clusterSvc,
+		HealthCheck: s.healthSvc,
+		Repair:      s.repairSvc,
+		Scheduler:   s.schedSvc,
 	}, s.logger.Named("restapi"))
 
 	if s.config.HTTP != "" {
