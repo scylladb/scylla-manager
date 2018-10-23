@@ -169,17 +169,17 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 		"activation", activation,
 	)
 
-	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
-
-	doneCh := make(chan struct{})
 	s.tasksMu.Lock()
-	defer s.tasksMu.Unlock()
-
 	if s.closed {
+		s.tasksMu.Unlock()
 		s.logger.Debug(ctx, "Service closed, not re-scheduling", "task", t)
 		return
 	}
+
+	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
+	doneCh := make(chan struct{})
 	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t, doneCh) })
+
 	s.tasks[t.ID] = cancelableTrigger{
 		timer: timer,
 		cancel: func() {
@@ -190,6 +190,7 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 		},
 		done: doneCh,
 	}
+	s.tasksMu.Unlock()
 }
 
 func (s *Service) reschedTask(ctx context.Context, t *Task, run *Run, done chan struct{}) {
@@ -368,41 +369,43 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 	}
 	s.cancelTask(t)
 
+	s.tasksMu.Lock()
+	if s.closed {
+		s.tasksMu.Unlock()
+		return errors.New("scheduler closed, please check the server status and logs")
+	}
+
 	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
 	triggerCtx = runner.WithOpts(triggerCtx, opts)
 	doneCh := make(chan struct{})
 
-	s.tasksMu.Lock()
-	if s.closed {
-		s.tasksMu.Unlock()
-		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
-		return errors.New("scheduler closed, please check the server status and logs")
-	}
 	s.tasks[t.ID] = cancelableTrigger{
 		cancel: cancel,
 		done:   doneCh,
 	}
-	go s.execTrigger(triggerCtx, t, doneCh)
 	s.tasksMu.Unlock()
+
+	go s.execTrigger(triggerCtx, t, doneCh)
 
 	return nil
 }
 
 func (s *Service) cancelTask(t *Task) {
-	var doneCh chan struct{}
 	s.tasksMu.Lock()
-
 	if s.closed {
 		s.tasksMu.Unlock()
 		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
 		return
 	}
+
+	var doneCh chan struct{}
 	if trigger, ok := s.tasks[t.ID]; ok {
 		delete(s.tasks, t.ID)
 		doneCh = trigger.done
 		trigger.cancel()
 	}
 	s.tasksMu.Unlock()
+
 	if doneCh != nil {
 		<-doneCh
 	}
