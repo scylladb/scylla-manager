@@ -237,6 +237,7 @@ func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, tp *taskPrope
 	if len(filteredDCs) == 0 {
 		return nil, nil, mermaid.ErrValidate(errors.Errorf("no matching dc found for dc=%s", tp.DC), "")
 	}
+	sort.Strings(filteredDCs)
 
 	return filteredDCs, dcMap, nil
 }
