@@ -17,6 +17,7 @@ linters:
   disable:
   - gas
   - interfacer
+  - maligned
   - prealloc
 
 issues:
