@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/sched"
@@ -36,7 +37,7 @@ const (
 	monitorTaskInterval = 10 * time.Millisecond
 
 	// use ONLY retries < 5, this should be a safe margin
-	interval = sched.Duration(10 * retryTaskWait)
+	interval = duration.Duration(10 * retryTaskWait)
 )
 
 type schedTestHelper struct {
@@ -334,7 +335,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			Print("When: task is scheduled")
 			task := h.makeTask(sched.Schedule{
 				StartDate: now(),
-				Interval:  sched.Duration(10 * retryTaskWait),
+				Interval:  duration.Duration(10 * retryTaskWait),
 			})
 			if err := h.service.PutTask(ctx, task); err != nil {
 				t.Fatal(err)

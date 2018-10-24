@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package sched
+package duration
 
 import (
 	"testing"
@@ -79,11 +79,23 @@ func TestDurationUnmarshalTextZero(t *testing.T) {
 	}
 }
 
-func TestDurationUnmarshalTextAlignSeconds(t *testing.T) {
+func TestDurationUnmarshalTextBelowSeconds(t *testing.T) {
 	t.Parallel()
 
 	var d Duration
-	if err := d.UnmarshalText([]byte("1500ms")); err == nil {
+	if err := d.UnmarshalText([]byte("150ms")); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestDurationUnmarshalTextDays(t *testing.T) {
+	t.Parallel()
+
+	var d Duration
+	if err := d.UnmarshalText([]byte("7d")); err != nil {
+		t.Fatal(err)
+	}
+	if d.Duration() != 7*24*time.Hour {
+		t.Fatal("expected 7 days, got", d)
 	}
 }

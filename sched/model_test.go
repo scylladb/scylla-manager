@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
@@ -15,7 +16,7 @@ import (
 func makeSchedule(startDate time.Time, intervalDays, numRetries int) Schedule {
 	return Schedule{
 		StartDate:  startDate,
-		Interval:   Duration(time.Duration(intervalDays) * 24 * time.Hour),
+		Interval:   duration.Duration(time.Duration(intervalDays) * 24 * time.Hour),
 		NumRetries: numRetries,
 	}
 }

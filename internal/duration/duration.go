@@ -1,20 +1,15 @@
 // Copyright (C) 2017 ScyllaDB
 
-package sched
+package duration
 
 import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/pkg/errors"
 )
 
 // Duration adds marshalling to time.Duration.
 type Duration time.Duration
-
-func (d Duration) String() string {
-	return time.Duration(d).String()
-}
 
 // MarshalCQL implements gocql.Marshaler.
 func (d Duration) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
@@ -46,14 +41,11 @@ func (d *Duration) UnmarshalText(b []byte) error {
 		return nil
 	}
 
-	t, err := time.ParseDuration(string(b))
+	t, err := ParseDuration(string(b))
 	if err != nil {
 		return err
 	}
-	if t%time.Second != 0 {
-		return errors.New("must be aligned to seconds")
-	}
-	*d = Duration(t)
+	*d = t
 	return nil
 }
 

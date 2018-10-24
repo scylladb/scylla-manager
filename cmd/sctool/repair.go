@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 )
@@ -63,11 +64,14 @@ var repairCmd = &cobra.Command{
 		}
 		t.Schedule.StartDate = startDate
 
-		d, err := cmd.Flags().GetDuration("interval")
+		i, err := cmd.Flags().GetString("interval")
 		if err != nil {
 			return printableError{err}
 		}
-		t.Schedule.Interval = d.String()
+		if _, err := duration.ParseDuration(i); err != nil {
+			return printableError{err}
+		}
+		t.Schedule.Interval = i
 
 		t.Schedule.NumRetries, err = cmd.Flags().GetInt64("num-retries")
 		if err != nil {

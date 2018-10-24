@@ -11,6 +11,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/multierr"
@@ -59,9 +60,9 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 
 // Schedule defines a periodic schedule.
 type Schedule struct {
-	StartDate  time.Time `json:"start_date"`
-	Interval   Duration  `json:"interval" db:"interval_seconds"`
-	NumRetries int       `json:"num_retries"`
+	StartDate  time.Time         `json:"start_date"`
+	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
+	NumRetries int               `json:"num_retries"`
 }
 
 // MarshalUDT implements UDTMarshaler.

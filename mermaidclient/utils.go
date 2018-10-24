@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -45,17 +46,17 @@ func ParseStartDate(value string) (strfmt.DateTime, error) {
 	}
 
 	if strings.HasPrefix(value, "now") {
-		d, err := time.ParseDuration(value[3:])
+		d, err := duration.ParseDuration(value[3:])
 		if err != nil {
 			return strfmt.DateTime{}, err
 		}
 		if d < 0 {
 			return strfmt.DateTime(time.Time{}), errors.New("start date cannot be in the past")
 		}
-		if d < nowSafety {
+		if d.Duration() < nowSafety {
 			return strfmt.DateTime(time.Time{}), errors.Errorf("start date must be at least in %s", nowSafety)
 		}
-		return strfmt.DateTime(now.Add(d)), nil
+		return strfmt.DateTime(now.Add(d.Duration())), nil
 	}
 
 	// No more heuristics, assume the user passed a date formatted string

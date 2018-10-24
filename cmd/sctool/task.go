@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -225,11 +226,14 @@ var taskUpdateCmd = &cobra.Command{
 			changed = true
 		}
 		if f := cmd.Flag("interval"); f.Changed {
-			d, err := cmd.Flags().GetDuration("interval")
+			i, err := cmd.Flags().GetString("interval")
 			if err != nil {
 				return printableError{err}
 			}
-			t.Schedule.Interval = d.String()
+			if _, err := duration.ParseDuration(i); err != nil {
+				return printableError{err}
+			}
+			t.Schedule.Interval = i
 			changed = true
 		}
 		if f := cmd.Flag("num-retries"); f.Changed {
