@@ -22,7 +22,6 @@ import (
 func TestCopySSHInfoToClusterAfter006Integration(t *testing.T) {
 	saveRegister()
 	defer restoreRegister()
-
 	session := CreateSessionWithoutMigration(t)
 
 	Print("Given: config files")
@@ -51,39 +50,43 @@ ssh:
 		t.Fatal(err)
 	}
 
-	Print("And: clusters")
-	h := copySSHInfoToCluster006{
-		oldConfigFile: oldConfigFile,
-		dir:           dir,
-	}
 	registerMigrationCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+		Print("And: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id) VALUES (uuid())`
 		ExecStmt(t, session, insertClusterCql)
-		return h.After(ctx, session, logger)
+
+		Print("When: migrate")
+		h := copySSHInfoToCluster006{
+			oldConfigFile: oldConfigFile,
+			dir:           dir,
+		}
+		if err := h.After(ctx, session, logger); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: SSH user is added")
+		stmt, _ := qb.Select("cluster").Columns("id", "ssh_user").ToCql()
+		q := session.Query(stmt)
+		var (
+			id      uuid.UUID
+			sshUser string
+		)
+		if err := q.Scan(&id, &sshUser); err != nil {
+			t.Fatal(err)
+		}
+		q.Release()
+		if sshUser != "user" {
+			t.Fatal(sshUser)
+		}
+
+		Print("And: file exists")
+		if _, err := os.Stat(filepath.Join(dir, id.String())); err != nil {
+			t.Fatal(err)
+		}
+		return nil
 	})
 
-	Print("When: migrate")
 	if err := migrate.Migrate(context.Background(), session, "."); err != nil {
 		t.Fatal("migrate:", err)
-	}
-
-	Print("Then: SSH user is added")
-	stmt, _ := qb.Select("cluster").Columns("id", "ssh_user").ToCql()
-	q := session.Query(stmt)
-	var (
-		id      uuid.UUID
-		sshUser string
-	)
-	if err := q.Scan(&id, &sshUser); err != nil {
-		t.Fatal(err)
-	}
-	q.Release()
-	if sshUser != "user" {
-		t.Fatal(sshUser)
-	}
-
-	Print("And: file exists")
-	if _, err := os.Stat(filepath.Join(dir, id.String())); err != nil {
-		t.Fatal(err)
 	}
 }
