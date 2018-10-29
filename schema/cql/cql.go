@@ -26,7 +26,7 @@ type nameEvent struct {
 
 var (
 	register = make(map[nameEvent]callback)
-	lock     = &sync.Mutex{}
+	lock     = sync.Mutex{}
 )
 
 func registerMigrationCallback(name string, ev migrate.CallbackEvent, f callback) {
@@ -36,14 +36,13 @@ func registerMigrationCallback(name string, ev migrate.CallbackEvent, f callback
 }
 
 func migrationCallback(name string, ev migrate.CallbackEvent) callback {
+	lock.Lock()
+	defer lock.Unlock()
 	return register[nameEvent{name, ev}]
 }
 
 // MigrateCallback is the main callback dispatcher we use for custom migrations.
 func MigrateCallback(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
-	lock.Lock()
-	defer lock.Unlock()
-
 	if f := migrationCallback(name, ev); f != nil {
 		l := Logger.With("event", ev, "migration", name)
 		l.Debug(ctx, "Start")
