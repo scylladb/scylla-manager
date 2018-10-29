@@ -31,12 +31,11 @@ func TestCreateDefaultRepairTaskForClusterAfter008Integration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		Print("When: migrate")
+		Print("Then: tasks are created")
 		const countSchedulerTask = `SELECT COUNT(*) FROM scheduler_task`
 		q := session.Query(countSchedulerTask)
 		defer q.Release()
 
-		Print("Then: tasks are created")
 		var count int
 		if err := q.Scan(&count); err != nil {
 			t.Fatal(err)

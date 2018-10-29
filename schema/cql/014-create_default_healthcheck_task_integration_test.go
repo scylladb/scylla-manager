@@ -17,7 +17,6 @@ import (
 func TestCreateDefaultHealthCheckTaskForClusterAfter013Integration(t *testing.T) {
 	saveRegister()
 	defer restoreRegister()
-
 	session := CreateSessionWithoutMigration(t)
 
 	cb := migrationCallback("013-update_ttl.cql", migrate.AfterMigration)

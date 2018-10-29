@@ -20,15 +20,20 @@ func TestClusterMoveHostsToHost011IntegrationTest(t *testing.T) {
 	defer restoreRegister()
 	session := CreateSessionWithoutMigration(t)
 
-	cb := migrationCallback("011-cluster_add_host.cql", migrate.BeforeMigration)
+	cbBefore := migrationCallback("011-cluster_add_host.cql", migrate.BeforeMigration)
 	registerMigrationCallback("011-cluster_add_host.cql", migrate.BeforeMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 		Print("Given: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id, hosts) VALUES (uuid(), {'host0', 'host1'})`
 		ExecStmt(t, session, insertClusterCql)
 		ExecStmt(t, session, insertClusterCql)
 
+		return cbBefore(ctx, session, logger)
+	})
+
+	cbAfter := migrationCallback("011-cluster_add_host.cql", migrate.AfterMigration)
+	registerMigrationCallback("011-cluster_add_host.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 		Print("When: migrate")
-		if err := cb(ctx, session, logger); err != nil {
+		if err := cbAfter(ctx, session, logger); err != nil {
 			t.Fatal(err)
 		}
 
@@ -50,5 +55,4 @@ func TestClusterMoveHostsToHost011IntegrationTest(t *testing.T) {
 	if err := migrate.Migrate(context.Background(), session, "."); err != nil {
 		t.Fatal("migrate:", err)
 	}
-
 }

@@ -54,6 +54,10 @@ func (h clusterMoveHostsToHost011) After(ctx context.Context, session *gocql.Ses
 		if err := q.Bind(id, host).Exec(); err != nil {
 			return err
 		}
+		// Ensure the state is cleared, when reran in integration tests,
+		// it shall not insert any clusters.
+		delete(h.m, id)
 	}
+
 	return nil
 }
