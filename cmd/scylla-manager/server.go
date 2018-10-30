@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
 	"github.com/scylladb/mermaid/schema"
+	"go.uber.org/multierr"
 )
 
 type server struct {
@@ -108,12 +109,26 @@ func (s *server) makeServices() error {
 }
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
-	if c.Type == cluster.Create {
+
+	switch c.Type {
+	case cluster.Create:
 		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckTask(c.ID)); err != nil {
-			return errors.Wrap(err, "failed to add automatically scheduled health check")
+			return errors.Wrapf(err, "failed to add automatically scheduled health check for cluster %s", c.ID)
 		}
 		if err := s.schedSvc.PutTask(ctx, makeAutoRepairTask(c.ID)); err != nil {
-			return errors.Wrap(err, "failed to add automatically scheduled weekly repair")
+			return errors.Wrapf(err, "failed to add automatically scheduled weekly repair for cluster %s", c.ID)
+		}
+	case cluster.Delete:
+		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, "")
+		if err != nil {
+			return errors.Wrapf(err, "failed to find this cluster %s tasks", c.ID)
+		}
+		var errs error
+		for _, t := range tasks {
+			errs = multierr.Append(errs, s.schedSvc.DeleteTask(ctx, t))
+		}
+		if errs != nil {
+			return errors.Wrapf(errs, "failed to remove cluster %s tasks", c.ID)
 		}
 	}
 
