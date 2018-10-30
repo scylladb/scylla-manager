@@ -16,7 +16,7 @@ import (
 
 func taskInitCommonFlags(fs *pflag.FlagSet) {
 	fs.StringP("start-date", "s", "now", "task start date in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
-	fs.StringP("interval", "i", "", "task schedule interval e.g. 3d2h10m, valid units are d, h, m, s")
+	fs.StringP("interval", "i", "0", "task schedule interval e.g. 3d2h10m, valid units are d, h, m, s")
 	fs.Int64P("num-retries", "r", 3, "task schedule number of retries")
 }
 
