@@ -523,6 +523,13 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "PutTaskOnce", "task", t)
 
+	if t != nil && t.ID == uuid.Nil {
+		var err error
+		if t.ID, err = uuid.NewRandom(); err != nil {
+			return errors.Wrap(err, "couldn't generate random UUID for task")
+		}
+	}
+
 	if err := t.Validate(); err != nil {
 		return err
 	}
