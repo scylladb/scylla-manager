@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const docsVersion = "1.2"
+const docsVersion = "1.3"
 
 func docsURL(urlPath string) string {
 	return "https://docs.scylladb.com/operating-scylla/manager/" + docsVersion + urlPath
