@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
@@ -304,9 +303,9 @@ var taskProgressCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		taskTypes := strset.New("repair", "healthcheck")
-		if !taskTypes.Has(taskType) {
-			return printableError{errors.Errorf("unexpected task type %q", taskType)}
+		if taskType == "healthcheck" {
+			w.Write([]byte("Use: sctool status -c " + cfgCluster + "\n"))
+			return statusCmd.RunE(statusCmd, nil)
 		}
 
 		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
