@@ -304,7 +304,7 @@ var taskProgressCmd = &cobra.Command{
 		}
 
 		if taskType == "healthcheck" {
-			w.Write([]byte("Use: sctool status -c " + cfgCluster + "\n"))
+			w.Write([]byte("Use: sctool status -c " + cfgCluster + "\n")) // nolint: errcheck
 			return statusCmd.RunE(statusCmd, nil)
 		}
 
