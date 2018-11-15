@@ -195,7 +195,11 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 
 	t.AddHeaders("Host", "Status", "RTT (ms)")
 	for _, s := range cs {
-		t.AddRow(s.Host, s.CqlStatus, s.CqlRttMs)
+		if s.CqlStatus == "DOWN" {
+			t.AddRow(s.Host, s.CqlStatus, "N/A")
+		} else {
+			t.AddRow(s.Host, s.CqlStatus, fmt.Sprintf("%.2f", s.CqlRttMs))
+		}
 	}
 
 	if _, err := w.Write([]byte(t.String())); err != nil {
