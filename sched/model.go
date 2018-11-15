@@ -3,12 +3,12 @@
 package sched
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/duration"
@@ -187,6 +187,12 @@ func (t *Task) Validate() error {
 	}
 	if t.Sched.NumRetries < 0 {
 		errs = multierr.Append(errs, errors.New("negative num retries"))
+	}
+	// The Interval has to be greater than at least twice the time that retries can be applied for.
+	// I.e. Interval > NumRetries*retryTaskWait*2
+	if t.Sched.Interval.Duration() > 0 && !(t.Sched.Interval.Duration() > time.Duration(t.Sched.NumRetries)*retryTaskWait*2) {
+		errs = multierr.Append(errs, errors.Errorf("a task with %d retries needs to have interval greater than %s",
+			t.Sched.NumRetries, time.Duration(t.Sched.NumRetries)*retryTaskWait*2))
 	}
 	if t.Sched.StartDate.IsZero() {
 		errs = multierr.Append(errs, errors.New("missing start date"))
