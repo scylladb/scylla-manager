@@ -15,8 +15,9 @@ import (
 	"github.com/scylladb/gocqlx/reflectx"
 )
 
-// CompileNamedQuery compiles a named query into an unbound query using the
-// '?' bindvar and a list of names.
+// CompileNamedQuery translates query with named parameters in a form
+// ':<identifier>' to query with '?' placeholders and a list of parameter names.
+// If you need to use ':' in a query, i.e. with maps or UDTs use '::' instead.
 func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 	// guess number of names
 	n := bytes.Count(qs, []byte(":"))
@@ -236,4 +237,11 @@ func (q *Queryx) Select(dest interface{}) error {
 func (q *Queryx) SelectRelease(dest interface{}) error {
 	defer q.Release()
 	return q.Select(dest)
+}
+
+// Iter returns Iterx instance for the query. It should be used when data is too
+// big to be loaded with Select in order to do row by row iteration.
+// See Iterx StructScan function.
+func (q *Queryx) Iter() *Iterx {
+	return Iter(q.Query)
 }

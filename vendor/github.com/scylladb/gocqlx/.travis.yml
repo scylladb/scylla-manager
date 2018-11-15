@@ -1,6 +1,7 @@
+sudo: true
 language: go
 go:
-  - 1.x
+  - 1.11.1
 
 env:
   global:
@@ -8,8 +9,6 @@ env:
   matrix:
     - DB="scylla"
     - DB="cassandra"
-
-sudo: true
 
 dist: trusty
 addons:
@@ -21,8 +20,7 @@ before_install:
   - ./.travis_start_db.sh
 
 install:
-  - make get-deps
-  - make get-tools
+  - make get-deps get-tools
 
 script:
   - make

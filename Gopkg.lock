@@ -382,17 +382,18 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:f009dfd6caac3e6b7b99949aa7e5e46d86abc24afe7c9ab14cf76187e683e3d6"
+  digest = "1:e0b8bba3f01a40f8c929914a4a3d55c29d980d484ab98588d644f760278ceefe"
   name = "github.com/scylladb/gocqlx"
   packages = [
     ".",
     "migrate",
     "qb",
     "reflectx",
+    "table",
   ]
   pruneopts = "UT"
-  revision = "d5caed56c3077d57270f424d63df3e650f55801a"
-  version = "v1.0.0"
+  revision = "dcec9d031fb594a4bc470473d1c98d33656f93e6"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -559,6 +560,7 @@
     "github.com/scylladb/gocqlx",
     "github.com/scylladb/gocqlx/migrate",
     "github.com/scylladb/gocqlx/qb",
+    "github.com/scylladb/gocqlx/table",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "go.uber.org/atomic",
