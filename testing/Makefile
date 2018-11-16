@@ -14,9 +14,9 @@ up: ## Start docker containers
 	@echo "==> Starting containers"
 	@$(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
-	@until $(CQLSH) 192.168.51.11 -e "DESCRIBE SCHEMA" &> /dev/null; do sleep 1; done
+	@until $(CQLSH) 192.168.100.11 -e "DESCRIBE SCHEMA" &> /dev/null; do sleep 1; done
 	@echo "==> Creating tables"
-	@$(CQLSH) 192.168.51.11 -f init.cql
+	@$(CQLSH) 192.168.100.11 -f init.cql
 	@echo "==> Installing root SSH key"
 	@./install_root_key
 	@echo "==> Installing scylla-manager SSH key"

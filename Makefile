@@ -72,7 +72,7 @@ unit-test: ## Run unit tests
 	@echo "==> Running tests (race)..."
 	@go test -cover -race ./...
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.51.11
+INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.100.11
 
 .PHONY: integration-test
 integration-test: ## Run integration tests
