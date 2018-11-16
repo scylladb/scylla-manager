@@ -360,6 +360,17 @@
   revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
 
 [[projects]]
+  branch = "master"
+  digest = "1:7ae23274d3e645fe5e8f3d627324ffa29d5870004ad0351f0dd4a28296f5805d"
+  name = "github.com/scylladb/go-log"
+  packages = [
+    ".",
+    "gocqllog",
+  ]
+  pruneopts = "UT"
+  revision = "46ca726e7c89debcfab01f9c4aded2d1b6d41618"
+
+[[projects]]
   digest = "1:f45446ccc56855d2633cdeae00a127663c6e072ed4e1936f5810c3ec487511a1"
   name = "github.com/scylladb/go-set"
   packages = [
@@ -382,17 +393,6 @@
   pruneopts = "UT"
   revision = "d5caed56c3077d57270f424d63df3e650f55801a"
   version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:7b9b1fc88bc16fcae94feeee63555e922701f0e1dba2b8b68df38050b8b62979"
-  name = "github.com/scylladb/golog"
-  packages = [
-    ".",
-    "gocql",
-  ]
-  pruneopts = "UT"
-  revision = "209b79c58264fa5cdbdf2473c1b19f2329dbcab6"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -552,13 +552,13 @@
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
     "github.com/prometheus/client_model/go",
+    "github.com/scylladb/go-log",
+    "github.com/scylladb/go-log/gocqllog",
     "github.com/scylladb/go-set/i64set",
     "github.com/scylladb/go-set/strset",
     "github.com/scylladb/gocqlx",
     "github.com/scylladb/gocqlx/migrate",
     "github.com/scylladb/gocqlx/qb",
-    "github.com/scylladb/golog",
-    "github.com/scylladb/golog/gocql",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "go.uber.org/atomic",

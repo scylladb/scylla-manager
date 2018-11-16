@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/timeutc"
 )
 

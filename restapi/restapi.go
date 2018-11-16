@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 )
 

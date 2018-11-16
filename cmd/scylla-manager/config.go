@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/repair"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"

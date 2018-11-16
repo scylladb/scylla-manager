@@ -18,12 +18,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 )
 
 // Testing helpers
 func NewClient() (*http.Client, *Transport) {
-	t := NewTransport(http.DefaultTransport, golog.NopLogger)
+	t := NewTransport(http.DefaultTransport, log.NopLogger)
 	return &http.Client{
 		Transport: t,
 	}, t

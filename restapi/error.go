@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 )
 

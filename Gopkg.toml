@@ -82,6 +82,14 @@
   version = "1.0.0"
 
 [[constraint]]
+  name = "github.com/scylladb/go-set"
+  version = "1.0.1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/scylladb/go-log"
+
+[[constraint]]
   name = "go.uber.org/zap"
   version = "1.9.1"
 
@@ -116,6 +124,3 @@
 [prune]
   go-tests = true
   unused-packages = true
-[[constraint]]
-  name = "github.com/scylladb/go-set"
-  version = "1.0.1"

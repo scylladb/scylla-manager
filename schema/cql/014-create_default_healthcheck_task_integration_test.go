@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/gocql/gocql"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/migrate"
-	log "github.com/scylladb/golog"
 	. "github.com/scylladb/mermaid/mermaidtest"
 )
 

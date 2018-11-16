@@ -5,8 +5,8 @@
 package cql
 
 import (
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/migrate"
-	log "github.com/scylladb/golog"
 )
 
 func init() {

@@ -12,9 +12,9 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
-	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/internal/ssh"

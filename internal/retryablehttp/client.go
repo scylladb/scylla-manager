@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 )
 
 var (
@@ -61,7 +61,7 @@ type ErrorHandler func(resp *http.Response, err error, numTries int) (*http.Resp
 // like automatic retries to tolerate minor outages.
 type Transport struct {
 	parent http.RoundTripper
-	logger golog.Logger
+	logger log.Logger
 
 	RetryWaitMin time.Duration // Minimum time to wait
 	RetryWaitMax time.Duration // Maximum time to wait
@@ -79,7 +79,7 @@ type Transport struct {
 }
 
 // NewTransport creates a new Transport with default settings.
-func NewTransport(parent http.RoundTripper, logger golog.Logger) *Transport {
+func NewTransport(parent http.RoundTripper, logger log.Logger) *Transport {
 	return &Transport{
 		parent:       parent,
 		logger:       logger,

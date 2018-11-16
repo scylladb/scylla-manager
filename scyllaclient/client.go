@@ -23,8 +23,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/hailocab/go-hostpool" // shipped with gocql
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"

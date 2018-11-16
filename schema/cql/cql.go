@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/gocql/gocql"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/migrate"
-	log "github.com/scylladb/golog"
 )
 
 var (

@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/restapi"
 )

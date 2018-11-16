@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 )
 
 func heartbeatMiddleware(endpoint string) func(http.Handler) http.Handler {

@@ -1,12 +1,12 @@
 // Copyright (C) 2017 ScyllaDB
 
-package gocql
+package gocqllog
 
 import (
 	"context"
 	"fmt"
 
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 )
 
 // StdLogger implements github.com/gocql/gocql.StdLogger and writes logs to the

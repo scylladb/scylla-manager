@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/scylladb/golog"
+	"github.com/scylladb/go-log"
 )
 
 var (

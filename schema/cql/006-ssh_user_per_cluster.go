@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 
 	"github.com/gocql/gocql"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/gocqlx/qb"
-	log "github.com/scylladb/golog"
 	"github.com/scylladb/mermaid/uuid"
 	"gopkg.in/yaml.v2"
 )
