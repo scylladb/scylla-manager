@@ -13,6 +13,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/table"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/kv"
@@ -155,9 +156,9 @@ func (s *server) makeHTTPServers() {
 }
 
 func (s *server) initDatabase(ctx context.Context) error {
-	var tables = []*schema.Table{
-		&schema.RepairRun,
-		&schema.SchedRun,
+	var tables = []*table.Table{
+		schema.RepairRun,
+		schema.SchedRun,
 	}
 	for _, t := range tables {
 		err := schema.FixRunStatus(ctx, s.session, t)

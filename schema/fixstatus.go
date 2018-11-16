@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/table"
 	"github.com/scylladb/mermaid/sched/runner"
 )
 
@@ -19,18 +20,20 @@ import (
 // it's updated to StatusAborted with cause `service killed`.
 //
 // Note the assumption that run id must be the first item in sort key.
-func FixRunStatus(ctx context.Context, session *gocql.Session, t *Table) error {
+func FixRunStatus(ctx context.Context, session *gocql.Session, t *table.Table) error {
+	meta := t.Metadata()
+
 	// validate basic assumptions
-	if !strings.HasSuffix(t.Name, "_run") || len(t.SortKey) == 0 || t.SortKey[0] != "id" {
+	if !strings.HasSuffix(t.Name(), "_run") || len(meta.SortKey) == 0 || meta.SortKey[0] != "id" {
 		return errors.New("table not supported")
 	}
 
-	stmt, names := qb.Select(t.Name).Distinct(t.PartKey...).ToCql()
+	stmt, names := qb.Select(t.Name()).Distinct(meta.PartKey...).ToCql()
 	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	defer q.Release()
 
 	// g is a query to get status of the first row in a partition
-	stmt, names = t.SelectBuilder().Columns(t.SortKey...).Columns("status").Limit(1).ToCql()
+	stmt, names = t.SelectBuilder().Columns(meta.SortKey...).Columns("status").Limit(1).ToCql()
 	g := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	defer g.Release()
 

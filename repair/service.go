@@ -708,7 +708,7 @@ func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.
 		"task_id", taskID,
 	)
 
-	stmt, names := qb.Select(schema.RepairRun.Name).Where(
+	stmt, names := qb.Select(schema.RepairRun.Name()).Where(
 		qb.Eq("cluster_id"), qb.Eq("task_id"),
 	).Limit(100).ToCql()
 

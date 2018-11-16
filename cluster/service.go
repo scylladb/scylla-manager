@@ -137,7 +137,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 		return nil, err
 	}
 
-	stmt, _ := qb.Select(schema.Cluster.Name).ToCql()
+	stmt, _ := qb.Select(schema.Cluster.Name()).ToCql()
 
 	q := s.session.Query(stmt).WithContext(ctx)
 	defer q.Release()

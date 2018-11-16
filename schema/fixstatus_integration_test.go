@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/table"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
@@ -27,7 +28,7 @@ func TestFixStatusIntegration(t *testing.T) {
 	) WITH CLUSTERING ORDER BY (id DESC)`)
 	ExecStmt(t, session, "TRUNCATE TABLE test_fix_status_run")
 
-	runTable := schema.Table{
+	runTable := table.New(table.Metadata{
 		Name: "test_fix_status_run",
 		Columns: []string{
 			"task_id",
@@ -37,7 +38,7 @@ func TestFixStatusIntegration(t *testing.T) {
 		},
 		PartKey: []string{"task_id"},
 		SortKey: []string{"id"},
-	}.Init()
+	})
 
 	type run struct {
 		TaskID uuid.UUID
@@ -109,7 +110,7 @@ func TestFixStatusIntegration(t *testing.T) {
 	}
 	putRun(t, r5)
 
-	if err := schema.FixRunStatus(ctx, session, &runTable); err != nil {
+	if err := schema.FixRunStatus(ctx, session, runTable); err != nil {
 		t.Fatal(err)
 	}
 

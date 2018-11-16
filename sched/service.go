@@ -105,7 +105,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 		now   = timeutc.Now()
 	)
 
-	stmt, names := qb.Select(schema.SchedTask.Name).ToCql()
+	stmt, names := qb.Select(schema.SchedTask.Name()).ToCql()
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
 	if err := q.SelectRelease(&tasks); err != nil {
 		return err
@@ -477,7 +477,7 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 		return nil, errors.New("missing task")
 	}
 
-	b := qb.Select(schema.SchedTask.Name).Where(qb.Eq("cluster_id"), qb.Eq("type"))
+	b := qb.Select(schema.SchedTask.Name()).Where(qb.Eq("cluster_id"), qb.Eq("type"))
 	m := qb.M{
 		"cluster_id": clusterID,
 		"type":       tp,
@@ -618,7 +618,7 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskType) ([]*Task, error) {
 	s.logger.Debug(ctx, "ListTasks", "cluster_id", clusterID, "task_type", tp)
 
-	b := qb.Select(schema.SchedTask.Name).Where(qb.Eq("cluster_id"))
+	b := qb.Select(schema.SchedTask.Name()).Where(qb.Eq("cluster_id"))
 	m := qb.M{
 		"cluster_id": clusterID,
 	}
@@ -653,7 +653,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 		return nil, mermaid.ErrValidate(errors.New("limit must be > 0"), "")
 	}
 
-	b := qb.Select(schema.SchedRun.Name).Where(
+	b := qb.Select(schema.SchedRun.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("type"),
 		qb.Eq("task_id"),
