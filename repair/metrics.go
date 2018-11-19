@@ -102,6 +102,8 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 	}
 
 	p := aggregateProgress(u.run, prog)
+
+	// aggregated keyspace host progress
 	for _, unit := range p.Units {
 		for _, n := range unit.Nodes {
 			repairProgress.With(prometheus.Labels{
@@ -112,6 +114,24 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 			}).Set(float64(n.PercentComplete))
 		}
 	}
+
+	// aggregated keyspace progress
+	for _, unit := range p.Units {
+		repairProgress.With(prometheus.Labels{
+			"cluster":  u.run.clusterName,
+			"task":     u.run.TaskID.String(),
+			"keyspace": unit.Unit.Keyspace,
+			"host":     "",
+		}).Set(float64(unit.PercentComplete))
+	}
+
+	// aggregated total progress
+	repairProgress.With(prometheus.Labels{
+		"cluster":  u.run.clusterName,
+		"task":     u.run.TaskID.String(),
+		"keyspace": "",
+		"host":     "",
+	}).Set(float64(p.PercentComplete))
 }
 
 func (u *progressMetricsUpdater) Stop() {
