@@ -59,6 +59,9 @@
       "type": "array",
       "items": {
         "properties": {
+          "dc": {
+            "type": "string"
+          },
           "host": {
             "type": "string"
           },

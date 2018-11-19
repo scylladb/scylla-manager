@@ -54,6 +54,9 @@ type ClusterStatusItems0 struct {
 	// cql status
 	CqlStatus string `json:"cql_status,omitempty"`
 
+	// dc
+	Dc string `json:"dc,omitempty"`
+
 	// host
 	Host string `json:"host,omitempty"`
 }

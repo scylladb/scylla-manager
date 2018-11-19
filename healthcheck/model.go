@@ -10,6 +10,7 @@ const (
 
 // Status represents the status of a particular host
 type Status struct {
+	DC        string
 	Host      string
 	CQLStatus string  `json:"cql_status"`
 	RTT       float64 `json:"cql_rtt_ms"`

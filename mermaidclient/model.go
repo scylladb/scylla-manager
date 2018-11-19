@@ -5,7 +5,6 @@ package mermaidclient
 import (
 	"fmt"
 	"io"
-	"sort"
 
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/mermaidclient/table"
@@ -186,24 +185,39 @@ type ClusterStatus models.ClusterStatus
 
 // Render renders ClusterStatus in a tabular format.
 func (cs ClusterStatus) Render(w io.Writer) error {
+	var (
+		dc string
+		t  *table.Table
+	)
 
-	sort.Slice(cs, func(i, j int) bool {
-		return cs[i].Host < cs[j].Host
-	})
-
-	t := table.New()
-
-	t.AddHeaders("Host", "Status", "RTT (ms)")
 	for _, s := range cs {
+		if s.Dc != dc {
+			dc = s.Dc
+			if t != nil {
+				if _, err := w.Write([]byte("Datacenter: " + dc + "\n")); err != nil {
+					return err
+				}
+				if _, err := w.Write([]byte(t.String())); err != nil {
+					return err
+				}
+			}
+			t = table.New()
+			t.AddHeaders("Host", "Status", "RTT (ms)")
+		}
 		if s.CqlStatus == "DOWN" {
 			t.AddRow(s.Host, s.CqlStatus, "N/A")
 		} else {
 			t.AddRow(s.Host, s.CqlStatus, fmt.Sprintf("%.2f", s.CqlRttMs))
 		}
 	}
-
-	if _, err := w.Write([]byte(t.String())); err != nil {
-		return err
+	// Pick up the last dc
+	if t != nil {
+		if _, err := w.Write([]byte("Datacenter: " + dc + "\n")); err != nil {
+			return err
+		}
+		if _, err := w.Write([]byte(t.String())); err != nil {
+			return err
+		}
 	}
 
 	return nil

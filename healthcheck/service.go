@@ -4,6 +4,7 @@ package healthcheck
 
 import (
 	"context"
+	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -46,6 +47,23 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 		return nil, errors.Wrapf(err, "unable to find cluster with id %s", clusterID)
 	}
 
+	client, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to get client for cluster with id %s", clusterID)
+	}
+
+	dcs, err := client.Datacenters(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to get dcs for cluster with id %s", clusterID)
+	}
+
+	hostDC := make(map[string]string)
+	for dc, hosts := range dcs {
+		for _, host := range hosts {
+			hostDC[host] = dc
+		}
+	}
+
 	hostStatus := make(map[string]Status)
 	apply(collect(cqlStatus), func(cluster, host string, v float64) {
 		if c.String() != cluster {
@@ -75,9 +93,17 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 
 	statuses := make([]Status, 0, len(hostStatus))
 	for host, status := range hostStatus {
+		status.DC = hostDC[host]
 		status.Host = host
 		statuses = append(statuses, status)
 	}
+
+	sort.Slice(statuses, func(i, j int) bool {
+		if statuses[i].DC != statuses[j].DC {
+			return statuses[i].DC < statuses[j].DC
+		}
+		return statuses[i].Host < statuses[j].Host
+	})
 
 	return statuses, nil
 }
