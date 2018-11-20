@@ -104,9 +104,7 @@ func withPort(hostPort, port string) string {
 
 // ClusterName returns cluster name.
 func (c *Client) ClusterName(ctx context.Context) (string, error) {
-	resp, err := c.operations.GetClusterName(&operations.GetClusterNameParams{
-		Context: ctx,
-	})
+	resp, err := c.operations.GetClusterName(&operations.GetClusterNameParams{Context: ctx})
 	if err != nil {
 		return "", err
 	}
@@ -116,9 +114,7 @@ func (c *Client) ClusterName(ctx context.Context) (string, error) {
 
 // Datacenter returns the local datacenter name.
 func (c *Client) Datacenter(ctx context.Context) (string, error) {
-	resp, err := c.operations.GetDatacenter(&operations.GetDatacenterParams{
-		Context: ctx,
-	})
+	resp, err := c.operations.GetDatacenter(&operations.GetDatacenterParams{Context: ctx})
 	if err != nil {
 		return "", err
 	}
@@ -134,7 +130,7 @@ type dcHost struct {
 
 // Datacenters returns the available datacenters in this cluster.
 func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
-	resp, err := c.operations.GetHostIDMap(operations.NewGetHostIDMapParams().WithContext(ctx))
+	resp, err := c.operations.GetHostIDMap(&operations.GetHostIDMapParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +168,10 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 
 // HostDatacenter looks up the datacenter that the given host belongs to.
 func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error) {
-	resp, err := c.operations.GetDatacenter(operations.NewGetDatacenterParams().WithContext(ctx).WithHost(&host))
+	resp, err := c.operations.GetDatacenter(&operations.GetDatacenterParams{
+		Context: ctx,
+		Host:    &host,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -181,7 +180,7 @@ func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error
 
 // Hosts returns a list of all hosts in a cluster.
 func (c *Client) Hosts(ctx context.Context) ([]string, error) {
-	resp, err := c.operations.GetHostIDMap(operations.NewGetHostIDMapParams().WithContext(ctx))
+	resp, err := c.operations.GetHostIDMap(&operations.GetHostIDMapParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -195,9 +194,7 @@ func (c *Client) Hosts(ctx context.Context) ([]string, error) {
 
 // Keyspaces return a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
-	resp, err := c.operations.GetKeyspaces(&operations.GetKeyspacesParams{
-		Context: ctx,
-	})
+	resp, err := c.operations.GetKeyspaces(&operations.GetKeyspacesParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -354,9 +351,7 @@ func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32
 
 // Partitioner returns cluster partitioner name.
 func (c *Client) Partitioner(ctx context.Context) (string, error) {
-	resp, err := c.operations.GetPartitionerName(&operations.GetPartitionerNameParams{
-		Context: ctx,
-	})
+	resp, err := c.operations.GetPartitionerName(&operations.GetPartitionerNameParams{Context: ctx})
 	if err != nil {
 		return "", err
 	}
@@ -449,9 +444,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 
 // Tables returns a slice of table names in a given keyspace.
 func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
-	resp, err := c.operations.GetColumnFamilyName(&operations.GetColumnFamilyNameParams{
-		Context: ctx,
-	})
+	resp, err := c.operations.GetColumnFamilyName(&operations.GetColumnFamilyNameParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -471,9 +464,7 @@ func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) 
 
 // Tokens returns list of tokens in a cluster.
 func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
-	resp, err := c.operations.GetTokenEndpoint(&operations.GetTokenEndpointParams{
-		Context: ctx,
-	})
+	resp, err := c.operations.GetTokenEndpoint(&operations.GetTokenEndpointParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
