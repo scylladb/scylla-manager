@@ -12,6 +12,7 @@ var (
 			"id",
 			"name",
 			"host",
+			"known_hosts",
 			"ssh_user",
 		},
 		PartKey: []string{"id"},

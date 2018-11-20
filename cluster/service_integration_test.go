@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
@@ -94,7 +95,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(clusters, expected, mermaidtest.UUIDComparer()); diff != "" {
+		if diff := cmp.Diff(clusters, expected, mermaidtest.UUIDComparer(), cmpopts.IgnoreFields(cluster.Cluster{}, "KnownHosts")); diff != "" {
 			t.Fatal(diff)
 		}
 	})
