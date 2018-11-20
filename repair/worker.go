@@ -261,6 +261,8 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		id    int32
 		err   error
 		ok    bool
+
+		lastPercentComplete = w.progress.PercentComplete()
 	)
 
 	if w.progress.LastCommandID != 0 {
@@ -293,6 +295,12 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	next()
 
 	for {
+		// log progress information every 10%
+		if p := w.progress.PercentComplete(); p > lastPercentComplete && p%10 == 0 {
+			w.logger.Info(ctx, "Repair in progress...", "percent_complete", p)
+			lastPercentComplete = p
+		}
+
 		// no more segments
 		if !ok {
 			break
@@ -322,6 +330,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 		err = w.waitCommand(ctx, id)
 		if err != nil {
+			w.logger.Error(ctx, "Repair failed on host, consult scylla logs", "command", id)
 			ri.OnError()
 			if w.parent.Run.failFast {
 				next()
