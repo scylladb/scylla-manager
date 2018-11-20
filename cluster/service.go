@@ -6,9 +6,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"runtime"
 	"sort"
-	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -21,7 +19,6 @@ import (
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/multierr"
 )
 
 // ChangeType specifies type on Change.
@@ -74,7 +71,7 @@ func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) erro
 	s.onChangeListener = f
 }
 
-// Client returns cluster client.
+// Client is cluster client provider.
 func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
 	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
 	return s.clientCache.Client(ctx, clusterID)
@@ -86,25 +83,46 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 		return nil, err
 	}
 
+	dc, hosts, err := s.getClosestDC(ctx, c)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to determine closest datacenter")
+	}
+
+	if err := s.setKnownHosts(ctx, c, hosts); err != nil {
+		return nil, errors.Wrap(err, "failed to update cluster")
+	}
+
 	transport, err := s.createTransport(c)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create transport")
 	}
-	client, err := scyllaclient.NewClient([]string{c.Host}, transport, s.logger.Named("client"))
+
+	s.logger.Info(ctx, "New cluster client",
+		"clusterID", clusterID,
+		"dc", dc,
+	)
+
+	return scyllaclient.NewClient(hosts, transport, s.logger.Named("client"))
+}
+
+func (s *Service) getClosestDC(ctx context.Context, c *Cluster) (dc string, hosts []string, err error) {
+	transport, err := s.createTransport(c)
 	if err != nil {
-		return nil, err
+		return "", nil, errors.Wrap(err, "failed to create transport")
+	}
+	client, err := scyllaclient.NewClient(append(c.KnownHosts, c.Host), transport, s.logger.Named("client"))
+	if err != nil {
+		return "", nil, err
 	}
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	closest, err := client.ClosestDC(ctx, dcs)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	s.logger.Info(ctx, "New client", "clusterID", clusterID, "dc", closest)
-
-	return scyllaclient.NewClient(dcs[closest], transport, s.logger.Named("client"))
+	return closest, dcs[closest], nil
 }
 
 func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
@@ -126,6 +144,14 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 	}
 
 	return ssh.NewProductionTransport(config)
+}
+
+func (s *Service) setKnownHosts(ctx context.Context, c *Cluster, hosts []string) error {
+	c.KnownHosts = hosts
+
+	stmt, names := schema.Cluster.Update("known_hosts")
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(c)
+	return q.ExecRelease()
 }
 
 // ListClusters returns all the clusters for a given filtering criteria.
@@ -274,8 +300,10 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 	}()
 
 	// validate hosts connectivity
-	if err := s.validateHostsConnectivity(ctx, c); err != nil {
+	if _, hosts, err := s.getClosestDC(ctx, c); err != nil {
 		return mermaid.ErrValidate(err, "host connectivity check failed")
+	} else { // nolint: golint
+		c.KnownHosts = hosts
 	}
 
 	stmt, names := schema.Cluster.Insert()
@@ -293,54 +321,6 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		return nil
 	}
 	return s.onChangeListener(ctx, Change{ID: c.ID, Type: t})
-}
-
-func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
-	type dcHost struct {
-		dc   string
-		host string
-		err  error
-	}
-	transport, err := s.createTransport(c)
-	if err != nil {
-		return errors.Wrap(err, "failed to create transport")
-	}
-	client, err := scyllaclient.NewClient([]string{c.Host}, transport, s.logger.Named("client"))
-	if err != nil {
-		return errors.Wrap(err, "failed to create client")
-	}
-	dcs, err := client.Datacenters(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to connect to host")
-	}
-
-	// some simple heuristics to buffer the channel
-	out := make(chan dcHost, runtime.NumCPU()+1)
-	const pingTimeout = 5 * time.Second
-	for dc, hosts := range dcs {
-		for _, host := range hosts {
-			go func(ctx context.Context, dc, host string) {
-				dh := dcHost{
-					dc:   dc,
-					host: host,
-				}
-				_, dh.err = client.Ping(ctx, pingTimeout, host)
-				out <- dh
-			}(ctx, dc, host)
-		}
-	}
-
-	var errs error
-	for _, hosts := range dcs {
-		for range hosts {
-			e := <-out
-			s.logger.Debug(ctx, "Ping received", "dc", e.dc, "host", e.host, "error", e.err)
-			if e.err != nil {
-				errs = multierr.Append(errs, errors.Wrapf(e.err, "%s %s", e.dc, e.host))
-			}
-		}
-	}
-	return errors.Wrap(errs, "failed to connect to nodes")
 }
 
 // DeleteCluster removes cluster based on ID.
