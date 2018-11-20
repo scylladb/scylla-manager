@@ -523,20 +523,13 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "PutTaskOnce", "task", t)
 
-	if t != nil && t.ID == uuid.Nil {
-		var err error
-		if t.ID, err = uuid.NewRandom(); err != nil {
-			return errors.Wrap(err, "couldn't generate random UUID for task")
-		}
-	}
-
-	if err := t.Validate(); err != nil {
-		return err
+	if t == nil {
+		return mermaid.ErrNilPtr
 	}
 
 	hs, err := s.ListTasks(ctx, t.ClusterID, t.Type)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create health check for cluster %s", t.ClusterID)
+		return err
 	}
 
 	if len(hs) == 0 {
@@ -558,19 +551,23 @@ func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "PutTask", "task", t)
 
+	create := false
 	if t != nil && t.ID == uuid.Nil {
 		var err error
 		if t.ID, err = uuid.NewRandom(); err != nil {
 			return errors.Wrap(err, "couldn't generate random UUID for task")
 		}
+		create = true
 	}
 
 	if err := t.Validate(); err != nil {
 		return err
 	}
 
-	if t.Sched.StartDate.Before(timeutc.Now()) {
-		return mermaid.ErrValidate(errors.New("start date in the past"), "invalid schedule")
+	if create {
+		if t.Sched.StartDate.Before(timeutc.Now()) {
+			return mermaid.ErrValidate(errors.New("start date in the past"), "invalid schedule")
+		}
 	}
 
 	stmt, names := schema.SchedTask.Insert()
