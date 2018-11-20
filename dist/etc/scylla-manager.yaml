@@ -20,6 +20,8 @@ prometheus: ':56090'
 
 # Logging configuration.
 logger:
+  # Where to output logs, syslog or stderr.
+  mode: syslog
   # Available log levels are error, info and debug.
   level: info
 
