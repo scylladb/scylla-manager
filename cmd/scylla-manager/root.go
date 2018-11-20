@@ -104,7 +104,7 @@ var rootCmd = &cobra.Command{
 			}
 			logger.Sync() // nolint
 		}()
-		logger.Debug(ctx, "Using config", "config", obfuscatePasswords(config))
+		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config))
 
 		// set gocql logger
 		gocql.Logger = gocqllog.StdLogger{
