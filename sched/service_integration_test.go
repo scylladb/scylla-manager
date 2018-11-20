@@ -148,69 +148,70 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		return timeutc.Now().Add(2 * taskStartNowSlack)
 	}
 
-	t.Run("task once", func(t *testing.T) {
+	t.Run("task put once", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
 
-		Print("When: a task is scheduled")
+		Print("When: task is scheduled")
 		task := h.makeTask(sched.Schedule{
 			StartDate: now(),
 		})
 		if err := h.service.PutTaskOnce(ctx, task); err != nil {
 			t.Fatal(err)
 		}
-		Print("Then: the task is added")
+		Print("Then: task is added")
 
+		Print("When: another task of the same type is scheduled")
 		task.ID = uuid.MustRandom()
-		Print("When: another task task of the same type is scheduled")
 		if err := h.service.PutTaskOnce(ctx, task); err != nil {
 			Print("Then: the task is rejected")
-			return
+		} else {
+			t.Fatal("two tasks of the same type could be added")
 		}
-		t.Fatal("two tasks of the same type could be added")
 	})
 
-	t.Run("task once update", func(t *testing.T) {
+	t.Run("task put once update", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
 
-		Print("When: a task is scheduled")
+		Print("When: task is scheduled")
 		task := h.makeTask(sched.Schedule{
 			StartDate: now(),
 		})
 		if err := h.service.PutTaskOnce(ctx, task); err != nil {
 			t.Fatal(err)
 		}
-		Print("Then: the task is added")
+		Print("Then: task is added")
 
 		tasks, err := h.service.ListTasks(ctx, h.clusterID, task.Type)
 		if err != nil {
 			t.Fatal(err)
 		}
-		cnt1 := len(tasks)
-		task.Name = "new name"
-		Print("When: the same task is changed and scheduled again")
+		total := len(tasks)
+
+		Print("When: task is changed")
+		task.Sched.StartDate = time.Unix(1, 0).UTC()
 		if err := h.service.PutTaskOnce(ctx, task); err != nil {
 			t.Fatal(err)
 		}
+		Print("Then: task is updated")
+
 		tasks, err = h.service.ListTasks(ctx, h.clusterID, task.Type)
 		if err != nil {
 			t.Fatal(err)
 		}
-		cnt2 := len(tasks)
-		if cnt1 != cnt2 {
+		if total != len(tasks) {
 			t.Fatalf("wrong number of tasks after two PutOnce")
 		}
 		for _, ts := range tasks {
 			if ts.ID == task.ID {
-				if ts.Name != task.Name {
-					t.Fatalf("expected task name %s, got %s", task.Name, ts.Name)
+				if ts.Sched != task.Sched {
+					t.Fatalf("expected task %+v, got %+v", task.Sched, ts.Sched)
 				}
 			}
 		}
-		Print("Then: the task is updated")
 	})
 
 	t.Run("task stop", func(t *testing.T) {
