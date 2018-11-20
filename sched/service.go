@@ -345,7 +345,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				if err := s.putRun(ctx, run); err != nil {
 					logger.Error(ctx, "Failed to write run", "error", err)
 				}
-				logger.Info(ctx, "Status", "status", curStatus, "cause", cause)
+				logger.Info(ctx, "Task ended", "status", curStatus, "cause", cause)
 				return
 			}
 		}
