@@ -81,6 +81,7 @@ integration-test: ## Run integration tests
 	@go test -cover -race -v -tags integration -run Integration ./internal/ssh $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./healthcheck $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./sched $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./schema/cql $(INTEGRATION_TEST_ARGS)

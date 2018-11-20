@@ -1,5 +1,7 @@
 // Copyright (C) 2017 ScyllaDB
 
+// +build all integration
+
 package healthcheck
 
 import (
@@ -11,6 +13,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/ssh"
+	. "github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap/zapcore"
 )
@@ -104,15 +109,19 @@ func TestGetStatus(t *testing.T) {
 		},
 	}
 
-	f := func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
-		return &cluster.Cluster{
-			ID:   id,
-			Host: clusters[id],
-		}, nil
-	}
-
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
-	s := NewService(f, nil, logger)
+
+	s := NewService(
+		func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
+			return &cluster.Cluster{
+				ID:   id,
+				Host: clusters[id],
+			}, nil
+		},
+		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+			return scyllaclient.NewClient(ManagedClusterHosts, ssh.NewDevelopmentTransport(), logger.Named("scylla"))
+		},
+		logger)
 
 	for _, v := range table {
 		for _, h := range v.h {
