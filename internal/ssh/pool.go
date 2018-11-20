@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
@@ -22,9 +21,16 @@ type poolConn struct {
 	refCount uint
 }
 
+// DefaultDialer specifies default dial options.
+var DefaultDialer = net.Dialer{
+	Timeout:   5 * time.Second,
+	KeepAlive: 30 * time.Second,
+	DualStack: true,
+}
+
 // DefaultPool is the default instance of Pool it uses mermaid.DefaultDialer for
 // creating the SSH connections.
-var DefaultPool = NewPool(mermaid.DefaultDialer, 0)
+var DefaultPool = NewPool(DefaultDialer, 0)
 
 // Pool is an SSH connection pool.
 type Pool struct {

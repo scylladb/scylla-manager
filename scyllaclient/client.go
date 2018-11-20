@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
@@ -36,24 +35,42 @@ import (
 var (
 	DefaultAPIPort        = "10000"
 	DefaultPrometheusPort = "9180"
+
+	// Timeout specifies end-to-end time to complete Scylla REST API request
+	// including retries.
+	Timeout = 30 * time.Second
+
+	// RequestTimeout specifies time to complete a single request to Scylla
+	// REST API possibly including opening SSH tunneled connection.
+	RequestTimeout = 3 * time.Second
 )
 
-var disableOpenAPIDebugOnce sync.Once
+var initOnce sync.Once
 
 //go:generate ./gen_internal.sh
 
 // Client provides means to interact with Scylla nodes.
 type Client struct {
-	transport  http.RoundTripper
 	operations *operations.Client
+	transport  http.RoundTripper
 	logger     log.Logger
 }
 
 // NewClient creates a new client.
-func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, error) {
+func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Client, error) {
 	if len(hosts) == 0 {
 		return nil, errors.New("missing hosts")
 	}
+
+	initOnce.Do(func() {
+		// Timeout is defined in http client that we provide in api.NewWithClient.
+		// If Context is provided to operation, which is always the case here,
+		// this value has no meaning since OpenAPI runtime ignores it.
+		api.DefaultTimeout = 0
+		// Disable debug output to stderr, it could have been enabled by setting
+		// SWAGGER_DEBUG or DEBUG env variables.
+		middleware.Debug = false
+	})
 
 	addrs := make([]string, len(hosts))
 	for i, h := range hosts {
@@ -61,34 +78,34 @@ func NewClient(hosts []string, rt http.RoundTripper, l log.Logger) (*Client, err
 	}
 	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
 
-	t := retryablehttp.NewTransport(transport{
-		parent: rt,
-		pool:   pool,
-		logger: l,
-	}, l)
-	t.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
-		// do not retry ping
+	transport = reqTimeout(transport, RequestTimeout)
+	transport = respLogger(transport, l)
+	transport = hostPoolDispatcher(transport, pool)
+	transport = openAPIRespDecorator(transport)
+
+	rt := retryablehttp.NewTransport(transport, l)
+	// Do not retry ping requests.
+	rt.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
 		if resp != nil && resp.Request.URL.Path == "/" {
 			return false, nil
 		}
 		return retryablehttp.DefaultRetryPolicy(req, resp, err)
 	}
+	transport = rt
 
-	disableOpenAPIDebugOnce.Do(func() {
-		middleware.Debug = false
-	})
-
-	r := api.NewWithClient("mermaid.magic.host", "", []string{"http"},
+	client := api.NewWithClient(
+		"mermaid.magic.host", "", []string{"http"},
 		&http.Client{
-			Timeout:   mermaid.DefaultRPCTimeout,
-			Transport: t,
+			Timeout:   Timeout,
+			Transport: transport,
 		},
 	)
 	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
-	r.Debug = false
+	client.Debug = false
+
 	return &Client{
-		transport:  t,
-		operations: operations.New(r, strfmt.Default),
+		operations: operations.New(client, strfmt.Default),
+		transport:  transport,
 		logger:     l,
 	}, nil
 }
