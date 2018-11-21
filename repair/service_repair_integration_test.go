@@ -19,6 +19,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/internal/ssh"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
@@ -152,7 +153,7 @@ func newTestService(t *testing.T, session *gocql.Session, hrt *HackableRoundTrip
 }
 
 func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
-	return RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
 			return nil, nil
 		}
@@ -644,7 +645,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			mu sync.Mutex
 			ic = repairInterceptor(scyllaclient.CommandFailed)
 		)
-		h.hrt.SetInterceptor(RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		h.hrt.SetInterceptor(httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 			if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
 				return nil, nil
 			}
