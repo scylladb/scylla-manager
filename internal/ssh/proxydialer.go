@@ -3,6 +3,7 @@
 package ssh
 
 import (
+	"context"
 	"net"
 
 	"github.com/pkg/errors"
@@ -46,17 +47,17 @@ func (c proxyConn) Close() error {
 
 // ProxyDialer is a dialler that allows for proxying connections over SSH.
 type ProxyDialer struct {
-	*Pool
+	Pool   *Pool
 	Config *ssh.ClientConfig
 }
 
-// Dial to addr HOST:PORT establishes an SSH connection to HOST and then
+// DialContext to addr HOST:PORT establishes an SSH connection to HOST and then
 // proxies the connection to localhost:PORT.
-func (t ProxyDialer) Dial(network, addr string) (net.Conn, error) {
+func (t ProxyDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	host, port, _ := net.SplitHostPort(addr)
 	labels := prometheus.Labels{"host": host}
 
-	client, err := t.Pool.Dial(network, net.JoinHostPort(host, "22"), t.Config)
+	client, err := t.Pool.DialContext(ctx, network, net.JoinHostPort(host, "22"), t.Config)
 	if err != nil {
 		sshErrorsTotal.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: dial failed")
@@ -67,6 +68,9 @@ func (t ProxyDialer) Dial(network, addr string) (net.Conn, error) {
 		connErr error
 	)
 	for _, h := range []string{"localhost", host} {
+		// This is a local dial and should not hang but if it does http client
+		// would endup with "context deadline exceeded" error.
+		// To be fixed when used with something else then http client.
 		conn, connErr = client.Dial(network, net.JoinHostPort(h, port))
 		if connErr == nil {
 			break

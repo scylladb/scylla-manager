@@ -5,6 +5,7 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ func TestPoolIntegration(t *testing.T) {
 	var (
 		host   = mermaidtest.ManagedClusterHosts[0]
 		config = NewDevelopmentClientConfig()
-		pool   = NewPool(DefaultDialer, time.Minute)
+		pool   = NewPool(ContextDialer(DefaultDialer), time.Minute)
 	)
 
 	inspect := func() *poolConn {
@@ -25,9 +26,11 @@ func TestPoolIntegration(t *testing.T) {
 		return pool.conns[key("tcp", fmt.Sprint(host, ":22"))]
 	}
 
+	ctx := context.Background()
+
 	t.Run("dial", func(t *testing.T) {
 		// When dial new server
-		c0, err := pool.Dial("tcp", fmt.Sprint(host, ":22"), config)
+		c0, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -48,7 +51,7 @@ func TestPoolIntegration(t *testing.T) {
 		}
 
 		// When server is redialed
-		c1, err := pool.Dial("tcp", fmt.Sprint(host, ":22"), config)
+		c1, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +65,7 @@ func TestPoolIntegration(t *testing.T) {
 
 	t.Run("gc", func(t *testing.T) {
 		// Given there is a used connection
-		c0, err := pool.Dial("tcp", fmt.Sprint(host, ":22"), config)
+		c0, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -87,7 +90,7 @@ func TestPoolIntegration(t *testing.T) {
 
 	t.Run("close", func(t *testing.T) {
 		// Given there is a used connection
-		_, err := pool.Dial("tcp", fmt.Sprint(host, ":22"), config)
+		_, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
 		if err != nil {
 			t.Fatal(err)
 		}

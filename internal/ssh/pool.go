@@ -3,8 +3,8 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
-	"net"
 	"sync"
 	"time"
 
@@ -21,20 +21,13 @@ type poolConn struct {
 	refCount uint
 }
 
-// DefaultDialer specifies default dial options.
-var DefaultDialer = net.Dialer{
-	Timeout:   5 * time.Second,
-	KeepAlive: 30 * time.Second,
-	DualStack: true,
-}
-
 // DefaultPool is the default instance of Pool it uses mermaid.DefaultDialer for
 // creating the SSH connections.
-var DefaultPool = NewPool(DefaultDialer, 0)
+var DefaultPool = NewPool(ContextDialer(DefaultDialer), 0)
 
 // Pool is an SSH connection pool.
 type Pool struct {
-	dialer      net.Dialer
+	dialContext DialContextFunc
 	idleTimeout time.Duration
 
 	conns map[string]*poolConn // key is network/host:port
@@ -42,15 +35,11 @@ type Pool struct {
 	done  chan struct{}
 }
 
-func key(network, addr string) string {
-	return fmt.Sprint(network, "_", addr)
-}
-
 // NewPool creates a new Pool. If idleTimeout > 0 a GC routine is started
 // otherwise the SSH client is closed as soon as it's released the last holder.
-func NewPool(dialer net.Dialer, idleTimeout time.Duration) *Pool {
+func NewPool(dialContext DialContextFunc, idleTimeout time.Duration) *Pool {
 	pool := &Pool{
-		dialer:      dialer,
+		dialContext: dialContext,
 		idleTimeout: idleTimeout,
 
 		conns: make(map[string]*poolConn),
@@ -64,9 +53,9 @@ func NewPool(dialer net.Dialer, idleTimeout time.Duration) *Pool {
 	return pool
 }
 
-// Dial is a cached ssh.Dial function, the returned client must be relased
-// using the Release method.
-func (p *Pool) Dial(network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
+// DialContext is a cached ssh.Dial function, the returned client must be
+// released using the Release method.
+func (p *Pool) DialContext(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -78,7 +67,7 @@ func (p *Pool) Dial(network, addr string, config *ssh.ClientConfig) (*ssh.Client
 	}
 
 	// cache miss
-	client, err := p.dialLocked(network, addr, config)
+	client, err := p.dialContext(ctx, network, addr, config)
 	if err != nil {
 		return nil, err
 	}
@@ -89,20 +78,6 @@ func (p *Pool) Dial(network, addr string, config *ssh.ClientConfig) (*ssh.Client
 	}
 
 	return client, nil
-}
-
-func (p *Pool) dialLocked(network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
-	netConn, err := p.dialer.Dial(network, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	sshConn, chans, reqs, err := ssh.NewClientConn(netConn, addr, config)
-	if err != nil {
-		return nil, err
-	}
-
-	return ssh.NewClient(sshConn, chans, reqs), nil
 }
 
 // Release marks client as not used.
@@ -170,4 +145,8 @@ func (p *Pool) close() error {
 	p.conns = nil
 
 	return err
+}
+
+func key(network, addr string) string {
+	return fmt.Sprint(network, "_", addr)
 }
