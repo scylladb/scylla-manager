@@ -15,7 +15,7 @@ type DialContextFunc func(ctx context.Context, network, addr string, config *ssh
 
 // DefaultDialer specifies default dial options.
 var DefaultDialer = net.Dialer{
-	Timeout:   5 * time.Second,
+	Timeout:   3 * time.Second,
 	KeepAlive: 30 * time.Second,
 	DualStack: true,
 }

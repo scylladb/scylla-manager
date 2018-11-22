@@ -41,7 +41,7 @@ var (
 
 	// RequestTimeout specifies time to complete a single request to Scylla
 	// REST API possibly including opening SSH tunneled connection.
-	RequestTimeout = 3 * time.Second
+	RequestTimeout = 5 * time.Second
 )
 
 var initOnce sync.Once
