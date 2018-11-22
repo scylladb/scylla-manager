@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
 	"go.uber.org/multierr"
@@ -78,20 +77,11 @@ func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Clie
 	}
 	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
 
-	transport = reqTimeout(transport, RequestTimeout)
-	transport = respLogger(transport, l)
-	transport = hostPoolDispatcher(transport, pool)
-	transport = openAPIRespDecorator(transport)
-
-	rt := retryablehttp.NewTransport(transport, l)
-	// Do not retry ping requests.
-	rt.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
-		if resp != nil && resp.Request.URL.Path == "/" {
-			return false, nil
-		}
-		return retryablehttp.DefaultRetryPolicy(req, resp, err)
-	}
-	transport = rt
+	transport = mwTimeout(transport, RequestTimeout)
+	transport = mwLogger(transport, l)
+	transport = mwHostPool(transport, pool)
+	transport = mwRetry(transport, l)
+	transport = mwOpenAPIFix(transport)
 
 	client := api.NewWithClient(
 		"mermaid.magic.host", "", []string{"http"},
@@ -502,7 +492,7 @@ func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 func (c *Client) Ping(ctx context.Context, timeout time.Duration, host string) (time.Duration, error) {
 	t := timeutc.Now()
 
-	ctx, cancel := context.WithDeadline(ctx, t.Add(timeout))
+	ctx, cancel := context.WithDeadline(noRetry(ctx), t.Add(timeout))
 	defer cancel()
 
 	u := url.URL{

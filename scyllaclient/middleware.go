@@ -13,12 +13,13 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/httputil"
+	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
-// openAPIRespDecorator adjusts Scylla REST API response so that it can be
-// consumed by Open API.
-func openAPIRespDecorator(parent http.RoundTripper) http.RoundTripper {
+// mwOpenAPIFix adjusts Scylla REST API response so that it can be consumed
+// by Open API.
+func mwOpenAPIFix(next http.RoundTripper) http.RoundTripper {
 	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		defer func() {
 			if resp != nil {
@@ -27,12 +28,23 @@ func openAPIRespDecorator(parent http.RoundTripper) http.RoundTripper {
 				resp.Header.Set("Content-Type", "application/json")
 			}
 		}()
-		return parent.RoundTrip(req)
+		return next.RoundTrip(req)
 	})
 }
 
-// hostPoolDispatcher sets request host from a pool.
-func hostPoolDispatcher(parent http.RoundTripper, pool hostpool.HostPool) http.RoundTripper {
+// mwRetry retries request if needed.
+func mwRetry(next http.RoundTripper, logger log.Logger) http.RoundTripper {
+	rt := retryablehttp.NewTransport(next, logger)
+	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		if _, ok := req.Context().Value(ctxNoRetry).(bool); ok {
+			return next.RoundTrip(req)
+		}
+		return rt.RoundTrip(req)
+	})
+}
+
+// mwHostPool sets request host from a pool.
+func mwHostPool(parent http.RoundTripper, pool hostpool.HostPool) http.RoundTripper {
 	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		ctx := req.Context()
 
@@ -75,8 +87,8 @@ func hostPoolDispatcher(parent http.RoundTripper, pool hostpool.HostPool) http.R
 	})
 }
 
-// respLogger logs requests and responses.
-func respLogger(parent http.RoundTripper, logger log.Logger) http.RoundTripper {
+// mwLogger logs requests and responses.
+func mwLogger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		start := timeutc.Now()
 		defer func() {
@@ -91,7 +103,7 @@ func respLogger(parent http.RoundTripper, logger log.Logger) http.RoundTripper {
 				)
 			}
 		}()
-		return parent.RoundTrip(req)
+		return next.RoundTrip(req)
 	})
 }
 
@@ -106,8 +118,8 @@ func (b body) Close() error {
 	return b.ReadCloser.Close()
 }
 
-// reqTimeout sets request context timeout for individual requests.
-func reqTimeout(parent http.RoundTripper, timeout time.Duration) http.RoundTripper {
+// mwTimeout sets request context timeout for individual requests.
+func mwTimeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
 	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
 		defer func() {
@@ -115,7 +127,7 @@ func reqTimeout(parent http.RoundTripper, timeout time.Duration) http.RoundTripp
 				resp.Body = body{resp.Body, cancel}
 			}
 		}()
-		return parent.RoundTrip(req.WithContext(ctx))
+		return next.RoundTrip(req.WithContext(ctx))
 	})
 }
 

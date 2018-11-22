@@ -10,8 +10,13 @@ type ctxt byte
 // ctxt enumeration.
 const (
 	ctxHost ctxt = iota
+	ctxNoRetry
 )
 
 func forceHost(ctx context.Context, host string) context.Context {
 	return context.WithValue(ctx, ctxHost, withPort(host, DefaultAPIPort))
+}
+
+func noRetry(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxNoRetry, true)
 }
