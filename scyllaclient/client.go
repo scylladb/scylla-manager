@@ -6,6 +6,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math"
 	"math/rand"
 	"net"
@@ -265,31 +267,57 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 }
 
 // ClosestDC takes set of DCs with hosts and return the one that is closest.
-// Close is determined as the lowest latency over 10 Ping() invocations across a
+// Close is determined as the lowest latency over 3 Ping() invocations across a
 // random selection of hosts for each DC.
 func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) (string, error) {
 	if len(dcs) == 0 {
 		return "", errors.Errorf("no dcs to choose from")
 	}
 
-	var (
-		fastestDC   string
-		fastestTime int64 = math.MaxInt64
-	)
+	type dcRTT struct {
+		dc  string
+		rtt time.Duration
+	}
+	out := make(chan dcRTT, runtime.NumCPU()+1)
+	size := 0
+
 	r := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
 	for dc, hosts := range dcs {
-		hosts = pickNRandomHosts(r, 2, hosts)
-		ts, err := c.measureHosts(ctx, hosts)
-		if err != nil {
-			return "", errors.Wrapf(err, "unable to measure the latency of the hosts %s", hosts)
-		}
-		if ts < fastestTime {
-			fastestDC = dc
-			fastestTime = ts
+		dc := dc
+		hosts := pickNRandomHosts(r, 3, hosts)
+		size += len(hosts)
+
+		for _, h := range hosts {
+			h := h
+			go func() {
+				rtt, err := c.measure(ctx, h, 3)
+				if err != nil {
+					c.logger.Info(ctx, "Host RTT measurement failed",
+						"dc", dc,
+						"host", h,
+						"err", err,
+					)
+					out <- dcRTT{}
+				} else {
+					out <- dcRTT{dc: dc, rtt: rtt}
+				}
+			}()
 		}
 	}
 
-	return fastestDC, nil
+	min := dcRTT{"", math.MaxInt64}
+	for i := 0; i < size; i++ {
+		v := <-out
+		if v.dc != "" && v.rtt < min.rtt {
+			min = v
+		}
+	}
+
+	if min.dc == "" {
+		return "", errors.New("failed to connect to any node")
+	}
+
+	return min.dc, nil
 }
 
 func pickNRandomHosts(r *rand.Rand, n int, hosts []string) []string {
@@ -311,37 +339,25 @@ func pickNRandomHosts(r *rand.Rand, n int, hosts []string) []string {
 	return rh
 }
 
-func (c *Client) measureHosts(ctx context.Context, hosts []string) (int64, error) {
-	var min int64 = math.MaxInt64
-	for _, host := range hosts {
-		cur, err := c.measure(ctx, host, 3)
-		if err != nil {
-			return 0, err
-		}
-		if cur < min {
-			min = cur
-		}
-	}
-	return min, nil
-}
-
-func (c *Client) measure(ctx context.Context, host string, laps int) (int64, error) {
-	const pingTimeout = 250 * time.Second
-	_, err := c.Ping(ctx, pingTimeout, host)
+func (c *Client) measure(ctx context.Context, host string, laps int) (time.Duration, error) {
+	// Open connection to server.
+	_, err := c.Ping(ctx, host)
 	if err != nil {
 		return 0, err
 	}
-	var sum int64
 
+	// Measure avg host RTT.
+	mctx, cancel := context.WithTimeout(ctx, time.Duration(laps)*500*time.Millisecond)
+	defer cancel()
+	var sum time.Duration
 	for i := 0; i < laps; i++ {
-		d, err := c.Ping(ctx, pingTimeout, host)
+		d, err := c.Ping(mctx, host)
 		if err != nil {
 			return 0, err
 		}
-		sum += int64(d)
+		sum += d
 	}
-
-	return sum / int64(laps), nil
+	return sum / time.Duration(laps), nil
 }
 
 // HostPendingCompactions returns number of pending compactions on a host.
@@ -489,32 +505,22 @@ func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 }
 
 // Ping checks if host is available using HTTP ping.
-func (c *Client) Ping(ctx context.Context, timeout time.Duration, host string) (time.Duration, error) {
-	t := timeutc.Now()
-
-	ctx, cancel := context.WithDeadline(noRetry(ctx), t.Add(timeout))
+func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
+	ctx, cancel := context.WithTimeout(noRetry(ctx), RequestTimeout)
 	defer cancel()
 
-	u := url.URL{
-		Scheme: "http",
-		Host:   host,
-		Path:   "/",
-	}
-
+	u := url.URL{Scheme: "http", Host: host, Path: "/"}
 	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return 0, err
 	}
 	r = r.WithContext(forceHost(ctx, host))
 
+	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)
-	if err != nil {
-		if errors.Cause(err) == context.DeadlineExceeded {
-			return timeutc.Since(t), errors.New("ping timed out")
-		}
-		return timeutc.Since(t), err
+	if resp != nil {
+		io.Copy(ioutil.Discard, io.LimitReader(resp.Body, 1024)) // nolint: errcheck
+		resp.Body.Close()
 	}
-	defer resp.Body.Close()
-
-	return timeutc.Since(t), nil
+	return timeutc.Since(t), err
 }

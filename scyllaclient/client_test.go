@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
@@ -293,11 +292,11 @@ func TestClientPing(t *testing.T) {
 	defer s.Close()
 	c := testClient(s)
 
-	if _, err := c.Ping(context.Background(), time.Second, s.Listener.Addr().String()); err != nil {
+	if _, err := c.Ping(context.Background(), s.Listener.Addr().String()); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := c.Ping(context.Background(), time.Second, "localhost:0")
+	_, err := c.Ping(context.Background(), "localhost:0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
