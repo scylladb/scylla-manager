@@ -59,6 +59,11 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
+	diffOpts := []cmp.Option{
+		mermaidtest.UUIDComparer(),
+		cmpopts.IgnoreFields(cluster.Cluster{}, "KnownHosts"),
+	}
+
 	t.Run("list empty", func(t *testing.T) {
 		setup(t)
 
@@ -95,7 +100,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(clusters, expected, mermaidtest.UUIDComparer(), cmpopts.IgnoreFields(cluster.Cluster{}, "KnownHosts")); diff != "" {
+		if diff := cmp.Diff(clusters, expected, diffOpts...); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -129,7 +134,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(c0, c1, mermaidtest.UUIDComparer()); diff != "" {
+		if diff := cmp.Diff(c0, c1, diffOpts...); diff != "" {
 			t.Fatal("read write mismatch", diff)
 		}
 
@@ -137,7 +142,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(c0, c2, mermaidtest.UUIDComparer()); diff != "" {
+		if diff := cmp.Diff(c0, c2, diffOpts...); diff != "" {
 			t.Fatal("read write mismatch", diff)
 		}
 	})
@@ -250,3 +255,4 @@ func validCluster(pem []byte, sshUser string) *cluster.Cluster {
 
 	return c
 }
+
