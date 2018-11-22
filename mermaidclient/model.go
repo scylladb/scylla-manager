@@ -24,9 +24,9 @@ type ClusterSlice []*models.Cluster
 
 // Render renders ClusterSlice in a tabular format.
 func (cs ClusterSlice) Render(w io.Writer) error {
-	t := table.New("cluster id", "name", "host", "ssh user")
+	t := table.New("cluster id", "name", "ssh user")
 	for _, c := range cs {
-		t.AddRow(c.ID, c.Name, c.Host, c.SSHUser)
+		t.AddRow(c.ID, c.Name, c.SSHUser)
 	}
 	if _, err := w.Write([]byte(t.String())); err != nil {
 		return err
