@@ -44,7 +44,7 @@ func mwRetry(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 }
 
 // mwHostPool sets request host from a pool.
-func mwHostPool(parent http.RoundTripper, pool hostpool.HostPool) http.RoundTripper {
+func mwHostPool(next http.RoundTripper, pool hostpool.HostPool) http.RoundTripper {
 	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		ctx := req.Context()
 
@@ -76,7 +76,7 @@ func mwHostPool(parent http.RoundTripper, pool hostpool.HostPool) http.RoundTrip
 		req.Host = h
 		req.URL.Host = h
 
-		resp, err := parent.RoundTrip(r)
+		resp, err := next.RoundTrip(r)
 
 		// mark response
 		if hpr != nil {
