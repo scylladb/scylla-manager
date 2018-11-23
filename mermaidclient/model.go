@@ -192,7 +192,6 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 
 	for _, s := range cs {
 		if s.Dc != dc {
-			dc = s.Dc
 			if t != nil {
 				if _, err := w.Write([]byte("Datacenter: " + dc + "\n")); err != nil {
 					return err
@@ -201,13 +200,14 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 					return err
 				}
 			}
+			dc = s.Dc
 			t = table.New()
-			t.AddHeaders("Host", "Status", "RTT (ms)")
+			t.AddHeaders("CQL", "Host")
 		}
 		if s.CqlStatus == "DOWN" {
-			t.AddRow(s.Host, s.CqlStatus, "N/A")
+			t.AddRow(s.CqlStatus, s.Host)
 		} else {
-			t.AddRow(s.Host, s.CqlStatus, fmt.Sprintf("%.2f", s.CqlRttMs))
+			t.AddRow(fmt.Sprintf("%s (%.0fms)", s.CqlStatus, s.CqlRttMs), s.Host)
 		}
 	}
 	// Pick up the last dc
