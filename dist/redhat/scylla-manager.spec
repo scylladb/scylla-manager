@@ -45,6 +45,7 @@ mkdir -p release/bash_completion
 ./release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
 
 %install
+mkdir -p %{buildroot}%{_docdir}/%{name}/
 mkdir -p %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_sbindir}/
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d/
@@ -54,6 +55,8 @@ mkdir -p %{buildroot}%{_unitdir}/
 mkdir -p %{buildroot}%{_prefix}/lib/%{name}/
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}/
 
+install -m644 LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}/LICENSE
+install -m644 LICENSE.3RD_PARTY %{buildroot}%{_docdir}/%{name}/LICENSE.3RD_PARTY
 install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
 install -m644 release/bash_completion/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 install -m644 dist/etc/*.yaml %{buildroot}%{_sysconfdir}/%{name}/
@@ -84,6 +87,8 @@ the database management tasks.
 
 %files server
 %defattr(-,root,root)
+%license %{_docdir}/%{name}/LICENSE
+%license %{_docdir}/%{name}/LICENSE.3RD_PARTY
 %{_bindir}/%{name}
 %{_prefix}/lib/%{name}/scyllamgr_setup
 %{_prefix}/lib/%{name}/scyllamgr_ssh_setup
@@ -125,5 +130,7 @@ database. %{name} is the CLI for interacting with the Scylla Manager server.
 
 %files client
 %defattr(-,root,root)
+%license %{_docdir}/%{name}/LICENSE
+%license %{_docdir}/%{name}/LICENSE.3RD_PARTY
 %{_bindir}/sctool
 %{_sysconfdir}/bash_completion.d/sctool.bash
