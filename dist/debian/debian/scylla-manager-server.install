@@ -1,3 +1,5 @@
+LICENSE.PROPRIETARY usr/share/doc/scylla-manager/LICENSE
+LICENSE.3RD_PARTY usr/share/doc/scylla-manager
 release/linux_amd64/scylla-manager usr/bin
 dist/scripts/scyllamgr_setup usr/sbin
 dist/scripts/scyllamgr_ssh_setup usr/sbin

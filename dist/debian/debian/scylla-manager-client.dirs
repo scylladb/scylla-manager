@@ -1,2 +1,3 @@
 etc/bash_completion.d
 usr/bin
+usr/share/doc/scylla-manager

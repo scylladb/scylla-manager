@@ -1,11 +1,8 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: Scylla DB
+Upstream-Name: Scylla Manager
 Upstream-Contact: http://www.scylladb.com/
-Source: https://github.com/scylladb/scylla
 
 Files: *
 Copyright: Copyright (C) 2017 ScyllaDB
 License: Proprietary
-
-License: Proprietary
- Copyright (C) 2017 ScyllaDB
+ This software is distributed under a license.  You should have received a license when purchasing your Scylla Enterprise Subscription.  If in doubt, please write to sales@scylladb.com for inquiries.
