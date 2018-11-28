@@ -22,10 +22,17 @@ setup: ## Install required tools
 	@ln -s $(PWD)/vendor $(GOPATH)/src
 	@$(call dl,dep,https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64)
 	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.10.2/golangci-lint-1.10.2-linux-amd64.tar.gz)
+	@rm -Rf $(GOPATH)
+
+.PHONY: setup-dev
+setup-dev: GOPATH := $(shell mktemp -d)
+setup-dev: ## Install required development tools
+	@echo "==> Installing tools at $(GOBIN) ..."
+	@mkdir -p $(GOBIN)
+	@ln -s $(PWD)/vendor $(GOPATH)/src
 	@$(call dl,swagger,https://github.com/go-swagger/go-swagger/releases/download/0.16.0/swagger_linux_amd64)
 	@go install github.com/golang/mock/mockgen
-	@go install gopkg.in/src-d/go-license-detector.v2/cmd/license-detector
-	@rm -Rf $(GOPATH)
+	@go get gopkg.in/src-d/go-license-detector.v2/cmd/license-detector
 
 .PHONY: fmt
 fmt: ## Format source code

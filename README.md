@@ -10,5 +10,5 @@ Install Go and Docker, install necessary tools:
 $ sudo dnf install createrepo jq make moreutils rpm-build sshpass 
 $ sudo pip install -U docker-compose
 $ sudo pip install -U cqlsh
-$ make get-tools
+$ make setup setup-dev
 ```
