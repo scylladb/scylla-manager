@@ -125,16 +125,6 @@ func (c *Client) ClusterName(ctx context.Context) (string, error) {
 	return resp.Payload, nil
 }
 
-// Datacenter returns the local datacenter name.
-func (c *Client) Datacenter(ctx context.Context) (string, error) {
-	resp, err := c.operations.GetDatacenter(&operations.GetDatacenterParams{Context: ctx})
-	if err != nil {
-		return "", err
-	}
-
-	return resp.Payload, nil
-}
-
 type dcHost struct {
 	dc   string
 	host string

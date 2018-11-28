@@ -30,9 +30,9 @@ import (
 )
 
 const (
-	node0 = "192.168.100.11"
-	node1 = "192.168.100.12"
-	node2 = "192.168.100.13"
+	node0 = 0
+	node1 = 1
+	node2 = 2
 )
 
 const (
@@ -99,7 +99,7 @@ func (h *repairTestHelper) assertCause(cause string, wait time.Duration) {
 	}, _interval, wait)
 }
 
-func (h *repairTestHelper) assertProgress(unit int, node string, percent int, wait time.Duration) {
+func (h *repairTestHelper) assertProgress(unit, node, percent int, wait time.Duration) {
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
@@ -108,7 +108,7 @@ func (h *repairTestHelper) assertProgress(unit int, node string, percent int, wa
 	}, _interval, wait)
 }
 
-func (h *repairTestHelper) progress(unit int, node string) int {
+func (h *repairTestHelper) progress(unit, node int) int {
 	h.t.Helper()
 
 	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
@@ -116,13 +116,11 @@ func (h *repairTestHelper) progress(unit int, node string) int {
 		h.t.Fatal(err)
 	}
 
-	for _, n := range p.Units[unit].Nodes {
-		if n.Host == node {
-			return n.PercentComplete
-		}
+	if len(p.Units[unit].Nodes) <= node {
+		return -1
 	}
 
-	return -1
+	return p.Units[unit].Nodes[node].PercentComplete
 }
 
 func (h *repairTestHelper) close() {
@@ -306,7 +304,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 		for _, u := range prog.Units {
 			for _, n := range u.Nodes {
-				if n.Host == node0 || n.Host == node1 || n.Host == node2 {
+				if !strings.HasPrefix(n.Host, "192.168.100.2") {
 					t.Error(n.Host)
 				}
 			}
@@ -351,7 +349,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		units := multipleUnits()
-		units.Host = node0
+		units.Host = ManagedClusterHosts[0]
 
 		Print("When: run repair")
 		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, units); err != nil {
@@ -370,14 +368,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: status is StatusDone")
 		h.assertStatus(runner.StatusDone, 2*longWait)
 
-		Print(fmt.Sprintf("Then: host %s is used for repair", node0))
+		Print(fmt.Sprintf("Then: host %s is used for repair", units.Host))
 		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
 		if err != nil {
 			h.t.Fatal(err)
 		}
 		for _, u := range prog.Units {
 			for _, n := range u.Nodes {
-				if n.Host != node0 {
+				if n.Host != units.Host {
 					t.Error(n.Host)
 				}
 			}

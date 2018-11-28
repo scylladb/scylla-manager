@@ -638,15 +638,6 @@ func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Cli
 		return "", errors.New("no matching DCs")
 	}
 
-	// TODO remove that
-	local, err := client.Datacenter(ctx)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get local DC")
-	}
-	if runSet.Has(local) {
-		return local, nil
-	}
-
 	all, err := client.Datacenters(ctx)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get datacenters")

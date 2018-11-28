@@ -42,22 +42,6 @@ func TestClientClusterName(t *testing.T) {
 	}
 }
 
-func TestClientDatacenter(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/snitch_datacenter.json")
-	defer s.Close()
-	c := testClient(s)
-
-	v, err := c.Datacenter(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != "dc1" {
-		t.Fatal(v)
-	}
-}
-
 func TestClientKeyspaces(t *testing.T) {
 	t.Parallel()
 
