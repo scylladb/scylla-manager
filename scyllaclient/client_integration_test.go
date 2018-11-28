@@ -2,25 +2,27 @@
 
 // +build all integration
 
-package scyllaclient
+package scyllaclient_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/internal/ssh"
-	"github.com/scylladb/mermaid/mermaidtest"
+	. "github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/mermaidtest/exec"
+	"github.com/scylladb/mermaid/scyllaclient"
 )
 
 func TestClientSSHTransportIntegration(t *testing.T) {
-	client, err := NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,13 +35,13 @@ func TestClientSSHTransportIntegration(t *testing.T) {
 }
 
 func TestClientClosestDCIntegration(t *testing.T) {
-	client, err := NewClient(mermaidtest.ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	dcs := map[string][]string{
-		"dc1": mermaidtest.ManagedClusterHosts,
+		"dc1": ManagedClusterHosts,
 		"xx":  {"xx.xx.xx.xx"},
 	}
 
@@ -52,7 +54,12 @@ func TestClientClosestDCIntegration(t *testing.T) {
 	}
 }
 
-func TestBlockedHosts(t *testing.T) {
+func TestRetryWithTimeoutIntegration(t *testing.T) {
+	hosts, err := getHosts()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	var table = []struct {
 		block   int
 		timeout bool
@@ -66,75 +73,93 @@ func TestBlockedHosts(t *testing.T) {
 			timeout: false,
 		},
 		{
-			block:   6,
+			block:   len(hosts) - 1,
+			timeout: false,
+		},
+		{
+			block:   len(hosts),
 			timeout: true,
 		},
 	}
 
-	hosts, err := getHosts()
+	for i, test := range table {
+		if err := testRetry(hosts, test.block, test.timeout); err != nil {
+			t.Fatal(i, err)
+		}
+	}
+}
+
+func getHosts() ([]string, error) {
+	transport := ssh.NewDevelopmentTransport()
+	client, err := scyllaclient.NewClient(ManagedClusterHosts, transport, log.NewDevelopment())
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
+	}
+	return client.Hosts(context.Background())
+}
+
+func testRetry(hosts []string, n int, shouldTimeout bool) error {
+	blockedHosts := make([]string, 0, len(hosts))
+
+	block := func(ctx context.Context, hosts []string) error {
+		for _, h := range hosts {
+			stdout, stderr, err := exec.ExecOnHost(context.Background(), h, exec.CmdBlockScyllaAPI)
+			if err != nil {
+				return errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
+			}
+			blockedHosts = append(blockedHosts, h)
+		}
+		return nil
 	}
 
-	hb := mermaidtest.NewScyllaExecutor()
-	defer hb.Close()
-
-	for _, tab := range table {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		blockedHosts, err := block(ctx, hb, hosts[0:tab.block]...)
-		if err != nil {
-			t.Fatalf("unable to block Scylla API, error=%s, successfully blocked hosts %s", err, blockedHosts)
-		}
-		cancel()
-
-		cleanup := func(ctx context.Context, cancel context.CancelFunc) {
-			defer cancel()
-			if host, stdout, stderr, err := unblock(ctx, hb, blockedHosts...); err != nil {
-				t.Fatalf("unable to unblock Scylla API, error=%s, host=%s, stdout=%s, stderr=%s", err, host, stdout, stderr)
+	unblock := func(ctx context.Context) error {
+		for _, h := range blockedHosts {
+			stdout, stderr, err := exec.ExecOnHost(ctx, h, exec.CmdUnblockScyllaAPI)
+			if err != nil {
+				return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 			}
 		}
+		return nil
+	}
 
-		triedHosts := make(map[string]int)
-		transport := ssh.NewDevelopmentTransport()
-		client, err := NewClient(hosts, hostRecorder(transport, triedHosts), log.NewDevelopment())
-		if err != nil {
-			cleanup(context.WithTimeout(context.Background(), 5*time.Second))
-			t.Fatal(err)
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*scyllaclient.RequestTimeout)
+	defer cancel()
+	defer unblock(context.Background())
 
-		ctx, cancel = context.WithTimeout(context.Background(), 40*time.Second)
+	if err := block(ctx, hosts[0:n]); err != nil {
+		return err
+	}
 
-		var errMsg string
-		_, err = client.Hosts(ctx)
-		if err != nil {
-			if tab.timeout {
-				if !strings.Contains(err.Error(), "Client.Timeout") {
-					errMsg = fmt.Sprintf("call error but no timeout, error=%T\n%v\n%s", err, err, err)
-				}
-			} else {
-				errMsg = fmt.Sprintf("expected no error, error=%s", err)
-			}
-		}
+	triedHosts := make(map[string]int)
 
-		cleanup(context.WithTimeout(context.Background(), 5*time.Second))
-		cancel()
+	client, err := scyllaclient.NewClient(hosts, hostRecorder(ssh.NewDevelopmentTransport(), triedHosts), log.NewDevelopment())
+	if err != nil {
+		return err
+	}
 
-		if errMsg != "" {
-			t.Fatal(errMsg)
-		}
-
-		if !tab.timeout {
-			for _, host := range blockedHosts {
-				if cnt, ok := triedHosts[host]; ok && cnt > 1 {
-					t.Fatalf("tried blocked host %s %d times", host, cnt)
-				}
+	if _, err = client.Hosts(ctx); err != nil {
+		if shouldTimeout {
+			if !strings.Contains(err.Error(), "Client.Timeout") {
+				return errors.Errorf("call error but no timeout, error=%v", err)
 			}
 		} else {
-			if len(blockedHosts) < len(triedHosts) {
-				t.Fatalf("did not try the expected number of hosts, expected %d, got %d", len(blockedHosts), len(triedHosts))
-			}
+			return errors.Errorf("expected no error, got %v", err)
 		}
 	}
+
+	if !shouldTimeout {
+		for _, host := range blockedHosts {
+			if cnt, ok := triedHosts[host]; ok && cnt > 1 {
+				return errors.Errorf("tried blocked host %s %d times", host, cnt)
+			}
+		}
+	} else {
+		if len(blockedHosts) < len(triedHosts) {
+			return errors.Errorf("did not try the expected number of hosts, expected %d, got %d", len(blockedHosts), len(triedHosts))
+		}
+	}
+
+	return nil
 }
 
 func hostRecorder(parent http.RoundTripper, triedHosts map[string]int) http.RoundTripper {
@@ -147,35 +172,4 @@ func hostRecorder(parent http.RoundTripper, triedHosts map[string]int) http.Roun
 		r, e := parent.RoundTrip(req)
 		return r, e
 	})
-}
-
-func getHosts() ([]string, error) {
-	transport := ssh.NewDevelopmentTransport()
-	client, err := NewClient(mermaidtest.ManagedClusterHosts, transport, log.NewDevelopment())
-	if err != nil {
-		return nil, err
-	}
-	return client.Hosts(context.Background())
-}
-
-func block(ctx context.Context, se *mermaidtest.ScyllaExecutor, hosts ...string) ([]string, error) {
-	blockedHosts := make([]string, 0, len(hosts))
-	for _, host := range hosts {
-		_, _, err := se.ExecOnHost(ctx, host, mermaidtest.CmdBlockScyllaAPI)
-		if err != nil {
-			return blockedHosts, err
-		}
-		blockedHosts = append(blockedHosts, host)
-	}
-	return blockedHosts, nil
-}
-
-func unblock(ctx context.Context, se *mermaidtest.ScyllaExecutor, hosts ...string) (string, string, string, error) {
-	for _, host := range hosts {
-		stdout, stderr, err := se.ExecOnHost(ctx, host, mermaidtest.CmdUnblockScyllaAPI)
-		if err != nil {
-			return host, stdout, stderr, err
-		}
-	}
-	return "", "", "", nil
 }
