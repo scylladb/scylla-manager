@@ -222,9 +222,16 @@ func (s *server) close() {
 		s.prometheusServer.Close()
 	}
 
-	s.clusterSvc.Close()
+	// Due to dependencies between the services the repair service
+	// has to be closed first and then the scheduler service.
+	//
+	// The cluster service is last because it handles closing of
+	// SSH connections to the nodes. It relies on connections being
+	// idle which means that the other services needs to be
+	// closed first.
 	s.repairSvc.Close()
-	s.schedSvc.Close() // must be closed last
+	s.schedSvc.Close()
+	s.clusterSvc.Close()
 
 	s.session.Close()
 }

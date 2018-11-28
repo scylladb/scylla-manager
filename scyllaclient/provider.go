@@ -55,3 +55,16 @@ func (p *CachedProvider) Invalidate(clusterID uuid.UUID) {
 	defer p.mu.Unlock()
 	delete(p.clients, clusterID)
 }
+
+// Close removes all clients and closes them to clear up any resources.
+func (p *CachedProvider) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	for clusterID, c := range p.clients {
+		delete(p.clients, clusterID)
+		c.Close()
+	}
+
+	return nil
+}

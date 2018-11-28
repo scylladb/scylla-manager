@@ -14,7 +14,7 @@ import (
 // http.Transport that uses ProxyDialer.
 func NewTransport(c *ssh.ClientConfig) *http.Transport {
 	return &http.Transport{
-		DialContext:           ProxyDialer{Pool: DefaultPool, Config: c}.DialContext,
+		DialContext:           ProxyDialer{Pool: NewPool(ContextDialer(DefaultDialer), 0), Config: c}.DialContext,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,

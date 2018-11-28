@@ -295,6 +295,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		if err := s.keyStore.Put(c.ID, c.SSHIdentityFile); err != nil {
 			return errors.Wrap(err, "failed to save identity file")
 		}
+		s.clientCache.Invalidate(c.ID)
 	}
 	defer func() {
 		if ferr != nil {
@@ -303,6 +304,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 				if err := s.keyStore.Put(c.ID, oldIdentityFile); err != nil {
 					s.logger.Debug(ctx, "post error delete failed", "error", err)
 				}
+				s.clientCache.Invalidate(c.ID)
 			}
 		}
 	}()
@@ -366,5 +368,5 @@ func shouldSaveIdentityFile(sshUser string, sshIdentityFile []byte) bool {
 
 // Close closes all SSH connections to cluster.
 func (s *Service) Close() {
-	ssh.DefaultPool.Close()
+	s.clientCache.Close()
 }

@@ -57,6 +57,7 @@ var initOnce sync.Once
 // Client provides means to interact with Scylla nodes.
 type Client struct {
 	operations *operations.Client
+	inner      http.RoundTripper
 	transport  http.RoundTripper
 	logger     log.Logger
 }
@@ -66,6 +67,8 @@ func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Clie
 	if len(hosts) == 0 {
 		return nil, errors.New("missing hosts")
 	}
+
+	inner := transport
 
 	initOnce.Do(func() {
 		// Timeout is defined in http client that we provide in api.NewWithClient.
@@ -101,6 +104,7 @@ func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Clie
 
 	return &Client{
 		operations: operations.New(client, strfmt.Default),
+		inner:      inner,
 		transport:  transport,
 		logger:     l,
 	}, nil
@@ -537,4 +541,12 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 		resp.Body.Close()
 	}
 	return timeutc.Since(t), err
+}
+
+// Close closes all the idle connections.
+func (c *Client) Close() error {
+	if t, ok := c.inner.(*http.Transport); ok {
+		t.CloseIdleConnections()
+	}
+	return nil
 }

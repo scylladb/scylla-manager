@@ -21,10 +21,6 @@ type poolConn struct {
 	refCount uint
 }
 
-// DefaultPool is the default instance of Pool it uses mermaid.DefaultDialer for
-// creating the SSH connections.
-var DefaultPool = NewPool(ContextDialer(DefaultDialer), 0)
-
 // Pool is an SSH connection pool.
 type Pool struct {
 	dialContext DialContextFunc
