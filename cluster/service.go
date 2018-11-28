@@ -286,6 +286,10 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		}
 	}
 
+	var oldIdentityFile []byte
+	if b, err := s.keyStore.Get(c.ID); err == nil {
+		oldIdentityFile = b
+	}
 	// save identity file
 	if shouldSaveIdentityFile(c.SSHUser, c.SSHIdentityFile) {
 		if err := s.keyStore.Put(c.ID, c.SSHIdentityFile); err != nil {
@@ -294,8 +298,9 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 	}
 	defer func() {
 		if ferr != nil {
+			// Rollback and restore the old identity file
 			if shouldSaveIdentityFile(c.SSHUser, c.SSHIdentityFile) {
-				if err := s.keyStore.Put(c.ID, nil); err != nil {
+				if err := s.keyStore.Put(c.ID, oldIdentityFile); err != nil {
 					s.logger.Debug(ctx, "post error delete failed", "error", err)
 				}
 			}
