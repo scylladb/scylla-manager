@@ -33,13 +33,26 @@ func mwOpenAPIFix(next http.RoundTripper) http.RoundTripper {
 }
 
 // mwRetry retries request if needed.
-func mwRetry(next http.RoundTripper, logger log.Logger) http.RoundTripper {
-	rt := retryablehttp.NewTransport(next, logger)
+func mwRetry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTripper {
+	// Retry policy while using a specified host.
+	hostRetry := retryablehttp.NewTransport(next, logger)
+
+	// Retry policy while using host pool, no backoff wait time, switch host as
+	// fast as possible.
+	poolRetry := retryablehttp.NewTransport(next, logger)
+	poolRetry.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration { return 0 }
+	poolRetry.RetryMax = poolSize
+
 	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		if _, ok := req.Context().Value(ctxNoRetry).(bool); ok {
 			return next.RoundTrip(req)
 		}
-		return rt.RoundTrip(req)
+
+		if _, ok := req.Context().Value(ctxHost).(string); ok {
+			return hostRetry.RoundTrip(req)
+		}
+
+		return poolRetry.RoundTrip(req)
 	})
 }
 

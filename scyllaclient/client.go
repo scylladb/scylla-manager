@@ -44,6 +44,10 @@ var (
 	// RequestTimeout specifies time to complete a single request to Scylla
 	// REST API possibly including opening SSH tunneled connection.
 	RequestTimeout = 5 * time.Second
+
+	// PoolDecayDuration specifies size of time window to measure average
+	// request time in Epsilon-Greedy host pool.
+	PoolDecayDuration = 30 * time.Minute
 )
 
 var initOnce sync.Once
@@ -77,12 +81,12 @@ func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Clie
 	for i, h := range hosts {
 		addrs[i] = withPort(h, DefaultAPIPort)
 	}
-	pool := hostpool.NewEpsilonGreedy(addrs, 0, &hostpool.LinearEpsilonValueCalculator{})
+	pool := hostpool.NewEpsilonGreedy(addrs, PoolDecayDuration, &hostpool.LinearEpsilonValueCalculator{})
 
 	transport = mwTimeout(transport, RequestTimeout)
 	transport = mwLogger(transport, l)
 	transport = mwHostPool(transport, pool)
-	transport = mwRetry(transport, l)
+	transport = mwRetry(transport, len(hosts), l)
 	transport = mwOpenAPIFix(transport)
 
 	client := api.NewWithClient(
@@ -266,12 +270,20 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, [
 	return dcs.List(), trs, nil
 }
 
-// ClosestDC takes set of DCs with hosts and return the one that is closest.
-// Close is determined as the lowest latency over 3 Ping() invocations across a
-// random selection of hosts for each DC.
-func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) (string, error) {
+// ClosestDC takes output of Datacenters, a map from DC to it's hosts and
+// returns DCs sorted by speed the hosts respond. It's determined by
+// the lowest latency over 3 Ping() invocations across random selection of
+// hosts for each DC.
+func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]string, error) {
 	if len(dcs) == 0 {
-		return "", errors.Errorf("no dcs to choose from")
+		return nil, errors.Errorf("no dcs to choose from")
+	}
+
+	// Single DC no need to measure anything.
+	if len(dcs) == 1 {
+		for dc := range dcs {
+			return []string{dc}, nil
+		}
 	}
 
 	type dcRTT struct {
@@ -281,10 +293,10 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) (string
 	out := make(chan dcRTT, runtime.NumCPU()+1)
 	size := 0
 
-	r := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
+	// Test latency of 3 random hosts from each DC.
 	for dc, hosts := range dcs {
 		dc := dc
-		hosts := pickNRandomHosts(r, 3, hosts)
+		hosts := pickNRandomHosts(3, hosts)
 		size += len(hosts)
 
 		for _, h := range hosts {
@@ -297,38 +309,50 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) (string
 						"host", h,
 						"err", err,
 					)
-					out <- dcRTT{}
-				} else {
-					out <- dcRTT{dc: dc, rtt: rtt}
+					rtt = math.MaxInt64
 				}
+				out <- dcRTT{dc: dc, rtt: rtt}
 			}()
 		}
 	}
 
-	min := dcRTT{"", math.MaxInt64}
+	// Select the lowest latency for each DC.
+	min := make(map[string]time.Duration, len(dcs))
 	for i := 0; i < size; i++ {
 		v := <-out
-		if v.dc != "" && v.rtt < min.rtt {
-			min = v
+		if m, ok := min[v.dc]; !ok || m > v.rtt {
+			min[v.dc] = v.rtt
 		}
 	}
 
-	if min.dc == "" {
-		return "", errors.New("failed to connect to any node")
+	// Sort DCs by lowest latency.
+	sored := make([]string, 0, len(dcs))
+	for dc := range dcs {
+		sored = append(sored, dc)
+	}
+	sort.Slice(sored, func(i, j int) bool {
+		return min[sored[i]] < min[sored[j]]
+	})
+
+	// All hosts failed...
+	if min[sored[0]] == math.MaxInt64 {
+		return nil, errors.New("failed to connect to any node")
 	}
 
-	return min.dc, nil
+	return sored, nil
 }
 
-func pickNRandomHosts(r *rand.Rand, n int, hosts []string) []string {
+func pickNRandomHosts(n int, hosts []string) []string {
 	if n >= len(hosts) {
 		return hosts
 	}
 
+	rand := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
+
 	idxs := make(map[int]struct{})
 	rh := make([]string, 0, n)
 	for ; n > 0; n-- {
-		idx := r.Intn(len(hosts))
+		idx := rand.Intn(len(hosts))
 		if _, ok := idxs[idx]; !ok {
 			idxs[idx] = struct{}{}
 			rh = append(rh, hosts[idx])

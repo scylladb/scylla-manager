@@ -255,4 +255,3 @@ func validCluster(pem []byte, sshUser string) *cluster.Cluster {
 
 	return c
 }
-

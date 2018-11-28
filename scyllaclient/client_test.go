@@ -5,7 +5,6 @@ package scyllaclient
 import (
 	"context"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 func TestWithPort(t *testing.T) {
@@ -330,9 +328,8 @@ func TestPickNRandomHosts(t *testing.T) {
 		},
 	}
 
-	r := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
 	for i, test := range table {
-		picked := pickNRandomHosts(r, test.N, test.H)
+		picked := pickNRandomHosts(test.N, test.H)
 		if len(picked) != test.E {
 			t.Errorf("picked %d hosts, expected %d in test %d", len(picked), test.E, i)
 		}

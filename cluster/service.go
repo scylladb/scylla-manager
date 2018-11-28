@@ -83,7 +83,7 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 		return nil, err
 	}
 
-	dc, hosts, err := s.getClosestDC(ctx, c)
+	hosts, err := s.getHosts(ctx, c)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to determine closest datacenter")
 	}
@@ -97,32 +97,35 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 		return nil, errors.Wrap(err, "failed to create transport")
 	}
 
-	s.logger.Info(ctx, "New cluster client",
-		"clusterID", clusterID,
-		"dc", dc,
-	)
+	s.logger.Info(ctx, "New cluster client", "clusterID", clusterID)
 
 	return scyllaclient.NewClient(hosts, transport, s.logger.Named("client"))
 }
 
-func (s *Service) getClosestDC(ctx context.Context, c *Cluster) (dc string, hosts []string, err error) {
+// getHosts returns a list of all hosts sorted by DC speed. This is
+// an optimisation for Epsilon-Greedy host pool used internally by
+// scyllaclient.Client that makes it use supposedly faster hosts first.
+func (s *Service) getHosts(ctx context.Context, c *Cluster) (hosts []string, err error) {
 	transport, err := s.createTransport(c)
 	if err != nil {
-		return "", nil, errors.Wrap(err, "failed to create transport")
+		return nil, errors.Wrap(err, "failed to create transport")
 	}
 	client, err := scyllaclient.NewClient(append(c.KnownHosts, c.Host), transport, s.logger.Named("client"))
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	closest, err := client.ClosestDC(ctx, dcs)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
-	return closest, dcs[closest], nil
+	for _, dc := range closest {
+		hosts = append(hosts, dcs[dc]...)
+	}
+	return hosts, nil
 }
 
 func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
@@ -300,7 +303,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 	}()
 
 	// validate hosts connectivity
-	if _, hosts, err := s.getClosestDC(ctx, c); err != nil {
+	if hosts, err := s.getHosts(ctx, c); err != nil {
 		return mermaid.ErrValidate(err, "host connectivity check failed")
 	} else { // nolint: golint
 		c.KnownHosts = hosts

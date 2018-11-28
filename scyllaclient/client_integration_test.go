@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/internal/ssh"
@@ -42,12 +43,12 @@ func TestClientClosestDCIntegration(t *testing.T) {
 		"xx":  {"xx.xx.xx.xx"},
 	}
 
-	dc, err := client.ClosestDC(context.Background(), dcs)
+	closest, err := client.ClosestDC(context.Background(), dcs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dc != "dc1" {
-		t.Fatalf("expected %s, got %s", "dc1", dc)
+	if diff := cmp.Diff(closest, []string{"dc1", "xx"}); diff != "" {
+		t.Fatal(closest, diff)
 	}
 }
 

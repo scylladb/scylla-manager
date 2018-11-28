@@ -638,6 +638,7 @@ func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Cli
 		return "", errors.New("no matching DCs")
 	}
 
+	// TODO remove that
 	local, err := client.Datacenter(ctx)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get local DC")
@@ -661,8 +662,12 @@ func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Cli
 			dcHosts[dc] = hosts
 		}
 	}
+	closest, err := client.ClosestDC(ctx, dcHosts)
+	if err != nil {
+		return "", nil
+	}
 
-	return client.ClosestDC(ctx, dcHosts)
+	return closest[0], nil
 }
 
 func (s *Service) hostSegments(run *Run, dc string, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
