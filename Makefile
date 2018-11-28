@@ -33,6 +33,7 @@ setup-dev: ## Install required development tools
 	@$(call dl,swagger,https://github.com/go-swagger/go-swagger/releases/download/0.16.0/swagger_linux_amd64)
 	@go install github.com/golang/mock/mockgen
 	@go get gopkg.in/src-d/go-license-detector.v2/cmd/license-detector
+	@rm -Rf $(GOPATH)
 
 .PHONY: fmt
 fmt: ## Format source code
