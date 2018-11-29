@@ -17,7 +17,6 @@ import (
 	"github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/internal/ssh"
 	. "github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/mermaidtest/exec"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
@@ -103,7 +102,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	block := func(ctx context.Context, hosts []string) error {
 		for _, h := range hosts {
-			stdout, stderr, err := exec.ExecOnHost(context.Background(), h, exec.CmdBlockScyllaAPI)
+			stdout, stderr, err := ExecOnHost(context.Background(), h, CmdBlockScyllaAPI)
 			if err != nil {
 				return errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 			}
@@ -114,7 +113,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	unblock := func(ctx context.Context) error {
 		for _, h := range blockedHosts {
-			stdout, stderr, err := exec.ExecOnHost(ctx, h, exec.CmdUnblockScyllaAPI)
+			stdout, stderr, err := ExecOnHost(ctx, h, CmdUnblockScyllaAPI)
 			if err != nil {
 				return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 			}

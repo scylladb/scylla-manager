@@ -2,7 +2,7 @@
 
 // +build all integration
 
-package ssh
+package ssh_test
 
 import (
 	"context"
@@ -10,52 +10,50 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/internal/ssh"
+	. "github.com/scylladb/mermaid/mermaidtest"
 )
 
 func TestPoolIntegration(t *testing.T) {
 	var (
-		host   = mermaidtest.ManagedClusterHosts[0]
-		config = NewDevelopmentClientConfig()
-		pool   = NewPool(ContextDialer(DefaultDialer), time.Minute)
+		network = "tcp"
+		addr    = fmt.Sprint(ManagedClusterHosts[0], ":22")
+		config  = ssh.NewDevelopmentClientConfig()
+		pool    = ssh.NewPool(ssh.ContextDialer(ssh.DefaultDialer), time.Minute)
 	)
-
-	inspect := func() *poolConn {
-		pool.mu.Lock()
-		defer pool.mu.Unlock()
-		return pool.conns[key("tcp", fmt.Sprint(host, ":22"))]
-	}
 
 	ctx := context.Background()
 
 	t.Run("dial", func(t *testing.T) {
-		// When dial new server
-		c0, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
+		Print("When: dial new server")
+		c0, err := pool.DialContext(ctx, network, addr, config)
 		if err != nil {
 			t.Fatal(err)
 		}
-		// Then client is cached
-		// And ref count updated
-		if inspect().client != c0 {
+
+		Print("Then: client is cached")
+		Print("And: ref count updated")
+		if client, _, refCount := pool.Inspect(network, addr); client != c0 {
 			t.Fatal("wrong client")
-		}
-		if inspect().refCount != 1 {
+		} else if refCount != 1 {
 			t.Fatal("wrong refCount")
 		}
 
-		// When client is released
+		Print("When: client is released")
 		pool.Release(c0)
-		// Then ref count is updated
-		if inspect().refCount != 0 {
+
+		Print("Then: ref count is updated")
+		if _, _, refCount := pool.Inspect(network, addr); refCount != 0 {
 			t.Fatal("wrong refCount")
 		}
 
-		// When server is redialed
-		c1, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
+		Print("When: server is redialed")
+		c1, err := pool.DialContext(ctx, network, addr, config)
 		if err != nil {
 			t.Fatal(err)
 		}
-		// Then a cached client is returned
+
+		Print("Then: cached client is returned")
 		if c0 != c1 {
 			t.Fatal("wrong client")
 		}
@@ -64,42 +62,49 @@ func TestPoolIntegration(t *testing.T) {
 	})
 
 	t.Run("gc", func(t *testing.T) {
-		// Given there is a used connection
-		c0, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
+		Print("Given: there is a used connection")
+		c0, err := pool.DialContext(ctx, network, addr, config)
 		if err != nil {
 			t.Fatal(err)
 		}
-		pc := inspect()
-		pc.lastUse = pc.lastUse.Add(-time.Hour)
-		// When GC
+
+		Print("And: connection idle time is exceeded")
+		pool.SetLastUseTime(network, addr, time.Time{})
+
+		Print("When: GC runs")
 		pool.GC()
-		// Then connection shall not be closed
-		if inspect() == nil {
+
+		Print("Then: connection is not closed")
+		if client, _, _ := pool.Inspect(network, addr); client == nil {
 			t.Fatal("GC failure")
 		}
 
-		// Given there is a NOT used connection
+		Print("Given: there is unused connection")
 		pool.Release(c0)
-		// When GC
+
+		Print("When: GC runs")
 		pool.GC()
-		// Then connection is closed
-		if inspect() != nil {
+
+		Print("Then: connection is closed")
+		if client, _, _ := pool.Inspect(network, addr); client != nil {
 			t.Fatal("GC failure")
 		}
 	})
 
 	t.Run("close", func(t *testing.T) {
-		// Given there is a used connection
-		_, err := pool.DialContext(ctx, "tcp", fmt.Sprint(host, ":22"), config)
+		Print("Given: there is a used connection")
+		_, err := pool.DialContext(ctx, network, addr, config)
 		if err != nil {
 			t.Fatal(err)
 		}
-		// When pool is closed
+
+		Print("When: pool is closed")
 		if err := pool.Close(); err != nil {
 			t.Fatal(err)
 		}
-		// Then connection is closed
-		if inspect() != nil {
+
+		Print("Then connection is closed")
+		if client, _, _ := pool.Inspect(network, addr); client != nil {
 			t.Fatal("Close failure")
 		}
 	})
