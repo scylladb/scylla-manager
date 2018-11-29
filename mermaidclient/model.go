@@ -185,24 +185,22 @@ type ClusterStatus models.ClusterStatus
 
 // Render renders ClusterStatus in a tabular format.
 func (cs ClusterStatus) Render(w io.Writer) error {
+	if len(cs) == 0 {
+		return nil
+	}
+
 	var (
-		dc string
-		t  *table.Table
+		dc = cs[0].Dc
+		t  = table.New("CQL", "Host")
 	)
 
 	for _, s := range cs {
 		if s.Dc != dc {
-			if t != nil {
-				if _, err := w.Write([]byte("Datacenter: " + dc + "\n")); err != nil {
-					return err
-				}
-				if _, err := w.Write([]byte(t.String())); err != nil {
-					return err
-				}
+			if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
+				return err
 			}
 			dc = s.Dc
-			t = table.New()
-			t.AddHeaders("CQL", "Host")
+			t = table.New("CQL", "Host")
 		}
 		if s.CqlStatus == "DOWN" {
 			t.AddRow(s.CqlStatus, s.Host)
@@ -210,14 +208,8 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 			t.AddRow(fmt.Sprintf("%s (%.0fms)", s.CqlStatus, s.CqlRttMs), s.Host)
 		}
 	}
-	// Pick up the last dc
-	if t != nil {
-		if _, err := w.Write([]byte("Datacenter: " + dc + "\n")); err != nil {
-			return err
-		}
-		if _, err := w.Write([]byte(t.String())); err != nil {
-			return err
-		}
+	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
+		return err
 	}
 
 	return nil
