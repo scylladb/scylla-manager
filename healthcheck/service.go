@@ -69,6 +69,9 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 		if c.String() != cluster {
 			return
 		}
+		if _, ok := hostDC[host]; !ok {
+			return
+		}
 		var st string
 		switch v {
 		case 1:
@@ -84,6 +87,9 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 	})
 	apply(collect(cqlRTT), func(cluster, host string, v float64) {
 		if c.String() != cluster {
+			return
+		}
+		if _, ok := hostDC[host]; !ok {
 			return
 		}
 		status := hostStatus[host]
