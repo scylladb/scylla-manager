@@ -45,6 +45,9 @@ func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runne
 		}()
 	}
 
+	cqlStatus.Reset()
+	cqlRTT.Reset()
+
 	for range hosts {
 		v := <-out
 
