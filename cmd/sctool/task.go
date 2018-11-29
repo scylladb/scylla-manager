@@ -261,7 +261,7 @@ func init() {
 
 	fs := cmd.Flags()
 	fs.StringP("name", "n", "", "task name")
-	fs.BoolP("enabled", "e", true, "enabled")
+	fs.StringP("enabled", "e", "true", "enabled")
 	fs.StringSlice("tags", nil, "tags")
 	taskInitCommonFlags(fs)
 }
