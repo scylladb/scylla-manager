@@ -198,19 +198,8 @@ var taskUpdateCmd = &cobra.Command{
 		}
 
 		changed := false
-		if f := cmd.Flag("name"); f.Changed {
-			t.Name = f.Value.String()
-			changed = true
-		}
 		if f := cmd.Flag("enabled"); f.Changed {
 			t.Enabled, err = strconv.ParseBool(f.Value.String())
-			if err != nil {
-				return printableError{err}
-			}
-			changed = true
-		}
-		if f := cmd.Flag("tags"); f.Changed {
-			t.Tags, err = cmd.Flags().GetStringSlice("tags")
 			if err != nil {
 				return printableError{err}
 			}
@@ -260,9 +249,7 @@ func init() {
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
-	fs.StringP("name", "n", "", "task name")
 	fs.StringP("enabled", "e", "true", "enabled")
-	fs.StringSlice("tags", nil, "tags")
 	taskInitCommonFlags(fs)
 }
 
