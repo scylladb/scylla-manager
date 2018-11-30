@@ -16,8 +16,6 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-const pingTimeout = 250 * time.Millisecond
-
 type healthCheckRunner struct {
 	cluster cluster.ProviderFunc
 	client  scyllaclient.ProviderFunc
