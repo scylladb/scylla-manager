@@ -6,11 +6,10 @@ package healthcheck
 
 import (
 	"context"
-	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/ssh"
@@ -20,132 +19,38 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type host struct {
-	host   string
-	rtt    float64
-	status float64
-}
-
-func TestGetStatus(t *testing.T) {
-	clusters := make(map[uuid.UUID]string)
-	var table = []struct {
-		c uuid.UUID
-		h []host
-		s []Status
-	}{
-		{
-			c: uuid.MustRandom(),
-			h: []host{
-				{
-					host:   "host_1",
-					status: -1,
-					rtt:    0,
-				},
-				{
-					host:   "host_2",
-					status: 1,
-					rtt:    0.123,
-				},
-				{
-					host:   "host_3",
-					status: 0,
-					rtt:    0,
-				},
-			},
-			s: []Status{
-				{
-					Host:      "host_1",
-					CQLStatus: "DOWN",
-					RTT:       0,
-				},
-				{
-					Host:      "host_2",
-					CQLStatus: "UP",
-					RTT:       0.123,
-				},
-				{
-					Host:      "host_3",
-					CQLStatus: "UNKNOWN",
-					RTT:       0,
-				},
-			},
-		},
-		{
-			c: uuid.MustRandom(),
-			h: []host{
-				{
-					host:   "host_4",
-					status: -1,
-					rtt:    0,
-				},
-				{
-					host:   "host_5",
-					status: 1,
-					rtt:    0.123,
-				},
-				{
-					host:   "host_6",
-					status: 0,
-					rtt:    0,
-				},
-			},
-			s: []Status{
-				{
-					Host:      "host_4",
-					CQLStatus: "DOWN",
-					RTT:       0,
-				},
-				{
-					Host:      "host_5",
-					CQLStatus: "UP",
-					RTT:       0.123,
-				},
-				{
-					Host:      "host_6",
-					CQLStatus: "UNKNOWN",
-					RTT:       0,
-				},
-			},
-		},
-	}
-
+func TestGetStatusIntegration(t *testing.T) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	s := NewService(
 		func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
-			return &cluster.Cluster{
-				ID:   id,
-				Host: clusters[id],
-			}, nil
+			return &cluster.Cluster{ID: id}, nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return scyllaclient.NewClient(ManagedClusterHosts, ssh.NewDevelopmentTransport(), logger.Named("scylla"))
 		},
-		logger)
+		logger,
+	)
 
-	for _, v := range table {
-		for _, h := range v.h {
-			l := prometheus.Labels{
-				clusterKey: v.c.String(),
-				hostKey:    h.host,
-			}
-
-			cqlStatus.With(l).Set(h.status)
-			cqlRTT.With(l).Set(h.rtt)
-		}
+	status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for _, v := range table {
-		status, err := s.GetStatus(context.Background(), v.c)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sort.Slice(status, func(i, j int) bool {
-			return status[i].Host < status[j].Host
-		})
+	expected := []Status{
+		{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP"},
+		{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP"},
+		{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP"},
+		{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP"},
+		{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP"},
+		{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP"},
+	}
 
-		if diff := cmp.Diff(status, v.s); diff != "" {
-			t.Fatal(diff)
-		}
+	diffOpts := []cmp.Option{
+		UUIDComparer(),
+		cmpopts.IgnoreFields(Status{}, "RTT"),
+	}
+	if diff := cmp.Diff(status, expected, diffOpts...); diff != "" {
+		t.Fatal(diff)
 	}
 }

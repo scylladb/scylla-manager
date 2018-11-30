@@ -3,9 +3,8 @@
 package healthcheck
 
 const (
-	statusUp      = `UP`
-	statusDown    = `DOWN`
-	statusUnknown = `UNKNOWN`
+	statusUp   = `UP`
+	statusDown = `DOWN`
 )
 
 // Status represents the status of a particular host

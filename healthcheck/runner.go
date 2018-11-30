@@ -27,6 +27,8 @@ type hostRTT struct {
 	err  error
 }
 
+const pingTimeout = 250 * time.Millisecond
+
 // Run implements runner.Runner.
 func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
 	// get cluster name
