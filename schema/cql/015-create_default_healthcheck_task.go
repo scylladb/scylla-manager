@@ -16,10 +16,10 @@ import (
 )
 
 func init() {
-	registerMigrationCallback("013-update_ttl.cql", migrate.AfterMigration, createDefaultHealthCheckTaskForClusterAfter013)
+	registerMigrationCallback("015-cluster_add_known_hosts.cql", migrate.AfterMigration, createDefaultHealthCheckTaskForClusterAfter015)
 }
 
-func createDefaultHealthCheckTaskForClusterAfter013(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+func createDefaultHealthCheckTaskForClusterAfter015(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 	stmt, names := qb.Select("cluster").Columns("id").ToCql()
 	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	var ids []uuid.UUID

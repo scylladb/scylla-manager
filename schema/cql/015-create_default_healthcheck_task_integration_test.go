@@ -14,13 +14,13 @@ import (
 	. "github.com/scylladb/mermaid/mermaidtest"
 )
 
-func TestCreateDefaultHealthCheckTaskForClusterAfter013Integration(t *testing.T) {
+func TestCreateDefaultHealthCheckTaskForClusterAfter015Integration(t *testing.T) {
 	saveRegister()
 	defer restoreRegister()
 	session := CreateSessionWithoutMigration(t)
 
-	cb := migrationCallback("013-update_ttl.cql", migrate.AfterMigration)
-	registerMigrationCallback("013-update_ttl.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+	cb := migrationCallback("015-cluster_add_known_hosts.cql", migrate.AfterMigration)
+	registerMigrationCallback("015-cluster_add_known_hosts.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 		Print("Given: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id) VALUES (uuid())`
 		ExecStmt(t, session, insertClusterCql)

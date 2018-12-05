@@ -13,10 +13,10 @@ import (
 )
 
 func init() {
-	registerMigrationCallback("012-scheduler_rename_interval_days_to_interval_seconds.cql", migrate.AfterMigration, adjustScheduleIntervalAfter012)
+	registerMigrationCallback("014-scheduler_rename_interval_days_to_interval_seconds.cql", migrate.AfterMigration, adjustScheduleIntervalAfter014)
 }
 
-func adjustScheduleIntervalAfter012(_ context.Context, session *gocql.Session, _ log.Logger) error {
+func adjustScheduleIntervalAfter014(_ context.Context, session *gocql.Session, _ log.Logger) error {
 	const selectSchedStmt = "SELECT cluster_id, type, id, sched FROM scheduler_task"
 	q := session.Query(selectSchedStmt)
 	defer q.Release()

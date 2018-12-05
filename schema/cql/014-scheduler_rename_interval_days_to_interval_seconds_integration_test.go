@@ -14,13 +14,13 @@ import (
 	. "github.com/scylladb/mermaid/mermaidtest"
 )
 
-func TestClusterMoveHostsToHost012IntegrationTest(t *testing.T) {
+func TestClusterMoveHostsToHost014IntegrationTest(t *testing.T) {
 	saveRegister()
 	defer restoreRegister()
 	session := CreateSessionWithoutMigration(t)
 
-	cb := migrationCallback("012-scheduler_rename_interval_days_to_interval_seconds.cql", migrate.AfterMigration)
-	registerMigrationCallback("012-scheduler_rename_interval_days_to_interval_seconds.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+	cb := migrationCallback("014-scheduler_rename_interval_days_to_interval_seconds.cql", migrate.AfterMigration)
+	registerMigrationCallback("014-scheduler_rename_interval_days_to_interval_seconds.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 		Print("Given: tasks")
 		const insertTaskCql = `INSERT INTO scheduler_task (cluster_id, type, id, sched) VALUES (uuid(), 'repair', uuid(),  {start_date: '2018-08-04', interval_seconds: 1, num_retries: 3});`
 		ExecStmt(t, session, insertTaskCql)
