@@ -72,3 +72,8 @@ repair:
   # Distribution of data among cores (shards) within a node.
   # Copy value from Scylla configuration file.
   murmur3_partitioner_ignore_msb_bits: 12
+
+# SSH global configuration, SSH is used to access scylla nodes. Username and
+# identity file are specified per cluster with sctool.
+ssh:
+  port: 22

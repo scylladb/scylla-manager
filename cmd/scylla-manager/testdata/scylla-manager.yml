@@ -20,10 +20,6 @@ database:
   password: password
   replication_factor: 3
 
-ssh:
-  user: user
-  identity_file: identity_file
-
 repair:
   segment_size_limit: 10
   segments_per_repair: 7
@@ -33,3 +29,5 @@ repair:
   max_run_age: 12h
   murmur3_partitioner_ignore_msb_bits: 1
 
+ssh:
+  port: 22000

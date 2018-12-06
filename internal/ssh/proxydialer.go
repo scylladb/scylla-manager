@@ -4,12 +4,16 @@ package ssh
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/ssh"
 )
+
+// DefaultPort specifies default SSH port.
+var DefaultPort = 22
 
 var (
 	sshOpenStreamsCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -57,7 +61,7 @@ func (t ProxyDialer) DialContext(ctx context.Context, network, addr string) (net
 	host, port, _ := net.SplitHostPort(addr)
 	labels := prometheus.Labels{"host": host}
 
-	client, err := t.Pool.DialContext(ctx, network, net.JoinHostPort(host, "22"), t.Config)
+	client, err := t.Pool.DialContext(ctx, network, net.JoinHostPort(host, fmt.Sprint(DefaultPort)), t.Config)
 	if err != nil {
 		sshErrorsTotal.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: dial failed")
