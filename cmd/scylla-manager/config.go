@@ -27,6 +27,10 @@ type dbConfig struct {
 	Timeout                       time.Duration `yaml:"timeout"`
 }
 
+type sshConfig struct {
+	Port int `yaml:"port"`
+}
+
 type serverConfig struct {
 	HTTP        string        `yaml:"http"`
 	HTTPS       string        `yaml:"https"`
@@ -36,6 +40,7 @@ type serverConfig struct {
 	Logger      log.Config    `yaml:"logger"`
 	Database    dbConfig      `yaml:"database"`
 	Repair      repair.Config `yaml:"repair"`
+	SSH         sshConfig     `yaml:"ssh"`
 }
 
 func defaultConfig() *serverConfig {
@@ -55,6 +60,9 @@ func defaultConfig() *serverConfig {
 			Timeout:                       600 * time.Millisecond,
 		},
 		Repair: repair.DefaultConfig(),
+		SSH: sshConfig{
+			Port: 22,
+		},
 	}
 }
 

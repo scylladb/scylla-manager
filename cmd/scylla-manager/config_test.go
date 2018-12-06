@@ -52,6 +52,9 @@ func TestNewConfigFromFile(t *testing.T) {
 			MaxRunAge:             12 * time.Hour,
 			ShardingIgnoreMsbBits: 1,
 		},
+		SSH: sshConfig{
+			Port: 22000,
+		},
 	}
 
 	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {

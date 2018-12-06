@@ -23,6 +23,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/schema/cql"
 	"github.com/spf13/cobra"
 )
@@ -85,6 +86,9 @@ var rootCmd = &cobra.Command{
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
+
+		// set default SSH port
+		ssh.DefaultPort = config.SSH.Port
 
 		// get a base context
 		ctx := log.WithTraceID(context.Background())
