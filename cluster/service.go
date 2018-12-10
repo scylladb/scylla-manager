@@ -135,18 +135,15 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 
 	b, err := s.keyStore.Get(c.ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read SSH identity file")
 	}
 
-	config := ssh.Config{
-		User:         c.SSHUser,
-		IdentityFile: b,
-	}
-	if err := config.Validate(); err != nil {
-		return nil, err
+	config, err := ssh.NewProductionConfig(c.SSHUser, b)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid SSH configuration")
 	}
 
-	return ssh.NewProductionTransport(config)
+	return ssh.NewTransport(config), nil
 }
 
 func (s *Service) setKnownHosts(ctx context.Context, c *Cluster, hosts []string) error {

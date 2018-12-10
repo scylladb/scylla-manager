@@ -21,7 +21,7 @@ const (
 // ExecOnHost executes the given command on the given host. It returns the
 // stdout and stderr of the remote command.
 func ExecOnHost(ctx context.Context, host string, cmd string) (string, string, error) {
-	client, err := ssh.ContextDialer(ssh.DefaultDialer)(ctx, "tcp", net.JoinHostPort(host, "22"), ssh.NewDevelopmentClientConfig())
+	client, err := ssh.ContextDialer(ssh.DefaultDialer)(ctx, "tcp", net.JoinHostPort(host, "22"), ssh.NewDevelopmentConfig())
 	if err != nil {
 		return "", "", err
 	}

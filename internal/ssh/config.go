@@ -3,45 +3,59 @@
 package ssh
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid"
-	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
+)
+
+// SSH configuration defaults.
+var (
+	DefaultPort                = 22
+	DefaultServerAliveInterval = 15 * time.Second
+	DefaultServerAliveCountMax = 3
 )
 
 // Config specifies SSH configuration.
 type Config struct {
-	User         string
-	IdentityFile []byte
+	ssh.ClientConfig
+	// Port specifies the port number to connect on the remote host.
+	Port int
+	// ServerAliveInterval sets an interval in seconds ssh will send a message
+	// through the encrypted channel to request a response from the server.
+	ServerAliveInterval time.Duration
+	// ServerAliveCountMax sets the number of server alive messages which may be
+	// sent without receiving any messages back from the server. If this
+	// threshold is reached while server alive messages are being sent, ssh will
+	// disconnect from the server, terminating the session.
+	ServerAliveCountMax int
 }
 
-// Validate checks if all the fields are properly set.
-func (c *Config) Validate() (err error) {
-	if c == nil {
-		return mermaid.ErrNilPtr
+func defaultConfig() Config {
+	return Config{
+		Port:                DefaultPort,
+		ServerAliveInterval: DefaultServerAliveInterval,
+		ServerAliveCountMax: DefaultServerAliveCountMax,
 	}
-
-	if c.User == "" {
-		err = multierr.Append(err, errors.New("missing user"))
-	}
-	if len(c.IdentityFile) == 0 {
-		err = multierr.Append(err, errors.New("missing identity_file"))
-	}
-	return
 }
 
-// NewProductionClientConfig returns configuration with a key based authentication.
-func NewProductionClientConfig(c Config) (*ssh.ClientConfig, error) {
-	auth, err := keyPairAuthMethod(c.IdentityFile)
+// NewProductionConfig returns configuration with a key based authentication.
+func NewProductionConfig(user string, identityFile []byte) (Config, error) {
+	if user == "" {
+		return Config{}, errors.New("missing user")
+	}
+
+	auth, err := keyPairAuthMethod(identityFile)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse identity file")
+		return Config{}, errors.Wrap(err, "failed to parse identity file")
 	}
 
-	return &ssh.ClientConfig{
-		User:            c.User,
-		Auth:            []ssh.AuthMethod{auth},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}, nil
+	config := defaultConfig()
+	config.User = user
+	config.Auth = []ssh.AuthMethod{auth}
+	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+
+	return config, nil
 }
 
 func keyPairAuthMethod(pemBytes []byte) (ssh.AuthMethod, error) {
@@ -53,12 +67,11 @@ func keyPairAuthMethod(pemBytes []byte) (ssh.AuthMethod, error) {
 	return ssh.PublicKeys(signer), nil
 }
 
-// NewDevelopmentClientConfig returns configuration with a password based
-// authentication.
-func NewDevelopmentClientConfig() *ssh.ClientConfig {
-	return &ssh.ClientConfig{
-		User:            "root",
-		Auth:            []ssh.AuthMethod{ssh.Password("root")},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
+// NewDevelopmentConfig returns configuration with a password based authentication.
+func NewDevelopmentConfig() Config {
+	config := defaultConfig()
+	config.User = "root"
+	config.Auth = []ssh.AuthMethod{ssh.Password("root")}
+	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+	return config
 }

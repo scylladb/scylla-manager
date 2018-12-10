@@ -6,6 +6,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -20,8 +21,17 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-func TestClientSSHTransportIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
+func TestClientDialOnceAndCloseIntegration(t *testing.T) {
+	var conns []net.Conn
+	s := ssh.NewDevelopmentTransport()
+	d := s.DialContext
+	s.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
+		conn, err = d(ctx, network, addr)
+		conns = append(conns, conn)
+		return
+	}
+
+	client, err := scyllaclient.NewClient(ManagedClusterHosts, s, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,6 +40,16 @@ func TestClientSSHTransportIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+	if len(conns) != 1 {
+		t.Fatal("expected dial once, got", len(conns))
+	}
+
+	if err := client.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := conns[0].SetDeadline(time.Time{}); err == nil {
+		t.Fatal("expected connection to be closed")
 	}
 }
 
