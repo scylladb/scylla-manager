@@ -11,7 +11,7 @@ import (
 )
 
 // DialContextFunc creates SSH connection to host with a given address.
-type DialContextFunc func(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*ssh.Client, error)
+type DialContextFunc func(ctx context.Context, network, addr string, config Config) (*ssh.Client, error)
 
 // DefaultDialer specifies default dial options.
 var DefaultDialer = net.Dialer{
@@ -30,7 +30,7 @@ type contextDialer struct {
 	dialer net.Dialer
 }
 
-func (d *contextDialer) DialContext(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
+func (d *contextDialer) DialContext(ctx context.Context, network, addr string, config Config) (*ssh.Client, error) {
 	netConn, err := d.dialer.DialContext(ctx, network, addr)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (d *contextDialer) DialContext(ctx context.Context, network, addr string, c
 	dialc := make(chan dialRes, 1)
 
 	go func() {
-		sshConn, chans, reqs, err := ssh.NewClientConn(netConn, addr, config)
+		sshConn, chans, reqs, err := ssh.NewClientConn(netConn, addr, &config.ClientConfig)
 		if err != nil {
 			dialc <- dialRes{err: err}
 		} else {

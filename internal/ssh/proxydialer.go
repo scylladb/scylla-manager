@@ -9,11 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/crypto/ssh"
 )
-
-// DefaultPort specifies default SSH port.
-var DefaultPort = 22
 
 var (
 	sshOpenStreamsCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -49,19 +45,19 @@ func (c proxyConn) Close() error {
 	return c.Conn.Close()
 }
 
-// ProxyDialer is a dialler that allows for proxying connections over SSH.
-type ProxyDialer struct {
-	Pool   *Pool
-	Config *ssh.ClientConfig
+// proxyDialer is a dialler that allows for proxying connections over SSH.
+type proxyDialer struct {
+	dialContext DialContextFunc
+	config      Config
 }
 
 // DialContext to addr HOST:PORT establishes an SSH connection to HOST and then
 // proxies the connection to localhost:PORT.
-func (t ProxyDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+func (t proxyDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	host, port, _ := net.SplitHostPort(addr)
 	labels := prometheus.Labels{"host": host}
 
-	client, err := t.Pool.DialContext(ctx, network, net.JoinHostPort(host, fmt.Sprint(DefaultPort)), t.Config)
+	client, err := t.dialContext(ctx, network, net.JoinHostPort(host, fmt.Sprint(t.config.Port)), t.config)
 	if err != nil {
 		sshErrorsTotal.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: dial failed")
@@ -73,7 +69,7 @@ func (t ProxyDialer) DialContext(ctx context.Context, network, addr string) (net
 	)
 	for _, h := range []string{"localhost", host} {
 		// This is a local dial and should not hang but if it does http client
-		// would endup with "context deadline exceeded" error.
+		// would end up with "context deadline exceeded" error.
 		// To be fixed when used with something else then http client.
 		conn, connErr = client.Dial(network, net.JoinHostPort(h, port))
 		if connErr == nil {
@@ -82,17 +78,17 @@ func (t ProxyDialer) DialContext(ctx context.Context, network, addr string) (net
 	}
 	if connErr != nil {
 		sshErrorsTotal.With(labels).Inc()
+		client.Close()
 		return nil, errors.Wrap(connErr, "ssh: remote dial failed")
 	}
 
 	g := sshOpenStreamsCount.With(labels)
 	g.Inc()
-
 	return proxyConn{
 		Conn: conn,
 		free: func() {
 			g.Dec()
-			t.Pool.Release(client)
+			client.Close()
 		},
 	}, nil
 }
