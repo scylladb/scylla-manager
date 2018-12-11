@@ -39,8 +39,8 @@ type serverConfig struct {
 	Prometheus  string        `yaml:"prometheus"`
 	Logger      log.Config    `yaml:"logger"`
 	Database    dbConfig      `yaml:"database"`
-	Repair      repair.Config `yaml:"repair"`
 	SSH         sshConfig     `yaml:"ssh"`
+	Repair      repair.Config `yaml:"repair"`
 }
 
 func defaultConfig() *serverConfig {
@@ -59,10 +59,10 @@ func defaultConfig() *serverConfig {
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
 		},
-		Repair: repair.DefaultConfig(),
 		SSH: sshConfig{
 			Port: 22,
 		},
+		Repair: repair.DefaultConfig(),
 	}
 }
 
