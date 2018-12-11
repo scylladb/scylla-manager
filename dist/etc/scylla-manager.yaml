@@ -40,6 +40,11 @@ database:
 #   keyspace: scylla_manager
 #   replication_factor: 1
 
+# SSH global configuration, SSH is used to access scylla nodes. Username and
+# identity file are specified per cluster with sctool.
+ssh:
+  port: 22
+
 # Repair service configuration.
 repair:
   # Granularity of repair. Repair works on segments, segment is a continuous
@@ -72,8 +77,3 @@ repair:
   # Distribution of data among cores (shards) within a node.
   # Copy value from Scylla configuration file.
   murmur3_partitioner_ignore_msb_bits: 12
-
-# SSH global configuration, SSH is used to access scylla nodes. Username and
-# identity file are specified per cluster with sctool.
-ssh:
-  port: 22
