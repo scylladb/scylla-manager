@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -36,13 +37,20 @@ func init() {
 
 type proxyConn struct {
 	net.Conn
-	free func()
+	client *ssh.Client
+	done   chan struct{}
+	free   func()
 }
 
 // Close closes the connection and frees the associated resources.
 func (c proxyConn) Close() error {
+	if c.done != nil {
+		close(c.done)
+	}
 	defer c.free()
-	return c.Conn.Close()
+
+	// Close closes the underlying network connection.
+	return c.client.Close()
 }
 
 // proxyDialer is a dialler that allows for proxying connections over SSH.
@@ -53,11 +61,11 @@ type proxyDialer struct {
 
 // DialContext to addr HOST:PORT establishes an SSH connection to HOST and then
 // proxies the connection to localhost:PORT.
-func (t proxyDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+func (p proxyDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	host, port, _ := net.SplitHostPort(addr)
 	labels := prometheus.Labels{"host": host}
 
-	client, err := t.dialContext(ctx, network, net.JoinHostPort(host, fmt.Sprint(t.config.Port)), t.config)
+	client, err := p.dialContext(ctx, network, net.JoinHostPort(host, fmt.Sprint(p.config.Port)), p.config)
 	if err != nil {
 		sshErrorsTotal.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: dial failed")
@@ -84,11 +92,18 @@ func (t proxyDialer) DialContext(ctx context.Context, network, addr string) (net
 
 	g := sshOpenStreamsCount.With(labels)
 	g.Inc()
-	return proxyConn{
-		Conn: conn,
-		free: func() {
-			g.Dec()
-			client.Close()
-		},
-	}, nil
+
+	pc := proxyConn{
+		Conn:   conn,
+		client: client,
+		free:   g.Dec,
+	}
+
+	// Init SSH keepalive if needed.
+	if p.config.ServerAliveInterval > 0 && p.config.ServerAliveCountMax > 0 {
+		pc.done = make(chan struct{})
+		go keepalive(client, p.config.ServerAliveInterval, p.config.ServerAliveCountMax, pc.done)
+	}
+
+	return pc, nil
 }
