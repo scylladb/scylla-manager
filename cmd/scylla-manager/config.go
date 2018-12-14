@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/repair"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
@@ -27,10 +28,6 @@ type dbConfig struct {
 	Timeout                       time.Duration `yaml:"timeout"`
 }
 
-type sshConfig struct {
-	Port int `yaml:"port"`
-}
-
 type serverConfig struct {
 	HTTP        string        `yaml:"http"`
 	HTTPS       string        `yaml:"https"`
@@ -39,7 +36,7 @@ type serverConfig struct {
 	Prometheus  string        `yaml:"prometheus"`
 	Logger      log.Config    `yaml:"logger"`
 	Database    dbConfig      `yaml:"database"`
-	SSH         sshConfig     `yaml:"ssh"`
+	SSH         ssh.Config    `yaml:"ssh"`
 	Repair      repair.Config `yaml:"repair"`
 }
 
@@ -59,9 +56,7 @@ func defaultConfig() *serverConfig {
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
 		},
-		SSH: sshConfig{
-			Port: 22,
-		},
+		SSH:    ssh.DefaultConfig(),
 		Repair: repair.DefaultConfig(),
 	}
 }
@@ -101,6 +96,11 @@ func (c *serverConfig) validate() error {
 	if c.Database.ReplicationFactor <= 0 {
 		return errors.New("invalid database.replication_factor <= 0")
 	}
+
+	if err := c.SSH.Validate(); err != nil {
+		return errors.Wrap(err, "ssh")
+	}
+
 	if err := c.Repair.Validate(); err != nil {
 		return errors.Wrap(err, "repair")
 	}

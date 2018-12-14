@@ -20,7 +20,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/httputil"
-	"github.com/scylladb/mermaid/internal/ssh"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched/runner"
@@ -58,7 +57,7 @@ func newRepairTestHelper(t *testing.T, session *gocql.Session, c repair.Config) 
 	ExecStmt(t, session, "TRUNCATE TABLE repair_run")
 	ExecStmt(t, session, "TRUNCATE TABLE repair_run_progress")
 
-	hrt := NewHackableRoundTripper(ssh.NewDevelopmentTransport())
+	hrt := NewHackableRoundTripper(NewSSHTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	s := newTestService(t, session, hrt, c)
 

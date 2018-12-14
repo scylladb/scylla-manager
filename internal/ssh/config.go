@@ -6,41 +6,54 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
-)
-
-// SSH configuration defaults.
-var (
-	DefaultPort                = 22
-	DefaultServerAliveInterval = 15 * time.Second
-	DefaultServerAliveCountMax = 3
 )
 
 // Config specifies SSH configuration.
 type Config struct {
-	ssh.ClientConfig
+	ssh.ClientConfig `yaml:"-"`
 	// Port specifies the port number to connect on the remote host.
-	Port int
+	Port int `yaml:"port"`
 	// ServerAliveInterval sets an interval in seconds ssh will send a message
 	// through the encrypted channel to request a response from the server.
-	ServerAliveInterval time.Duration
+	ServerAliveInterval time.Duration `yaml:"server_alive_interval"`
 	// ServerAliveCountMax sets the number of server alive messages which may be
 	// sent without receiving any messages back from the server. If this
 	// threshold is reached while server alive messages are being sent, ssh will
 	// disconnect from the server, terminating the session.
-	ServerAliveCountMax int
+	ServerAliveCountMax int `yaml:"server_alive_count_max"`
 }
 
-func defaultConfig() Config {
+// DefaultConfig returns a Config initialised with default values.
+func DefaultConfig() Config {
 	return Config{
-		Port:                DefaultPort,
-		ServerAliveInterval: DefaultServerAliveInterval,
-		ServerAliveCountMax: DefaultServerAliveCountMax,
+		Port:                22,
+		ServerAliveInterval: 15 * time.Second,
+		ServerAliveCountMax: 3,
 	}
 }
 
-// NewProductionConfig returns configuration with a key based authentication.
-func NewProductionConfig(user string, identityFile []byte) (Config, error) {
+// Validate checks if all the fields are properly set.
+func (c Config) Validate() (err error) {
+	if c.Port <= 0 {
+		err = multierr.Append(err, errors.New("invalid port, must be > 0"))
+	}
+
+	if c.ServerAliveInterval < 0 {
+		err = multierr.Append(err, errors.New("invalid server_alive_interval, must be >= 0"))
+	}
+
+	if c.ServerAliveCountMax < 0 {
+		err = multierr.Append(err, errors.New("invalid server_alive_count_max, must be >= 0"))
+	}
+
+	return
+}
+
+// WithIdentityFileAuth returns a copy of c with added user and identity file
+// authentication method.
+func (c Config) WithIdentityFileAuth(user string, identityFile []byte) (Config, error) {
 	if user == "" {
 		return Config{}, errors.New("missing user")
 	}
@@ -50,7 +63,7 @@ func NewProductionConfig(user string, identityFile []byte) (Config, error) {
 		return Config{}, errors.Wrap(err, "failed to parse identity file")
 	}
 
-	config := defaultConfig()
+	config := c
 	config.User = user
 	config.Auth = []ssh.AuthMethod{auth}
 	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
@@ -67,11 +80,12 @@ func keyPairAuthMethod(pemBytes []byte) (ssh.AuthMethod, error) {
 	return ssh.PublicKeys(signer), nil
 }
 
-// NewDevelopmentConfig returns configuration with a password based authentication.
-func NewDevelopmentConfig() Config {
-	config := defaultConfig()
-	config.User = "root"
-	config.Auth = []ssh.AuthMethod{ssh.Password("root")}
+// WithPasswordAuth returns a copy of c with added user and password
+// authentication method.
+func (c Config) WithPasswordAuth(user, passwd string) Config {
+	config := c
+	config.User = user
+	config.Auth = []ssh.AuthMethod{ssh.Password(passwd)}
 	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 	return config
 }

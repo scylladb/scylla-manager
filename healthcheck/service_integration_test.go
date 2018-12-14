@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/internal/ssh"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -27,7 +26,7 @@ func TestGetStatusIntegration(t *testing.T) {
 			return &cluster.Cluster{ID: id}, nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return scyllaclient.NewClient(ManagedClusterHosts, ssh.NewDevelopmentTransport(), logger.Named("scylla"))
+			return scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), logger.Named("scylla"))
 		},
 		logger,
 	)
