@@ -75,7 +75,7 @@ func (s *server) makeServices() error {
 		return errors.Wrap(err, "failed to create key store")
 	}
 
-	s.clusterSvc, err = cluster.NewService(s.session, keyStore, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, s.config.SSH, keyStore, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}

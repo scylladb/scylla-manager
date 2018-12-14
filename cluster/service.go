@@ -40,6 +40,7 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          *gocql.Session
+	sshConfig        ssh.Config
 	keyStore         kv.Store
 	clientCache      *scyllaclient.CachedProvider
 	logger           log.Logger
@@ -47,7 +48,7 @@ type Service struct {
 }
 
 // NewService creates a new service instance.
-func NewService(session *gocql.Session, keyStore kv.Store, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, sshConfig ssh.Config, keyStore kv.Store, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -56,9 +57,10 @@ func NewService(session *gocql.Session, keyStore kv.Store, l log.Logger) (*Servi
 	}
 
 	s := &Service{
-		session:  session,
-		keyStore: keyStore,
-		logger:   l,
+		session:   session,
+		sshConfig: sshConfig,
+		keyStore:  keyStore,
+		logger:    l,
 	}
 	s.clientCache = scyllaclient.NewCachedProvider(s.client)
 
@@ -138,7 +140,7 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 		return nil, errors.Wrap(err, "failed to read SSH identity file")
 	}
 
-	config, err := ssh.NewProductionConfig(c.SSHUser, b)
+	config, err := s.sshConfig.WithIdentityFileAuth(c.SSHUser, b)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid SSH configuration")
 	}

@@ -22,8 +22,3 @@ func NewTransport(config Config) *http.Transport {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 }
-
-// NewDevelopmentTransport returns Transport for NewDevelopmentConfig.
-func NewDevelopmentTransport() *http.Transport {
-	return NewTransport(NewDevelopmentConfig())
-}

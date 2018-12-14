@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/kv"
+	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -38,7 +39,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	}()
 	keyStore, err := kv.NewFsStore(dir)
 
-	s, err := cluster.NewService(session, keyStore, log.NewDevelopment())
+	s, err := cluster.NewService(session, ssh.DefaultConfig(), keyStore, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

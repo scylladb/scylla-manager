@@ -16,14 +16,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/httputil"
-	"github.com/scylladb/mermaid/internal/ssh"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
 func TestClientDialOnceAndCloseIntegration(t *testing.T) {
 	var conns []net.Conn
-	s := ssh.NewDevelopmentTransport()
+	s := NewSSHTransport()
 	d := s.DialContext
 	s.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
 		conn, err = d(ctx, network, addr)
@@ -54,7 +53,7 @@ func TestClientDialOnceAndCloseIntegration(t *testing.T) {
 }
 
 func TestClientClosestDCIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(ManagedClusterHosts, ssh.NewDevelopmentTransport(), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,8 +108,7 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 }
 
 func getHosts() ([]string, error) {
-	transport := ssh.NewDevelopmentTransport()
-	client, err := scyllaclient.NewClient(ManagedClusterHosts, transport, log.NewDevelopment())
+	client, err := scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), log.NewDevelopment())
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +149,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	triedHosts := make(map[string]int)
 
-	client, err := scyllaclient.NewClient(hosts, hostRecorder(ssh.NewDevelopmentTransport(), triedHosts), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(hosts, hostRecorder(NewSSHTransport(), triedHosts), log.NewDevelopment())
 	if err != nil {
 		return err
 	}

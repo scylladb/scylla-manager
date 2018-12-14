@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
 	"go.uber.org/zap/zapcore"
@@ -52,8 +53,10 @@ func TestNewConfigFromFile(t *testing.T) {
 			MaxRunAge:             12 * time.Hour,
 			ShardingIgnoreMsbBits: 1,
 		},
-		SSH: sshConfig{
-			Port: 22000,
+		SSH: ssh.Config{
+			Port:                22000,
+			ServerAliveInterval: 15 * time.Second,
+			ServerAliveCountMax: 3,
 		},
 	}
 
