@@ -29,7 +29,6 @@ type Client struct {
 	operations *operations.Client
 }
 
-// NewClient creates a new client.
 func NewClient(rawurl string) (Client, error) {
 	u, err := url.Parse(rawurl)
 	if err != nil {
