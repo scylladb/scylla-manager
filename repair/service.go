@@ -42,7 +42,6 @@ type Service struct {
 	logger       log.Logger
 }
 
-// NewService creates a new service instance.
 func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")

@@ -19,7 +19,6 @@ type CachedProvider struct {
 	mu      sync.Mutex
 }
 
-// NewCachedProvider creates provider.
 func NewCachedProvider(f ProviderFunc) *CachedProvider {
 	return &CachedProvider{
 		inner:   f,

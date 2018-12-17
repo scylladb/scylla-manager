@@ -62,7 +62,6 @@ type Client struct {
 	logger     log.Logger
 }
 
-// NewClient creates a new client.
 func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Client, error) {
 	if len(hosts) == 0 {
 		return nil, errors.New("missing hosts")

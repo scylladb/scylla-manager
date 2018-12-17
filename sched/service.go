@@ -74,7 +74,6 @@ var (
 	monitorTaskInterval = time.Second
 )
 
-// NewService creates a new service instance.
 func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")

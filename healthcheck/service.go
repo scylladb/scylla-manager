@@ -23,7 +23,6 @@ type Service struct {
 	logger  log.Logger
 }
 
-// NewService creates a new health check service.
 func NewService(cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc, logger log.Logger) *Service {
 	return &Service{
 		cluster: cp,

@@ -14,8 +14,6 @@ type HackableRoundTripper struct {
 	mu          sync.Mutex
 }
 
-// NewHackableRoundTripper returns new HackableRoundTripper over the inner
-// round tripper.
 func NewHackableRoundTripper(inner http.RoundTripper) *HackableRoundTripper {
 	return &HackableRoundTripper{
 		inner: inner,
