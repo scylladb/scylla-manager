@@ -67,6 +67,7 @@ func TestConfigModification(t *testing.T) {
 		Repair: repair.Config{
 			SegmentsPerRepair:      7,
 			SegmentTokensMax:       10,
+			ShardParallelMax:       10,
 			ShardFailedSegmentsMax: 0,
 			ErrorBackoff:           10 * time.Second,
 			PollInterval:           500 * time.Millisecond,

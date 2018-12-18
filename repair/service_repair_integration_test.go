@@ -34,9 +34,9 @@ const (
 	node0 = 0
 	node1 = 1
 	node2 = 2
-)
 
-const (
+	allShards = -1
+
 	_interval = 100 * time.Millisecond
 	now       = 0
 	shortWait = 2 * time.Second
@@ -104,12 +104,39 @@ func (h *repairTestHelper) assertProgress(unit, node, percent int, wait time.Dur
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		p := h.progress(unit, node)
+		p := h.progress(unit, node, allShards)
 		return p >= percent
 	}, _interval, wait)
 }
 
-func (h *repairTestHelper) progress(unit, node int) int {
+func (h *repairTestHelper) assertMaxProgress(unit, node, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p := h.progress(unit, node, allShards)
+		return p <= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertShardProgress(unit, node, shard, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p := h.progress(unit, node, shard)
+		return p >= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertMaxShardProgress(unit, node, shard, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p := h.progress(unit, node, shard)
+		return p <= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) progress(unit, node, shard int) int {
 	h.t.Helper()
 
 	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
@@ -121,7 +148,15 @@ func (h *repairTestHelper) progress(unit, node int) int {
 		return -1
 	}
 
-	return int(p.Units[unit].Nodes[node].PercentComplete)
+	if shard < 0 {
+		return int(p.Units[unit].Nodes[node].PercentComplete)
+	}
+
+	if len(p.Units[unit].Nodes[node].Shards) <= shard {
+		return -1
+	}
+
+	return int(p.Units[unit].Nodes[node].Shards[shard].PercentComplete)
 }
 
 func (h *repairTestHelper) close() {
@@ -392,6 +427,80 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("repair shard limit", func(t *testing.T) {
+		c := defaultConfig()
+		c.ShardParallelMax = 1
+
+		h := newRepairTestHelper(t, session, c)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit()); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("And: repair of node0 shard 0 advances")
+		h.assertShardProgress(0, node0, 0, 1, shortWait)
+
+		Print("When: node0 shard 0 is 50% repaired")
+		h.assertShardProgress(0, node0, 0, 50, longWait)
+
+		Print("Then: node0 shard 1 did not start")
+		h.assertMaxShardProgress(0, node0, 1, 0, now)
+
+		Print("When: node0 shard 0 is 100% repaired")
+		h.assertShardProgress(0, node0, 0, 100, longWait)
+
+		Print("Then: repair of node0 shard 1 advances")
+		h.assertShardProgress(0, node0, 1, 1, shortWait)
+
+		Print("When: node0 shard 1 is 100% repaired")
+		h.assertShardProgress(0, node0, 1, 100, longWait)
+
+		Print("Then: repair of node1 shard 0 advances")
+		h.assertShardProgress(0, node1, 0, 1, shortWait)
+
+		Print("When: node1 shard 0 is 50% repaired")
+		h.assertShardProgress(0, node1, 0, 50, longWait)
+
+		Print("Then: node1 shard 1 did not start")
+		h.assertMaxShardProgress(0, node1, 1, 0, now)
+
+		Print("When: node1 shard 0 is 100% repaired")
+		h.assertShardProgress(0, node1, 0, 100, longWait)
+
+		Print("Then: repair of node1 shard 1 advances")
+		h.assertShardProgress(0, node1, 1, 1, shortWait)
+
+		Print("When: node1 shard 1 is 100% repaired")
+		h.assertShardProgress(0, node1, 1, 100, longWait)
+
+		Print("Then: repair of node2 shard 0 advances")
+		h.assertShardProgress(0, node2, 0, 1, shortWait)
+
+		Print("When: node2 shard 0 is 50% repaired")
+		h.assertShardProgress(0, node2, 0, 50, longWait)
+
+		Print("Then: node2 shard 1 did not start")
+		h.assertMaxShardProgress(0, node2, 1, 0, now)
+
+		Print("When: node2 shard 0 is 100% repaired")
+		h.assertShardProgress(0, node2, 0, 100, longWait)
+
+		Print("Then: repair of node2 shard 1 advances")
+		h.assertShardProgress(0, node2, 1, 1, shortWait)
+
+		Print("When: node2 shard 1 is 100% repaired")
+		h.assertShardProgress(0, node2, 1, 100, longWait)
+
+		Print("Then: status is StatusDone")
+		h.assertStatus(runner.StatusDone, shortWait)
+	})
+
 	t.Run("repair abort", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
@@ -540,7 +649,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: repair of node0 starts from scratch")
 		h.assertProgress(0, node0, 1, shortWait)
-		if h.progress(0, node0) >= 50 {
+		if h.progress(0, node0, allShards) >= 50 {
 			t.Fatal("node0 should start from schratch")
 		}
 	})

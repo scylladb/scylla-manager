@@ -114,14 +114,28 @@ func (w *hostWorker) exec(ctx context.Context) error {
 		return errors.Wrapf(err, "host not available")
 	}
 
+	// limit nr of shards running in parallel
+	limit := len(w.shards)
+	if l := w.Config.ShardParallelMax; l > 0 && l < limit {
+		limit = l
+	}
+
+	idx := atomic.NewInt32(0)
+
 	// run shard workers
 	wch := make(chan error)
-	for _, s := range w.shards {
-		s := s
+	for j := 0; j < limit; j++ {
 		go func() {
-			wch <- s.exec(ctx)
+			for {
+				i := int(idx.Inc()) - 1
+				if i >= len(w.shards) {
+					return
+				}
+				wch <- w.shards[i].exec(ctx)
+			}
 		}()
 	}
+
 	// run metrics updater
 	u := newProgressMetricsUpdater(w.Run, w.Service.getProgress, w.Logger)
 	go u.Run(ctx, 5*time.Second)
