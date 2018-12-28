@@ -5,6 +5,8 @@
 
 set -eu -o pipefail
 
+OUTPUT=/dev/null
+
 SSH_USER=""
 SSH_IDENTITY_FILE=""
 SSH_CONFIG_FILE=""
@@ -23,6 +25,7 @@ print_usage() {
     echo "  -m --manager-user			username that will be created and configured on hosts, default ${MANAGER_USER}"
     echo "  -o --manager-identity-file		path to identity file containing SSH private key for manager username, if there is no such file it will be created"
     echo "  -u --user				SSH username used to connect to hosts"
+    echo "  -v --verbose				display debug info"
 }
 
 while [[ $# > 0 ]]; do
@@ -49,6 +52,11 @@ while [[ $# > 0 ]]; do
             ;;
         "-d"|"--discover")
             DISCOVER=1
+            shift 1
+            ;;
+        "-v"|"--verbose")
+            OUTPUT=/dev/stderr
+            SSH_OPTS+=" -v"
             shift 1
             ;;
         "-h" | "--help")
@@ -112,7 +120,7 @@ fi
 # Create manager SSH key if needed.
 
 if [[ ! -f "${MANAGER_IDENTITY_FILE}" ]]; then
-    if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" > /dev/null && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
+    if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" &> "${OUTPUT}" && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
         echo -e "cannot generate private key in ${MANAGER_IDENTITY_FILE}\n"
         print_usage
         exit 1
@@ -133,26 +141,26 @@ MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
 
 HOSTS=$@
 if [[ ${DISCOVER} == 1 ]]; then
-    HOSTS=`ssh ${SSH_OPTS} "${SSH_USER}${1}" 2>/dev/null curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
+    HOSTS=`ssh ${SSH_OPTS} "${SSH_USER}${1}" &> "${OUTPUT}" curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
 fi
 
 ret=0
 
 for host in ${HOSTS}; do
-    if ssh ${SSH_OPTS} "${SSH_USER}${host}" &> /dev/null << EOF
-    set -eu -o pipefail
-    sudo su -
+    NOLOGIN= # avoid NOLOGIN: unbound variable false positive, other variables shall be expanded
+    if ssh ${SSH_OPTS} "${SSH_USER}${host}" &> "${OUTPUT}" sudo su - << EOF
+    set -eux -o pipefail
 
-    # Create system user (and group)
-    getent group "${MANAGER_USER}"  || sudo /usr/sbin/groupadd -r "${MANAGER_USER}"
-    getent passwd "${MANAGER_USER}" || sudo /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s /sbin/nologin -r "${MANAGER_USER}"
+    # Create system user and group.
+    NOLOGIN=`command -v nologin`
+    getent group "${MANAGER_USER}"  || /usr/sbin/groupadd -r "${MANAGER_USER}"
+    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s ${NOLOGIN} -r "${MANAGER_USER}"
 
-    # Add public key to authorized_keys
+    # Add public key to authorized_keys.
     mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
-    echo -e "# Added by Scylla Manager" >> "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
-    echo -e "${MANAGER_PUBLIC_KEY}" >> "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
+    grep "${MANAGER_PUBLIC_KEY}" "/var/lib/${MANAGER_USER}/.ssh/authorized_keys" || echo -e "# Added by Scylla Manager\n${MANAGER_PUBLIC_KEY}" >> "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
 
-    # Fix ownership
+    # Set owner to manager user.
     chown -R "${MANAGER_USER}:${MANAGER_USER}" "/var/lib/${MANAGER_USER}/.ssh"
 EOF
     then
