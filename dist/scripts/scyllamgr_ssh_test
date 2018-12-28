@@ -20,7 +20,7 @@ print_usage() {
     echo "  -v --verbose				display debug info"
 }
 
-while [ $# -gt 0 ]; do
+while [[ $# > 0 ]]; do
     case "$1" in
         "-u"|"--user")
             SSH_USER="$2"
@@ -50,25 +50,25 @@ done
 
 # Validate inputs
 
-if [ $# == 0 ]; then
+if [[ $# == 0 ]]; then
     echo -e "no hosts to test\n"
     print_usage
     exit 1
 fi
 
-if [ -z "${SSH_USER}" ]; then
+if [[ -z "${SSH_USER}" ]]; then
     echo -e "missing --user\n"
     print_usage
     exit 1
 fi
 
-if [ -z "${SSH_IDENTITY_FILE}" ]; then
+if [[ -z "${SSH_IDENTITY_FILE}" ]]; then
     echo -e "missing --identity-file\n"
     print_usage
     exit 1
 fi
 
-if [ ! -f "${SSH_IDENTITY_FILE}" -o ! -r "${SSH_IDENTITY_FILE}" ]; then
+if [[ ! -f "${SSH_IDENTITY_FILE}" || ! -r "${SSH_IDENTITY_FILE}" ]]; then
     echo -e "cannot read file ${SSH_IDENTITY_FILE}\n"
     print_usage
     exit 1

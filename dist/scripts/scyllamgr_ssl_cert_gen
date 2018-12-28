@@ -16,14 +16,14 @@ print_usage() {
     echo "  -h --help                   display help info"
 }
 
-if [ "`id -u`" -ne 0 ]; then
+if [[ "`id -u`" != "0" ]]; then
     echo "Requires root permission."
     exit 1
 fi
 
 SILENT=0
 
-while [ $# -gt 0 ]; do
+while [[ $# > 0 ]]; do
     case "$1" in
         "-s"|"--silent")
             SILENT=1
@@ -43,8 +43,8 @@ while [ $# -gt 0 ]; do
 done
 
 
-if [ -f ${KEY_FILE} -o -f ${CRT_FILE} ]; then
-    if [ $SILENT -eq 0 ]; then
+if [[ -f ${KEY_FILE} || -f ${CRT_FILE} ]]; then
+    if [[ ${SILENT} == 0 ]]; then
         echo "certificate exists, to recreate run 'rm $KEY_FILE $CRT_FILE' and try again"
     fi
     exit 0
