@@ -13,10 +13,10 @@ SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o
 CURL_OPTS="-sS -f -o /dev/null"
 
 print_usage() {
-    echo "scyllamgr_ssh_test -u <username> -i <path to private key> [HOST...]"
-    echo "  -u --user				SSH user name used to connect to hosts, default ${SSH_USER}"
+    echo "scyllamgr_ssh_test -u <ssh username> -i <path to ssh private key> HOST..."
     echo "  -i --identity-file			path to identity file containing SSH private key"
     echo "  -p --local-port			local port used by the script for SSH tunneling, default ${SSH_LOCAL_PORT}"
+    echo "  -u --user				SSH user name used to connect to hosts, default ${SSH_USER}"
     echo "  -v --verbose				display debug info"
 }
 
