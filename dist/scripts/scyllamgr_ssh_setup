@@ -23,7 +23,7 @@ print_usage() {
     echo "  -d --discover				use first host to discover and setup all hosts in a cluster"
 }
 
-while [ $# -gt 0 ]; do
+while [[ $# > 0 ]]; do
     case "$1" in
         "-u"|"--user")
             SSH_USER="$2"
@@ -56,37 +56,37 @@ done
 
 # Validate inputs
 
-if [ $# == 0 ]; then
+if [[ $# == 0 ]]; then
     echo -e "no hosts to setup\n"
     print_usage
     exit 1
 fi
 
-if [ -z ${SSH_USER} ]; then
+if [[ -z ${SSH_USER} ]]; then
     echo -e "missing --user\n"
     print_usage
     exit 1
 fi
 
-if [ -z ${SSH_IDENTITY_FILE} ]; then
+if [[ -z ${SSH_IDENTITY_FILE} ]]; then
     echo -e "missing --identity-file\n"
     print_usage
     exit 1
 fi
 
-if [ ! -f "${SSH_IDENTITY_FILE}" -o ! -r "${SSH_IDENTITY_FILE}" ]; then
+if [[ ! -f "${SSH_IDENTITY_FILE}" || ! -r "${SSH_IDENTITY_FILE}" ]]; then
     echo -e "cannot read file ${SSH_IDENTITY_FILE}\n"
     print_usage
     exit 1
 fi
 
-if [ -z "${MANAGER_USER}" ]; then
+if [[ -z "${MANAGER_USER}" ]]; then
     echo -e "missing --manager-user\n"
     print_usage
     exit 1
 fi
 
-if [ -z "${MANAGER_IDENTITY_FILE}" ]; then
+if [[ -z "${MANAGER_IDENTITY_FILE}" ]]; then
     echo -e "missing --manager-identity-file\n"
     print_usage
     exit 1
@@ -94,7 +94,7 @@ fi
 
 # Create manager SSH key if needed
 
-if [ ! -f "${MANAGER_IDENTITY_FILE}" ]; then
+if [[ ! -f "${MANAGER_IDENTITY_FILE}" ]]; then
     if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" > /dev/null && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
         echo -e "cannot generate private key in ${MANAGER_IDENTITY_FILE}\n"
         print_usage
@@ -102,7 +102,7 @@ if [ ! -f "${MANAGER_IDENTITY_FILE}" ]; then
     fi
 fi
 
-if [ ! -f "${MANAGER_IDENTITY_FILE}.pub" -o ! -r "${MANAGER_IDENTITY_FILE}.pub" ]; then
+if [[ ! -f "${MANAGER_IDENTITY_FILE}.pub" || ! -r "${MANAGER_IDENTITY_FILE}.pub" ]]; then
     echo -e "cannot read file ${MANAGER_IDENTITY_FILE}.pub\n"
     print_usage
     exit 1
@@ -115,8 +115,8 @@ MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
 # Discover hosts if needed
 
 HOSTS=$@
-if [ ${DISCOVER} == 1 ]; then
-    HOSTS=`ssh ${SSH_OPTS} -i "${SSH_IDENTITY_FILE}" "${SSH_USER}@${1}" 2>/dev/null curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
+if [[ ${DISCOVER} == 1 ]]; then
+    HOSTS=`ssh ${SSH_OPTS} "${SSH_USER}${1}" 2>/dev/null curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
 fi
 
 ret=0
