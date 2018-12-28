@@ -7,6 +7,7 @@ set -eu -o pipefail
 
 SSH_USER=""
 SSH_IDENTITY_FILE=""
+SSH_CONFIG_FILE=""
 SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 MANAGER_USER="scylla-manager"
@@ -15,7 +16,8 @@ MANAGER_IDENTITY_FILE=""
 DISCOVER=0
 
 print_usage() {
-    echo "scyllamgr_ssh_setup -o <path to manager private key> [-m <manager username>] [-u <SSH username>] [-i <path to SSH private key>] [-d] HOST..."
+    echo "scyllamgr_ssh_setup -o <path to manager private key> [-m <manager username>] [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [-d] HOST..."
+    echo "  -c --config-file			path to SSH configuration file, see also man ssh_config"
     echo "  -d --discover				use first host to discover and setup all hosts in a cluster"
     echo "  -i --identity-file			path to identity file containing SSH private key"
     echo "  -m --manager-user			username that will be created and configured on hosts, default ${MANAGER_USER}"
@@ -31,6 +33,10 @@ while [[ $# > 0 ]]; do
             ;;
         "-i"|"--identity-file")
             SSH_IDENTITY_FILE="$2"
+            shift 2
+            ;;
+        "-c"|"--config-file")
+            SSH_CONFIG_FILE="$2"
             shift 2
             ;;
         "-m"|"--manager-user")
@@ -54,7 +60,7 @@ while [[ $# > 0 ]]; do
     esac
 done
 
-# Validate inputs
+# Validate inputs.
 
 if [[ $# == 0 ]]; then
     echo -e "no hosts to setup\n"
@@ -62,20 +68,14 @@ if [[ $# == 0 ]]; then
     exit 1
 fi
 
-if [[ -z ${SSH_USER} ]]; then
-    echo -e "missing --user\n"
-    print_usage
-    exit 1
-fi
-
-if [[ -z ${SSH_IDENTITY_FILE} ]]; then
-    echo -e "missing --identity-file\n"
-    print_usage
-    exit 1
-fi
-
-if [[ ! -f "${SSH_IDENTITY_FILE}" || ! -r "${SSH_IDENTITY_FILE}" ]]; then
+if [[ -n "${SSH_IDENTITY_FILE}" && (! -f "${SSH_IDENTITY_FILE}" || ! -r "${SSH_IDENTITY_FILE}") ]]; then
     echo -e "cannot read file ${SSH_IDENTITY_FILE}\n"
+    print_usage
+    exit 1
+fi
+
+if [[ -n "${SSH_CONFIG_FILE}" && (! -f "${SSH_CONFIG_FILE}" || ! -r "${SSH_CONFIG_FILE}") ]]; then
+    echo -e "cannot read file ${SSH_CONFIG_FILE}\n"
     print_usage
     exit 1
 fi
@@ -92,7 +92,24 @@ if [[ -z "${MANAGER_IDENTITY_FILE}" ]]; then
     exit 1
 fi
 
-# Create manager SSH key if needed
+# Decorate SSH_OPTS with options.
+
+if [[ -n ${SSH_IDENTITY_FILE} ]]; then
+    SSH_OPTS+=" -i ${SSH_IDENTITY_FILE}"
+fi
+
+if [[ -n ${SSH_CONFIG_FILE} ]]; then
+    SSH_OPTS+=" -F ${SSH_CONFIG_FILE}"
+fi
+
+# Append @ to user to support passing empty user to ssh. User can be configured
+# in the SSH config file.
+
+if [[ -n ${SSH_USER} ]]; then
+    SSH_USER+="@"
+fi
+
+# Create manager SSH key if needed.
 
 if [[ ! -f "${MANAGER_IDENTITY_FILE}" ]]; then
     if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" > /dev/null && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
@@ -108,11 +125,11 @@ if [[ ! -f "${MANAGER_IDENTITY_FILE}.pub" || ! -r "${MANAGER_IDENTITY_FILE}.pub"
     exit 1
 fi
 
-# Load manager SSH public key
+# Load manager SSH public key.
 
 MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
 
-# Discover hosts if needed
+# Discover hosts if needed.
 
 HOSTS=$@
 if [[ ${DISCOVER} == 1 ]]; then
@@ -122,7 +139,7 @@ fi
 ret=0
 
 for host in ${HOSTS}; do
-    if ssh ${SSH_OPTS} -i "${SSH_IDENTITY_FILE}" "${SSH_USER}@${host}" &> /dev/null << EOF
+    if ssh ${SSH_OPTS} "${SSH_USER}${host}" &> /dev/null << EOF
     set -eu -o pipefail
     sudo su -
 
