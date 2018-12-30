@@ -5,11 +5,15 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"net"
 	"net/http"
+	"runtime"
 	"sort"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
@@ -144,7 +148,35 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 		return nil, errors.Wrap(err, "invalid SSH configuration")
 	}
 
-	return ssh.NewTransport(config), nil
+	dialer := ssh.NewProxyDialer(config, ssh.ContextDialer(&net.Dialer{
+		Timeout:   3 * time.Second,
+		KeepAlive: 30 * time.Second,
+		DualStack: true,
+	}))
+
+	dialer.OnDial = func(host string, err error) {
+		labels := prometheus.Labels{"cluster": c.String(), "host": host}
+		if err != nil {
+			sshErrorsTotal.With(labels).Inc()
+		} else {
+			sshOpenStreamsCount.With(labels).Inc()
+		}
+	}
+	dialer.OnConnClose = func(host string) {
+		labels := prometheus.Labels{"cluster": c.String(), "host": host}
+		sshOpenStreamsCount.With(labels).Dec()
+	}
+
+	transport := &http.Transport{
+		DialContext:           dialer.DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
+	}
+
+	return transport, nil
 }
 
 func (s *Service) setKnownHosts(ctx context.Context, c *Cluster, hosts []string) error {

@@ -8,32 +8,8 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/ssh"
 )
-
-var (
-	sshOpenStreamsCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "ssh",
-		Name:      "open_streams_count",
-		Help:      "Number of active (multiplexed) connections to Scylla node.",
-	}, []string{"host"})
-
-	sshErrorsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "ssh",
-		Name:      "errors_total",
-		Help:      "Total number of SSH dial errors.",
-	}, []string{"host"})
-)
-
-func init() {
-	prometheus.MustRegister(
-		sshOpenStreamsCount,
-		sshErrorsTotal,
-	)
-}
 
 type proxyConn struct {
 	net.Conn
@@ -53,28 +29,37 @@ func (c proxyConn) Close() error {
 	return c.client.Close()
 }
 
-// proxyDialer is a dialler that allows for proxying connections over SSH.
-type proxyDialer struct {
-	dialContext DialContextFunc
-	config      Config
+// ProxyDialer is a dialler that allows for proxying connections over SSH.
+type ProxyDialer struct {
+	config Config
+	dial   DialContextFunc
+
+	OnDial      func(host string, err error)
+	OnConnClose func(host string)
+}
+
+func NewProxyDialer(config Config, dial DialContextFunc) *ProxyDialer {
+	return &ProxyDialer{config: config, dial: dial}
 }
 
 // DialContext to addr HOST:PORT establishes an SSH connection to HOST and then
 // proxies the connection to localhost:PORT.
-func (p proxyDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+func (p *ProxyDialer) DialContext(ctx context.Context, network, addr string) (conn net.Conn, err error) {
 	host, port, _ := net.SplitHostPort(addr)
-	labels := prometheus.Labels{"host": host}
 
-	client, err := p.dialContext(ctx, network, net.JoinHostPort(host, fmt.Sprint(p.config.Port)), p.config)
+	defer func() {
+		if p.OnDial != nil {
+			p.OnDial(host, err)
+		}
+	}()
+
+	client, err := p.dial(ctx, network, net.JoinHostPort(host, fmt.Sprint(p.config.Port)), p.config)
 	if err != nil {
-		sshErrorsTotal.With(labels).Inc()
 		return nil, errors.Wrap(err, "ssh: dial failed")
 	}
 
-	var (
-		conn    net.Conn
-		connErr error
-	)
+	var connErr error
+
 	for _, h := range []string{"localhost", host} {
 		// This is a local dial and should not hang but if it does http client
 		// would end up with "context deadline exceeded" error.
@@ -85,18 +70,18 @@ func (p proxyDialer) DialContext(ctx context.Context, network, addr string) (net
 		}
 	}
 	if connErr != nil {
-		sshErrorsTotal.With(labels).Inc()
 		client.Close()
 		return nil, errors.Wrap(connErr, "ssh: remote dial failed")
 	}
 
-	g := sshOpenStreamsCount.With(labels)
-	g.Inc()
-
 	pc := proxyConn{
 		Conn:   conn,
 		client: client,
-		free:   g.Dec,
+		free: func() {
+			if p.OnConnClose != nil {
+				p.OnConnClose(host)
+			}
+		},
 	}
 
 	// Init SSH keepalive if needed.
