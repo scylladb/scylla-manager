@@ -5,7 +5,6 @@ package ssh
 import (
 	"context"
 	"net"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -13,24 +12,16 @@ import (
 // DialContextFunc creates SSH connection to host with a given address.
 type DialContextFunc func(ctx context.Context, network, addr string, config Config) (*ssh.Client, error)
 
-// DefaultDialer specifies default dial options.
-var DefaultDialer = net.Dialer{
-	Timeout:   3 * time.Second,
-	KeepAlive: 30 * time.Second,
-	DualStack: true,
-}
-
 // ContextDialer returns DialContextFunc based on dialer to make net connections.
-func ContextDialer(dialer net.Dialer) DialContextFunc {
-	c := contextDialer{dialer}
-	return c.DialContext
+func ContextDialer(dialer *net.Dialer) DialContextFunc {
+	return contextDialer{dialer}.DialContext
 }
 
 type contextDialer struct {
-	dialer net.Dialer
+	dialer *net.Dialer
 }
 
-func (d *contextDialer) DialContext(ctx context.Context, network, addr string, config Config) (*ssh.Client, error) {
+func (d contextDialer) DialContext(ctx context.Context, network, addr string, config Config) (*ssh.Client, error) {
 	netConn, err := d.dialer.DialContext(ctx, network, addr)
 	if err != nil {
 		return nil, err
