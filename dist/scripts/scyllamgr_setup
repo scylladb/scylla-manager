@@ -40,7 +40,7 @@ interactive_ask_service() {
     done
 }
 
-if [[ "`id -u`" != "0" ]]; then
+if [[ "$(id -u)" != "0" ]]; then
     echo "Requires root permission."
     exit 1
 fi
