@@ -15,7 +15,7 @@ print_usage() {
     echo "  -s --silent                 suppress error messages, default is false"
 }
 
-if [[ "`id -u`" != "0" ]]; then
+if [[ "$(id -u)" != "0" ]]; then
     echo "Requires root permission."
     exit 1
 fi
