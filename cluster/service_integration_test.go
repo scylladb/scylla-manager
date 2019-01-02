@@ -62,6 +62,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	diffOpts := []cmp.Option{
 		mermaidtest.UUIDComparer(),
+		cmpopts.IgnoreFields(cluster.Cluster{}, "Host"),
 		cmpopts.IgnoreFields(cluster.Cluster{}, "KnownHosts"),
 	}
 

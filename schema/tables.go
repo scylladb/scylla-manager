@@ -11,7 +11,6 @@ var (
 		Columns: []string{
 			"id",
 			"name",
-			"host",
 			"known_hosts",
 			"ssh_user",
 		},

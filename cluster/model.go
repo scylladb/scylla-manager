@@ -13,7 +13,7 @@ import (
 type Cluster struct {
 	ID              uuid.UUID `json:"id"`
 	Name            string    `json:"name"`
-	Host            string    `json:"host"`
+	Host            string    `json:"host" db:"-"`
 	KnownHosts      []string  `json:"-"`
 	SSHUser         string    `json:"ssh_user,omitempty"`
 	SSHIdentityFile []byte    `json:"ssh_identity_file,omitempty" db:"-"`
