@@ -40,9 +40,6 @@ func (c *Cluster) Validate() error {
 	if _, e := uuid.Parse(c.Name); e == nil {
 		err = multierr.Append(err, errors.New("name cannot be an UUID"))
 	}
-	if c.Host == "" {
-		err = multierr.Append(err, errors.New("missing host"))
-	}
 
 	return mermaid.ErrValidate(err, "invalid cluster")
 }
