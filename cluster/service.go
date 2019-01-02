@@ -88,49 +88,32 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 		return nil, err
 	}
 
-	hosts, err := s.getHosts(ctx, c)
+	client, err := s.createClient(c)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to determine closest datacenter")
+		return nil, err
 	}
+	defer client.Close()
 
+	hosts, err := s.discoverHosts(ctx, client)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.setKnownHosts(ctx, c, hosts); err != nil {
 		return nil, errors.Wrap(err, "failed to update cluster")
 	}
 
-	transport, err := s.createTransport(c)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transport")
-	}
-
 	s.logger.Info(ctx, "New cluster client", "clusterID", clusterID)
 
-	return scyllaclient.NewClient(hosts, transport, s.logger.Named("client"))
+	return s.createClient(c)
 }
 
-// getHosts returns a list of all hosts sorted by DC speed. This is
-// an optimisation for Epsilon-Greedy host pool used internally by
-// scyllaclient.Client that makes it use supposedly faster hosts first.
-func (s *Service) getHosts(ctx context.Context, c *Cluster) (hosts []string, err error) {
-	transport, err := s.createTransport(c)
+func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
+	t, err := s.createTransport(c)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create transport")
 	}
-	client, err := scyllaclient.NewClient(append(c.KnownHosts, c.Host), transport, s.logger.Named("client"))
-	if err != nil {
-		return nil, err
-	}
-	dcs, err := client.Datacenters(ctx)
-	if err != nil {
-		return nil, err
-	}
-	closest, err := client.ClosestDC(ctx, dcs)
-	if err != nil {
-		return nil, err
-	}
-	for _, dc := range closest {
-		hosts = append(hosts, dcs[dc]...)
-	}
-	return hosts, nil
+
+	return scyllaclient.NewClient(c.KnownHosts, t, s.logger.Named("client"))
 }
 
 func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
@@ -138,12 +121,16 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 		return http.DefaultTransport, nil
 	}
 
-	b, err := s.keyStore.Get(c.ID)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read SSH identity file")
+	identityFile := c.SSHIdentityFile
+	if identityFile == nil {
+		b, err := s.keyStore.Get(c.ID)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read SSH identity file")
+		}
+		identityFile = b
 	}
 
-	config, err := s.sshConfig.WithIdentityFileAuth(c.SSHUser, b)
+	config, err := s.sshConfig.WithIdentityFileAuth(c.SSHUser, identityFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid SSH configuration")
 	}
@@ -177,6 +164,30 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 	}
 
 	return transport, nil
+}
+
+// discoverHosts returns a list of all hosts sorted by DC speed. This is
+// an optimisation for Epsilon-Greedy host pool used internally by
+// scyllaclient.Client that makes it use supposedly faster hosts first.
+func (s *Service) discoverHosts(ctx context.Context, client *scyllaclient.Client) (hosts []string, err error) {
+	dcs, err := client.Datacenters(ctx)
+	if err != nil {
+		return nil, err
+	}
+	closest, err := client.ClosestDC(ctx, dcs)
+	if err != nil {
+		return nil, err
+	}
+	for _, dc := range closest {
+		hosts = append(hosts, dcs[dc]...)
+	}
+	return hosts, nil
+}
+
+func (s *Service) loadKnownHosts(ctx context.Context, c *Cluster) error {
+	stmt, names := schema.Cluster.Get("known_hosts")
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(c)
+	return q.GetRelease(c)
 }
 
 func (s *Service) setKnownHosts(ctx context.Context, c *Cluster, hosts []string) error {
@@ -298,12 +309,12 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		}
 	}
 
-	// validate cluster
+	// Validate cluster model.
 	if err := c.Validate(); err != nil {
 		return err
 	}
 
-	// check for conflicting names
+	// Check for conflicting cluster names.
 	if c.Name != "" {
 		conflict, err := s.GetClusterByName(ctx, c.Name)
 		if err != mermaid.ErrNotFound {
@@ -316,34 +327,32 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		}
 	}
 
-	var oldIdentityFile []byte
-	if b, err := s.keyStore.Get(c.ID); err == nil {
-		oldIdentityFile = b
+	// Check hosts connectivity.
+	if err := s.validateHostsConnectivity(ctx, c); err != nil {
+		return err
 	}
-	// save identity file
-	if shouldSaveIdentityFile(c.SSHUser, c.SSHIdentityFile) {
+
+	// Save identity file if needed.
+	if shouldSaveIdentityFile(c) {
+		// Load old file.
+		var oldIdentityFile []byte
+		if b, err := s.keyStore.Get(c.ID); err != nil {
+			if err != mermaid.ErrNotFound {
+				return errors.Wrap(err, "failed to read SSH identity file")
+			}
+			oldIdentityFile = b
+		}
 		if err := s.keyStore.Put(c.ID, c.SSHIdentityFile); err != nil {
 			return errors.Wrap(err, "failed to save identity file")
 		}
-		s.clientCache.Invalidate(c.ID)
-	}
-	defer func() {
-		if ferr != nil {
-			// Rollback and restore the old identity file
-			if shouldSaveIdentityFile(c.SSHUser, c.SSHIdentityFile) {
+		// On future error rollback and restore the old identity file.
+		defer func() {
+			if ferr != nil {
 				if err := s.keyStore.Put(c.ID, oldIdentityFile); err != nil {
 					s.logger.Debug(ctx, "post error delete failed", "error", err)
 				}
-				s.clientCache.Invalidate(c.ID)
 			}
-		}
-	}()
-
-	// validate hosts connectivity
-	if hosts, err := s.getHosts(ctx, c); err != nil {
-		return mermaid.ErrValidate(err, "host connectivity check failed")
-	} else { // nolint: golint
-		c.KnownHosts = hosts
+		}()
 	}
 
 	stmt, names := schema.Cluster.Insert()
@@ -361,6 +370,40 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		return nil
 	}
 	return s.onChangeListener(ctx, Change{ID: c.ID, Type: t})
+}
+
+func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
+	// If host changes ignore old known hosts.
+	if c.Host != "" {
+		c.KnownHosts = []string{c.Host}
+	} else {
+		if err := s.loadKnownHosts(ctx, c); err != nil {
+			return errors.Wrap(err, "failed to load known hosts")
+		}
+	}
+
+	client, err := s.createClient(c)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	// To validate connectivity try refreshing host pool, this is the same
+	// sanity check we do in client function before returning client to
+	// the system.
+	hosts, err := s.discoverHosts(ctx, client)
+	if err != nil {
+		s.logger.Info(ctx, "Host connectivity check failed",
+			"cluster_id", c.ID,
+			"error", err,
+		)
+		return mermaid.ErrValidate(errors.New("host connectivity check failed"), "")
+	}
+
+	// Update known hosts.
+	c.KnownHosts = hosts
+
+	return nil
 }
 
 // DeleteCluster removes cluster based on ID.
@@ -389,11 +432,11 @@ func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
 	return s.onChangeListener(ctx, Change{ID: id, Type: Delete})
 }
 
-func shouldSaveIdentityFile(sshUser string, sshIdentityFile []byte) bool {
-	if len(sshIdentityFile) > 0 {
+func shouldSaveIdentityFile(c *Cluster) bool {
+	if len(c.SSHIdentityFile) > 0 {
 		return true
 	}
-	return sshUser == ""
+	return c.SSHUser == ""
 }
 
 // Close closes all SSH connections to cluster.
