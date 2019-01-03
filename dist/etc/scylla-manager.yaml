@@ -30,15 +30,15 @@ database:
   hosts:
     - 127.0.0.1
 # Database credentials.
-#   user: user
-#   password: password
-
+#  user: user
+#  password: password
+#
 # Database connection timeout.
-#   timeout: 600ms
-
+#  timeout: 600ms
+#
 # Keyspace for management data, for create statement see /etc/scylla-manager/create_keyspace.cql.tpl.
-#   keyspace: scylla_manager
-#   replication_factor: 1
+#  keyspace: scylla_manager
+#  replication_factor: 1
 
 # SSH global configuration, SSH is used to access scylla nodes. Username and
 # identity file are specified per cluster with sctool.
