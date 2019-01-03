@@ -18,7 +18,7 @@ print_usage() {
     echo "Example: corrupt -w dc1_node_1 dc1_node_2 dc1_node_3"
 }
 
-while [ $# -gt 0 ]; do
+while [[ $# > 0 ]]; do
     case "$1" in
         "-w"|"--write")
             NODE="$2"
@@ -39,19 +39,19 @@ done
 
 # Validate inputs
 
-if [ $# == 0 ]; then
+if [[ $# == 0 ]]; then
     echo -e "no services to corrupt\n"
     print_usage
     exit 1
 fi
 
-if [ -z ${NODE} ]; then
+if [[ -z ${NODE} ]]; then
     echo -e "missing --node\n"
     print_usage
     exit 1
 fi
 
-if [ -z ${KEYSPACE} ]; then
+if [[ -z ${KEYSPACE} ]]; then
     echo -e "missing --keyspace\n"
     print_usage
     exit 1
