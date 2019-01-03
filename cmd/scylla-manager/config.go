@@ -17,6 +17,7 @@ import (
 
 type dbConfig struct {
 	Hosts                         []string      `yaml:"hosts"`
+	SSL                           bool          `yaml:"ssl"`
 	User                          string        `yaml:"user"`
 	Password                      string        `yaml:"password"`
 	Keyspace                      string        `yaml:"keyspace"`
@@ -28,6 +29,13 @@ type dbConfig struct {
 	Timeout                       time.Duration `yaml:"timeout"`
 }
 
+type sslConfig struct {
+	CertFile     string `yaml:"cert_file"`
+	Validate     bool   `yaml:"validate"`
+	UserCertFile string `yaml:"user_cert_file"`
+	UserKeyFile  string `yaml:"user_key_file"`
+}
+
 type serverConfig struct {
 	HTTP        string        `yaml:"http"`
 	HTTPS       string        `yaml:"https"`
@@ -36,6 +44,7 @@ type serverConfig struct {
 	Prometheus  string        `yaml:"prometheus"`
 	Logger      log.Config    `yaml:"logger"`
 	Database    dbConfig      `yaml:"database"`
+	SSL         sslConfig     `yaml:"ssl"`
 	SSH         ssh.Config    `yaml:"ssh"`
 	Repair      repair.Config `yaml:"repair"`
 }
@@ -55,6 +64,9 @@ func defaultConfig() *serverConfig {
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
+		},
+		SSL: sslConfig{
+			Validate: true,
 		},
 		SSH:    ssh.DefaultConfig(),
 		Repair: repair.DefaultConfig(),

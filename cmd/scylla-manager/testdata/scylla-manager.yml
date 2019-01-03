@@ -16,9 +16,16 @@ database:
   hosts:
     - 172.16.1.10
     - 172.16.1.20
+  ssl: true
   user: user
   password: password
   replication_factor: 3
+
+ssl:
+  cert_file: ca.pem
+  validate: false
+  user_key_file: ssl.key
+  user_cert_file: ssl.cert
 
 ssh:
   port: 22000

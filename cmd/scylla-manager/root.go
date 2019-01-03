@@ -277,6 +277,16 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	c.Keyspace = config.Database.Keyspace
 	c.Timeout = config.Database.Timeout
 
+	// ssl
+	if config.Database.SSL {
+		c.SslOpts = &gocql.SslOptions{
+			CaPath:                 config.SSL.CertFile,
+			CertPath:               config.SSL.UserCertFile,
+			KeyPath:                config.SSL.UserKeyFile,
+			EnableHostVerification: config.SSL.Validate,
+		}
+	}
+
 	// authentication
 	if config.Database.User != "" {
 		c.Authenticator = gocql.PasswordAuthenticator{

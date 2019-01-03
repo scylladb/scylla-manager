@@ -29,6 +29,9 @@ logger:
 database:
   hosts:
     - 127.0.0.1
+# Enable or disable client/server encryption.
+#  ssl: false
+#
 # Database credentials.
 #  user: user
 #  password: password
@@ -39,6 +42,19 @@ database:
 # Keyspace for management data, for create statement see /etc/scylla-manager/create_keyspace.cql.tpl.
 #  keyspace: scylla_manager
 #  replication_factor: 1
+
+# Optional custom client/server encryption options.
+ssl:
+# CA certificate used to validate server cert. If not set will use he host's root CA set.
+#  cert_file:
+#
+# Verify the hostname and server cert.
+#  validate: true
+#
+# Client certificate and key in PEM format. It has to be provided when
+# client_encryption_options.require_client_auth=true is set on server.
+#  user_cert_file:
+#  user_key_file
 
 # SSH global configuration, SSH is used to access scylla nodes. Username and
 # identity file are specified per cluster with sctool.

@@ -34,6 +34,7 @@ func TestNewConfigFromFile(t *testing.T) {
 		},
 		Database: dbConfig{
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
+			SSL:                           true,
 			User:                          "user",
 			Password:                      "password",
 			Keyspace:                      "scylla_manager",
@@ -44,6 +45,17 @@ func TestNewConfigFromFile(t *testing.T) {
 			ReplicationFactor:             3,
 			Timeout:                       600 * time.Millisecond,
 		},
+		SSL: sslConfig{
+			CertFile:     "ca.pem",
+			Validate:     false,
+			UserCertFile: "ssl.cert",
+			UserKeyFile:  "ssl.key",
+		},
+		SSH: ssh.Config{
+			Port:                22000,
+			ServerAliveInterval: 15 * time.Second,
+			ServerAliveCountMax: 3,
+		},
 		Repair: repair.Config{
 			SegmentSizeLimit:      10,
 			SegmentsPerRepair:     7,
@@ -52,11 +64,6 @@ func TestNewConfigFromFile(t *testing.T) {
 			PollInterval:          500 * time.Millisecond,
 			MaxRunAge:             12 * time.Hour,
 			ShardingIgnoreMsbBits: 1,
-		},
-		SSH: ssh.Config{
-			Port:                22000,
-			ServerAliveInterval: 15 * time.Second,
-			ServerAliveCountMax: 3,
 		},
 	}
 
