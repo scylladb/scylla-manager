@@ -7,6 +7,7 @@ include .env
 
 .PHONY: build
 build: ## Build custom docker images
+	make -C scylla
 	docker build --build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) -t scylladb/scylla-ssh:$(SCYLLA_VERSION) scylla
 
 .PHONY: up

@@ -731,10 +731,10 @@ commitlog_total_space_in_mb: -1
 #    priority_string: <none, use default>
 
 # enable or disable client/server encryption.
-# client_encryption_options:
-#    enabled: false
-#    certificate: conf/scylla.crt
-#    keyfile: conf/scylla.key
+client_encryption_options:
+    enabled: false
+    certificate: /etc/scylla/db.crt
+    keyfile: /etc/scylla/db.key
 #    truststore: <none, use system trust>
 #    require_client_auth: False
 #    priority_string: <none, use default>
