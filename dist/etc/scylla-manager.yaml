@@ -43,7 +43,8 @@ database:
 # SSH global configuration, SSH is used to access scylla nodes. Username and
 # identity file are specified per cluster with sctool.
 ssh:
-  port: 22
+# Alternative default SSH port.
+#  port: 22
 
 # Repair service configuration.
 repair:
