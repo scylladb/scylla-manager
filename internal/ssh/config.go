@@ -12,7 +12,7 @@ import (
 
 // Config specifies SSH configuration.
 type Config struct {
-	ssh.ClientConfig `yaml:"-"`
+	ssh.ClientConfig `json:"-" yaml:"-"`
 	// Port specifies the port number to connect on the remote host.
 	Port int `yaml:"port"`
 	// ServerAliveInterval sets an interval in seconds ssh will send a message
