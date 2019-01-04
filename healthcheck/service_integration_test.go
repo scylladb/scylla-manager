@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/kv"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -21,15 +22,20 @@ import (
 func TestGetStatusIntegration(t *testing.T) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
-	s := NewService(
+	s, err := NewService(
 		func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
 			return &cluster.Cluster{ID: id}, nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), logger.Named("scylla"))
 		},
+		kv.NopStore{},
+		kv.NopStore{},
 		logger,
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	status, err := s.GetStatus(context.Background(), uuid.MustRandom())
 	if err != nil {

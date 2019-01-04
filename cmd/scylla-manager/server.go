@@ -70,17 +70,30 @@ func (s *server) makeServices() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get user")
 	}
-	keyStore, err := kv.NewFsStore(filepath.Join(u.HomeDir, ".certs"), "")
+	baseDir := filepath.Join(u.HomeDir, ".certs")
+
+	sshKeyStore, err := kv.NewFsStore(baseDir, "")
 	if err != nil {
-		return errors.Wrap(err, "failed to create key store")
+		return errors.Wrap(err, "failed to create SSH key store")
+	}
+	sslCertStore, err := kv.NewFsStore(baseDir, "cert")
+	if err != nil {
+		return errors.Wrap(err, "failed to create SSL cert store")
+	}
+	sslKeyStore, err := kv.NewFsStore(baseDir, "key")
+	if err != nil {
+		return errors.Wrap(err, "failed to create SSL key store")
 	}
 
-	s.clusterSvc, err = cluster.NewService(s.session, s.config.SSH, keyStore, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, s.config.SSH, sshKeyStore, sslCertStore, sslKeyStore, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
 	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
-	s.healthSvc = healthcheck.NewService(s.clusterSvc.GetClusterByID, s.clusterSvc.Client, s.logger.Named("healthcheck"))
+	s.healthSvc, err = healthcheck.NewService(s.clusterSvc.GetClusterByID, s.clusterSvc.Client, sslCertStore, sslKeyStore, s.logger.Named("healthcheck"))
+	if err != nil {
+		return errors.Wrapf(err, "healthcheck service")
+	}
 
 	s.repairSvc, err = repair.NewService(
 		s.session,
@@ -110,7 +123,6 @@ func (s *server) makeServices() error {
 }
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
-
 	switch c.Type {
 	case cluster.Create:
 		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckTask(c.ID)); err != nil {
@@ -132,6 +144,8 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 			return errors.Wrapf(errs, "failed to remove cluster %s tasks", c.ID)
 		}
 	}
+
+	s.healthSvc.InvalidateTLSConfigCache(c.ID)
 
 	return nil
 }

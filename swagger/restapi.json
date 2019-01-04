@@ -38,6 +38,14 @@
         "ssh_identity_file": {
           "type": "string",
           "format": "byte"
+        },
+        "ssl_user_cert_file": {
+          "type": "string",
+          "format": "byte"
+        },
+        "ssl_user_key_file": {
+          "type": "string",
+          "format": "byte"
         }
       }
     },
