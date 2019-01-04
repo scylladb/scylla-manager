@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -45,7 +46,7 @@ var (
 		Subsystem: "repair",
 		Name:      "progress",
 		Help:      "Current repair progress.",
-	}, []string{"cluster", "task", "keyspace", "host"})
+	}, []string{"cluster", "task", "keyspace", "host", "shard"})
 )
 
 func init() {
@@ -101,6 +102,17 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 		return
 	}
 
+	// not aggregated keyspace host shard progress
+	for _, p := range prog {
+		repairProgress.With(prometheus.Labels{
+			"cluster":  u.run.clusterName,
+			"task":     u.run.TaskID.String(),
+			"keyspace": u.run.Units[p.Unit].Keyspace,
+			"host":     p.Host,
+			"shard":    fmt.Sprint(p.Shard),
+		}).Set(float64(p.PercentComplete()))
+	}
+
 	p := aggregateProgress(u.run, prog)
 
 	// aggregated keyspace host progress
@@ -111,6 +123,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 				"task":     u.run.TaskID.String(),
 				"keyspace": unit.Unit.Keyspace,
 				"host":     n.Host,
+				"shard":    "",
 			}).Set(float64(n.PercentComplete))
 		}
 	}
@@ -122,6 +135,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 			"task":     u.run.TaskID.String(),
 			"keyspace": unit.Unit.Keyspace,
 			"host":     "",
+			"shard":    "",
 		}).Set(float64(unit.PercentComplete))
 	}
 
@@ -131,6 +145,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 		"task":     u.run.TaskID.String(),
 		"keyspace": "",
 		"host":     "",
+		"shard":    "",
 	}).Set(float64(p.PercentComplete))
 }
 
