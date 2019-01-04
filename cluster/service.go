@@ -45,25 +45,36 @@ type Change struct {
 type Service struct {
 	session          *gocql.Session
 	sshConfig        ssh.Config
-	keyStore         kv.Store
+	sshKeyStore      kv.Store
+	sslCertStore     kv.Store
+	sslKeyStore      kv.Store
 	clientCache      *scyllaclient.CachedProvider
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session *gocql.Session, sshConfig ssh.Config, keyStore kv.Store, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, sshConfig ssh.Config, sshKeyStore kv.Store,
+	sslCertStore, sslKeyStore kv.Store, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
-	if keyStore == nil {
-		return nil, errors.New("invalid keyStore")
+	if sshKeyStore == nil {
+		return nil, errors.New("missing SSH key store")
+	}
+	if sslCertStore == nil {
+		return nil, errors.New("missing SSL cert store")
+	}
+	if sslKeyStore == nil {
+		return nil, errors.New("missing SSL key store")
 	}
 
 	s := &Service{
-		session:   session,
-		sshConfig: sshConfig,
-		keyStore:  keyStore,
-		logger:    l,
+		session:      session,
+		sshConfig:    sshConfig,
+		sshKeyStore:  sshKeyStore,
+		sslCertStore: sslCertStore,
+		sslKeyStore:  sslKeyStore,
+		logger:       l,
 	}
 	s.clientCache = scyllaclient.NewCachedProvider(s.client)
 
@@ -123,7 +134,7 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 
 	identityFile := c.SSHIdentityFile
 	if identityFile == nil {
-		b, err := s.keyStore.Get(c.ID)
+		b, err := s.sshKeyStore.Get(c.ID)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read SSH identity file")
 		}
@@ -292,7 +303,7 @@ func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, 
 
 // PutCluster upserts a cluster, cluster instance must pass Validate() checks.
 // If u.ID == uuid.Nil a new one is generated.
-func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
+func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	s.logger.Debug(ctx, "PutCluster", "cluster", c)
 	if c == nil {
 		return mermaid.ErrNilPtr
@@ -332,27 +343,37 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		return err
 	}
 
-	// Save identity file if needed.
+	// Rollback on error.
+	var rollback []func()
+	defer func() {
+		if err != nil {
+			for _, r := range rollback {
+				r()
+			}
+		}
+	}()
+
+	// Save SSH and SSL files in a dedicated secure storage.
 	if shouldSaveIdentityFile(c) {
-		// Load old file.
-		var oldIdentityFile []byte
-		if b, err := s.keyStore.Get(c.ID); err != nil {
-			if err != mermaid.ErrNotFound {
-				return errors.Wrap(err, "failed to read SSH identity file")
-			}
-			oldIdentityFile = b
+		r, err := putWithRollback(s.sshKeyStore, c.ID, c.SSHIdentityFile)
+		rollback = append(rollback, r)
+		if err != nil {
+			return errors.Wrap(err, "failed to save SSH identity file")
 		}
-		if err := s.keyStore.Put(c.ID, c.SSHIdentityFile); err != nil {
-			return errors.Wrap(err, "failed to save identity file")
+	}
+	if len(c.SSLUserCertFile) != 0 {
+		r, err := putWithRollback(s.sslCertStore, c.ID, c.SSLUserCertFile)
+		rollback = append(rollback, r)
+		if err != nil {
+			return errors.Wrap(err, "failed to save SSL cert file")
 		}
-		// On future error rollback and restore the old identity file.
-		defer func() {
-			if ferr != nil {
-				if err := s.keyStore.Put(c.ID, oldIdentityFile); err != nil {
-					s.logger.Debug(ctx, "post error delete failed", "error", err)
-				}
-			}
-		}()
+	}
+	if len(c.SSLUserKeyFile) != 0 {
+		r, err := putWithRollback(s.sslKeyStore, c.ID, c.SSLUserKeyFile)
+		rollback = append(rollback, r)
+		if err != nil {
+			return errors.Wrap(err, "failed to save SSL key file")
+		}
 	}
 
 	stmt, names := schema.Cluster.Insert()
@@ -366,10 +387,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (ferr error) {
 		s.clientCache.Invalidate(c.ID)
 	}
 
-	if s.onChangeListener == nil {
-		return nil
-	}
-	return s.onChangeListener(ctx, Change{ID: c.ID, Type: t})
+	return s.notifyChangeListener(ctx, Change{ID: c.ID, Type: t})
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
@@ -407,29 +425,37 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 }
 
 // DeleteCluster removes cluster based on ID.
-func (s *Service) DeleteCluster(ctx context.Context, id uuid.UUID) error {
-	s.logger.Debug(ctx, "DeleteCluster", "id", id)
+func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error {
+	s.logger.Debug(ctx, "DeleteCluster", "cluster_id", clusterID)
 
 	stmt, names := schema.Cluster.Delete()
-
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
-		"id": id,
+		"id": clusterID,
 	})
 
 	if err := q.ExecRelease(); err != nil {
 		return err
 	}
 
-	if err := s.keyStore.Put(id, nil); err != nil {
-		return err
+	for _, kv := range []kv.Store{s.sshKeyStore, s.sslKeyStore, s.sslCertStore} {
+		if err := kv.Put(clusterID, nil); err != nil {
+			s.logger.Error(ctx, "Failed to delete file",
+				"cluster_id", clusterID,
+				"error", err,
+			)
+		}
 	}
 
-	s.clientCache.Invalidate(id)
+	s.clientCache.Invalidate(clusterID)
 
+	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
+}
+
+func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {
 	if s.onChangeListener == nil {
 		return nil
 	}
-	return s.onChangeListener(ctx, Change{ID: id, Type: Delete})
+	return s.onChangeListener(ctx, c)
 }
 
 func shouldSaveIdentityFile(c *Cluster) bool {

@@ -31,6 +31,14 @@ type Cluster struct {
 
 	// ssh user
 	SSHUser string `json:"ssh_user,omitempty"`
+
+	// ssl user cert file
+	// Format: byte
+	SslUserCertFile strfmt.Base64 `json:"ssl_user_cert_file,omitempty"`
+
+	// ssl user key file
+	// Format: byte
+	SslUserKeyFile strfmt.Base64 `json:"ssl_user_key_file,omitempty"`
 }
 
 // Validate validates this cluster
@@ -38,6 +46,14 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateSSHIdentityFile(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSslUserCertFile(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSslUserKeyFile(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -50,6 +66,28 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 func (m *Cluster) validateSSHIdentityFile(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.SSHIdentityFile) { // not required
+		return nil
+	}
+
+	// Format "byte" (base64 string) is already validated when unmarshalled
+
+	return nil
+}
+
+func (m *Cluster) validateSslUserCertFile(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SslUserCertFile) { // not required
+		return nil
+	}
+
+	// Format "byte" (base64 string) is already validated when unmarshalled
+
+	return nil
+}
+
+func (m *Cluster) validateSslUserKeyFile(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SslUserKeyFile) { // not required
 		return nil
 	}
 

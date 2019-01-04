@@ -11,14 +11,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/internal/cqlping"
 	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 type healthCheckRunner struct {
 	cluster cluster.ProviderFunc
 	client  scyllaclient.ProviderFunc
+	ping    func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
 }
 
 type hostRTT struct {
@@ -26,8 +27,6 @@ type hostRTT struct {
 	rtt  time.Duration
 	err  error
 }
-
-const pingTimeout = 250 * time.Millisecond
 
 // Run implements runner.Runner.
 func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
@@ -52,7 +51,7 @@ func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runne
 	for _, h := range hosts {
 		v := hostRTT{host: h}
 		go func() {
-			v.rtt, v.err = cqlping.Ping(ctx, pingTimeout, v.host)
+			v.rtt, v.err = r.ping(ctx, d.ClusterID, v.host)
 			out <- v
 		}()
 	}

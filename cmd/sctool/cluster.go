@@ -26,6 +26,8 @@ var (
 	cfgClusterHost            string
 	cfgClusterSSHUser         string
 	cfgClusterSSHIdentityFile string
+	cfgClusterSSLUserCertFile string
+	cfgClusterSSLUserKeyFile  string
 )
 
 func clusterInitCommonFlags(cmd *cobra.Command) {
@@ -33,6 +35,8 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
 	cmd.Flags().StringVar(&cfgClusterSSHUser, "ssh-user", "", "SSH user `name` used to connect to the cluster nodes")
 	cmd.Flags().StringVar(&cfgClusterSSHIdentityFile, "ssh-identity-file", "", "`path` to identity file containing SSH private key")
+	cmd.Flags().StringVar(&cfgClusterSSLUserCertFile, "ssl-user-cert-file", "", "`path` to client certificate when using client/server encryption with require_client_auth enabled")
+	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
 }
 
 var clusterAddCmd = &cobra.Command{
@@ -58,6 +62,26 @@ var clusterAddCmd = &cobra.Command{
 			}
 			c.SSHIdentityFile = b
 			c.SSHUser = cfgClusterSSHUser
+		}
+
+		if cfgClusterSSLUserCertFile != "" && cfgClusterSSLUserKeyFile == "" {
+			return printableError{errors.New("missing flag \"ssl-user-key-file\"")}
+		}
+		if cfgClusterSSLUserKeyFile != "" && cfgClusterSSLUserCertFile == "" {
+			return printableError{errors.New("missing flag \"ssl-user-cert-file\"")}
+		}
+		if cfgClusterSSLUserCertFile != "" {
+			b0, err := ioutil.ReadFile(cfgClusterSSLUserCertFile)
+			if err != nil {
+				return printableError{inner: err}
+			}
+			c.SslUserCertFile = b0
+
+			b1, err := ioutil.ReadFile(cfgClusterSSLUserKeyFile)
+			if err != nil {
+				return printableError{inner: err}
+			}
+			c.SslUserKeyFile = b1
 		}
 
 		id, err := client.CreateCluster(ctx, c)
@@ -120,6 +144,28 @@ var clusterUpdateCmd = &cobra.Command{
 				return printableError{inner: err}
 			}
 			cluster.SSHIdentityFile = b
+			ok = true
+		}
+		if cmd.Flags().Changed("ssl-user-cert-file") {
+			if cfgClusterSSLUserKeyFile == "" {
+				return printableError{errors.New("missing flag \"ssl-user-key-file\"")}
+			}
+			b, err := ioutil.ReadFile(cfgClusterSSLUserCertFile)
+			if err != nil {
+				return printableError{inner: err}
+			}
+			cluster.SslUserCertFile = b
+			ok = true
+		}
+		if cmd.Flags().Changed("ssl-user-key-file") {
+			if cfgClusterSSLUserCertFile == "" {
+				return printableError{errors.New("missing flag \"ssl-user-cert-file\"")}
+			}
+			b, err := ioutil.ReadFile(cfgClusterSSLUserKeyFile)
+			if err != nil {
+				return printableError{inner: err}
+			}
+			cluster.SslUserKeyFile = b
 			ok = true
 		}
 		if !ok {
