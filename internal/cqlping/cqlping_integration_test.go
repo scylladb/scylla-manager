@@ -6,6 +6,7 @@ package cqlping
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"strings"
 	"testing"
@@ -15,14 +16,32 @@ import (
 )
 
 func TestPingIntegration(t *testing.T) {
-	_, err := Ping(context.Background(), time.Second, mermaidtest.ManagedClusterHosts[0])
+	_, err := Ping(context.Background(), Config{
+		Addr:    mermaidtest.ManagedClusterHosts[0] + ":9042",
+		Timeout: 250 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPingTLSIntegration(t *testing.T) {
+	t.SkipNow()
+
+	_, err := Ping(context.Background(), Config{
+		Addr:    mermaidtest.ManagedClusterHosts[0] + ":9042",
+		Timeout: 250 * time.Millisecond,
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestPingIntegrationTimeout(t *testing.T) {
-	l, err := net.Listen("tcp", "127.0.0.1:"+port)
+	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +58,10 @@ func TestPingIntegrationTimeout(t *testing.T) {
 		conn.Write(buf[:])
 	}()
 
-	_, err = Ping(context.Background(), 100*time.Millisecond, "127.0.0.1")
+	_, err = Ping(context.Background(), Config{
+		Addr:    l.Addr().String(),
+		Timeout: 250 * time.Millisecond,
+	})
 	if err == nil || !strings.HasSuffix(err.Error(), "i/o timeout") {
 		t.Fatal("expected timeout error, got", err)
 	}
