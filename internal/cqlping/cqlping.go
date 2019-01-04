@@ -4,6 +4,7 @@ package cqlping
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"time"
 
@@ -11,25 +12,39 @@ import (
 	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
-const port = "9042"
-
+// options is wire encoded CQL OPTIONS frame.
 var options = []byte{4, 0, 0, 0, 5, 0, 0, 0, 0}
 
-// Ping connects to a host on native port (9042), sends OPTIONS frame and
-// expects SUPPORTED frame.
-func Ping(ctx context.Context, timeout time.Duration, host string) (time.Duration, error) {
+// Config specifies the ping configuration, note that timeout is mandatory and
+// zero timeout will result in errors.
+type Config struct {
+	Addr      string
+	Timeout   time.Duration
+	TLSConfig *tls.Config
+}
+
+// Ping connects to a host on native port, sends OPTIONS frame and waits for
+// SUPPORTED frame in response. If connection fails, operation timeouts or
+// receives unexpected payload an error is returned.
+func Ping(ctx context.Context, config Config) (time.Duration, error) {
 	t := timeutc.Now()
 
-	d := net.Dialer{
-		Deadline: t.Add(timeout),
+	d := &net.Dialer{
+		Deadline: t.Add(config.Timeout),
 	}
 
 	var (
+		conn   net.Conn
 		err    error
 		header [9]byte
 	)
 
-	conn, err := d.DialContext(ctx, "tcp", host+":"+port)
+	if config.TLSConfig != nil {
+		conn, err = tls.DialWithDialer(d, "tcp", config.Addr, config.TLSConfig)
+	} else {
+		conn, err = d.DialContext(ctx, "tcp", config.Addr)
+	}
+
 	if err != nil {
 		goto exit
 	}
