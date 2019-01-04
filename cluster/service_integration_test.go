@@ -37,7 +37,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	defer func() {
 		os.Remove(dir)
 	}()
-	keyStore, err := kv.NewFsStore(dir)
+	keyStore, err := kv.NewFsStore(dir, "")
 
 	s, err := cluster.NewService(session, ssh.DefaultConfig(), keyStore, log.NewDevelopment())
 	if err != nil {
