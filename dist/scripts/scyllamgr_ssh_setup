@@ -147,14 +147,12 @@ fi
 ret=0
 
 for host in ${HOSTS}; do
-    NOLOGIN= # avoid NOLOGIN: unbound variable false positive, other variables shall be expanded
     if ssh ${SSH_OPTS} "${SSH_USER}${host}" &> "${OUTPUT}" sudo su - << EOF
     set -eux -o pipefail
 
     # Create system user and group.
-    NOLOGIN=`command -v nologin`
     getent group "${MANAGER_USER}"  || /usr/sbin/groupadd -r "${MANAGER_USER}"
-    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s ${NOLOGIN} -r "${MANAGER_USER}"
+    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s $(command -v nologin) -r "${MANAGER_USER}"
 
     # Add public key to authorized_keys.
     mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
