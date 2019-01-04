@@ -70,7 +70,7 @@ func (s *server) makeServices() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get user")
 	}
-	keyStore, err := kv.NewFsStore(filepath.Join(u.HomeDir, ".certs"))
+	keyStore, err := kv.NewFsStore(filepath.Join(u.HomeDir, ".certs"), "")
 	if err != nil {
 		return errors.Wrap(err, "failed to create key store")
 	}

@@ -20,7 +20,7 @@ func TestFsStore(t *testing.T) {
 	defer func() {
 		os.Remove(dir)
 	}()
-	s, err := NewFsStore(dir)
+	s, err := NewFsStore(dir, "test")
 	if err != nil {
 		t.Fatal(err)
 	}

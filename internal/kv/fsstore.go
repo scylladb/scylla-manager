@@ -16,19 +16,24 @@ import (
 // is flat, files are saved in 0400 mode.
 type FsStore struct {
 	dir string
+	ext string
 }
 
 // NewFsStore creates a new FsStore.
-func NewFsStore(dir string) (*FsStore, error) {
+func NewFsStore(dir string, ext string) (*FsStore, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	return &FsStore{dir: dir}, nil
+	if ext != "" {
+		ext = "." + ext
+	}
+
+	return &FsStore{dir: dir, ext: ext}, nil
 }
 
 // Get returns saved data, if file is not found ErrNotFound is reported.
 func (m *FsStore) Get(id uuid.UUID) ([]byte, error) {
-	filename := m.identityFile(id)
+	filename := m.path(id)
 
 	b, err := ioutil.ReadFile(filename)
 	if os.IsNotExist(err) {
@@ -45,20 +50,20 @@ func (m *FsStore) Put(id uuid.UUID, data []byte) error {
 	return m.save(id, data)
 }
 
-func (m *FsStore) save(clusterID uuid.UUID, data []byte) error {
-	if err := ioutil.WriteFile(m.identityFile(clusterID), data, 0600); err != nil {
-		return errors.Wrapf(err, "unable to store identity file %q", m.identityFile(clusterID))
+func (m *FsStore) save(id uuid.UUID, data []byte) error {
+	if err := ioutil.WriteFile(m.path(id), data, 0600); err != nil {
+		return errors.Wrapf(err, "unable to store identity file %q", m.path(id))
 	}
 	return nil
 }
 
-func (m *FsStore) delete(clusterID uuid.UUID) error {
-	if err := os.Remove(m.identityFile(clusterID)); err != nil && !os.IsNotExist(err) {
+func (m *FsStore) delete(id uuid.UUID) error {
+	if err := os.Remove(m.path(id)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	return nil
 }
 
-func (m *FsStore) identityFile(clusterID uuid.UUID) string {
-	return filepath.Join(m.dir, clusterID.String())
+func (m *FsStore) path(id uuid.UUID) string {
+	return filepath.Join(m.dir, id.String()+m.ext)
 }
