@@ -19,6 +19,7 @@ database:
   ssl: true
   user: user
   password: password
+  local_dc: local
   replication_factor: 3
 
 ssl:

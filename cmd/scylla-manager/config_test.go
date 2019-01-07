@@ -37,6 +37,7 @@ func TestNewConfigFromFile(t *testing.T) {
 			SSL:                           true,
 			User:                          "user",
 			Password:                      "password",
+			LocalDC:                       "local",
 			Keyspace:                      "scylla_manager",
 			KeyspaceTplFile:               "/etc/scylla-manager/create_keyspace.cql.tpl",
 			MigrateDir:                    "/etc/scylla-manager/cql",
