@@ -295,6 +295,13 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 		}
 	}
 
+	// enable token aware host selection policy
+	fallback := gocql.RoundRobinHostPolicy()
+	if config.Database.LocalDC != "" {
+		fallback = gocql.DCAwareRoundRobinPolicy(config.Database.LocalDC)
+	}
+	c.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(fallback)
+
 	return c
 }
 

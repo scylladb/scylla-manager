@@ -36,6 +36,9 @@ database:
 #  user: user
 #  password: password
 #
+# Local datacenter name, specify if using a remote, multi-dc cluster.
+#  local_dc:
+#
 # Database connection timeout.
 #  timeout: 600ms
 #

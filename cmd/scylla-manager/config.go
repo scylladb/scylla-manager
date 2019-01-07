@@ -20,6 +20,7 @@ type dbConfig struct {
 	SSL                           bool          `yaml:"ssl"`
 	User                          string        `yaml:"user"`
 	Password                      string        `yaml:"password"`
+	LocalDC                       string        `yaml:"local_dc"`
 	Keyspace                      string        `yaml:"keyspace"`
 	KeyspaceTplFile               string        `yaml:"keyspace_tpl_file"`
 	MigrateDir                    string        `yaml:"migrate_dir"`
