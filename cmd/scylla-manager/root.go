@@ -269,7 +269,7 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	c := gocql.NewCluster(config.Database.Hosts...)
 
 	// consistency
-	if config.Database.ReplicationFactor == 1 {
+	if config.Database.ReplicationFactor == 1 && config.Database.LocalDC == "" {
 		c.Consistency = gocql.One
 	} else {
 		c.Consistency = gocql.LocalQuorum
