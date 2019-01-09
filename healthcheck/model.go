@@ -11,6 +11,7 @@ const (
 type Status struct {
 	DC        string
 	Host      string
+	SSL       bool
 	CQLStatus string  `json:"cql_status"`
 	RTT       float64 `json:"cql_rtt_ms"`
 }

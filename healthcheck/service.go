@@ -113,6 +113,7 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 				} else {
 					v.CQLStatus = statusUp
 				}
+				v.SSL = s.hasTLSConfig(clusterID)
 				v.RTT = float64(rtt / 1000000)
 
 				out <- v
@@ -207,6 +208,13 @@ func (s *Service) setTLSConfig(clusterID uuid.UUID, config *tls.Config) {
 	s.cacheMu.Lock()
 	s.cache[clusterID] = config
 	s.cacheMu.Unlock()
+}
+
+func (s *Service) hasTLSConfig(clusterID uuid.UUID) bool {
+	s.cacheMu.Lock()
+	_, ok := s.cache[clusterID]
+	s.cacheMu.Unlock()
+	return ok
 }
 
 // InvalidateTLSConfigCache frees all in-memory TLS configuration associated
