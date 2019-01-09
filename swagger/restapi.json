@@ -73,6 +73,9 @@
           "host": {
             "type": "string"
           },
+          "ssl": {
+            "type": "boolean"
+          },
           "cql_status": {
             "type": "string"
           },

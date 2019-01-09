@@ -59,6 +59,9 @@ type ClusterStatusItems0 struct {
 
 	// host
 	Host string `json:"host,omitempty"`
+
+	// ssl
+	Ssl bool `json:"ssl,omitempty"`
 }
 
 // Validate validates this cluster status items0
