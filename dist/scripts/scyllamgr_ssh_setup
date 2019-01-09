@@ -141,7 +141,7 @@ MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
 
 HOSTS=$@
 if [[ ${DISCOVER} == 1 ]]; then
-    HOSTS=`ssh ${SSH_OPTS} "${SSH_USER}${1}" &> "${OUTPUT}" curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
+    HOSTS=`ssh ${SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
 fi
 
 ret=0
