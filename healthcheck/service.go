@@ -212,9 +212,9 @@ func (s *Service) setTLSConfig(clusterID uuid.UUID, config *tls.Config) {
 
 func (s *Service) hasTLSConfig(clusterID uuid.UUID) bool {
 	s.cacheMu.Lock()
-	_, ok := s.cache[clusterID]
+	c := s.cache[clusterID]
 	s.cacheMu.Unlock()
-	return ok
+	return c != nil
 }
 
 // InvalidateTLSConfigCache frees all in-memory TLS configuration associated
