@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
@@ -14,10 +15,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func TestNewConfigFromFile(t *testing.T) {
+func TestConfigModification(t *testing.T) {
 	t.Parallel()
 
-	c, err := newConfigFromFile("testdata/scylla-manager.yml")
+	c, err := newConfigFromFile("testdata/scylla-manager.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,6 +70,18 @@ func TestNewConfigFromFile(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestDefaultConfig(t *testing.T) {
+	c, err := newConfigFromFile("../../dist/etc/scylla-manager.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := defaultConfig()
+	opts := []cmp.Option{mermaidtest.UUIDComparer(), cmpopts.IgnoreTypes(serverConfig{})}
+	if diff := cmp.Diff(c, e, opts...); diff != "" {
 		t.Fatal(diff)
 	}
 }
