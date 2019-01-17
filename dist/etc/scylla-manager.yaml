@@ -64,6 +64,16 @@ database:
 #ssh:
 # Alternative default SSH port.
 #  port: 22
+#
+# Interval to send keepalive message through the encrypted channel and
+# request a response from the server.
+#  server_alive_interval: 15s
+#
+# The number of server keepalive messages which may be sent without receiving
+# any messages back from the server. If this threshold is reached while server
+# keepalive messages are being sent, ssh will disconnect from the server,
+# terminating the session.
+#  server_alive_count_max: 3
 
 # Repair service configuration.
 repair:
