@@ -15,13 +15,13 @@ type Config struct {
 	ssh.ClientConfig `json:"-" yaml:"-"`
 	// Port specifies the port number to connect on the remote host.
 	Port int `yaml:"port"`
-	// ServerAliveInterval sets an interval in seconds ssh will send a message
-	// through the encrypted channel to request a response from the server.
+	// ServerAliveInterval specifies an interval to send keepalive message
+	// through the encrypted channel and request a response from the server.
 	ServerAliveInterval time.Duration `yaml:"server_alive_interval"`
-	// ServerAliveCountMax sets the number of server alive messages which may be
-	// sent without receiving any messages back from the server. If this
-	// threshold is reached while server alive messages are being sent, ssh will
-	// disconnect from the server, terminating the session.
+	// ServerAliveCountMax specifies the number of server keepalive messages
+	// which may be sent without receiving any messages back from the server.
+	// If this threshold is reached while server keepalive messages are being sent,
+	// ssh will disconnect from the server, terminating the session.
 	ServerAliveCountMax int `yaml:"server_alive_count_max"`
 }
 
