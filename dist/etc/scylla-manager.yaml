@@ -47,7 +47,7 @@ database:
 #  replication_factor: 1
 
 # Optional custom client/server encryption options.
-ssl:
+#ssl:
 # CA certificate used to validate server cert. If not set will use he host's root CA set.
 #  cert_file:
 #
@@ -61,7 +61,7 @@ ssl:
 
 # SSH global configuration, SSH is used to access scylla nodes. Username and
 # identity file are specified per cluster with sctool.
-ssh:
+#ssh:
 # Alternative default SSH port.
 #  port: 22
 
