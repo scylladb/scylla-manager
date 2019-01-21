@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/repair"
 	"go.uber.org/zap/zapcore"
@@ -38,16 +39,17 @@ type sslConfig struct {
 }
 
 type serverConfig struct {
-	HTTP        string        `yaml:"http"`
-	HTTPS       string        `yaml:"https"`
-	TLSCertFile string        `yaml:"tls_cert_file"`
-	TLSKeyFile  string        `yaml:"tls_key_file"`
-	Prometheus  string        `yaml:"prometheus"`
-	Logger      log.Config    `yaml:"logger"`
-	Database    dbConfig      `yaml:"database"`
-	SSL         sslConfig     `yaml:"ssl"`
-	SSH         ssh.Config    `yaml:"ssh"`
-	Repair      repair.Config `yaml:"repair"`
+	HTTP        string             `yaml:"http"`
+	HTTPS       string             `yaml:"https"`
+	TLSCertFile string             `yaml:"tls_cert_file"`
+	TLSKeyFile  string             `yaml:"tls_key_file"`
+	Prometheus  string             `yaml:"prometheus"`
+	Logger      log.Config         `yaml:"logger"`
+	Database    dbConfig           `yaml:"database"`
+	SSL         sslConfig          `yaml:"ssl"`
+	SSH         ssh.Config         `yaml:"ssh"`
+	Healthcheck healthcheck.Config `yaml:"healthcheck"`
+	Repair      repair.Config      `yaml:"repair"`
 }
 
 func defaultConfig() *serverConfig {
@@ -69,8 +71,9 @@ func defaultConfig() *serverConfig {
 		SSL: sslConfig{
 			Validate: true,
 		},
-		SSH:    ssh.DefaultConfig(),
-		Repair: repair.DefaultConfig(),
+		SSH:         ssh.DefaultConfig(),
+		Healthcheck: healthcheck.DefaultConfig(),
+		Repair:      repair.DefaultConfig(),
 	}
 }
 

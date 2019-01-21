@@ -31,6 +31,10 @@ ssl:
 ssh:
   port: 22000
 
+healthcheck:
+  timeout: 1s
+  ssl_timeout: 1s
+
 repair:
   segment_size_limit: 10
   segments_per_repair: 7

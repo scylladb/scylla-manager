@@ -90,7 +90,7 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "cluster service")
 	}
 	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
-	s.healthSvc, err = healthcheck.NewService(s.clusterSvc.GetClusterByID, s.clusterSvc.Client, sslCertStore, sslKeyStore, s.logger.Named("healthcheck"))
+	s.healthSvc, err = healthcheck.NewService(s.config.Healthcheck, s.clusterSvc.GetClusterByID, s.clusterSvc.Client, sslCertStore, sslKeyStore, s.logger.Named("healthcheck"))
 	if err != nil {
 		return errors.Wrapf(err, "healthcheck service")
 	}
