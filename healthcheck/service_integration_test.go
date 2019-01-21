@@ -23,6 +23,7 @@ func TestGetStatusIntegration(t *testing.T) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	s, err := NewService(
+		DefaultConfig(),
 		func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
 			return &cluster.Cluster{ID: id}, nil
 		},

@@ -75,6 +75,12 @@ database:
 # terminating the session.
 #  server_alive_count_max: 3
 
+# Healthcheck service configuration.
+#healthcheck:
+# Timeout for CQL status checks.
+#  timeout: 250ms
+#  ssl_timeout: 750ms
+
 # Repair service configuration.
 repair:
   # Granularity of repair. Repair works on segments, segment is a continuous

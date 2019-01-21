@@ -23,17 +23,9 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-// Health check defaults.
-var (
-	DefaultPort        = 9042
-	DefaultPingTimeout = 250 * time.Millisecond
-	DefaultTLSConfig   = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-)
-
 // Service manages health checks.
 type Service struct {
+	config       Config
 	cluster      cluster.ProviderFunc
 	client       scyllaclient.ProviderFunc
 	sslCertStore kv.Store
@@ -43,7 +35,7 @@ type Service struct {
 	logger       log.Logger
 }
 
-func NewService(cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc,
+func NewService(config Config, cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc,
 	sslCertStore, sslKeyStore kv.Store, logger log.Logger) (*Service, error) {
 	if cp == nil {
 		return nil, errors.New("invalid cluster provider")
@@ -59,6 +51,7 @@ func NewService(cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc,
 	}
 
 	return &Service{
+		config:       config,
 		cluster:      cp,
 		client:       sp,
 		sslCertStore: sslCertStore,
@@ -143,8 +136,11 @@ func (s *Service) ping(ctx context.Context, clusterID uuid.UUID, host string) (r
 
 	config := cqlping.Config{
 		Addr:      fmt.Sprint(host, ":", DefaultPort),
-		Timeout:   DefaultPingTimeout,
+		Timeout:   s.config.Timeout,
 		TLSConfig: tlsConfig,
+	}
+	if tlsConfig != nil {
+		config.Timeout = s.config.SSLTimeout
 	}
 	rtt, err = cqlping.Ping(ctx, config)
 

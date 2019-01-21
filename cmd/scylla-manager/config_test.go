@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
@@ -57,6 +58,10 @@ func TestConfigModification(t *testing.T) {
 			Port:                22000,
 			ServerAliveInterval: 15 * time.Second,
 			ServerAliveCountMax: 3,
+		},
+		Healthcheck: healthcheck.Config{
+			Timeout:    time.Second,
+			SSLTimeout: time.Second,
 		},
 		Repair: repair.Config{
 			SegmentSizeLimit:      10,
