@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"path/filepath"
+	"path"
 	"strings"
 	"syscall"
 	"text/template"
@@ -23,19 +23,18 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/schema/cql"
 	"github.com/spf13/cobra"
 )
 
 var (
-	cfgConfigFile    string
-	cfgDeveloperMode bool
-	cfgVersion       bool
+	cfgConfigFile []string
+	cfgVersion    bool
 )
 
 func init() {
-	rootCmd.Flags().StringVarP(&cfgConfigFile, "config-file", "c", "/etc/scylla-manager/scylla-manager.yaml", "configuration file `path`")
-	rootCmd.Flags().BoolVar(&cfgDeveloperMode, "developer-mode", false, "run in developer mode")
+	rootCmd.Flags().StringSliceVarP(&cfgConfigFile, "config-file", "c", []string{"/etc/scylla-manager/scylla-manager.yaml"}, "configuration file `path`")
 	rootCmd.Flags().BoolVar(&cfgVersion, "version", false, "print product version and exit")
 }
 
@@ -53,28 +52,8 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		if cfgDeveloperMode {
-			// launch gops agent
-			if err := agent.Listen(agent.Options{ShutdownCleanup: false}); err != nil {
-				return errors.Wrapf(err, "gops agent startup")
-			}
-			defer agent.Close()
-		} else {
-			// try redirect std streams
-			if f, err := redirectStdStreams(); err != nil {
-				fmt.Fprintf(cmd.OutOrStdout(), "%s\n", errors.Wrap(err, "failed to redirect streams"))
-			} else {
-				defer f.Close()
-			}
-		}
-
-		// try to make absolute path
-		if absp, err := filepath.Abs(cfgConfigFile); err == nil {
-			cfgConfigFile = absp
-		}
-
 		// read configuration
-		config, err := newConfigFromFile(cfgConfigFile)
+		config, err := newConfigFromFile(cfgConfigFile...)
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", cfgConfigFile)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
@@ -85,6 +64,12 @@ var rootCmd = &cobra.Command{
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
+
+		// launch gops agent
+		if err := agent.Listen(agent.Options{Addr: config.Gops, ShutdownCleanup: false}); err != nil {
+			return errors.Wrapf(err, "gops agent startup")
+		}
+		defer agent.Close()
 
 		// get a base context
 		ctx := log.WithTraceID(context.Background())
@@ -171,10 +156,28 @@ var rootCmd = &cobra.Command{
 }
 
 func logger(config *serverConfig) (log.Logger, error) {
-	if cfgDeveloperMode {
-		return log.NewDevelopmentWithLevel(config.Logger.Level), nil
+	if config.Logger.Mode != log.StderrMode {
+		f, err := redirectStdErrAndStdOutToFile()
+		if err != nil {
+			return log.NopLogger, err
+		}
+		defer f.Close()
 	}
+
 	return log.NewProduction(config.Logger)
+}
+
+func redirectStdErrAndStdOutToFile() (*os.File, error) {
+	p := path.Join(fsutil.HomeDir(), "stdout")
+
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	if err != nil {
+		return nil, err
+	}
+
+	os.Stdout = f
+	os.Stderr = f
+	return f, nil
 }
 
 func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logger) error {

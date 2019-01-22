@@ -3,8 +3,6 @@
 package fsutil
 
 import (
-	"os"
-	"os/user"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -26,25 +24,5 @@ func ExpandPath(path string) (string, error) {
 		return "", errors.New("cannot expand user-specific home dir")
 	}
 
-	u, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(u.HomeDir, path[1:]), nil
-}
-
-// CheckPerm checks if file has expected permissions.
-func CheckPerm(path string, perm os.FileMode) error {
-	s, err := os.Stat(path)
-
-	if err != nil {
-		return err
-	}
-
-	if s.Mode().Perm() != perm {
-		return errors.Errorf("change file permissions: chmod 0%o %q", perm, path)
-	}
-
-	return nil
+	return filepath.Join(HomeDir(), path[1:]), nil
 }

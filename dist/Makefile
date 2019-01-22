@@ -56,11 +56,6 @@ release/deb: release/scylla-manager-$(VERSION_NAME).tar.gz ## Create DEB package
 	@cd $(GIT_ROOT); MERMAID_VERSION=$(VERSION) MERMAID_RELEASE=$(RELEASE) ./dist/debian/build_deb.sh --target $(DEB_TARGET)
 	@cd $(GIT_ROOT); rm -rf debian
 
-.PHONY: release/docker
-release/docker: release/rpm ## Create docker image based on RPM package
-	@echo "==> Building docker image..."
-	docker build --build-arg VERSION_NAME=$(VERSION_NAME) -t scylla-manager:$(VERSION_NAME) -f docker/Dockerfile .
-
 .PHONY: inspect/rpm
 inspect/rpm: ## Display RPM package meta-data
 	@rpm -qpli release/rpm/scylla-manager{,-server,-client}-$(VERSION_NAME).x86_64.rpm
