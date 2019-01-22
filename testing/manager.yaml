@@ -1,7 +1,15 @@
 version: '3'
 
 services:
-  db:
+#  scylla-manager:
+#    image: scylladb/scylla-manager
+#    networks:
+#      public:
+#        ipv4_address: 192.168.100.110
+#    depends_on:
+#      - scylla-manager-db
+
+  scylla-manager-db:
     image: scylladb/scylla:${SCYLLA_VERSION}
     command: --smp 1 --api-address 0.0.0.0
     networks:

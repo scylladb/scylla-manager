@@ -1,0 +1,5 @@
+[scylla-manager]
+name=Scylla Manager for Centos $releasever - $basearch
+baseurl=http://downloads.scylladb.com/manager/rpm/unstable/centos/branch-1.3/latest/scylla-manager/\7/$basearch/
+enabled=1
+gpgcheck=0

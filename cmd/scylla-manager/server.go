@@ -5,7 +5,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"os/user"
 	"path/filepath"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/scylladb/gocqlx/table"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/healthcheck"
+	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
@@ -64,13 +64,7 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 }
 
 func (s *server) makeServices() error {
-	var err error
-
-	u, err := user.Current()
-	if err != nil {
-		return errors.Wrap(err, "failed to get user")
-	}
-	baseDir := filepath.Join(u.HomeDir, ".certs")
+	baseDir := filepath.Join(fsutil.HomeDir(), ".certs")
 
 	sshKeyStore, err := kv.NewFsStore(baseDir, "")
 	if err != nil {

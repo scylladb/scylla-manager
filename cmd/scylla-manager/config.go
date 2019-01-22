@@ -4,7 +4,6 @@ package main
 
 import (
 	"io/ioutil"
-	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -44,6 +43,7 @@ type serverConfig struct {
 	TLSCertFile string             `yaml:"tls_cert_file"`
 	TLSKeyFile  string             `yaml:"tls_key_file"`
 	Prometheus  string             `yaml:"prometheus"`
+	Gops        string             `json:"gops"`
 	Logger      log.Config         `yaml:"logger"`
 	Database    dbConfig           `yaml:"database"`
 	SSL         sslConfig          `yaml:"ssl"`
@@ -55,6 +55,7 @@ type serverConfig struct {
 func defaultConfig() *serverConfig {
 	return &serverConfig{
 		Prometheus: ":56090",
+		Gops:       ":56112",
 		Logger: log.Config{
 			Mode:  log.SyslogMode,
 			Level: zapcore.InfoLevel,
@@ -77,20 +78,19 @@ func defaultConfig() *serverConfig {
 	}
 }
 
-func newConfigFromFile(file string) (*serverConfig, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
+func newConfigFromFile(filename ...string) (*serverConfig, error) {
 	config := defaultConfig()
-	return config, yaml.Unmarshal(b, config)
+
+	for _, f := range filename {
+		b, err := ioutil.ReadFile(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read file %q", f)
+		}
+		if err := yaml.Unmarshal(b, config); err != nil {
+			return nil, errors.Wrapf(err, "failed to parse file %q", f)
+		}
+	}
+	return config, nil
 }
 
 func (c *serverConfig) validate() error {
