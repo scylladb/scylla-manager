@@ -3,7 +3,6 @@ LICENSE.3RD_PARTY usr/share/doc/scylla-manager
 release/linux_amd64/scylla-manager usr/bin
 dist/scripts/scyllamgr_setup usr/sbin
 dist/scripts/scyllamgr_ssh_setup usr/sbin
-dist/scripts/scyllamgr_ssh_test usr/sbin
 dist/scripts/scyllamgr_ssl_cert_gen usr/sbin
 dist/etc/scylla-manager.yaml etc/scylla-manager
 dist/etc/create_keyspace.cql.tpl etc/scylla-manager

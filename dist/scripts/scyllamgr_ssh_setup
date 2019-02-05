@@ -12,10 +12,15 @@ SSH_IDENTITY_FILE=""
 SSH_CONFIG_FILE=""
 SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
+CURL_OPTS="-sS -f -o /dev/null"
+
 MANAGER_USER="scylla-manager"
 MANAGER_IDENTITY_FILE=""
 
 DISCOVER=0
+
+API_LOCAL_PORT="10010"
+API_REMOTE_PORT="10000"
 
 print_usage() {
     echo "scyllamgr_ssh_setup -o <path to manager private key> [-m <manager username>] [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [-d] HOST..."
@@ -24,22 +29,23 @@ print_usage() {
     echo "  -i --identity-file			path to identity file containing SSH private key"
     echo "  -m --manager-user			username that will be created and configured on hosts, default ${MANAGER_USER}"
     echo "  -o --manager-identity-file		path to identity file containing SSH private key for manager username, if there is no such file it will be created"
+    echo "  -p --local-port			local port used by the script for SSH testing, default ${API_LOCAL_PORT}"
     echo "  -u --user				SSH username used to connect to hosts"
     echo "  -v --verbose				display debug info"
 }
 
 while [[ $# > 0 ]]; do
     case "$1" in
-        "-u"|"--user")
-            SSH_USER="$2"
+        "-c"|"--config-file")
+            SSH_CONFIG_FILE="$2"
             shift 2
+            ;;
+        "-d"|"--discover")
+            DISCOVER=1
+            shift 1
             ;;
         "-i"|"--identity-file")
             SSH_IDENTITY_FILE="$2"
-            shift 2
-            ;;
-        "-c"|"--config-file")
-            SSH_CONFIG_FILE="$2"
             shift 2
             ;;
         "-m"|"--manager-user")
@@ -50,9 +56,13 @@ while [[ $# > 0 ]]; do
             MANAGER_IDENTITY_FILE="$2"
             shift 2
             ;;
-        "-d"|"--discover")
-            DISCOVER=1
-            shift 1
+        "-p"|"--local-port")
+            API_LOCAL_PORT="$2"
+            shift 2
+            ;;
+        "-u"|"--user")
+            SSH_USER="$2"
+            shift 2
             ;;
         "-v"|"--verbose")
             OUTPUT=/dev/stderr
@@ -70,67 +80,62 @@ done
 
 # Validate inputs.
 
-if [[ $# == 0 ]]; then
-    echo -e "no hosts to setup\n"
+die() {
+    echo -e "$@\n"
     print_usage
     exit 1
+}
+
+if [[ $# == 0 ]]; then
+    die "no hosts to setup"
 fi
 
 if [[ -n "${SSH_IDENTITY_FILE}" && (! -f "${SSH_IDENTITY_FILE}" || ! -r "${SSH_IDENTITY_FILE}") ]]; then
-    echo -e "cannot read file ${SSH_IDENTITY_FILE}\n"
-    print_usage
-    exit 1
+    die "failed to read file ${SSH_IDENTITY_FILE}"
 fi
 
 if [[ -n "${SSH_CONFIG_FILE}" && (! -f "${SSH_CONFIG_FILE}" || ! -r "${SSH_CONFIG_FILE}") ]]; then
-    echo -e "cannot read file ${SSH_CONFIG_FILE}\n"
-    print_usage
-    exit 1
+    die "failed to read file ${SSH_CONFIG_FILE}"
 fi
 
 if [[ -z "${MANAGER_USER}" ]]; then
-    echo -e "missing --manager-user\n"
-    print_usage
-    exit 1
+    die "missing --manager-user"
 fi
 
 if [[ -z "${MANAGER_IDENTITY_FILE}" ]]; then
-    echo -e "missing --manager-identity-file\n"
-    print_usage
-    exit 1
-fi
-
-# Decorate SSH_OPTS with options.
-
-if [[ -n ${SSH_IDENTITY_FILE} ]]; then
-    SSH_OPTS+=" -i ${SSH_IDENTITY_FILE}"
-fi
-
-if [[ -n ${SSH_CONFIG_FILE} ]]; then
-    SSH_OPTS+=" -F ${SSH_CONFIG_FILE}"
-fi
-
-# Append @ to user to support passing empty user to ssh. User can be configured
-# in the SSH config file.
-
-if [[ -n ${SSH_USER} ]]; then
-    SSH_USER+="@"
+    die "missing --manager-identity-file"
 fi
 
 # Create manager SSH key if needed.
 
 if [[ ! -f "${MANAGER_IDENTITY_FILE}" ]]; then
+    echo "> Generating SSH key '${MANAGER_IDENTITY_FILE}'"
     if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" &> "${OUTPUT}" && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
-        echo -e "cannot generate private key in ${MANAGER_IDENTITY_FILE}\n"
-        print_usage
-        exit 1
+        die "failed to generate private key ${MANAGER_IDENTITY_FILE}"
     fi
 fi
 
 if [[ ! -f "${MANAGER_IDENTITY_FILE}.pub" || ! -r "${MANAGER_IDENTITY_FILE}.pub" ]]; then
-    echo -e "cannot read file ${MANAGER_IDENTITY_FILE}.pub\n"
-    print_usage
-    exit 1
+    die "failed to read file ${MANAGER_IDENTITY_FILE}.pub"
+fi
+
+# Decorate SSH_OPTS with options.
+
+ROOT_SSH_OPTS=${SSH_OPTS}
+
+if [[ -n ${SSH_IDENTITY_FILE} ]]; then
+    ROOT_SSH_OPTS+=" -i ${SSH_IDENTITY_FILE}"
+fi
+
+if [[ -n ${SSH_CONFIG_FILE} ]]; then
+    ROOT_SSH_OPTS+=" -F ${SSH_CONFIG_FILE}"
+fi
+
+# Append @ to user to support passing empty user to ssh.
+# User can be configured in the SSH config file.
+
+if [[ -n ${SSH_USER} ]]; then
+    SSH_USER+="@"
 fi
 
 # Load manager SSH public key.
@@ -141,13 +146,20 @@ MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
 
 HOSTS=$@
 if [[ ${DISCOVER} == 1 ]]; then
-    HOSTS=`ssh ${SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f localhost:10000/storage_service/host_id | jq -r '.[].key'`
+    echo "> Discovering cluster topology"
+    if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
+        die "failed to access Scylla REST API via ${SSH_USER}${1}"
+    fi
 fi
+
+# Distribute SSH keys and create users.
+
+echo "> Creating user '${MANAGER_USER}' on cluster nodes"
 
 ret=0
 
 for host in ${HOSTS}; do
-    if ssh ${SSH_OPTS} "${SSH_USER}${host}" &> "${OUTPUT}" sudo su - << EOF
+    if ssh ${ROOT_SSH_OPTS} "${SSH_USER}${host}" &> "${OUTPUT}" sudo su - << EOF
     set -eux -o pipefail
 
     # Create system user and group.
@@ -168,5 +180,35 @@ EOF
         ret=1
     fi
 done
+
+echo "> Testing Scylla API connectivity"
+
+if fuser -s -n tcp ${API_LOCAL_PORT}; then
+    die "port ${API_LOCAL_PORT} is used, select a different test port with --local-port flag"
+fi
+
+for host in ${HOSTS}; do
+    if ! ssh -i "${MANAGER_IDENTITY_FILE}" -N -f ${SSH_OPTS} -L ${API_LOCAL_PORT}:0.0.0.0:${API_REMOTE_PORT} "${MANAGER_USER}@${host}" &> ${OUTPUT}; then
+        echo "${host}	SSH FAILED"
+        ret=1
+    else
+        if curl ${CURL_OPTS} "${host}:${API_REMOTE_PORT}/storage_service/cluster_name" &> ${OUTPUT}; then
+            echo "${host}	WARNING - host exposes Scylla API"
+        elif curl ${CURL_OPTS} "localhost:${API_LOCAL_PORT}/storage_service/cluster_name" &> ${OUTPUT}; then
+            echo "${host}	OK"
+        else
+            echo "${host}	FAILED"
+                ret=1
+        fi
+        fuser -s -n tcp ${API_LOCAL_PORT} -k -15 ||:
+    fi
+done
+
+if [[ ${ret} != 0 ]]; then
+    echo "> Done with errors, run with --verbose flag to see what failed"
+else
+    echo "> Done!"
+    echo "> Continue with: sctool cluster add --host='$1' --ssh-user='${MANAGER_USER}' --ssh-identity-file='${MANAGER_IDENTITY_FILE}'"
+fi
 
 exit ${ret}

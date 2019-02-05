@@ -92,7 +92,6 @@ the database management tasks.
 %{_bindir}/%{name}
 %{_prefix}/lib/%{name}/scyllamgr_setup
 %{_prefix}/lib/%{name}/scyllamgr_ssh_setup
-%{_prefix}/lib/%{name}/scyllamgr_ssh_test
 %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
 %{_sbindir}/scyllamgr_setup
 %{_sbindir}/scyllamgr_ssh_setup
