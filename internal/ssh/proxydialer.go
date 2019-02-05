@@ -58,17 +58,11 @@ func (p *ProxyDialer) DialContext(ctx context.Context, network, addr string) (co
 		return nil, errors.Wrap(err, "ssh: dial failed")
 	}
 
-	var connErr error
+	// This is a local dial and should not hang but if it does http client
+	// would end up with "context deadline exceeded" error.
+	// To be fixed when used with something else then http client.
+	conn, connErr := client.Dial(network, net.JoinHostPort("0.0.0.0", port))
 
-	for _, h := range []string{"localhost", host} {
-		// This is a local dial and should not hang but if it does http client
-		// would end up with "context deadline exceeded" error.
-		// To be fixed when used with something else then http client.
-		conn, connErr = client.Dial(network, net.JoinHostPort(h, port))
-		if connErr == nil {
-			break
-		}
-	}
 	if connErr != nil {
 		client.Close()
 		return nil, errors.Wrap(connErr, "ssh: remote dial failed")
