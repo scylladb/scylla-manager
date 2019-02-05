@@ -99,32 +99,31 @@ func (tr TaskRunSlice) Render(w io.Writer) error {
 
 // RepairProgress contains shard progress info.
 type RepairProgress struct {
-	*models.RepairProgress
-	Run      *TaskRun
+	*models.TaskRunRepairProgress
 	Detailed bool
 }
 
 // Render renders *RepairProgress in a tabular format.
 func (rp RepairProgress) Render(w io.Writer) error {
 	t := table.New()
-	addProgressHeader(t, rp.Run)
-	addRepairProgressHeader(t, rp)
+	rp.addProgressHeader(t)
+	rp.addRepairProgressHeader(t)
 	t.AddSeparator()
-	addRepairUnitProgress(t, rp)
+	rp.addRepairUnitProgress(t)
 	if _, err := w.Write([]byte(t.String())); err != nil {
 		return err
 	}
 
 	if rp.Detailed {
 		d := table.New()
-		for i, u := range rp.Units {
+		for i, u := range rp.Progress.Units {
 			if i > 0 {
 				d.AddSeparator()
 			}
 			d.AddRow(u.Unit.Keyspace, "shard", "progress", "segment_count", "segment_success", "segment_error")
 			if len(u.Nodes) > 0 {
 				d.AddSeparator()
-				addRepairUnitDetailedProgress(d, u)
+				rp.addRepairUnitDetailedProgress(d, u)
 			}
 		}
 		if _, err := w.Write([]byte(d.String())); err != nil {
@@ -134,7 +133,8 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-func addRepairProgressHeader(t *table.Table, prog RepairProgress) {
+func (rp RepairProgress) addRepairProgressHeader(t *table.Table) {
+	prog := rp.Progress
 	t.AddRow("Progress", FormatPercent(prog.PercentComplete))
 	if len(prog.Dcs) > 0 {
 		t.AddRow("Datacenters", prog.Dcs)
@@ -144,7 +144,8 @@ func addRepairProgressHeader(t *table.Table, prog RepairProgress) {
 	}
 }
 
-func addProgressHeader(t *table.Table, run *TaskRun) {
+func (rp RepairProgress) addProgressHeader(t *table.Table) {
+	run := rp.Run
 	t.AddRow("Status", run.Status)
 	if run.Cause != "" {
 		t.AddRow("Cause", run.Cause)
@@ -156,8 +157,8 @@ func addProgressHeader(t *table.Table, run *TaskRun) {
 	t.AddRow("Duration", FormatDuration(run.StartTime, run.EndTime))
 }
 
-func addRepairUnitProgress(t *table.Table, prog RepairProgress) {
-	for _, u := range prog.Units {
+func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {
+	for _, u := range rp.Progress.Units {
 		var se int64
 		for _, n := range u.Nodes {
 			for _, s := range n.Shards {
@@ -172,7 +173,7 @@ func addRepairUnitProgress(t *table.Table, prog RepairProgress) {
 	}
 }
 
-func addRepairUnitDetailedProgress(t *table.Table, u *RepairUnitProgress) {
+func (rp RepairProgress) addRepairUnitDetailedProgress(t *table.Table, u *RepairUnitProgress) {
 	for _, n := range u.Nodes {
 		for i, s := range n.Shards {
 			t.AddRow(n.Host, i, fmt.Sprintf("%d%%", s.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)

@@ -315,6 +315,17 @@
           "format": "date-time"
         }
       }
+    },
+    "taskRunRepairProgress": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/taskRun"
+        },
+        "progress": {
+          "$ref": "#/definitions/repairProgress"
+        }
+      }
     }
   },
   "paths": {
@@ -702,7 +713,7 @@
         }
       }
     },
-    "/cluster/{cluster_id}/task/repair/{task_id}/{run_id}/progress": {
+    "/cluster/{cluster_id}/task/repair/{task_id}/{run_id}": {
       "get": {
         "parameters": [
           {
@@ -729,9 +740,9 @@
         ],
         "responses": {
           "200": {
-            "description": "percentage of run completed in total and details",
+            "description": "status of a repair task run",
             "schema": {
-              "$ref": "#/definitions/repairProgress"
+              "$ref": "#/definitions/taskRunRepairProgress"
             }
           }
         }

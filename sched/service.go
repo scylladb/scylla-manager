@@ -637,6 +637,32 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 	return tasks, err
 }
 
+// GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
+// is returned.
+func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetRun", "task", t, "run_id", runID)
+
+	// validate the task
+	if err := t.Validate(); err != nil {
+		return nil, err
+	}
+
+	stmt, names := schema.SchedRun.Get()
+	r := &Run{
+		ClusterID: t.ClusterID,
+		Type:      t.Type,
+		TaskID:    t.ID,
+		ID:        runID,
+	}
+	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
+
+	if err := q.GetRelease(r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 // GetLastRun returns at most limit recent runs of the task.
 func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, error) {
 	s.logger.Debug(ctx, "GetLastRun", "task", t, "limit", limit)

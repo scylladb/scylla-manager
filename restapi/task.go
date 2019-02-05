@@ -31,6 +31,7 @@ type SchedService interface {
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
 	StartTask(ctx context.Context, t *sched.Task, opts runner.Opts) error
 	StopTask(ctx context.Context, t *sched.Task) error
+	GetRun(ctx context.Context, t *sched.Task, runID uuid.UUID) (*sched.Run, error)
 	GetLastRun(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
 }
 
@@ -66,7 +67,7 @@ func newTaskHandler(schedSvc SchedService, repairSvc RepairService) *chi.Mux {
 		r.Put("/start", h.startTask)
 		r.Put("/stop", h.stopTask)
 		r.Get("/history", h.taskHistory)
-		r.Get("/{run_id}/progress", h.taskProgress)
+		r.Get("/{run_id}", h.taskRunProgress)
 	})
 
 	return m
@@ -318,26 +319,54 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, runs)
 }
 
-func (h *taskHandler) taskProgress(w http.ResponseWriter, r *http.Request) {
+type taskRunProgress struct {
+	Run      *sched.Run  `json:"run"`
+	Progress interface{} `json:"progress"`
+}
+
+func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 
-	runID, err := uuid.Parse(chi.URLParam(r, "run_id"))
-	if err != nil {
-		respondBadRequest(w, r, err)
-		return
+	var (
+		prog taskRunProgress
+		err  error
+	)
+
+	if p := chi.URLParam(r, "run_id"); p == "latest" {
+		runs, err := h.schedSvc.GetLastRun(r.Context(), t, 1)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
+		if len(runs) == 0 {
+			respondBadRequest(w, r, errors.New("task did not start yet"))
+			return
+		}
+		prog.Run = runs[0]
+	} else {
+		runID, err := uuid.Parse(p)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
+		prog.Run, err = h.schedSvc.GetRun(r.Context(), t, runID)
+		if err != nil {
+			respondError(w, r, err, "failed to load task run")
+			return
+		}
 	}
 
 	switch t.Type {
 	case sched.RepairTask:
-		prog, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, runID)
+		prog.Progress, err = h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 		if err != nil {
 			respondError(w, r, err, "failed to load repair run progress")
 			return
 		}
-		render.Respond(w, r, prog)
-		return
 	default:
 		respondBadRequest(w, r, errors.Errorf("unsupported task type %s", t.Type))
 		return
 	}
+
+	render.Respond(w, r, prog)
 }

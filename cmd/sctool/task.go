@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/mermaidclient"
+	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -300,28 +301,29 @@ var taskProgressCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		hist, err := client.GetTaskHistory(ctx, cfgCluster, taskType, taskID, 1)
+		runID, err := cmd.Flags().GetString("run")
 		if err != nil {
 			return printableError{err}
 		}
-		if len(hist) == 0 {
-			fmt.Fprintf(w, "Task did not run yet\n")
-			return nil
+		if runID != "" {
+			if _, err = uuid.Parse(runID); err != nil {
+				return printableError{err}
+			}
+		} else {
+			runID = "latest"
 		}
-		run := hist[0]
 
-		prog, err := client.RepairProgress(ctx, cfgCluster, t.ID, run.ID)
-		if err != nil {
-			return printableError{err}
-		}
-		prog.Run = run
-
-		prog.Detailed, err = cmd.Flags().GetBool("details")
+		rp, err := client.RepairProgress(ctx, cfgCluster, t.ID, runID)
 		if err != nil {
 			return printableError{err}
 		}
 
-		return render(w, prog)
+		rp.Detailed, err = cmd.Flags().GetBool("details")
+		if err != nil {
+			return printableError{err}
+		}
+
+		return render(w, rp)
 	},
 }
 
@@ -332,4 +334,5 @@ func init() {
 
 	fs := cmd.Flags()
 	fs.Bool("details", false, "show detailed progress")
+	fs.String("run", "", "show progress of a particular run, see sctool task history")
 }

@@ -118,19 +118,19 @@ func (c Client) ListClusters(ctx context.Context) (ClusterSlice, error) {
 }
 
 // RepairProgress returns repair progress.
-func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (*RepairProgress, error) {
-	resp, err := c.operations.GetClusterClusterIDTaskRepairTaskIDRunIDProgress(&operations.GetClusterClusterIDTaskRepairTaskIDRunIDProgressParams{
+func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (RepairProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskRepairTaskIDRunID(&operations.GetClusterClusterIDTaskRepairTaskIDRunIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskID:    taskID,
 		RunID:     runID,
 	})
 	if err != nil {
-		return nil, err
+		return RepairProgress{}, err
 	}
 
-	return &RepairProgress{
-		RepairProgress: resp.Payload,
+	return RepairProgress{
+		TaskRunRepairProgress: resp.Payload,
 	}, nil
 }
 
