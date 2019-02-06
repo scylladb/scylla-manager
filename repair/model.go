@@ -73,7 +73,28 @@ func (r *TokenRangesKind) UnmarshalText(text []byte) error {
 // progress holds generic progress data, it's a base type for other progress
 // structs.
 type progress struct {
-	PercentComplete int `json:"percent_complete"`
+	PercentComplete float64 `json:"percent_complete"`
+	PercentFailed   float64 `json:"percent_failed"`
+	segmentCount    int
+	segmentSuccess  int
+	segmentError    int
+}
+
+func (p *progress) addProgress(n progress) {
+	p.segmentCount += n.segmentCount
+	p.segmentSuccess += n.segmentSuccess
+	p.segmentError += n.segmentError
+}
+
+func (p *progress) calculateProgress() progress {
+	if p.segmentCount == 0 {
+		p.PercentComplete = 0
+		p.segmentError = 0
+	} else {
+		p.PercentComplete = 100 * float64(p.segmentSuccess) / float64(p.segmentCount)
+		p.PercentFailed = 100 * float64(p.segmentError) / float64(p.segmentCount)
+	}
+	return *p
 }
 
 // ShardProgress specifies repair progress of a shard.

@@ -391,9 +391,12 @@ func TestAggregateProgress(t *testing.T) {
 		},
 	}
 
-	opt := cmp.AllowUnexported(Progress{}, Unit{}, UnitProgress{}, NodeProgress{}, ShardProgress{})
+	opts := cmp.Options{
+		cmp.AllowUnexported(Progress{}, Unit{}, UnitProgress{}, NodeProgress{}, ShardProgress{}),
+		cmpopts.IgnoreUnexported(progress{}),
+	}
 
-	for _, test := range table {
+	for i, test := range table {
 		f, err := os.Open(test.E)
 		if err != nil {
 			t.Fatal(err)
@@ -409,8 +412,8 @@ func TestAggregateProgress(t *testing.T) {
 			TokenRanges: PrimaryTokenRanges,
 		}
 
-		if diff := cmp.Diff(p, aggregateProgress(r, test.P), opt); diff != "" {
-			t.Error(diff)
+		if diff := cmp.Diff(p, aggregateProgress(r, test.P), opts); diff != "" {
+			t.Error(i, diff)
 		}
 	}
 }
@@ -449,9 +452,12 @@ func TestAggregateUnitProgress(t *testing.T) {
 		},
 	}
 
-	opt := cmp.AllowUnexported(Unit{}, UnitProgress{}, NodeProgress{}, ShardProgress{})
+	opts := cmp.Options{
+		cmp.AllowUnexported(Unit{}, UnitProgress{}, NodeProgress{}, ShardProgress{}),
+		cmpopts.IgnoreUnexported(progress{}),
+	}
 
-	for _, test := range table {
+	for i, test := range table {
 		f, err := os.Open(test.E)
 		if err != nil {
 			t.Fatal(err)
@@ -462,8 +468,8 @@ func TestAggregateUnitProgress(t *testing.T) {
 		}
 		f.Close()
 
-		if diff := cmp.Diff(p, aggregateUnitProgress(u, test.P), opt); diff != "" {
-			t.Error(diff)
+		if diff := cmp.Diff(p, aggregateUnitProgress(u, test.P), opts); diff != "" {
+			t.Error(i, diff)
 		}
 	}
 }

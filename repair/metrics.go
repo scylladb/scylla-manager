@@ -124,7 +124,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 				"keyspace": unit.Unit.Keyspace,
 				"host":     n.Host,
 				"shard":    "",
-			}).Set(float64(n.PercentComplete))
+			}).Set(n.PercentComplete)
 		}
 	}
 
@@ -136,7 +136,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 			"keyspace": unit.Unit.Keyspace,
 			"host":     "",
 			"shard":    "",
-		}).Set(float64(unit.PercentComplete))
+		}).Set(unit.PercentComplete)
 	}
 
 	// aggregated total progress
@@ -146,7 +146,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 		"keyspace": "",
 		"host":     "",
 		"shard":    "",
-	}).Set(float64(p.PercentComplete))
+	}).Set(p.PercentComplete)
 }
 
 func (u *progressMetricsUpdater) Stop() {

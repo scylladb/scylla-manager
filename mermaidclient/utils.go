@@ -83,9 +83,17 @@ func uuidFromLocation(location string) (uuid.UUID, error) {
 	return uuid.Parse(id)
 }
 
-// FormatPercent simply creates a percent representation  of the supplied value.
-func FormatPercent(p int64) string {
-	return fmt.Sprint(p, "%")
+// FormatProgress creates complete vs. failed representation.
+func FormatProgress(complete float32, failed float32) string {
+	if failed == 0 {
+		return FormatPercent(complete)
+	}
+	return FormatPercent(complete) + " / " + FormatPercent(failed)
+}
+
+// FormatPercent simply creates a percent representation of the supplied value.
+func FormatPercent(p float32) string {
+	return fmt.Sprintf("%0.2f%%", p)
 }
 
 // FormatTime formats the supplied DateTime in `02 Jan 06 15:04:05 MST` format.

@@ -91,7 +91,11 @@
       "properties": {
         "percent_complete": {
           "type": "number",
-          "format": "int"
+          "format": "float"
+        },
+        "percent_failed": {
+          "type": "number",
+          "format": "float"
         },
         "units": {
           "type": "array",
@@ -100,7 +104,11 @@
             "properties": {
               "percent_complete": {
                 "type": "number",
-                "format": "int"
+                "format": "float"
+              },
+              "percent_failed": {
+                "type": "number",
+                "format": "float"
               },
               "unit": {
                 "$ref": "#/definitions/repairUnit"
@@ -112,7 +120,11 @@
                   "properties": {
                     "percent_complete": {
                       "type": "number",
-                      "format": "int"
+                      "format": "float"
+                    },
+                    "percent_failed": {
+                      "type": "number",
+                      "format": "float"
                     },
                     "host": {
                       "type": "string"
@@ -124,7 +136,11 @@
                         "properties": {
                           "percent_complete": {
                             "type": "number",
-                            "format": "int"
+                            "format": "float"
+                          },
+                          "percent_failed": {
+                            "type": "number",
+                            "format": "float"
                           },
                           "segment_count": {
                             "type": "number",

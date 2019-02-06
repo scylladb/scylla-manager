@@ -179,22 +179,18 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 		TokenRanges: run.TokenRanges,
 	}
 
-	var (
-		idx   = 0
-		total int
-	)
+	idx := 0
 	for i, u := range run.Units {
 		end := sort.Search(len(prog), func(j int) bool {
 			return prog[j].Unit > i
 		})
 		p := aggregateUnitProgress(u, prog[idx:end])
-		total += p.PercentComplete
+		v.progress.addProgress(p.progress)
 		v.Units = append(v.Units, p)
 		idx = end
 	}
 
-	v.PercentComplete = total / len(run.Units)
-
+	v.progress.calculateProgress()
 	return v
 }
 
@@ -207,45 +203,46 @@ func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
 
 	var (
 		host   = prog[0].Host
-		total  int
+		nprog  progress
 		shards []ShardProgress
 	)
 	for _, p := range prog {
 		if p.Host != host {
 			v.Nodes = append(v.Nodes, NodeProgress{
-				progress: progress{PercentComplete: total / len(shards)},
+				progress: nprog.calculateProgress(),
 				Host:     host,
 				Shards:   shards,
 			})
 			host = p.Host
-			total = 0
+			nprog = progress{}
 			shards = nil
 		}
 
-		c := p.PercentComplete()
-		total += c
+		sprog := progress{
+			segmentCount:   p.SegmentCount,
+			segmentSuccess: p.SegmentSuccess,
+			segmentError:   p.SegmentError,
+		}
+		nprog.addProgress(sprog)
+		v.progress.addProgress(sprog)
+
 		shards = append(shards, ShardProgress{
-			progress:       progress{PercentComplete: c},
+			progress:       sprog.calculateProgress(),
 			SegmentCount:   p.SegmentCount,
 			SegmentSuccess: p.SegmentSuccess,
 			SegmentError:   p.SegmentError,
 		})
 	}
 	v.Nodes = append(v.Nodes, NodeProgress{
-		progress: progress{PercentComplete: total / len(shards)},
+		progress: nprog.calculateProgress(),
 		Host:     host,
 		Shards:   shards,
 	})
 
-	total = 0
-	for _, n := range v.Nodes {
-		total += n.PercentComplete
-	}
-	v.PercentComplete = total / len(v.Nodes)
-
 	sort.Slice(v.Nodes, func(i, j int) bool {
 		return v.Nodes[i].PercentComplete > v.Nodes[j].PercentComplete
 	})
+	v.progress.calculateProgress()
 	return v
 }
 

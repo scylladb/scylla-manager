@@ -153,13 +153,13 @@ func (rp RepairProgress) addProgressHeader(t *table.Table) {
 }
 
 func (rp RepairProgress) addRepairProgressHeader(t *table.Table) {
-	prog := rp.Progress
-	t.AddRow("Progress", FormatPercent(prog.PercentComplete))
-	if len(prog.Dcs) > 0 {
-		t.AddRow("Datacenters", prog.Dcs)
+	p := rp.Progress
+	t.AddRow("Progress", FormatProgress(p.PercentComplete, p.PercentFailed))
+	if len(p.Dcs) > 0 {
+		t.AddRow("Datacenters", p.Dcs)
 	}
-	if prog.Ranges != "" {
-		t.AddRow("Token ranges", prog.Ranges)
+	if p.Ranges != "" {
+		t.AddRow("Token ranges", p.Ranges)
 	}
 }
 
@@ -172,24 +172,14 @@ func (rp RepairProgress) addNotStartedHeader(t *table.Table) {
 
 func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {
 	for _, u := range rp.Progress.Units {
-		var se int64
-		for _, n := range u.Nodes {
-			for _, s := range n.Shards {
-				se += s.SegmentError
-			}
-		}
-		p := FormatPercent(u.PercentComplete)
-		if se > 0 {
-			p += " (has errors)"
-		}
-		t.AddRow(u.Unit.Keyspace, p)
+		t.AddRow(u.Unit.Keyspace, FormatProgress(u.PercentComplete, u.PercentFailed))
 	}
 }
 
 func (rp RepairProgress) addRepairUnitDetailedProgress(t *table.Table, u *RepairUnitProgress) {
 	for _, n := range u.Nodes {
 		for i, s := range n.Shards {
-			t.AddRow(n.Host, i, fmt.Sprintf("%d%%", s.PercentComplete), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
+			t.AddRow(n.Host, i, FormatProgress(s.PercentComplete, s.PercentFailed), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
 		}
 	}
 }

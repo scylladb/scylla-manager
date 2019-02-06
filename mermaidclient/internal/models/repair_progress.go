@@ -22,7 +22,10 @@ type RepairProgress struct {
 	Dcs []string `json:"dcs"`
 
 	// percent complete
-	PercentComplete int64 `json:"percent_complete,omitempty"`
+	PercentComplete float32 `json:"percent_complete,omitempty"`
+
+	// percent failed
+	PercentFailed float32 `json:"percent_failed,omitempty"`
 
 	// ranges
 	Ranges string `json:"ranges,omitempty"`
@@ -96,7 +99,10 @@ type RepairProgressUnitsItems0 struct {
 	Nodes []*RepairProgressUnitsItems0NodesItems0 `json:"nodes"`
 
 	// percent complete
-	PercentComplete int64 `json:"percent_complete,omitempty"`
+	PercentComplete float32 `json:"percent_complete,omitempty"`
+
+	// percent failed
+	PercentFailed float32 `json:"percent_failed,omitempty"`
 
 	// unit
 	Unit *RepairUnit `json:"unit,omitempty"`
@@ -189,7 +195,10 @@ type RepairProgressUnitsItems0NodesItems0 struct {
 	Host string `json:"host,omitempty"`
 
 	// percent complete
-	PercentComplete int64 `json:"percent_complete,omitempty"`
+	PercentComplete float32 `json:"percent_complete,omitempty"`
+
+	// percent failed
+	PercentFailed float32 `json:"percent_failed,omitempty"`
 
 	// shards
 	Shards []*RepairProgressUnitsItems0NodesItems0ShardsItems0 `json:"shards"`
@@ -257,7 +266,10 @@ func (m *RepairProgressUnitsItems0NodesItems0) UnmarshalBinary(b []byte) error {
 type RepairProgressUnitsItems0NodesItems0ShardsItems0 struct {
 
 	// percent complete
-	PercentComplete int64 `json:"percent_complete,omitempty"`
+	PercentComplete float32 `json:"percent_complete,omitempty"`
+
+	// percent failed
+	PercentFailed float32 `json:"percent_failed,omitempty"`
 
 	// segment count
 	SegmentCount int64 `json:"segment_count,omitempty"`

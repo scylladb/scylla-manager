@@ -119,7 +119,7 @@ func (h *repairTestHelper) progress(unit, node int) int {
 		return -1
 	}
 
-	return p.Units[unit].Nodes[node].PercentComplete
+	return int(p.Units[unit].Nodes[node].PercentComplete)
 }
 
 func (h *repairTestHelper) close() {
