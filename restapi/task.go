@@ -339,7 +339,13 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(runs) == 0 {
-			respondBadRequest(w, r, errors.New("task did not start yet"))
+			prog.Run = &sched.Run{
+				ClusterID: t.ClusterID,
+				Type:      t.Type,
+				TaskID:    t.ID,
+				Status:    runner.StatusNew,
+			}
+			render.Respond(w, r, prog)
 			return
 		}
 		prog.Run = runs[0]

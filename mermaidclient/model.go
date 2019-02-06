@@ -106,15 +106,21 @@ type RepairProgress struct {
 // Render renders *RepairProgress in a tabular format.
 func (rp RepairProgress) Render(w io.Writer) error {
 	t := table.New()
-	rp.addProgressHeader(t)
-	rp.addRepairProgressHeader(t)
-	t.AddSeparator()
-	rp.addRepairUnitProgress(t)
+
+	if rp.Progress != nil {
+		rp.addProgressHeader(t)
+		rp.addRepairProgressHeader(t)
+		t.AddSeparator()
+		rp.addRepairUnitProgress(t)
+	} else {
+		rp.addNotStartedHeader(t)
+	}
+
 	if _, err := w.Write([]byte(t.String())); err != nil {
 		return err
 	}
 
-	if rp.Detailed {
+	if rp.Progress != nil && rp.Detailed {
 		d := table.New()
 		for i, u := range rp.Progress.Units {
 			if i > 0 {
@@ -133,17 +139,6 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-func (rp RepairProgress) addRepairProgressHeader(t *table.Table) {
-	prog := rp.Progress
-	t.AddRow("Progress", FormatPercent(prog.PercentComplete))
-	if len(prog.Dcs) > 0 {
-		t.AddRow("Datacenters", prog.Dcs)
-	}
-	if prog.Ranges != "" {
-		t.AddRow("Token ranges", prog.Ranges)
-	}
-}
-
 func (rp RepairProgress) addProgressHeader(t *table.Table) {
 	run := rp.Run
 	t.AddRow("Status", run.Status)
@@ -155,6 +150,24 @@ func (rp RepairProgress) addProgressHeader(t *table.Table) {
 		t.AddRow("End time", FormatTime(run.EndTime))
 	}
 	t.AddRow("Duration", FormatDuration(run.StartTime, run.EndTime))
+}
+
+func (rp RepairProgress) addRepairProgressHeader(t *table.Table) {
+	prog := rp.Progress
+	t.AddRow("Progress", FormatPercent(prog.PercentComplete))
+	if len(prog.Dcs) > 0 {
+		t.AddRow("Datacenters", prog.Dcs)
+	}
+	if prog.Ranges != "" {
+		t.AddRow("Token ranges", prog.Ranges)
+	}
+}
+
+func (rp RepairProgress) addNotStartedHeader(t *table.Table) {
+	run := rp.Run
+	t.AddRow("Status", run.Status)
+	t.AddRow("Duration", "0s")
+	t.AddRow("Progress", FormatPercent(0))
 }
 
 func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {
