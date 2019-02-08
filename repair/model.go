@@ -36,14 +36,14 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 }
 
 // TokenRangesKind specifies token ranges to be repaired, PrimaryTokenRanges,
-// NonPrimaryTokenRanges or AllTonenRanges.
+// NonPrimaryTokenRanges or AllTokenRanges.
 type TokenRangesKind string
 
 // TokenRangesKind enumeration
 const (
 	PrimaryTokenRanges    TokenRangesKind = "pr"
 	NonPrimaryTokenRanges TokenRangesKind = "npr"
-	AllTonenRanges        TokenRangesKind = "all"
+	AllTokenRanges        TokenRangesKind = "all"
 )
 
 func (r TokenRangesKind) String() string {
@@ -62,8 +62,8 @@ func (r *TokenRangesKind) UnmarshalText(text []byte) error {
 		*r = PrimaryTokenRanges
 	case NonPrimaryTokenRanges:
 		*r = NonPrimaryTokenRanges
-	case AllTonenRanges:
-		*r = AllTonenRanges
+	case AllTokenRanges:
+		*r = AllTokenRanges
 	default:
 		return errors.Errorf("unrecognised token ranges kind %q", text)
 	}

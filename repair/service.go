@@ -128,7 +128,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 		err   error
 		dcMap map[string][]string
 	)
-	t.DC, dcMap, err = s.getDCs(ctx, clusterID, &tp)
+	t.DC, dcMap, err = s.getDCs(ctx, clusterID, tp.DC)
 	if err != nil {
 		return t, err
 	}
@@ -141,7 +141,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 		return Target{}, mermaid.ErrValidate(err, "")
 	}
 
-	t.Units, err = s.getUnits(ctx, clusterID, &tp)
+	t.Units, err = s.getUnits(ctx, clusterID, tp.Keyspace)
 	if err != nil {
 		return t, err
 	}
@@ -149,15 +149,46 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 	return t, nil
 }
 
-// getUnits loads this clusters available repair units filtered through the
-// supplied filter read from the properties. If no units are found or the filter
-// contains any invalid filter a validation error is returned.
-func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskProperties) ([]Unit, error) {
-	if err := validateKeyspaceFilters(tp.Keyspace); err != nil {
+// getDCs loads available datacenters filtered through the supplied filter.
+// If no DCs are found or a filter is invalid a validation error is returned.
+func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, filters []string) ([]string, map[string][]string, error) {
+	dcInclExcl, err := inexlist.ParseInExList(decorateDCFilters(filters))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	c, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to get client")
+	}
+	dcMap, err := c.Datacenters(ctx)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to read datacenters")
+	}
+
+	dcs := make([]string, 0, len(dcMap))
+	for dc := range dcMap {
+		dcs = append(dcs, dc)
+	}
+
+	filteredDCs := dcInclExcl.Filter(dcs)
+	if len(filteredDCs) == 0 {
+		return nil, nil, mermaid.ErrValidate(errors.Errorf("no matching dc found for dc=%s", filters), "")
+	}
+	sort.Strings(filteredDCs)
+
+	return filteredDCs, dcMap, nil
+}
+
+// getUnits loads available repair units (keyspaces) filtered through the
+// supplied filters. If no units are found or a filter is invalid a validation
+// error is returned.
+func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []string) ([]Unit, error) {
+	if err := validateKeyspaceFilters(filters); err != nil {
 		return nil, err
 	}
 
-	inclExcl, err := inexlist.ParseInExList(decorateKeyspaceFilters(tp.Keyspace))
+	inclExcl, err := inexlist.ParseInExList(decorateKeyspaceFilters(filters))
 	if err != nil {
 		return nil, err
 	}
@@ -203,44 +234,12 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, tp *taskPro
 	}
 
 	if len(units) == 0 {
-		return nil, mermaid.ErrValidate(errors.Errorf("no matching units found for filters, ks=%s, dc=%s", tp.Keyspace, tp.DC), "")
+		return nil, mermaid.ErrValidate(errors.Errorf("no matching units found for filters, ks=%s", filters), "")
 	}
 
 	sortUnits(units, inclExcl)
 
 	return units, nil
-}
-
-// getDCs loads this clusters available datacenters filtered through the
-// supplied filter read from the properties. If no DCs are found or the filter
-// contains any invalid filter a validation error is returned.
-func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, tp *taskProperties) ([]string, map[string][]string, error) {
-	dcInclExcl, err := inexlist.ParseInExList(decorateDCFilters(tp.DC))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	c, err := s.client(ctx, clusterID)
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to get client")
-	}
-	dcMap, err := c.Datacenters(ctx)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to read datacenters")
-	}
-
-	dcs := make([]string, 0, len(dcMap))
-	for dc := range dcMap {
-		dcs = append(dcs, dc)
-	}
-
-	filteredDCs := dcInclExcl.Filter(dcs)
-	if len(filteredDCs) == 0 {
-		return nil, nil, mermaid.ErrValidate(errors.Errorf("no matching dc found for dc=%s", tp.DC), "")
-	}
-	sort.Strings(filteredDCs)
-
-	return filteredDCs, dcMap, nil
 }
 
 // Repair starts an asynchronous repair process.
@@ -475,26 +474,22 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 	u := run.Units[unit]
 
 	// get the ring description
-	ksDCs, ring, err := client.DescribeRing(ctx, u.Keyspace)
+	ring, err := client.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the ring description")
 	}
+	ksDCs := ring.Datacenters()
 
 	dc, err := s.resolveDC(ctx, client, u, run, ksDCs)
 	if err != nil {
 		return err
 	}
-	s.logger.Info(ctx, "Repairing",
-		"keyspace", u.Keyspace,
-		"coordinator_dc", dc,
-	)
+
 	run.Units[unit].CoordinatorDC = dc // would be persisted by caller
 	run.Units[unit].allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
 
-	hostSegments, err := s.hostSegments(run, dc, ring)
-	if err != nil {
-		return errors.Wrapf(err, "segmentation failed for keyspace %s", u.Keyspace)
-	}
+	// get hosts and segments to repair
+	hostSegments := groupSegmentsByHost(dc, run.Host, run.WithHosts, run.TokenRanges, ring)
 
 	var prog []RunProgress
 	if run.prevProg != nil {
@@ -582,6 +577,8 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 }
 
 func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
+	s.logger.Info(ctx, "Repairing unit", "unit", run.Units[unit])
+
 	// calculate number of tries
 	allComplete := true
 	for _, worker := range run.unitWorkers[unit] {
@@ -673,31 +670,6 @@ func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Cli
 	}
 
 	return closest[0], nil
-}
-
-func (s *Service) hostSegments(run *Run, dc string, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
-	// split token range into coordination hosts
-	hs, err := groupSegmentsByHost(dc, run.WithHosts, run.TokenRanges, ring)
-	if err != nil {
-		return nil, err
-	}
-	// if we have a specific host other hosts are removed
-	if run.Host != "" {
-		if segs, ok := hs[run.Host]; ok {
-			hs = map[string]segments{
-				run.Host: segs,
-			}
-		} else {
-			return nil, errors.Errorf("no segments available for the host %s", run.Host)
-		}
-	} else {
-		// repair-with hosts are not coordinator hosts
-		for _, host := range run.WithHosts {
-			delete(hs, host)
-		}
-	}
-
-	return hs, nil
 }
 
 func (s *Service) topologyHash(ctx context.Context, client *scyllaclient.Client) (uuid.UUID, error) {

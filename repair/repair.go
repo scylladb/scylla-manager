@@ -44,28 +44,25 @@ func validateHostsBelongToCluster(dcMap map[string][]string, hosts ...string) er
 	return nil
 }
 
-// groupSegmentsByHost extract list of segments (token ranges) for hosts
-// in a datacenter and returns a mapping from host to list of it's segments.
-// If hosts is not empty the mapping contains only segments that belong to
-// at least host in hosts.
-func groupSegmentsByHost(dc string, hosts []string, tr TokenRangesKind, ring []*scyllaclient.TokenRange) (map[string]segments, error) {
-	m := make(map[string]segments)
-	hs := strset.New(hosts...)
+// groupSegmentsByHost extracts a list of segments (token ranges) for hosts
+// in a datacenter ds and returns a mapping from host to list of its segments.
+// If host is not empty the mapping contains only token ranges for that host.
+// If withHosts is not empty the mapping contains only token ranges that are
+// replicated by at least one of the hosts.
+func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRangesKind, ring scyllaclient.Ring) map[string]segments {
+	var (
+		hostSegments  = make(map[string]segments)
+		replicaFilter = strset.New(withHosts...)
+	)
 
-	for _, r := range ring {
-		if len(r.Hosts[dc]) == 0 {
-			return nil, errors.Errorf("dc %s does not contain all the tokens please check the replication strategy", dc)
-		}
-
-		// ignore segments that not are not replicated by any of the hosts in any DC
-		if !hs.IsEmpty() {
+	for _, t := range ring.Tokens {
+		// ignore segments that are not replicated by any of the withHosts
+		if !replicaFilter.IsEmpty() {
 			ok := false
-			for _, dcHosts := range r.Hosts {
-				for _, h := range dcHosts {
-					if hs.Has(h) {
-						ok = true
-						break
-					}
+			for _, h := range t.Replicas {
+				if replicaFilter.Has(h) {
+					ok = true
+					break
 				}
 			}
 			if !ok {
@@ -73,32 +70,65 @@ func groupSegmentsByHost(dc string, hosts []string, tr TokenRangesKind, ring []*
 			}
 		}
 
-		// select hosts based on kind of token ranges
-		var hosts []string
+		// select replicas from dc based on token kind
+		hosts := strset.New()
 		switch tr {
 		case PrimaryTokenRanges:
-			hosts = r.Hosts[dc][0:1]
+			// TODO rename to DCPrimaryTokenRanges
+			for _, h := range t.Replicas {
+				if ring.HostDC[h] == dc {
+					hosts.Add(h)
+					break
+				}
+			}
 		case NonPrimaryTokenRanges:
-			hosts = r.Hosts[dc][1:]
-		case AllTonenRanges:
-			hosts = r.Hosts[dc]
+			for _, h := range t.Replicas[1:] {
+				if ring.HostDC[h] == dc {
+					hosts.Add(h)
+				}
+			}
+		case AllTokenRanges:
+			for _, h := range t.Replicas {
+				if ring.HostDC[h] == dc {
+					hosts.Add(h)
+				}
+			}
 		default:
-			return nil, errors.New("no token ranges specified")
+			panic("no token ranges specified") // this should never happen...
 		}
 
-		for _, h := range hosts {
-			if r.StartToken > r.EndToken {
-				m[h] = append(m[h],
-					&segment{StartToken: dht.Murmur3MinToken, EndToken: r.EndToken},
-					&segment{StartToken: r.StartToken, EndToken: dht.Murmur3MaxToken},
-				)
+		// filter replicas by host (if needed)
+		if host != "" {
+			if hosts.Has(host) {
+				hosts = strset.New(host)
 			} else {
-				m[h] = append(m[h], &segment{StartToken: r.StartToken, EndToken: r.EndToken})
+				continue
 			}
 		}
+
+		// create and add segments for every host
+		hosts.Each(func(h string) bool {
+			if t.StartToken > t.EndToken {
+				hostSegments[h] = append(hostSegments[h],
+					&segment{StartToken: dht.Murmur3MinToken, EndToken: t.EndToken},
+					&segment{StartToken: t.StartToken, EndToken: dht.Murmur3MaxToken},
+				)
+			} else {
+				hostSegments[h] = append(hostSegments[h], &segment{StartToken: t.StartToken, EndToken: t.EndToken})
+			}
+			return true
+		})
 	}
 
-	return m, nil
+	// remove segments for withHosts as they should not be coordinator hosts
+	if !replicaFilter.IsEmpty() {
+		replicaFilter.Each(func(h string) bool {
+			delete(hostSegments, h)
+			return true
+		})
+	}
+
+	return hostSegments
 }
 
 // validateShardProgress checks if run progress, possibly copied from a

@@ -26,7 +26,6 @@ import (
 	"github.com/hailocab/go-hostpool" // shipped with gocql
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
 	"go.uber.org/multierr"
@@ -218,49 +217,41 @@ func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 	return v, nil
 }
 
-// DescribeRing returns list of datacenters and a token range description
-// for a given keyspace.
-func (c *Client) DescribeRing(ctx context.Context, keyspace string) ([]string, []*TokenRange, error) {
+// DescribeRing returns a description of token range of a given keyspace.
+func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error) {
 	resp, err := c.operations.DescribeRing(&operations.DescribeRingParams{
 		Context:  ctx,
 		Keyspace: keyspace,
 	})
 	if err != nil {
-		return nil, nil, err
+		return Ring{}, err
 	}
 
-	var (
-		dcs = strset.New()
-		trs = make([]*TokenRange, len(resp.Payload))
-	)
+	ring := Ring{
+		Tokens: make([]TokenRange, len(resp.Payload)),
+		HostDC: map[string]string{},
+	}
+
 	for i, p := range resp.Payload {
-		// allocate memory
-		trs[i] = new(TokenRange)
-		r := trs[i]
-
 		// parse tokens
-		r.StartToken, err = strconv.ParseInt(p.StartToken, 10, 64)
+		ring.Tokens[i].StartToken, err = strconv.ParseInt(p.StartToken, 10, 64)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to parse StartToken")
+			return Ring{}, errors.Wrap(err, "failed to parse StartToken")
 		}
-		r.EndToken, err = strconv.ParseInt(p.EndToken, 10, 64)
+		ring.Tokens[i].EndToken, err = strconv.ParseInt(p.EndToken, 10, 64)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to parse EndToken")
+			return Ring{}, errors.Wrap(err, "failed to parse EndToken")
 		}
+		// save replicas
+		ring.Tokens[i].Replicas = p.Endpoints
 
-		// group hosts into datacenters
-		if dcs.Size() == 0 {
-			r.Hosts = make(map[string][]string, 5)
-		} else {
-			r.Hosts = make(map[string][]string, dcs.Size())
-		}
+		// update host to dc mapping
 		for _, e := range p.EndpointDetails {
-			dcs.Add(e.Datacenter)
-			r.Hosts[e.Datacenter] = append(r.Hosts[e.Datacenter], e.Host)
+			ring.HostDC[e.Host] = e.Datacenter
 		}
 	}
 
-	return dcs.List(), trs, nil
+	return ring, nil
 }
 
 // ClosestDC takes output of Datacenters, a map from DC to it's hosts and

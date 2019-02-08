@@ -2,6 +2,8 @@
 
 package scyllaclient
 
+import "github.com/scylladb/go-set/strset"
+
 // CommandStatus specifies a result of a command
 type CommandStatus string
 
@@ -17,15 +19,24 @@ const (
 	Murmur3Partitioner = "org.apache.cassandra.dht.Murmur3Partitioner"
 )
 
-// TokenRange specifies which hosts hold data between start and end token.
+// Ring describes token ring of a keyspace.
+type Ring struct {
+	Tokens []TokenRange
+	HostDC map[string]string
+}
+
+// Datacenters returs a list of datacenters the keyspace is replicated in.
+func (r Ring) Datacenters() []string {
+	v := strset.NewWithSize(len(r.HostDC))
+	for _, dc := range r.HostDC {
+		v.Add(dc)
+	}
+	return v.List()
+}
+
+// TokenRange describes replicas of a token (range).
 type TokenRange struct {
 	StartToken int64
 	EndToken   int64
-	Hosts      map[string][]string
-}
-
-// DC specifies a datacenter and it's hosts.
-type DC struct {
-	Name  string
-	Hosts []string
+	Replicas   []string
 }

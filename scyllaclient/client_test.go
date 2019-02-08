@@ -67,24 +67,40 @@ func TestClientDescribeRing(t *testing.T) {
 	defer s.Close()
 	c := testClient(s)
 
-	dcs, trs, err := c.DescribeRing(context.Background(), "scylla_manager")
+	ring, err := c.DescribeRing(context.Background(), "scylla_manager")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(dcs, []string{"dc1", "dc2"}); diff != "" {
-		t.Fatal(diff)
+	if len(ring.Tokens) != 6*256 {
+		t.Fatal(len(ring.Tokens))
 	}
-	if len(trs) != 6*256 {
-		t.Fatal(len(trs))
+	if len(ring.HostDC) != 6 {
+		t.Fatal(len(ring.HostDC))
 	}
 
-	expected := &TokenRange{
-		StartToken: 9170930477372008214,
-		EndToken:   9192981293347332843,
-		Hosts:      map[string][]string{"dc1": {"172.16.1.10", "172.16.1.2", "172.16.1.3"}, "dc2": {"172.16.1.4", "172.16.1.20", "172.16.1.5"}},
+	{
+		expected := TokenRange{
+			StartToken: 9170930477372008214,
+			EndToken:   9192981293347332843,
+			Replicas:   []string{"172.16.1.10", "172.16.1.4", "172.16.1.2", "172.16.1.3", "172.16.1.20", "172.16.1.5"},
+		}
+		if diff := cmp.Diff(ring.Tokens[0], expected); diff != "" {
+			t.Fatal(diff)
+		}
 	}
-	if diff := cmp.Diff(trs[0], expected); diff != "" {
-		t.Fatal(diff)
+
+	{
+		expected := map[string]string{
+			"172.16.1.10": "dc1",
+			"172.16.1.2":  "dc1",
+			"172.16.1.20": "dc2",
+			"172.16.1.3":  "dc1",
+			"172.16.1.4":  "dc2",
+			"172.16.1.5":  "dc2",
+		}
+		if diff := cmp.Diff(ring.HostDC, expected); diff != "" {
+			t.Fatal(diff)
+		}
 	}
 }
 
