@@ -5,7 +5,6 @@ package repair
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -13,7 +12,6 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
@@ -358,45 +356,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	go func() {
 		// wait for unlock
 		<-lock
-
-		var (
-			parentCtx   = ctx
-			ctx, cancel = context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
-		)
-
-		defer func() {
-			cancel()
-			if err := s.unlockCluster(run); err != nil {
-				s.logger.Error(ctx, "Unlock error", "error", err)
-			}
-			s.wg.Done()
-		}()
-
-		for unit := range run.Units {
-			if err := s.repairUnit(ctx, run, unit, client); err != nil {
-				// Use parentCtx context, so that when worker context is canceled
-				// error is properly saved.
-				switch errors.Cause(err) {
-				case errAborted:
-					run.Status = runner.StatusAborted
-					run.Cause = "service stopped"
-					run.EndTime = timeutc.Now()
-					s.putRunLogError(parentCtx, run)
-				case errStopped:
-					run.Status = runner.StatusStopped
-					run.EndTime = timeutc.Now()
-					s.putRunLogError(parentCtx, run)
-				default:
-					// fail user parentCtx by default
-					fail(err) // nolint
-				}
-				return
-			}
-		}
-
-		run.Status = runner.StatusDone
-		run.EndTime = timeutc.Now()
-		s.putRunLogError(ctx, run)
+		s.repair(ctx, run, client)
 	}()
 
 	return nil
@@ -460,7 +420,58 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	return nil
 }
 
-func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
+func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Client) {
+	// Use parent context, so that when worker context is canceled
+	// error is properly saved.
+	repairCtx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
+
+	defer func() {
+		cancel()
+		if err := s.unlockCluster(run); err != nil {
+			s.logger.Error(ctx, "Unlock error", "error", err)
+		}
+		s.wg.Done()
+	}()
+
+	run.unitWorkers = make([]unitWorker, len(run.Units))
+	for unit := range run.Units {
+		if err := s.initUnitWorker(repairCtx, run, unit, client); err != nil {
+			run.Status = runner.StatusError
+			run.Cause = errors.Wrapf(err, "failed to prepare repair for keyspace %s", run.Units[unit].Keyspace).Error()
+			run.EndTime = timeutc.Now()
+			s.putRunLogError(ctx, run)
+			return
+		}
+	}
+
+	for unit := range run.Units {
+		if err := s.repairUnit(repairCtx, run, unit, client); err != nil {
+			switch errors.Cause(err) {
+			case errAborted:
+				run.Status = runner.StatusAborted
+				run.Cause = "service stopped"
+				run.EndTime = timeutc.Now()
+				s.putRunLogError(ctx, run)
+			case errStopped:
+				run.Status = runner.StatusStopped
+				run.EndTime = timeutc.Now()
+				s.putRunLogError(ctx, run)
+			default:
+				run.Status = runner.StatusError
+				run.Cause = errors.Wrapf(err, "repair failed for keyspace %s", run.Units[unit].Keyspace).Error()
+				run.EndTime = timeutc.Now()
+				s.putRunLogError(ctx, run)
+			}
+			return
+		}
+	}
+
+	run.Status = runner.StatusDone
+	run.EndTime = timeutc.Now()
+	s.putRunLogError(ctx, run)
+}
+
+func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
 	u := run.Units[unit]
 
 	// get the ring description
@@ -532,17 +543,6 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		if err := s.putRunProgress(ctx, &p); err != nil {
 			return errors.Wrapf(err, "failed to initialise the run progress %v", &p)
 		}
-		// init metrics
-		l := prometheus.Labels{
-			"cluster":  run.clusterName,
-			"task":     run.TaskID.String(),
-			"keyspace": u.Keyspace,
-			"host":     p.Host,
-			"shard":    fmt.Sprint(p.Shard),
-		}
-		repairSegmentsTotal.With(l).Set(float64(p.SegmentCount))
-		repairSegmentsSuccess.With(l).Set(float64(p.SegmentSuccess))
-		repairSegmentsError.With(l).Set(float64(p.SegmentError))
 	}
 
 	// shuffle hosts
@@ -554,11 +554,41 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		return xxhash.Sum64String(hosts[i]) < xxhash.Sum64String(hosts[j])
 	})
 
+	// prepare host workers for unit
+	unitWorker := make([]*hostWorker, len(hosts))
+	for i, host := range hosts {
+		// ping host
+		if _, err := client.Ping(ctx, host); err != nil {
+			return errors.Wrapf(err, "host %s not available", host)
+		}
+		unitWorker[i] = &hostWorker{
+			Config:   &s.config,
+			Run:      run,
+			Unit:     unit,
+			Host:     host,
+			Segments: hostSegments[host],
+
+			Service: s,
+			Client:  client,
+			Logger:  s.logger.Named("worker").With("host", host),
+		}
+		if err := unitWorker[i].init(ctx); err != nil {
+			return errors.Wrapf(err, "failed to init repair of host %s", host)
+		}
+	}
+	run.unitWorkers[unit] = unitWorker
+
+	return nil
+}
+
+func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
 	// calculate number of tries
 	allComplete := true
-	for _, p := range prog {
-		if !p.complete() || !p.completeWithErrors() {
-			allComplete = false
+	for _, worker := range run.unitWorkers[unit] {
+		for _, shard := range worker.shards {
+			if !shard.progress.complete() || !shard.progress.completeWithErrors() {
+				allComplete = false
+			}
 		}
 	}
 	tries := 1
@@ -568,7 +598,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 
 	for ; tries > 0; tries-- {
 		failed := false
-		for _, host := range hosts {
+		for _, worker := range run.unitWorkers[unit] {
 			// ensure topology did not change
 			th, err := s.topologyHash(ctx, client)
 			if err != nil {
@@ -577,23 +607,8 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 				return errors.Errorf("topology changed old hash: %s new hash: %s", run.TopologyHash, th)
 			}
 
-			// ping host
-			if _, err := client.Ping(ctx, host); err != nil {
-				return errors.Wrapf(err, "host %s not available", host)
-			}
-
-			w := worker{
-				Config:   &s.config,
-				Run:      run,
-				Unit:     unit,
-				Host:     host,
-				Segments: hostSegments[host],
-
-				Service: s,
-				Client:  client,
-				Logger:  s.logger.Named("worker").With("host", host),
-			}
-			if err := w.exec(ctx); err != nil {
+			// run repair on host
+			if err := worker.exec(ctx); err != nil {
 				if errors.Cause(err) == errDoneWithErrors && !run.failFast {
 					failed = true
 				} else {

@@ -160,6 +160,8 @@ type Run struct {
 	clusterName string
 	failFast    bool
 	prevProg    []*RunProgress
+
+	unitWorkers []unitWorker
 }
 
 // RunProgress describes repair progress on per shard basis.
