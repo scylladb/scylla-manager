@@ -192,9 +192,7 @@ for host in ${HOSTS}; do
         echo "${host}	SSH FAILED"
         ret=1
     else
-        if curl ${CURL_OPTS} "${host}:${API_REMOTE_PORT}/storage_service/cluster_name" &> ${OUTPUT}; then
-            echo "${host}	WARNING - host exposes Scylla API"
-        elif curl ${CURL_OPTS} "localhost:${API_LOCAL_PORT}/storage_service/cluster_name" &> ${OUTPUT}; then
+        if curl ${CURL_OPTS} "localhost:${API_LOCAL_PORT}/storage_service/cluster_name" &> ${OUTPUT}; then
             echo "${host}	OK"
         else
             echo "${host}	FAILED"
