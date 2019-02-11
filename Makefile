@@ -11,7 +11,7 @@ define dl
 endef
 
 define dl_tgz
-	@curl -sSq -L $(2) | tar zxf - --strip 1 -C $(GOBIN) '*/$(1)'
+	@curl -sSq -L $(2) | tar zxf - --strip 1 -C $(GOBIN) --wildcards '*/$(1)'
 endef
 
 .PHONY: setup
