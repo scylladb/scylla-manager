@@ -62,20 +62,11 @@ for the get cluster cluster ID task task type task ID operation typically these 
 */
 type GetClusterClusterIDTaskTaskTypeTaskIDParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
-	/*TaskID
-	  task ID (UUID) or name
-
-	*/
+	/*TaskID*/
 	TaskID string
-	/*TaskType
-	  task type
-
-	*/
+	/*TaskType*/
 	TaskType string
 
 	timeout    time.Duration

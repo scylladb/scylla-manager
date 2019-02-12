@@ -53,7 +53,7 @@ func NewGetClusterClusterIDTaskRepairTaskIDRunIDOK() *GetClusterClusterIDTaskRep
 
 /*GetClusterClusterIDTaskRepairTaskIDRunIDOK handles this case with default header values.
 
-status of a repair task run
+Repair progress
 */
 type GetClusterClusterIDTaskRepairTaskIDRunIDOK struct {
 	Payload *models.TaskRunRepairProgress

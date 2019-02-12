@@ -50,11 +50,9 @@ func NewPostClustersCreated() *PostClustersCreated {
 
 /*PostClustersCreated handles this case with default header values.
 
-Created
+Cluster added
 */
 type PostClustersCreated struct {
-	/*location of the new cluster
-	 */
 	Location string
 }
 

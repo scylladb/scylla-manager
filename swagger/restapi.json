@@ -347,7 +347,6 @@
   "paths": {
     "/version": {
       "get": {
-        "description": "returns the server version",
         "responses": {
           "200": {
             "description": "Server version",
@@ -360,10 +359,9 @@
     },
     "/clusters": {
       "get": {
-        "description": "listClusters Description",
         "responses": {
           "200": {
-            "description": "list of all the clusters",
+            "description": "List of all clusters",
             "schema": {
               "type": "array",
               "items": {
@@ -374,10 +372,8 @@
         }
       },
       "post": {
-        "description": "createCluster Description",
         "parameters": [
           {
-            "description": "cluster JSON object with updated fields",
             "name": "cluster",
             "in": "body",
             "schema": {
@@ -387,10 +383,9 @@
         ],
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Cluster added",
             "headers": {
               "Location": {
-                "description": "location of the new cluster",
                 "type": "string"
               }
             }
@@ -402,17 +397,15 @@
       "parameters": [
         {
           "type": "string",
-          "description": "cluster ID this API is performing on",
           "name": "cluster_id",
           "in": "path",
           "required": true
         }
       ],
       "get": {
-        "description": "loadCluster Description",
         "responses": {
           "200": {
-            "description": "requested cluster fields",
+            "description": "Cluster info",
             "schema": {
               "$ref": "#/definitions/cluster"
             }
@@ -420,10 +413,8 @@
         }
       },
       "put": {
-        "description": "updateCluster Description",
         "parameters": [
           {
-            "description": "cluster JSON object with updated fields",
             "name": "cluster",
             "in": "body",
             "schema": {
@@ -433,7 +424,7 @@
         ],
         "responses": {
           "200": {
-            "description": "updated cluster fields",
+            "description": "Updated cluster info",
             "schema": {
               "$ref": "#/definitions/cluster"
             }
@@ -441,10 +432,9 @@
         }
       },
       "delete": {
-        "description": "deleteCluster Description",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "Cluster deleted"
           }
         }
       }
@@ -454,7 +444,6 @@
         "parameters": [
           {
             "type": "string",
-            "description": "cluster ID this API is performing on",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -462,7 +451,7 @@
         ],
         "responses": {
           "200": {
-            "description": "the ping statuses of the hosts that are part of the cluster",
+            "description": "Cluster hosts and their statuses",
             "schema": {
               "$ref": "#/definitions/clusterStatus"
             }
@@ -474,40 +463,35 @@
       "parameters": [
         {
           "type": "string",
-          "description": "cluster ID this API is performing on",
           "name": "cluster_id",
           "in": "path",
           "required": true
         }
       ],
       "get": {
-        "description": "listTasks Description",
         "parameters": [
           {
             "name": "all",
             "in": "query",
             "type": "boolean",
-            "description": "return disabled tasks when true",
             "required": false
           },
           {
             "name": "type",
             "in": "query",
-            "description": "filter tasks by type",
             "type": "string",
             "required": false
           },
           {
             "name": "status",
             "in": "query",
-            "description": "filter tasks by last run status",
             "type": "string",
             "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "array of tasks",
+            "description": "List of tasks",
             "schema": {
               "type": "array",
               "items": {
@@ -518,10 +502,8 @@
         }
       },
       "post": {
-        "description": "createTask Description",
         "parameters": [
           {
-            "description": "task JSON object with updated fields",
             "name": "taskFields",
             "in": "body",
             "schema": {
@@ -531,10 +513,9 @@
         ],
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Task added",
             "headers": {
               "Location": {
-                "description": "location of the new task",
                 "type": "string"
               }
             }
@@ -546,31 +527,27 @@
       "parameters": [
         {
           "type": "string",
-          "description": "cluster ID this API is performing on",
           "name": "cluster_id",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task type",
           "name": "task_type",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task ID (UUID) or name",
           "name": "task_id",
           "in": "path",
           "required": true
         }
       ],
       "get": {
-        "description": "loadTask Description",
         "responses": {
           "200": {
-            "description": "requested task fields",
+            "description": "Task info",
             "schema": {
               "$ref": "#/definitions/task"
             }
@@ -578,10 +555,8 @@
         }
       },
       "put": {
-        "description": "updateTask Description",
         "parameters": [
           {
-            "description": "task JSON object with updated fields",
             "name": "taskFields",
             "in": "body",
             "schema": {
@@ -591,7 +566,7 @@
         ],
         "responses": {
           "200": {
-            "description": "updated task fields",
+            "description": "Updated task info",
             "schema": {
               "$ref": "#/definitions/task"
             }
@@ -599,10 +574,9 @@
         }
       },
       "delete": {
-        "description": "deleteTask Description",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "Task deleted"
           }
         }
       }
@@ -611,38 +585,33 @@
       "parameters": [
         {
           "type": "string",
-          "description": "cluster ID this API is performing on",
           "name": "cluster_id",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task type",
           "name": "task_type",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task ID (UUID) or name",
           "name": "task_id",
           "in": "path",
           "required": true
         },
         {
           "type": "boolean",
-          "description": "continue a stopped task",
           "name": "continue",
           "in": "query",
           "required": true
         }
       ],
       "put": {
-        "description": "startTask Description",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "Task started"
           }
         }
       }
@@ -651,38 +620,33 @@
       "parameters": [
         {
           "type": "string",
-          "description": "cluster ID this API is performing on",
           "name": "cluster_id",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task type",
           "name": "task_type",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task ID (UUID) or name",
           "name": "task_id",
           "in": "path",
           "required": true
         },
         {
           "type": "boolean",
-          "description": "do not run in future",
           "name": "disable",
           "in": "query",
           "required": false
         }
       ],
       "put": {
-        "description": "stopTask Description",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "Task stopped"
           }
         }
       }
@@ -691,21 +655,18 @@
       "parameters": [
         {
           "type": "string",
-          "description": "cluster ID this API is performing on",
           "name": "cluster_id",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task type",
           "name": "task_type",
           "in": "path",
           "required": true
         },
         {
           "type": "string",
-          "description": "task ID (UUID) or name",
           "name": "task_id",
           "in": "path",
           "required": true
@@ -718,14 +679,12 @@
             "in": "query",
             "type": "integer",
             "format": "int",
-            "description": "limit the number of task runs returned",
             "required": false
           }
         ],
-        "description": "taskHistory Description",
         "responses": {
           "200": {
-            "description": "requested task run history",
+            "description": "List of task runs",
             "schema": {
               "type": "array",
               "items": {
@@ -741,21 +700,18 @@
         "parameters": [
           {
             "type": "string",
-            "description": "cluster ID this API is performing on",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "task ID (UUID) or name",
             "name": "task_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "task run ID",
             "name": "run_id",
             "in": "path",
             "required": true
@@ -763,7 +719,7 @@
         ],
         "responses": {
           "200": {
-            "description": "status of a repair task run",
+            "description": "Repair progress",
             "schema": {
               "$ref": "#/definitions/taskRunRepairProgress"
             }

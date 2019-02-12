@@ -63,25 +63,13 @@ for the get cluster cluster ID tasks operation typically these are written to a 
 */
 type GetClusterClusterIDTasksParams struct {
 
-	/*All
-	  return disabled tasks when true
-
-	*/
+	/*All*/
 	All *bool
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
-	/*Status
-	  filter tasks by last run status
-
-	*/
+	/*Status*/
 	Status *string
-	/*Type
-	  filter tasks by type
-
-	*/
+	/*Type*/
 	Type *string
 
 	timeout    time.Duration

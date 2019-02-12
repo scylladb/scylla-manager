@@ -64,15 +64,9 @@ for the put cluster cluster ID operation typically these are written to a http.R
 */
 type PutClusterClusterIDParams struct {
 
-	/*Cluster
-	  cluster JSON object with updated fields
-
-	*/
+	/*Cluster*/
 	Cluster *models.Cluster
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
 
 	timeout    time.Duration

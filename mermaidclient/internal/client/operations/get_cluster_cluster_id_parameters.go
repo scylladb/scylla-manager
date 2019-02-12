@@ -62,10 +62,7 @@ for the get cluster cluster ID operation typically these are written to a http.R
 */
 type GetClusterClusterIDParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
 
 	timeout    time.Duration

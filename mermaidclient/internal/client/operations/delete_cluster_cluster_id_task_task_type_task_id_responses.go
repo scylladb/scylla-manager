@@ -50,7 +50,7 @@ func NewDeleteClusterClusterIDTaskTaskTypeTaskIDOK() *DeleteClusterClusterIDTask
 
 /*DeleteClusterClusterIDTaskTaskTypeTaskIDOK handles this case with default header values.
 
-OK
+Task deleted
 */
 type DeleteClusterClusterIDTaskTaskTypeTaskIDOK struct {
 }

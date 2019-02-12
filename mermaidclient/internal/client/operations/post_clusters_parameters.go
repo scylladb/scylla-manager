@@ -64,10 +64,7 @@ for the post clusters operation typically these are written to a http.Request
 */
 type PostClustersParams struct {
 
-	/*Cluster
-	  cluster JSON object with updated fields
-
-	*/
+	/*Cluster*/
 	Cluster *models.Cluster
 
 	timeout    time.Duration

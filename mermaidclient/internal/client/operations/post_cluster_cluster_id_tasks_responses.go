@@ -50,11 +50,9 @@ func NewPostClusterClusterIDTasksCreated() *PostClusterClusterIDTasksCreated {
 
 /*PostClusterClusterIDTasksCreated handles this case with default header values.
 
-Created
+Task added
 */
 type PostClusterClusterIDTasksCreated struct {
-	/*location of the new task
-	 */
 	Location string
 }
 

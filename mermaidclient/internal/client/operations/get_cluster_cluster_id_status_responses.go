@@ -53,7 +53,7 @@ func NewGetClusterClusterIDStatusOK() *GetClusterClusterIDStatusOK {
 
 /*GetClusterClusterIDStatusOK handles this case with default header values.
 
-the ping statuses of the hosts that are part of the cluster
+Cluster hosts and their statuses
 */
 type GetClusterClusterIDStatusOK struct {
 	Payload models.ClusterStatus

@@ -50,7 +50,7 @@ func NewPutClusterClusterIDTaskTaskTypeTaskIDStartOK() *PutClusterClusterIDTaskT
 
 /*PutClusterClusterIDTaskTaskTypeTaskIDStartOK handles this case with default header values.
 
-OK
+Task started
 */
 type PutClusterClusterIDTaskTaskTypeTaskIDStartOK struct {
 }

@@ -63,25 +63,13 @@ for the put cluster cluster ID task task type task ID stop operation typically t
 */
 type PutClusterClusterIDTaskTaskTypeTaskIDStopParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
-	/*Disable
-	  do not run in future
-
-	*/
+	/*Disable*/
 	Disable *bool
-	/*TaskID
-	  task ID (UUID) or name
-
-	*/
+	/*TaskID*/
 	TaskID string
-	/*TaskType
-	  task type
-
-	*/
+	/*TaskType*/
 	TaskType string
 
 	timeout    time.Duration

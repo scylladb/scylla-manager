@@ -62,10 +62,7 @@ for the get cluster cluster ID status operation typically these are written to a
 */
 type GetClusterClusterIDStatusParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
 
 	timeout    time.Duration

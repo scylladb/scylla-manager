@@ -53,7 +53,7 @@ func NewGetClusterClusterIDTasksOK() *GetClusterClusterIDTasksOK {
 
 /*GetClusterClusterIDTasksOK handles this case with default header values.
 
-array of tasks
+List of tasks
 */
 type GetClusterClusterIDTasksOK struct {
 	Payload []*models.ExtendedTask

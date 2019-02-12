@@ -50,7 +50,7 @@ func NewDeleteClusterClusterIDOK() *DeleteClusterClusterIDOK {
 
 /*DeleteClusterClusterIDOK handles this case with default header values.
 
-OK
+Cluster deleted
 */
 type DeleteClusterClusterIDOK struct {
 }

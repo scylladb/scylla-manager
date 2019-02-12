@@ -62,10 +62,7 @@ for the delete cluster cluster ID operation typically these are written to a htt
 */
 type DeleteClusterClusterIDParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
 
 	timeout    time.Duration

@@ -25,7 +25,7 @@ type Client struct {
 }
 
 /*
-DeleteClusterClusterID deleteCluster Description
+DeleteClusterClusterID delete cluster cluster ID API
 */
 func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*DeleteClusterClusterIDOK, error) {
 	// TODO: Validate the params before sending
@@ -53,7 +53,7 @@ func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*
 }
 
 /*
-DeleteClusterClusterIDTaskTaskTypeTaskID deleteTask Description
+DeleteClusterClusterIDTaskTaskTypeTaskID delete cluster cluster ID task task type task ID API
 */
 func (a *Client) DeleteClusterClusterIDTaskTaskTypeTaskID(params *DeleteClusterClusterIDTaskTaskTypeTaskIDParams) (*DeleteClusterClusterIDTaskTaskTypeTaskIDOK, error) {
 	// TODO: Validate the params before sending
@@ -81,7 +81,7 @@ func (a *Client) DeleteClusterClusterIDTaskTaskTypeTaskID(params *DeleteClusterC
 }
 
 /*
-GetClusterClusterID loadCluster Description
+GetClusterClusterID get cluster cluster ID API
 */
 func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClusterClusterIDOK, error) {
 	// TODO: Validate the params before sending
@@ -165,7 +165,7 @@ func (a *Client) GetClusterClusterIDTaskRepairTaskIDRunID(params *GetClusterClus
 }
 
 /*
-GetClusterClusterIDTaskTaskTypeTaskID loadTask Description
+GetClusterClusterIDTaskTaskTypeTaskID get cluster cluster ID task task type task ID API
 */
 func (a *Client) GetClusterClusterIDTaskTaskTypeTaskID(params *GetClusterClusterIDTaskTaskTypeTaskIDParams) (*GetClusterClusterIDTaskTaskTypeTaskIDOK, error) {
 	// TODO: Validate the params before sending
@@ -193,7 +193,7 @@ func (a *Client) GetClusterClusterIDTaskTaskTypeTaskID(params *GetClusterCluster
 }
 
 /*
-GetClusterClusterIDTaskTaskTypeTaskIDHistory taskHistory Description
+GetClusterClusterIDTaskTaskTypeTaskIDHistory get cluster cluster ID task task type task ID history API
 */
 func (a *Client) GetClusterClusterIDTaskTaskTypeTaskIDHistory(params *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) (*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK, error) {
 	// TODO: Validate the params before sending
@@ -221,7 +221,7 @@ func (a *Client) GetClusterClusterIDTaskTaskTypeTaskIDHistory(params *GetCluster
 }
 
 /*
-GetClusterClusterIDTasks listTasks Description
+GetClusterClusterIDTasks get cluster cluster ID tasks API
 */
 func (a *Client) GetClusterClusterIDTasks(params *GetClusterClusterIDTasksParams) (*GetClusterClusterIDTasksOK, error) {
 	// TODO: Validate the params before sending
@@ -249,7 +249,7 @@ func (a *Client) GetClusterClusterIDTasks(params *GetClusterClusterIDTasksParams
 }
 
 /*
-GetClusters listClusters Description
+GetClusters get clusters API
 */
 func (a *Client) GetClusters(params *GetClustersParams) (*GetClustersOK, error) {
 	// TODO: Validate the params before sending
@@ -277,7 +277,7 @@ func (a *Client) GetClusters(params *GetClustersParams) (*GetClustersOK, error) 
 }
 
 /*
-GetVersion returns the server version
+GetVersion get version API
 */
 func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -305,7 +305,7 @@ func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
 }
 
 /*
-PostClusterClusterIDTasks createTask Description
+PostClusterClusterIDTasks post cluster cluster ID tasks API
 */
 func (a *Client) PostClusterClusterIDTasks(params *PostClusterClusterIDTasksParams) (*PostClusterClusterIDTasksCreated, error) {
 	// TODO: Validate the params before sending
@@ -333,7 +333,7 @@ func (a *Client) PostClusterClusterIDTasks(params *PostClusterClusterIDTasksPara
 }
 
 /*
-PostClusters createCluster Description
+PostClusters post clusters API
 */
 func (a *Client) PostClusters(params *PostClustersParams) (*PostClustersCreated, error) {
 	// TODO: Validate the params before sending
@@ -361,7 +361,7 @@ func (a *Client) PostClusters(params *PostClustersParams) (*PostClustersCreated,
 }
 
 /*
-PutClusterClusterID updateCluster Description
+PutClusterClusterID put cluster cluster ID API
 */
 func (a *Client) PutClusterClusterID(params *PutClusterClusterIDParams) (*PutClusterClusterIDOK, error) {
 	// TODO: Validate the params before sending
@@ -389,7 +389,7 @@ func (a *Client) PutClusterClusterID(params *PutClusterClusterIDParams) (*PutClu
 }
 
 /*
-PutClusterClusterIDTaskTaskTypeTaskID updateTask Description
+PutClusterClusterIDTaskTaskTypeTaskID put cluster cluster ID task task type task ID API
 */
 func (a *Client) PutClusterClusterIDTaskTaskTypeTaskID(params *PutClusterClusterIDTaskTaskTypeTaskIDParams) (*PutClusterClusterIDTaskTaskTypeTaskIDOK, error) {
 	// TODO: Validate the params before sending
@@ -417,7 +417,7 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskID(params *PutClusterCluster
 }
 
 /*
-PutClusterClusterIDTaskTaskTypeTaskIDStart startTask Description
+PutClusterClusterIDTaskTaskTypeTaskIDStart put cluster cluster ID task task type task ID start API
 */
 func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStart(params *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) (*PutClusterClusterIDTaskTaskTypeTaskIDStartOK, error) {
 	// TODO: Validate the params before sending
@@ -445,7 +445,7 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStart(params *PutClusterCl
 }
 
 /*
-PutClusterClusterIDTaskTaskTypeTaskIDStop stopTask Description
+PutClusterClusterIDTaskTaskTypeTaskIDStop put cluster cluster ID task task type task ID stop API
 */
 func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStop(params *PutClusterClusterIDTaskTaskTypeTaskIDStopParams) (*PutClusterClusterIDTaskTaskTypeTaskIDStopOK, error) {
 	// TODO: Validate the params before sending

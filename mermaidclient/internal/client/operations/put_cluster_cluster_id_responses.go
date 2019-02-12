@@ -53,7 +53,7 @@ func NewPutClusterClusterIDOK() *PutClusterClusterIDOK {
 
 /*PutClusterClusterIDOK handles this case with default header values.
 
-updated cluster fields
+Updated cluster info
 */
 type PutClusterClusterIDOK struct {
 	Payload *models.Cluster

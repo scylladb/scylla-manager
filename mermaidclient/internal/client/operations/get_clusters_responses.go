@@ -53,7 +53,7 @@ func NewGetClustersOK() *GetClustersOK {
 
 /*GetClustersOK handles this case with default header values.
 
-list of all the clusters
+List of all clusters
 */
 type GetClustersOK struct {
 	Payload []*models.Cluster

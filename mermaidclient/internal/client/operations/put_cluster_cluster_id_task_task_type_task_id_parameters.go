@@ -64,25 +64,13 @@ for the put cluster cluster ID task task type task ID operation typically these 
 */
 type PutClusterClusterIDTaskTaskTypeTaskIDParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
-	/*TaskFields
-	  task JSON object with updated fields
-
-	*/
+	/*TaskFields*/
 	TaskFields *models.TaskUpdate
-	/*TaskID
-	  task ID (UUID) or name
-
-	*/
+	/*TaskID*/
 	TaskID string
-	/*TaskType
-	  task type
-
-	*/
+	/*TaskType*/
 	TaskType string
 
 	timeout    time.Duration

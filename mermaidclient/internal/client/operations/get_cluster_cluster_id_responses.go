@@ -53,7 +53,7 @@ func NewGetClusterClusterIDOK() *GetClusterClusterIDOK {
 
 /*GetClusterClusterIDOK handles this case with default header values.
 
-requested cluster fields
+Cluster info
 */
 type GetClusterClusterIDOK struct {
 	Payload *models.Cluster

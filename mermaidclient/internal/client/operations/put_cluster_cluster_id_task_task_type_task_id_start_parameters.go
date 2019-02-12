@@ -63,25 +63,13 @@ for the put cluster cluster ID task task type task ID start operation typically 
 */
 type PutClusterClusterIDTaskTaskTypeTaskIDStartParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
-	/*Continue
-	  continue a stopped task
-
-	*/
+	/*Continue*/
 	Continue bool
-	/*TaskID
-	  task ID (UUID) or name
-
-	*/
+	/*TaskID*/
 	TaskID string
-	/*TaskType
-	  task type
-
-	*/
+	/*TaskType*/
 	TaskType string
 
 	timeout    time.Duration

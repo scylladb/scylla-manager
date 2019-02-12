@@ -53,7 +53,7 @@ func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryOK() *GetClusterClusterIDTas
 
 /*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK handles this case with default header values.
 
-requested task run history
+List of task runs
 */
 type GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK struct {
 	Payload []*models.TaskRun

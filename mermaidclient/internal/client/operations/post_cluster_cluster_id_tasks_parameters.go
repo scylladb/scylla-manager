@@ -64,15 +64,9 @@ for the post cluster cluster ID tasks operation typically these are written to a
 */
 type PostClusterClusterIDTasksParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
-	/*TaskFields
-	  task JSON object with updated fields
-
-	*/
+	/*TaskFields*/
 	TaskFields *models.TaskUpdate
 
 	timeout    time.Duration

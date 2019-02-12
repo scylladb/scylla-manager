@@ -62,20 +62,11 @@ for the get cluster cluster ID task repair task ID run ID operation typically th
 */
 type GetClusterClusterIDTaskRepairTaskIDRunIDParams struct {
 
-	/*ClusterID
-	  cluster ID this API is performing on
-
-	*/
+	/*ClusterID*/
 	ClusterID string
-	/*RunID
-	  task run ID
-
-	*/
+	/*RunID*/
 	RunID string
-	/*TaskID
-	  task ID (UUID) or name
-
-	*/
+	/*TaskID*/
 	TaskID string
 
 	timeout    time.Duration

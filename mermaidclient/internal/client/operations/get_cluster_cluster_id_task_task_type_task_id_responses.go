@@ -53,7 +53,7 @@ func NewGetClusterClusterIDTaskTaskTypeTaskIDOK() *GetClusterClusterIDTaskTaskTy
 
 /*GetClusterClusterIDTaskTaskTypeTaskIDOK handles this case with default header values.
 
-requested task fields
+Task info
 */
 type GetClusterClusterIDTaskTaskTypeTaskIDOK struct {
 	Payload *models.Task

@@ -53,7 +53,7 @@ func NewPutClusterClusterIDTaskTaskTypeTaskIDOK() *PutClusterClusterIDTaskTaskTy
 
 /*PutClusterClusterIDTaskTaskTypeTaskIDOK handles this case with default header values.
 
-updated task fields
+Updated task info
 */
 type PutClusterClusterIDTaskTaskTypeTaskIDOK struct {
 	Payload *models.Task
