@@ -42,7 +42,7 @@ func (tokenRangesKind) Type() string {
 	return "token ranges"
 }
 
-var repairTokenRanges = pr
+var repairTokenRanges = tokenRangesKind("")
 
 var repairCmd = &cobra.Command{
 	Use:   "repair",
@@ -111,6 +111,9 @@ var repairCmd = &cobra.Command{
 		}
 
 		if f = cmd.Flag("token-ranges"); f.Changed {
+			if !cmd.Flag("host").Changed && !cmd.Flag("with-hosts").Changed {
+				return printableError{errors.New("token-ranges is only available with \"host\" and \"with-hosts\" flags")}
+			}
 			props["token_ranges"] = repairTokenRanges.String()
 		}
 
@@ -144,7 +147,7 @@ func init() {
 	fs.StringSlice("dc", nil, "comma-separated `list` of data centers glob patterns, e.g. dc1,!otherdc*")
 	fs.String("host", "", "host to repair, by default all hosts are repaired")
 	fs.StringSlice("with-hosts", nil, "comma-separated `list` of hosts to repair with")
-	fs.Var(&repairTokenRanges, "token-ranges", "token ranges: pr - primary token ranges, npr - non primary token ranges, all - pr and npr")
+	fs.Var(&repairTokenRanges, "token-ranges", "`kind` of token-ranges valid values are: pr, npr, all")
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	taskInitCommonFlags(fs)
 }
