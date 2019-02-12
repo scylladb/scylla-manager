@@ -128,7 +128,7 @@ func init() {
 
 var taskStopCmd = &cobra.Command{
 	Use:   "stop <type/task-id>",
-	Short: "Stop executing a task",
+	Short: "Stop the currently running task instance",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -136,7 +136,13 @@ var taskStopCmd = &cobra.Command{
 		if err != nil {
 			return printableError{err}
 		}
-		if err := client.StopTask(ctx, cfgCluster, taskType, taskID); err != nil {
+
+		disable, err := cmd.Flags().GetBool("disable")
+		if err != nil {
+			return printableError{err}
+		}
+
+		if err := client.StopTask(ctx, cfgCluster, taskType, taskID, disable); err != nil {
 			return printableError{err}
 		}
 		return nil
@@ -147,6 +153,9 @@ func init() {
 	cmd := taskStopCmd
 	withScyllaDocs(cmd, "/sctool/#task-stop")
 	register(cmd, taskCmd)
+
+	fs := cmd.Flags()
+	fs.Bool("disable", false, "do not run in future")
 }
 
 var taskHistoryCmd = &cobra.Command{

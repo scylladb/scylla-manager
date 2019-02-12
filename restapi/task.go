@@ -288,9 +288,29 @@ func (h *taskHandler) optsFromRequest(r *http.Request) (opts runner.Opts, err er
 
 func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
-	if err := h.schedSvc.StopTask(r.Context(), t); err != nil {
-		respondError(w, r, err, "failed to stop task")
-		return
+
+	disable := false
+	if d := r.FormValue("disable"); d != "" {
+		var err error
+		disable, err = strconv.ParseBool(d)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
+	}
+
+	if t.Enabled && disable {
+		t.Enabled = false
+		// current task is canceled on save no need to stop it again
+		if err := h.schedSvc.PutTask(r.Context(), t); err != nil {
+			respondError(w, r, err, "failed to update task")
+			return
+		}
+	} else {
+		if err := h.schedSvc.StopTask(r.Context(), t); err != nil {
+			respondError(w, r, err, "failed to stop task")
+			return
+		}
 	}
 }
 

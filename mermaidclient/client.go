@@ -233,12 +233,13 @@ func (c *Client) StartTask(ctx context.Context, clusterID, taskType string, task
 }
 
 // StopTask stops executing a task.
-func (c *Client) StopTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID) error {
+func (c *Client) StopTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, disable bool) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStop(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStopParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
 		TaskType:  taskType,
 		TaskID:    taskID.String(),
+		Disable:   &disable,
 	})
 
 	return err

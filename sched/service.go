@@ -366,7 +366,7 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 	if t == nil {
 		return errors.New("nil task")
 	}
-	s.cancelTask(t)
+	s.cancelTask(ctx, t)
 
 	s.tasksMu.Lock()
 	if s.closed {
@@ -389,16 +389,22 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 	return nil
 }
 
-func (s *Service) cancelTask(t *Task) {
+func (s *Service) cancelTask(ctx context.Context, t *Task) {
 	s.tasksMu.Lock()
 	if s.closed {
 		s.tasksMu.Unlock()
-		s.logger.Debug(context.Background(), "Service closed, not re-scheduling", "task", t)
+		s.logger.Info(context.Background(), "Service closed, not re-scheduling", "task", t)
 		return
 	}
 
 	var doneCh chan struct{}
 	if trigger, ok := s.tasks[t.ID]; ok {
+		s.logger.Info(ctx, "Stopping task",
+			"cluster_id", t.ClusterID,
+			"task_type", t.Type,
+			"task_id", t.ID,
+		)
+
 		delete(s.tasks, t.ID)
 		doneCh = trigger.done
 		trigger.cancel()
@@ -417,16 +423,10 @@ func (s *Service) StopTask(ctx context.Context, t *Task) error {
 		return errors.New("nil task")
 	}
 
-	s.cancelTask(t)
+	s.cancelTask(ctx, t)
 	if t.Enabled {
 		s.schedTask(ctx, timeutc.Now(), t)
 	}
-
-	s.logger.Info(ctx, "Stopping task",
-		"cluster_id", t.ClusterID,
-		"task_type", t.Type,
-		"task_id", t.ID,
-	)
 
 	return nil
 }
@@ -575,7 +575,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	if err := q.ExecRelease(); err != nil {
 		return err
 	}
-	s.cancelTask(t)
+	s.cancelTask(ctx, t)
 	if t.Enabled {
 		s.schedTask(ctx, timeutc.Now(), t)
 	}
@@ -598,7 +598,7 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	if err != nil {
 		return err
 	}
-	s.cancelTask(t)
+	s.cancelTask(ctx, t)
 
 	s.logger.Info(ctx, "Task deleted",
 		"cluster_id", t.ClusterID,

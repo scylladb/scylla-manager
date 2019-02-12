@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -67,6 +68,11 @@ type PutClusterClusterIDTaskTaskTypeTaskIDStopParams struct {
 
 	*/
 	ClusterID string
+	/*Disable
+	  do not run in future
+
+	*/
+	Disable *bool
 	/*TaskID
 	  task ID (UUID) or name
 
@@ -127,6 +133,17 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopParams) SetClusterID(clusterID
 	o.ClusterID = clusterID
 }
 
+// WithDisable adds the disable to the put cluster cluster ID task task type task ID stop params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopParams) WithDisable(disable *bool) *PutClusterClusterIDTaskTaskTypeTaskIDStopParams {
+	o.SetDisable(disable)
+	return o
+}
+
+// SetDisable adds the disable to the put cluster cluster ID task task type task ID stop params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopParams) SetDisable(disable *bool) {
+	o.Disable = disable
+}
+
 // WithTaskID adds the taskID to the put cluster cluster ID task task type task ID stop params
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopParams) WithTaskID(taskID string) *PutClusterClusterIDTaskTaskTypeTaskIDStopParams {
 	o.SetTaskID(taskID)
@@ -160,6 +177,22 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopParams) WriteToRequest(r runti
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
 		return err
+	}
+
+	if o.Disable != nil {
+
+		// query param disable
+		var qrDisable bool
+		if o.Disable != nil {
+			qrDisable = *o.Disable
+		}
+		qDisable := swag.FormatBool(qrDisable)
+		if qDisable != "" {
+			if err := r.SetQueryParam("disable", qDisable); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// path param task_id

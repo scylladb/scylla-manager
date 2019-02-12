@@ -669,6 +669,13 @@
           "name": "task_id",
           "in": "path",
           "required": true
+        },
+        {
+          "type": "boolean",
+          "description": "do not run in future",
+          "name": "disable",
+          "in": "query",
+          "required": false
         }
       ],
       "put": {
