@@ -35,12 +35,13 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// TokenRangesKind specifies token ranges to be repaired, PrimaryTokenRanges,
-// NonPrimaryTokenRanges or AllTokenRanges.
+// TokenRangesKind specifies token ranges to be repaired, DCPrimaryTokenRanges,
+// PrimaryTokenRanges, NonPrimaryTokenRanges or AllTokenRanges.
 type TokenRangesKind string
 
 // TokenRangesKind enumeration
 const (
+	DCPrimaryTokenRanges  TokenRangesKind = "dcpr"
 	PrimaryTokenRanges    TokenRangesKind = "pr"
 	NonPrimaryTokenRanges TokenRangesKind = "npr"
 	AllTokenRanges        TokenRangesKind = "all"
@@ -58,6 +59,8 @@ func (r TokenRangesKind) MarshalText() (text []byte, err error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (r *TokenRangesKind) UnmarshalText(text []byte) error {
 	switch TokenRangesKind(text) {
+	case DCPrimaryTokenRanges:
+		*r = DCPrimaryTokenRanges
 	case PrimaryTokenRanges:
 		*r = PrimaryTokenRanges
 	case NonPrimaryTokenRanges:

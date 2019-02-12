@@ -189,7 +189,7 @@ func singleUnit() repair.Target {
 			},
 		},
 		DC:          []string{"dc1", "dc2"},
-		TokenRanges: repair.PrimaryTokenRanges,
+		TokenRanges: repair.DCPrimaryTokenRanges,
 		Opts:        runner.DefaultOpts,
 	}
 }
@@ -201,7 +201,7 @@ func multipleUnits() repair.Target {
 			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 		},
 		DC:          []string{"dc1", "dc2"},
-		TokenRanges: repair.PrimaryTokenRanges,
+		TokenRanges: repair.DCPrimaryTokenRanges,
 		Opts:        runner.DefaultOpts,
 	}
 }

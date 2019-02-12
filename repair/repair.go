@@ -73,13 +73,17 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 		// select replicas from dc based on token kind
 		hosts := strset.New()
 		switch tr {
-		case PrimaryTokenRanges:
-			// TODO rename to DCPrimaryTokenRanges
+		case DCPrimaryTokenRanges:
 			for _, h := range t.Replicas {
 				if ring.HostDC[h] == dc {
 					hosts.Add(h)
 					break
 				}
+			}
+		case PrimaryTokenRanges:
+			h := t.Replicas[0]
+			if ring.HostDC[h] == dc {
+				hosts.Add(h)
 			}
 		case NonPrimaryTokenRanges:
 			for _, h := range t.Replicas[1:] {

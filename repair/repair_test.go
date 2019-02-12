@@ -70,7 +70,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			{
 				StartToken: 9142565851149460331,
 				EndToken:   9143747749498840635,
-				Replicas:   []string{"172.16.1.10", "172.16.1.2", "172.16.1.3", "172.16.1.20", "172.16.1.4", "172.16.1.5"},
+				Replicas:   []string{"172.16.1.20", "172.16.1.10", "172.16.1.2", "172.16.1.3", "172.16.1.4", "172.16.1.5"},
 			},
 			// start - end replaced
 			{
@@ -92,7 +92,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			{
 				StartToken: 9142565851149460331,
 				EndToken:   9143747749498840635,
-				Replicas:   []string{"172.16.1.10", "172.16.1.2", "172.16.1.20", "172.16.1.4"},
+				Replicas:   []string{"172.16.1.20", "172.16.1.10", "172.16.1.2", "172.16.1.4"},
 			},
 			// start - end replaced
 			{
@@ -113,10 +113,10 @@ func TestGroupSegmentsByHost(t *testing.T) {
 		S  map[string]segments
 	}{
 		{
-			N:  "PrimaryTokenRanges with RF3",
+			N:  "DCPrimaryTokenRanges with RF3",
 			R:  rf3,
 			DC: "dc1",
-			K:  PrimaryTokenRanges,
+			K:  DCPrimaryTokenRanges,
 			S: map[string]segments{
 				"172.16.1.3": {
 					{9165301526494284802, 9190445181212206709},
@@ -129,7 +129,37 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			},
 		},
 		{
-			N:  "PrimaryTokenRanges with RF2",
+			N:  "DCPrimaryTokenRanges with RF2 replicated by 172.16.1.2",
+			R:  rf2,
+			DC: "dc1",
+			WH: []string{"172.16.1.2"},
+			K:  DCPrimaryTokenRanges,
+			S: map[string]segments{
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+				},
+				"172.16.1.10": {
+					{9142565851149460331, 9143747749498840635},
+				},
+			},
+		},
+		{
+			N:  "PrimaryTokenRanges with RF3",
+			R:  rf3,
+			DC: "dc1",
+			K:  PrimaryTokenRanges,
+			S: map[string]segments{
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+				},
+				"172.16.1.10": {
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+			},
+		},
+		{
+			N:  "PrimaryTokenRanges with RF2 replicated by 172.16.1.2",
 			R:  rf2,
 			DC: "dc1",
 			WH: []string{"172.16.1.2"},
@@ -137,9 +167,6 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			S: map[string]segments{
 				"172.16.1.3": {
 					{9165301526494284802, 9190445181212206709},
-				},
-				"172.16.1.10": {
-					{9142565851149460331, 9143747749498840635},
 				},
 			},
 		},
@@ -162,6 +189,7 @@ func TestGroupSegmentsByHost(t *testing.T) {
 				},
 				"172.16.1.10": {
 					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
 				},
 			},
 		},
@@ -172,13 +200,14 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			WH: []string{"172.16.1.2"},
 			K:  NonPrimaryTokenRanges,
 			S: map[string]segments{
-				"172.16.1.10": {
-					{9165301526494284802, 9190445181212206709},
-				},
 				"172.16.1.3": {
 					{9142565851149460331, 9143747749498840635},
 					{dht.Murmur3MinToken, 9121190935171762434},
 					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+				"172.16.1.10": {
+					{9165301526494284802, 9190445181212206709},
+					{9142565851149460331, 9143747749498840635},
 				},
 			},
 		},
@@ -224,11 +253,11 @@ func TestGroupSegmentsByHost(t *testing.T) {
 			},
 		},
 		{
-			N:  "PrimaryTokenRanges with RF2 and host from dc2",
+			N:  "DCPrimaryTokenRanges with RF2 and host from dc2",
 			R:  rf2,
 			DC: "dc1",
 			WH: []string{"172.16.1.4"},
-			K:  PrimaryTokenRanges,
+			K:  DCPrimaryTokenRanges,
 			S: map[string]segments{
 				"172.16.1.3": {
 					{9165301526494284802, 9190445181212206709},
@@ -422,7 +451,7 @@ func TestAggregateProgress(t *testing.T) {
 
 		r := &Run{
 			Units:       test.U,
-			TokenRanges: PrimaryTokenRanges,
+			TokenRanges: DCPrimaryTokenRanges,
 		}
 
 		if diff := cmp.Diff(p, aggregateProgress(r, test.P), opts); diff != "" {

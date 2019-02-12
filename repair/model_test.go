@@ -8,6 +8,22 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestTokenRangesKindMarshalUnmarshalText(t *testing.T) {
+	for _, k := range []TokenRangesKind{DCPrimaryTokenRanges, PrimaryTokenRanges, NonPrimaryTokenRanges, AllTokenRanges} {
+		b, err := k.MarshalText()
+		if err != nil {
+			t.Error(k, err)
+		}
+		var l TokenRangesKind
+		if err := l.UnmarshalText(b); err != nil {
+			t.Error(err)
+		}
+		if k != l {
+			t.Errorf("got %s, expected %s", l, k)
+		}
+	}
+}
+
 func TestProgressAddProgress(t *testing.T) {
 	p := progress{
 		segmentCount:   100,

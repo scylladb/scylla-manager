@@ -108,7 +108,7 @@ func (s *Service) unlockCluster(run *Run) error {
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties) (Target, error) {
 	tp := taskProperties{
-		TokenRanges: PrimaryTokenRanges,
+		TokenRanges: DCPrimaryTokenRanges,
 		FailFast:    false,
 	}
 
