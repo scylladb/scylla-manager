@@ -147,6 +147,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	now := func() time.Time {
 		return timeutc.Now().Add(2 * taskStartNowSlack)
 	}
+	future := time.Unix(1<<60, 0)
 
 	t.Run("task put once", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
@@ -155,7 +156,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("When: task is scheduled")
 		task := h.makeTask(sched.Schedule{
-			StartDate: now(),
+			StartDate: future,
 		})
 		if err := h.service.PutTaskOnce(ctx, task); err != nil {
 			t.Fatal(err)
@@ -178,7 +179,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("When: task is scheduled")
 		task := h.makeTask(sched.Schedule{
-			StartDate: now(),
+			StartDate: future,
 		})
 		if err := h.service.PutTaskOnce(ctx, task); err != nil {
 			t.Fatal(err)
@@ -258,7 +259,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("When: task is scheduled with start in future")
 		task := h.makeTask(sched.Schedule{
-			StartDate: time.Unix(1<<60, 0),
+			StartDate: future,
 		})
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)
