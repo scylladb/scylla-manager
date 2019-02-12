@@ -8,8 +8,8 @@ VERSION_NAME := $(VERSION)-$(RELEASE)
 
 DEB_TARGET ?= "stretch"
 
-GO_VERSION := 1.11.2
-GO_HASH := 1dfe664fa3d8ad714bbd15a36627992effd150ddabd7523931f077b3926d736d
+GO_VERSION := 1.11.5
+GO_HASH := ff54aafedff961eb94792487e827515da683d61a5f9482f668008832631e5d25
 GO_URL := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
 GO_BUNDLE := .go$(GO_VERSION).linux-amd64.tar.gz
 
