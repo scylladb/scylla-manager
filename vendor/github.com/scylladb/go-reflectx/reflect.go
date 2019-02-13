@@ -1,3 +1,8 @@
+// Copyright (C) 2019 ScyllaDB
+// Use of this source code is governed by a ALv2-style
+// license that can be found in the LICENSE file.
+// Copyright (C) github.com/jmoiron/sqlx authors, licensed under the MIT license.
+
 // Package reflectx implements extensions to the standard reflect lib suitable
 // for implementing marshalling and unmarshalling packages.  The main Mapper type
 // allows for Go-compatible named attribute access, including accessing embedded

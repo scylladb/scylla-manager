@@ -371,6 +371,14 @@
   revision = "46ca726e7c89debcfab01f9c4aded2d1b6d41618"
 
 [[projects]]
+  digest = "1:73964279c2fc01ba0d05bcdbfa2df12708fc56427d9d921fcc531394ac71106b"
+  name = "github.com/scylladb/go-reflectx"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8e28c7b74629f55b19259fcd798953ee195ec4a4"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:f45446ccc56855d2633cdeae00a127663c6e072ed4e1936f5810c3ec487511a1"
   name = "github.com/scylladb/go-set"
   packages = [
@@ -382,18 +390,17 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:e0b8bba3f01a40f8c929914a4a3d55c29d980d484ab98588d644f760278ceefe"
+  digest = "1:c566b1c34b7897a0637ce76bf7da625e9d3af24ea7a95c4a218dc78ac5d6c1de"
   name = "github.com/scylladb/gocqlx"
   packages = [
     ".",
     "migrate",
     "qb",
-    "reflectx",
     "table",
   ]
   pruneopts = "UT"
-  revision = "dcec9d031fb594a4bc470473d1c98d33656f93e6"
-  version = "v1.1.0"
+  revision = "2265c3fdbb459cd8bd014fbd074b54810955e301"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
