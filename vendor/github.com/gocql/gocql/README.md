@@ -1,9 +1,78 @@
 gocql
 =====
 
-[![Join the chat at https://gitter.im/gocql/gocql](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/gocql/gocql?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/gocql/gocql.svg?branch=master)](https://travis-ci.org/gocql/gocql)
-[![GoDoc](https://godoc.org/github.com/gocql/gocql?status.svg)](https://godoc.org/github.com/gocql/gocql)
+[![Build Status](https://travis-ci.org/scylladb/gocql.svg?branch=master)](https://travis-ci.org/scylladb/gocql)
+[![GoDoc](https://godoc.org/github.com/scylladb/gocql?status.svg)](https://godoc.org/github.com/scylladb/gocql)
+
+This is a fork of [gocql](https://github.com/gocql/gocql) package that we created at Scylla.
+It contains extensions to tokenAwareHostPolicy supported by the Scylla 2.3 and onwards.
+It allows driver to select a connection to a particular shard on a host based on the token.
+This eliminates passing data between shards and significantly reduces latency. 
+The protocol extension spec is available [here](https://github.com/scylladb/scylla/blob/master/docs/protocol-extensions.md).
+
+There are open pull requests to merge the functionality to the upstream project:
+ 
+* [gocql/gocql#1210](https://github.com/gocql/gocql/pull/1210)
+* [gocql/gocql#1211](https://github.com/gocql/gocql/pull/1211).
+
+Installation
+------------
+
+This is a drop-in replacement to gocql, to use it vendor as `github.com/gocql/gocql`.
+
+With `dep` you can use source option:
+
+```
+[[constraint]]
+  name = "github.com/gocql/gocql"
+  source = "git@github.com:scylladb/gocql.git"
+  branch = "master"
+```
+
+With glide you can use repo option:
+
+```
+- package: github.com/gocql/gocql
+  vcs: git
+  version: master
+  repo: git@github.com:scylladb/gocql.git
+```
+
+With new Go modules you can use replace command:
+
+```
+go mod edit -replace=github.com/gocql/gocql=github.com/scylladb/gocql@{version}
+```
+where `version` is your intended version to be used. As gocql is currently not versioned you have to specify
+version in following format `v0.0.0-%Y%m%d%H%M%S-{commit_sha:12}`.  
+Full example:
+```
+go mod edit -replace=github.com/gocql/gocql=github.com/scylladb/gocql@v0.0.0-20181030092923-dc6f47ffd978
+```
+
+Configuration
+-------------
+
+In order to make shard-awareness work, token aware host selection policy has to be enabled.
+Please make sure that the gocql configuration has `PoolConfig.HostSelectionPolicy` properly set like in the example below. 
+
+```go
+c := gocql.NewCluster(hosts...)
+
+// Enable token aware host selection policy, if using multi-dc cluster set a local DC.
+fallback := gocql.RoundRobinHostPolicy()
+if localDC != "" {
+	fallback = gocql.DCAwareRoundRobinPolicy(localDC)
+}
+c.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(fallback)
+
+// If using multi-dc cluster use the "local" consistency levels. 
+if localDC != "" {
+	c.Consistency = gocql.LocalQuorum
+}
+```
+
+---
 
 Package gocql implements a fast and robust Cassandra client for the
 Go programming language.
@@ -17,10 +86,10 @@ Supported Versions
 
 The following matrix shows the versions of Go and Cassandra that are tested with the integration test suite as part of the CI build:
 
-Go/Cassandra | 2.1.x | 2.2.x | 3.0.x
+Go/Cassandra | 2.1.x | 2.2.x | 3.x.x
 -------------| -------| ------| ---------
-1.8  | yes | yes | yes
-1.9  | yes | yes | yes
+1.10 | yes | yes | yes
+1.11 | yes | yes | yes
 
 Gocql has been tested in production against many different versions of Cassandra. Due to limits in our CI setup we only test against the latest 3 major releases, which coincide with the official support from the Apache project.
 
@@ -126,7 +195,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gocql/gocql"
+	"github.com/scylladb/gocql"
 )
 
 func main() {
@@ -195,6 +264,7 @@ The following community maintained tools are known to integrate with gocql:
 * [gocqltable](https://github.com/kristoiv/gocqltable) is a wrapper around gocql that aims to simplify common operations.
 * [gockle](https://github.com/willfaught/gockle) provides simple, mockable interfaces that wrap gocql types
 * [scylladb](https://github.com/scylladb/scylla) is a fast Apache Cassandra-compatible NoSQL database
+* [go-cql-driver](https://github.com/MichaelS11/go-cql-driver) is an CQL driver conforming to the built-in database/sql interface. It is good for simple use cases where the database/sql interface is wanted. The CQL driver is a wrapper around this project.
 
 Other Projects
 --------------

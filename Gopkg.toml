@@ -66,8 +66,9 @@
   version = "0.16.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/gocql/gocql"
+  source = "git@github.com:scylladb/gocql.git"
+  version = "1.0.0"
 
 [[constraint]]
   name = "github.com/google/go-cmp"

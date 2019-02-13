@@ -13,7 +13,6 @@ import (
 	"math/rand"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -58,7 +57,8 @@ func setupTLSConfig(sslOpts *SslOptions) (*tls.Config, error) {
 
 	sslOpts.InsecureSkipVerify = !sslOpts.EnableHostVerification
 
-	return sslOpts.Config, nil
+	// return clone to avoid race
+	return sslOpts.Config.Clone(), nil
 }
 
 type policyConnPool struct {
@@ -89,14 +89,16 @@ func connConfig(cfg *ClusterConfig) (*ConnConfig, error) {
 	}
 
 	return &ConnConfig{
-		ProtoVersion:   cfg.ProtoVersion,
-		CQLVersion:     cfg.CQLVersion,
-		Timeout:        cfg.Timeout,
-		ConnectTimeout: cfg.ConnectTimeout,
-		Compressor:     cfg.Compressor,
-		Authenticator:  cfg.Authenticator,
-		Keepalive:      cfg.SocketKeepalive,
-		tlsConfig:      tlsConfig,
+		ProtoVersion:    cfg.ProtoVersion,
+		CQLVersion:      cfg.CQLVersion,
+		Timeout:         cfg.Timeout,
+		ConnectTimeout:  cfg.ConnectTimeout,
+		Compressor:      cfg.Compressor,
+		Authenticator:   cfg.Authenticator,
+		AuthProvider:    cfg.AuthProvider,
+		Keepalive:       cfg.SocketKeepalive,
+		tlsConfig:       tlsConfig,
+		disableCoalesce: tlsConfig != nil, // write coalescing doesn't work with framing on top of TCP like in TLS.
 	}, nil
 }
 
@@ -255,35 +257,34 @@ type hostConnPool struct {
 	addr     string
 	size     int
 	keyspace string
-	// protection for conns, closed, filling
-	mu      sync.RWMutex
-	conns   []*Conn
-	closed  bool
-	filling bool
-
-	pos uint32
+	// protection for connPicker, closed, filling
+	mu         sync.RWMutex
+	connPicker ConnPicker
+	closed     bool
+	filling    bool
 }
 
 func (h *hostConnPool) String() string {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	size, _ := h.connPicker.Size()
 	return fmt.Sprintf("[filling=%v closed=%v conns=%v size=%v host=%v]",
-		h.filling, h.closed, len(h.conns), h.size, h.host)
+		h.filling, h.closed, size, h.size, h.host)
 }
 
 func newHostConnPool(session *Session, host *HostInfo, port, size int,
 	keyspace string) *hostConnPool {
 
 	pool := &hostConnPool{
-		session:  session,
-		host:     host,
-		port:     port,
-		addr:     (&net.TCPAddr{IP: host.ConnectAddress(), Port: host.Port()}).String(),
-		size:     size,
-		keyspace: keyspace,
-		conns:    make([]*Conn, 0, size),
-		filling:  false,
-		closed:   false,
+		session:    session,
+		host:       host,
+		port:       port,
+		addr:       (&net.TCPAddr{IP: host.ConnectAddress(), Port: host.Port()}).String(),
+		size:       size,
+		keyspace:   keyspace,
+		connPicker: nopConnPicker{},
+		filling:    false,
+		closed:     false,
 	}
 
 	// the pool is not filled or connected
@@ -291,7 +292,7 @@ func newHostConnPool(session *Session, host *HostInfo, port, size int,
 }
 
 // Pick a connection from this connection pool for the given query.
-func (pool *hostConnPool) Pick() *Conn {
+func (pool *hostConnPool) Pick(token token) *Conn {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
@@ -299,8 +300,8 @@ func (pool *hostConnPool) Pick() *Conn {
 		return nil
 	}
 
-	size := len(pool.conns)
-	if size < pool.size {
+	size, missing := pool.connPicker.Size()
+	if missing > 0 {
 		// try to fill the pool
 		go pool.fill()
 
@@ -309,23 +310,7 @@ func (pool *hostConnPool) Pick() *Conn {
 		}
 	}
 
-	pos := int(atomic.AddUint32(&pool.pos, 1) - 1)
-
-	var (
-		leastBusyConn    *Conn
-		streamsAvailable int
-	)
-
-	// find the conn which has the most available streams, this is racy
-	for i := 0; i < size; i++ {
-		conn := pool.conns[(pos+i)%size]
-		if streams := conn.AvailableStreams(); streams > streamsAvailable {
-			leastBusyConn = conn
-			streamsAvailable = streams
-		}
-	}
-
-	return leastBusyConn
+	return pool.connPicker.Pick(token)
 }
 
 //Size returns the number of connections currently active in the pool
@@ -333,38 +318,19 @@ func (pool *hostConnPool) Size() int {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
-	return len(pool.conns)
+	size, _ := pool.connPicker.Size()
+	return size
 }
 
 //Close the connection pool
 func (pool *hostConnPool) Close() {
 	pool.mu.Lock()
+	defer pool.mu.Unlock()
 
-	if pool.closed {
-		pool.mu.Unlock()
-		return
+	if !pool.closed {
+		pool.connPicker.Close()
 	}
 	pool.closed = true
-
-	// ensure we dont try to reacquire the lock in handleError
-	// TODO: improve this as the following can happen
-	// 1) we have locked pool.mu write lock
-	// 2) conn.Close calls conn.closeWithError(nil)
-	// 3) conn.closeWithError calls conn.Close() which returns an error
-	// 4) conn.closeWithError calls pool.HandleError with the error from conn.Close
-	// 5) pool.HandleError tries to lock pool.mu
-	// deadlock
-
-	// empty the pool
-	conns := pool.conns
-	pool.conns = nil
-
-	pool.mu.Unlock()
-
-	// close the connections
-	for _, conn := range conns {
-		conn.Close()
-	}
 }
 
 // Fill the connection pool
@@ -377,8 +343,7 @@ func (pool *hostConnPool) fill() {
 	}
 
 	// determine the filling work to be done
-	startCount := len(pool.conns)
-	fillCount := pool.size - startCount
+	startCount, fillCount := pool.connPicker.Size()
 
 	// avoid filling a full (or overfull) pool
 	if fillCount <= 0 {
@@ -390,9 +355,7 @@ func (pool *hostConnPool) fill() {
 	pool.mu.RUnlock()
 	pool.mu.Lock()
 
-	// double check everything since the lock was released
-	startCount = len(pool.conns)
-	fillCount = pool.size - startCount
+	startCount, fillCount = pool.connPicker.Size()
 	if pool.closed || pool.filling || fillCount <= 0 {
 		// looks like another goroutine already beat this
 		// goroutine to the filling
@@ -420,12 +383,16 @@ func (pool *hostConnPool) fill() {
 
 			// this is call with the connection pool mutex held, this call will
 			// then recursively try to lock it again. FIXME
-			go pool.session.handleNodeDown(pool.host.ConnectAddress(), pool.port)
+			if pool.session.cfg.ConvictionPolicy.AddFailure(err, pool.host) {
+				go pool.session.handleNodeDown(pool.host.ConnectAddress(), pool.port)
+			}
 			return
 		}
 
-		// filled one
-		fillCount--
+		// filled one, let's reload it to see if it has changed
+		pool.mu.RLock()
+		_, fillCount = pool.connPicker.Size()
+		pool.mu.RUnlock()
 	}
 
 	// fill the rest of the pool asynchronously
@@ -497,10 +464,10 @@ func (pool *hostConnPool) connectMany(count int) error {
 func (pool *hostConnPool) connect() (err error) {
 	// TODO: provide a more robust connection retry mechanism, we should also
 	// be able to detect hosts that come up by trying to connect to downed ones.
-	const maxAttempts = 3
 	// try to connect
 	var conn *Conn
-	for i := 0; i < maxAttempts; i++ {
+	reconnectionPolicy := pool.session.cfg.ReconnectionPolicy
+	for i := 0; i < reconnectionPolicy.GetMaxRetries(); i++ {
 		conn, err = pool.session.connect(pool.host, pool)
 		if err == nil {
 			break
@@ -512,6 +479,11 @@ func (pool *hostConnPool) connect() (err error) {
 				break
 			}
 		}
+		if gocqlDebug {
+			Logger.Printf("connection failed %q: %v, reconnecting with %T\n",
+				pool.host.ConnectAddress(), err, reconnectionPolicy)
+		}
+		time.Sleep(reconnectionPolicy.GetInterval(i))
 	}
 
 	if err != nil {
@@ -535,9 +507,24 @@ func (pool *hostConnPool) connect() (err error) {
 		return nil
 	}
 
-	pool.conns = append(pool.conns, conn)
+	// lazily initialize the connPicker when we know the required type
+	pool.initConnPicker(conn)
+	pool.connPicker.Put(conn)
 
 	return nil
+}
+
+func (pool *hostConnPool) initConnPicker(conn *Conn) {
+	if _, ok := pool.connPicker.(nopConnPicker); !ok {
+		return
+	}
+
+	if isScyllaConn(conn) {
+		pool.connPicker = newScyllaConnPicker(conn)
+		return
+	}
+
+	pool.connPicker = newDefaultConnPicker(pool.size)
 }
 
 // handle any error from a Conn
@@ -557,15 +544,5 @@ func (pool *hostConnPool) HandleError(conn *Conn, err error, closed bool) {
 		return
 	}
 
-	// find the connection index
-	for i, candidate := range pool.conns {
-		if candidate == conn {
-			// remove the connection, not preserving order
-			pool.conns[i], pool.conns = pool.conns[len(pool.conns)-1], pool.conns[:len(pool.conns)-1]
-
-			// lost a connection, so fill the pool
-			go pool.fill()
-			break
-		}
-	}
+	pool.connPicker.Remove(conn)
 }
