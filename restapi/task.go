@@ -4,6 +4,7 @@ package restapi
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"net/http"
 	"net/url"
@@ -92,7 +93,7 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 
 		t, err := h.schedSvc.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
 		if err != nil {
-			respondError(w, r, err, "failed to load task")
+			respondError(w, r, err, fmt.Sprintf("failed to load task %q", taskID))
 			return
 		}
 
@@ -136,9 +137,10 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tasks, err := h.schedSvc.ListTasks(r.Context(), mustClusterIDFromCtx(r), taskType)
+	cID := mustClusterIDFromCtx(r)
+	tasks, err := h.schedSvc.ListTasks(r.Context(), cID, taskType)
 	if err != nil {
-		respondError(w, r, err, "failed to list tasks")
+		respondError(w, r, err, fmt.Sprintf("failed to list cluster %q tasks", cID))
 		return
 	}
 
@@ -155,7 +157,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 
 		runs, err := h.schedSvc.GetLastRun(r.Context(), t, t.Sched.NumRetries+1)
 		if err != nil {
-			respondError(w, r, err, "failed to load task run")
+			respondError(w, r, err, fmt.Sprintf("failed to load task %q runs", t.ID))
 			return
 		}
 		if len(runs) > 0 {
@@ -248,7 +250,7 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	newTask.Type = t.Type
 
 	if err := h.schedSvc.PutTask(r.Context(), newTask); err != nil {
-		respondError(w, r, err, "failed to update task")
+		respondError(w, r, err, fmt.Sprintf("failed to update task %q", t.ID))
 		return
 	}
 	render.Respond(w, r, newTask)
@@ -257,7 +259,7 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 func (h *taskHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	if err := h.schedSvc.DeleteTask(r.Context(), t); err != nil {
-		respondError(w, r, err, "failed to delete task")
+		respondError(w, r, err, fmt.Sprintf("failed to delete task %q", t.ID))
 		return
 	}
 }
@@ -271,7 +273,7 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.schedSvc.StartTask(r.Context(), t, opts); err != nil {
-		respondError(w, r, err, "failed to start task")
+		respondError(w, r, err, fmt.Sprintf("failed to start task %q", t.ID))
 		return
 	}
 }
@@ -303,12 +305,12 @@ func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
 		t.Enabled = false
 		// current task is canceled on save no need to stop it again
 		if err := h.schedSvc.PutTask(r.Context(), t); err != nil {
-			respondError(w, r, err, "failed to update task")
+			respondError(w, r, err, fmt.Sprintf("failed to update task %q", t.ID))
 			return
 		}
 	} else {
 		if err := h.schedSvc.StopTask(r.Context(), t); err != nil {
-			respondError(w, r, err, "failed to stop task")
+			respondError(w, r, err, fmt.Sprintf("failed to stop task %q", t.ID))
 			return
 		}
 	}
@@ -329,7 +331,7 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 
 	runs, err := h.schedSvc.GetLastRun(r.Context(), t, limit)
 	if err != nil {
-		respondError(w, r, err, "failed to load task history")
+		respondError(w, r, err, fmt.Sprintf("failed to load task %q history", t.ID))
 		return
 	}
 	if len(runs) == 0 {
@@ -377,7 +379,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 		}
 		prog.Run, err = h.schedSvc.GetRun(r.Context(), t, runID)
 		if err != nil {
-			respondError(w, r, err, "failed to load task run")
+			respondError(w, r, err, fmt.Sprintf("failed to load task %q runs", t.ID))
 			return
 		}
 	}
@@ -386,7 +388,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	case sched.RepairTask:
 		prog.Progress, err = h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 		if err != nil {
-			respondError(w, r, err, "failed to load repair run progress")
+			respondError(w, r, err, fmt.Sprintf("failed to load tak %q repair run progress", t.ID))
 			return
 		}
 	default:

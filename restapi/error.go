@@ -3,6 +3,7 @@
 package restapi
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -14,21 +15,20 @@ import (
 // httpError is a wrapper holding an error, HTTP status code and a user-facing
 // message.
 type httpError struct {
-	Err        error  `json:"-"`
+	Cause      string `json:"cause,omitempty"`
 	StatusCode int    `json:"-"`
 	Message    string `json:"message"`
 	TraceID    string `json:"trace_id"`
 }
 
 func (e *httpError) Error() string {
-	return e.Err.Error()
+	return e.Cause
 }
 
 func respondBadRequest(w http.ResponseWriter, r *http.Request, err error) {
 	render.Respond(w, r, &httpError{
-		Err:        err,
 		StatusCode: http.StatusBadRequest,
-		Message:    errors.Wrap(err, "malformed request").Error(),
+		Message:    fmt.Sprintf("malformed request: %s", err),
 		TraceID:    log.TraceID(r.Context()),
 	})
 }
@@ -39,21 +39,19 @@ func respondError(w http.ResponseWriter, r *http.Request, err error, msg string)
 	switch {
 	case cause == mermaid.ErrNotFound:
 		render.Respond(w, r, &httpError{
-			Err:        cause,
 			StatusCode: http.StatusNotFound,
-			Message:    "specified resource not found",
+			Message:    fmt.Sprintf("resource not found: %s", msg),
 			TraceID:    log.TraceID(r.Context()),
 		})
 	case mermaid.IsErrValidate(cause):
 		render.Respond(w, r, &httpError{
-			Err:        cause,
 			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrap(cause, msg).Error(),
+			Message:    err.Error(),
 			TraceID:    log.TraceID(r.Context()),
 		})
 	default:
 		render.Respond(w, r, &httpError{
-			Err:        err,
+			Cause:      cause.Error(),
 			StatusCode: http.StatusInternalServerError,
 			Message:    msg,
 			TraceID:    log.TraceID(r.Context()),

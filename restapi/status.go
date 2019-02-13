@@ -4,6 +4,7 @@ package restapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -27,7 +28,7 @@ func (h *statusHandler) getStatus(w http.ResponseWriter, r *http.Request) {
 
 	status, err := h.service.GetStatus(r.Context(), c.ID)
 	if err != nil {
-		respondError(w, r, err, "failed to load cluster status")
+		respondError(w, r, err, fmt.Sprintf("failed to check cluster %q status", c.ID))
 		return
 	}
 	render.Respond(w, r, status)

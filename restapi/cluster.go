@@ -4,6 +4,7 @@ package restapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -43,7 +44,7 @@ func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
 
 		c, err := h.svc.GetCluster(r.Context(), clusterID)
 		if err != nil {
-			respondError(w, r, err, "failed to load cluster")
+			respondError(w, r, err, fmt.Sprintf("failed to load cluster %q", clusterID))
 			return
 		}
 
@@ -140,7 +141,7 @@ func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 	newCluster.ID = c.ID
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
-		respondError(w, r, err, "failed to update cluster")
+		respondError(w, r, err, fmt.Sprintf("failed to update cluster %q", c.ID))
 		return
 	}
 	render.Respond(w, r, newCluster)
@@ -150,7 +151,7 @@ func (h *clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 
 	if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
-		respondError(w, r, err, "failed to delete cluster")
+		respondError(w, r, err, fmt.Sprintf("failed to delete cluster %q", c.ID))
 		return
 	}
 }
