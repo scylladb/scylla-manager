@@ -101,7 +101,7 @@ repair:
 
   # Set wait time if Scylla failed to execute a repair command. Note that if
   # stop_on_error is true this has no effect.
-  error_backoff: 10s
+  error_backoff: 5m
 
   # Set how often to poll Scylla node for command status.
   poll_interval: 200ms

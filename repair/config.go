@@ -27,7 +27,7 @@ func DefaultConfig() Config {
 		SegmentSizeLimit:      0,
 		SegmentsPerRepair:     1,
 		SegmentErrorLimit:     100,
-		ErrorBackoff:          10 * time.Second,
+		ErrorBackoff:          5 * time.Minute,
 		PollInterval:          200 * time.Millisecond,
 		MaxRunAge:             36 * time.Hour,
 		ShardingIgnoreMsbBits: 12,
