@@ -47,8 +47,8 @@ func (c *Config) Validate() error {
 	if c.SegmentTokensMax < 0 {
 		err = multierr.Append(err, errors.New("invalid segment_tokens_max, must be > 0 or 0 for no limit"))
 	}
-	if c.ShardFailedSegmentsMax <= 0 {
-		err = multierr.Append(err, errors.New("invalid shard_failed_segments_max, must be > 0"))
+	if c.ShardFailedSegmentsMax < 0 {
+		err = multierr.Append(err, errors.New("invalid shard_failed_segments_max, must be >= 0"))
 	}
 	if c.ErrorBackoff <= 0 {
 		err = multierr.Append(err, errors.New("invalid error_backoff, must be > 0"))

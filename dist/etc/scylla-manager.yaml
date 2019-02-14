@@ -91,7 +91,7 @@ repair:
   # depending on the specified number of retries (default 3). If the
   # shard_failed_segments_max limit is exceeded repair task will immediately
   # fail and the next repair run will start repair procedure from the beginning.
-  shard_failed_segments_max: 100
+  shard_failed_segments_max: 25
 
   # Set wait time if Scylla failed to execute a repair command. Note that if
   # stop_on_error is true this has no effect.
