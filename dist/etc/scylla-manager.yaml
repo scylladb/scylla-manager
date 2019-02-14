@@ -83,11 +83,8 @@ database:
 
 # Repair service configuration.
 repair:
-  # Granularity of repair. Repair works on segments, segment is a continuous
-  # token range.
-  #
-  # Set the maximal number of tokens in a segment (zero is no limit).
-  segment_size_limit: 0
+  # Maximal number of tokens in a segment.
+  segment_tokens_max: 0
 
   # Error tolerance.
   #

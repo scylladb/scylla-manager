@@ -13,7 +13,7 @@ import (
 // Config specifies the repair service configuration.
 type Config struct {
 	SegmentsPerRepair     int           `yaml:"segments_per_repair"`
-	SegmentSizeLimit      int           `yaml:"segment_size_limit"`
+	SegmentTokensMax      int           `yaml:"segment_tokens_max"`
 	SegmentErrorLimit     int           `yaml:"segment_error_limit"`
 	PollInterval          time.Duration `yaml:"poll_interval"`
 	ErrorBackoff          time.Duration `yaml:"error_backoff"`
@@ -25,7 +25,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		SegmentsPerRepair:     1,
-		SegmentSizeLimit:      0,
+		SegmentTokensMax:      0,
 		SegmentErrorLimit:     100,
 		ErrorBackoff:          5 * time.Minute,
 		PollInterval:          200 * time.Millisecond,
@@ -44,8 +44,8 @@ func (c *Config) Validate() error {
 	if c.SegmentsPerRepair <= 0 {
 		err = multierr.Append(err, errors.New("invalid segments_per_repair, must be > 0"))
 	}
-	if c.SegmentSizeLimit < 0 {
-		err = multierr.Append(err, errors.New("invalid segment_size_limit, must be > 0 or 0 for no limit"))
+	if c.SegmentTokensMax < 0 {
+		err = multierr.Append(err, errors.New("invalid segment_tokens_max, must be > 0 or 0 for no limit"))
 	}
 	if c.SegmentErrorLimit <= 0 {
 		err = multierr.Append(err, errors.New("invalid segment_error_limit, must be > 0"))
