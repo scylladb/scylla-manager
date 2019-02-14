@@ -89,9 +89,6 @@ repair:
   # Set the maximal number of tokens in a segment (zero is no limit).
   segment_size_limit: 0
 
-  # Set number of segments to be repaired in one Scylla command.
-  segments_per_repair: 1
-
   # Error tolerance.
   #
   # Set how many segments may fail to repair. Note that the manager would retry

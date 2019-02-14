@@ -65,8 +65,8 @@ func TestConfigModification(t *testing.T) {
 			SSLTimeout: time.Second,
 		},
 		Repair: repair.Config{
-			SegmentSizeLimit:      10,
 			SegmentsPerRepair:     7,
+			SegmentSizeLimit:      10,
 			SegmentErrorLimit:     0,
 			ErrorBackoff:          10 * time.Second,
 			PollInterval:          500 * time.Millisecond,

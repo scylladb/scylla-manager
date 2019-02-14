@@ -36,8 +36,8 @@ healthcheck:
   ssl_timeout: 1s
 
 repair:
-  segment_size_limit: 10
   segments_per_repair: 7
+  segment_size_limit: 10
   segment_error_limit: 0
   error_backoff: 10s
   poll_interval: 500ms
