@@ -21,7 +21,7 @@ type Config struct {
 	ShardingIgnoreMsbBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 
-// DefaultConfig returns a Config initialised with default values.
+// DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
 		SegmentSizeLimit:      0,

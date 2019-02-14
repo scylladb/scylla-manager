@@ -23,7 +23,7 @@ type Config struct {
 	SSLTimeout time.Duration `yaml:"ssl_timeout"`
 }
 
-// DefaultConfig returns a Config initialised with default values.
+// DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
 		Timeout:    250 * time.Millisecond,

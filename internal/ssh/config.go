@@ -25,7 +25,7 @@ type Config struct {
 	ServerAliveCountMax int `yaml:"server_alive_count_max"`
 }
 
-// DefaultConfig returns a Config initialised with default values.
+// DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
 		Port:                22,
