@@ -65,13 +65,13 @@ func TestConfigModification(t *testing.T) {
 			SSLTimeout: time.Second,
 		},
 		Repair: repair.Config{
-			SegmentsPerRepair:     7,
-			SegmentTokensMax:      10,
-			SegmentErrorLimit:     0,
-			ErrorBackoff:          10 * time.Second,
-			PollInterval:          500 * time.Millisecond,
-			MaxRunAge:             12 * time.Hour,
-			ShardingIgnoreMsbBits: 1,
+			SegmentsPerRepair:      7,
+			SegmentTokensMax:       10,
+			ShardFailedSegmentsMax: 0,
+			ErrorBackoff:           10 * time.Second,
+			PollInterval:           500 * time.Millisecond,
+			MaxRunAge:              12 * time.Hour,
+			ShardingIgnoreMsbBits:  1,
 		},
 	}
 

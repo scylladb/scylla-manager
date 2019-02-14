@@ -86,12 +86,12 @@ repair:
   # Maximal number of tokens in a segment.
   segment_tokens_max: 0
 
-  # Error tolerance.
-  #
-  # Set how many segments may fail to repair. Note that the manager would retry
-  # to repair the failed segments. If the limit is exceeded, however, repair
-  # will stop and the next repair will start from the beginning.
-  segment_error_limit: 100
+  # Maximal allowed number of failed segments per shard. In case of a failure
+  # to repair a segment Scylla Manager will try to repair it multiple times
+  # depending on the specified number of retries (default 3). If the
+  # shard_failed_segments_max limit is exceeded repair task will immediately
+  # fail and the next repair run will start repair procedure from the beginning.
+  shard_failed_segments_max: 100
 
   # Set wait time if Scylla failed to execute a repair command. Note that if
   # stop_on_error is true this has no effect.

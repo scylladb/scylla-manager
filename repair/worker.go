@@ -218,7 +218,7 @@ func (w *shardWorker) exec(ctx context.Context) error {
 		return nil
 	}
 
-	if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
+	if w.progress.SegmentError > w.parent.Config.ShardFailedSegmentsMax {
 		w.logger.Info(ctx, "Starting from scratch: too many errors")
 		w.resetProgress()
 		w.updateMetrics()
@@ -367,7 +367,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		savepoint()
 
 		// check if there is not too many errors
-		if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
+		if w.progress.SegmentError > w.parent.Config.ShardFailedSegmentsMax {
 			return errors.New("too many failed segments")
 		}
 	}

@@ -12,25 +12,25 @@ import (
 
 // Config specifies the repair service configuration.
 type Config struct {
-	SegmentsPerRepair     int           `yaml:"segments_per_repair"`
-	SegmentTokensMax      int           `yaml:"segment_tokens_max"`
-	SegmentErrorLimit     int           `yaml:"segment_error_limit"`
-	PollInterval          time.Duration `yaml:"poll_interval"`
-	ErrorBackoff          time.Duration `yaml:"error_backoff"`
-	MaxRunAge             time.Duration `yaml:"max_run_age"`
-	ShardingIgnoreMsbBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
+	SegmentsPerRepair      int           `yaml:"segments_per_repair"`
+	SegmentTokensMax       int           `yaml:"segment_tokens_max"`
+	ShardFailedSegmentsMax int           `yaml:"shard_failed_segments_max"`
+	PollInterval           time.Duration `yaml:"poll_interval"`
+	ErrorBackoff           time.Duration `yaml:"error_backoff"`
+	MaxRunAge              time.Duration `yaml:"max_run_age"`
+	ShardingIgnoreMsbBits  int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		SegmentsPerRepair:     1,
-		SegmentTokensMax:      0,
-		SegmentErrorLimit:     100,
-		ErrorBackoff:          5 * time.Minute,
-		PollInterval:          200 * time.Millisecond,
-		MaxRunAge:             36 * time.Hour,
-		ShardingIgnoreMsbBits: 12,
+		SegmentsPerRepair:      1,
+		SegmentTokensMax:       0,
+		ShardFailedSegmentsMax: 100,
+		ErrorBackoff:           5 * time.Minute,
+		PollInterval:           200 * time.Millisecond,
+		MaxRunAge:              36 * time.Hour,
+		ShardingIgnoreMsbBits:  12,
 	}
 }
 
@@ -47,8 +47,8 @@ func (c *Config) Validate() error {
 	if c.SegmentTokensMax < 0 {
 		err = multierr.Append(err, errors.New("invalid segment_tokens_max, must be > 0 or 0 for no limit"))
 	}
-	if c.SegmentErrorLimit <= 0 {
-		err = multierr.Append(err, errors.New("invalid segment_error_limit, must be > 0"))
+	if c.ShardFailedSegmentsMax <= 0 {
+		err = multierr.Append(err, errors.New("invalid shard_failed_segments_max, must be > 0"))
 	}
 	if c.ErrorBackoff <= 0 {
 		err = multierr.Append(err, errors.New("invalid error_backoff, must be > 0"))
