@@ -457,7 +457,7 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 				s.putRunLogError(ctx, run)
 			default:
 				run.Status = runner.StatusError
-				run.Cause = errors.Wrapf(err, "repair failed for keyspace %s", run.Units[unit].Keyspace).Error()
+				run.Cause = errors.Wrapf(err, "keyspace %s", run.Units[unit].Keyspace).Error()
 				run.EndTime = timeutc.Now()
 				s.putRunLogError(ctx, run)
 			}

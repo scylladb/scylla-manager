@@ -90,6 +90,7 @@ func (w *hostWorker) init(ctx context.Context) error {
 
 		w.shards[i] = &shardWorker{
 			parent:   w,
+			shard:    i,
 			segments: segments,
 			progress: p,
 			logger:   w.Logger.With("shard", i),
@@ -113,70 +114,61 @@ func (w *hostWorker) exec(ctx context.Context) error {
 		return errors.Wrapf(err, "host not available")
 	}
 
-	// repair shards
-	type shardError struct {
-		shard int
-		err   error
-	}
-
-	var (
-		wch     = make(chan shardError)
-		werr    error
-		stopped bool
-		failed  bool
-	)
-
 	// run shard workers
-	for i, s := range w.shards {
-		i := i
+	wch := make(chan error)
+	for _, s := range w.shards {
 		s := s
 		go func() {
-			wch <- shardError{i, s.exec(ctx)}
+			wch <- s.exec(ctx)
 		}()
 	}
 	// run metrics updater
 	u := newProgressMetricsUpdater(w.Run, w.Service.getProgress, w.Logger)
 	go u.Run(ctx, 5*time.Second)
 
+	var (
+		werr    error
+		stopped bool
+		failed  bool
+	)
+
 	// join shard workers
 	for range w.shards {
-		r := <-wch
-		if r.err != nil {
+		if err := <-wch; err != nil {
 			if w.Run.failFast {
 				w.ffabrt.Store(true)
 			}
-			switch errors.Cause(r.err) {
+			switch errors.Cause(err) {
 			case errStopped:
 				stopped = true
 			case errDoneWithErrors:
 				failed = true
 			default:
-				werr = multierr.Append(werr, errors.Errorf("shard %d error", r.shard))
+				werr = multierr.Append(werr, err)
 			}
 		}
 	}
 	// join metrics updater
 	u.Stop()
 
-	if ctx.Err() != nil {
+	// overwrite error for abort, stop, done with errors
+	switch {
+	case ctx.Err() != nil:
 		w.Logger.Info(ctx, "Repair aborted")
-		return errAborted
-	}
-	if werr != nil {
+		werr = errAborted
+	case werr != nil:
 		w.Logger.Info(ctx, "Repair failed")
-		return werr
-	}
-	if stopped {
+	case stopped:
 		w.Logger.Info(ctx, "Repair stopped")
-		return errStopped
-	}
-	if failed {
+		werr = errStopped
+	case failed:
 		w.Logger.Info(ctx, "Repair done with errors")
-		return errDoneWithErrors
+		werr = errDoneWithErrors
+	default:
+		w.Logger.Info(ctx, "Repair done")
 	}
 
-	w.Logger.Info(ctx, "Repair done")
-	return nil
+	return errors.Wrapf(werr, "host %s", w.Host)
 }
 
 func (w *hostWorker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, error) {
@@ -190,7 +182,7 @@ func (w *hostWorker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, 
 func (w *hostWorker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Partitioner) []segments {
 	shards := w.Segments.splitToShards(p)
 	if err := w.Segments.validateShards(shards, p); err != nil {
-		w.Logger.Info(ctx, "Suboptimal sharding", "error", err.Error())
+		w.Logger.Error(ctx, "Suboptimal sharding", "error", err)
 	}
 
 	for i := range shards {
@@ -204,6 +196,7 @@ func (w *hostWorker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Pa
 // shardWorker repairs a single shard.
 type shardWorker struct {
 	parent   *hostWorker
+	shard    int
 	segments segments
 	progress *RunProgress
 	logger   log.Logger
@@ -219,10 +212,10 @@ func (w *shardWorker) init(ctx context.Context) {
 	w.updateMetrics()
 }
 
-func (w *shardWorker) exec(ctx context.Context) (err error) {
+func (w *shardWorker) exec(ctx context.Context) error {
 	if w.progress.complete() {
 		w.logger.Info(ctx, "Already repaired, skipping")
-		return
+		return nil
 	}
 
 	if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
@@ -233,6 +226,7 @@ func (w *shardWorker) exec(ctx context.Context) (err error) {
 
 	w.logger.Info(ctx, "Repairing", "percent_complete", w.progress.PercentComplete())
 
+	var err error
 	if w.progress.completeWithErrors() {
 		err = w.repair(ctx, w.newRetryIterator())
 	} else {
@@ -245,7 +239,7 @@ func (w *shardWorker) exec(ctx context.Context) (err error) {
 		w.logger.Info(ctx, "Repair ended", "percent_complete", w.progress.PercentComplete(), "error", err)
 	}
 
-	return
+	return errors.Wrapf(err, "shard %d", w.shard)
 }
 
 func (w *shardWorker) newRetryIterator() *retryIterator {
@@ -272,7 +266,6 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		start int
 		end   int
 		id    int32
-		err   error
 		ok    bool
 
 		lastPercentComplete = w.progress.PercentComplete()
@@ -329,38 +322,53 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			return nil
 		}
 
+		var err error
+
+		// request segment repair
 		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
-				ri.OnError()
-				next()
+				w.logger.Error(ctx, "Failed to request repair", "error", err)
+				err = errors.Wrap(err, "failed to request repair")
+			} else {
 				savepoint()
-				return errors.Wrap(err, "repair request failed")
 			}
 		}
 
-		savepoint()
+		// if requester a repair wait for the command to finish
+		if err == nil {
+			err = w.waitCommand(ctx, id)
+			if err != nil {
+				w.logger.Error(ctx, "Command error", "command", id, "error", err)
+				err = errors.Wrapf(err, "command %d error", id)
+			} else {
+				ri.OnSuccess()
+			}
+		}
 
-		err = w.waitCommand(ctx, id)
+		// handle errors
 		if err != nil {
-			w.logger.Error(ctx, "Repair failed on host, consult scylla logs", "command", id)
+			if w.isStopped(ctx) {
+				return errStopped
+			}
 			ri.OnError()
 			if w.parent.Run.failFast {
 				next()
 				savepoint()
-				return errors.New("repair stopped on error")
+				return err
 			}
+			w.logger.Info(ctx, "Pausing repair due to error", "wait", w.parent.Config.ErrorBackoff)
 			time.Sleep(w.parent.Config.ErrorBackoff)
-		} else {
-			ri.OnSuccess()
 		}
 
+		// reset command id and move on
 		id = 0
 		next()
 		savepoint()
 
+		// check if there is not too many errors
 		if w.progress.SegmentError > w.parent.Config.SegmentErrorLimit {
-			return errors.New("maximal number of failed segments exceeded")
+			return errors.New("too many failed segments")
 		}
 	}
 
@@ -381,6 +389,9 @@ func (w *shardWorker) resetProgress() {
 }
 
 func (w *shardWorker) isStopped(ctx context.Context) bool {
+	if ctx.Err() != nil {
+		return true
+	}
 	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Run)
 	if err != nil {
 		w.logger.Error(ctx, "Service error", "error", err)
@@ -419,7 +430,7 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return errStopped
 		case <-t.C:
 			s, err := w.parent.Client.RepairStatus(ctx, w.parent.Host, u.Keyspace, id)
 			if err != nil {
@@ -431,9 +442,9 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 			case scyllaclient.CommandSuccessful:
 				return nil
 			case scyllaclient.CommandFailed:
-				return errors.New("repair failed")
+				return errors.New("repair failed consult Scylla logs")
 			default:
-				return errors.Errorf("unknown status %q", s)
+				return errors.Errorf("unknown command status %q", s)
 			}
 		}
 	}

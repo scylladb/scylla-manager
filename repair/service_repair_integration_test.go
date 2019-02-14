@@ -12,11 +12,13 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/httputil"
@@ -149,6 +151,8 @@ func newTestService(t *testing.T, session *gocql.Session, hrt *HackableRoundTrip
 	return s
 }
 
+var commandCounter int32
+
 func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
@@ -169,10 +173,17 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 		case http.MethodGet:
 			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", s)))
 		case http.MethodPost:
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString("1"))
+			id := atomic.AddInt32(&commandCounter, 1)
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
 		}
 
 		return resp, nil
+	})
+}
+
+func dialErrorInterceptor() http.RoundTripper {
+	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		return nil, errors.New("mock dial error")
 	})
 }
 
@@ -221,7 +232,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	session := CreateSession(t)
 
-	t.Run("repair", func(t *testing.T) {
+	t.Run("repair simple", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
 		ctx := context.Background()
@@ -585,6 +596,47 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if len(prog.Units) != 2 {
 			t.Fatal(prog.Units)
 		}
+	})
+
+	t.Run("repair temporary network outage", func(t *testing.T) {
+		c := defaultConfig()
+		c.ErrorBackoff = 1 * time.Second
+
+		h := newRepairTestHelper(t, session, c)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit()); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: node1 is 50% repaired")
+		h.assertProgress(0, node1, 50, longWait)
+
+		Print("And: no network for 5s with 1s backoff")
+		h.hrt.SetInterceptor(dialErrorInterceptor())
+		time.AfterFunc(3*scyllaclient.Timeout, func() {
+			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		})
+
+		Print("Then: node1 repair continues")
+		h.assertProgress(0, node1, 60, 3*scyllaclient.Timeout+longWait)
+
+		Print("When: node1 is 95% repaired")
+		h.assertProgress(0, node1, 95, longWait)
+
+		Print("Then: repair of node2 advances")
+		h.assertProgress(0, node2, 1, longWait)
+
+		Print("When: node2 is 100% repaired")
+		h.assertProgress(0, node2, 100, longWait)
+
+		Print("Then: node1 is retries repair")
+		h.assertProgress(0, node1, 100, shortWait)
+
+		Print("And: status is StatusDone")
+		h.assertStatus(runner.StatusDone, shortWait)
 	})
 
 	t.Run("repair error retry", func(t *testing.T) {
