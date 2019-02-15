@@ -127,12 +127,6 @@ func (c *Client) ClusterName(ctx context.Context) (string, error) {
 	return resp.Payload, nil
 }
 
-type dcHost struct {
-	dc   string
-	host string
-	err  error
-}
-
 // Datacenters returns the available datacenters in this cluster.
 func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 	resp, err := c.operations.GetHostIDMap(&operations.GetHostIDMapParams{Context: ctx})
@@ -140,32 +134,16 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 		return nil, err
 	}
 
-	out := make(chan dcHost, runtime.NumCPU()+1)
-
-	for _, p := range resp.Payload {
-		go func(ctx context.Context, out chan dcHost, host string) {
-			dh := dcHost{
-				host: host,
-			}
-			dh.dc, dh.err = c.HostDatacenter(ctx, host)
-			out <- dh
-		}(ctx, out, p.Key)
-	}
-
 	res := make(map[string][]string)
 	var errs error
 
-	for range resp.Payload {
-		dcHost := <-out
-		if dcHost.err != nil {
+	for _, p := range resp.Payload {
+		dc, err := c.HostDatacenter(ctx, p.Key)
+		if err != nil {
 			errs = multierr.Append(errs, err)
 			continue
 		}
-		if dc, ok := res[dcHost.dc]; ok {
-			res[dcHost.dc] = append(dc, dcHost.host)
-		} else {
-			res[dcHost.dc] = []string{dcHost.host}
-		}
+		res[dc] = append(res[dc], p.Key)
 	}
 
 	return res, errs
