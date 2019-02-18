@@ -166,6 +166,9 @@ for host in ${HOSTS}; do
     getent group "${MANAGER_USER}"  || /usr/sbin/groupadd -r "${MANAGER_USER}"
     getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s $(command -v nologin) -r "${MANAGER_USER}"
 
+    # Force change shell
+    chsh -s $(command -v nologin) "${MANAGER_USER}"
+
     # Add public key to authorized_keys.
     mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
     grep "${MANAGER_PUBLIC_KEY}" "/var/lib/${MANAGER_USER}/.ssh/authorized_keys" || echo -e "# Added by Scylla Manager\n${MANAGER_PUBLIC_KEY}" >> "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
