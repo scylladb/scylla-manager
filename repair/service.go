@@ -393,7 +393,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	case prev.Status == runner.StatusDone:
 		s.logger.Info(ctx, "Starting from scratch: previous run is done")
 		return nil
-	case timeutc.Since(prev.StartTime) > s.config.MaxRunAge:
+	case timeutc.Since(prev.StartTime) > s.config.AgeMax:
 		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 		return nil
 	case prev.TopologyHash != run.TopologyHash:

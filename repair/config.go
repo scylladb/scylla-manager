@@ -18,7 +18,7 @@ type Config struct {
 	ShardFailedSegmentsMax int           `yaml:"shard_failed_segments_max"`
 	PollInterval           time.Duration `yaml:"poll_interval"`
 	ErrorBackoff           time.Duration `yaml:"error_backoff"`
-	MaxRunAge              time.Duration `yaml:"max_run_age"`
+	AgeMax                 time.Duration `yaml:"age_max"`
 	ShardingIgnoreMsbBits  int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 
@@ -30,7 +30,7 @@ func DefaultConfig() Config {
 		ShardFailedSegmentsMax: 100,
 		ErrorBackoff:           5 * time.Minute,
 		PollInterval:           200 * time.Millisecond,
-		MaxRunAge:              36 * time.Hour,
+		AgeMax:                 36 * time.Hour,
 		ShardingIgnoreMsbBits:  12,
 	}
 }
@@ -60,8 +60,8 @@ func (c *Config) Validate() error {
 	if c.PollInterval <= 0 {
 		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
 	}
-	if c.MaxRunAge <= 0 {
-		err = multierr.Append(err, errors.New("invalid max_run_age, must be > 0"))
+	if c.AgeMax <= 0 {
+		err = multierr.Append(err, errors.New("invalid age_max, must be > 0"))
 	}
 	if c.ShardingIgnoreMsbBits < 0 {
 		err = multierr.Append(err, errors.New("invalid murmur3_partitioner_ignore_msb_bits, must be >= 0"))

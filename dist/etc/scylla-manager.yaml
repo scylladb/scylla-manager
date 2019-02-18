@@ -105,7 +105,7 @@ repair:
 
   # Set maximal time after which a restarted repair is forced to start from the
   # beginning.
-  max_run_age: 36h
+  age_max: 36h
 
   # Distribution of data among cores (shards) within a node.
   # Copy value from Scylla configuration file.

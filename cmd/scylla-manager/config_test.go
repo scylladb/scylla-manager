@@ -71,7 +71,7 @@ func TestConfigModification(t *testing.T) {
 			ShardFailedSegmentsMax: 0,
 			ErrorBackoff:           10 * time.Second,
 			PollInterval:           500 * time.Millisecond,
-			MaxRunAge:              12 * time.Hour,
+			AgeMax:                 12 * time.Hour,
 			ShardingIgnoreMsbBits:  1,
 		},
 	}
