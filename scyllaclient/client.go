@@ -424,6 +424,75 @@ func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int
 	return CommandStatus(resp.Payload), nil
 }
 
+// ActiveRepairs returns a subset of hosts that are coordinators of a repair.
+func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]string, error) {
+	type hostError struct {
+		host   string
+		active bool
+		err    error
+	}
+	out := make(chan hostError, runtime.NumCPU()+1)
+
+	for _, h := range hosts {
+		h := h
+		go func() {
+			a, err := c.hasActiveRepair(ctx, h)
+			out <- hostError{
+				host:   h,
+				active: a,
+				err:    errors.Wrapf(err, "host %s", h),
+			}
+		}()
+	}
+
+	var (
+		active []string
+		errs   error
+	)
+	for range hosts {
+		v := <-out
+		if v.err != nil {
+			errs = multierr.Append(errs, v.err)
+		}
+		if v.active {
+			active = append(active, v.host)
+		}
+	}
+	return active, errs
+}
+
+func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error) {
+	const wait = 50 * time.Millisecond
+	for i := 0; i < 10; i++ {
+		resp, err := c.operations.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
+			Context: forceHost(ctx, host),
+		})
+		if err != nil {
+			return false, err
+		}
+		if len(resp.Payload) > 0 {
+			return true, nil
+		}
+		// wait before trying again
+		t := time.NewTimer(wait)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return false, ctx.Err()
+		case <-t.C:
+		}
+	}
+	return false, nil
+}
+
+// KillAllRepairs forces a termination of all repairs running on a host.
+func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
+	_, err := c.operations.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
+		Context: forceHost(ctx, host),
+	})
+	return err
+}
+
 // ShardCount returns number of shards in a node.
 func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 	u := url.URL{

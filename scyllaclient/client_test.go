@@ -219,6 +219,37 @@ func TestClientRepairStatus(t *testing.T) {
 	}
 }
 
+func TestClientActiveRepairs(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_active_repair.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	v, err := c.ActiveRepairs(context.Background(), []string{h})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(v, []string{h}); diff != "" {
+		t.Fatal(v)
+	}
+}
+
+func TestClientKillAllRepairs(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_force_terminate_repair.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	err := c.KillAllRepairs(context.Background(), h)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestClientRepairStatusForWrongID(t *testing.T) {
 	t.Parallel()
 
