@@ -22,7 +22,7 @@ import (
 
 var disableOpenAPIDebugOnce sync.Once
 
-//go:generate ./gen_internal.sh
+//go:generate ./gen-internal.sh
 
 // Client provides means to interact with Mermaid.
 type Client struct {

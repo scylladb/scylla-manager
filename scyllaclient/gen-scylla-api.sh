@@ -14,6 +14,6 @@ jq -M -s 'reduce .[] as $x (.[0]; .apis += $x.apis? | .models += $x.models) | .r
 | sed -e 's/#\/utils\///g' \
 | sed -e 's/"bool"/"boolean"/g' \
 | sed -e 's/"int"/"integer"/g' \
-> scylla_swagger10.json
+> scylla-api_10.json
 
-echo "Go to https://www.apimatic.io/transformer transform '$(pwd)/scylla_swagger10.json' to scylla.json"
+echo "Go to https://www.apimatic.io/transformer transform '$(pwd)/scylla-api_10.json' to scylla-api.json"

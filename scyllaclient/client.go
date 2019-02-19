@@ -51,7 +51,7 @@ var (
 
 var initOnce sync.Once
 
-//go:generate ./gen_internal.sh
+//go:generate ./gen-internal.sh
 
 // Client provides means to interact with Scylla nodes.
 type Client struct {
