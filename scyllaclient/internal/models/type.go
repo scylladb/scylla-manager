@@ -15,7 +15,7 @@ import (
 )
 
 // Type type
-// swagger:model Type
+// swagger:model type
 type Type string
 
 const (

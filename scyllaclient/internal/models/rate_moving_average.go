@@ -14,17 +14,17 @@ import (
 // RateMovingAverage rate_moving_average
 //
 // A meter metric which measures mean throughput and one, five, and fifteen-minute exponentially-weighted moving average throughputs
-// swagger:model RateMovingAverage
+// swagger:model rate_moving_average
 type RateMovingAverage struct {
 
 	// Total number of events from startup
-	Count int64 `json:"count,omitempty"`
+	Count interface{} `json:"count,omitempty"`
 
 	// The mean rate from startup
-	MeanRate int32 `json:"mean_rate,omitempty"`
+	MeanRate interface{} `json:"mean_rate,omitempty"`
 
 	// One, five and fifteen mintues rates
-	Rates []int32 `json:"rates"`
+	Rates []interface{} `json:"rates"`
 }
 
 // Validate validates this rate moving average

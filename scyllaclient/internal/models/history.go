@@ -17,20 +17,20 @@ import (
 // History history
 //
 // Compaction history information
-// swagger:model History
+// swagger:model history
 type History struct {
 
 	// Bytes in
-	BytesIn int64 `json:"bytes_in,omitempty"`
+	BytesIn interface{} `json:"bytes_in,omitempty"`
 
 	// Bytes out
-	BytesOut int64 `json:"bytes_out,omitempty"`
+	BytesOut interface{} `json:"bytes_out,omitempty"`
 
 	// The column family name
 	Cf string `json:"cf,omitempty"`
 
 	// The time of compaction
-	CompactedAt int64 `json:"compacted_at,omitempty"`
+	CompactedAt interface{} `json:"compacted_at,omitempty"`
 
 	// The UUID
 	ID string `json:"id,omitempty"`

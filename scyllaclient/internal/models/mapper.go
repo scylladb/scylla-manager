@@ -14,7 +14,7 @@ import (
 // Mapper mapper
 //
 // A key value mapping
-// swagger:model Mapper
+// swagger:model mapper
 type Mapper struct {
 
 	// The key

@@ -14,7 +14,7 @@ import (
 // ColumnFamilyInfo column_family_info
 //
 // Information about column family
-// swagger:model ColumnFamilyInfo
+// swagger:model column_family_info
 type ColumnFamilyInfo struct {
 
 	// The column family

@@ -14,7 +14,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// State state
+// State State
+//
+// Current session state
 // swagger:model State
 type State string
 

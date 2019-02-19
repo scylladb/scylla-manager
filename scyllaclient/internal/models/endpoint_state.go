@@ -17,7 +17,7 @@ import (
 // EndpointState endpoint_state
 //
 // Holds an endpoint state
-// swagger:model EndpointState
+// swagger:model endpoint_state
 type EndpointState struct {
 
 	// The endpoint address
@@ -33,7 +33,7 @@ type EndpointState struct {
 	IsAlive bool `json:"is_alive,omitempty"`
 
 	// The update timestamp
-	UpdateTime int64 `json:"update_time,omitempty"`
+	UpdateTime interface{} `json:"update_time,omitempty"`
 
 	// The heart beat version
 	Version int32 `json:"version,omitempty"`

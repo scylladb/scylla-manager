@@ -14,14 +14,14 @@ import (
 // MessageCounter message_counter
 //
 // Holds command counters
-// swagger:model MessageCounter
+// swagger:model message_counter
 type MessageCounter struct {
 
 	// key
 	Key string `json:"key,omitempty"`
 
 	// value
-	Value int64 `json:"value,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // Validate validates this message counter

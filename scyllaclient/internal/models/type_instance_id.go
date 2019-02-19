@@ -14,7 +14,7 @@ import (
 // TypeInstanceID type_instance_id
 //
 // A type instance ID
-// swagger:model TypeInstanceId
+// swagger:model type_instance_id
 type TypeInstanceID struct {
 
 	// The plugin ID
@@ -30,7 +30,7 @@ type TypeInstanceID struct {
 	TypeInstance string `json:"type_instance,omitempty"`
 }
 
-// Validate validates this type instance Id
+// Validate validates this type instance id
 func (m *TypeInstanceID) Validate(formats strfmt.Registry) error {
 	return nil
 }

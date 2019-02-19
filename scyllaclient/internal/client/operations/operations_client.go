@@ -25,11752 +25,11842 @@ type Client struct {
 }
 
 /*
-AssassinateEndpoint assassinates endpoint
-
-Assassinate an end point
-*/
-func (a *Client) AssassinateEndpoint(params *AssassinateEndpointParams) (*AssassinateEndpointOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewAssassinateEndpointParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "assassinate_endpoint",
-		Method:             "POST",
-		PathPattern:        "/gossiper/assassinate/{addr}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &AssassinateEndpointReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*AssassinateEndpointOK), nil
-
-}
-
-/*
-BulkLoad bulks load
-
-Starts a bulk load and blocks until it completes
-*/
-func (a *Client) BulkLoad(params *BulkLoadParams) (*BulkLoadOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewBulkLoadParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "bulk_load",
-		Method:             "POST",
-		PathPattern:        "/storage_service/bulk_load/{path}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &BulkLoadReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*BulkLoadOK), nil
-
-}
-
-/*
-BulkLoadAsync bulks load async
-
-Starts a bulk load asynchronously and returns the String representation of the planID for the new streaming session.
-*/
-func (a *Client) BulkLoadAsync(params *BulkLoadAsyncParams) (*BulkLoadAsyncOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewBulkLoadAsyncParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "bulk_load_async",
-		Method:             "GET",
-		PathPattern:        "/storage_service/bulk_load_async/{path}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &BulkLoadAsyncReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*BulkLoadAsyncOK), nil
-
-}
-
-/*
-CommitlogRecover commitlogs recover
-
-Recover a single file
-*/
-func (a *Client) CommitlogRecover(params *CommitlogRecoverParams) (*CommitlogRecoverOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCommitlogRecoverParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "commitlog_recover",
-		Method:             "POST",
-		PathPattern:        "/commitlog/recover/{path}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &CommitlogRecoverReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CommitlogRecoverOK), nil
-
-}
-
-/*
-Decommission decommissions
-
-transfer this node's data to other machines and remove it from service.
-*/
-func (a *Client) Decommission(params *DecommissionParams) (*DecommissionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDecommissionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "decommission",
-		Method:             "POST",
-		PathPattern:        "/storage_service/decommission",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DecommissionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DecommissionOK), nil
-
-}
-
-/*
-DelSnapshot dels snapshot
-
-Remove the snapshot with the given name from the given keyspaces. If no tag is specified all snapshots will be removed
-*/
-func (a *Client) DelSnapshot(params *DelSnapshotParams) (*DelSnapshotOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDelSnapshotParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "del_snapshot",
-		Method:             "DELETE",
-		PathPattern:        "/storage_service/snapshots",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DelSnapshotReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DelSnapshotOK), nil
-
-}
-
-/*
-DeliverHints delivers hints
-*/
-func (a *Client) DeliverHints(params *DeliverHintsParams) (*DeliverHintsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDeliverHintsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "deliver_hints",
-		Method:             "POST",
-		PathPattern:        "/storage_service/deliver_hints",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DeliverHintsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DeliverHintsOK), nil
-
-}
-
-/*
-DescribeAnyRing describes any ring
-
-The TokenRange for a any keyspace
-*/
-func (a *Client) DescribeAnyRing(params *DescribeAnyRingParams) (*DescribeAnyRingOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDescribeAnyRingParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "describe_any_ring",
-		Method:             "GET",
-		PathPattern:        "/storage_service/describe_ring/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DescribeAnyRingReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DescribeAnyRingOK), nil
-
-}
-
-/*
-DescribeRing describes ring
-
-The TokenRange for a given keyspace
-*/
-func (a *Client) DescribeRing(params *DescribeRingParams) (*DescribeRingOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDescribeRingParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "describe_ring",
-		Method:             "GET",
-		PathPattern:        "/storage_service/describe_ring/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DescribeRingReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DescribeRingOK), nil
-
-}
-
-/*
-DisableAutoCompaction disables auto compaction
-
-Disable auto compaction
-*/
-func (a *Client) DisableAutoCompaction(params *DisableAutoCompactionParams) (*DisableAutoCompactionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDisableAutoCompactionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "disable_auto_compaction",
-		Method:             "DELETE",
-		PathPattern:        "/storage_service/auto_compaction/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DisableAutoCompactionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DisableAutoCompactionOK), nil
-
-}
-
-/*
-Drain drains
-
-makes node unavailable for writes, flushes memtables and replays commitlog
-*/
-func (a *Client) Drain(params *DrainParams) (*DrainOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDrainParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "drain",
-		Method:             "POST",
-		PathPattern:        "/storage_service/drain",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DrainReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DrainOK), nil
-
-}
-
-/*
-EnableAllCollectd enables all collectd
-
-Enable or disable all collectd metrics
-*/
-func (a *Client) EnableAllCollectd(params *EnableAllCollectdParams) (*EnableAllCollectdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewEnableAllCollectdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "enable_all_collectd",
-		Method:             "POST",
-		PathPattern:        "/collectd/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &EnableAllCollectdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*EnableAllCollectdOK), nil
-
-}
-
-/*
-EnableAutoCompaction enables auto compaction
-
-Enable auto compaction
-*/
-func (a *Client) EnableAutoCompaction(params *EnableAutoCompactionParams) (*EnableAutoCompactionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewEnableAutoCompactionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "enable_auto_compaction",
-		Method:             "POST",
-		PathPattern:        "/storage_service/auto_compaction/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &EnableAutoCompactionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*EnableAutoCompactionOK), nil
-
-}
-
-/*
-EnableCollectd enables collectd
-
-Start reporting on one or more collectd metric
-*/
-func (a *Client) EnableCollectd(params *EnableCollectdParams) (*EnableCollectdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewEnableCollectdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "enable_collectd",
-		Method:             "POST",
-		PathPattern:        "/collectd/{pluginid}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &EnableCollectdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*EnableCollectdOK), nil
-
-}
-
-/*
-EstimateKeys estimates keys
-
-Get the estimate keys
-*/
-func (a *Client) EstimateKeys(params *EstimateKeysParams) (*EstimateKeysOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewEstimateKeysParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "estimate_keys",
-		Method:             "GET",
-		PathPattern:        "/column_family/estimate_keys/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &EstimateKeysReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*EstimateKeysOK), nil
-
-}
-
-/*
-ForceKeyspaceCleanup forces keyspace cleanup
-
-Trigger a cleanup of keys on a single keyspace
-*/
-func (a *Client) ForceKeyspaceCleanup(params *ForceKeyspaceCleanupParams) (*ForceKeyspaceCleanupOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewForceKeyspaceCleanupParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "force_keyspace_cleanup",
-		Method:             "POST",
-		PathPattern:        "/storage_service/keyspace_cleanup/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ForceKeyspaceCleanupReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ForceKeyspaceCleanupOK), nil
-
-}
-
-/*
-ForceKeyspaceCompaction forces keyspace compaction
-
-Forces major compaction of a single keyspace
-*/
-func (a *Client) ForceKeyspaceCompaction(params *ForceKeyspaceCompactionParams) (*ForceKeyspaceCompactionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewForceKeyspaceCompactionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "force_keyspace_compaction",
-		Method:             "POST",
-		PathPattern:        "/storage_service/keyspace_compaction/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ForceKeyspaceCompactionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ForceKeyspaceCompactionOK), nil
-
-}
-
-/*
-ForceKeyspaceFlush forces keyspace flush
-
-Flush all memtables for the given column families, or all columnfamilies for the given keyspace if none are explicitly listed.
-*/
-func (a *Client) ForceKeyspaceFlush(params *ForceKeyspaceFlushParams) (*ForceKeyspaceFlushOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewForceKeyspaceFlushParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "force_keyspace_flush",
-		Method:             "POST",
-		PathPattern:        "/storage_service/keyspace_flush/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ForceKeyspaceFlushReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ForceKeyspaceFlushOK), nil
-
-}
-
-/*
-ForceMajorCompaction forces major compaction
-
-Force a major compaction of this column family
-*/
-func (a *Client) ForceMajorCompaction(params *ForceMajorCompactionParams) (*ForceMajorCompactionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewForceMajorCompactionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "force_major_compaction",
-		Method:             "POST",
-		PathPattern:        "/column_family/major_compaction/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ForceMajorCompactionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ForceMajorCompactionOK), nil
-
-}
-
-/*
-ForceRemoveCompletion forces remove completion
-
-Force a remove operation to finish.
-*/
-func (a *Client) ForceRemoveCompletion(params *ForceRemoveCompletionParams) (*ForceRemoveCompletionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewForceRemoveCompletionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "force_remove_completion",
-		Method:             "POST",
-		PathPattern:        "/storage_service/force_remove_completion",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ForceRemoveCompletionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ForceRemoveCompletionOK), nil
-
-}
-
-/*
-ForceTerminateAllRepairSessions forces terminate all repair sessions
-
-Force terminate all repair sessions
-*/
-func (a *Client) ForceTerminateAllRepairSessions(params *ForceTerminateAllRepairSessionsParams) (*ForceTerminateAllRepairSessionsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewForceTerminateAllRepairSessionsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "force_terminate_all_repair_sessions",
-		Method:             "POST",
-		PathPattern:        "/storage_service/force_terminate",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ForceTerminateAllRepairSessionsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ForceTerminateAllRepairSessionsOK), nil
-
-}
-
-/*
-ForceUserDefinedCompaction forces user defined compaction
-
-Triggers the compaction of user specified sstables. You can specify files from various keyspaces and columnfamilies. If you do so, user defined compaction is performed several times to the groups of files in the same keyspace/columnfamily. must contain keyspace and columnfamily name in path(for 2.1+) or file name itself.
-*/
-func (a *Client) ForceUserDefinedCompaction(params *ForceUserDefinedCompactionParams) (*ForceUserDefinedCompactionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewForceUserDefinedCompactionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "force_user_defined_compaction",
-		Method:             "POST",
-		PathPattern:        "/compaction_manager/force_user_defined_compaction",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ForceUserDefinedCompactionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ForceUserDefinedCompactionOK), nil
-
-}
-
-/*
-GetActiveSegmentNames gets active segment names
-
-file names (not full paths) of active commit log segments (segments containing unflushed data)
-*/
-func (a *Client) GetActiveSegmentNames(params *GetActiveSegmentNamesParams) (*GetActiveSegmentNamesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetActiveSegmentNamesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_active_segment_names",
-		Method:             "GET",
-		PathPattern:        "/commitlog/segments/active",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetActiveSegmentNamesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetActiveSegmentNamesOK), nil
-
-}
-
-/*
-GetAllActiveStreamsOutbound gets all active streams outbound
-
-Get number of active outbound streams
-*/
-func (a *Client) GetAllActiveStreamsOutbound(params *GetAllActiveStreamsOutboundParams) (*GetAllActiveStreamsOutboundOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllActiveStreamsOutboundParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_active_streams_outbound",
-		Method:             "GET",
-		PathPattern:        "/stream_manager/metrics/outbound",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllActiveStreamsOutboundReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllActiveStreamsOutboundOK), nil
-
-}
-
-/*
-GetAllBloomFilterDiskSpaceUsed gets all bloom filter disk space used
-
-Get all bloom filter disk space used
-*/
-func (a *Client) GetAllBloomFilterDiskSpaceUsed(params *GetAllBloomFilterDiskSpaceUsedParams) (*GetAllBloomFilterDiskSpaceUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllBloomFilterDiskSpaceUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_bloom_filter_disk_space_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_disk_space_used",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllBloomFilterDiskSpaceUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllBloomFilterDiskSpaceUsedOK), nil
-
-}
-
-/*
-GetAllBloomFilterFalsePositives gets all bloom filter false positives
-
-Get all bloom filter false positives
-*/
-func (a *Client) GetAllBloomFilterFalsePositives(params *GetAllBloomFilterFalsePositivesParams) (*GetAllBloomFilterFalsePositivesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllBloomFilterFalsePositivesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_bloom_filter_false_positives",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_false_positives",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllBloomFilterFalsePositivesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllBloomFilterFalsePositivesOK), nil
-
-}
-
-/*
-GetAllBloomFilterFalseRatio gets all bloom filter false ratio
-
-Get all bloom filter false ratio
-*/
-func (a *Client) GetAllBloomFilterFalseRatio(params *GetAllBloomFilterFalseRatioParams) (*GetAllBloomFilterFalseRatioOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllBloomFilterFalseRatioParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_bloom_filter_false_ratio",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_false_ratio",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllBloomFilterFalseRatioReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllBloomFilterFalseRatioOK), nil
-
-}
-
-/*
-GetAllBloomFilterOffHeapMemoryUsed gets all bloom filter off heap memory used
-
-Get all bloom filter off heap memory used
-*/
-func (a *Client) GetAllBloomFilterOffHeapMemoryUsed(params *GetAllBloomFilterOffHeapMemoryUsedParams) (*GetAllBloomFilterOffHeapMemoryUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllBloomFilterOffHeapMemoryUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_bloom_filter_off_heap_memory_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_off_heap_memory_used",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllBloomFilterOffHeapMemoryUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllBloomFilterOffHeapMemoryUsedOK), nil
-
-}
-
-/*
-GetAllCfAllMemtablesLiveDataSize gets all cf all memtables live data size
-
-Get all memtables active and not of all column family live data size
-*/
-func (a *Client) GetAllCfAllMemtablesLiveDataSize(params *GetAllCfAllMemtablesLiveDataSizeParams) (*GetAllCfAllMemtablesLiveDataSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllCfAllMemtablesLiveDataSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_cf_all_memtables_live_data_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/all_memtables_live_data_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllCfAllMemtablesLiveDataSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllCfAllMemtablesLiveDataSizeOK), nil
-
-}
-
-/*
-GetAllCfAllMemtablesOffHeapSize gets all cf all memtables off heap size
-
-Get all memtables active and not of all column family off heap size
-*/
-func (a *Client) GetAllCfAllMemtablesOffHeapSize(params *GetAllCfAllMemtablesOffHeapSizeParams) (*GetAllCfAllMemtablesOffHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllCfAllMemtablesOffHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_cf_all_memtables_off_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/all_memtables_off_heap_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllCfAllMemtablesOffHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllCfAllMemtablesOffHeapSizeOK), nil
-
-}
-
-/*
-GetAllCfAllMemtablesOnHeapSize gets all cf all memtables on heap size
-
-Get all memtables active and not of all column family on heap size
-*/
-func (a *Client) GetAllCfAllMemtablesOnHeapSize(params *GetAllCfAllMemtablesOnHeapSizeParams) (*GetAllCfAllMemtablesOnHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllCfAllMemtablesOnHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_cf_all_memtables_on_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/all_memtables_on_heap_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllCfAllMemtablesOnHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllCfAllMemtablesOnHeapSizeOK), nil
-
-}
-
-/*
-GetAllCompressionMetadataOffHeapMemoryUsed gets all compression metadata off heap memory used
-
-Get all compression metadata off heap memory used
-*/
-func (a *Client) GetAllCompressionMetadataOffHeapMemoryUsed(params *GetAllCompressionMetadataOffHeapMemoryUsedParams) (*GetAllCompressionMetadataOffHeapMemoryUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllCompressionMetadataOffHeapMemoryUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_compression_metadata_off_heap_memory_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/compression_metadata_off_heap_memory_used",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllCompressionMetadataOffHeapMemoryUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllCompressionMetadataOffHeapMemoryUsedOK), nil
-
-}
-
-/*
-GetAllCompressionRatio gets all compression ratio
-
-Get all compression ratio
-*/
-func (a *Client) GetAllCompressionRatio(params *GetAllCompressionRatioParams) (*GetAllCompressionRatioOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllCompressionRatioParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_compression_ratio",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/compression_ratio",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllCompressionRatioReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllCompressionRatioOK), nil
-
-}
-
-/*
-GetAllDataFileLocations gets all data file locations
-
-Get the list of all data file locations from conf
-*/
-func (a *Client) GetAllDataFileLocations(params *GetAllDataFileLocationsParams) (*GetAllDataFileLocationsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllDataFileLocationsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_data_file_locations",
-		Method:             "GET",
-		PathPattern:        "/storage_service/data_file/locations",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllDataFileLocationsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllDataFileLocationsOK), nil
-
-}
-
-/*
-GetAllEndpointStates gets all endpoint states
-
-Get all endpoint states
-*/
-func (a *Client) GetAllEndpointStates(params *GetAllEndpointStatesParams) (*GetAllEndpointStatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllEndpointStatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_endpoint_states",
-		Method:             "GET",
-		PathPattern:        "/failure_detector/endpoints/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllEndpointStatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllEndpointStatesOK), nil
-
-}
-
-/*
-GetAllIndexSummaryOffHeapMemoryUsed gets all index summary off heap memory used
-
-Get all index summary off heap memory used
-*/
-func (a *Client) GetAllIndexSummaryOffHeapMemoryUsed(params *GetAllIndexSummaryOffHeapMemoryUsedParams) (*GetAllIndexSummaryOffHeapMemoryUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllIndexSummaryOffHeapMemoryUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_index_summary_off_heap_memory_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/index_summary_off_heap_memory_used",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllIndexSummaryOffHeapMemoryUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllIndexSummaryOffHeapMemoryUsedOK), nil
-
-}
-
-/*
-GetAllLiveDiskSpaceUsed gets all live disk space used
-
-Get all live disk space used
-*/
-func (a *Client) GetAllLiveDiskSpaceUsed(params *GetAllLiveDiskSpaceUsedParams) (*GetAllLiveDiskSpaceUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllLiveDiskSpaceUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_live_disk_space_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/live_disk_space_used",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllLiveDiskSpaceUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllLiveDiskSpaceUsedOK), nil
-
-}
-
-/*
-GetAllLiveSsTableCount gets all live ss table count
-
-Get all live ss table count
-*/
-func (a *Client) GetAllLiveSsTableCount(params *GetAllLiveSsTableCountParams) (*GetAllLiveSsTableCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllLiveSsTableCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_live_ss_table_count",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/live_ss_table_count",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllLiveSsTableCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllLiveSsTableCountOK), nil
-
-}
-
-/*
-GetAllLoggerNames gets all logger names
-
-Get all logger names
-*/
-func (a *Client) GetAllLoggerNames(params *GetAllLoggerNamesParams) (*GetAllLoggerNamesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllLoggerNamesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_logger_names",
-		Method:             "GET",
-		PathPattern:        "/system/logger",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllLoggerNamesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllLoggerNamesOK), nil
-
-}
-
-/*
-GetAllMaxRowSize gets all max row size
-
-Get all max row size
-*/
-func (a *Client) GetAllMaxRowSize(params *GetAllMaxRowSizeParams) (*GetAllMaxRowSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMaxRowSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_max_row_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/max_row_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMaxRowSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMaxRowSizeOK), nil
-
-}
-
-/*
-GetAllMeanRowSize gets all mean row size
-
-Get all mean row size
-*/
-func (a *Client) GetAllMeanRowSize(params *GetAllMeanRowSizeParams) (*GetAllMeanRowSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMeanRowSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_mean_row_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/mean_row_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMeanRowSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMeanRowSizeOK), nil
-
-}
-
-/*
-GetAllMemtableColumnsCount gets all memtable columns count
-
-get all memtable columns count
-*/
-func (a *Client) GetAllMemtableColumnsCount(params *GetAllMemtableColumnsCountParams) (*GetAllMemtableColumnsCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMemtableColumnsCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_memtable_columns_count",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_columns_count/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMemtableColumnsCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMemtableColumnsCountOK), nil
-
-}
-
-/*
-GetAllMemtableLiveDataSize gets all memtable live data size
-
-Get all active memtable of all column family live data size
-*/
-func (a *Client) GetAllMemtableLiveDataSize(params *GetAllMemtableLiveDataSizeParams) (*GetAllMemtableLiveDataSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMemtableLiveDataSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_memtable_live_data_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_live_data_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMemtableLiveDataSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMemtableLiveDataSizeOK), nil
-
-}
-
-/*
-GetAllMemtableOffHeapSize gets all memtable off heap size
-
-Get all active memtable of all column family off heap size
-*/
-func (a *Client) GetAllMemtableOffHeapSize(params *GetAllMemtableOffHeapSizeParams) (*GetAllMemtableOffHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMemtableOffHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_memtable_off_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_off_heap_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMemtableOffHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMemtableOffHeapSizeOK), nil
-
-}
-
-/*
-GetAllMemtableOnHeapSize gets all memtable on heap size
-
-Get all active memtable of all column family on heap size
-*/
-func (a *Client) GetAllMemtableOnHeapSize(params *GetAllMemtableOnHeapSizeParams) (*GetAllMemtableOnHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMemtableOnHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_memtable_on_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_on_heap_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMemtableOnHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMemtableOnHeapSizeOK), nil
-
-}
-
-/*
-GetAllMemtableSwitchCount gets all memtable switch count
-
-Get all memtable switch count
-*/
-func (a *Client) GetAllMemtableSwitchCount(params *GetAllMemtableSwitchCountParams) (*GetAllMemtableSwitchCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMemtableSwitchCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_memtable_switch_count",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_switch_count",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMemtableSwitchCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMemtableSwitchCountOK), nil
-
-}
-
-/*
-GetAllMinRowSize gets all min row size
-
-Get all min row size
-*/
-func (a *Client) GetAllMinRowSize(params *GetAllMinRowSizeParams) (*GetAllMinRowSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllMinRowSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_min_row_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/min_row_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllMinRowSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllMinRowSizeOK), nil
-
-}
-
-/*
-GetAllPendingCompactions gets all pending compactions
-
-Get all pending compactions
-*/
-func (a *Client) GetAllPendingCompactions(params *GetAllPendingCompactionsParams) (*GetAllPendingCompactionsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllPendingCompactionsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_pending_compactions",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/pending_compactions",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllPendingCompactionsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllPendingCompactionsOK), nil
-
-}
-
-/*
-GetAllPendingFlushes gets all pending flushes
-
-Get all pending flushes
-*/
-func (a *Client) GetAllPendingFlushes(params *GetAllPendingFlushesParams) (*GetAllPendingFlushesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllPendingFlushesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_pending_flushes",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/pending_flushes",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllPendingFlushesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllPendingFlushesOK), nil
-
-}
-
-/*
-GetAllRangeLatency gets all range latency
-
-Get all range latency
-*/
-func (a *Client) GetAllRangeLatency(params *GetAllRangeLatencyParams) (*GetAllRangeLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllRangeLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_range_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/range_latency",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllRangeLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllRangeLatencyOK), nil
-
-}
-
-/*
-GetAllRead gets all read
-
-Get number of reads from all column family, per shard
-*/
-func (a *Client) GetAllRead(params *GetAllReadParams) (*GetAllReadOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllReadParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_read",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllReadReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllReadOK), nil
-
-}
-
-/*
-GetAllReadLatency gets all read latency
-
-Get all read latency
-*/
-func (a *Client) GetAllReadLatency(params *GetAllReadLatencyParams) (*GetAllReadLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllReadLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_read_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllReadLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllReadLatencyOK), nil
-
-}
-
-/*
-GetAllReadLatencyHistogram gets all read latency histogram
-
-Get read latency moving avrage histogram from all column family
-*/
-func (a *Client) GetAllReadLatencyHistogram(params *GetAllReadLatencyHistogramParams) (*GetAllReadLatencyHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllReadLatencyHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_read_latency_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency/moving_average_histogram/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllReadLatencyHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllReadLatencyHistogramOK), nil
-
-}
-
-/*
-GetAllReadLatencyHistogramDepricated gets all read latency histogram depricated
-
-Get read latency histogram from all column family
-*/
-func (a *Client) GetAllReadLatencyHistogramDepricated(params *GetAllReadLatencyHistogramDepricatedParams) (*GetAllReadLatencyHistogramDepricatedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllReadLatencyHistogramDepricatedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_read_latency_histogram_depricated",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency/histogram/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllReadLatencyHistogramDepricatedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllReadLatencyHistogramDepricatedOK), nil
-
-}
-
-/*
-GetAllRecentBloomFilterFalsePositives gets all recent bloom filter false positives
-
-Get all recent bloom filter false positives
-*/
-func (a *Client) GetAllRecentBloomFilterFalsePositives(params *GetAllRecentBloomFilterFalsePositivesParams) (*GetAllRecentBloomFilterFalsePositivesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllRecentBloomFilterFalsePositivesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_recent_bloom_filter_false_positives",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_positives",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllRecentBloomFilterFalsePositivesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllRecentBloomFilterFalsePositivesOK), nil
-
-}
-
-/*
-GetAllRecentBloomFilterFalseRatio gets all recent bloom filter false ratio
-
-Get all recent bloom filter false ratio
-*/
-func (a *Client) GetAllRecentBloomFilterFalseRatio(params *GetAllRecentBloomFilterFalseRatioParams) (*GetAllRecentBloomFilterFalseRatioOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllRecentBloomFilterFalseRatioParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_recent_bloom_filter_false_ratio",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_ratio",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllRecentBloomFilterFalseRatioReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllRecentBloomFilterFalseRatioOK), nil
-
-}
-
-/*
-GetAllRowCacheHit gets all row cache hit
-
-Get all row cache hit
-*/
-func (a *Client) GetAllRowCacheHit(params *GetAllRowCacheHitParams) (*GetAllRowCacheHitOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllRowCacheHitParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_row_cache_hit",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/row_cache_hit",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllRowCacheHitReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllRowCacheHitOK), nil
-
-}
-
-/*
-GetAllRowCacheHitOutOfRange gets all row cache hit out of range
-
-Get all row cache hit out of range
-*/
-func (a *Client) GetAllRowCacheHitOutOfRange(params *GetAllRowCacheHitOutOfRangeParams) (*GetAllRowCacheHitOutOfRangeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllRowCacheHitOutOfRangeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_row_cache_hit_out_of_range",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/row_cache_hit_out_of_range",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllRowCacheHitOutOfRangeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllRowCacheHitOutOfRangeOK), nil
-
-}
-
-/*
-GetAllRowCacheMiss gets all row cache miss
-
-Get all row cache miss
-*/
-func (a *Client) GetAllRowCacheMiss(params *GetAllRowCacheMissParams) (*GetAllRowCacheMissOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllRowCacheMissParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_row_cache_miss",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/row_cache_miss",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllRowCacheMissReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllRowCacheMissOK), nil
-
-}
-
-/*
-GetAllSpeculativeRetries gets all speculative retries
-
-Get all speculative retries
-*/
-func (a *Client) GetAllSpeculativeRetries(params *GetAllSpeculativeRetriesParams) (*GetAllSpeculativeRetriesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllSpeculativeRetriesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_speculative_retries",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/speculative_retries",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllSpeculativeRetriesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllSpeculativeRetriesOK), nil
-
-}
-
-/*
-GetAllTotalDiskSpaceUsed gets all total disk space used
-
-Get all total disk space used
-*/
-func (a *Client) GetAllTotalDiskSpaceUsed(params *GetAllTotalDiskSpaceUsedParams) (*GetAllTotalDiskSpaceUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllTotalDiskSpaceUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_total_disk_space_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/total_disk_space_used",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllTotalDiskSpaceUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllTotalDiskSpaceUsedOK), nil
-
-}
-
-/*
-GetAllTotalIncomingBytes gets all total incoming bytes
-
-Get all total incoming bytes
-*/
-func (a *Client) GetAllTotalIncomingBytes(params *GetAllTotalIncomingBytesParams) (*GetAllTotalIncomingBytesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllTotalIncomingBytesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_total_incoming_bytes",
-		Method:             "GET",
-		PathPattern:        "/stream_manager/metrics/incoming",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllTotalIncomingBytesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllTotalIncomingBytesOK), nil
-
-}
-
-/*
-GetAllTotalOutgoingBytes gets all total outgoing bytes
-
-Get all total outgoing bytes
-*/
-func (a *Client) GetAllTotalOutgoingBytes(params *GetAllTotalOutgoingBytesParams) (*GetAllTotalOutgoingBytesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllTotalOutgoingBytesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_total_outgoing_bytes",
-		Method:             "GET",
-		PathPattern:        "/stream_manager/metrics/outgoing",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllTotalOutgoingBytesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllTotalOutgoingBytesOK), nil
-
-}
-
-/*
-GetAllTrueSnapshotsSize gets all true snapshots size
-
-Get all true snapshots size
-*/
-func (a *Client) GetAllTrueSnapshotsSize(params *GetAllTrueSnapshotsSizeParams) (*GetAllTrueSnapshotsSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllTrueSnapshotsSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_true_snapshots_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/true_snapshots_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllTrueSnapshotsSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllTrueSnapshotsSizeOK), nil
-
-}
-
-/*
-GetAllWrite gets all write
-
-Get number of writes from all column family, per shard
-*/
-func (a *Client) GetAllWrite(params *GetAllWriteParams) (*GetAllWriteOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllWriteParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_write",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllWriteReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllWriteOK), nil
-
-}
-
-/*
-GetAllWriteLatency gets all write latency
-
-Get all write latency
-*/
-func (a *Client) GetAllWriteLatency(params *GetAllWriteLatencyParams) (*GetAllWriteLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllWriteLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_write_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllWriteLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllWriteLatencyOK), nil
-
-}
-
-/*
-GetAllWriteLatencyHistogram gets all write latency histogram
-
-Get write latency moving average histogram of all column family
-*/
-func (a *Client) GetAllWriteLatencyHistogram(params *GetAllWriteLatencyHistogramParams) (*GetAllWriteLatencyHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllWriteLatencyHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_write_latency_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency/moving_average_histogram/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllWriteLatencyHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllWriteLatencyHistogramOK), nil
-
-}
-
-/*
-GetAllWriteLatencyHistogramDepricated gets all write latency histogram depricated
-
-Get write latency histogram of all column family
-*/
-func (a *Client) GetAllWriteLatencyHistogramDepricated(params *GetAllWriteLatencyHistogramDepricatedParams) (*GetAllWriteLatencyHistogramDepricatedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetAllWriteLatencyHistogramDepricatedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_all_write_latency_histogram_depricated",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency/histogram/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetAllWriteLatencyHistogramDepricatedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetAllWriteLatencyHistogramDepricatedOK), nil
-
-}
-
-/*
-GetArchivingSegmentNames gets archiving segment names
-
-Returns files which are pending for archival attempt. Does NOT include failed archive attempts
-*/
-func (a *Client) GetArchivingSegmentNames(params *GetArchivingSegmentNamesParams) (*GetArchivingSegmentNamesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetArchivingSegmentNamesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_archiving_segment_names",
-		Method:             "GET",
-		PathPattern:        "/commitlog/segments/archiving",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetArchivingSegmentNamesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetArchivingSegmentNamesOK), nil
-
-}
-
-/*
-GetBatchSizeFailureThreshold gets batch size failure threshold
-
-Returns the threshold for rejecting queries due to a large batch size
-*/
-func (a *Client) GetBatchSizeFailureThreshold(params *GetBatchSizeFailureThresholdParams) (*GetBatchSizeFailureThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetBatchSizeFailureThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_batch_size_failure_threshold",
-		Method:             "GET",
-		PathPattern:        "/storage_service/batch_size_failure_threshold",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetBatchSizeFailureThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetBatchSizeFailureThresholdOK), nil
-
-}
-
-/*
-GetBloomFilterDiskSpaceUsed gets bloom filter disk space used
-
-Get bloom filter disk space used
-*/
-func (a *Client) GetBloomFilterDiskSpaceUsed(params *GetBloomFilterDiskSpaceUsedParams) (*GetBloomFilterDiskSpaceUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetBloomFilterDiskSpaceUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_bloom_filter_disk_space_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_disk_space_used/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetBloomFilterDiskSpaceUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetBloomFilterDiskSpaceUsedOK), nil
-
-}
-
-/*
-GetBloomFilterFalsePositives gets bloom filter false positives
-
-Get bloom filter false positives
-*/
-func (a *Client) GetBloomFilterFalsePositives(params *GetBloomFilterFalsePositivesParams) (*GetBloomFilterFalsePositivesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetBloomFilterFalsePositivesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_bloom_filter_false_positives",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_false_positives/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetBloomFilterFalsePositivesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetBloomFilterFalsePositivesOK), nil
-
-}
-
-/*
-GetBloomFilterFalseRatio gets bloom filter false ratio
-
-Get bloom filter false ratio
-*/
-func (a *Client) GetBloomFilterFalseRatio(params *GetBloomFilterFalseRatioParams) (*GetBloomFilterFalseRatioOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetBloomFilterFalseRatioParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_bloom_filter_false_ratio",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_false_ratio/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetBloomFilterFalseRatioReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetBloomFilterFalseRatioOK), nil
-
-}
-
-/*
-GetBloomFilterOffHeapMemoryUsed gets bloom filter off heap memory used
-
-Get bloom filter off heap memory used
-*/
-func (a *Client) GetBloomFilterOffHeapMemoryUsed(params *GetBloomFilterOffHeapMemoryUsedParams) (*GetBloomFilterOffHeapMemoryUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetBloomFilterOffHeapMemoryUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_bloom_filter_off_heap_memory_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/bloom_filter_off_heap_memory_used/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetBloomFilterOffHeapMemoryUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetBloomFilterOffHeapMemoryUsedOK), nil
-
-}
-
-/*
-GetBuiltIndexes gets built indexes
-
-Returns a list of the names of the built column indexes for current store
-*/
-func (a *Client) GetBuiltIndexes(params *GetBuiltIndexesParams) (*GetBuiltIndexesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetBuiltIndexesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_built_indexes",
-		Method:             "GET",
-		PathPattern:        "/column_family/built_indexes/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetBuiltIndexesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetBuiltIndexesOK), nil
-
-}
-
-/*
-GetBytesCompacted gets bytes compacted
-
-Get bytes compacted
-*/
-func (a *Client) GetBytesCompacted(params *GetBytesCompactedParams) (*GetBytesCompactedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetBytesCompactedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_bytes_compacted",
-		Method:             "GET",
-		PathPattern:        "/compaction_manager/metrics/bytes_compacted",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetBytesCompactedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetBytesCompactedOK), nil
-
-}
-
-/*
-GetCasCommit gets cas commit
-
-Get cas commit
-*/
-func (a *Client) GetCasCommit(params *GetCasCommitParams) (*GetCasCommitOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasCommitParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_commit",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_commit/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasCommitReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasCommitOK), nil
-
-}
-
-/*
-GetCasCommitEstimatedHistogram gets cas commit estimated histogram
-
-Get cas commit
-*/
-func (a *Client) GetCasCommitEstimatedHistogram(params *GetCasCommitEstimatedHistogramParams) (*GetCasCommitEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasCommitEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_commit_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_commit/estimated_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasCommitEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasCommitEstimatedHistogramOK), nil
-
-}
-
-/*
-GetCasCommitEstimatedRecentHistogram gets cas commit estimated recent histogram
-
-Get cas commit
-*/
-func (a *Client) GetCasCommitEstimatedRecentHistogram(params *GetCasCommitEstimatedRecentHistogramParams) (*GetCasCommitEstimatedRecentHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasCommitEstimatedRecentHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_commit_estimated_recent_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_commit/estimated_recent_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasCommitEstimatedRecentHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasCommitEstimatedRecentHistogramOK), nil
-
-}
-
-/*
-GetCasContentionTimeout gets cas contention timeout
-
-Get CAS contention timeout in seconds
-*/
-func (a *Client) GetCasContentionTimeout(params *GetCasContentionTimeoutParams) (*GetCasContentionTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasContentionTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_contention_timeout",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/cas_contention_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasContentionTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasContentionTimeoutOK), nil
-
-}
-
-/*
-GetCasPrepare gets cas prepare
-
-Get cas prepare
-*/
-func (a *Client) GetCasPrepare(params *GetCasPrepareParams) (*GetCasPrepareOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasPrepareParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_prepare",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_prepare/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasPrepareReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasPrepareOK), nil
-
-}
-
-/*
-GetCasPrepareEstimatedHistogram gets cas prepare estimated histogram
-
-Get cas prepare
-*/
-func (a *Client) GetCasPrepareEstimatedHistogram(params *GetCasPrepareEstimatedHistogramParams) (*GetCasPrepareEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasPrepareEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_prepare_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_prepare/estimated_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasPrepareEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasPrepareEstimatedHistogramOK), nil
-
-}
-
-/*
-GetCasPrepareEstimatedRecentHistogram gets cas prepare estimated recent histogram
-
-Get cas prepare
-*/
-func (a *Client) GetCasPrepareEstimatedRecentHistogram(params *GetCasPrepareEstimatedRecentHistogramParams) (*GetCasPrepareEstimatedRecentHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasPrepareEstimatedRecentHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_prepare_estimated_recent_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_prepare/estimated_recent_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasPrepareEstimatedRecentHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasPrepareEstimatedRecentHistogramOK), nil
-
-}
-
-/*
-GetCasPropose gets cas propose
-
-Get cas propose
-*/
-func (a *Client) GetCasPropose(params *GetCasProposeParams) (*GetCasProposeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasProposeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_propose",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_propose/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasProposeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasProposeOK), nil
-
-}
-
-/*
-GetCasProposeEstimatedHistogram gets cas propose estimated histogram
-
-Get cas propose
-*/
-func (a *Client) GetCasProposeEstimatedHistogram(params *GetCasProposeEstimatedHistogramParams) (*GetCasProposeEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasProposeEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_propose_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_propose/estimated_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasProposeEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasProposeEstimatedHistogramOK), nil
-
-}
-
-/*
-GetCasProposeEstimatedRecentHistogram gets cas propose estimated recent histogram
-
-Get cas propose
-*/
-func (a *Client) GetCasProposeEstimatedRecentHistogram(params *GetCasProposeEstimatedRecentHistogramParams) (*GetCasProposeEstimatedRecentHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasProposeEstimatedRecentHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_propose_estimated_recent_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/cas_propose/estimated_recent_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasProposeEstimatedRecentHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasProposeEstimatedRecentHistogramOK), nil
-
-}
-
-/*
-GetCasReadMetricsConditionNotMet gets cas read metrics condition not met
-
-Get cas read metrics
-*/
-func (a *Client) GetCasReadMetricsConditionNotMet(params *GetCasReadMetricsConditionNotMetParams) (*GetCasReadMetricsConditionNotMetOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasReadMetricsConditionNotMetParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_read_metrics_condition_not_met",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_read/condition_not_met",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasReadMetricsConditionNotMetReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasReadMetricsConditionNotMetOK), nil
-
-}
-
-/*
-GetCasReadMetricsContention gets cas read metrics contention
-
-Get cas read metrics
-*/
-func (a *Client) GetCasReadMetricsContention(params *GetCasReadMetricsContentionParams) (*GetCasReadMetricsContentionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasReadMetricsContentionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_read_metrics_contention",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_read/contention",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasReadMetricsContentionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasReadMetricsContentionOK), nil
-
-}
-
-/*
-GetCasReadMetricsUnfinishedCommit gets cas read metrics unfinished commit
-
-Get cas read metrics
-*/
-func (a *Client) GetCasReadMetricsUnfinishedCommit(params *GetCasReadMetricsUnfinishedCommitParams) (*GetCasReadMetricsUnfinishedCommitOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasReadMetricsUnfinishedCommitParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_read_metrics_unfinished_commit",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_read/unfinished_commit",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasReadMetricsUnfinishedCommitReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasReadMetricsUnfinishedCommitOK), nil
-
-}
-
-/*
-GetCasReadTimeouts gets cas read timeouts
-
-Get CAS read timeout
-*/
-func (a *Client) GetCasReadTimeouts(params *GetCasReadTimeoutsParams) (*GetCasReadTimeoutsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasReadTimeoutsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_read_timeouts",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_read/timeouts",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasReadTimeoutsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasReadTimeoutsOK), nil
-
-}
-
-/*
-GetCasReadUnavailables gets cas read unavailables
-
-Get CAS read unavailables
-*/
-func (a *Client) GetCasReadUnavailables(params *GetCasReadUnavailablesParams) (*GetCasReadUnavailablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasReadUnavailablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_read_unavailables",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_read/unavailables",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasReadUnavailablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasReadUnavailablesOK), nil
-
-}
-
-/*
-GetCasWriteMetricsConditionNotMet gets cas write metrics condition not met
-
-Get cas write metrics
-*/
-func (a *Client) GetCasWriteMetricsConditionNotMet(params *GetCasWriteMetricsConditionNotMetParams) (*GetCasWriteMetricsConditionNotMetOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasWriteMetricsConditionNotMetParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_write_metrics_condition_not_met",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_write/condition_not_met",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasWriteMetricsConditionNotMetReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasWriteMetricsConditionNotMetOK), nil
-
-}
-
-/*
-GetCasWriteMetricsContention gets cas write metrics contention
-
-Get cas write metrics
-*/
-func (a *Client) GetCasWriteMetricsContention(params *GetCasWriteMetricsContentionParams) (*GetCasWriteMetricsContentionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasWriteMetricsContentionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_write_metrics_contention",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_write/contention",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasWriteMetricsContentionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasWriteMetricsContentionOK), nil
-
-}
-
-/*
-GetCasWriteMetricsUnfinishedCommit gets cas write metrics unfinished commit
-
-Get cas write metrics
-*/
-func (a *Client) GetCasWriteMetricsUnfinishedCommit(params *GetCasWriteMetricsUnfinishedCommitParams) (*GetCasWriteMetricsUnfinishedCommitOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasWriteMetricsUnfinishedCommitParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_write_metrics_unfinished_commit",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_write/unfinished_commit",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasWriteMetricsUnfinishedCommitReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasWriteMetricsUnfinishedCommitOK), nil
-
-}
-
-/*
-GetCasWriteTimeouts gets cas write timeouts
-
-Get CAS write timeout
-*/
-func (a *Client) GetCasWriteTimeouts(params *GetCasWriteTimeoutsParams) (*GetCasWriteTimeoutsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasWriteTimeoutsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_write_timeouts",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_write/timeouts",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasWriteTimeoutsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasWriteTimeoutsOK), nil
-
-}
-
-/*
-GetCasWriteUnavailables gets cas write unavailables
-
-Get CAS write unavailables
-*/
-func (a *Client) GetCasWriteUnavailables(params *GetCasWriteUnavailablesParams) (*GetCasWriteUnavailablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCasWriteUnavailablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cas_write_unavailables",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/cas_write/unavailables",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCasWriteUnavailablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCasWriteUnavailablesOK), nil
-
-}
-
-/*
-GetCfAllMemtablesLiveDataSize gets cf all memtables live data size
-
-Get all of the column family active and not memtables live data size
-*/
-func (a *Client) GetCfAllMemtablesLiveDataSize(params *GetCfAllMemtablesLiveDataSizeParams) (*GetCfAllMemtablesLiveDataSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCfAllMemtablesLiveDataSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cf_all_memtables_live_data_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/all_memtables_live_data_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCfAllMemtablesLiveDataSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCfAllMemtablesLiveDataSizeOK), nil
-
-}
-
-/*
-GetCfAllMemtablesOffHeapSize gets cf all memtables off heap size
-
-Get all of the column family active and not memtables off heap size
-*/
-func (a *Client) GetCfAllMemtablesOffHeapSize(params *GetCfAllMemtablesOffHeapSizeParams) (*GetCfAllMemtablesOffHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCfAllMemtablesOffHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cf_all_memtables_off_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/all_memtables_off_heap_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCfAllMemtablesOffHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCfAllMemtablesOffHeapSizeOK), nil
-
-}
-
-/*
-GetCfAllMemtablesOnHeapSize gets cf all memtables on heap size
-
-Get all of the column family active and not memtables on heap size
-*/
-func (a *Client) GetCfAllMemtablesOnHeapSize(params *GetCfAllMemtablesOnHeapSizeParams) (*GetCfAllMemtablesOnHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCfAllMemtablesOnHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cf_all_memtables_on_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/all_memtables_on_heap_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCfAllMemtablesOnHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCfAllMemtablesOnHeapSizeOK), nil
-
-}
-
-/*
-GetClusterName gets cluster name
-
-Returns the name of the cluster
-*/
-func (a *Client) GetClusterName(params *GetClusterNameParams) (*GetClusterNameOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetClusterNameParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_cluster_name",
-		Method:             "GET",
-		PathPattern:        "/storage_service/cluster_name",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetClusterNameReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterNameOK), nil
-
-}
-
-/*
-GetColUpdateTimeDeltaHistogram gets col update time delta histogram
-
-Get col update time delta histogram
-*/
-func (a *Client) GetColUpdateTimeDeltaHistogram(params *GetColUpdateTimeDeltaHistogramParams) (*GetColUpdateTimeDeltaHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetColUpdateTimeDeltaHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_col_update_time_delta_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/col_update_time_delta_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetColUpdateTimeDeltaHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetColUpdateTimeDeltaHistogramOK), nil
-
-}
-
-/*
-GetCollectd gets collectd
-
-Get a collectd value
-*/
-func (a *Client) GetCollectd(params *GetCollectdParams) (*GetCollectdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCollectdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_collectd",
-		Method:             "GET",
-		PathPattern:        "/collectd/{pluginid}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCollectdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCollectdOK), nil
-
-}
-
-/*
-GetCollectdItems gets collectd items
-
-Get a list of all collectd metrics and their status
-*/
-func (a *Client) GetCollectdItems(params *GetCollectdItemsParams) (*GetCollectdItemsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCollectdItemsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_collectd_items",
-		Method:             "GET",
-		PathPattern:        "/collectd/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCollectdItemsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCollectdItemsOK), nil
-
-}
-
-/*
-GetColumnFamily gets column family
-
-Get a list of all column family info
-*/
-func (a *Client) GetColumnFamily(params *GetColumnFamilyParams) (*GetColumnFamilyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetColumnFamilyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_column_family",
-		Method:             "GET",
-		PathPattern:        "/column_family/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetColumnFamilyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetColumnFamilyOK), nil
-
-}
-
-/*
-GetColumnFamilyName gets column family name
-
-Get a list of all column family names
-*/
-func (a *Client) GetColumnFamilyName(params *GetColumnFamilyNameParams) (*GetColumnFamilyNameOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetColumnFamilyNameParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_column_family_name",
-		Method:             "GET",
-		PathPattern:        "/column_family/name",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetColumnFamilyNameReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetColumnFamilyNameOK), nil
-
-}
-
-/*
-GetColumnFamilyNameKeyspace gets column family name keyspace
-
-Get a list of the key space names
-*/
-func (a *Client) GetColumnFamilyNameKeyspace(params *GetColumnFamilyNameKeyspaceParams) (*GetColumnFamilyNameKeyspaceOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetColumnFamilyNameKeyspaceParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_column_family_name_keyspace",
-		Method:             "GET",
-		PathPattern:        "/column_family/name/keyspace",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetColumnFamilyNameKeyspaceReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetColumnFamilyNameKeyspaceOK), nil
-
-}
-
-/*
-GetCommitlog gets commitlog
-
-Returns the location of the commit log files
-*/
-func (a *Client) GetCommitlog(params *GetCommitlogParams) (*GetCommitlogOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCommitlogParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_commitlog",
-		Method:             "GET",
-		PathPattern:        "/storage_service/commitlog",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCommitlogReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCommitlogOK), nil
-
-}
-
-/*
-GetCompactionHistory gets compaction history
-
-get List of the compaction history
-*/
-func (a *Client) GetCompactionHistory(params *GetCompactionHistoryParams) (*GetCompactionHistoryOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompactionHistoryParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compaction_history",
-		Method:             "GET",
-		PathPattern:        "/compaction_manager/compaction_history",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompactionHistoryReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompactionHistoryOK), nil
-
-}
-
-/*
-GetCompactionInfo gets compaction info
-
-get a list of all active compaction info
-*/
-func (a *Client) GetCompactionInfo(params *GetCompactionInfoParams) (*GetCompactionInfoOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompactionInfoParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compaction_info",
-		Method:             "GET",
-		PathPattern:        "/compaction_manager/compaction_info",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompactionInfoReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompactionInfoOK), nil
-
-}
-
-/*
-GetCompactionStrategyClass gets compaction strategy class
-
-Gets the compaction strategy class name
-*/
-func (a *Client) GetCompactionStrategyClass(params *GetCompactionStrategyClassParams) (*GetCompactionStrategyClassOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompactionStrategyClassParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compaction_strategy_class",
-		Method:             "GET",
-		PathPattern:        "/column_family/compaction_strategy/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompactionStrategyClassReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompactionStrategyClassOK), nil
-
-}
-
-/*
-GetCompactionThroughputMbPerSec gets compaction throughput mb per sec
-
-get compaction throughput mb per sec
-*/
-func (a *Client) GetCompactionThroughputMbPerSec(params *GetCompactionThroughputMbPerSecParams) (*GetCompactionThroughputMbPerSecOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompactionThroughputMbPerSecParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compaction_throughput_mb_per_sec",
-		Method:             "GET",
-		PathPattern:        "/storage_service/compaction_throughput",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompactionThroughputMbPerSecReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompactionThroughputMbPerSecOK), nil
-
-}
-
-/*
-GetCompactions gets compactions
-
-get List of running compactions
-*/
-func (a *Client) GetCompactions(params *GetCompactionsParams) (*GetCompactionsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompactionsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compactions",
-		Method:             "GET",
-		PathPattern:        "/compaction_manager/compactions",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompactionsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompactionsOK), nil
-
-}
-
-/*
-GetCompletedMessages gets completed messages
-
-Get the number of replied messages
-*/
-func (a *Client) GetCompletedMessages(params *GetCompletedMessagesParams) (*GetCompletedMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompletedMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_completed_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/replied",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompletedMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompletedMessagesOK), nil
-
-}
-
-/*
-GetCompletedTasks gets completed tasks
-
-Get completed tasks
-*/
-func (a *Client) GetCompletedTasks(params *GetCompletedTasksParams) (*GetCompletedTasksOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompletedTasksParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_completed_tasks",
-		Method:             "GET",
-		PathPattern:        "/commitlog/metrics/completed_tasks",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompletedTasksReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompletedTasksOK), nil
-
-}
-
-/*
-GetCompletedTasks1 gets completed tasks1
-
-Get completed tasks
-*/
-func (a *Client) GetCompletedTasks1(params *GetCompletedTasks1Params) (*GetCompletedTasks1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompletedTasks1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_completed_tasks1",
-		Method:             "GET",
-		PathPattern:        "/compaction_manager/metrics/completed_tasks",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompletedTasks1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompletedTasks1OK), nil
-
-}
-
-/*
-GetCompressionMetadataOffHeapMemoryUsed gets compression metadata off heap memory used
-
-Get compression metadata off heap memory used
-*/
-func (a *Client) GetCompressionMetadataOffHeapMemoryUsed(params *GetCompressionMetadataOffHeapMemoryUsedParams) (*GetCompressionMetadataOffHeapMemoryUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompressionMetadataOffHeapMemoryUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compression_metadata_off_heap_memory_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/compression_metadata_off_heap_memory_used/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompressionMetadataOffHeapMemoryUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompressionMetadataOffHeapMemoryUsedOK), nil
-
-}
-
-/*
-GetCompressionParameters gets compression parameters
-
-get the compression parameters
-*/
-func (a *Client) GetCompressionParameters(params *GetCompressionParametersParams) (*GetCompressionParametersOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompressionParametersParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compression_parameters",
-		Method:             "GET",
-		PathPattern:        "/column_family/compression_parameters/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompressionParametersReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompressionParametersOK), nil
-
-}
-
-/*
-GetCompressionRatio gets compression ratio
-
-Get compression ratio
-*/
-func (a *Client) GetCompressionRatio(params *GetCompressionRatioParams) (*GetCompressionRatioOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCompressionRatioParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_compression_ratio",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/compression_ratio/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCompressionRatioReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCompressionRatioOK), nil
-
-}
-
-/*
-GetCoordinatorReadLatency gets coordinator read latency
-
-Get coordinator read latency
-*/
-func (a *Client) GetCoordinatorReadLatency(params *GetCoordinatorReadLatencyParams) (*GetCoordinatorReadLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCoordinatorReadLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_coordinator_read_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/coordinator/read",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCoordinatorReadLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCoordinatorReadLatencyOK), nil
-
-}
-
-/*
-GetCoordinatorScanLatency gets coordinator scan latency
-
-Get coordinator scan latency
-*/
-func (a *Client) GetCoordinatorScanLatency(params *GetCoordinatorScanLatencyParams) (*GetCoordinatorScanLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCoordinatorScanLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_coordinator_scan_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/coordinator/scan",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCoordinatorScanLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCoordinatorScanLatencyOK), nil
-
-}
-
-/*
-GetCounterCacheKeysToSave1 gets counter cache keys to save1
-
-get counter cache keys to save
-*/
-func (a *Client) GetCounterCacheKeysToSave1(params *GetCounterCacheKeysToSave1Params) (*GetCounterCacheKeysToSave1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterCacheKeysToSave1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_cache_keys_to_save1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/counter_cache_keys_to_save",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterCacheKeysToSave1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterCacheKeysToSave1OK), nil
-
-}
-
-/*
-GetCounterCacheSavePeriodInSeconds1 gets counter cache save period in seconds1
-
-get counter cache save period in seconds
-*/
-func (a *Client) GetCounterCacheSavePeriodInSeconds1(params *GetCounterCacheSavePeriodInSeconds1Params) (*GetCounterCacheSavePeriodInSeconds1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterCacheSavePeriodInSeconds1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_cache_save_period_in_seconds1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/counter_cache_save_period",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterCacheSavePeriodInSeconds1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterCacheSavePeriodInSeconds1OK), nil
-
-}
-
-/*
-GetCounterCapacity1 gets counter capacity1
-
-Get counter capacity
-*/
-func (a *Client) GetCounterCapacity1(params *GetCounterCapacity1Params) (*GetCounterCapacity1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterCapacity1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_capacity1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/capacity",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterCapacity1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterCapacity1OK), nil
-
-}
-
-/*
-GetCounterEntries1 gets counter entries1
-
-Get counter entries
-*/
-func (a *Client) GetCounterEntries1(params *GetCounterEntries1Params) (*GetCounterEntries1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterEntries1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_entries1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/entries",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterEntries1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterEntries1OK), nil
-
-}
-
-/*
-GetCounterHitRate1 gets counter hit rate1
-
-Get counter hit rate
-*/
-func (a *Client) GetCounterHitRate1(params *GetCounterHitRate1Params) (*GetCounterHitRate1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterHitRate1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_hit_rate1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/hit_rate",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterHitRate1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterHitRate1OK), nil
-
-}
-
-/*
-GetCounterHits1 gets counter hits1
-
-Get counter hits
-*/
-func (a *Client) GetCounterHits1(params *GetCounterHits1Params) (*GetCounterHits1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterHits1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_hits1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/hits",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterHits1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterHits1OK), nil
-
-}
-
-/*
-GetCounterHitsMovingAvrage1 gets counter hits moving avrage1
-
-Get counter hits moving avrage
-*/
-func (a *Client) GetCounterHitsMovingAvrage1(params *GetCounterHitsMovingAvrage1Params) (*GetCounterHitsMovingAvrage1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterHitsMovingAvrage1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_hits_moving_avrage1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/hits_moving_avrage",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterHitsMovingAvrage1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterHitsMovingAvrage1OK), nil
-
-}
-
-/*
-GetCounterRequests1 gets counter requests1
-
-Get counter requests
-*/
-func (a *Client) GetCounterRequests1(params *GetCounterRequests1Params) (*GetCounterRequests1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterRequests1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_requests1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/requests",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterRequests1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterRequests1OK), nil
-
-}
-
-/*
-GetCounterRequestsMovingAvrage1 gets counter requests moving avrage1
-
-Get counter requests moving avrage
-*/
-func (a *Client) GetCounterRequestsMovingAvrage1(params *GetCounterRequestsMovingAvrage1Params) (*GetCounterRequestsMovingAvrage1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterRequestsMovingAvrage1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_requests_moving_avrage1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/requests_moving_avrage",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterRequestsMovingAvrage1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterRequestsMovingAvrage1OK), nil
-
-}
-
-/*
-GetCounterSize1 gets counter size1
-
-Get counter cache waited size
-*/
-func (a *Client) GetCounterSize1(params *GetCounterSize1Params) (*GetCounterSize1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterSize1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_size1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/counter/size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterSize1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterSize1OK), nil
-
-}
-
-/*
-GetCounterWriteRPCTimeout gets counter write rpc timeout
-
-Get counter write rpc timeout in seconds
-*/
-func (a *Client) GetCounterWriteRPCTimeout(params *GetCounterWriteRPCTimeoutParams) (*GetCounterWriteRPCTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCounterWriteRPCTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_counter_write_rpc_timeout",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/counter_write_rpc_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCounterWriteRPCTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCounterWriteRPCTimeoutOK), nil
-
-}
-
-/*
-GetCreateHintCount gets create hint count
-
-Get create hint count
-*/
-func (a *Client) GetCreateHintCount(params *GetCreateHintCountParams) (*GetCreateHintCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCreateHintCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_create_hint_count",
-		Method:             "GET",
-		PathPattern:        "/hinted_handoff/metrics/create_hint/{addr}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCreateHintCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCreateHintCountOK), nil
-
-}
-
-/*
-GetCurrentGenerationNumber gets current generation number
-
-Returns files which are pending for archival attempt. Does NOT include failed archive attempts
-*/
-func (a *Client) GetCurrentGenerationNumber(params *GetCurrentGenerationNumberParams) (*GetCurrentGenerationNumberOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCurrentGenerationNumberParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_current_generation_number",
-		Method:             "GET",
-		PathPattern:        "/gossiper/generation_number/{addr}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCurrentGenerationNumberReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCurrentGenerationNumberOK), nil
-
-}
-
-/*
-GetCurrentGenerationNumber1 gets current generation number
-
-Return the generation value for this node.
-*/
-func (a *Client) GetCurrentGenerationNumber1(params *GetCurrentGenerationNumber1Params) (*GetCurrentGenerationNumber1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCurrentGenerationNumber1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_current_generation_number1",
-		Method:             "GET",
-		PathPattern:        "/storage_service/generation_number",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCurrentGenerationNumber1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCurrentGenerationNumber1OK), nil
-
-}
-
-/*
-GetCurrentHeartBeatVersion gets current heart beat version
-
-Get heart beat version for a node
-*/
-func (a *Client) GetCurrentHeartBeatVersion(params *GetCurrentHeartBeatVersionParams) (*GetCurrentHeartBeatVersionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCurrentHeartBeatVersionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_current_heart_beat_version",
-		Method:             "GET",
-		PathPattern:        "/gossiper/heart_beat_version/{addr}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCurrentHeartBeatVersionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCurrentHeartBeatVersionOK), nil
-
-}
-
-/*
-GetCurrentStreams gets current streams
-
-Returns the current state of all ongoing streams.
-*/
-func (a *Client) GetCurrentStreams(params *GetCurrentStreamsParams) (*GetCurrentStreamsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetCurrentStreamsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_current_streams",
-		Method:             "GET",
-		PathPattern:        "/stream_manager/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetCurrentStreamsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetCurrentStreamsOK), nil
-
-}
-
-/*
-GetDatacenter gets datacenter
-
-Provides the Datacenter name depending on the respective snitch used, given the hostname/ip
-*/
-func (a *Client) GetDatacenter(params *GetDatacenterParams) (*GetDatacenterOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetDatacenterParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_datacenter",
-		Method:             "GET",
-		PathPattern:        "/snitch/datacenter",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetDatacenterReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetDatacenterOK), nil
-
-}
-
-/*
-GetDownEndpoint gets down endpoint
-
-Get the addreses of the down endpoints
-*/
-func (a *Client) GetDownEndpoint(params *GetDownEndpointParams) (*GetDownEndpointOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetDownEndpointParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_down_endpoint",
-		Method:             "GET",
-		PathPattern:        "/gossiper/endpoint/down/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetDownEndpointReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetDownEndpointOK), nil
-
-}
-
-/*
-GetDownEndpointCount gets down endpoint count
-
-Get count down endpoint
-*/
-func (a *Client) GetDownEndpointCount(params *GetDownEndpointCountParams) (*GetDownEndpointCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetDownEndpointCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_down_endpoint_count",
-		Method:             "GET",
-		PathPattern:        "/failure_detector/count/endpoint/down",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetDownEndpointCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetDownEndpointCountOK), nil
-
-}
-
-/*
-GetDrainProgress gets drain progress
-
-Get the progress of a drain operation
-*/
-func (a *Client) GetDrainProgress(params *GetDrainProgressParams) (*GetDrainProgressOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetDrainProgressParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_drain_progress",
-		Method:             "GET",
-		PathPattern:        "/storage_service/drain",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetDrainProgressReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetDrainProgressOK), nil
-
-}
-
-/*
-GetDroppableTombstoneRatio gets droppable tombstone ratio
-
-Get the ratio of droppable tombstones to real columns (and non-droppable tombstones)
-*/
-func (a *Client) GetDroppableTombstoneRatio(params *GetDroppableTombstoneRatioParams) (*GetDroppableTombstoneRatioOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetDroppableTombstoneRatioParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_droppable_tombstone_ratio",
-		Method:             "GET",
-		PathPattern:        "/column_family/droppable_ratio/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetDroppableTombstoneRatioReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetDroppableTombstoneRatioOK), nil
-
-}
-
-/*
-GetDroppedMessages gets dropped messages
-
-Get the number of messages that were dropped before sending
-*/
-func (a *Client) GetDroppedMessages(params *GetDroppedMessagesParams) (*GetDroppedMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetDroppedMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_dropped_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/dropped",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetDroppedMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetDroppedMessagesOK), nil
-
-}
-
-/*
-GetDroppedMessagesByVer gets dropped messages by ver
-
-Get the number of dropped messages per verb
-*/
-func (a *Client) GetDroppedMessagesByVer(params *GetDroppedMessagesByVerParams) (*GetDroppedMessagesByVerOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetDroppedMessagesByVerParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_dropped_messages_by_ver",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/dropped_by_ver",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetDroppedMessagesByVerReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetDroppedMessagesByVerOK), nil
-
-}
-
-/*
-GetEffectiveOwnership gets effective ownership
-
-Effective ownership is % of the data each node owns given the keyspace
-*/
-func (a *Client) GetEffectiveOwnership(params *GetEffectiveOwnershipParams) (*GetEffectiveOwnershipOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetEffectiveOwnershipParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_effective_ownership",
-		Method:             "GET",
-		PathPattern:        "/storage_service/ownership/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetEffectiveOwnershipReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetEffectiveOwnershipOK), nil
-
-}
-
-/*
-GetEndpointDowntime gets endpoint downtime
-
-Get the downtime of an end point
-*/
-func (a *Client) GetEndpointDowntime(params *GetEndpointDowntimeParams) (*GetEndpointDowntimeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetEndpointDowntimeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_endpoint_downtime",
-		Method:             "GET",
-		PathPattern:        "/gossiper/downtime/{addr}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetEndpointDowntimeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetEndpointDowntimeOK), nil
-
-}
-
-/*
-GetEndpointPhiValues gets endpoint phi values
-
-Get end point phi values
-*/
-func (a *Client) GetEndpointPhiValues(params *GetEndpointPhiValuesParams) (*GetEndpointPhiValuesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetEndpointPhiValuesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_endpoint_phi_values",
-		Method:             "GET",
-		PathPattern:        "/failure_detector/endpoint_phi_values",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetEndpointPhiValuesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetEndpointPhiValuesOK), nil
-
-}
-
-/*
-GetEndpointState gets endpoint state
-
-Get endpoint states
-*/
-func (a *Client) GetEndpointState(params *GetEndpointStateParams) (*GetEndpointStateOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetEndpointStateParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_endpoint_state",
-		Method:             "GET",
-		PathPattern:        "/failure_detector/endpoints/states/{addr}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetEndpointStateReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetEndpointStateOK), nil
-
-}
-
-/*
-GetEstimatedColumnCountHistogram gets estimated column count histogram
-
-Get estimated column count histogram
-*/
-func (a *Client) GetEstimatedColumnCountHistogram(params *GetEstimatedColumnCountHistogramParams) (*GetEstimatedColumnCountHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetEstimatedColumnCountHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_estimated_column_count_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/estimated_column_count_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetEstimatedColumnCountHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetEstimatedColumnCountHistogramOK), nil
-
-}
-
-/*
-GetEstimatedRowCount gets estimated row count
-
-Get estimated row count
-*/
-func (a *Client) GetEstimatedRowCount(params *GetEstimatedRowCountParams) (*GetEstimatedRowCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetEstimatedRowCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_estimated_row_count",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/estimated_row_count/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetEstimatedRowCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetEstimatedRowCountOK), nil
-
-}
-
-/*
-GetEstimatedRowSizeHistogram gets estimated row size histogram
-
-Get estimated row size histogram
-*/
-func (a *Client) GetEstimatedRowSizeHistogram(params *GetEstimatedRowSizeHistogramParams) (*GetEstimatedRowSizeHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetEstimatedRowSizeHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_estimated_row_size_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/estimated_row_size_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetEstimatedRowSizeHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetEstimatedRowSizeHistogramOK), nil
-
-}
-
-/*
-GetExceptionMessages gets exception messages
-
-Get the number of messages return with an exception
-*/
-func (a *Client) GetExceptionMessages(params *GetExceptionMessagesParams) (*GetExceptionMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetExceptionMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_exception_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/exception",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetExceptionMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetExceptionMessagesOK), nil
-
-}
-
-/*
-GetExceptions gets exceptions
-
-Get exceptions
-*/
-func (a *Client) GetExceptions(params *GetExceptionsParams) (*GetExceptionsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetExceptionsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_exceptions",
-		Method:             "GET",
-		PathPattern:        "/storage_service/metrics/exceptions",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetExceptionsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetExceptionsOK), nil
-
-}
-
-/*
-GetHintedHandoffEnabled gets hinted handoff enabled
-
-Return true if hinted handoff enabled
-*/
-func (a *Client) GetHintedHandoffEnabled(params *GetHintedHandoffEnabledParams) (*GetHintedHandoffEnabledOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetHintedHandoffEnabledParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_hinted_handoff_enabled",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/hinted_handoff_enabled",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetHintedHandoffEnabledReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetHintedHandoffEnabledOK), nil
-
-}
-
-/*
-GetHintedHandoffEnabledByDc gets hinted handoff enabled by dc
-
-Get the hinted handoff enabled by dc
-*/
-func (a *Client) GetHintedHandoffEnabledByDc(params *GetHintedHandoffEnabledByDcParams) (*GetHintedHandoffEnabledByDcOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetHintedHandoffEnabledByDcParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_hinted_handoff_enabled_by_dc",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/hinted_handoff_enabled_by_dc",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetHintedHandoffEnabledByDcReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetHintedHandoffEnabledByDcOK), nil
-
-}
-
-/*
-GetHintsInProgress gets hints in progress
-
-get hints in progress
-*/
-func (a *Client) GetHintsInProgress(params *GetHintsInProgressParams) (*GetHintsInProgressOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetHintsInProgressParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_hints_in_progress",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/hints_in_progress",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetHintsInProgressReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetHintsInProgressOK), nil
-
-}
-
-/*
-GetHostIDMap gets host id map
-
-Retrieve the mapping of endpoint to host ID
-*/
-func (a *Client) GetHostIDMap(params *GetHostIDMapParams) (*GetHostIDMapOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetHostIDMapParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_host_id_map",
-		Method:             "GET",
-		PathPattern:        "/storage_service/host_id",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetHostIDMapReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetHostIDMapOK), nil
-
-}
-
-/*
-GetIndexSummaryOffHeapMemoryUsed gets index summary off heap memory used
-
-Get index summary off heap memory used
-*/
-func (a *Client) GetIndexSummaryOffHeapMemoryUsed(params *GetIndexSummaryOffHeapMemoryUsedParams) (*GetIndexSummaryOffHeapMemoryUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetIndexSummaryOffHeapMemoryUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_index_summary_off_heap_memory_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/index_summary_off_heap_memory_used/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetIndexSummaryOffHeapMemoryUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetIndexSummaryOffHeapMemoryUsedOK), nil
-
-}
-
-/*
-GetJoiningNodes gets joining nodes
-
-Retrieve the list of nodes currently bootstrapping into the ring
-*/
-func (a *Client) GetJoiningNodes(params *GetJoiningNodesParams) (*GetJoiningNodesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetJoiningNodesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_joining_nodes",
-		Method:             "GET",
-		PathPattern:        "/storage_service/nodes/joining",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetJoiningNodesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetJoiningNodesOK), nil
-
-}
-
-/*
-GetKeyCacheHitRate gets key cache hit rate
-
-Get key cache hit rate
-*/
-func (a *Client) GetKeyCacheHitRate(params *GetKeyCacheHitRateParams) (*GetKeyCacheHitRateOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyCacheHitRateParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_cache_hit_rate",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/key_cache_hit_rate/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyCacheHitRateReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyCacheHitRateOK), nil
-
-}
-
-/*
-GetKeyCacheKeysToSave1 gets key cache keys to save1
-
-get key cache keys to save
-*/
-func (a *Client) GetKeyCacheKeysToSave1(params *GetKeyCacheKeysToSave1Params) (*GetKeyCacheKeysToSave1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyCacheKeysToSave1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_cache_keys_to_save1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/key_cache_keys_to_save",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyCacheKeysToSave1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyCacheKeysToSave1OK), nil
-
-}
-
-/*
-GetKeyCacheSavePeriodInSeconds1 gets key cache save period in seconds1
-
-get key cache save period in seconds
-*/
-func (a *Client) GetKeyCacheSavePeriodInSeconds1(params *GetKeyCacheSavePeriodInSeconds1Params) (*GetKeyCacheSavePeriodInSeconds1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyCacheSavePeriodInSeconds1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_cache_save_period_in_seconds1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/key_cache_save_period",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyCacheSavePeriodInSeconds1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyCacheSavePeriodInSeconds1OK), nil
-
-}
-
-/*
-GetKeyCapacity1 gets key capacity1
-
-Get key capacity
-*/
-func (a *Client) GetKeyCapacity1(params *GetKeyCapacity1Params) (*GetKeyCapacity1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyCapacity1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_capacity1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/capacity",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyCapacity1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyCapacity1OK), nil
-
-}
-
-/*
-GetKeyEntries1 gets key entries1
-
-Get key entries
-*/
-func (a *Client) GetKeyEntries1(params *GetKeyEntries1Params) (*GetKeyEntries1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyEntries1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_entries1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/entries",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyEntries1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyEntries1OK), nil
-
-}
-
-/*
-GetKeyHitRate1 gets key hit rate1
-
-Get key hit rate
-*/
-func (a *Client) GetKeyHitRate1(params *GetKeyHitRate1Params) (*GetKeyHitRate1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyHitRate1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_hit_rate1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/hit_rate",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyHitRate1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyHitRate1OK), nil
-
-}
-
-/*
-GetKeyHits1 gets key hits1
-
-Get key hits
-*/
-func (a *Client) GetKeyHits1(params *GetKeyHits1Params) (*GetKeyHits1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyHits1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_hits1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/hits",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyHits1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyHits1OK), nil
-
-}
-
-/*
-GetKeyHitsMovingAvrage1 gets key hits moving avrage1
-
-Get key hits moving avrage
-*/
-func (a *Client) GetKeyHitsMovingAvrage1(params *GetKeyHitsMovingAvrage1Params) (*GetKeyHitsMovingAvrage1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyHitsMovingAvrage1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_hits_moving_avrage1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/hits_moving_avrage",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyHitsMovingAvrage1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyHitsMovingAvrage1OK), nil
-
-}
-
-/*
-GetKeyRequests1 gets key requests1
-
-Get key requests
-*/
-func (a *Client) GetKeyRequests1(params *GetKeyRequests1Params) (*GetKeyRequests1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyRequests1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_requests1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/requests",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyRequests1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyRequests1OK), nil
-
-}
-
-/*
-GetKeyRequestsMovingAvrage1 gets key requests moving avrage1
-
-Get key requests moving avrage
-*/
-func (a *Client) GetKeyRequestsMovingAvrage1(params *GetKeyRequestsMovingAvrage1Params) (*GetKeyRequestsMovingAvrage1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyRequestsMovingAvrage1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_requests_moving_avrage1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/requests_moving_avrage",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyRequestsMovingAvrage1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyRequestsMovingAvrage1OK), nil
-
-}
-
-/*
-GetKeySize1 gets key size1
-
-Get key cache waited size
-*/
-func (a *Client) GetKeySize1(params *GetKeySize1Params) (*GetKeySize1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeySize1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_key_size1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/key/size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeySize1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeySize1OK), nil
-
-}
-
-/*
-GetKeyspaces gets keyspaces
-
-Get the keyspaces
-*/
-func (a *Client) GetKeyspaces(params *GetKeyspacesParams) (*GetKeyspacesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetKeyspacesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_keyspaces",
-		Method:             "GET",
-		PathPattern:        "/storage_service/keyspaces",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKeyspacesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKeyspacesOK), nil
-
-}
-
-/*
-GetLeavingNodes gets leaving nodes
-
-Retrieve the list of nodes currently leaving the ring
-*/
-func (a *Client) GetLeavingNodes(params *GetLeavingNodesParams) (*GetLeavingNodesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLeavingNodesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_leaving_nodes",
-		Method:             "GET",
-		PathPattern:        "/storage_service/nodes/leaving",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLeavingNodesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLeavingNodesOK), nil
-
-}
-
-/*
-GetLiveDiskSpaceUsed gets live disk space used
-
-Get live disk space used
-*/
-func (a *Client) GetLiveDiskSpaceUsed(params *GetLiveDiskSpaceUsedParams) (*GetLiveDiskSpaceUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLiveDiskSpaceUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_live_disk_space_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/live_disk_space_used/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLiveDiskSpaceUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLiveDiskSpaceUsedOK), nil
-
-}
-
-/*
-GetLiveEndpoint gets live endpoint
-
-Get the addreses of live endpoints
-*/
-func (a *Client) GetLiveEndpoint(params *GetLiveEndpointParams) (*GetLiveEndpointOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLiveEndpointParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_live_endpoint",
-		Method:             "GET",
-		PathPattern:        "/gossiper/endpoint/live/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLiveEndpointReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLiveEndpointOK), nil
-
-}
-
-/*
-GetLiveScannedHistogram gets live scanned histogram
-
-Get live scanned histogram
-*/
-func (a *Client) GetLiveScannedHistogram(params *GetLiveScannedHistogramParams) (*GetLiveScannedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLiveScannedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_live_scanned_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/live_scanned_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLiveScannedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLiveScannedHistogramOK), nil
-
-}
-
-/*
-GetLiveSsTableCount gets live ss table count
-
-Get live ss table count
-*/
-func (a *Client) GetLiveSsTableCount(params *GetLiveSsTableCountParams) (*GetLiveSsTableCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLiveSsTableCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_live_ss_table_count",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/live_ss_table_count/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLiveSsTableCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLiveSsTableCountOK), nil
-
-}
-
-/*
-GetLoad gets load
-
-get load value
-*/
-func (a *Client) GetLoad(params *GetLoadParams) (*GetLoadOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLoadParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_load",
-		Method:             "GET",
-		PathPattern:        "/storage_service/load",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLoadReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLoadOK), nil
-
-}
-
-/*
-GetLoadMap gets load map
-
-load value. Keys are IP addresses
-*/
-func (a *Client) GetLoadMap(params *GetLoadMapParams) (*GetLoadMapOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLoadMapParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_load_map",
-		Method:             "GET",
-		PathPattern:        "/storage_service/load_map",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLoadMapReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLoadMapOK), nil
-
-}
-
-/*
-GetLoggerLevel gets logger level
-
-Get logger level
-*/
-func (a *Client) GetLoggerLevel(params *GetLoggerLevelParams) (*GetLoggerLevelOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLoggerLevelParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_logger_level",
-		Method:             "GET",
-		PathPattern:        "/system/logger/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLoggerLevelReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLoggerLevelOK), nil
-
-}
-
-/*
-GetLoggingLevels gets logging levels
-
-get the runtime logging levels
-*/
-func (a *Client) GetLoggingLevels(params *GetLoggingLevelsParams) (*GetLoggingLevelsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetLoggingLevelsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_logging_levels",
-		Method:             "GET",
-		PathPattern:        "/storage_service/logging_level",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetLoggingLevelsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetLoggingLevelsOK), nil
-
-}
-
-/*
-GetMaxHintWindow gets max hint window
-
-Get the max hint window
-*/
-func (a *Client) GetMaxHintWindow(params *GetMaxHintWindowParams) (*GetMaxHintWindowOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMaxHintWindowParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_max_hint_window",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/max_hint_window",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMaxHintWindowReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMaxHintWindowOK), nil
-
-}
-
-/*
-GetMaxHintsInProgress gets max hints in progress
-
-Get max hints in progress
-*/
-func (a *Client) GetMaxHintsInProgress(params *GetMaxHintsInProgressParams) (*GetMaxHintsInProgressOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMaxHintsInProgressParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_max_hints_in_progress",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/max_hints_in_progress",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMaxHintsInProgressReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMaxHintsInProgressOK), nil
-
-}
-
-/*
-GetMaxRowSize gets max row size
-
-Get max row size
-*/
-func (a *Client) GetMaxRowSize(params *GetMaxRowSizeParams) (*GetMaxRowSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMaxRowSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_max_row_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/max_row_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMaxRowSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMaxRowSizeOK), nil
-
-}
-
-/*
-GetMaximumCompactionThreshold gets maximum compaction threshold
-
-get the maximum number of sstables in queue before compaction kicks off
-*/
-func (a *Client) GetMaximumCompactionThreshold(params *GetMaximumCompactionThresholdParams) (*GetMaximumCompactionThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMaximumCompactionThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_maximum_compaction_threshold",
-		Method:             "GET",
-		PathPattern:        "/column_family/maximum_compaction/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMaximumCompactionThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMaximumCompactionThresholdOK), nil
-
-}
-
-/*
-GetMeanRowSize gets mean row size
-
-Get mean row size
-*/
-func (a *Client) GetMeanRowSize(params *GetMeanRowSizeParams) (*GetMeanRowSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMeanRowSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_mean_row_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/mean_row_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMeanRowSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMeanRowSizeOK), nil
-
-}
-
-/*
-GetMemtableColumnsCount gets memtable columns count
-
-get memtable columns count
-*/
-func (a *Client) GetMemtableColumnsCount(params *GetMemtableColumnsCountParams) (*GetMemtableColumnsCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMemtableColumnsCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_memtable_columns_count",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_columns_count/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMemtableColumnsCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMemtableColumnsCountOK), nil
-
-}
-
-/*
-GetMemtableLiveDataSize gets memtable live data size
-
-Get the column family active memtable live data size
-*/
-func (a *Client) GetMemtableLiveDataSize(params *GetMemtableLiveDataSizeParams) (*GetMemtableLiveDataSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMemtableLiveDataSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_memtable_live_data_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_live_data_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMemtableLiveDataSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMemtableLiveDataSizeOK), nil
-
-}
-
-/*
-GetMemtableOffHeapSize gets memtable off heap size
-
-Get the column family active memtable off heap size
-*/
-func (a *Client) GetMemtableOffHeapSize(params *GetMemtableOffHeapSizeParams) (*GetMemtableOffHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMemtableOffHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_memtable_off_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_off_heap_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMemtableOffHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMemtableOffHeapSizeOK), nil
-
-}
-
-/*
-GetMemtableOnHeapSize gets memtable on heap size
-
-Get the column family active memtable on heap size
-*/
-func (a *Client) GetMemtableOnHeapSize(params *GetMemtableOnHeapSizeParams) (*GetMemtableOnHeapSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMemtableOnHeapSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_memtable_on_heap_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_on_heap_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMemtableOnHeapSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMemtableOnHeapSizeOK), nil
-
-}
-
-/*
-GetMemtableSwitchCount gets memtable switch count
-
-Get memtable switch count
-*/
-func (a *Client) GetMemtableSwitchCount(params *GetMemtableSwitchCountParams) (*GetMemtableSwitchCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMemtableSwitchCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_memtable_switch_count",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/memtable_switch_count/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMemtableSwitchCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMemtableSwitchCountOK), nil
-
-}
-
-/*
-GetMetricsLoad gets metrics load
-
-Get load
-*/
-func (a *Client) GetMetricsLoad(params *GetMetricsLoadParams) (*GetMetricsLoadOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMetricsLoadParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_metrics_load",
-		Method:             "GET",
-		PathPattern:        "/storage_service/metrics/load",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMetricsLoadReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMetricsLoadOK), nil
-
-}
-
-/*
-GetMinRowSize gets min row size
-
-Get min row size
-*/
-func (a *Client) GetMinRowSize(params *GetMinRowSizeParams) (*GetMinRowSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMinRowSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_min_row_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/min_row_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMinRowSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMinRowSizeOK), nil
-
-}
-
-/*
-GetMinimumCompactionThreshold gets minimum compaction threshold
-
-get the minimum number of sstables in queue before compaction kicks off
-*/
-func (a *Client) GetMinimumCompactionThreshold(params *GetMinimumCompactionThresholdParams) (*GetMinimumCompactionThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMinimumCompactionThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_minimum_compaction_threshold",
-		Method:             "GET",
-		PathPattern:        "/column_family/minimum_compaction/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMinimumCompactionThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMinimumCompactionThresholdOK), nil
-
-}
-
-/*
-GetMovingNodes gets moving nodes
-
-Retrieve the list of nodes currently moving in the ring
-*/
-func (a *Client) GetMovingNodes(params *GetMovingNodesParams) (*GetMovingNodesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetMovingNodesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_moving_nodes",
-		Method:             "GET",
-		PathPattern:        "/storage_service/nodes/moving",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetMovingNodesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetMovingNodesOK), nil
-
-}
-
-/*
-GetNaturalEndpoints gets natural endpoints
-
-This method returns the N endpoints that are responsible for storing the specified key i.e for replication. the endpoint responsible for this key
-*/
-func (a *Client) GetNaturalEndpoints(params *GetNaturalEndpointsParams) (*GetNaturalEndpointsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetNaturalEndpointsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_natural_endpoints",
-		Method:             "GET",
-		PathPattern:        "/storage_service/natural_endpoints/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetNaturalEndpointsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetNaturalEndpointsOK), nil
-
-}
-
-/*
-GetNodeTokens gets node tokens
-
-Returns a list of the tokens for or a specified node
-*/
-func (a *Client) GetNodeTokens(params *GetNodeTokensParams) (*GetNodeTokensOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetNodeTokensParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_node_tokens",
-		Method:             "GET",
-		PathPattern:        "/storage_service/tokens/{endpoint}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetNodeTokensReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetNodeTokensOK), nil
-
-}
-
-/*
-GetNotStoredHintsCount gets not stored hints count
-
-Get not stored hints count
-*/
-func (a *Client) GetNotStoredHintsCount(params *GetNotStoredHintsCountParams) (*GetNotStoredHintsCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetNotStoredHintsCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_not_stored_hints_count",
-		Method:             "GET",
-		PathPattern:        "/hinted_handoff/metrics/not_stored_hints/{addr}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetNotStoredHintsCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetNotStoredHintsCountOK), nil
-
-}
-
-/*
-GetOperationMode gets operation mode
-
-Get the operational mode (leaving, joining, normal, decommissioned, client)
-*/
-func (a *Client) GetOperationMode(params *GetOperationModeParams) (*GetOperationModeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetOperationModeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_operation_mode",
-		Method:             "GET",
-		PathPattern:        "/storage_service/operation_mode",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetOperationModeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetOperationModeOK), nil
-
-}
-
-/*
-GetOwnership gets ownership
-
-The mapping from token -> % of cluster owned by that token
-*/
-func (a *Client) GetOwnership(params *GetOwnershipParams) (*GetOwnershipOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetOwnershipParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_ownership",
-		Method:             "GET",
-		PathPattern:        "/storage_service/ownership/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetOwnershipReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetOwnershipOK), nil
-
-}
-
-/*
-GetPartitionerName gets partitioner name
-
-Returns the cluster partitioner
-*/
-func (a *Client) GetPartitionerName(params *GetPartitionerNameParams) (*GetPartitionerNameOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPartitionerNameParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_partitioner_name",
-		Method:             "GET",
-		PathPattern:        "/storage_service/partitioner_name",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPartitionerNameReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPartitionerNameOK), nil
-
-}
-
-/*
-GetPendingCompactions gets pending compactions
-
-Get pending compactions
-*/
-func (a *Client) GetPendingCompactions(params *GetPendingCompactionsParams) (*GetPendingCompactionsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPendingCompactionsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_pending_compactions",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/pending_compactions/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPendingCompactionsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPendingCompactionsOK), nil
-
-}
-
-/*
-GetPendingFlushes gets pending flushes
-
-Get pending flushes
-*/
-func (a *Client) GetPendingFlushes(params *GetPendingFlushesParams) (*GetPendingFlushesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPendingFlushesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_pending_flushes",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/pending_flushes/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPendingFlushesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPendingFlushesOK), nil
-
-}
-
-/*
-GetPendingMessages gets pending messages
-
-Get the number of pending messages
-*/
-func (a *Client) GetPendingMessages(params *GetPendingMessagesParams) (*GetPendingMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPendingMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_pending_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/pending",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPendingMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPendingMessagesOK), nil
-
-}
-
-/*
-GetPendingRangeToEndpointMap gets pending range to endpoint map
-
-Retrieve a map of pending ranges to endpoints that describe the ring topology
-*/
-func (a *Client) GetPendingRangeToEndpointMap(params *GetPendingRangeToEndpointMapParams) (*GetPendingRangeToEndpointMapOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPendingRangeToEndpointMapParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_pending_range_to_endpoint_map",
-		Method:             "GET",
-		PathPattern:        "/storage_service/pending_range/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPendingRangeToEndpointMapReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPendingRangeToEndpointMapOK), nil
-
-}
-
-/*
-GetPendingTasks gets pending tasks
-
-Get pending tasks
-*/
-func (a *Client) GetPendingTasks(params *GetPendingTasksParams) (*GetPendingTasksOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPendingTasksParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_pending_tasks",
-		Method:             "GET",
-		PathPattern:        "/commitlog/metrics/pending_tasks",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPendingTasksReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPendingTasksOK), nil
-
-}
-
-/*
-GetPendingTasks1 gets pending tasks1
-
-Get pending tasks
-*/
-func (a *Client) GetPendingTasks1(params *GetPendingTasks1Params) (*GetPendingTasks1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPendingTasks1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_pending_tasks1",
-		Method:             "GET",
-		PathPattern:        "/compaction_manager/metrics/pending_tasks",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPendingTasks1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPendingTasks1OK), nil
-
-}
-
-/*
-GetPhiConvictThreshold gets phi convict threshold
-
-Get the phi convict threshold
-*/
-func (a *Client) GetPhiConvictThreshold(params *GetPhiConvictThresholdParams) (*GetPhiConvictThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetPhiConvictThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_phi_convict_threshold",
-		Method:             "GET",
-		PathPattern:        "/failure_detector/phi",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetPhiConvictThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetPhiConvictThresholdOK), nil
-
-}
-
-/*
-GetRack gets rack
-
-Provides the Rack name depending on the respective snitch used, given the host name/ip
-*/
-func (a *Client) GetRack(params *GetRackParams) (*GetRackOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRackParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_rack",
-		Method:             "GET",
-		PathPattern:        "/snitch/rack",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRackReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRackOK), nil
-
-}
-
-/*
-GetRangeEstimatedHistogram gets range estimated histogram
-
-Get range estimated latency
-*/
-func (a *Client) GetRangeEstimatedHistogram(params *GetRangeEstimatedHistogramParams) (*GetRangeEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range/estimated_histogram/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeEstimatedHistogramOK), nil
-
-}
-
-/*
-GetRangeLatency gets range latency
-
-Get range latency
-*/
-func (a *Client) GetRangeLatency(params *GetRangeLatencyParams) (*GetRangeLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/range_latency/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeLatencyOK), nil
-
-}
-
-/*
-GetRangeLatency1 gets range latency
-
-Get range latency
-*/
-func (a *Client) GetRangeLatency1(params *GetRangeLatency1Params) (*GetRangeLatency1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeLatency1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_latency1",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeLatency1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeLatency1OK), nil
-
-}
-
-/*
-GetRangeLatencyEstimatedHistogram gets range latency estimated histogram
-
-Get range latency
-*/
-func (a *Client) GetRangeLatencyEstimatedHistogram(params *GetRangeLatencyEstimatedHistogramParams) (*GetRangeLatencyEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeLatencyEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_latency_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/range_latency/estimated_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeLatencyEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeLatencyEstimatedHistogramOK), nil
-
-}
-
-/*
-GetRangeLatencyEstimatedRecentHistogram gets range latency estimated recent histogram
-
-Get range latency
-*/
-func (a *Client) GetRangeLatencyEstimatedRecentHistogram(params *GetRangeLatencyEstimatedRecentHistogramParams) (*GetRangeLatencyEstimatedRecentHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeLatencyEstimatedRecentHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_latency_estimated_recent_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/range_latency/estimated_recent_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeLatencyEstimatedRecentHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeLatencyEstimatedRecentHistogramOK), nil
-
-}
-
-/*
-GetRangeMetricsLatencyHistogram gets range metrics latency histogram
-
-Get range metrics rate and histogram
-*/
-func (a *Client) GetRangeMetricsLatencyHistogram(params *GetRangeMetricsLatencyHistogramParams) (*GetRangeMetricsLatencyHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeMetricsLatencyHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_metrics_latency_histogram",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range/moving_average_histogram",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeMetricsLatencyHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeMetricsLatencyHistogramOK), nil
-
-}
-
-/*
-GetRangeMetricsLatencyHistogramDepricated gets range metrics latency histogram depricated
-
-Get range metrics
-*/
-func (a *Client) GetRangeMetricsLatencyHistogramDepricated(params *GetRangeMetricsLatencyHistogramDepricatedParams) (*GetRangeMetricsLatencyHistogramDepricatedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeMetricsLatencyHistogramDepricatedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_metrics_latency_histogram_depricated",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range/histogram",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeMetricsLatencyHistogramDepricatedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeMetricsLatencyHistogramDepricatedOK), nil
-
-}
-
-/*
-GetRangeMetricsTimeouts gets range metrics timeouts
-
-Get range metrics
-*/
-func (a *Client) GetRangeMetricsTimeouts(params *GetRangeMetricsTimeoutsParams) (*GetRangeMetricsTimeoutsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeMetricsTimeoutsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_metrics_timeouts",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range/timeouts",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeMetricsTimeoutsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeMetricsTimeoutsOK), nil
-
-}
-
-/*
-GetRangeMetricsTimeoutsRates gets range metrics timeouts rates
-
-Get range metrics rates
-*/
-func (a *Client) GetRangeMetricsTimeoutsRates(params *GetRangeMetricsTimeoutsRatesParams) (*GetRangeMetricsTimeoutsRatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeMetricsTimeoutsRatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_metrics_timeouts_rates",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range/timeouts_rates",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeMetricsTimeoutsRatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeMetricsTimeoutsRatesOK), nil
-
-}
-
-/*
-GetRangeMetricsUnavailables gets range metrics unavailables
-
-Get range metrics
-*/
-func (a *Client) GetRangeMetricsUnavailables(params *GetRangeMetricsUnavailablesParams) (*GetRangeMetricsUnavailablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeMetricsUnavailablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_metrics_unavailables",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range/unavailables",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeMetricsUnavailablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeMetricsUnavailablesOK), nil
-
-}
-
-/*
-GetRangeMetricsUnavailablesRates gets range metrics unavailables rates
-
-Get range metrics rates
-*/
-func (a *Client) GetRangeMetricsUnavailablesRates(params *GetRangeMetricsUnavailablesRatesParams) (*GetRangeMetricsUnavailablesRatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeMetricsUnavailablesRatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_metrics_unavailables_rates",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/range/unavailables_rates",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeMetricsUnavailablesRatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeMetricsUnavailablesRatesOK), nil
-
-}
-
-/*
-GetRangeRPCTimeout gets range rpc timeout
-
-Get range rpc timeout in seconds
-*/
-func (a *Client) GetRangeRPCTimeout(params *GetRangeRPCTimeoutParams) (*GetRangeRPCTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeRPCTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_rpc_timeout",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/range_rpc_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeRPCTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeRPCTimeoutOK), nil
-
-}
-
-/*
-GetRangeToEndpointMap gets range to endpoint map
-
-Retrieve a map of range to end points that describe the ring topology of a Cassandra cluster.
-*/
-func (a *Client) GetRangeToEndpointMap(params *GetRangeToEndpointMapParams) (*GetRangeToEndpointMapOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRangeToEndpointMapParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_range_to_endpoint_map",
-		Method:             "GET",
-		PathPattern:        "/storage_service/range_to_endpoint_map/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRangeToEndpointMapReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRangeToEndpointMapOK), nil
-
-}
-
-/*
-GetRead gets read
-
-Get number of reads
-*/
-func (a *Client) GetRead(params *GetReadParams) (*GetReadOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadOK), nil
-
-}
-
-/*
-GetReadEstimatedHistogram gets read estimated histogram
-
-Get read estimated latency
-*/
-func (a *Client) GetReadEstimatedHistogram(params *GetReadEstimatedHistogramParams) (*GetReadEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read/estimated_histogram/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadEstimatedHistogramOK), nil
-
-}
-
-/*
-GetReadLatency gets read latency
-
-Get read latency
-*/
-func (a *Client) GetReadLatency(params *GetReadLatencyParams) (*GetReadLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadLatencyOK), nil
-
-}
-
-/*
-GetReadLatency1 gets read latency
-
-Get read latency
-*/
-func (a *Client) GetReadLatency1(params *GetReadLatency1Params) (*GetReadLatency1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadLatency1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_latency1",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadLatency1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadLatency1OK), nil
-
-}
-
-/*
-GetReadLatencyEstimatedHistogram gets read latency estimated histogram
-
-Get read latency
-*/
-func (a *Client) GetReadLatencyEstimatedHistogram(params *GetReadLatencyEstimatedHistogramParams) (*GetReadLatencyEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadLatencyEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_latency_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency/estimated_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadLatencyEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadLatencyEstimatedHistogramOK), nil
-
-}
-
-/*
-GetReadLatencyEstimatedRecentHistogram gets read latency estimated recent histogram
-
-Get read latency
-*/
-func (a *Client) GetReadLatencyEstimatedRecentHistogram(params *GetReadLatencyEstimatedRecentHistogramParams) (*GetReadLatencyEstimatedRecentHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadLatencyEstimatedRecentHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_latency_estimated_recent_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency/estimated_recent_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadLatencyEstimatedRecentHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadLatencyEstimatedRecentHistogramOK), nil
-
-}
-
-/*
-GetReadLatencyHistogram gets read latency histogram
-
-Get read latency moving avrage histogram
-*/
-func (a *Client) GetReadLatencyHistogram(params *GetReadLatencyHistogramParams) (*GetReadLatencyHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadLatencyHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_latency_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency/moving_average_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadLatencyHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadLatencyHistogramOK), nil
-
-}
-
-/*
-GetReadLatencyHistogramDepricated gets read latency histogram depricated
-
-Get read latency histogram
-*/
-func (a *Client) GetReadLatencyHistogramDepricated(params *GetReadLatencyHistogramDepricatedParams) (*GetReadLatencyHistogramDepricatedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadLatencyHistogramDepricatedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_latency_histogram_depricated",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/read_latency/histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadLatencyHistogramDepricatedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadLatencyHistogramDepricatedOK), nil
-
-}
-
-/*
-GetReadMetricsLatencyHistogram gets read metrics latency histogram
-
-Get read metrics
-*/
-func (a *Client) GetReadMetricsLatencyHistogram(params *GetReadMetricsLatencyHistogramParams) (*GetReadMetricsLatencyHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadMetricsLatencyHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_metrics_latency_histogram",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read/moving_average_histogram",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadMetricsLatencyHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadMetricsLatencyHistogramOK), nil
-
-}
-
-/*
-GetReadMetricsLatencyHistogramDepricated gets read metrics latency histogram depricated
-
-Get read metrics
-*/
-func (a *Client) GetReadMetricsLatencyHistogramDepricated(params *GetReadMetricsLatencyHistogramDepricatedParams) (*GetReadMetricsLatencyHistogramDepricatedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadMetricsLatencyHistogramDepricatedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_metrics_latency_histogram_depricated",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read/histogram",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadMetricsLatencyHistogramDepricatedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadMetricsLatencyHistogramDepricatedOK), nil
-
-}
-
-/*
-GetReadMetricsTimeouts gets read metrics timeouts
-
-Get read metrics
-*/
-func (a *Client) GetReadMetricsTimeouts(params *GetReadMetricsTimeoutsParams) (*GetReadMetricsTimeoutsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadMetricsTimeoutsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_metrics_timeouts",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read/timeouts",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadMetricsTimeoutsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadMetricsTimeoutsOK), nil
-
-}
-
-/*
-GetReadMetricsTimeoutsRates gets read metrics timeouts rates
-
-Get read metrics rates
-*/
-func (a *Client) GetReadMetricsTimeoutsRates(params *GetReadMetricsTimeoutsRatesParams) (*GetReadMetricsTimeoutsRatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadMetricsTimeoutsRatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_metrics_timeouts_rates",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read/timeouts_rates",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadMetricsTimeoutsRatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadMetricsTimeoutsRatesOK), nil
-
-}
-
-/*
-GetReadMetricsUnavailables gets read metrics unavailables
-
-Get read metrics
-*/
-func (a *Client) GetReadMetricsUnavailables(params *GetReadMetricsUnavailablesParams) (*GetReadMetricsUnavailablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadMetricsUnavailablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_metrics_unavailables",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read/unavailables",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadMetricsUnavailablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadMetricsUnavailablesOK), nil
-
-}
-
-/*
-GetReadMetricsUnavailablesRates gets read metrics unavailables rates
-
-Get read metrics rates
-*/
-func (a *Client) GetReadMetricsUnavailablesRates(params *GetReadMetricsUnavailablesRatesParams) (*GetReadMetricsUnavailablesRatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadMetricsUnavailablesRatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_metrics_unavailables_rates",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/read/unavailables_rates",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadMetricsUnavailablesRatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadMetricsUnavailablesRatesOK), nil
-
-}
-
-/*
-GetReadRepairAttempted gets read repair attempted
-
-Get read repair attempted
-*/
-func (a *Client) GetReadRepairAttempted(params *GetReadRepairAttemptedParams) (*GetReadRepairAttemptedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadRepairAttemptedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_repair_attempted",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/read_repair_attempted",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadRepairAttemptedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadRepairAttemptedOK), nil
-
-}
-
-/*
-GetReadRepairRepairedBackground gets read repair repaired background
-
-Get read repair repaired background
-*/
-func (a *Client) GetReadRepairRepairedBackground(params *GetReadRepairRepairedBackgroundParams) (*GetReadRepairRepairedBackgroundOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadRepairRepairedBackgroundParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_repair_repaired_background",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/read_repair_repaired_background",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadRepairRepairedBackgroundReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadRepairRepairedBackgroundOK), nil
-
-}
-
-/*
-GetReadRepairRepairedBlocking gets read repair repaired blocking
-
-Get read repair repaired blocking
-*/
-func (a *Client) GetReadRepairRepairedBlocking(params *GetReadRepairRepairedBlockingParams) (*GetReadRepairRepairedBlockingOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadRepairRepairedBlockingParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_repair_repaired_blocking",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/read_repair_repaired_blocking",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadRepairRepairedBlockingReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadRepairRepairedBlockingOK), nil
-
-}
-
-/*
-GetReadRPCTimeout gets read rpc timeout
-
-Get the read RPC timeout in seconds
-*/
-func (a *Client) GetReadRPCTimeout(params *GetReadRPCTimeoutParams) (*GetReadRPCTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReadRPCTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_read_rpc_timeout",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/read_rpc_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReadRPCTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReadRPCTimeoutOK), nil
-
-}
-
-/*
-GetRecentBloomFilterFalsePositives gets recent bloom filter false positives
-
-Get recent bloom filter false positives
-*/
-func (a *Client) GetRecentBloomFilterFalsePositives(params *GetRecentBloomFilterFalsePositivesParams) (*GetRecentBloomFilterFalsePositivesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRecentBloomFilterFalsePositivesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_recent_bloom_filter_false_positives",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_positives/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRecentBloomFilterFalsePositivesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRecentBloomFilterFalsePositivesOK), nil
-
-}
-
-/*
-GetRecentBloomFilterFalseRatio gets recent bloom filter false ratio
-
-Get recent bloom filter false ratio
-*/
-func (a *Client) GetRecentBloomFilterFalseRatio(params *GetRecentBloomFilterFalseRatioParams) (*GetRecentBloomFilterFalseRatioOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRecentBloomFilterFalseRatioParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_recent_bloom_filter_false_ratio",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_ratio/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRecentBloomFilterFalseRatioReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRecentBloomFilterFalseRatioOK), nil
-
-}
-
-/*
-GetReleaseVersion gets release version
-
-Fetch a string representation of the Cassandra version.
-*/
-func (a *Client) GetReleaseVersion(params *GetReleaseVersionParams) (*GetReleaseVersionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetReleaseVersionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_release_version",
-		Method:             "GET",
-		PathPattern:        "/storage_service/release_version",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetReleaseVersionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetReleaseVersionOK), nil
-
-}
-
-/*
-GetRemovalStatus gets removal status
-
-Get the status of a token removal.
-*/
-func (a *Client) GetRemovalStatus(params *GetRemovalStatusParams) (*GetRemovalStatusOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRemovalStatusParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_removal_status",
-		Method:             "GET",
-		PathPattern:        "/storage_service/removal_status",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRemovalStatusReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRemovalStatusOK), nil
-
-}
-
-/*
-GetRespondCompletedMessages gets respond completed messages
-
-Get the number of completed respond messages
-*/
-func (a *Client) GetRespondCompletedMessages(params *GetRespondCompletedMessagesParams) (*GetRespondCompletedMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRespondCompletedMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_respond_completed_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/respond_completed",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRespondCompletedMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRespondCompletedMessagesOK), nil
-
-}
-
-/*
-GetRespondPendingMessages gets respond pending messages
-
-Get the number of messages waiting for respond
-*/
-func (a *Client) GetRespondPendingMessages(params *GetRespondPendingMessagesParams) (*GetRespondPendingMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRespondPendingMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_respond_pending_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/respond_pending",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRespondPendingMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRespondPendingMessagesOK), nil
-
-}
-
-/*
-GetRowCacheHit gets row cache hit
-
-Get row cache hit
-*/
-func (a *Client) GetRowCacheHit(params *GetRowCacheHitParams) (*GetRowCacheHitOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowCacheHitParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_cache_hit",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/row_cache_hit/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowCacheHitReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowCacheHitOK), nil
-
-}
-
-/*
-GetRowCacheHitOutOfRange gets row cache hit out of range
-
-Get row cache hit out of range
-*/
-func (a *Client) GetRowCacheHitOutOfRange(params *GetRowCacheHitOutOfRangeParams) (*GetRowCacheHitOutOfRangeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowCacheHitOutOfRangeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_cache_hit_out_of_range",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/row_cache_hit_out_of_range/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowCacheHitOutOfRangeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowCacheHitOutOfRangeOK), nil
-
-}
-
-/*
-GetRowCacheKeysToSave1 gets row cache keys to save1
-
-get row cache keys to save
-*/
-func (a *Client) GetRowCacheKeysToSave1(params *GetRowCacheKeysToSave1Params) (*GetRowCacheKeysToSave1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowCacheKeysToSave1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_cache_keys_to_save1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/row_cache_keys_to_save",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowCacheKeysToSave1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowCacheKeysToSave1OK), nil
-
-}
-
-/*
-GetRowCacheMiss gets row cache miss
-
-Get row cache miss
-*/
-func (a *Client) GetRowCacheMiss(params *GetRowCacheMissParams) (*GetRowCacheMissOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowCacheMissParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_cache_miss",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/row_cache_miss/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowCacheMissReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowCacheMissOK), nil
-
-}
-
-/*
-GetRowCacheSavePeriodInSeconds1 gets row cache save period in seconds1
-
-get row cache save period in seconds
-*/
-func (a *Client) GetRowCacheSavePeriodInSeconds1(params *GetRowCacheSavePeriodInSeconds1Params) (*GetRowCacheSavePeriodInSeconds1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowCacheSavePeriodInSeconds1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_cache_save_period_in_seconds1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/row_cache_save_period",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowCacheSavePeriodInSeconds1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowCacheSavePeriodInSeconds1OK), nil
-
-}
-
-/*
-GetRowCapacity1 gets row capacity1
-
-Get row capacity
-*/
-func (a *Client) GetRowCapacity1(params *GetRowCapacity1Params) (*GetRowCapacity1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowCapacity1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_capacity1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/capacity",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowCapacity1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowCapacity1OK), nil
-
-}
-
-/*
-GetRowEntries1 gets row entries1
-
-Get row entries
-*/
-func (a *Client) GetRowEntries1(params *GetRowEntries1Params) (*GetRowEntries1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowEntries1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_entries1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/entries",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowEntries1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowEntries1OK), nil
-
-}
-
-/*
-GetRowHitRate1 gets row hit rate1
-
-Get row hit rate
-*/
-func (a *Client) GetRowHitRate1(params *GetRowHitRate1Params) (*GetRowHitRate1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowHitRate1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_hit_rate1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/hit_rate",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowHitRate1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowHitRate1OK), nil
-
-}
-
-/*
-GetRowHits1 gets row hits1
-
-Get row hits
-*/
-func (a *Client) GetRowHits1(params *GetRowHits1Params) (*GetRowHits1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowHits1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_hits1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/hits",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowHits1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowHits1OK), nil
-
-}
-
-/*
-GetRowHitsMovingAvrage1 gets row hits moving avrage1
-
-Get row hits moving avrage
-*/
-func (a *Client) GetRowHitsMovingAvrage1(params *GetRowHitsMovingAvrage1Params) (*GetRowHitsMovingAvrage1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowHitsMovingAvrage1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_hits_moving_avrage1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/hits_moving_avrage",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowHitsMovingAvrage1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowHitsMovingAvrage1OK), nil
-
-}
-
-/*
-GetRowRequests1 gets row requests1
-
-Get row requests
-*/
-func (a *Client) GetRowRequests1(params *GetRowRequests1Params) (*GetRowRequests1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowRequests1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_requests1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/requests",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowRequests1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowRequests1OK), nil
-
-}
-
-/*
-GetRowRequestsMovingAvrage1 gets row requests moving avrage1
-
-Get row requests moving avrage
-*/
-func (a *Client) GetRowRequestsMovingAvrage1(params *GetRowRequestsMovingAvrage1Params) (*GetRowRequestsMovingAvrage1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowRequestsMovingAvrage1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_requests_moving_avrage1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/requests_moving_avrage",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowRequestsMovingAvrage1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowRequestsMovingAvrage1OK), nil
-
-}
-
-/*
-GetRowSize1 gets row size1
-
-Get row cache waited size
-*/
-func (a *Client) GetRowSize1(params *GetRowSize1Params) (*GetRowSize1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRowSize1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_row_size1",
-		Method:             "GET",
-		PathPattern:        "/cache_service/metrics/row/size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRowSize1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRowSize1OK), nil
-
-}
-
-/*
-GetRPCTimeout gets rpc timeout
-
-Get the RPC timeout in seconds
-*/
-func (a *Client) GetRPCTimeout(params *GetRPCTimeoutParams) (*GetRPCTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRPCTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_rpc_timeout",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/rpc_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetRPCTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRPCTimeoutOK), nil
-
-}
-
-/*
-GetSavedCachesLocation gets saved caches location
-
-Get location of the saved caches dir
-*/
-func (a *Client) GetSavedCachesLocation(params *GetSavedCachesLocationParams) (*GetSavedCachesLocationOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSavedCachesLocationParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_saved_caches_location",
-		Method:             "GET",
-		PathPattern:        "/storage_service/saved_caches/location",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSavedCachesLocationReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSavedCachesLocationOK), nil
-
-}
-
-/*
-GetSchemaVersion gets schema version
-
-Fetch a string representation of the current Schema version.
-*/
-func (a *Client) GetSchemaVersion(params *GetSchemaVersionParams) (*GetSchemaVersionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSchemaVersionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_schema_version",
-		Method:             "GET",
-		PathPattern:        "/storage_service/schema_version",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSchemaVersionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSchemaVersionOK), nil
-
-}
-
-/*
-GetSchemaVersions gets schema versions
-
-Get a map of the schema versions
-*/
-func (a *Client) GetSchemaVersions(params *GetSchemaVersionsParams) (*GetSchemaVersionsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSchemaVersionsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_schema_versions",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/schema_versions",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSchemaVersionsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSchemaVersionsOK), nil
-
-}
-
-/*
-GetScyllaReleaseVersion gets scylla release version
-
-Fetch a string representation of the Scylla version.
-*/
-func (a *Client) GetScyllaReleaseVersion(params *GetScyllaReleaseVersionParams) (*GetScyllaReleaseVersionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetScyllaReleaseVersionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_scylla_release_version",
-		Method:             "GET",
-		PathPattern:        "/storage_service/scylla_release_version",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetScyllaReleaseVersionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetScyllaReleaseVersionOK), nil
-
-}
-
-/*
-GetSentMessages gets sent messages
-
-Get the number of sent messages
-*/
-func (a *Client) GetSentMessages(params *GetSentMessagesParams) (*GetSentMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSentMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_sent_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/sent",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSentMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSentMessagesOK), nil
-
-}
-
-/*
-GetSimpleStates gets simple states
-
-Get simple_states
-*/
-func (a *Client) GetSimpleStates(params *GetSimpleStatesParams) (*GetSimpleStatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSimpleStatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_simple_states",
-		Method:             "GET",
-		PathPattern:        "/failure_detector/simple_states",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSimpleStatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSimpleStatesOK), nil
-
-}
-
-/*
-GetSlowQueryInfo gets slow query info
-
-Returns the slow query record configuration.
-*/
-func (a *Client) GetSlowQueryInfo(params *GetSlowQueryInfoParams) (*GetSlowQueryInfoOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSlowQueryInfoParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_slow_query_info",
-		Method:             "GET",
-		PathPattern:        "/storage_service/slow_query",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSlowQueryInfoReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSlowQueryInfoOK), nil
-
-}
-
-/*
-GetSnapshotDetails gets snapshot details
-
-Get the details of all the snapshot
-*/
-func (a *Client) GetSnapshotDetails(params *GetSnapshotDetailsParams) (*GetSnapshotDetailsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSnapshotDetailsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_snapshot_details",
-		Method:             "GET",
-		PathPattern:        "/storage_service/snapshots",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSnapshotDetailsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSnapshotDetailsOK), nil
-
-}
-
-/*
-GetSnitchName gets snitch name
-
-Provides the snitch name of the cluster
-*/
-func (a *Client) GetSnitchName(params *GetSnitchNameParams) (*GetSnitchNameOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSnitchNameParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_snitch_name",
-		Method:             "GET",
-		PathPattern:        "/snitch/name",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSnitchNameReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSnitchNameOK), nil
-
-}
-
-/*
-GetSpeculativeRetries gets speculative retries
-
-Get speculative retries
-*/
-func (a *Client) GetSpeculativeRetries(params *GetSpeculativeRetriesParams) (*GetSpeculativeRetriesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSpeculativeRetriesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_speculative_retries",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/speculative_retries/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSpeculativeRetriesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSpeculativeRetriesOK), nil
-
-}
-
-/*
-GetSstableCountPerLevel gets sstable count per level
-
-sstable count for each level. empty unless leveled compaction is used
-*/
-func (a *Client) GetSstableCountPerLevel(params *GetSstableCountPerLevelParams) (*GetSstableCountPerLevelOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSstableCountPerLevelParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_sstable_count_per_level",
-		Method:             "GET",
-		PathPattern:        "/column_family/sstables/per_level/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSstableCountPerLevelReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSstableCountPerLevelOK), nil
-
-}
-
-/*
-GetSstablesForKey gets sstables for key
-
-Returns a list of filenames that contain the given key on this node
-*/
-func (a *Client) GetSstablesForKey(params *GetSstablesForKeyParams) (*GetSstablesForKeyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSstablesForKeyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_sstables_for_key",
-		Method:             "GET",
-		PathPattern:        "/column_family/sstables/by_key/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSstablesForKeyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSstablesForKeyOK), nil
-
-}
-
-/*
-GetSstablesPerReadHistogram gets sstables per read histogram
-
-Get sstables per read histogram
-*/
-func (a *Client) GetSstablesPerReadHistogram(params *GetSstablesPerReadHistogramParams) (*GetSstablesPerReadHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSstablesPerReadHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_sstables_per_read_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/sstables_per_read_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSstablesPerReadHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetSstablesPerReadHistogramOK), nil
-
-}
-
-/*
-GetStreamThroughputMbPerSec gets stream throughput mb per sec
-
-Get stream throughput mb per sec
-*/
-func (a *Client) GetStreamThroughputMbPerSec(params *GetStreamThroughputMbPerSecParams) (*GetStreamThroughputMbPerSecOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetStreamThroughputMbPerSecParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_stream_throughput_mb_per_sec",
-		Method:             "GET",
-		PathPattern:        "/storage_service/stream_throughput",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetStreamThroughputMbPerSecReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetStreamThroughputMbPerSecOK), nil
-
-}
-
-/*
-GetTimeoutMessages gets timeout messages
-
-Get the number of timeout messages
-*/
-func (a *Client) GetTimeoutMessages(params *GetTimeoutMessagesParams) (*GetTimeoutMessagesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTimeoutMessagesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_timeout_messages",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/messages/timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTimeoutMessagesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTimeoutMessagesOK), nil
-
-}
-
-/*
-GetTokenEndpoint gets token endpoint
-
-Returns a list of the tokens endpoint mapping
-*/
-func (a *Client) GetTokenEndpoint(params *GetTokenEndpointParams) (*GetTokenEndpointOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTokenEndpointParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_token_endpoint",
-		Method:             "GET",
-		PathPattern:        "/storage_service/tokens_endpoint",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTokenEndpointReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTokenEndpointOK), nil
-
-}
-
-/*
-GetTokens gets tokens
-
-Returns a list of the tokens for this node
-*/
-func (a *Client) GetTokens(params *GetTokensParams) (*GetTokensOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTokensParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_tokens",
-		Method:             "GET",
-		PathPattern:        "/storage_service/tokens",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTokensReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTokensOK), nil
-
-}
-
-/*
-GetTombstoneFailureThreshold gets tombstone failure threshold
-*/
-func (a *Client) GetTombstoneFailureThreshold(params *GetTombstoneFailureThresholdParams) (*GetTombstoneFailureThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTombstoneFailureThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_tombstone_failure_threshold",
-		Method:             "GET",
-		PathPattern:        "/storage_service/tombstone_failure_threshold",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTombstoneFailureThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTombstoneFailureThresholdOK), nil
-
-}
-
-/*
-GetTombstoneScannedHistogram gets tombstone scanned histogram
-
-Get tombstone scanned histogram
-*/
-func (a *Client) GetTombstoneScannedHistogram(params *GetTombstoneScannedHistogramParams) (*GetTombstoneScannedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTombstoneScannedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_tombstone_scanned_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/tombstone_scanned_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTombstoneScannedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTombstoneScannedHistogramOK), nil
-
-}
-
-/*
-GetTombstoneWarnThreshold gets tombstone warn threshold
-
-Returns the threshold for warning of queries with many tombstones
-*/
-func (a *Client) GetTombstoneWarnThreshold(params *GetTombstoneWarnThresholdParams) (*GetTombstoneWarnThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTombstoneWarnThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_tombstone_warn_threshold",
-		Method:             "GET",
-		PathPattern:        "/storage_service/tombstone_warn_threshold",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTombstoneWarnThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTombstoneWarnThresholdOK), nil
-
-}
-
-/*
-GetTotalCommitLogSize gets total commit log size
-
-Get total commit log size
-*/
-func (a *Client) GetTotalCommitLogSize(params *GetTotalCommitLogSizeParams) (*GetTotalCommitLogSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalCommitLogSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_commit_log_size",
-		Method:             "GET",
-		PathPattern:        "/commitlog/metrics/total_commit_log_size",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalCommitLogSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalCommitLogSizeOK), nil
-
-}
-
-/*
-GetTotalCompactionsCompleted gets total compactions completed
-
-Get total compactions completed
-*/
-func (a *Client) GetTotalCompactionsCompleted(params *GetTotalCompactionsCompletedParams) (*GetTotalCompactionsCompletedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalCompactionsCompletedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_compactions_completed",
-		Method:             "GET",
-		PathPattern:        "/compaction_manager/metrics/total_compactions_completed",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalCompactionsCompletedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalCompactionsCompletedOK), nil
-
-}
-
-/*
-GetTotalDiskSpaceUsed gets total disk space used
-
-Get total disk space used
-*/
-func (a *Client) GetTotalDiskSpaceUsed(params *GetTotalDiskSpaceUsedParams) (*GetTotalDiskSpaceUsedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalDiskSpaceUsedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_disk_space_used",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/total_disk_space_used/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalDiskSpaceUsedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalDiskSpaceUsedOK), nil
-
-}
-
-/*
-GetTotalHints gets total hints
-
-Get total hints
-*/
-func (a *Client) GetTotalHints(params *GetTotalHintsParams) (*GetTotalHintsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalHintsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_hints",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/total_hints",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalHintsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalHintsOK), nil
-
-}
-
-/*
-GetTotalHints1 gets total hints1
-
-Get total hints
-*/
-func (a *Client) GetTotalHints1(params *GetTotalHints1Params) (*GetTotalHints1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalHints1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_hints1",
-		Method:             "GET",
-		PathPattern:        "/storage_service/metrics/total_hints",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalHints1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalHints1OK), nil
-
-}
-
-/*
-GetTotalHintsInProgress gets total hints in progress
-
-Get total hints in progress
-*/
-func (a *Client) GetTotalHintsInProgress(params *GetTotalHintsInProgressParams) (*GetTotalHintsInProgressOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalHintsInProgressParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_hints_in_progress",
-		Method:             "GET",
-		PathPattern:        "/storage_service/metrics/hints_in_progress",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalHintsInProgressReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalHintsInProgressOK), nil
-
-}
-
-/*
-GetTotalIncomingBytes gets total incoming bytes
-
-Get total incoming bytes
-*/
-func (a *Client) GetTotalIncomingBytes(params *GetTotalIncomingBytesParams) (*GetTotalIncomingBytesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalIncomingBytesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_incoming_bytes",
-		Method:             "GET",
-		PathPattern:        "/stream_manager/metrics/incoming/{peer}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalIncomingBytesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalIncomingBytesOK), nil
-
-}
-
-/*
-GetTotalOutgoingBytes gets total outgoing bytes
-
-Get total outgoing bytes
-*/
-func (a *Client) GetTotalOutgoingBytes(params *GetTotalOutgoingBytesParams) (*GetTotalOutgoingBytesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTotalOutgoingBytesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_total_outgoing_bytes",
-		Method:             "GET",
-		PathPattern:        "/stream_manager/metrics/outgoing/{peer}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTotalOutgoingBytesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTotalOutgoingBytesOK), nil
-
-}
-
-/*
-GetTraceProbability gets trace probability
-
-Returns the configured tracing probability.
-*/
-func (a *Client) GetTraceProbability(params *GetTraceProbabilityParams) (*GetTraceProbabilityOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTraceProbabilityParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_trace_probability",
-		Method:             "GET",
-		PathPattern:        "/storage_service/trace_probability",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTraceProbabilityReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTraceProbabilityOK), nil
-
-}
-
-/*
-GetTrueSnapshotsSize gets true snapshots size
-
-Get true snapshots size
-*/
-func (a *Client) GetTrueSnapshotsSize(params *GetTrueSnapshotsSizeParams) (*GetTrueSnapshotsSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTrueSnapshotsSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_true_snapshots_size",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/snapshots_size/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTrueSnapshotsSizeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTrueSnapshotsSizeOK), nil
-
-}
-
-/*
-GetTruncateRPCTimeout gets truncate rpc timeout
-
-Get truncate rpc timeout in seconds
-*/
-func (a *Client) GetTruncateRPCTimeout(params *GetTruncateRPCTimeoutParams) (*GetTruncateRPCTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetTruncateRPCTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_truncate_rpc_timeout",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/truncate_rpc_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetTruncateRPCTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetTruncateRPCTimeoutOK), nil
-
-}
-
-/*
-GetUnleveledSstables gets unleveled sstables
-
-the number of SSTables in L0.  Always return 0 if Leveled compaction is not enabled.
-*/
-func (a *Client) GetUnleveledSstables(params *GetUnleveledSstablesParams) (*GetUnleveledSstablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetUnleveledSstablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_unleveled_sstables",
-		Method:             "GET",
-		PathPattern:        "/column_family/sstables/unleveled/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetUnleveledSstablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetUnleveledSstablesOK), nil
-
-}
-
-/*
-GetUpEndpointCount gets up endpoint count
-
-Get count up endpoint
-*/
-func (a *Client) GetUpEndpointCount(params *GetUpEndpointCountParams) (*GetUpEndpointCountOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetUpEndpointCountParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_up_endpoint_count",
-		Method:             "GET",
-		PathPattern:        "/failure_detector/count/endpoint/up",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetUpEndpointCountReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetUpEndpointCountOK), nil
-
-}
-
-/*
-GetVersion gets version
-
-Get the version number
-*/
-func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetVersionParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_version",
-		Method:             "GET",
-		PathPattern:        "/messaging_service/version",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetVersionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetVersionOK), nil
-
-}
-
-/*
-GetWaitingOnCommit gets waiting on commit
-
-Get waiting on commit
-*/
-func (a *Client) GetWaitingOnCommit(params *GetWaitingOnCommitParams) (*GetWaitingOnCommitOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWaitingOnCommitParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_waiting_on_commit",
-		Method:             "GET",
-		PathPattern:        "/commit_log/metrics/waiting_on_commit",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWaitingOnCommitReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWaitingOnCommitOK), nil
-
-}
-
-/*
-GetWaitingOnFreeMemtableSpace gets waiting on free memtable space
-
-Get waiting on free memtable space
-*/
-func (a *Client) GetWaitingOnFreeMemtableSpace(params *GetWaitingOnFreeMemtableSpaceParams) (*GetWaitingOnFreeMemtableSpaceOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWaitingOnFreeMemtableSpaceParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_waiting_on_free_memtable_space",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/waiting_on_free_memtable",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWaitingOnFreeMemtableSpaceReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWaitingOnFreeMemtableSpaceOK), nil
-
-}
-
-/*
-GetWaitingOnSegmentAllocation gets waiting on segment allocation
-
-Get waiting on segment allocation
-*/
-func (a *Client) GetWaitingOnSegmentAllocation(params *GetWaitingOnSegmentAllocationParams) (*GetWaitingOnSegmentAllocationOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWaitingOnSegmentAllocationParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_waiting_on_segment_allocation",
-		Method:             "GET",
-		PathPattern:        "/commit_log/metrics/waiting_on_segment_allocation",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWaitingOnSegmentAllocationReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWaitingOnSegmentAllocationOK), nil
-
-}
-
-/*
-GetWrite gets write
-
-Get number of writes
-*/
-func (a *Client) GetWrite(params *GetWriteParams) (*GetWriteOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteOK), nil
-
-}
-
-/*
-GetWriteEstimatedHistogram gets write estimated histogram
-
-Get write estimated latency
-*/
-func (a *Client) GetWriteEstimatedHistogram(params *GetWriteEstimatedHistogramParams) (*GetWriteEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write/estimated_histogram/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteEstimatedHistogramOK), nil
-
-}
-
-/*
-GetWriteLatency gets write latency
-
-Get write latency
-*/
-func (a *Client) GetWriteLatency(params *GetWriteLatencyParams) (*GetWriteLatencyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteLatencyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_latency",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteLatencyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteLatencyOK), nil
-
-}
-
-/*
-GetWriteLatency1 gets write latency
-
-Get write latency
-*/
-func (a *Client) GetWriteLatency1(params *GetWriteLatency1Params) (*GetWriteLatency1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteLatency1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_latency1",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteLatency1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteLatency1OK), nil
-
-}
-
-/*
-GetWriteLatencyEstimatedHistogram gets write latency estimated histogram
-
-Get write latency
-*/
-func (a *Client) GetWriteLatencyEstimatedHistogram(params *GetWriteLatencyEstimatedHistogramParams) (*GetWriteLatencyEstimatedHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteLatencyEstimatedHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_latency_estimated_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency/estimated_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteLatencyEstimatedHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteLatencyEstimatedHistogramOK), nil
-
-}
-
-/*
-GetWriteLatencyEstimatedRecentHistogram gets write latency estimated recent histogram
-
-Get write latency
-*/
-func (a *Client) GetWriteLatencyEstimatedRecentHistogram(params *GetWriteLatencyEstimatedRecentHistogramParams) (*GetWriteLatencyEstimatedRecentHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteLatencyEstimatedRecentHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_latency_estimated_recent_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency/estimated_recent_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteLatencyEstimatedRecentHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteLatencyEstimatedRecentHistogramOK), nil
-
-}
-
-/*
-GetWriteLatencyHistogram gets write latency histogram
-
-Get write latency moving average histogram
-*/
-func (a *Client) GetWriteLatencyHistogram(params *GetWriteLatencyHistogramParams) (*GetWriteLatencyHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteLatencyHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_latency_histogram",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency/moving_average_histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteLatencyHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteLatencyHistogramOK), nil
-
-}
-
-/*
-GetWriteLatencyHistogramDepricated gets write latency histogram depricated
-
-Get write latency histogram
-*/
-func (a *Client) GetWriteLatencyHistogramDepricated(params *GetWriteLatencyHistogramDepricatedParams) (*GetWriteLatencyHistogramDepricatedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteLatencyHistogramDepricatedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_latency_histogram_depricated",
-		Method:             "GET",
-		PathPattern:        "/column_family/metrics/write_latency/histogram/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteLatencyHistogramDepricatedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteLatencyHistogramDepricatedOK), nil
-
-}
-
-/*
-GetWriteMetricsLatencyHistogram gets write metrics latency histogram
-
-Get write metrics
-*/
-func (a *Client) GetWriteMetricsLatencyHistogram(params *GetWriteMetricsLatencyHistogramParams) (*GetWriteMetricsLatencyHistogramOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteMetricsLatencyHistogramParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_metrics_latency_histogram",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write/moving_average_histogram",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteMetricsLatencyHistogramReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteMetricsLatencyHistogramOK), nil
-
-}
-
-/*
-GetWriteMetricsLatencyHistogramDepricated gets write metrics latency histogram depricated
-
-Get write metrics
-*/
-func (a *Client) GetWriteMetricsLatencyHistogramDepricated(params *GetWriteMetricsLatencyHistogramDepricatedParams) (*GetWriteMetricsLatencyHistogramDepricatedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteMetricsLatencyHistogramDepricatedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_metrics_latency_histogram_depricated",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write/histogram",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteMetricsLatencyHistogramDepricatedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteMetricsLatencyHistogramDepricatedOK), nil
-
-}
-
-/*
-GetWriteMetricsTimeouts gets write metrics timeouts
-
-Get write metrics
-*/
-func (a *Client) GetWriteMetricsTimeouts(params *GetWriteMetricsTimeoutsParams) (*GetWriteMetricsTimeoutsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteMetricsTimeoutsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_metrics_timeouts",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write/timeouts",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteMetricsTimeoutsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteMetricsTimeoutsOK), nil
-
-}
-
-/*
-GetWriteMetricsTimeoutsRates gets write metrics timeouts rates
-
-Get write metrics rates
-*/
-func (a *Client) GetWriteMetricsTimeoutsRates(params *GetWriteMetricsTimeoutsRatesParams) (*GetWriteMetricsTimeoutsRatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteMetricsTimeoutsRatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_metrics_timeouts_rates",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write/timeouts_rates",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteMetricsTimeoutsRatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteMetricsTimeoutsRatesOK), nil
-
-}
-
-/*
-GetWriteMetricsUnavailables gets write metrics unavailables
-
-Get write metrics
-*/
-func (a *Client) GetWriteMetricsUnavailables(params *GetWriteMetricsUnavailablesParams) (*GetWriteMetricsUnavailablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteMetricsUnavailablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_metrics_unavailables",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write/unavailables",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteMetricsUnavailablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteMetricsUnavailablesOK), nil
-
-}
-
-/*
-GetWriteMetricsUnavailablesRates gets write metrics unavailables rates
-
-Get write metrics rates
-*/
-func (a *Client) GetWriteMetricsUnavailablesRates(params *GetWriteMetricsUnavailablesRatesParams) (*GetWriteMetricsUnavailablesRatesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteMetricsUnavailablesRatesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_metrics_unavailables_rates",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/metrics/write/unavailables_rates",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteMetricsUnavailablesRatesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteMetricsUnavailablesRatesOK), nil
-
-}
-
-/*
-GetWriteRPCTimeout gets write rpc timeout
-
-Get the write RPC timeout in seconds
-*/
-func (a *Client) GetWriteRPCTimeout(params *GetWriteRPCTimeoutParams) (*GetWriteRPCTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetWriteRPCTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "get_write_rpc_timeout",
-		Method:             "GET",
-		PathPattern:        "/storage_proxy/write_rpc_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetWriteRPCTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetWriteRPCTimeoutOK), nil
-
-}
-
-/*
-InvalidateCounterCache1 invalidates counter cache1
-
-invalidate counter cache
-*/
-func (a *Client) InvalidateCounterCache1(params *InvalidateCounterCache1Params) (*InvalidateCounterCache1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewInvalidateCounterCache1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "invalidate_counter_cache1",
-		Method:             "POST",
-		PathPattern:        "/cache_service/invalidate_counter_cache",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &InvalidateCounterCache1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*InvalidateCounterCache1OK), nil
-
-}
-
-/*
-InvalidateKeyCache1 invalidates key cache1
-
-invalidate the key cache; for use after invalidating row cache
-*/
-func (a *Client) InvalidateKeyCache1(params *InvalidateKeyCache1Params) (*InvalidateKeyCache1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewInvalidateKeyCache1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "invalidate_key_cache1",
-		Method:             "POST",
-		PathPattern:        "/cache_service/invalidate_key_cache",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &InvalidateKeyCache1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*InvalidateKeyCache1OK), nil
-
-}
-
-/*
-IsAutoCompactionDisabled is auto compaction disabled
-
-check if the auto compaction disabled
-*/
-func (a *Client) IsAutoCompactionDisabled(params *IsAutoCompactionDisabledParams) (*IsAutoCompactionDisabledOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsAutoCompactionDisabledParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_auto_compaction_disabled",
-		Method:             "GET",
-		PathPattern:        "/column_family/autocompaction/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsAutoCompactionDisabledReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsAutoCompactionDisabledOK), nil
-
-}
-
-/*
-IsGossipRunning is gossip running
-
-allows a user to see whether gossip is running or not
-*/
-func (a *Client) IsGossipRunning(params *IsGossipRunningParams) (*IsGossipRunningOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsGossipRunningParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_gossip_running",
-		Method:             "GET",
-		PathPattern:        "/storage_service/gossiping",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsGossipRunningReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsGossipRunningOK), nil
-
-}
-
-/*
-IsIncrementalBackupsEnabled is incremental backups enabled
-
-Check if incremental backup is enabled
-*/
-func (a *Client) IsIncrementalBackupsEnabled(params *IsIncrementalBackupsEnabledParams) (*IsIncrementalBackupsEnabledOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsIncrementalBackupsEnabledParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_incremental_backups_enabled",
-		Method:             "GET",
-		PathPattern:        "/storage_service/incremental_backups",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsIncrementalBackupsEnabledReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsIncrementalBackupsEnabledOK), nil
-
-}
-
-/*
-IsInitialized is initialized
-
-Determine if gossip is enable
-*/
-func (a *Client) IsInitialized(params *IsInitializedParams) (*IsInitializedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsInitializedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_initialized",
-		Method:             "GET",
-		PathPattern:        "/storage_service/is_initialized",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsInitializedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsInitializedOK), nil
-
-}
-
-/*
-IsJoined is joined
-*/
-func (a *Client) IsJoined(params *IsJoinedParams) (*IsJoinedOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsJoinedParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_joined",
-		Method:             "GET",
-		PathPattern:        "/storage_service/join_ring",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsJoinedReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsJoinedOK), nil
-
-}
-
-/*
-IsNativeTransportRunning is native transport running
-
-Is native transport running
-*/
-func (a *Client) IsNativeTransportRunning(params *IsNativeTransportRunningParams) (*IsNativeTransportRunningOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsNativeTransportRunningParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_native_transport_running",
-		Method:             "GET",
-		PathPattern:        "/storage_service/native_transport",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsNativeTransportRunningReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsNativeTransportRunningOK), nil
-
-}
-
-/*
-IsRPCServerRunning is rpc server running
-
-Determine if thrift is running
-*/
-func (a *Client) IsRPCServerRunning(params *IsRPCServerRunningParams) (*IsRPCServerRunningOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsRPCServerRunningParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_rpc_server_running",
-		Method:             "GET",
-		PathPattern:        "/storage_service/rpc_server",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsRPCServerRunningReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsRPCServerRunningOK), nil
-
-}
-
-/*
-IsStarting is starting
-
-Returns whether the storage service is starting or not
-*/
-func (a *Client) IsStarting(params *IsStartingParams) (*IsStartingOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewIsStartingParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "is_starting",
-		Method:             "GET",
-		PathPattern:        "/storage_service/is_starting",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &IsStartingReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IsStartingOK), nil
-
-}
-
-/*
-JoinRing joins ring
-
-Allows a node that have been started without joining the ring to join it
-*/
-func (a *Client) JoinRing(params *JoinRingParams) (*JoinRingOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewJoinRingParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "join_ring",
-		Method:             "POST",
-		PathPattern:        "/storage_service/join_ring",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &JoinRingReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*JoinRingOK), nil
-
-}
-
-/*
-ListEndpointsPendingHints lists endpoints pending hints
-
-List all the endpoints that this node has hints for.
-*/
-func (a *Client) ListEndpointsPendingHints(params *ListEndpointsPendingHintsParams) (*ListEndpointsPendingHintsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewListEndpointsPendingHintsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "list_endpoints_pending_hints",
-		Method:             "GET",
-		PathPattern:        "/hinted_handoff/hints",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ListEndpointsPendingHintsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ListEndpointsPendingHintsOK), nil
-
-}
-
-/*
-LoadNewSsTables loads new ss tables
-
-Load new SSTables to the given keyspace/columnFamily
-*/
-func (a *Client) LoadNewSsTables(params *LoadNewSsTablesParams) (*LoadNewSsTablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewLoadNewSsTablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "load_new_ss_tables",
-		Method:             "POST",
-		PathPattern:        "/storage_service/sstables/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &LoadNewSsTablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*LoadNewSsTablesOK), nil
-
-}
-
-/*
-LoadNewSstables loads new sstables
-
-Scan through Keyspace/ColumnFamily's data directory determine which SSTables should be loaded and load them
-*/
-func (a *Client) LoadNewSstables(params *LoadNewSstablesParams) (*LoadNewSstablesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewLoadNewSstablesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "load_new_sstables",
-		Method:             "POST",
-		PathPattern:        "/column_family/load/sstable/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &LoadNewSstablesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*LoadNewSstablesOK), nil
-
-}
-
-/*
-LocalHostid locals hostid
-
-Returns the local host id
-*/
-func (a *Client) LocalHostid(params *LocalHostidParams) (*LocalHostidOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewLocalHostidParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "local_hostid",
-		Method:             "GET",
-		PathPattern:        "/storage_service/hostid/local",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &LocalHostidReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*LocalHostidOK), nil
-
-}
-
-/*
-LsaCompact lsas compact
-
-Force compaction of all regions
-*/
-func (a *Client) LsaCompact(params *LsaCompactParams) (*LsaCompactOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewLsaCompactParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "lsa_compact",
-		Method:             "POST",
-		PathPattern:        "/lsa/compact",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &LsaCompactReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*LsaCompactOK), nil
-
-}
-
-/*
-Move moves
-
-This node will unload its data onto its neighbors, and bootstrap to the new token.
-*/
-func (a *Client) Move(params *MoveParams) (*MoveOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewMoveParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "move",
-		Method:             "POST",
-		PathPattern:        "/storage_service/move",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &MoveReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*MoveOK), nil
-
-}
-
-/*
-PauseHintsDelivery pauses hints delivery
-
-pause hints delivery
-*/
-func (a *Client) PauseHintsDelivery(params *PauseHintsDeliveryParams) (*PauseHintsDeliveryOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPauseHintsDeliveryParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "pause_hints_delivery",
-		Method:             "POST",
-		PathPattern:        "/hinted_handoff/pause",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PauseHintsDeliveryReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PauseHintsDeliveryOK), nil
-
-}
-
-/*
-Rebuild rebuilds
-
-Initiate a process of streaming data for which we are responsible from other nodes. It is similar to bootstrap except meant to be used on a node which is already in the cluster (typically containing no data) as an alternative to running repair.
-*/
-func (a *Client) Rebuild(params *RebuildParams) (*RebuildOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewRebuildParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "rebuild",
-		Method:             "POST",
-		PathPattern:        "/storage_service/rebuild",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &RebuildReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*RebuildOK), nil
-
-}
-
-/*
-ReloadTriggerClasses reloads trigger classes
-
-Reload trigger classes
-*/
-func (a *Client) ReloadTriggerClasses(params *ReloadTriggerClassesParams) (*ReloadTriggerClassesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewReloadTriggerClassesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "reload_trigger_classes",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/reload_trigger_classes",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ReloadTriggerClassesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ReloadTriggerClassesOK), nil
-
-}
-
-/*
-RemoveNode removes node
-
-Removes token (and all data associated with enpoint that had it) from the ring
-*/
-func (a *Client) RemoveNode(params *RemoveNodeParams) (*RemoveNodeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewRemoveNodeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "remove_node",
-		Method:             "POST",
-		PathPattern:        "/storage_service/remove_node",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &RemoveNodeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*RemoveNodeOK), nil
-
-}
-
-/*
-RepairAsync repairs async
-
-Invoke repair asynchronously. You can track repair progress by using the get supplying id
-*/
-func (a *Client) RepairAsync(params *RepairAsyncParams) (*RepairAsyncOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewRepairAsyncParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "repair_async",
-		Method:             "POST",
-		PathPattern:        "/storage_service/repair_async/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &RepairAsyncReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*RepairAsyncOK), nil
-
-}
-
-/*
-RepairAsyncStatus repairs async status
-
-Track already running repair progress
-*/
-func (a *Client) RepairAsyncStatus(params *RepairAsyncStatusParams) (*RepairAsyncStatusOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewRepairAsyncStatusParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "repair_async_status",
-		Method:             "GET",
-		PathPattern:        "/storage_service/repair_async/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &RepairAsyncStatusReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*RepairAsyncStatusOK), nil
-
-}
-
-/*
-RescheduleFailedDeletions reschedules failed deletions
-
-Reschedule failed deletions
-*/
-func (a *Client) RescheduleFailedDeletions(params *RescheduleFailedDeletionsParams) (*RescheduleFailedDeletionsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewRescheduleFailedDeletionsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "reschedule_failed_deletions",
-		Method:             "POST",
-		PathPattern:        "/storage_service/reschedule_failed_deletions",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &RescheduleFailedDeletionsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*RescheduleFailedDeletionsOK), nil
-
-}
-
-/*
-ResetLocalSchema resets local schema
-
-Reset local schema
-*/
-func (a *Client) ResetLocalSchema(params *ResetLocalSchemaParams) (*ResetLocalSchemaOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewResetLocalSchemaParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "reset_local_schema",
-		Method:             "POST",
-		PathPattern:        "/storage_service/relocal_schema",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ResetLocalSchemaReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ResetLocalSchemaOK), nil
-
-}
-
-/*
-SampleKeyRange samples key range
-
-Return a List of Tokens representing a sample of keys across all ColumnFamilyStores.
-*/
-func (a *Client) SampleKeyRange(params *SampleKeyRangeParams) (*SampleKeyRangeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSampleKeyRangeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "sample_key_range",
-		Method:             "GET",
-		PathPattern:        "/storage_service/sample_key_range",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SampleKeyRangeReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SampleKeyRangeOK), nil
-
-}
-
-/*
-SaveCaches1 saves caches1
-
-save row and key caches
-*/
-func (a *Client) SaveCaches1(params *SaveCaches1Params) (*SaveCaches1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSaveCaches1Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "save_caches1",
-		Method:             "POST",
-		PathPattern:        "/cache_service/save_caches",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SaveCaches1Reader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SaveCaches1OK), nil
-
-}
-
-/*
-ScheduleHintDelivery schedules hint delivery
-
-force hint delivery to an endpoint
-*/
-func (a *Client) ScheduleHintDelivery(params *ScheduleHintDeliveryParams) (*ScheduleHintDeliveryOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewScheduleHintDeliveryParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "schedule_hint_delivery",
-		Method:             "POST",
-		PathPattern:        "/hinted_handoff/schedule",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ScheduleHintDeliveryReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ScheduleHintDeliveryOK), nil
-
-}
-
-/*
-Scrub scrubs
-
-Scrub (deserialize + reserialize at the latest version, skipping bad rows if any) the given keyspace. If columnFamilies array is empty, all CFs are scrubbed. Scrubbed CFs will be snapshotted first, if disableSnapshot is false
-*/
-func (a *Client) Scrub(params *ScrubParams) (*ScrubOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewScrubParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "scrub",
-		Method:             "GET",
-		PathPattern:        "/storage_service/keyspace_scrub/{keyspace}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ScrubReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ScrubOK), nil
-
-}
-
-/*
-SetAllLoggerLevel sets all logger level
-
-Set all logger level
-*/
-func (a *Client) SetAllLoggerLevel(params *SetAllLoggerLevelParams) (*SetAllLoggerLevelOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetAllLoggerLevelParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_all_logger_level",
-		Method:             "POST",
-		PathPattern:        "/system/logger",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetAllLoggerLevelReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetAllLoggerLevelOK), nil
-
-}
-
-/*
-SetBatchSizeFailureThreshold sets batch size failure threshold
-
-Sets the threshold for rejecting queries due to a large batch size
-*/
-func (a *Client) SetBatchSizeFailureThreshold(params *SetBatchSizeFailureThresholdParams) (*SetBatchSizeFailureThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetBatchSizeFailureThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_batch_size_failure_threshold",
-		Method:             "POST",
-		PathPattern:        "/storage_service/batch_size_failure_threshold",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetBatchSizeFailureThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetBatchSizeFailureThresholdOK), nil
-
-}
-
-/*
-SetCasContentionTimeout sets cas contention timeout
-
-Set CAS contention timeout
-*/
-func (a *Client) SetCasContentionTimeout(params *SetCasContentionTimeoutParams) (*SetCasContentionTimeoutOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetCasContentionTimeoutParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_cas_contention_timeout",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/cas_contention_timeout",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetCasContentionTimeoutReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetCasContentionTimeoutOK), nil
-
-}
-
-/*
-SetCompactionStrategyClass sets compaction strategy class
-
-Sets the compaction strategy by class name
-*/
-func (a *Client) SetCompactionStrategyClass(params *SetCompactionStrategyClassParams) (*SetCompactionStrategyClassOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetCompactionStrategyClassParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_compaction_strategy_class",
-		Method:             "POST",
-		PathPattern:        "/column_family/compaction_strategy/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetCompactionStrategyClassReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetCompactionStrategyClassOK), nil
-
-}
-
-/*
-SetCompactionThreshold sets compaction threshold
-
-Sets the minumum and maximum number of sstables in queue before compaction kicks off
-*/
-func (a *Client) SetCompactionThreshold(params *SetCompactionThresholdParams) (*SetCompactionThresholdOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetCompactionThresholdParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_compaction_threshold",
-		Method:             "POST",
-		PathPattern:        "/column_family/compaction/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetCompactionThresholdReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetCompactionThresholdOK), nil
-
-}
-
-/*
-SetCompactionThroughputMbPerSec sets compaction throughput mb per sec
-
-Set compaction throughput mb per sec
-*/
-func (a *Client) SetCompactionThroughputMbPerSec(params *SetCompactionThroughputMbPerSecParams) (*SetCompactionThroughputMbPerSecOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetCompactionThroughputMbPerSecParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_compaction_throughput_mb_per_sec",
-		Method:             "POST",
-		PathPattern:        "/storage_service/compaction_throughput",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetCompactionThroughputMbPerSecReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetCompactionThroughputMbPerSecOK), nil
-
-}
-
-/*
-SetCompressionParameters sets compression parameters
-
-Sets the compression parameters
-*/
-func (a *Client) SetCompressionParameters(params *SetCompressionParametersParams) (*SetCompressionParametersOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetCompressionParametersParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_compression_parameters",
-		Method:             "POST",
-		PathPattern:        "/column_family/compression_parameters/{name}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetCompressionParametersReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetCompressionParametersOK), nil
-
-}
-
-/*
-SetCounterCacheCapacityInMb1 sets counter cache capacity in mb1
+CacheServiceCounterCacheCapacityPost sets counter cache capacity in mb
 
 set counter cache capacity in mb
 */
-func (a *Client) SetCounterCacheCapacityInMb1(params *SetCounterCacheCapacityInMb1Params) (*SetCounterCacheCapacityInMb1OK, error) {
+func (a *Client) CacheServiceCounterCacheCapacityPost(params *CacheServiceCounterCacheCapacityPostParams) (*CacheServiceCounterCacheCapacityPostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetCounterCacheCapacityInMb1Params()
+		params = NewCacheServiceCounterCacheCapacityPostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_counter_cache_capacity_in_mb1",
+		ID:                 "CacheServiceCounterCacheCapacityPost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/counter_cache_capacity",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetCounterCacheCapacityInMb1Reader{formats: a.formats},
+		Reader:             &CacheServiceCounterCacheCapacityPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetCounterCacheCapacityInMb1OK), nil
+	return result.(*CacheServiceCounterCacheCapacityPostOK), nil
 
 }
 
 /*
-SetCounterCacheKeysToSave1 sets counter cache keys to save1
+CacheServiceCounterCacheKeysToSaveGet gets counter cache keys to save
 
-set counter cache keys to save
+get counter cache keys to save
 */
-func (a *Client) SetCounterCacheKeysToSave1(params *SetCounterCacheKeysToSave1Params) (*SetCounterCacheKeysToSave1OK, error) {
+func (a *Client) CacheServiceCounterCacheKeysToSaveGet(params *CacheServiceCounterCacheKeysToSaveGetParams) (*CacheServiceCounterCacheKeysToSaveGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetCounterCacheKeysToSave1Params()
+		params = NewCacheServiceCounterCacheKeysToSaveGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_counter_cache_keys_to_save1",
+		ID:                 "CacheServiceCounterCacheKeysToSaveGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/counter_cache_keys_to_save",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceCounterCacheKeysToSaveGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceCounterCacheKeysToSaveGetOK), nil
+
+}
+
+/*
+CacheServiceCounterCacheKeysToSavePost sets counter cache keys to save
+
+set counter cache keys to save
+*/
+func (a *Client) CacheServiceCounterCacheKeysToSavePost(params *CacheServiceCounterCacheKeysToSavePostParams) (*CacheServiceCounterCacheKeysToSavePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceCounterCacheKeysToSavePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceCounterCacheKeysToSavePost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/counter_cache_keys_to_save",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetCounterCacheKeysToSave1Reader{formats: a.formats},
+		Reader:             &CacheServiceCounterCacheKeysToSavePostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetCounterCacheKeysToSave1OK), nil
+	return result.(*CacheServiceCounterCacheKeysToSavePostOK), nil
 
 }
 
 /*
-SetCounterCacheSavePeriodInSeconds1 sets counter cache save period in seconds1
+CacheServiceCounterCacheSavePeriodGet gets counter cache save period in seconds
 
-set counter cache save period in seconds
+get counter cache save period in seconds
 */
-func (a *Client) SetCounterCacheSavePeriodInSeconds1(params *SetCounterCacheSavePeriodInSeconds1Params) (*SetCounterCacheSavePeriodInSeconds1OK, error) {
+func (a *Client) CacheServiceCounterCacheSavePeriodGet(params *CacheServiceCounterCacheSavePeriodGetParams) (*CacheServiceCounterCacheSavePeriodGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetCounterCacheSavePeriodInSeconds1Params()
+		params = NewCacheServiceCounterCacheSavePeriodGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_counter_cache_save_period_in_seconds1",
+		ID:                 "CacheServiceCounterCacheSavePeriodGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/counter_cache_save_period",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceCounterCacheSavePeriodGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceCounterCacheSavePeriodGetOK), nil
+
+}
+
+/*
+CacheServiceCounterCacheSavePeriodPost sets counter cache save period in seconds
+
+set counter cache save period in seconds
+*/
+func (a *Client) CacheServiceCounterCacheSavePeriodPost(params *CacheServiceCounterCacheSavePeriodPostParams) (*CacheServiceCounterCacheSavePeriodPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceCounterCacheSavePeriodPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceCounterCacheSavePeriodPost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/counter_cache_save_period",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetCounterCacheSavePeriodInSeconds1Reader{formats: a.formats},
+		Reader:             &CacheServiceCounterCacheSavePeriodPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetCounterCacheSavePeriodInSeconds1OK), nil
+	return result.(*CacheServiceCounterCacheSavePeriodPostOK), nil
 
 }
 
 /*
-SetCounterWriteRPCTimeout sets counter write rpc timeout
+CacheServiceInvalidateCounterCachePost invalidates counter cache
 
-Set counter write rpc timeout
+invalidate counter cache
 */
-func (a *Client) SetCounterWriteRPCTimeout(params *SetCounterWriteRPCTimeoutParams) (*SetCounterWriteRPCTimeoutOK, error) {
+func (a *Client) CacheServiceInvalidateCounterCachePost(params *CacheServiceInvalidateCounterCachePostParams) (*CacheServiceInvalidateCounterCachePostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetCounterWriteRPCTimeoutParams()
+		params = NewCacheServiceInvalidateCounterCachePostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_counter_write_rpc_timeout",
+		ID:                 "CacheServiceInvalidateCounterCachePost",
 		Method:             "POST",
-		PathPattern:        "/storage_proxy/counter_write_rpc_timeout",
+		PathPattern:        "/cache_service/invalidate_counter_cache",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetCounterWriteRPCTimeoutReader{formats: a.formats},
+		Reader:             &CacheServiceInvalidateCounterCachePostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetCounterWriteRPCTimeoutOK), nil
+	return result.(*CacheServiceInvalidateCounterCachePostOK), nil
 
 }
 
 /*
-SetCrcCheckChance sets crc check chance
+CacheServiceInvalidateKeyCachePost invalidates key cache
 
-Set new crc check chance
+invalidate the key cache; for use after invalidating row cache
 */
-func (a *Client) SetCrcCheckChance(params *SetCrcCheckChanceParams) (*SetCrcCheckChanceOK, error) {
+func (a *Client) CacheServiceInvalidateKeyCachePost(params *CacheServiceInvalidateKeyCachePostParams) (*CacheServiceInvalidateKeyCachePostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetCrcCheckChanceParams()
+		params = NewCacheServiceInvalidateKeyCachePostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_crc_check_chance",
+		ID:                 "CacheServiceInvalidateKeyCachePost",
 		Method:             "POST",
-		PathPattern:        "/column_family/crc_check_chance/{name}",
+		PathPattern:        "/cache_service/invalidate_key_cache",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetCrcCheckChanceReader{formats: a.formats},
+		Reader:             &CacheServiceInvalidateKeyCachePostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetCrcCheckChanceOK), nil
+	return result.(*CacheServiceInvalidateKeyCachePostOK), nil
 
 }
 
 /*
-SetHintedHandoffEnabled sets hinted handoff enabled
-
-Set hinted handoff status
-*/
-func (a *Client) SetHintedHandoffEnabled(params *SetHintedHandoffEnabledParams) (*SetHintedHandoffEnabledOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetHintedHandoffEnabledParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_hinted_handoff_enabled",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/hinted_handoff_enabled",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetHintedHandoffEnabledReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetHintedHandoffEnabledOK), nil
-
-}
-
-/*
-SetHintedHandoffEnabledByDcList sets hinted handoff enabled by dc list
-
-Set the hinted handoff enabled by dc
-*/
-func (a *Client) SetHintedHandoffEnabledByDcList(params *SetHintedHandoffEnabledByDcListParams) (*SetHintedHandoffEnabledByDcListOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetHintedHandoffEnabledByDcListParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_hinted_handoff_enabled_by_dc_list",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/hinted_handoff_enabled_by_dc",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetHintedHandoffEnabledByDcListReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetHintedHandoffEnabledByDcListOK), nil
-
-}
-
-/*
-SetHintedHandoffThrottleInKb sets hinted handoff throttle in kb
-
-Sets the hinted handoff throttle in kb per second, per delivery thread
-*/
-func (a *Client) SetHintedHandoffThrottleInKb(params *SetHintedHandoffThrottleInKbParams) (*SetHintedHandoffThrottleInKbOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetHintedHandoffThrottleInKbParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_hinted_handoff_throttle_in_kb",
-		Method:             "POST",
-		PathPattern:        "/storage_service/hinted_handoff",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetHintedHandoffThrottleInKbReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetHintedHandoffThrottleInKbOK), nil
-
-}
-
-/*
-SetIncrementalBackupsEnabled sets incremental backups enabled
-*/
-func (a *Client) SetIncrementalBackupsEnabled(params *SetIncrementalBackupsEnabledParams) (*SetIncrementalBackupsEnabledOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSetIncrementalBackupsEnabledParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_incremental_backups_enabled",
-		Method:             "POST",
-		PathPattern:        "/storage_service/incremental_backups",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SetIncrementalBackupsEnabledReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetIncrementalBackupsEnabledOK), nil
-
-}
-
-/*
-SetKeyCacheCapacityInMb1 sets key cache capacity in mb1
+CacheServiceKeyCacheCapacityPost sets key cache capacity in mb
 
 set key cache capacity in mb
 */
-func (a *Client) SetKeyCacheCapacityInMb1(params *SetKeyCacheCapacityInMb1Params) (*SetKeyCacheCapacityInMb1OK, error) {
+func (a *Client) CacheServiceKeyCacheCapacityPost(params *CacheServiceKeyCacheCapacityPostParams) (*CacheServiceKeyCacheCapacityPostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetKeyCacheCapacityInMb1Params()
+		params = NewCacheServiceKeyCacheCapacityPostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_key_cache_capacity_in_mb1",
+		ID:                 "CacheServiceKeyCacheCapacityPost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/key_cache_capacity",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetKeyCacheCapacityInMb1Reader{formats: a.formats},
+		Reader:             &CacheServiceKeyCacheCapacityPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetKeyCacheCapacityInMb1OK), nil
+	return result.(*CacheServiceKeyCacheCapacityPostOK), nil
 
 }
 
 /*
-SetKeyCacheKeysToSave1 sets key cache keys to save1
+CacheServiceKeyCacheKeysToSaveGet gets key cache keys to save
 
-set key cache keys to save
+get key cache keys to save
 */
-func (a *Client) SetKeyCacheKeysToSave1(params *SetKeyCacheKeysToSave1Params) (*SetKeyCacheKeysToSave1OK, error) {
+func (a *Client) CacheServiceKeyCacheKeysToSaveGet(params *CacheServiceKeyCacheKeysToSaveGetParams) (*CacheServiceKeyCacheKeysToSaveGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetKeyCacheKeysToSave1Params()
+		params = NewCacheServiceKeyCacheKeysToSaveGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_key_cache_keys_to_save1",
+		ID:                 "CacheServiceKeyCacheKeysToSaveGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/key_cache_keys_to_save",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceKeyCacheKeysToSaveGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceKeyCacheKeysToSaveGetOK), nil
+
+}
+
+/*
+CacheServiceKeyCacheKeysToSavePost sets key cache keys to save
+
+set key cache keys to save
+*/
+func (a *Client) CacheServiceKeyCacheKeysToSavePost(params *CacheServiceKeyCacheKeysToSavePostParams) (*CacheServiceKeyCacheKeysToSavePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceKeyCacheKeysToSavePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceKeyCacheKeysToSavePost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/key_cache_keys_to_save",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetKeyCacheKeysToSave1Reader{formats: a.formats},
+		Reader:             &CacheServiceKeyCacheKeysToSavePostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetKeyCacheKeysToSave1OK), nil
+	return result.(*CacheServiceKeyCacheKeysToSavePostOK), nil
 
 }
 
 /*
-SetKeyCacheSavePeriodInSeconds1 sets key cache save period in seconds1
+CacheServiceKeyCacheSavePeriodGet gets key cache save period in seconds
 
-set key cache save period in seconds
+get key cache save period in seconds
 */
-func (a *Client) SetKeyCacheSavePeriodInSeconds1(params *SetKeyCacheSavePeriodInSeconds1Params) (*SetKeyCacheSavePeriodInSeconds1OK, error) {
+func (a *Client) CacheServiceKeyCacheSavePeriodGet(params *CacheServiceKeyCacheSavePeriodGetParams) (*CacheServiceKeyCacheSavePeriodGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetKeyCacheSavePeriodInSeconds1Params()
+		params = NewCacheServiceKeyCacheSavePeriodGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_key_cache_save_period_in_seconds1",
+		ID:                 "CacheServiceKeyCacheSavePeriodGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/key_cache_save_period",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceKeyCacheSavePeriodGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceKeyCacheSavePeriodGetOK), nil
+
+}
+
+/*
+CacheServiceKeyCacheSavePeriodPost sets key cache save period in seconds
+
+set key cache save period in seconds
+*/
+func (a *Client) CacheServiceKeyCacheSavePeriodPost(params *CacheServiceKeyCacheSavePeriodPostParams) (*CacheServiceKeyCacheSavePeriodPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceKeyCacheSavePeriodPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceKeyCacheSavePeriodPost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/key_cache_save_period",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetKeyCacheSavePeriodInSeconds1Reader{formats: a.formats},
+		Reader:             &CacheServiceKeyCacheSavePeriodPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetKeyCacheSavePeriodInSeconds1OK), nil
+	return result.(*CacheServiceKeyCacheSavePeriodPostOK), nil
 
 }
 
 /*
-SetLoggerLevel sets logger level
+CacheServiceMetricsCounterCapacityGet gets counter capacity
 
-Set logger level
+Get counter capacity
 */
-func (a *Client) SetLoggerLevel(params *SetLoggerLevelParams) (*SetLoggerLevelOK, error) {
+func (a *Client) CacheServiceMetricsCounterCapacityGet(params *CacheServiceMetricsCounterCapacityGetParams) (*CacheServiceMetricsCounterCapacityGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetLoggerLevelParams()
+		params = NewCacheServiceMetricsCounterCapacityGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_logger_level",
-		Method:             "POST",
-		PathPattern:        "/system/logger/{name}",
+		ID:                 "CacheServiceMetricsCounterCapacityGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/capacity",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetLoggerLevelReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterCapacityGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetLoggerLevelOK), nil
+	return result.(*CacheServiceMetricsCounterCapacityGetOK), nil
 
 }
 
 /*
-SetLoggingLevel sets logging level
+CacheServiceMetricsCounterEntriesGet gets counter entries
 
-set the logging level at runtime<br> <br> If both classQualifer and level are empty/null, it will reload the configuration to reset.<br> If classQualifer is not empty but level is empty/null, it will set the level to null for the defined classQualifer<br> If level cannot be parsed, then the level will be defaulted to DEBUG<br> <br> The logback configuration should have < jmxConfigurator /> set
+Get counter entries
 */
-func (a *Client) SetLoggingLevel(params *SetLoggingLevelParams) (*SetLoggingLevelOK, error) {
+func (a *Client) CacheServiceMetricsCounterEntriesGet(params *CacheServiceMetricsCounterEntriesGetParams) (*CacheServiceMetricsCounterEntriesGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetLoggingLevelParams()
+		params = NewCacheServiceMetricsCounterEntriesGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_logging_level",
-		Method:             "POST",
-		PathPattern:        "/storage_service/logging_level",
+		ID:                 "CacheServiceMetricsCounterEntriesGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/entries",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetLoggingLevelReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterEntriesGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetLoggingLevelOK), nil
+	return result.(*CacheServiceMetricsCounterEntriesGetOK), nil
 
 }
 
 /*
-SetMaxHintWindow sets max hint window
+CacheServiceMetricsCounterHitRateGet gets counter hit rate
 
-Set the max hint window
+Get counter hit rate
 */
-func (a *Client) SetMaxHintWindow(params *SetMaxHintWindowParams) (*SetMaxHintWindowOK, error) {
+func (a *Client) CacheServiceMetricsCounterHitRateGet(params *CacheServiceMetricsCounterHitRateGetParams) (*CacheServiceMetricsCounterHitRateGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetMaxHintWindowParams()
+		params = NewCacheServiceMetricsCounterHitRateGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_max_hint_window",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/max_hint_window",
+		ID:                 "CacheServiceMetricsCounterHitRateGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/hit_rate",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetMaxHintWindowReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterHitRateGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetMaxHintWindowOK), nil
+	return result.(*CacheServiceMetricsCounterHitRateGetOK), nil
 
 }
 
 /*
-SetMaxHintsInProgress sets max hints in progress
+CacheServiceMetricsCounterHitsGet gets counter hits
 
-Set max hints in progress
+Get counter hits
 */
-func (a *Client) SetMaxHintsInProgress(params *SetMaxHintsInProgressParams) (*SetMaxHintsInProgressOK, error) {
+func (a *Client) CacheServiceMetricsCounterHitsGet(params *CacheServiceMetricsCounterHitsGetParams) (*CacheServiceMetricsCounterHitsGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetMaxHintsInProgressParams()
+		params = NewCacheServiceMetricsCounterHitsGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_max_hints_in_progress",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/max_hints_in_progress",
+		ID:                 "CacheServiceMetricsCounterHitsGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/hits",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetMaxHintsInProgressReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterHitsGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetMaxHintsInProgressOK), nil
+	return result.(*CacheServiceMetricsCounterHitsGetOK), nil
 
 }
 
 /*
-SetMaximumCompactionThreshold sets maximum compaction threshold
+CacheServiceMetricsCounterHitsMovingAvrageGet gets counter hits moving avrage
 
-Sets the maximum number of sstables in queue before compaction kicks off
+Get counter hits moving avrage
 */
-func (a *Client) SetMaximumCompactionThreshold(params *SetMaximumCompactionThresholdParams) (*SetMaximumCompactionThresholdOK, error) {
+func (a *Client) CacheServiceMetricsCounterHitsMovingAvrageGet(params *CacheServiceMetricsCounterHitsMovingAvrageGetParams) (*CacheServiceMetricsCounterHitsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetMaximumCompactionThresholdParams()
+		params = NewCacheServiceMetricsCounterHitsMovingAvrageGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_maximum_compaction_threshold",
-		Method:             "POST",
-		PathPattern:        "/column_family/maximum_compaction/{name}",
+		ID:                 "CacheServiceMetricsCounterHitsMovingAvrageGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/hits_moving_avrage",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetMaximumCompactionThresholdReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterHitsMovingAvrageGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetMaximumCompactionThresholdOK), nil
+	return result.(*CacheServiceMetricsCounterHitsMovingAvrageGetOK), nil
 
 }
 
 /*
-SetMinimumCompactionThreshold sets minimum compaction threshold
+CacheServiceMetricsCounterRequestsGet gets counter requests
 
-Sets the minimum number of sstables in queue before compaction kicks off
+Get counter requests
 */
-func (a *Client) SetMinimumCompactionThreshold(params *SetMinimumCompactionThresholdParams) (*SetMinimumCompactionThresholdOK, error) {
+func (a *Client) CacheServiceMetricsCounterRequestsGet(params *CacheServiceMetricsCounterRequestsGetParams) (*CacheServiceMetricsCounterRequestsGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetMinimumCompactionThresholdParams()
+		params = NewCacheServiceMetricsCounterRequestsGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_minimum_compaction_threshold",
-		Method:             "POST",
-		PathPattern:        "/column_family/minimum_compaction/{name}",
+		ID:                 "CacheServiceMetricsCounterRequestsGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/requests",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetMinimumCompactionThresholdReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterRequestsGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetMinimumCompactionThresholdOK), nil
+	return result.(*CacheServiceMetricsCounterRequestsGetOK), nil
 
 }
 
 /*
-SetPhiConvictThreshold sets phi convict threshold
+CacheServiceMetricsCounterRequestsMovingAvrageGet gets counter requests moving avrage
 
-Set the phi convict threshold
+Get counter requests moving avrage
 */
-func (a *Client) SetPhiConvictThreshold(params *SetPhiConvictThresholdParams) (*SetPhiConvictThresholdOK, error) {
+func (a *Client) CacheServiceMetricsCounterRequestsMovingAvrageGet(params *CacheServiceMetricsCounterRequestsMovingAvrageGetParams) (*CacheServiceMetricsCounterRequestsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetPhiConvictThresholdParams()
+		params = NewCacheServiceMetricsCounterRequestsMovingAvrageGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_phi_convict_threshold",
-		Method:             "POST",
-		PathPattern:        "/failure_detector/phi",
+		ID:                 "CacheServiceMetricsCounterRequestsMovingAvrageGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/requests_moving_avrage",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetPhiConvictThresholdReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterRequestsMovingAvrageGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetPhiConvictThresholdOK), nil
+	return result.(*CacheServiceMetricsCounterRequestsMovingAvrageGetOK), nil
 
 }
 
 /*
-SetRangeRPCTimeout sets range rpc timeout
+CacheServiceMetricsCounterSizeGet gets counter size
 
-Set range rpc timeout
+Get counter cache waited size
 */
-func (a *Client) SetRangeRPCTimeout(params *SetRangeRPCTimeoutParams) (*SetRangeRPCTimeoutOK, error) {
+func (a *Client) CacheServiceMetricsCounterSizeGet(params *CacheServiceMetricsCounterSizeGetParams) (*CacheServiceMetricsCounterSizeGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetRangeRPCTimeoutParams()
+		params = NewCacheServiceMetricsCounterSizeGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_range_rpc_timeout",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/range_rpc_timeout",
+		ID:                 "CacheServiceMetricsCounterSizeGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/counter/size",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetRangeRPCTimeoutReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsCounterSizeGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetRangeRPCTimeoutOK), nil
+	return result.(*CacheServiceMetricsCounterSizeGetOK), nil
 
 }
 
 /*
-SetReadRPCTimeout sets read rpc timeout
+CacheServiceMetricsKeyCapacityGet gets key capacity
 
-Set the read RPC timeout
+Get key capacity
 */
-func (a *Client) SetReadRPCTimeout(params *SetReadRPCTimeoutParams) (*SetReadRPCTimeoutOK, error) {
+func (a *Client) CacheServiceMetricsKeyCapacityGet(params *CacheServiceMetricsKeyCapacityGetParams) (*CacheServiceMetricsKeyCapacityGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetReadRPCTimeoutParams()
+		params = NewCacheServiceMetricsKeyCapacityGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_read_rpc_timeout",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/read_rpc_timeout",
+		ID:                 "CacheServiceMetricsKeyCapacityGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/capacity",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetReadRPCTimeoutReader{formats: a.formats},
+		Reader:             &CacheServiceMetricsKeyCapacityGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetReadRPCTimeoutOK), nil
+	return result.(*CacheServiceMetricsKeyCapacityGetOK), nil
 
 }
 
 /*
-SetRowCacheCapacityInMb1 sets row cache capacity in mb1
+CacheServiceMetricsKeyEntriesGet gets key entries
+
+Get key entries
+*/
+func (a *Client) CacheServiceMetricsKeyEntriesGet(params *CacheServiceMetricsKeyEntriesGetParams) (*CacheServiceMetricsKeyEntriesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsKeyEntriesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsKeyEntriesGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/entries",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsKeyEntriesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsKeyEntriesGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsKeyHitRateGet gets key hit rate
+
+Get key hit rate
+*/
+func (a *Client) CacheServiceMetricsKeyHitRateGet(params *CacheServiceMetricsKeyHitRateGetParams) (*CacheServiceMetricsKeyHitRateGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsKeyHitRateGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsKeyHitRateGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/hit_rate",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsKeyHitRateGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsKeyHitRateGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsKeyHitsGet gets key hits
+
+Get key hits
+*/
+func (a *Client) CacheServiceMetricsKeyHitsGet(params *CacheServiceMetricsKeyHitsGetParams) (*CacheServiceMetricsKeyHitsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsKeyHitsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsKeyHitsGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/hits",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsKeyHitsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsKeyHitsGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsKeyHitsMovingAvrageGet gets key hits moving avrage
+
+Get key hits moving avrage
+*/
+func (a *Client) CacheServiceMetricsKeyHitsMovingAvrageGet(params *CacheServiceMetricsKeyHitsMovingAvrageGetParams) (*CacheServiceMetricsKeyHitsMovingAvrageGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsKeyHitsMovingAvrageGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsKeyHitsMovingAvrageGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/hits_moving_avrage",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsKeyHitsMovingAvrageGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsKeyHitsMovingAvrageGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsKeyRequestsGet gets key requests
+
+Get key requests
+*/
+func (a *Client) CacheServiceMetricsKeyRequestsGet(params *CacheServiceMetricsKeyRequestsGetParams) (*CacheServiceMetricsKeyRequestsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsKeyRequestsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsKeyRequestsGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/requests",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsKeyRequestsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsKeyRequestsGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsKeyRequestsMovingAvrageGet gets key requests moving avrage
+
+Get key requests moving avrage
+*/
+func (a *Client) CacheServiceMetricsKeyRequestsMovingAvrageGet(params *CacheServiceMetricsKeyRequestsMovingAvrageGetParams) (*CacheServiceMetricsKeyRequestsMovingAvrageGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsKeyRequestsMovingAvrageGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsKeyRequestsMovingAvrageGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/requests_moving_avrage",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsKeyRequestsMovingAvrageGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsKeyRequestsMovingAvrageGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsKeySizeGet gets key size
+
+Get key cache waited size
+*/
+func (a *Client) CacheServiceMetricsKeySizeGet(params *CacheServiceMetricsKeySizeGetParams) (*CacheServiceMetricsKeySizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsKeySizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsKeySizeGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/key/size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsKeySizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsKeySizeGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowCapacityGet gets row capacity
+
+Get row capacity
+*/
+func (a *Client) CacheServiceMetricsRowCapacityGet(params *CacheServiceMetricsRowCapacityGetParams) (*CacheServiceMetricsRowCapacityGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowCapacityGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowCapacityGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/capacity",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowCapacityGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowCapacityGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowEntriesGet gets row entries
+
+Get row entries
+*/
+func (a *Client) CacheServiceMetricsRowEntriesGet(params *CacheServiceMetricsRowEntriesGetParams) (*CacheServiceMetricsRowEntriesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowEntriesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowEntriesGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/entries",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowEntriesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowEntriesGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowHitRateGet gets row hit rate
+
+Get row hit rate
+*/
+func (a *Client) CacheServiceMetricsRowHitRateGet(params *CacheServiceMetricsRowHitRateGetParams) (*CacheServiceMetricsRowHitRateGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowHitRateGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowHitRateGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/hit_rate",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowHitRateGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowHitRateGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowHitsGet gets row hits
+
+Get row hits
+*/
+func (a *Client) CacheServiceMetricsRowHitsGet(params *CacheServiceMetricsRowHitsGetParams) (*CacheServiceMetricsRowHitsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowHitsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowHitsGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/hits",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowHitsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowHitsGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowHitsMovingAvrageGet gets row hits moving avrage
+
+Get row hits moving avrage
+*/
+func (a *Client) CacheServiceMetricsRowHitsMovingAvrageGet(params *CacheServiceMetricsRowHitsMovingAvrageGetParams) (*CacheServiceMetricsRowHitsMovingAvrageGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowHitsMovingAvrageGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowHitsMovingAvrageGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/hits_moving_avrage",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowHitsMovingAvrageGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowHitsMovingAvrageGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowRequestsGet gets row requests
+
+Get row requests
+*/
+func (a *Client) CacheServiceMetricsRowRequestsGet(params *CacheServiceMetricsRowRequestsGetParams) (*CacheServiceMetricsRowRequestsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowRequestsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowRequestsGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/requests",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowRequestsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowRequestsGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowRequestsMovingAvrageGet gets row requests moving avrage
+
+Get row requests moving avrage
+*/
+func (a *Client) CacheServiceMetricsRowRequestsMovingAvrageGet(params *CacheServiceMetricsRowRequestsMovingAvrageGetParams) (*CacheServiceMetricsRowRequestsMovingAvrageGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowRequestsMovingAvrageGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowRequestsMovingAvrageGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/requests_moving_avrage",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowRequestsMovingAvrageGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowRequestsMovingAvrageGetOK), nil
+
+}
+
+/*
+CacheServiceMetricsRowSizeGet gets row size
+
+Get row cache waited size
+*/
+func (a *Client) CacheServiceMetricsRowSizeGet(params *CacheServiceMetricsRowSizeGetParams) (*CacheServiceMetricsRowSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceMetricsRowSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceMetricsRowSizeGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/metrics/row/size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceMetricsRowSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceMetricsRowSizeGetOK), nil
+
+}
+
+/*
+CacheServiceRowCacheCapacityPost sets row cache capacity in mb
 
 set row cache capacity in mb
 */
-func (a *Client) SetRowCacheCapacityInMb1(params *SetRowCacheCapacityInMb1Params) (*SetRowCacheCapacityInMb1OK, error) {
+func (a *Client) CacheServiceRowCacheCapacityPost(params *CacheServiceRowCacheCapacityPostParams) (*CacheServiceRowCacheCapacityPostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetRowCacheCapacityInMb1Params()
+		params = NewCacheServiceRowCacheCapacityPostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_row_cache_capacity_in_mb1",
+		ID:                 "CacheServiceRowCacheCapacityPost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/row_cache_capacity",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetRowCacheCapacityInMb1Reader{formats: a.formats},
+		Reader:             &CacheServiceRowCacheCapacityPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetRowCacheCapacityInMb1OK), nil
+	return result.(*CacheServiceRowCacheCapacityPostOK), nil
 
 }
 
 /*
-SetRowCacheKeysToSave1 sets row cache keys to save1
+CacheServiceRowCacheKeysToSaveGet gets row cache keys to save
 
-set row cache keys to save
+get row cache keys to save
 */
-func (a *Client) SetRowCacheKeysToSave1(params *SetRowCacheKeysToSave1Params) (*SetRowCacheKeysToSave1OK, error) {
+func (a *Client) CacheServiceRowCacheKeysToSaveGet(params *CacheServiceRowCacheKeysToSaveGetParams) (*CacheServiceRowCacheKeysToSaveGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetRowCacheKeysToSave1Params()
+		params = NewCacheServiceRowCacheKeysToSaveGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_row_cache_keys_to_save1",
+		ID:                 "CacheServiceRowCacheKeysToSaveGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/row_cache_keys_to_save",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceRowCacheKeysToSaveGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceRowCacheKeysToSaveGetOK), nil
+
+}
+
+/*
+CacheServiceRowCacheKeysToSavePost sets row cache keys to save
+
+set row cache keys to save
+*/
+func (a *Client) CacheServiceRowCacheKeysToSavePost(params *CacheServiceRowCacheKeysToSavePostParams) (*CacheServiceRowCacheKeysToSavePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceRowCacheKeysToSavePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceRowCacheKeysToSavePost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/row_cache_keys_to_save",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetRowCacheKeysToSave1Reader{formats: a.formats},
+		Reader:             &CacheServiceRowCacheKeysToSavePostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetRowCacheKeysToSave1OK), nil
+	return result.(*CacheServiceRowCacheKeysToSavePostOK), nil
 
 }
 
 /*
-SetRowCacheSavePeriodInSeconds1 sets row cache save period in seconds1
+CacheServiceRowCacheSavePeriodGet gets row cache save period in seconds
 
-set row cache save period in seconds
+get row cache save period in seconds
 */
-func (a *Client) SetRowCacheSavePeriodInSeconds1(params *SetRowCacheSavePeriodInSeconds1Params) (*SetRowCacheSavePeriodInSeconds1OK, error) {
+func (a *Client) CacheServiceRowCacheSavePeriodGet(params *CacheServiceRowCacheSavePeriodGetParams) (*CacheServiceRowCacheSavePeriodGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetRowCacheSavePeriodInSeconds1Params()
+		params = NewCacheServiceRowCacheSavePeriodGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_row_cache_save_period_in_seconds1",
+		ID:                 "CacheServiceRowCacheSavePeriodGet",
+		Method:             "GET",
+		PathPattern:        "/cache_service/row_cache_save_period",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CacheServiceRowCacheSavePeriodGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CacheServiceRowCacheSavePeriodGetOK), nil
+
+}
+
+/*
+CacheServiceRowCacheSavePeriodPost sets row cache save period in seconds
+
+set row cache save period in seconds
+*/
+func (a *Client) CacheServiceRowCacheSavePeriodPost(params *CacheServiceRowCacheSavePeriodPostParams) (*CacheServiceRowCacheSavePeriodPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCacheServiceRowCacheSavePeriodPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CacheServiceRowCacheSavePeriodPost",
 		Method:             "POST",
 		PathPattern:        "/cache_service/row_cache_save_period",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetRowCacheSavePeriodInSeconds1Reader{formats: a.formats},
+		Reader:             &CacheServiceRowCacheSavePeriodPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetRowCacheSavePeriodInSeconds1OK), nil
+	return result.(*CacheServiceRowCacheSavePeriodPostOK), nil
 
 }
 
 /*
-SetRPCTimeout sets rpc timeout
+CacheServiceSaveCachesPost saves caches
 
-Set the RPC timeout
+save row and key caches
 */
-func (a *Client) SetRPCTimeout(params *SetRPCTimeoutParams) (*SetRPCTimeoutOK, error) {
+func (a *Client) CacheServiceSaveCachesPost(params *CacheServiceSaveCachesPostParams) (*CacheServiceSaveCachesPostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetRPCTimeoutParams()
+		params = NewCacheServiceSaveCachesPostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_rpc_timeout",
+		ID:                 "CacheServiceSaveCachesPost",
 		Method:             "POST",
-		PathPattern:        "/storage_proxy/rpc_timeout",
+		PathPattern:        "/cache_service/save_caches",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetRPCTimeoutReader{formats: a.formats},
+		Reader:             &CacheServiceSaveCachesPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetRPCTimeoutOK), nil
+	return result.(*CacheServiceSaveCachesPostOK), nil
 
 }
 
 /*
-SetSlowQuery sets slow query
+CollectdByPluginidGet gets collectd
 
-Set slow query parameter
+Get a collectd value
 */
-func (a *Client) SetSlowQuery(params *SetSlowQueryParams) (*SetSlowQueryOK, error) {
+func (a *Client) CollectdByPluginidGet(params *CollectdByPluginidGetParams) (*CollectdByPluginidGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetSlowQueryParams()
+		params = NewCollectdByPluginidGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_slow_query",
-		Method:             "POST",
-		PathPattern:        "/storage_service/slow_query",
+		ID:                 "CollectdByPluginidGet",
+		Method:             "GET",
+		PathPattern:        "/collectd/{pluginid}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetSlowQueryReader{formats: a.formats},
+		Reader:             &CollectdByPluginidGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetSlowQueryOK), nil
+	return result.(*CollectdByPluginidGetOK), nil
 
 }
 
 /*
-SetStreamThroughputMbPerSec sets stream throughput mb per sec
+CollectdByPluginidPost enables collectd
 
-set stream throughput mb per sec
+Start reporting on one or more collectd metric
 */
-func (a *Client) SetStreamThroughputMbPerSec(params *SetStreamThroughputMbPerSecParams) (*SetStreamThroughputMbPerSecOK, error) {
+func (a *Client) CollectdByPluginidPost(params *CollectdByPluginidPostParams) (*CollectdByPluginidPostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetStreamThroughputMbPerSecParams()
+		params = NewCollectdByPluginidPostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_stream_throughput_mb_per_sec",
+		ID:                 "CollectdByPluginidPost",
 		Method:             "POST",
-		PathPattern:        "/storage_service/stream_throughput",
+		PathPattern:        "/collectd/{pluginid}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetStreamThroughputMbPerSecReader{formats: a.formats},
+		Reader:             &CollectdByPluginidPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetStreamThroughputMbPerSecOK), nil
+	return result.(*CollectdByPluginidPostOK), nil
 
 }
 
 /*
-SetTombstoneFailureThreshold sets tombstone failure threshold
+CollectdGet gets collectd items
+
+Get a list of all collectd metrics and their status
 */
-func (a *Client) SetTombstoneFailureThreshold(params *SetTombstoneFailureThresholdParams) (*SetTombstoneFailureThresholdOK, error) {
+func (a *Client) CollectdGet(params *CollectdGetParams) (*CollectdGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetTombstoneFailureThresholdParams()
+		params = NewCollectdGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_tombstone_failure_threshold",
-		Method:             "POST",
-		PathPattern:        "/storage_service/tombstone_failure_threshold",
+		ID:                 "CollectdGet",
+		Method:             "GET",
+		PathPattern:        "/collectd/",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetTombstoneFailureThresholdReader{formats: a.formats},
+		Reader:             &CollectdGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetTombstoneFailureThresholdOK), nil
+	return result.(*CollectdGetOK), nil
 
 }
 
 /*
-SetTombstoneWarnThreshold sets tombstone warn threshold
+CollectdPost enables all collectd
 
-Sets the threshold for warning queries with many tombstones
+Enable or disable all collectd metrics
 */
-func (a *Client) SetTombstoneWarnThreshold(params *SetTombstoneWarnThresholdParams) (*SetTombstoneWarnThresholdOK, error) {
+func (a *Client) CollectdPost(params *CollectdPostParams) (*CollectdPostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetTombstoneWarnThresholdParams()
+		params = NewCollectdPostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_tombstone_warn_threshold",
+		ID:                 "CollectdPost",
 		Method:             "POST",
-		PathPattern:        "/storage_service/tombstone_warn_threshold",
+		PathPattern:        "/collectd/",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetTombstoneWarnThresholdReader{formats: a.formats},
+		Reader:             &CollectdPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetTombstoneWarnThresholdOK), nil
+	return result.(*CollectdPostOK), nil
 
 }
 
 /*
-SetTraceProbability sets trace probability
+ColumnFamilyAutocompactionByNameGet is auto compaction disabled
 
-Enables/Disables tracing for the whole system. Only thrift requests can start tracing currently
+check if the auto compaction disabled
 */
-func (a *Client) SetTraceProbability(params *SetTraceProbabilityParams) (*SetTraceProbabilityOK, error) {
+func (a *Client) ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocompactionByNameGetParams) (*ColumnFamilyAutocompactionByNameGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetTraceProbabilityParams()
+		params = NewColumnFamilyAutocompactionByNameGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_trace_probability",
-		Method:             "POST",
-		PathPattern:        "/storage_service/trace_probability",
+		ID:                 "ColumnFamilyAutocompactionByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/autocompaction/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetTraceProbabilityReader{formats: a.formats},
+		Reader:             &ColumnFamilyAutocompactionByNameGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetTraceProbabilityOK), nil
+	return result.(*ColumnFamilyAutocompactionByNameGetOK), nil
 
 }
 
 /*
-SetTruncateRPCTimeout sets truncate rpc timeout
+ColumnFamilyBuiltIndexesByNameGet gets built indexes
 
-Set truncate rpc timeout
+Returns a list of the names of the built column indexes for current store
 */
-func (a *Client) SetTruncateRPCTimeout(params *SetTruncateRPCTimeoutParams) (*SetTruncateRPCTimeoutOK, error) {
+func (a *Client) ColumnFamilyBuiltIndexesByNameGet(params *ColumnFamilyBuiltIndexesByNameGetParams) (*ColumnFamilyBuiltIndexesByNameGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetTruncateRPCTimeoutParams()
+		params = NewColumnFamilyBuiltIndexesByNameGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_truncate_rpc_timeout",
-		Method:             "POST",
-		PathPattern:        "/storage_proxy/truncate_rpc_timeout",
+		ID:                 "ColumnFamilyBuiltIndexesByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/built_indexes/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetTruncateRPCTimeoutReader{formats: a.formats},
+		Reader:             &ColumnFamilyBuiltIndexesByNameGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetTruncateRPCTimeoutOK), nil
+	return result.(*ColumnFamilyBuiltIndexesByNameGetOK), nil
 
 }
 
 /*
-SetWriteRPCTimeout sets write rpc timeout
+ColumnFamilyCompactionByNamePost sets compaction threshold
 
-Set the write RPC timeout
+Sets the minumum and maximum number of sstables in queue before compaction kicks off
 */
-func (a *Client) SetWriteRPCTimeout(params *SetWriteRPCTimeoutParams) (*SetWriteRPCTimeoutOK, error) {
+func (a *Client) ColumnFamilyCompactionByNamePost(params *ColumnFamilyCompactionByNamePostParams) (*ColumnFamilyCompactionByNamePostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewSetWriteRPCTimeoutParams()
+		params = NewColumnFamilyCompactionByNamePostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "set_write_rpc_timeout",
+		ID:                 "ColumnFamilyCompactionByNamePost",
 		Method:             "POST",
-		PathPattern:        "/storage_proxy/write_rpc_timeout",
+		PathPattern:        "/column_family/compaction/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &SetWriteRPCTimeoutReader{formats: a.formats},
+		Reader:             &ColumnFamilyCompactionByNamePostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SetWriteRPCTimeoutOK), nil
+	return result.(*ColumnFamilyCompactionByNamePostOK), nil
 
 }
 
 /*
-StartGossiping starts gossiping
+ColumnFamilyCompactionStrategyByNameGet gets compaction strategy class
 
-allows a user to recover a forcibly 'killed' node
+Gets the compaction strategy class name
 */
-func (a *Client) StartGossiping(params *StartGossipingParams) (*StartGossipingOK, error) {
+func (a *Client) ColumnFamilyCompactionStrategyByNameGet(params *ColumnFamilyCompactionStrategyByNameGetParams) (*ColumnFamilyCompactionStrategyByNameGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewStartGossipingParams()
+		params = NewColumnFamilyCompactionStrategyByNameGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "start_gossiping",
-		Method:             "POST",
-		PathPattern:        "/storage_service/gossiping",
+		ID:                 "ColumnFamilyCompactionStrategyByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/compaction_strategy/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &StartGossipingReader{formats: a.formats},
+		Reader:             &ColumnFamilyCompactionStrategyByNameGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StartGossipingOK), nil
+	return result.(*ColumnFamilyCompactionStrategyByNameGetOK), nil
 
 }
 
 /*
-StartNativeTransport starts native transport
+ColumnFamilyCompactionStrategyByNamePost sets compaction strategy class
 
-Start native transport
+Sets the compaction strategy by class name
 */
-func (a *Client) StartNativeTransport(params *StartNativeTransportParams) (*StartNativeTransportOK, error) {
+func (a *Client) ColumnFamilyCompactionStrategyByNamePost(params *ColumnFamilyCompactionStrategyByNamePostParams) (*ColumnFamilyCompactionStrategyByNamePostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewStartNativeTransportParams()
+		params = NewColumnFamilyCompactionStrategyByNamePostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "start_native_transport",
+		ID:                 "ColumnFamilyCompactionStrategyByNamePost",
 		Method:             "POST",
-		PathPattern:        "/storage_service/native_transport",
+		PathPattern:        "/column_family/compaction_strategy/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &StartNativeTransportReader{formats: a.formats},
+		Reader:             &ColumnFamilyCompactionStrategyByNamePostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StartNativeTransportOK), nil
+	return result.(*ColumnFamilyCompactionStrategyByNamePostOK), nil
 
 }
 
 /*
-StartRPCServer starts rpc server
+ColumnFamilyCompressionParametersByNameGet gets compression parameters
 
-allows a user to reenable thrift
+get the compression parameters
 */
-func (a *Client) StartRPCServer(params *StartRPCServerParams) (*StartRPCServerOK, error) {
+func (a *Client) ColumnFamilyCompressionParametersByNameGet(params *ColumnFamilyCompressionParametersByNameGetParams) (*ColumnFamilyCompressionParametersByNameGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewStartRPCServerParams()
+		params = NewColumnFamilyCompressionParametersByNameGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "start_rpc_server",
-		Method:             "POST",
-		PathPattern:        "/storage_service/rpc_server",
+		ID:                 "ColumnFamilyCompressionParametersByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/compression_parameters/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &StartRPCServerReader{formats: a.formats},
+		Reader:             &ColumnFamilyCompressionParametersByNameGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StartRPCServerOK), nil
+	return result.(*ColumnFamilyCompressionParametersByNameGetOK), nil
 
 }
 
 /*
-StopCompaction stops compaction
+ColumnFamilyCompressionParametersByNamePost sets compression parameters
+
+Sets the compression parameters
+*/
+func (a *Client) ColumnFamilyCompressionParametersByNamePost(params *ColumnFamilyCompressionParametersByNamePostParams) (*ColumnFamilyCompressionParametersByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyCompressionParametersByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyCompressionParametersByNamePost",
+		Method:             "POST",
+		PathPattern:        "/column_family/compression_parameters/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyCompressionParametersByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyCompressionParametersByNamePostOK), nil
+
+}
+
+/*
+ColumnFamilyCrcCheckChanceByNamePost sets crc check chance
+
+Set new crc check chance
+*/
+func (a *Client) ColumnFamilyCrcCheckChanceByNamePost(params *ColumnFamilyCrcCheckChanceByNamePostParams) (*ColumnFamilyCrcCheckChanceByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyCrcCheckChanceByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyCrcCheckChanceByNamePost",
+		Method:             "POST",
+		PathPattern:        "/column_family/crc_check_chance/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyCrcCheckChanceByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyCrcCheckChanceByNamePostOK), nil
+
+}
+
+/*
+ColumnFamilyDroppableRatioByNameGet gets droppable tombstone ratio
+
+Get the ratio of droppable tombstones to real columns (and non-droppable tombstones)
+*/
+func (a *Client) ColumnFamilyDroppableRatioByNameGet(params *ColumnFamilyDroppableRatioByNameGetParams) (*ColumnFamilyDroppableRatioByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyDroppableRatioByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyDroppableRatioByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/droppable_ratio/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyDroppableRatioByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyDroppableRatioByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyEstimateKeysByNameGet estimates keys
+
+Get the estimate keys
+*/
+func (a *Client) ColumnFamilyEstimateKeysByNameGet(params *ColumnFamilyEstimateKeysByNameGetParams) (*ColumnFamilyEstimateKeysByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyEstimateKeysByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyEstimateKeysByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/estimate_keys/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyEstimateKeysByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyEstimateKeysByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyGet gets column family
+
+Get a list of all column family info
+*/
+func (a *Client) ColumnFamilyGet(params *ColumnFamilyGetParams) (*ColumnFamilyGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyGetOK), nil
+
+}
+
+/*
+ColumnFamilyLoadSstableByNamePost loads new sstables
+
+Scan through Keyspace/ColumnFamily's data directory determine which SSTables should be loaded and load them
+*/
+func (a *Client) ColumnFamilyLoadSstableByNamePost(params *ColumnFamilyLoadSstableByNamePostParams) (*ColumnFamilyLoadSstableByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyLoadSstableByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyLoadSstableByNamePost",
+		Method:             "POST",
+		PathPattern:        "/column_family/load/sstable/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyLoadSstableByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyLoadSstableByNamePostOK), nil
+
+}
+
+/*
+ColumnFamilyMajorCompactionByNamePost forces major compaction
+
+Force a major compaction of this column family
+*/
+func (a *Client) ColumnFamilyMajorCompactionByNamePost(params *ColumnFamilyMajorCompactionByNamePostParams) (*ColumnFamilyMajorCompactionByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMajorCompactionByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMajorCompactionByNamePost",
+		Method:             "POST",
+		PathPattern:        "/column_family/major_compaction/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMajorCompactionByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMajorCompactionByNamePostOK), nil
+
+}
+
+/*
+ColumnFamilyMaximumCompactionByNameGet gets maximum compaction threshold
+
+get the maximum number of sstables in queue before compaction kicks off
+*/
+func (a *Client) ColumnFamilyMaximumCompactionByNameGet(params *ColumnFamilyMaximumCompactionByNameGetParams) (*ColumnFamilyMaximumCompactionByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMaximumCompactionByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMaximumCompactionByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/maximum_compaction/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMaximumCompactionByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMaximumCompactionByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMaximumCompactionByNamePost sets maximum compaction threshold
+
+Sets the maximum number of sstables in queue before compaction kicks off
+*/
+func (a *Client) ColumnFamilyMaximumCompactionByNamePost(params *ColumnFamilyMaximumCompactionByNamePostParams) (*ColumnFamilyMaximumCompactionByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMaximumCompactionByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMaximumCompactionByNamePost",
+		Method:             "POST",
+		PathPattern:        "/column_family/maximum_compaction/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMaximumCompactionByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMaximumCompactionByNamePostOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet gets cf all memtables live data size
+
+Get all of the column family active and not memtables live data size
+*/
+func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet(params *ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetParams) (*ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/all_memtables_live_data_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsAllMemtablesLiveDataSizeGet gets all cf all memtables live data size
+
+Get all memtables active and not of all column family live data size
+*/
+func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeGet(params *ColumnFamilyMetricsAllMemtablesLiveDataSizeGetParams) (*ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsAllMemtablesLiveDataSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsAllMemtablesLiveDataSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/all_memtables_live_data_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsAllMemtablesLiveDataSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet gets cf all memtables off heap size
+
+Get all of the column family active and not memtables off heap size
+*/
+func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet(params *ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetParams) (*ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/all_memtables_off_heap_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsAllMemtablesOffHeapSizeGet gets all cf all memtables off heap size
+
+Get all memtables active and not of all column family off heap size
+*/
+func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeGet(params *ColumnFamilyMetricsAllMemtablesOffHeapSizeGetParams) (*ColumnFamilyMetricsAllMemtablesOffHeapSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsAllMemtablesOffHeapSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsAllMemtablesOffHeapSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/all_memtables_off_heap_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsAllMemtablesOffHeapSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet gets cf all memtables on heap size
+
+Get all of the column family active and not memtables on heap size
+*/
+func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet(params *ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetParams) (*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/all_memtables_on_heap_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsAllMemtablesOnHeapSizeGet gets all cf all memtables on heap size
+
+Get all memtables active and not of all column family on heap size
+*/
+func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeGet(params *ColumnFamilyMetricsAllMemtablesOnHeapSizeGetParams) (*ColumnFamilyMetricsAllMemtablesOnHeapSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsAllMemtablesOnHeapSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsAllMemtablesOnHeapSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/all_memtables_on_heap_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsAllMemtablesOnHeapSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet gets bloom filter disk space used
+
+Get bloom filter disk space used
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet(params *ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetParams) (*ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_disk_space_used/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet gets all bloom filter disk space used
+
+Get all bloom filter disk space used
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet(params *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetParams) (*ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterDiskSpaceUsedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_disk_space_used",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet gets bloom filter false positives
+
+Get bloom filter false positives
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet(params *ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetParams) (*ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterFalsePositivesByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_false_positives/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterFalsePositivesGet gets all bloom filter false positives
+
+Get all bloom filter false positives
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesGet(params *ColumnFamilyMetricsBloomFilterFalsePositivesGetParams) (*ColumnFamilyMetricsBloomFilterFalsePositivesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterFalsePositivesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterFalsePositivesGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_false_positives",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterFalsePositivesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterFalsePositivesGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterFalseRatioByNameGet gets bloom filter false ratio
+
+Get bloom filter false ratio
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioByNameGet(params *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetParams) (*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterFalseRatioByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterFalseRatioByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_false_ratio/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterFalseRatioByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterFalseRatioGet gets all bloom filter false ratio
+
+Get all bloom filter false ratio
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioGet(params *ColumnFamilyMetricsBloomFilterFalseRatioGetParams) (*ColumnFamilyMetricsBloomFilterFalseRatioGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterFalseRatioGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterFalseRatioGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_false_ratio",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterFalseRatioGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterFalseRatioGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet gets bloom filter off heap memory used
+
+Get bloom filter off heap memory used
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet(params *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetParams) (*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_off_heap_memory_used/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet gets all bloom filter off heap memory used
+
+Get all bloom filter off heap memory used
+*/
+func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet(params *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetParams) (*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/bloom_filter_off_heap_memory_used",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasCommitByNameGet gets cas commit
+
+Get cas commit
+*/
+func (a *Client) ColumnFamilyMetricsCasCommitByNameGet(params *ColumnFamilyMetricsCasCommitByNameGetParams) (*ColumnFamilyMetricsCasCommitByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasCommitByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasCommitByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_commit/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasCommitByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasCommitByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet gets cas commit estimated histogram
+
+Get cas commit
+*/
+func (a *Client) ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet(params *ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_commit/estimated_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet gets cas commit estimated recent histogram
+
+Get cas commit
+*/
+func (a *Client) ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_commit/estimated_recent_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasPrepareByNameGet gets cas prepare
+
+Get cas prepare
+*/
+func (a *Client) ColumnFamilyMetricsCasPrepareByNameGet(params *ColumnFamilyMetricsCasPrepareByNameGetParams) (*ColumnFamilyMetricsCasPrepareByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasPrepareByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasPrepareByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_prepare/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasPrepareByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasPrepareByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet gets cas prepare estimated histogram
+
+Get cas prepare
+*/
+func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet(params *ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_prepare/estimated_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet gets cas prepare estimated recent histogram
+
+Get cas prepare
+*/
+func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_prepare/estimated_recent_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasProposeByNameGet gets cas propose
+
+Get cas propose
+*/
+func (a *Client) ColumnFamilyMetricsCasProposeByNameGet(params *ColumnFamilyMetricsCasProposeByNameGetParams) (*ColumnFamilyMetricsCasProposeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasProposeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasProposeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_propose/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasProposeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasProposeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet gets cas propose estimated histogram
+
+Get cas propose
+*/
+func (a *Client) ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet(params *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_propose/estimated_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet gets cas propose estimated recent histogram
+
+Get cas propose
+*/
+func (a *Client) ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/cas_propose/estimated_recent_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet gets col update time delta histogram
+
+Get col update time delta histogram
+*/
+func (a *Client) ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet(params *ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetParams) (*ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/col_update_time_delta_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGet gets compression metadata off heap memory used
+
+Get compression metadata off heap memory used
+*/
+func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGet(params *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetParams) (*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/compression_metadata_off_heap_memory_used/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet gets all compression metadata off heap memory used
+
+Get all compression metadata off heap memory used
+*/
+func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet(params *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetParams) (*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/compression_metadata_off_heap_memory_used",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCompressionRatioByNameGet gets compression ratio
+
+Get compression ratio
+*/
+func (a *Client) ColumnFamilyMetricsCompressionRatioByNameGet(params *ColumnFamilyMetricsCompressionRatioByNameGetParams) (*ColumnFamilyMetricsCompressionRatioByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCompressionRatioByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCompressionRatioByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/compression_ratio/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCompressionRatioByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCompressionRatioByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCompressionRatioGet gets all compression ratio
+
+Get all compression ratio
+*/
+func (a *Client) ColumnFamilyMetricsCompressionRatioGet(params *ColumnFamilyMetricsCompressionRatioGetParams) (*ColumnFamilyMetricsCompressionRatioGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCompressionRatioGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCompressionRatioGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/compression_ratio",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCompressionRatioGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCompressionRatioGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCoordinatorReadGet gets coordinator read latency
+
+Get coordinator read latency
+*/
+func (a *Client) ColumnFamilyMetricsCoordinatorReadGet(params *ColumnFamilyMetricsCoordinatorReadGetParams) (*ColumnFamilyMetricsCoordinatorReadGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCoordinatorReadGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCoordinatorReadGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/coordinator/read",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCoordinatorReadGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCoordinatorReadGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsCoordinatorScanGet gets coordinator scan latency
+
+Get coordinator scan latency
+*/
+func (a *Client) ColumnFamilyMetricsCoordinatorScanGet(params *ColumnFamilyMetricsCoordinatorScanGetParams) (*ColumnFamilyMetricsCoordinatorScanGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsCoordinatorScanGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsCoordinatorScanGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/coordinator/scan",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsCoordinatorScanGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsCoordinatorScanGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet gets estimated column count histogram
+
+Get estimated column count histogram
+*/
+func (a *Client) ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet(params *ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetParams) (*ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/estimated_column_count_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsEstimatedRowCountByNameGet gets estimated row count
+
+Get estimated row count
+*/
+func (a *Client) ColumnFamilyMetricsEstimatedRowCountByNameGet(params *ColumnFamilyMetricsEstimatedRowCountByNameGetParams) (*ColumnFamilyMetricsEstimatedRowCountByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsEstimatedRowCountByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsEstimatedRowCountByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/estimated_row_count/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsEstimatedRowCountByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsEstimatedRowCountByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet gets estimated row size histogram
+
+Get estimated row size histogram
+*/
+func (a *Client) ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet(params *ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetParams) (*ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/estimated_row_size_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet gets index summary off heap memory used
+
+Get index summary off heap memory used
+*/
+func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet(params *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetParams) (*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/index_summary_off_heap_memory_used/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet gets all index summary off heap memory used
+
+Get all index summary off heap memory used
+*/
+func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet(params *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetParams) (*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/index_summary_off_heap_memory_used",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsKeyCacheHitRateByNameGet gets key cache hit rate
+
+Get key cache hit rate
+*/
+func (a *Client) ColumnFamilyMetricsKeyCacheHitRateByNameGet(params *ColumnFamilyMetricsKeyCacheHitRateByNameGetParams) (*ColumnFamilyMetricsKeyCacheHitRateByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsKeyCacheHitRateByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsKeyCacheHitRateByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/key_cache_hit_rate/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsKeyCacheHitRateByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsKeyCacheHitRateByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet gets live disk space used
+
+Get live disk space used
+*/
+func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet(params *ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetParams) (*ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsLiveDiskSpaceUsedByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/live_disk_space_used/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsLiveDiskSpaceUsedGet gets all live disk space used
+
+Get all live disk space used
+*/
+func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedGet(params *ColumnFamilyMetricsLiveDiskSpaceUsedGetParams) (*ColumnFamilyMetricsLiveDiskSpaceUsedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsLiveDiskSpaceUsedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsLiveDiskSpaceUsedGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/live_disk_space_used",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsLiveDiskSpaceUsedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsLiveDiskSpaceUsedGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsLiveScannedHistogramByNameGet gets live scanned histogram
+
+Get live scanned histogram
+*/
+func (a *Client) ColumnFamilyMetricsLiveScannedHistogramByNameGet(params *ColumnFamilyMetricsLiveScannedHistogramByNameGetParams) (*ColumnFamilyMetricsLiveScannedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsLiveScannedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsLiveScannedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/live_scanned_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsLiveScannedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsLiveScannedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsLiveSsTableCountByNameGet gets live ss table count
+
+Get live ss table count
+*/
+func (a *Client) ColumnFamilyMetricsLiveSsTableCountByNameGet(params *ColumnFamilyMetricsLiveSsTableCountByNameGetParams) (*ColumnFamilyMetricsLiveSsTableCountByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsLiveSsTableCountByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsLiveSsTableCountByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/live_ss_table_count/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsLiveSsTableCountByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsLiveSsTableCountByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsLiveSsTableCountGet gets all live ss table count
+
+Get all live ss table count
+*/
+func (a *Client) ColumnFamilyMetricsLiveSsTableCountGet(params *ColumnFamilyMetricsLiveSsTableCountGetParams) (*ColumnFamilyMetricsLiveSsTableCountGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsLiveSsTableCountGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsLiveSsTableCountGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/live_ss_table_count",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsLiveSsTableCountGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsLiveSsTableCountGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMaxRowSizeByNameGet gets max row size
+
+Get max row size
+*/
+func (a *Client) ColumnFamilyMetricsMaxRowSizeByNameGet(params *ColumnFamilyMetricsMaxRowSizeByNameGetParams) (*ColumnFamilyMetricsMaxRowSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMaxRowSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMaxRowSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/max_row_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMaxRowSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMaxRowSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMaxRowSizeGet gets all max row size
+
+Get all max row size
+*/
+func (a *Client) ColumnFamilyMetricsMaxRowSizeGet(params *ColumnFamilyMetricsMaxRowSizeGetParams) (*ColumnFamilyMetricsMaxRowSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMaxRowSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMaxRowSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/max_row_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMaxRowSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMaxRowSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMeanRowSizeByNameGet gets mean row size
+
+Get mean row size
+*/
+func (a *Client) ColumnFamilyMetricsMeanRowSizeByNameGet(params *ColumnFamilyMetricsMeanRowSizeByNameGetParams) (*ColumnFamilyMetricsMeanRowSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMeanRowSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMeanRowSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/mean_row_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMeanRowSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMeanRowSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMeanRowSizeGet gets all mean row size
+
+Get all mean row size
+*/
+func (a *Client) ColumnFamilyMetricsMeanRowSizeGet(params *ColumnFamilyMetricsMeanRowSizeGetParams) (*ColumnFamilyMetricsMeanRowSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMeanRowSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMeanRowSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/mean_row_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMeanRowSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMeanRowSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableColumnsCountByNameGet gets memtable columns count
+
+get memtable columns count
+*/
+func (a *Client) ColumnFamilyMetricsMemtableColumnsCountByNameGet(params *ColumnFamilyMetricsMemtableColumnsCountByNameGetParams) (*ColumnFamilyMetricsMemtableColumnsCountByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableColumnsCountByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableColumnsCountByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_columns_count/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableColumnsCountByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableColumnsCountByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableColumnsCountGet gets all memtable columns count
+
+get all memtable columns count
+*/
+func (a *Client) ColumnFamilyMetricsMemtableColumnsCountGet(params *ColumnFamilyMetricsMemtableColumnsCountGetParams) (*ColumnFamilyMetricsMemtableColumnsCountGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableColumnsCountGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableColumnsCountGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_columns_count/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableColumnsCountGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableColumnsCountGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableLiveDataSizeByNameGet gets memtable live data size
+
+Get the column family active memtable live data size
+*/
+func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeByNameGet(params *ColumnFamilyMetricsMemtableLiveDataSizeByNameGetParams) (*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableLiveDataSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableLiveDataSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_live_data_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableLiveDataSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableLiveDataSizeGet gets all memtable live data size
+
+Get all active memtable of all column family live data size
+*/
+func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeGet(params *ColumnFamilyMetricsMemtableLiveDataSizeGetParams) (*ColumnFamilyMetricsMemtableLiveDataSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableLiveDataSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableLiveDataSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_live_data_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableLiveDataSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableLiveDataSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableOffHeapSizeByNameGet gets memtable off heap size
+
+Get the column family active memtable off heap size
+*/
+func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeByNameGet(params *ColumnFamilyMetricsMemtableOffHeapSizeByNameGetParams) (*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableOffHeapSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableOffHeapSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_off_heap_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableOffHeapSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableOffHeapSizeGet gets all memtable off heap size
+
+Get all active memtable of all column family off heap size
+*/
+func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeGet(params *ColumnFamilyMetricsMemtableOffHeapSizeGetParams) (*ColumnFamilyMetricsMemtableOffHeapSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableOffHeapSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableOffHeapSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_off_heap_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableOffHeapSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableOffHeapSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableOnHeapSizeByNameGet gets memtable on heap size
+
+Get the column family active memtable on heap size
+*/
+func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeByNameGet(params *ColumnFamilyMetricsMemtableOnHeapSizeByNameGetParams) (*ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableOnHeapSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableOnHeapSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_on_heap_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableOnHeapSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableOnHeapSizeGet gets all memtable on heap size
+
+Get all active memtable of all column family on heap size
+*/
+func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeGet(params *ColumnFamilyMetricsMemtableOnHeapSizeGetParams) (*ColumnFamilyMetricsMemtableOnHeapSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableOnHeapSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableOnHeapSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_on_heap_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableOnHeapSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableOnHeapSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableSwitchCountByNameGet gets memtable switch count
+
+Get memtable switch count
+*/
+func (a *Client) ColumnFamilyMetricsMemtableSwitchCountByNameGet(params *ColumnFamilyMetricsMemtableSwitchCountByNameGetParams) (*ColumnFamilyMetricsMemtableSwitchCountByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableSwitchCountByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableSwitchCountByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_switch_count/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableSwitchCountByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableSwitchCountByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMemtableSwitchCountGet gets all memtable switch count
+
+Get all memtable switch count
+*/
+func (a *Client) ColumnFamilyMetricsMemtableSwitchCountGet(params *ColumnFamilyMetricsMemtableSwitchCountGetParams) (*ColumnFamilyMetricsMemtableSwitchCountGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMemtableSwitchCountGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMemtableSwitchCountGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/memtable_switch_count",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMemtableSwitchCountGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMemtableSwitchCountGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMinRowSizeByNameGet gets min row size
+
+Get min row size
+*/
+func (a *Client) ColumnFamilyMetricsMinRowSizeByNameGet(params *ColumnFamilyMetricsMinRowSizeByNameGetParams) (*ColumnFamilyMetricsMinRowSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMinRowSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMinRowSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/min_row_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMinRowSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMinRowSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsMinRowSizeGet gets all min row size
+
+Get all min row size
+*/
+func (a *Client) ColumnFamilyMetricsMinRowSizeGet(params *ColumnFamilyMetricsMinRowSizeGetParams) (*ColumnFamilyMetricsMinRowSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsMinRowSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsMinRowSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/min_row_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsMinRowSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsMinRowSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsPendingCompactionsByNameGet gets pending compactions
+
+Get pending compactions
+*/
+func (a *Client) ColumnFamilyMetricsPendingCompactionsByNameGet(params *ColumnFamilyMetricsPendingCompactionsByNameGetParams) (*ColumnFamilyMetricsPendingCompactionsByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsPendingCompactionsByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsPendingCompactionsByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/pending_compactions/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsPendingCompactionsByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsPendingCompactionsByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsPendingCompactionsGet gets all pending compactions
+
+Get all pending compactions
+*/
+func (a *Client) ColumnFamilyMetricsPendingCompactionsGet(params *ColumnFamilyMetricsPendingCompactionsGetParams) (*ColumnFamilyMetricsPendingCompactionsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsPendingCompactionsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsPendingCompactionsGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/pending_compactions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsPendingCompactionsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsPendingCompactionsGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsPendingFlushesByNameGet gets pending flushes
+
+Get pending flushes
+*/
+func (a *Client) ColumnFamilyMetricsPendingFlushesByNameGet(params *ColumnFamilyMetricsPendingFlushesByNameGetParams) (*ColumnFamilyMetricsPendingFlushesByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsPendingFlushesByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsPendingFlushesByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/pending_flushes/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsPendingFlushesByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsPendingFlushesByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsPendingFlushesGet gets all pending flushes
+
+Get all pending flushes
+*/
+func (a *Client) ColumnFamilyMetricsPendingFlushesGet(params *ColumnFamilyMetricsPendingFlushesGetParams) (*ColumnFamilyMetricsPendingFlushesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsPendingFlushesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsPendingFlushesGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/pending_flushes",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsPendingFlushesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsPendingFlushesGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRangeLatencyByNameGet gets range latency
+
+Get range latency
+*/
+func (a *Client) ColumnFamilyMetricsRangeLatencyByNameGet(params *ColumnFamilyMetricsRangeLatencyByNameGetParams) (*ColumnFamilyMetricsRangeLatencyByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRangeLatencyByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRangeLatencyByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/range_latency/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRangeLatencyByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRangeLatencyByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet gets range latency estimated histogram
+
+Get range latency
+*/
+func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet(params *ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/range_latency/estimated_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGet gets range latency estimated recent histogram
+
+Get range latency
+*/
+func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/range_latency/estimated_recent_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRangeLatencyGet gets all range latency
+
+Get all range latency
+*/
+func (a *Client) ColumnFamilyMetricsRangeLatencyGet(params *ColumnFamilyMetricsRangeLatencyGetParams) (*ColumnFamilyMetricsRangeLatencyGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRangeLatencyGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRangeLatencyGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/range_latency",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRangeLatencyGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRangeLatencyGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadByNameGet gets read
+
+Get number of reads
+*/
+func (a *Client) ColumnFamilyMetricsReadByNameGet(params *ColumnFamilyMetricsReadByNameGetParams) (*ColumnFamilyMetricsReadByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadGet gets all read
+
+Get number of reads from all column family, per shard
+*/
+func (a *Client) ColumnFamilyMetricsReadGet(params *ColumnFamilyMetricsReadGetParams) (*ColumnFamilyMetricsReadGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyByNameGet gets read latency
+
+Get read latency
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyByNameGet(params *ColumnFamilyMetricsReadLatencyByNameGetParams) (*ColumnFamilyMetricsReadLatencyByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet gets read latency estimated histogram
+
+Get read latency
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency/estimated_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet gets read latency estimated recent histogram
+
+Get read latency
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency/estimated_recent_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyGet gets all read latency
+
+Get all read latency
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyGet(params *ColumnFamilyMetricsReadLatencyGetParams) (*ColumnFamilyMetricsReadLatencyGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyHistogramByNameGet gets read latency histogram depricated
+
+Get read latency histogram
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency/histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyHistogramGet gets all read latency histogram depricated
+
+Get read latency histogram from all column family
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyHistogramGet(params *ColumnFamilyMetricsReadLatencyHistogramGetParams) (*ColumnFamilyMetricsReadLatencyHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency/histogram/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyHistogramGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet gets read latency histogram
+
+Get read latency moving avrage histogram
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency/moving_average_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet gets all read latency histogram
+
+Get read latency moving avrage histogram from all column family
+*/
+func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet(params *ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetParams) (*ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsReadLatencyMovingAverageHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/read_latency/moving_average_histogram/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet gets recent bloom filter false positives
+
+Get recent bloom filter false positives
+*/
+func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet(params *ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_positives/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet gets all recent bloom filter false positives
+
+Get all recent bloom filter false positives
+*/
+func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet(params *ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRecentBloomFilterFalsePositivesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_positives",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet gets recent bloom filter false ratio
+
+Get recent bloom filter false ratio
+*/
+func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet(params *ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_ratio/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRecentBloomFilterFalseRatioGet gets all recent bloom filter false ratio
+
+Get all recent bloom filter false ratio
+*/
+func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioGet(params *ColumnFamilyMetricsRecentBloomFilterFalseRatioGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRecentBloomFilterFalseRatioGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRecentBloomFilterFalseRatioGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/recent_bloom_filter_false_ratio",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRecentBloomFilterFalseRatioGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRowCacheHitByNameGet gets row cache hit
+
+Get row cache hit
+*/
+func (a *Client) ColumnFamilyMetricsRowCacheHitByNameGet(params *ColumnFamilyMetricsRowCacheHitByNameGetParams) (*ColumnFamilyMetricsRowCacheHitByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRowCacheHitByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRowCacheHitByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/row_cache_hit/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRowCacheHitByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRowCacheHitByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRowCacheHitGet gets all row cache hit
+
+Get all row cache hit
+*/
+func (a *Client) ColumnFamilyMetricsRowCacheHitGet(params *ColumnFamilyMetricsRowCacheHitGetParams) (*ColumnFamilyMetricsRowCacheHitGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRowCacheHitGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRowCacheHitGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/row_cache_hit",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRowCacheHitGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRowCacheHitGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet gets row cache hit out of range
+
+Get row cache hit out of range
+*/
+func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet(params *ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetParams) (*ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/row_cache_hit_out_of_range/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRowCacheHitOutOfRangeGet gets all row cache hit out of range
+
+Get all row cache hit out of range
+*/
+func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeGet(params *ColumnFamilyMetricsRowCacheHitOutOfRangeGetParams) (*ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRowCacheHitOutOfRangeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRowCacheHitOutOfRangeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/row_cache_hit_out_of_range",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRowCacheHitOutOfRangeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRowCacheMissByNameGet gets row cache miss
+
+Get row cache miss
+*/
+func (a *Client) ColumnFamilyMetricsRowCacheMissByNameGet(params *ColumnFamilyMetricsRowCacheMissByNameGetParams) (*ColumnFamilyMetricsRowCacheMissByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRowCacheMissByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRowCacheMissByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/row_cache_miss/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRowCacheMissByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRowCacheMissByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsRowCacheMissGet gets all row cache miss
+
+Get all row cache miss
+*/
+func (a *Client) ColumnFamilyMetricsRowCacheMissGet(params *ColumnFamilyMetricsRowCacheMissGetParams) (*ColumnFamilyMetricsRowCacheMissGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsRowCacheMissGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsRowCacheMissGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/row_cache_miss",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsRowCacheMissGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsRowCacheMissGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsSnapshotsSizeByNameGet gets true snapshots size
+
+Get true snapshots size
+*/
+func (a *Client) ColumnFamilyMetricsSnapshotsSizeByNameGet(params *ColumnFamilyMetricsSnapshotsSizeByNameGetParams) (*ColumnFamilyMetricsSnapshotsSizeByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsSnapshotsSizeByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsSnapshotsSizeByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/snapshots_size/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsSnapshotsSizeByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsSnapshotsSizeByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsSpeculativeRetriesByNameGet gets speculative retries
+
+Get speculative retries
+*/
+func (a *Client) ColumnFamilyMetricsSpeculativeRetriesByNameGet(params *ColumnFamilyMetricsSpeculativeRetriesByNameGetParams) (*ColumnFamilyMetricsSpeculativeRetriesByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsSpeculativeRetriesByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsSpeculativeRetriesByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/speculative_retries/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsSpeculativeRetriesByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsSpeculativeRetriesByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsSpeculativeRetriesGet gets all speculative retries
+
+Get all speculative retries
+*/
+func (a *Client) ColumnFamilyMetricsSpeculativeRetriesGet(params *ColumnFamilyMetricsSpeculativeRetriesGetParams) (*ColumnFamilyMetricsSpeculativeRetriesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsSpeculativeRetriesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsSpeculativeRetriesGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/speculative_retries",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsSpeculativeRetriesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsSpeculativeRetriesGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsSstablesPerReadHistogramByNameGet gets sstables per read histogram
+
+Get sstables per read histogram
+*/
+func (a *Client) ColumnFamilyMetricsSstablesPerReadHistogramByNameGet(params *ColumnFamilyMetricsSstablesPerReadHistogramByNameGetParams) (*ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsSstablesPerReadHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsSstablesPerReadHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/sstables_per_read_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsSstablesPerReadHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsTombstoneScannedHistogramByNameGet gets tombstone scanned histogram
+
+Get tombstone scanned histogram
+*/
+func (a *Client) ColumnFamilyMetricsTombstoneScannedHistogramByNameGet(params *ColumnFamilyMetricsTombstoneScannedHistogramByNameGetParams) (*ColumnFamilyMetricsTombstoneScannedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsTombstoneScannedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsTombstoneScannedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/tombstone_scanned_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsTombstoneScannedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsTombstoneScannedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet gets total disk space used
+
+Get total disk space used
+*/
+func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(params *ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetParams) (*ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsTotalDiskSpaceUsedByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/total_disk_space_used/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsTotalDiskSpaceUsedGet gets all total disk space used
+
+Get all total disk space used
+*/
+func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedGet(params *ColumnFamilyMetricsTotalDiskSpaceUsedGetParams) (*ColumnFamilyMetricsTotalDiskSpaceUsedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsTotalDiskSpaceUsedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsTotalDiskSpaceUsedGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/total_disk_space_used",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsTotalDiskSpaceUsedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsTotalDiskSpaceUsedGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsTrueSnapshotsSizeGet gets all true snapshots size
+
+Get all true snapshots size
+*/
+func (a *Client) ColumnFamilyMetricsTrueSnapshotsSizeGet(params *ColumnFamilyMetricsTrueSnapshotsSizeGetParams) (*ColumnFamilyMetricsTrueSnapshotsSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsTrueSnapshotsSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsTrueSnapshotsSizeGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/true_snapshots_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsTrueSnapshotsSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsTrueSnapshotsSizeGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWaitingOnFreeMemtableGet gets waiting on free memtable space
+
+Get waiting on free memtable space
+*/
+func (a *Client) ColumnFamilyMetricsWaitingOnFreeMemtableGet(params *ColumnFamilyMetricsWaitingOnFreeMemtableGetParams) (*ColumnFamilyMetricsWaitingOnFreeMemtableGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWaitingOnFreeMemtableGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWaitingOnFreeMemtableGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/waiting_on_free_memtable",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWaitingOnFreeMemtableGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWaitingOnFreeMemtableGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteByNameGet gets write
+
+Get number of writes
+*/
+func (a *Client) ColumnFamilyMetricsWriteByNameGet(params *ColumnFamilyMetricsWriteByNameGetParams) (*ColumnFamilyMetricsWriteByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteGet gets all write
+
+Get number of writes from all column family, per shard
+*/
+func (a *Client) ColumnFamilyMetricsWriteGet(params *ColumnFamilyMetricsWriteGetParams) (*ColumnFamilyMetricsWriteGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyByNameGet gets write latency
+
+Get write latency
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyByNameGet(params *ColumnFamilyMetricsWriteLatencyByNameGetParams) (*ColumnFamilyMetricsWriteLatencyByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet gets write latency estimated histogram
+
+Get write latency
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency/estimated_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGet gets write latency estimated recent histogram
+
+Get write latency
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency/estimated_recent_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyGet gets all write latency
+
+Get all write latency
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyGet(params *ColumnFamilyMetricsWriteLatencyGetParams) (*ColumnFamilyMetricsWriteLatencyGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyHistogramByNameGet gets write latency histogram depricated
+
+Get write latency histogram
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency/histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyHistogramGet gets all write latency histogram depricated
+
+Get write latency histogram of all column family
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramGet(params *ColumnFamilyMetricsWriteLatencyHistogramGetParams) (*ColumnFamilyMetricsWriteLatencyHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency/histogram/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyHistogramGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet gets write latency histogram
+
+Get write latency moving average histogram
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency/moving_average_histogram/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet gets all write latency histogram
+
+Get write latency moving average histogram of all column family
+*/
+func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet(params *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetParams) (*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/metrics/write_latency/moving_average_histogram/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK), nil
+
+}
+
+/*
+ColumnFamilyMinimumCompactionByNameGet gets minimum compaction threshold
+
+get the minimum number of sstables in queue before compaction kicks off
+*/
+func (a *Client) ColumnFamilyMinimumCompactionByNameGet(params *ColumnFamilyMinimumCompactionByNameGetParams) (*ColumnFamilyMinimumCompactionByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMinimumCompactionByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMinimumCompactionByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/minimum_compaction/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMinimumCompactionByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMinimumCompactionByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyMinimumCompactionByNamePost sets minimum compaction threshold
+
+Sets the minimum number of sstables in queue before compaction kicks off
+*/
+func (a *Client) ColumnFamilyMinimumCompactionByNamePost(params *ColumnFamilyMinimumCompactionByNamePostParams) (*ColumnFamilyMinimumCompactionByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyMinimumCompactionByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyMinimumCompactionByNamePost",
+		Method:             "POST",
+		PathPattern:        "/column_family/minimum_compaction/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyMinimumCompactionByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyMinimumCompactionByNamePostOK), nil
+
+}
+
+/*
+ColumnFamilyNameGet gets column family name
+
+Get a list of all column family names
+*/
+func (a *Client) ColumnFamilyNameGet(params *ColumnFamilyNameGetParams) (*ColumnFamilyNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/name",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyNameGetOK), nil
+
+}
+
+/*
+ColumnFamilyNameKeyspaceGet gets column family name keyspace
+
+Get a list of the key space names
+*/
+func (a *Client) ColumnFamilyNameKeyspaceGet(params *ColumnFamilyNameKeyspaceGetParams) (*ColumnFamilyNameKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyNameKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyNameKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/name/keyspace",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyNameKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilyNameKeyspaceGetOK), nil
+
+}
+
+/*
+ColumnFamilySstablesByKeyByNameGet gets sstables for key
+
+Returns a list of sstable filenames that contain the given partition key on this node
+*/
+func (a *Client) ColumnFamilySstablesByKeyByNameGet(params *ColumnFamilySstablesByKeyByNameGetParams) (*ColumnFamilySstablesByKeyByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilySstablesByKeyByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilySstablesByKeyByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/sstables/by_key/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilySstablesByKeyByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilySstablesByKeyByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilySstablesPerLevelByNameGet gets sstable count per level
+
+sstable count for each level. empty unless leveled compaction is used
+*/
+func (a *Client) ColumnFamilySstablesPerLevelByNameGet(params *ColumnFamilySstablesPerLevelByNameGetParams) (*ColumnFamilySstablesPerLevelByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilySstablesPerLevelByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilySstablesPerLevelByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/sstables/per_level/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilySstablesPerLevelByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilySstablesPerLevelByNameGetOK), nil
+
+}
+
+/*
+ColumnFamilySstablesUnleveledByNameGet gets unleveled sstables
+
+the number of SSTables in L0.  Always return 0 if Leveled compaction is not enabled.
+*/
+func (a *Client) ColumnFamilySstablesUnleveledByNameGet(params *ColumnFamilySstablesUnleveledByNameGetParams) (*ColumnFamilySstablesUnleveledByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilySstablesUnleveledByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilySstablesUnleveledByNameGet",
+		Method:             "GET",
+		PathPattern:        "/column_family/sstables/unleveled/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilySstablesUnleveledByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ColumnFamilySstablesUnleveledByNameGetOK), nil
+
+}
+
+/*
+CommitLogMetricsWaitingOnCommitGet gets waiting on commit
+
+Get waiting on commit
+*/
+func (a *Client) CommitLogMetricsWaitingOnCommitGet(params *CommitLogMetricsWaitingOnCommitGetParams) (*CommitLogMetricsWaitingOnCommitGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitLogMetricsWaitingOnCommitGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitLogMetricsWaitingOnCommitGet",
+		Method:             "GET",
+		PathPattern:        "/commit_log/metrics/waiting_on_commit",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitLogMetricsWaitingOnCommitGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitLogMetricsWaitingOnCommitGetOK), nil
+
+}
+
+/*
+CommitLogMetricsWaitingOnSegmentAllocationGet gets waiting on segment allocation
+
+Get waiting on segment allocation
+*/
+func (a *Client) CommitLogMetricsWaitingOnSegmentAllocationGet(params *CommitLogMetricsWaitingOnSegmentAllocationGetParams) (*CommitLogMetricsWaitingOnSegmentAllocationGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitLogMetricsWaitingOnSegmentAllocationGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitLogMetricsWaitingOnSegmentAllocationGet",
+		Method:             "GET",
+		PathPattern:        "/commit_log/metrics/waiting_on_segment_allocation",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitLogMetricsWaitingOnSegmentAllocationGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitLogMetricsWaitingOnSegmentAllocationGetOK), nil
+
+}
+
+/*
+CommitlogMetricsCompletedTasksGet gets completed tasks
+
+Get completed tasks
+*/
+func (a *Client) CommitlogMetricsCompletedTasksGet(params *CommitlogMetricsCompletedTasksGetParams) (*CommitlogMetricsCompletedTasksGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitlogMetricsCompletedTasksGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitlogMetricsCompletedTasksGet",
+		Method:             "GET",
+		PathPattern:        "/commitlog/metrics/completed_tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitlogMetricsCompletedTasksGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitlogMetricsCompletedTasksGetOK), nil
+
+}
+
+/*
+CommitlogMetricsPendingTasksGet gets pending tasks
+
+Get pending tasks
+*/
+func (a *Client) CommitlogMetricsPendingTasksGet(params *CommitlogMetricsPendingTasksGetParams) (*CommitlogMetricsPendingTasksGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitlogMetricsPendingTasksGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitlogMetricsPendingTasksGet",
+		Method:             "GET",
+		PathPattern:        "/commitlog/metrics/pending_tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitlogMetricsPendingTasksGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitlogMetricsPendingTasksGetOK), nil
+
+}
+
+/*
+CommitlogMetricsTotalCommitLogSizeGet gets total commit log size
+
+Get total commit log size
+*/
+func (a *Client) CommitlogMetricsTotalCommitLogSizeGet(params *CommitlogMetricsTotalCommitLogSizeGetParams) (*CommitlogMetricsTotalCommitLogSizeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitlogMetricsTotalCommitLogSizeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitlogMetricsTotalCommitLogSizeGet",
+		Method:             "GET",
+		PathPattern:        "/commitlog/metrics/total_commit_log_size",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitlogMetricsTotalCommitLogSizeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitlogMetricsTotalCommitLogSizeGetOK), nil
+
+}
+
+/*
+CommitlogRecoverByPathPost commitlogs recover
+
+Recover a single file
+*/
+func (a *Client) CommitlogRecoverByPathPost(params *CommitlogRecoverByPathPostParams) (*CommitlogRecoverByPathPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitlogRecoverByPathPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitlogRecoverByPathPost",
+		Method:             "POST",
+		PathPattern:        "/commitlog/recover/{path}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitlogRecoverByPathPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitlogRecoverByPathPostOK), nil
+
+}
+
+/*
+CommitlogSegmentsActiveGet gets active segment names
+
+file names (not full paths) of active commit log segments (segments containing unflushed data)
+*/
+func (a *Client) CommitlogSegmentsActiveGet(params *CommitlogSegmentsActiveGetParams) (*CommitlogSegmentsActiveGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitlogSegmentsActiveGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitlogSegmentsActiveGet",
+		Method:             "GET",
+		PathPattern:        "/commitlog/segments/active",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitlogSegmentsActiveGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitlogSegmentsActiveGetOK), nil
+
+}
+
+/*
+CommitlogSegmentsArchivingGet gets archiving segment names
+
+Returns files which are pending for archival attempt. Does NOT include failed archive attempts
+*/
+func (a *Client) CommitlogSegmentsArchivingGet(params *CommitlogSegmentsArchivingGetParams) (*CommitlogSegmentsArchivingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCommitlogSegmentsArchivingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CommitlogSegmentsArchivingGet",
+		Method:             "GET",
+		PathPattern:        "/commitlog/segments/archiving",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CommitlogSegmentsArchivingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommitlogSegmentsArchivingGetOK), nil
+
+}
+
+/*
+CompactionManagerCompactionHistoryGet gets compaction history
+
+get List of the compaction history
+*/
+func (a *Client) CompactionManagerCompactionHistoryGet(params *CompactionManagerCompactionHistoryGetParams) (*CompactionManagerCompactionHistoryGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerCompactionHistoryGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerCompactionHistoryGet",
+		Method:             "GET",
+		PathPattern:        "/compaction_manager/compaction_history",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerCompactionHistoryGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerCompactionHistoryGetOK), nil
+
+}
+
+/*
+CompactionManagerCompactionInfoGet gets compaction info
+
+get a list of all active compaction info
+*/
+func (a *Client) CompactionManagerCompactionInfoGet(params *CompactionManagerCompactionInfoGetParams) (*CompactionManagerCompactionInfoGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerCompactionInfoGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerCompactionInfoGet",
+		Method:             "GET",
+		PathPattern:        "/compaction_manager/compaction_info",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerCompactionInfoGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerCompactionInfoGetOK), nil
+
+}
+
+/*
+CompactionManagerCompactionsGet gets compactions
+
+get List of running compactions
+*/
+func (a *Client) CompactionManagerCompactionsGet(params *CompactionManagerCompactionsGetParams) (*CompactionManagerCompactionsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerCompactionsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerCompactionsGet",
+		Method:             "GET",
+		PathPattern:        "/compaction_manager/compactions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerCompactionsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerCompactionsGetOK), nil
+
+}
+
+/*
+CompactionManagerForceUserDefinedCompactionPost forces user defined compaction
+
+Triggers the compaction of user specified sstables. You can specify files from various keyspaces and columnfamilies. If you do so, user defined compaction is performed several times to the groups of files in the same keyspace/columnfamily. must contain keyspace and columnfamily name in path(for 2.1+) or file name itself.
+*/
+func (a *Client) CompactionManagerForceUserDefinedCompactionPost(params *CompactionManagerForceUserDefinedCompactionPostParams) (*CompactionManagerForceUserDefinedCompactionPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerForceUserDefinedCompactionPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerForceUserDefinedCompactionPost",
+		Method:             "POST",
+		PathPattern:        "/compaction_manager/force_user_defined_compaction",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerForceUserDefinedCompactionPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerForceUserDefinedCompactionPostOK), nil
+
+}
+
+/*
+CompactionManagerMetricsBytesCompactedGet gets bytes compacted
+
+Get bytes compacted
+*/
+func (a *Client) CompactionManagerMetricsBytesCompactedGet(params *CompactionManagerMetricsBytesCompactedGetParams) (*CompactionManagerMetricsBytesCompactedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerMetricsBytesCompactedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerMetricsBytesCompactedGet",
+		Method:             "GET",
+		PathPattern:        "/compaction_manager/metrics/bytes_compacted",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerMetricsBytesCompactedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerMetricsBytesCompactedGetOK), nil
+
+}
+
+/*
+CompactionManagerMetricsCompletedTasksGet gets completed tasks1
+
+Get completed tasks
+*/
+func (a *Client) CompactionManagerMetricsCompletedTasksGet(params *CompactionManagerMetricsCompletedTasksGetParams) (*CompactionManagerMetricsCompletedTasksGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerMetricsCompletedTasksGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerMetricsCompletedTasksGet",
+		Method:             "GET",
+		PathPattern:        "/compaction_manager/metrics/completed_tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerMetricsCompletedTasksGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerMetricsCompletedTasksGetOK), nil
+
+}
+
+/*
+CompactionManagerMetricsPendingTasksGet gets pending tasks1
+
+Get pending tasks
+*/
+func (a *Client) CompactionManagerMetricsPendingTasksGet(params *CompactionManagerMetricsPendingTasksGetParams) (*CompactionManagerMetricsPendingTasksGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerMetricsPendingTasksGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerMetricsPendingTasksGet",
+		Method:             "GET",
+		PathPattern:        "/compaction_manager/metrics/pending_tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerMetricsPendingTasksGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerMetricsPendingTasksGetOK), nil
+
+}
+
+/*
+CompactionManagerMetricsTotalCompactionsCompletedGet gets total compactions completed
+
+Get total compactions completed
+*/
+func (a *Client) CompactionManagerMetricsTotalCompactionsCompletedGet(params *CompactionManagerMetricsTotalCompactionsCompletedGetParams) (*CompactionManagerMetricsTotalCompactionsCompletedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCompactionManagerMetricsTotalCompactionsCompletedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompactionManagerMetricsTotalCompactionsCompletedGet",
+		Method:             "GET",
+		PathPattern:        "/compaction_manager/metrics/total_compactions_completed",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompactionManagerMetricsTotalCompactionsCompletedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompactionManagerMetricsTotalCompactionsCompletedGetOK), nil
+
+}
+
+/*
+CompactionManagerStopCompactionPost stops compaction
 
 Stop all running compaction-like tasks having the provided type
 */
-func (a *Client) StopCompaction(params *StopCompactionParams) (*StopCompactionOK, error) {
+func (a *Client) CompactionManagerStopCompactionPost(params *CompactionManagerStopCompactionPostParams) (*CompactionManagerStopCompactionPostOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewStopCompactionParams()
+		params = NewCompactionManagerStopCompactionPostParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "stop_compaction",
+		ID:                 "CompactionManagerStopCompactionPost",
 		Method:             "POST",
 		PathPattern:        "/compaction_manager/stop_compaction",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &StopCompactionReader{formats: a.formats},
+		Reader:             &CompactionManagerStopCompactionPostReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StopCompactionOK), nil
+	return result.(*CompactionManagerStopCompactionPostOK), nil
 
 }
 
 /*
-StopDaemon stops daemon
+FailureDetectorCountEndpointDownGet gets down endpoint count
 
-allows a user to forcibly completely stop cassandra
+Get count down endpoint
 */
-func (a *Client) StopDaemon(params *StopDaemonParams) (*StopDaemonOK, error) {
+func (a *Client) FailureDetectorCountEndpointDownGet(params *FailureDetectorCountEndpointDownGetParams) (*FailureDetectorCountEndpointDownGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewStopDaemonParams()
+		params = NewFailureDetectorCountEndpointDownGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "stop_daemon",
-		Method:             "POST",
-		PathPattern:        "/storage_service/stop_daemon",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &StopDaemonReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*StopDaemonOK), nil
-
-}
-
-/*
-StopGossiping stops gossiping
-
-allows a user to forcibly 'kill' a sick node
-*/
-func (a *Client) StopGossiping(params *StopGossipingParams) (*StopGossipingOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewStopGossipingParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "stop_gossiping",
-		Method:             "DELETE",
-		PathPattern:        "/storage_service/gossiping",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &StopGossipingReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*StopGossipingOK), nil
-
-}
-
-/*
-StopNativeTransport stops native transport
-
-Stop native transport
-*/
-func (a *Client) StopNativeTransport(params *StopNativeTransportParams) (*StopNativeTransportOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewStopNativeTransportParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "stop_native_transport",
-		Method:             "DELETE",
-		PathPattern:        "/storage_service/native_transport",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &StopNativeTransportReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*StopNativeTransportOK), nil
-
-}
-
-/*
-StopRPCServer stops rpc server
-
-Allows a user to disable thrift
-*/
-func (a *Client) StopRPCServer(params *StopRPCServerParams) (*StopRPCServerOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewStopRPCServerParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "stop_rpc_server",
-		Method:             "DELETE",
-		PathPattern:        "/storage_service/rpc_server",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &StopRPCServerReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*StopRPCServerOK), nil
-
-}
-
-/*
-TakeSnapshot takes snapshot
-
-Takes the snapshot for the given keyspaces. A snapshot name must be specified.
-*/
-func (a *Client) TakeSnapshot(params *TakeSnapshotParams) (*TakeSnapshotOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewTakeSnapshotParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "take_snapshot",
-		Method:             "POST",
-		PathPattern:        "/storage_service/snapshots",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &TakeSnapshotReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*TakeSnapshotOK), nil
-
-}
-
-/*
-TrueSnapshotsSize trues snapshots size
-
-Get the true size taken by all snapshots across all keyspaces.
-*/
-func (a *Client) TrueSnapshotsSize(params *TrueSnapshotsSizeParams) (*TrueSnapshotsSizeOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewTrueSnapshotsSizeParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "true_snapshots_size",
+		ID:                 "FailureDetectorCountEndpointDownGet",
 		Method:             "GET",
-		PathPattern:        "/storage_service/snapshots/size/true",
+		PathPattern:        "/failure_detector/count/endpoint/down",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &TrueSnapshotsSizeReader{formats: a.formats},
+		Reader:             &FailureDetectorCountEndpointDownGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TrueSnapshotsSizeOK), nil
+	return result.(*FailureDetectorCountEndpointDownGetOK), nil
 
 }
 
 /*
-Truncate truncates
+FailureDetectorCountEndpointUpGet gets up endpoint count
 
-Truncates (deletes) the given columnFamily from the provided keyspace. Calling truncate results in actual deletion of all data in the cluster under the given columnFamily and it will fail unless all hosts are up. All data in the given column family will be deleted, but its definition will not be affected.
+Get count up endpoint
 */
-func (a *Client) Truncate(params *TruncateParams) (*TruncateOK, error) {
+func (a *Client) FailureDetectorCountEndpointUpGet(params *FailureDetectorCountEndpointUpGetParams) (*FailureDetectorCountEndpointUpGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewTruncateParams()
+		params = NewFailureDetectorCountEndpointUpGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "truncate",
-		Method:             "POST",
-		PathPattern:        "/storage_service/truncate/{keyspace}",
+		ID:                 "FailureDetectorCountEndpointUpGet",
+		Method:             "GET",
+		PathPattern:        "/failure_detector/count/endpoint/up",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &TruncateReader{formats: a.formats},
+		Reader:             &FailureDetectorCountEndpointUpGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TruncateOK), nil
+	return result.(*FailureDetectorCountEndpointUpGetOK), nil
 
 }
 
 /*
-TruncateAllHints truncates all hints
+FailureDetectorEndpointPhiValuesGet gets endpoint phi values
+
+Get end point phi values
+*/
+func (a *Client) FailureDetectorEndpointPhiValuesGet(params *FailureDetectorEndpointPhiValuesGetParams) (*FailureDetectorEndpointPhiValuesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFailureDetectorEndpointPhiValuesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "FailureDetectorEndpointPhiValuesGet",
+		Method:             "GET",
+		PathPattern:        "/failure_detector/endpoint_phi_values",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FailureDetectorEndpointPhiValuesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FailureDetectorEndpointPhiValuesGetOK), nil
+
+}
+
+/*
+FailureDetectorEndpointsGet gets all endpoint states
+
+Get all endpoint states
+*/
+func (a *Client) FailureDetectorEndpointsGet(params *FailureDetectorEndpointsGetParams) (*FailureDetectorEndpointsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFailureDetectorEndpointsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "FailureDetectorEndpointsGet",
+		Method:             "GET",
+		PathPattern:        "/failure_detector/endpoints/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FailureDetectorEndpointsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FailureDetectorEndpointsGetOK), nil
+
+}
+
+/*
+FailureDetectorEndpointsStatesByAddrGet gets endpoint state
+
+Get endpoint states
+*/
+func (a *Client) FailureDetectorEndpointsStatesByAddrGet(params *FailureDetectorEndpointsStatesByAddrGetParams) (*FailureDetectorEndpointsStatesByAddrGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFailureDetectorEndpointsStatesByAddrGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "FailureDetectorEndpointsStatesByAddrGet",
+		Method:             "GET",
+		PathPattern:        "/failure_detector/endpoints/states/{addr}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FailureDetectorEndpointsStatesByAddrGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FailureDetectorEndpointsStatesByAddrGetOK), nil
+
+}
+
+/*
+FailureDetectorPhiGet gets phi convict threshold
+
+Get the phi convict threshold
+*/
+func (a *Client) FailureDetectorPhiGet(params *FailureDetectorPhiGetParams) (*FailureDetectorPhiGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFailureDetectorPhiGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "FailureDetectorPhiGet",
+		Method:             "GET",
+		PathPattern:        "/failure_detector/phi",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FailureDetectorPhiGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FailureDetectorPhiGetOK), nil
+
+}
+
+/*
+FailureDetectorPhiPost sets phi convict threshold
+
+Set the phi convict threshold
+*/
+func (a *Client) FailureDetectorPhiPost(params *FailureDetectorPhiPostParams) (*FailureDetectorPhiPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFailureDetectorPhiPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "FailureDetectorPhiPost",
+		Method:             "POST",
+		PathPattern:        "/failure_detector/phi",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FailureDetectorPhiPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FailureDetectorPhiPostOK), nil
+
+}
+
+/*
+FailureDetectorSimpleStatesGet gets simple states
+
+Get simple_states
+*/
+func (a *Client) FailureDetectorSimpleStatesGet(params *FailureDetectorSimpleStatesGetParams) (*FailureDetectorSimpleStatesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFailureDetectorSimpleStatesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "FailureDetectorSimpleStatesGet",
+		Method:             "GET",
+		PathPattern:        "/failure_detector/simple_states",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FailureDetectorSimpleStatesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FailureDetectorSimpleStatesGetOK), nil
+
+}
+
+/*
+GossiperAssassinateByAddrPost assassinates endpoint
+
+Assassinate an end point
+*/
+func (a *Client) GossiperAssassinateByAddrPost(params *GossiperAssassinateByAddrPostParams) (*GossiperAssassinateByAddrPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGossiperAssassinateByAddrPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GossiperAssassinateByAddrPost",
+		Method:             "POST",
+		PathPattern:        "/gossiper/assassinate/{addr}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GossiperAssassinateByAddrPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GossiperAssassinateByAddrPostOK), nil
+
+}
+
+/*
+GossiperDowntimeByAddrGet gets endpoint downtime
+
+Get the downtime of an end point
+*/
+func (a *Client) GossiperDowntimeByAddrGet(params *GossiperDowntimeByAddrGetParams) (*GossiperDowntimeByAddrGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGossiperDowntimeByAddrGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GossiperDowntimeByAddrGet",
+		Method:             "GET",
+		PathPattern:        "/gossiper/downtime/{addr}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GossiperDowntimeByAddrGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GossiperDowntimeByAddrGetOK), nil
+
+}
+
+/*
+GossiperEndpointDownGet gets down endpoint
+
+Get the addreses of the down endpoints
+*/
+func (a *Client) GossiperEndpointDownGet(params *GossiperEndpointDownGetParams) (*GossiperEndpointDownGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGossiperEndpointDownGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GossiperEndpointDownGet",
+		Method:             "GET",
+		PathPattern:        "/gossiper/endpoint/down/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GossiperEndpointDownGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GossiperEndpointDownGetOK), nil
+
+}
+
+/*
+GossiperEndpointLiveGet gets live endpoint
+
+Get the addreses of live endpoints
+*/
+func (a *Client) GossiperEndpointLiveGet(params *GossiperEndpointLiveGetParams) (*GossiperEndpointLiveGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGossiperEndpointLiveGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GossiperEndpointLiveGet",
+		Method:             "GET",
+		PathPattern:        "/gossiper/endpoint/live/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GossiperEndpointLiveGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GossiperEndpointLiveGetOK), nil
+
+}
+
+/*
+GossiperGenerationNumberByAddrGet gets current generation number
+
+Returns files which are pending for archival attempt. Does NOT include failed archive attempts
+*/
+func (a *Client) GossiperGenerationNumberByAddrGet(params *GossiperGenerationNumberByAddrGetParams) (*GossiperGenerationNumberByAddrGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGossiperGenerationNumberByAddrGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GossiperGenerationNumberByAddrGet",
+		Method:             "GET",
+		PathPattern:        "/gossiper/generation_number/{addr}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GossiperGenerationNumberByAddrGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GossiperGenerationNumberByAddrGetOK), nil
+
+}
+
+/*
+GossiperHeartBeatVersionByAddrGet gets current heart beat version
+
+Get heart beat version for a node
+*/
+func (a *Client) GossiperHeartBeatVersionByAddrGet(params *GossiperHeartBeatVersionByAddrGetParams) (*GossiperHeartBeatVersionByAddrGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGossiperHeartBeatVersionByAddrGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GossiperHeartBeatVersionByAddrGet",
+		Method:             "GET",
+		PathPattern:        "/gossiper/heart_beat_version/{addr}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GossiperHeartBeatVersionByAddrGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GossiperHeartBeatVersionByAddrGetOK), nil
+
+}
+
+/*
+HintedHandoffHintsDelete truncates all hints
 
 Truncate all the hints
 */
-func (a *Client) TruncateAllHints(params *TruncateAllHintsParams) (*TruncateAllHintsOK, error) {
+func (a *Client) HintedHandoffHintsDelete(params *HintedHandoffHintsDeleteParams) (*HintedHandoffHintsDeleteOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewTruncateAllHintsParams()
+		params = NewHintedHandoffHintsDeleteParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "truncate_all_hints",
+		ID:                 "HintedHandoffHintsDelete",
 		Method:             "DELETE",
 		PathPattern:        "/hinted_handoff/hints",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &TruncateAllHintsReader{formats: a.formats},
+		Reader:             &HintedHandoffHintsDeleteReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TruncateAllHintsOK), nil
+	return result.(*HintedHandoffHintsDeleteOK), nil
 
 }
 
 /*
-UpdateSnitch updates snitch
+HintedHandoffHintsGet lists endpoints pending hints
 
-Change endpointsnitch class and dynamic-ness (and dynamic attributes) at runtime
+List all the endpoints that this node has hints for.
 */
-func (a *Client) UpdateSnitch(params *UpdateSnitchParams) (*UpdateSnitchOK, error) {
+func (a *Client) HintedHandoffHintsGet(params *HintedHandoffHintsGetParams) (*HintedHandoffHintsGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewUpdateSnitchParams()
+		params = NewHintedHandoffHintsGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "update_snitch",
-		Method:             "POST",
-		PathPattern:        "/storage_service/update_snitch",
+		ID:                 "HintedHandoffHintsGet",
+		Method:             "GET",
+		PathPattern:        "/hinted_handoff/hints",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &UpdateSnitchReader{formats: a.formats},
+		Reader:             &HintedHandoffHintsGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UpdateSnitchOK), nil
+	return result.(*HintedHandoffHintsGetOK), nil
 
 }
 
 /*
-UpgradeSstables upgrades sstables
+HintedHandoffMetricsCreateHintByAddrGet gets create hint count
 
-Rewrite all sstables to the latest version. Unlike scrub, it doesn't skip bad rows and do not snapshot sstables first.
+Get create hint count
 */
-func (a *Client) UpgradeSstables(params *UpgradeSstablesParams) (*UpgradeSstablesOK, error) {
+func (a *Client) HintedHandoffMetricsCreateHintByAddrGet(params *HintedHandoffMetricsCreateHintByAddrGetParams) (*HintedHandoffMetricsCreateHintByAddrGetOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewUpgradeSstablesParams()
+		params = NewHintedHandoffMetricsCreateHintByAddrGetParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "upgrade_sstables",
+		ID:                 "HintedHandoffMetricsCreateHintByAddrGet",
+		Method:             "GET",
+		PathPattern:        "/hinted_handoff/metrics/create_hint/{addr}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &HintedHandoffMetricsCreateHintByAddrGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*HintedHandoffMetricsCreateHintByAddrGetOK), nil
+
+}
+
+/*
+HintedHandoffMetricsNotStoredHintsByAddrGet gets not stored hints count
+
+Get not stored hints count
+*/
+func (a *Client) HintedHandoffMetricsNotStoredHintsByAddrGet(params *HintedHandoffMetricsNotStoredHintsByAddrGetParams) (*HintedHandoffMetricsNotStoredHintsByAddrGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewHintedHandoffMetricsNotStoredHintsByAddrGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "HintedHandoffMetricsNotStoredHintsByAddrGet",
+		Method:             "GET",
+		PathPattern:        "/hinted_handoff/metrics/not_stored_hints/{addr}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &HintedHandoffMetricsNotStoredHintsByAddrGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*HintedHandoffMetricsNotStoredHintsByAddrGetOK), nil
+
+}
+
+/*
+HintedHandoffPausePost pauses hints delivery
+
+pause hints delivery
+*/
+func (a *Client) HintedHandoffPausePost(params *HintedHandoffPausePostParams) (*HintedHandoffPausePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewHintedHandoffPausePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "HintedHandoffPausePost",
+		Method:             "POST",
+		PathPattern:        "/hinted_handoff/pause",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &HintedHandoffPausePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*HintedHandoffPausePostOK), nil
+
+}
+
+/*
+HintedHandoffSchedulePost schedules hint delivery
+
+force hint delivery to an endpoint
+*/
+func (a *Client) HintedHandoffSchedulePost(params *HintedHandoffSchedulePostParams) (*HintedHandoffSchedulePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewHintedHandoffSchedulePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "HintedHandoffSchedulePost",
+		Method:             "POST",
+		PathPattern:        "/hinted_handoff/schedule",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &HintedHandoffSchedulePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*HintedHandoffSchedulePostOK), nil
+
+}
+
+/*
+LsaCompactPost lsas compact
+
+Force compaction of all regions
+*/
+func (a *Client) LsaCompactPost(params *LsaCompactPostParams) (*LsaCompactPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewLsaCompactPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "LsaCompactPost",
+		Method:             "POST",
+		PathPattern:        "/lsa/compact",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &LsaCompactPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*LsaCompactPostOK), nil
+
+}
+
+/*
+MessagingServiceMessagesDroppedByVerGet gets dropped messages by ver
+
+Get the number of dropped messages per verb
+*/
+func (a *Client) MessagingServiceMessagesDroppedByVerGet(params *MessagingServiceMessagesDroppedByVerGetParams) (*MessagingServiceMessagesDroppedByVerGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesDroppedByVerGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesDroppedByVerGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/dropped_by_ver",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesDroppedByVerGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesDroppedByVerGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesDroppedGet gets dropped messages
+
+Get the number of messages that were dropped before sending
+*/
+func (a *Client) MessagingServiceMessagesDroppedGet(params *MessagingServiceMessagesDroppedGetParams) (*MessagingServiceMessagesDroppedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesDroppedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesDroppedGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/dropped",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesDroppedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesDroppedGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesExceptionGet gets exception messages
+
+Get the number of messages return with an exception
+*/
+func (a *Client) MessagingServiceMessagesExceptionGet(params *MessagingServiceMessagesExceptionGetParams) (*MessagingServiceMessagesExceptionGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesExceptionGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesExceptionGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/exception",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesExceptionGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesExceptionGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesPendingGet gets pending messages
+
+Get the number of pending messages
+*/
+func (a *Client) MessagingServiceMessagesPendingGet(params *MessagingServiceMessagesPendingGetParams) (*MessagingServiceMessagesPendingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesPendingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesPendingGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/pending",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesPendingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesPendingGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesRepliedGet gets completed messages
+
+Get the number of replied messages
+*/
+func (a *Client) MessagingServiceMessagesRepliedGet(params *MessagingServiceMessagesRepliedGetParams) (*MessagingServiceMessagesRepliedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesRepliedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesRepliedGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/replied",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesRepliedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesRepliedGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesRespondCompletedGet gets respond completed messages
+
+Get the number of completed respond messages
+*/
+func (a *Client) MessagingServiceMessagesRespondCompletedGet(params *MessagingServiceMessagesRespondCompletedGetParams) (*MessagingServiceMessagesRespondCompletedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesRespondCompletedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesRespondCompletedGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/respond_completed",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesRespondCompletedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesRespondCompletedGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesRespondPendingGet gets respond pending messages
+
+Get the number of messages waiting for respond
+*/
+func (a *Client) MessagingServiceMessagesRespondPendingGet(params *MessagingServiceMessagesRespondPendingGetParams) (*MessagingServiceMessagesRespondPendingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesRespondPendingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesRespondPendingGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/respond_pending",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesRespondPendingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesRespondPendingGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesSentGet gets sent messages
+
+Get the number of sent messages
+*/
+func (a *Client) MessagingServiceMessagesSentGet(params *MessagingServiceMessagesSentGetParams) (*MessagingServiceMessagesSentGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesSentGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesSentGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/sent",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesSentGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesSentGetOK), nil
+
+}
+
+/*
+MessagingServiceMessagesTimeoutGet gets timeout messages
+
+Get the number of timeout messages
+*/
+func (a *Client) MessagingServiceMessagesTimeoutGet(params *MessagingServiceMessagesTimeoutGetParams) (*MessagingServiceMessagesTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceMessagesTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceMessagesTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/messages/timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceMessagesTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceMessagesTimeoutGetOK), nil
+
+}
+
+/*
+MessagingServiceVersionGet gets version
+
+Get the version number
+*/
+func (a *Client) MessagingServiceVersionGet(params *MessagingServiceVersionGetParams) (*MessagingServiceVersionGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMessagingServiceVersionGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "MessagingServiceVersionGet",
+		Method:             "GET",
+		PathPattern:        "/messaging_service/version",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MessagingServiceVersionGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*MessagingServiceVersionGetOK), nil
+
+}
+
+/*
+SnitchDatacenterGet gets datacenter
+
+Provides the Datacenter name depending on the respective snitch used, given the hostname/ip
+*/
+func (a *Client) SnitchDatacenterGet(params *SnitchDatacenterGetParams) (*SnitchDatacenterGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSnitchDatacenterGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SnitchDatacenterGet",
+		Method:             "GET",
+		PathPattern:        "/snitch/datacenter",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SnitchDatacenterGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SnitchDatacenterGetOK), nil
+
+}
+
+/*
+SnitchNameGet gets snitch name
+
+Provides the snitch name of the cluster
+*/
+func (a *Client) SnitchNameGet(params *SnitchNameGetParams) (*SnitchNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSnitchNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SnitchNameGet",
+		Method:             "GET",
+		PathPattern:        "/snitch/name",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SnitchNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SnitchNameGetOK), nil
+
+}
+
+/*
+SnitchRackGet gets rack
+
+Provides the Rack name depending on the respective snitch used, given the host name/ip
+*/
+func (a *Client) SnitchRackGet(params *SnitchRackGetParams) (*SnitchRackGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSnitchRackGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SnitchRackGet",
+		Method:             "GET",
+		PathPattern:        "/snitch/rack",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SnitchRackGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SnitchRackGetOK), nil
+
+}
+
+/*
+StorageProxyCasContentionTimeoutGet gets cas contention timeout
+
+Get CAS contention timeout in seconds
+*/
+func (a *Client) StorageProxyCasContentionTimeoutGet(params *StorageProxyCasContentionTimeoutGetParams) (*StorageProxyCasContentionTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyCasContentionTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyCasContentionTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/cas_contention_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyCasContentionTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyCasContentionTimeoutGetOK), nil
+
+}
+
+/*
+StorageProxyCasContentionTimeoutPost sets cas contention timeout
+
+Set CAS contention timeout
+*/
+func (a *Client) StorageProxyCasContentionTimeoutPost(params *StorageProxyCasContentionTimeoutPostParams) (*StorageProxyCasContentionTimeoutPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyCasContentionTimeoutPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyCasContentionTimeoutPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/cas_contention_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyCasContentionTimeoutPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyCasContentionTimeoutPostOK), nil
+
+}
+
+/*
+StorageProxyCounterWriteRPCTimeoutGet gets counter write rpc timeout
+
+Get counter write rpc timeout in seconds
+*/
+func (a *Client) StorageProxyCounterWriteRPCTimeoutGet(params *StorageProxyCounterWriteRPCTimeoutGetParams) (*StorageProxyCounterWriteRPCTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyCounterWriteRPCTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyCounterWriteRpcTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/counter_write_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyCounterWriteRPCTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyCounterWriteRPCTimeoutGetOK), nil
+
+}
+
+/*
+StorageProxyCounterWriteRPCTimeoutPost sets counter write rpc timeout
+
+Set counter write rpc timeout
+*/
+func (a *Client) StorageProxyCounterWriteRPCTimeoutPost(params *StorageProxyCounterWriteRPCTimeoutPostParams) (*StorageProxyCounterWriteRPCTimeoutPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyCounterWriteRPCTimeoutPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyCounterWriteRpcTimeoutPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/counter_write_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyCounterWriteRPCTimeoutPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyCounterWriteRPCTimeoutPostOK), nil
+
+}
+
+/*
+StorageProxyHintedHandoffEnabledByDcGet gets hinted handoff enabled by dc
+
+Get the hinted handoff enabled by dc
+*/
+func (a *Client) StorageProxyHintedHandoffEnabledByDcGet(params *StorageProxyHintedHandoffEnabledByDcGetParams) (*StorageProxyHintedHandoffEnabledByDcGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyHintedHandoffEnabledByDcGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyHintedHandoffEnabledByDcGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/hinted_handoff_enabled_by_dc",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyHintedHandoffEnabledByDcGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyHintedHandoffEnabledByDcGetOK), nil
+
+}
+
+/*
+StorageProxyHintedHandoffEnabledByDcPost sets hinted handoff enabled by dc list
+
+Set the hinted handoff enabled by dc
+*/
+func (a *Client) StorageProxyHintedHandoffEnabledByDcPost(params *StorageProxyHintedHandoffEnabledByDcPostParams) (*StorageProxyHintedHandoffEnabledByDcPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyHintedHandoffEnabledByDcPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyHintedHandoffEnabledByDcPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/hinted_handoff_enabled_by_dc",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyHintedHandoffEnabledByDcPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyHintedHandoffEnabledByDcPostOK), nil
+
+}
+
+/*
+StorageProxyHintedHandoffEnabledGet gets hinted handoff enabled
+
+Return true if hinted handoff enabled
+*/
+func (a *Client) StorageProxyHintedHandoffEnabledGet(params *StorageProxyHintedHandoffEnabledGetParams) (*StorageProxyHintedHandoffEnabledGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyHintedHandoffEnabledGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyHintedHandoffEnabledGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/hinted_handoff_enabled",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyHintedHandoffEnabledGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyHintedHandoffEnabledGetOK), nil
+
+}
+
+/*
+StorageProxyHintedHandoffEnabledPost sets hinted handoff enabled
+
+Set hinted handoff status
+*/
+func (a *Client) StorageProxyHintedHandoffEnabledPost(params *StorageProxyHintedHandoffEnabledPostParams) (*StorageProxyHintedHandoffEnabledPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyHintedHandoffEnabledPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyHintedHandoffEnabledPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/hinted_handoff_enabled",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyHintedHandoffEnabledPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyHintedHandoffEnabledPostOK), nil
+
+}
+
+/*
+StorageProxyHintsInProgressGet gets hints in progress
+
+get hints in progress
+*/
+func (a *Client) StorageProxyHintsInProgressGet(params *StorageProxyHintsInProgressGetParams) (*StorageProxyHintsInProgressGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyHintsInProgressGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyHintsInProgressGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/hints_in_progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyHintsInProgressGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyHintsInProgressGetOK), nil
+
+}
+
+/*
+StorageProxyMaxHintWindowGet gets max hint window
+
+Get the max hint window
+*/
+func (a *Client) StorageProxyMaxHintWindowGet(params *StorageProxyMaxHintWindowGetParams) (*StorageProxyMaxHintWindowGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMaxHintWindowGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMaxHintWindowGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/max_hint_window",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMaxHintWindowGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMaxHintWindowGetOK), nil
+
+}
+
+/*
+StorageProxyMaxHintWindowPost sets max hint window
+
+Set the max hint window
+*/
+func (a *Client) StorageProxyMaxHintWindowPost(params *StorageProxyMaxHintWindowPostParams) (*StorageProxyMaxHintWindowPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMaxHintWindowPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMaxHintWindowPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/max_hint_window",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMaxHintWindowPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMaxHintWindowPostOK), nil
+
+}
+
+/*
+StorageProxyMaxHintsInProgressGet gets max hints in progress
+
+Get max hints in progress
+*/
+func (a *Client) StorageProxyMaxHintsInProgressGet(params *StorageProxyMaxHintsInProgressGetParams) (*StorageProxyMaxHintsInProgressGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMaxHintsInProgressGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMaxHintsInProgressGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/max_hints_in_progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMaxHintsInProgressGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMaxHintsInProgressGetOK), nil
+
+}
+
+/*
+StorageProxyMaxHintsInProgressPost sets max hints in progress
+
+Set max hints in progress
+*/
+func (a *Client) StorageProxyMaxHintsInProgressPost(params *StorageProxyMaxHintsInProgressPostParams) (*StorageProxyMaxHintsInProgressPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMaxHintsInProgressPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMaxHintsInProgressPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/max_hints_in_progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMaxHintsInProgressPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMaxHintsInProgressPostOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasReadConditionNotMetGet gets cas read metrics condition not met
+
+Get cas read metrics
+*/
+func (a *Client) StorageProxyMetricsCasReadConditionNotMetGet(params *StorageProxyMetricsCasReadConditionNotMetGetParams) (*StorageProxyMetricsCasReadConditionNotMetGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasReadConditionNotMetGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasReadConditionNotMetGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_read/condition_not_met",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasReadConditionNotMetGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasReadConditionNotMetGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasReadContentionGet gets cas read metrics contention
+
+Get cas read metrics
+*/
+func (a *Client) StorageProxyMetricsCasReadContentionGet(params *StorageProxyMetricsCasReadContentionGetParams) (*StorageProxyMetricsCasReadContentionGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasReadContentionGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasReadContentionGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_read/contention",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasReadContentionGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasReadContentionGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasReadTimeoutsGet gets cas read timeouts
+
+Get CAS read timeout
+*/
+func (a *Client) StorageProxyMetricsCasReadTimeoutsGet(params *StorageProxyMetricsCasReadTimeoutsGetParams) (*StorageProxyMetricsCasReadTimeoutsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasReadTimeoutsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasReadTimeoutsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_read/timeouts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasReadTimeoutsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasReadTimeoutsGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasReadUnavailablesGet gets cas read unavailables
+
+Get CAS read unavailables
+*/
+func (a *Client) StorageProxyMetricsCasReadUnavailablesGet(params *StorageProxyMetricsCasReadUnavailablesGetParams) (*StorageProxyMetricsCasReadUnavailablesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasReadUnavailablesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasReadUnavailablesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_read/unavailables",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasReadUnavailablesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasReadUnavailablesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasReadUnfinishedCommitGet gets cas read metrics unfinished commit
+
+Get cas read metrics
+*/
+func (a *Client) StorageProxyMetricsCasReadUnfinishedCommitGet(params *StorageProxyMetricsCasReadUnfinishedCommitGetParams) (*StorageProxyMetricsCasReadUnfinishedCommitGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasReadUnfinishedCommitGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasReadUnfinishedCommitGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_read/unfinished_commit",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasReadUnfinishedCommitGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasReadUnfinishedCommitGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasWriteConditionNotMetGet gets cas write metrics condition not met
+
+Get cas write metrics
+*/
+func (a *Client) StorageProxyMetricsCasWriteConditionNotMetGet(params *StorageProxyMetricsCasWriteConditionNotMetGetParams) (*StorageProxyMetricsCasWriteConditionNotMetGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasWriteConditionNotMetGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasWriteConditionNotMetGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_write/condition_not_met",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasWriteConditionNotMetGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasWriteConditionNotMetGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasWriteContentionGet gets cas write metrics contention
+
+Get cas write metrics
+*/
+func (a *Client) StorageProxyMetricsCasWriteContentionGet(params *StorageProxyMetricsCasWriteContentionGetParams) (*StorageProxyMetricsCasWriteContentionGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasWriteContentionGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasWriteContentionGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_write/contention",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasWriteContentionGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasWriteContentionGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasWriteTimeoutsGet gets cas write timeouts
+
+Get CAS write timeout
+*/
+func (a *Client) StorageProxyMetricsCasWriteTimeoutsGet(params *StorageProxyMetricsCasWriteTimeoutsGetParams) (*StorageProxyMetricsCasWriteTimeoutsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasWriteTimeoutsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasWriteTimeoutsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_write/timeouts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasWriteTimeoutsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasWriteTimeoutsGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasWriteUnavailablesGet gets cas write unavailables
+
+Get CAS write unavailables
+*/
+func (a *Client) StorageProxyMetricsCasWriteUnavailablesGet(params *StorageProxyMetricsCasWriteUnavailablesGetParams) (*StorageProxyMetricsCasWriteUnavailablesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasWriteUnavailablesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasWriteUnavailablesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_write/unavailables",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasWriteUnavailablesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasWriteUnavailablesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsCasWriteUnfinishedCommitGet gets cas write metrics unfinished commit
+
+Get cas write metrics
+*/
+func (a *Client) StorageProxyMetricsCasWriteUnfinishedCommitGet(params *StorageProxyMetricsCasWriteUnfinishedCommitGetParams) (*StorageProxyMetricsCasWriteUnfinishedCommitGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsCasWriteUnfinishedCommitGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsCasWriteUnfinishedCommitGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/cas_write/unfinished_commit",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsCasWriteUnfinishedCommitGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsCasWriteUnfinishedCommitGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeEstimatedHistogramGet gets range estimated histogram
+
+Get range estimated latency
+*/
+func (a *Client) StorageProxyMetricsRangeEstimatedHistogramGet(params *StorageProxyMetricsRangeEstimatedHistogramGetParams) (*StorageProxyMetricsRangeEstimatedHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeEstimatedHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeEstimatedHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range/estimated_histogram/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeEstimatedHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeEstimatedHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeGet gets range latency
+
+Get range latency
+*/
+func (a *Client) StorageProxyMetricsRangeGet(params *StorageProxyMetricsRangeGetParams) (*StorageProxyMetricsRangeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeHistogramGet gets range metrics latency histogram depricated
+
+Get range metrics
+*/
+func (a *Client) StorageProxyMetricsRangeHistogramGet(params *StorageProxyMetricsRangeHistogramGetParams) (*StorageProxyMetricsRangeHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range/histogram",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeMovingAverageHistogramGet gets range metrics latency histogram
+
+Get range metrics rate and histogram
+*/
+func (a *Client) StorageProxyMetricsRangeMovingAverageHistogramGet(params *StorageProxyMetricsRangeMovingAverageHistogramGetParams) (*StorageProxyMetricsRangeMovingAverageHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeMovingAverageHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeMovingAverageHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range/moving_average_histogram",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeMovingAverageHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeMovingAverageHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeTimeoutsGet gets range metrics timeouts
+
+Get range metrics
+*/
+func (a *Client) StorageProxyMetricsRangeTimeoutsGet(params *StorageProxyMetricsRangeTimeoutsGetParams) (*StorageProxyMetricsRangeTimeoutsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeTimeoutsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeTimeoutsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range/timeouts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeTimeoutsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeTimeoutsGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeTimeoutsRatesGet gets range metrics timeouts rates
+
+Get range metrics rates
+*/
+func (a *Client) StorageProxyMetricsRangeTimeoutsRatesGet(params *StorageProxyMetricsRangeTimeoutsRatesGetParams) (*StorageProxyMetricsRangeTimeoutsRatesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeTimeoutsRatesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeTimeoutsRatesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range/timeouts_rates",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeTimeoutsRatesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeTimeoutsRatesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeUnavailablesGet gets range metrics unavailables
+
+Get range metrics
+*/
+func (a *Client) StorageProxyMetricsRangeUnavailablesGet(params *StorageProxyMetricsRangeUnavailablesGetParams) (*StorageProxyMetricsRangeUnavailablesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeUnavailablesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeUnavailablesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range/unavailables",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeUnavailablesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeUnavailablesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsRangeUnavailablesRatesGet gets range metrics unavailables rates
+
+Get range metrics rates
+*/
+func (a *Client) StorageProxyMetricsRangeUnavailablesRatesGet(params *StorageProxyMetricsRangeUnavailablesRatesGetParams) (*StorageProxyMetricsRangeUnavailablesRatesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsRangeUnavailablesRatesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsRangeUnavailablesRatesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/range/unavailables_rates",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsRangeUnavailablesRatesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsRangeUnavailablesRatesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadEstimatedHistogramGet gets read estimated histogram
+
+Get read estimated latency
+*/
+func (a *Client) StorageProxyMetricsReadEstimatedHistogramGet(params *StorageProxyMetricsReadEstimatedHistogramGetParams) (*StorageProxyMetricsReadEstimatedHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadEstimatedHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadEstimatedHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read/estimated_histogram/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadEstimatedHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadEstimatedHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadGet gets read latency
+
+Get read latency
+*/
+func (a *Client) StorageProxyMetricsReadGet(params *StorageProxyMetricsReadGetParams) (*StorageProxyMetricsReadGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadHistogramGet gets read metrics latency histogram depricated
+
+Get read metrics
+*/
+func (a *Client) StorageProxyMetricsReadHistogramGet(params *StorageProxyMetricsReadHistogramGetParams) (*StorageProxyMetricsReadHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read/histogram",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadMovingAverageHistogramGet gets read metrics latency histogram
+
+Get read metrics
+*/
+func (a *Client) StorageProxyMetricsReadMovingAverageHistogramGet(params *StorageProxyMetricsReadMovingAverageHistogramGetParams) (*StorageProxyMetricsReadMovingAverageHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadMovingAverageHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadMovingAverageHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read/moving_average_histogram",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadMovingAverageHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadMovingAverageHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadTimeoutsGet gets read metrics timeouts
+
+Get read metrics
+*/
+func (a *Client) StorageProxyMetricsReadTimeoutsGet(params *StorageProxyMetricsReadTimeoutsGetParams) (*StorageProxyMetricsReadTimeoutsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadTimeoutsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadTimeoutsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read/timeouts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadTimeoutsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadTimeoutsGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadTimeoutsRatesGet gets read metrics timeouts rates
+
+Get read metrics rates
+*/
+func (a *Client) StorageProxyMetricsReadTimeoutsRatesGet(params *StorageProxyMetricsReadTimeoutsRatesGetParams) (*StorageProxyMetricsReadTimeoutsRatesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadTimeoutsRatesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadTimeoutsRatesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read/timeouts_rates",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadTimeoutsRatesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadTimeoutsRatesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadUnavailablesGet gets read metrics unavailables
+
+Get read metrics
+*/
+func (a *Client) StorageProxyMetricsReadUnavailablesGet(params *StorageProxyMetricsReadUnavailablesGetParams) (*StorageProxyMetricsReadUnavailablesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadUnavailablesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadUnavailablesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read/unavailables",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadUnavailablesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadUnavailablesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsReadUnavailablesRatesGet gets read metrics unavailables rates
+
+Get read metrics rates
+*/
+func (a *Client) StorageProxyMetricsReadUnavailablesRatesGet(params *StorageProxyMetricsReadUnavailablesRatesGetParams) (*StorageProxyMetricsReadUnavailablesRatesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsReadUnavailablesRatesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsReadUnavailablesRatesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/read/unavailables_rates",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsReadUnavailablesRatesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsReadUnavailablesRatesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteEstimatedHistogramGet gets write estimated histogram
+
+Get write estimated latency
+*/
+func (a *Client) StorageProxyMetricsWriteEstimatedHistogramGet(params *StorageProxyMetricsWriteEstimatedHistogramGetParams) (*StorageProxyMetricsWriteEstimatedHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteEstimatedHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteEstimatedHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write/estimated_histogram/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteEstimatedHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteEstimatedHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteGet gets write latency
+
+Get write latency
+*/
+func (a *Client) StorageProxyMetricsWriteGet(params *StorageProxyMetricsWriteGetParams) (*StorageProxyMetricsWriteGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteHistogramGet gets write metrics latency histogram depricated
+
+Get write metrics
+*/
+func (a *Client) StorageProxyMetricsWriteHistogramGet(params *StorageProxyMetricsWriteHistogramGetParams) (*StorageProxyMetricsWriteHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write/histogram",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteMovingAverageHistogramGet gets write metrics latency histogram
+
+Get write metrics
+*/
+func (a *Client) StorageProxyMetricsWriteMovingAverageHistogramGet(params *StorageProxyMetricsWriteMovingAverageHistogramGetParams) (*StorageProxyMetricsWriteMovingAverageHistogramGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteMovingAverageHistogramGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteMovingAverageHistogramGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write/moving_average_histogram",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteMovingAverageHistogramGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteMovingAverageHistogramGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteTimeoutsGet gets write metrics timeouts
+
+Get write metrics
+*/
+func (a *Client) StorageProxyMetricsWriteTimeoutsGet(params *StorageProxyMetricsWriteTimeoutsGetParams) (*StorageProxyMetricsWriteTimeoutsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteTimeoutsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteTimeoutsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write/timeouts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteTimeoutsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteTimeoutsGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteTimeoutsRatesGet gets write metrics timeouts rates
+
+Get write metrics rates
+*/
+func (a *Client) StorageProxyMetricsWriteTimeoutsRatesGet(params *StorageProxyMetricsWriteTimeoutsRatesGetParams) (*StorageProxyMetricsWriteTimeoutsRatesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteTimeoutsRatesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteTimeoutsRatesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write/timeouts_rates",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteTimeoutsRatesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteTimeoutsRatesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteUnavailablesGet gets write metrics unavailables
+
+Get write metrics
+*/
+func (a *Client) StorageProxyMetricsWriteUnavailablesGet(params *StorageProxyMetricsWriteUnavailablesGetParams) (*StorageProxyMetricsWriteUnavailablesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteUnavailablesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteUnavailablesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write/unavailables",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteUnavailablesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteUnavailablesGetOK), nil
+
+}
+
+/*
+StorageProxyMetricsWriteUnavailablesRatesGet gets write metrics unavailables rates
+
+Get write metrics rates
+*/
+func (a *Client) StorageProxyMetricsWriteUnavailablesRatesGet(params *StorageProxyMetricsWriteUnavailablesRatesGetParams) (*StorageProxyMetricsWriteUnavailablesRatesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyMetricsWriteUnavailablesRatesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyMetricsWriteUnavailablesRatesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/metrics/write/unavailables_rates",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyMetricsWriteUnavailablesRatesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyMetricsWriteUnavailablesRatesGetOK), nil
+
+}
+
+/*
+StorageProxyRangeRPCTimeoutGet gets range rpc timeout
+
+Get range rpc timeout in seconds
+*/
+func (a *Client) StorageProxyRangeRPCTimeoutGet(params *StorageProxyRangeRPCTimeoutGetParams) (*StorageProxyRangeRPCTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyRangeRPCTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyRangeRpcTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/range_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyRangeRPCTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyRangeRPCTimeoutGetOK), nil
+
+}
+
+/*
+StorageProxyRangeRPCTimeoutPost sets range rpc timeout
+
+Set range rpc timeout
+*/
+func (a *Client) StorageProxyRangeRPCTimeoutPost(params *StorageProxyRangeRPCTimeoutPostParams) (*StorageProxyRangeRPCTimeoutPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyRangeRPCTimeoutPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyRangeRpcTimeoutPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/range_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyRangeRPCTimeoutPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyRangeRPCTimeoutPostOK), nil
+
+}
+
+/*
+StorageProxyReadRepairAttemptedGet gets read repair attempted
+
+Get read repair attempted
+*/
+func (a *Client) StorageProxyReadRepairAttemptedGet(params *StorageProxyReadRepairAttemptedGetParams) (*StorageProxyReadRepairAttemptedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyReadRepairAttemptedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyReadRepairAttemptedGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/read_repair_attempted",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyReadRepairAttemptedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyReadRepairAttemptedGetOK), nil
+
+}
+
+/*
+StorageProxyReadRepairRepairedBackgroundGet gets read repair repaired background
+
+Get read repair repaired background
+*/
+func (a *Client) StorageProxyReadRepairRepairedBackgroundGet(params *StorageProxyReadRepairRepairedBackgroundGetParams) (*StorageProxyReadRepairRepairedBackgroundGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyReadRepairRepairedBackgroundGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyReadRepairRepairedBackgroundGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/read_repair_repaired_background",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyReadRepairRepairedBackgroundGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyReadRepairRepairedBackgroundGetOK), nil
+
+}
+
+/*
+StorageProxyReadRepairRepairedBlockingGet gets read repair repaired blocking
+
+Get read repair repaired blocking
+*/
+func (a *Client) StorageProxyReadRepairRepairedBlockingGet(params *StorageProxyReadRepairRepairedBlockingGetParams) (*StorageProxyReadRepairRepairedBlockingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyReadRepairRepairedBlockingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyReadRepairRepairedBlockingGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/read_repair_repaired_blocking",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyReadRepairRepairedBlockingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyReadRepairRepairedBlockingGetOK), nil
+
+}
+
+/*
+StorageProxyReadRPCTimeoutGet gets read rpc timeout
+
+Get the read RPC timeout in seconds
+*/
+func (a *Client) StorageProxyReadRPCTimeoutGet(params *StorageProxyReadRPCTimeoutGetParams) (*StorageProxyReadRPCTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyReadRPCTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyReadRpcTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/read_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyReadRPCTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyReadRPCTimeoutGetOK), nil
+
+}
+
+/*
+StorageProxyReadRPCTimeoutPost sets read rpc timeout
+
+Set the read RPC timeout
+*/
+func (a *Client) StorageProxyReadRPCTimeoutPost(params *StorageProxyReadRPCTimeoutPostParams) (*StorageProxyReadRPCTimeoutPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyReadRPCTimeoutPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyReadRpcTimeoutPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/read_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyReadRPCTimeoutPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyReadRPCTimeoutPostOK), nil
+
+}
+
+/*
+StorageProxyReloadTriggerClassesPost reloads trigger classes
+
+Reload trigger classes
+*/
+func (a *Client) StorageProxyReloadTriggerClassesPost(params *StorageProxyReloadTriggerClassesPostParams) (*StorageProxyReloadTriggerClassesPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyReloadTriggerClassesPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyReloadTriggerClassesPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/reload_trigger_classes",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyReloadTriggerClassesPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyReloadTriggerClassesPostOK), nil
+
+}
+
+/*
+StorageProxyRPCTimeoutGet gets rpc timeout
+
+Get the RPC timeout in seconds
+*/
+func (a *Client) StorageProxyRPCTimeoutGet(params *StorageProxyRPCTimeoutGetParams) (*StorageProxyRPCTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyRPCTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyRpcTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyRPCTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyRPCTimeoutGetOK), nil
+
+}
+
+/*
+StorageProxyRPCTimeoutPost sets rpc timeout
+
+Set the RPC timeout
+*/
+func (a *Client) StorageProxyRPCTimeoutPost(params *StorageProxyRPCTimeoutPostParams) (*StorageProxyRPCTimeoutPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyRPCTimeoutPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyRpcTimeoutPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyRPCTimeoutPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyRPCTimeoutPostOK), nil
+
+}
+
+/*
+StorageProxySchemaVersionsGet gets schema versions
+
+Get a map of the schema versions
+*/
+func (a *Client) StorageProxySchemaVersionsGet(params *StorageProxySchemaVersionsGetParams) (*StorageProxySchemaVersionsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxySchemaVersionsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxySchemaVersionsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/schema_versions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxySchemaVersionsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxySchemaVersionsGetOK), nil
+
+}
+
+/*
+StorageProxyTotalHintsGet gets total hints
+
+Get total hints
+*/
+func (a *Client) StorageProxyTotalHintsGet(params *StorageProxyTotalHintsGetParams) (*StorageProxyTotalHintsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyTotalHintsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyTotalHintsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/total_hints",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyTotalHintsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyTotalHintsGetOK), nil
+
+}
+
+/*
+StorageProxyTruncateRPCTimeoutGet gets truncate rpc timeout
+
+Get truncate rpc timeout in seconds
+*/
+func (a *Client) StorageProxyTruncateRPCTimeoutGet(params *StorageProxyTruncateRPCTimeoutGetParams) (*StorageProxyTruncateRPCTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyTruncateRPCTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyTruncateRpcTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/truncate_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyTruncateRPCTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyTruncateRPCTimeoutGetOK), nil
+
+}
+
+/*
+StorageProxyTruncateRPCTimeoutPost sets truncate rpc timeout
+
+Set truncate rpc timeout
+*/
+func (a *Client) StorageProxyTruncateRPCTimeoutPost(params *StorageProxyTruncateRPCTimeoutPostParams) (*StorageProxyTruncateRPCTimeoutPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyTruncateRPCTimeoutPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyTruncateRpcTimeoutPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/truncate_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyTruncateRPCTimeoutPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyTruncateRPCTimeoutPostOK), nil
+
+}
+
+/*
+StorageProxyWriteRPCTimeoutGet gets write rpc timeout
+
+Get the write RPC timeout in seconds
+*/
+func (a *Client) StorageProxyWriteRPCTimeoutGet(params *StorageProxyWriteRPCTimeoutGetParams) (*StorageProxyWriteRPCTimeoutGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyWriteRPCTimeoutGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyWriteRpcTimeoutGet",
+		Method:             "GET",
+		PathPattern:        "/storage_proxy/write_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyWriteRPCTimeoutGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyWriteRPCTimeoutGetOK), nil
+
+}
+
+/*
+StorageProxyWriteRPCTimeoutPost sets write rpc timeout
+
+Set the write RPC timeout
+*/
+func (a *Client) StorageProxyWriteRPCTimeoutPost(params *StorageProxyWriteRPCTimeoutPostParams) (*StorageProxyWriteRPCTimeoutPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageProxyWriteRPCTimeoutPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageProxyWriteRpcTimeoutPost",
+		Method:             "POST",
+		PathPattern:        "/storage_proxy/write_rpc_timeout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageProxyWriteRPCTimeoutPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageProxyWriteRPCTimeoutPostOK), nil
+
+}
+
+/*
+StorageServiceActiveRepairGet gets active repair async
+
+Return an array with the ids of the currently active repairs
+*/
+func (a *Client) StorageServiceActiveRepairGet(params *StorageServiceActiveRepairGetParams) (*StorageServiceActiveRepairGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceActiveRepairGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceActiveRepairGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/active_repair/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceActiveRepairGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceActiveRepairGetOK), nil
+
+}
+
+/*
+StorageServiceAutoCompactionByKeyspaceDelete disables auto compaction
+
+Disable auto compaction
+*/
+func (a *Client) StorageServiceAutoCompactionByKeyspaceDelete(params *StorageServiceAutoCompactionByKeyspaceDeleteParams) (*StorageServiceAutoCompactionByKeyspaceDeleteOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceAutoCompactionByKeyspaceDeleteParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceAutoCompactionByKeyspaceDelete",
+		Method:             "DELETE",
+		PathPattern:        "/storage_service/auto_compaction/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceAutoCompactionByKeyspaceDeleteReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceAutoCompactionByKeyspaceDeleteOK), nil
+
+}
+
+/*
+StorageServiceAutoCompactionByKeyspacePost enables auto compaction
+
+Enable auto compaction
+*/
+func (a *Client) StorageServiceAutoCompactionByKeyspacePost(params *StorageServiceAutoCompactionByKeyspacePostParams) (*StorageServiceAutoCompactionByKeyspacePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceAutoCompactionByKeyspacePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceAutoCompactionByKeyspacePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/auto_compaction/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceAutoCompactionByKeyspacePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceAutoCompactionByKeyspacePostOK), nil
+
+}
+
+/*
+StorageServiceBatchSizeFailureThresholdGet gets batch size failure threshold
+
+Returns the threshold for rejecting queries due to a large batch size
+*/
+func (a *Client) StorageServiceBatchSizeFailureThresholdGet(params *StorageServiceBatchSizeFailureThresholdGetParams) (*StorageServiceBatchSizeFailureThresholdGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceBatchSizeFailureThresholdGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceBatchSizeFailureThresholdGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/batch_size_failure_threshold",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceBatchSizeFailureThresholdGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceBatchSizeFailureThresholdGetOK), nil
+
+}
+
+/*
+StorageServiceBatchSizeFailureThresholdPost sets batch size failure threshold
+
+Sets the threshold for rejecting queries due to a large batch size
+*/
+func (a *Client) StorageServiceBatchSizeFailureThresholdPost(params *StorageServiceBatchSizeFailureThresholdPostParams) (*StorageServiceBatchSizeFailureThresholdPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceBatchSizeFailureThresholdPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceBatchSizeFailureThresholdPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/batch_size_failure_threshold",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceBatchSizeFailureThresholdPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceBatchSizeFailureThresholdPostOK), nil
+
+}
+
+/*
+StorageServiceBulkLoadAsyncByPathGet bulks load async
+
+Starts a bulk load asynchronously and returns the String representation of the planID for the new streaming session.
+*/
+func (a *Client) StorageServiceBulkLoadAsyncByPathGet(params *StorageServiceBulkLoadAsyncByPathGetParams) (*StorageServiceBulkLoadAsyncByPathGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceBulkLoadAsyncByPathGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceBulkLoadAsyncByPathGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/bulk_load_async/{path}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceBulkLoadAsyncByPathGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceBulkLoadAsyncByPathGetOK), nil
+
+}
+
+/*
+StorageServiceBulkLoadByPathPost bulks load
+
+Starts a bulk load and blocks until it completes
+*/
+func (a *Client) StorageServiceBulkLoadByPathPost(params *StorageServiceBulkLoadByPathPostParams) (*StorageServiceBulkLoadByPathPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceBulkLoadByPathPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceBulkLoadByPathPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/bulk_load/{path}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceBulkLoadByPathPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceBulkLoadByPathPostOK), nil
+
+}
+
+/*
+StorageServiceClusterNameGet gets cluster name
+
+Returns the name of the cluster
+*/
+func (a *Client) StorageServiceClusterNameGet(params *StorageServiceClusterNameGetParams) (*StorageServiceClusterNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceClusterNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceClusterNameGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/cluster_name",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceClusterNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceClusterNameGetOK), nil
+
+}
+
+/*
+StorageServiceCommitlogGet gets commitlog
+
+Returns the location of the commit log files
+*/
+func (a *Client) StorageServiceCommitlogGet(params *StorageServiceCommitlogGetParams) (*StorageServiceCommitlogGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceCommitlogGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceCommitlogGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/commitlog",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceCommitlogGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceCommitlogGetOK), nil
+
+}
+
+/*
+StorageServiceCompactionThroughputGet gets compaction throughput mb per sec
+
+get compaction throughput mb per sec
+*/
+func (a *Client) StorageServiceCompactionThroughputGet(params *StorageServiceCompactionThroughputGetParams) (*StorageServiceCompactionThroughputGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceCompactionThroughputGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceCompactionThroughputGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/compaction_throughput",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceCompactionThroughputGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceCompactionThroughputGetOK), nil
+
+}
+
+/*
+StorageServiceCompactionThroughputPost sets compaction throughput mb per sec
+
+Set compaction throughput mb per sec
+*/
+func (a *Client) StorageServiceCompactionThroughputPost(params *StorageServiceCompactionThroughputPostParams) (*StorageServiceCompactionThroughputPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceCompactionThroughputPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceCompactionThroughputPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/compaction_throughput",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceCompactionThroughputPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceCompactionThroughputPostOK), nil
+
+}
+
+/*
+StorageServiceDataFileLocationsGet gets all data file locations
+
+Get the list of all data file locations from conf
+*/
+func (a *Client) StorageServiceDataFileLocationsGet(params *StorageServiceDataFileLocationsGetParams) (*StorageServiceDataFileLocationsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceDataFileLocationsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceDataFileLocationsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/data_file/locations",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceDataFileLocationsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceDataFileLocationsGetOK), nil
+
+}
+
+/*
+StorageServiceDecommissionPost decommissions
+
+transfer this node's data to other machines and remove it from service.
+*/
+func (a *Client) StorageServiceDecommissionPost(params *StorageServiceDecommissionPostParams) (*StorageServiceDecommissionPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceDecommissionPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceDecommissionPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/decommission",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceDecommissionPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceDecommissionPostOK), nil
+
+}
+
+/*
+StorageServiceDeliverHintsPost delivers hints
+*/
+func (a *Client) StorageServiceDeliverHintsPost(params *StorageServiceDeliverHintsPostParams) (*StorageServiceDeliverHintsPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceDeliverHintsPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceDeliverHintsPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/deliver_hints",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceDeliverHintsPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceDeliverHintsPostOK), nil
+
+}
+
+/*
+StorageServiceDescribeRingByKeyspaceGet describes ring
+
+The TokenRange for a given keyspace
+*/
+func (a *Client) StorageServiceDescribeRingByKeyspaceGet(params *StorageServiceDescribeRingByKeyspaceGetParams) (*StorageServiceDescribeRingByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceDescribeRingByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceDescribeRingByKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/describe_ring/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceDescribeRingByKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceDescribeRingByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceDescribeRingGet describes any ring
+
+The TokenRange for a any keyspace
+*/
+func (a *Client) StorageServiceDescribeRingGet(params *StorageServiceDescribeRingGetParams) (*StorageServiceDescribeRingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceDescribeRingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceDescribeRingGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/describe_ring/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceDescribeRingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceDescribeRingGetOK), nil
+
+}
+
+/*
+StorageServiceDrainGet gets drain progress
+
+Get the progress of a drain operation
+*/
+func (a *Client) StorageServiceDrainGet(params *StorageServiceDrainGetParams) (*StorageServiceDrainGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceDrainGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceDrainGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/drain",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceDrainGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceDrainGetOK), nil
+
+}
+
+/*
+StorageServiceDrainPost drains
+
+makes node unavailable for writes, flushes memtables and replays commitlog
+*/
+func (a *Client) StorageServiceDrainPost(params *StorageServiceDrainPostParams) (*StorageServiceDrainPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceDrainPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceDrainPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/drain",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceDrainPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceDrainPostOK), nil
+
+}
+
+/*
+StorageServiceForceRemoveCompletionPost forces remove completion
+
+Force a remove operation to finish.
+*/
+func (a *Client) StorageServiceForceRemoveCompletionPost(params *StorageServiceForceRemoveCompletionPostParams) (*StorageServiceForceRemoveCompletionPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceForceRemoveCompletionPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceForceRemoveCompletionPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/force_remove_completion",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceForceRemoveCompletionPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceForceRemoveCompletionPostOK), nil
+
+}
+
+/*
+StorageServiceForceTerminatePost forces terminate all repair sessions
+
+Force terminate all repair sessions
+*/
+func (a *Client) StorageServiceForceTerminatePost(params *StorageServiceForceTerminatePostParams) (*StorageServiceForceTerminatePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceForceTerminatePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceForceTerminatePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/force_terminate",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceForceTerminatePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceForceTerminatePostOK), nil
+
+}
+
+/*
+StorageServiceForceTerminateRepairPost forces terminate all repair sessions new
+
+Force terminate all repair sessions
+*/
+func (a *Client) StorageServiceForceTerminateRepairPost(params *StorageServiceForceTerminateRepairPostParams) (*StorageServiceForceTerminateRepairPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceForceTerminateRepairPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceForceTerminateRepairPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/force_terminate_repair",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceForceTerminateRepairPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceForceTerminateRepairPostOK), nil
+
+}
+
+/*
+StorageServiceGenerationNumberGet gets current generation number
+
+Return the generation value for this node.
+*/
+func (a *Client) StorageServiceGenerationNumberGet(params *StorageServiceGenerationNumberGetParams) (*StorageServiceGenerationNumberGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceGenerationNumberGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceGenerationNumberGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/generation_number",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceGenerationNumberGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceGenerationNumberGetOK), nil
+
+}
+
+/*
+StorageServiceGossipingDelete stops gossiping
+
+allows a user to forcibly 'kill' a sick node
+*/
+func (a *Client) StorageServiceGossipingDelete(params *StorageServiceGossipingDeleteParams) (*StorageServiceGossipingDeleteOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceGossipingDeleteParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceGossipingDelete",
+		Method:             "DELETE",
+		PathPattern:        "/storage_service/gossiping",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceGossipingDeleteReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceGossipingDeleteOK), nil
+
+}
+
+/*
+StorageServiceGossipingGet is gossip running
+
+allows a user to see whether gossip is running or not
+*/
+func (a *Client) StorageServiceGossipingGet(params *StorageServiceGossipingGetParams) (*StorageServiceGossipingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceGossipingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceGossipingGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/gossiping",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceGossipingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceGossipingGetOK), nil
+
+}
+
+/*
+StorageServiceGossipingPost starts gossiping
+
+allows a user to recover a forcibly 'killed' node
+*/
+func (a *Client) StorageServiceGossipingPost(params *StorageServiceGossipingPostParams) (*StorageServiceGossipingPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceGossipingPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceGossipingPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/gossiping",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceGossipingPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceGossipingPostOK), nil
+
+}
+
+/*
+StorageServiceHintedHandoffPost sets hinted handoff throttle in kb
+
+Sets the hinted handoff throttle in kb per second, per delivery thread
+*/
+func (a *Client) StorageServiceHintedHandoffPost(params *StorageServiceHintedHandoffPostParams) (*StorageServiceHintedHandoffPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceHintedHandoffPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceHintedHandoffPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/hinted_handoff",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceHintedHandoffPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceHintedHandoffPostOK), nil
+
+}
+
+/*
+StorageServiceHostIDGet gets host id map
+
+Retrieve the mapping of endpoint to host ID
+*/
+func (a *Client) StorageServiceHostIDGet(params *StorageServiceHostIDGetParams) (*StorageServiceHostIDGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceHostIDGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceHostIdGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/host_id",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceHostIDGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceHostIDGetOK), nil
+
+}
+
+/*
+StorageServiceHostidLocalGet locals hostid
+
+Returns the local host id
+*/
+func (a *Client) StorageServiceHostidLocalGet(params *StorageServiceHostidLocalGetParams) (*StorageServiceHostidLocalGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceHostidLocalGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceHostidLocalGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/hostid/local",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceHostidLocalGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceHostidLocalGetOK), nil
+
+}
+
+/*
+StorageServiceIncrementalBackupsGet is incremental backups enabled
+
+Check if incremental backup is enabled
+*/
+func (a *Client) StorageServiceIncrementalBackupsGet(params *StorageServiceIncrementalBackupsGetParams) (*StorageServiceIncrementalBackupsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceIncrementalBackupsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceIncrementalBackupsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/incremental_backups",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceIncrementalBackupsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceIncrementalBackupsGetOK), nil
+
+}
+
+/*
+StorageServiceIncrementalBackupsPost sets incremental backups enabled
+*/
+func (a *Client) StorageServiceIncrementalBackupsPost(params *StorageServiceIncrementalBackupsPostParams) (*StorageServiceIncrementalBackupsPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceIncrementalBackupsPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceIncrementalBackupsPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/incremental_backups",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceIncrementalBackupsPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceIncrementalBackupsPostOK), nil
+
+}
+
+/*
+StorageServiceIsInitializedGet is initialized
+
+Determine if gossip is enable
+*/
+func (a *Client) StorageServiceIsInitializedGet(params *StorageServiceIsInitializedGetParams) (*StorageServiceIsInitializedGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceIsInitializedGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceIsInitializedGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/is_initialized",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceIsInitializedGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceIsInitializedGetOK), nil
+
+}
+
+/*
+StorageServiceIsStartingGet is starting
+
+Returns whether the storage service is starting or not
+*/
+func (a *Client) StorageServiceIsStartingGet(params *StorageServiceIsStartingGetParams) (*StorageServiceIsStartingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceIsStartingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceIsStartingGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/is_starting",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceIsStartingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceIsStartingGetOK), nil
+
+}
+
+/*
+StorageServiceJoinRingGet is joined
+*/
+func (a *Client) StorageServiceJoinRingGet(params *StorageServiceJoinRingGetParams) (*StorageServiceJoinRingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceJoinRingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceJoinRingGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/join_ring",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceJoinRingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceJoinRingGetOK), nil
+
+}
+
+/*
+StorageServiceJoinRingPost joins ring
+
+Allows a node that have been started without joining the ring to join it
+*/
+func (a *Client) StorageServiceJoinRingPost(params *StorageServiceJoinRingPostParams) (*StorageServiceJoinRingPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceJoinRingPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceJoinRingPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/join_ring",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceJoinRingPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceJoinRingPostOK), nil
+
+}
+
+/*
+StorageServiceKeyspaceCleanupByKeyspacePost forces keyspace cleanup
+
+Trigger a cleanup of keys on a single keyspace
+*/
+func (a *Client) StorageServiceKeyspaceCleanupByKeyspacePost(params *StorageServiceKeyspaceCleanupByKeyspacePostParams) (*StorageServiceKeyspaceCleanupByKeyspacePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceKeyspaceCleanupByKeyspacePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceKeyspaceCleanupByKeyspacePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/keyspace_cleanup/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceKeyspaceCleanupByKeyspacePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceKeyspaceCleanupByKeyspacePostOK), nil
+
+}
+
+/*
+StorageServiceKeyspaceCompactionByKeyspacePost forces keyspace compaction
+
+Forces major compaction of a single keyspace
+*/
+func (a *Client) StorageServiceKeyspaceCompactionByKeyspacePost(params *StorageServiceKeyspaceCompactionByKeyspacePostParams) (*StorageServiceKeyspaceCompactionByKeyspacePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceKeyspaceCompactionByKeyspacePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceKeyspaceCompactionByKeyspacePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/keyspace_compaction/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceKeyspaceCompactionByKeyspacePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceKeyspaceCompactionByKeyspacePostOK), nil
+
+}
+
+/*
+StorageServiceKeyspaceFlushByKeyspacePost forces keyspace flush
+
+Flush all memtables for the given column families, or all columnfamilies for the given keyspace if none are explicitly listed.
+*/
+func (a *Client) StorageServiceKeyspaceFlushByKeyspacePost(params *StorageServiceKeyspaceFlushByKeyspacePostParams) (*StorageServiceKeyspaceFlushByKeyspacePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceKeyspaceFlushByKeyspacePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceKeyspaceFlushByKeyspacePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/keyspace_flush/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceKeyspaceFlushByKeyspacePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceKeyspaceFlushByKeyspacePostOK), nil
+
+}
+
+/*
+StorageServiceKeyspaceScrubByKeyspaceGet scrubs
+
+Scrub (deserialize + reserialize at the latest version, skipping bad rows if any) the given keyspace. If columnFamilies array is empty, all CFs are scrubbed. Scrubbed CFs will be snapshotted first, if disableSnapshot is false
+*/
+func (a *Client) StorageServiceKeyspaceScrubByKeyspaceGet(params *StorageServiceKeyspaceScrubByKeyspaceGetParams) (*StorageServiceKeyspaceScrubByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceKeyspaceScrubByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceKeyspaceScrubByKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/keyspace_scrub/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceKeyspaceScrubByKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceKeyspaceScrubByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet upgrades sstables
+
+Rewrite all sstables to the latest version. Unlike scrub, it doesn't skip bad rows and do not snapshot sstables first.
+*/
+func (a *Client) StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet(params *StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetParams) (*StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceKeyspaceUpgradeSstablesByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet",
 		Method:             "GET",
 		PathPattern:        "/storage_service/keyspace_upgrade_sstables/{keyspace}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &UpgradeSstablesReader{formats: a.formats},
+		Reader:             &StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UpgradeSstablesOK), nil
+	return result.(*StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceKeyspacesGet gets keyspaces
+
+Get the keyspaces
+*/
+func (a *Client) StorageServiceKeyspacesGet(params *StorageServiceKeyspacesGetParams) (*StorageServiceKeyspacesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceKeyspacesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceKeyspacesGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/keyspaces",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceKeyspacesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceKeyspacesGetOK), nil
+
+}
+
+/*
+StorageServiceLoadGet gets load
+
+get load value
+*/
+func (a *Client) StorageServiceLoadGet(params *StorageServiceLoadGetParams) (*StorageServiceLoadGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceLoadGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceLoadGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/load",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceLoadGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceLoadGetOK), nil
+
+}
+
+/*
+StorageServiceLoadMapGet gets load map
+
+load value. Keys are IP addresses
+*/
+func (a *Client) StorageServiceLoadMapGet(params *StorageServiceLoadMapGetParams) (*StorageServiceLoadMapGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceLoadMapGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceLoadMapGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/load_map",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceLoadMapGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceLoadMapGetOK), nil
+
+}
+
+/*
+StorageServiceLoggingLevelGet gets logging levels
+
+get the runtime logging levels
+*/
+func (a *Client) StorageServiceLoggingLevelGet(params *StorageServiceLoggingLevelGetParams) (*StorageServiceLoggingLevelGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceLoggingLevelGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceLoggingLevelGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/logging_level",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceLoggingLevelGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceLoggingLevelGetOK), nil
+
+}
+
+/*
+StorageServiceLoggingLevelPost sets logging level
+
+set the logging level at runtime<br> <br> If both classQualifer and level are empty/null, it will reload the configuration to reset.<br> If classQualifer is not empty but level is empty/null, it will set the level to null for the defined classQualifer<br> If level cannot be parsed, then the level will be defaulted to DEBUG<br> <br> The logback configuration should have < jmxConfigurator /> set
+*/
+func (a *Client) StorageServiceLoggingLevelPost(params *StorageServiceLoggingLevelPostParams) (*StorageServiceLoggingLevelPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceLoggingLevelPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceLoggingLevelPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/logging_level",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceLoggingLevelPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceLoggingLevelPostOK), nil
+
+}
+
+/*
+StorageServiceMetricsExceptionsGet gets exceptions
+
+Get exceptions
+*/
+func (a *Client) StorageServiceMetricsExceptionsGet(params *StorageServiceMetricsExceptionsGetParams) (*StorageServiceMetricsExceptionsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceMetricsExceptionsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceMetricsExceptionsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/metrics/exceptions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceMetricsExceptionsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceMetricsExceptionsGetOK), nil
+
+}
+
+/*
+StorageServiceMetricsHintsInProgressGet gets total hints in progress
+
+Get total hints in progress
+*/
+func (a *Client) StorageServiceMetricsHintsInProgressGet(params *StorageServiceMetricsHintsInProgressGetParams) (*StorageServiceMetricsHintsInProgressGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceMetricsHintsInProgressGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceMetricsHintsInProgressGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/metrics/hints_in_progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceMetricsHintsInProgressGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceMetricsHintsInProgressGetOK), nil
+
+}
+
+/*
+StorageServiceMetricsLoadGet gets metrics load
+
+Get load
+*/
+func (a *Client) StorageServiceMetricsLoadGet(params *StorageServiceMetricsLoadGetParams) (*StorageServiceMetricsLoadGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceMetricsLoadGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceMetricsLoadGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/metrics/load",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceMetricsLoadGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceMetricsLoadGetOK), nil
+
+}
+
+/*
+StorageServiceMetricsTotalHintsGet gets total hints1
+
+Get total hints
+*/
+func (a *Client) StorageServiceMetricsTotalHintsGet(params *StorageServiceMetricsTotalHintsGetParams) (*StorageServiceMetricsTotalHintsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceMetricsTotalHintsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceMetricsTotalHintsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/metrics/total_hints",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceMetricsTotalHintsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceMetricsTotalHintsGetOK), nil
+
+}
+
+/*
+StorageServiceMovePost moves
+
+This node will unload its data onto its neighbors, and bootstrap to the new token.
+*/
+func (a *Client) StorageServiceMovePost(params *StorageServiceMovePostParams) (*StorageServiceMovePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceMovePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceMovePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/move",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceMovePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceMovePostOK), nil
+
+}
+
+/*
+StorageServiceNativeTransportDelete stops native transport
+
+Stop native transport
+*/
+func (a *Client) StorageServiceNativeTransportDelete(params *StorageServiceNativeTransportDeleteParams) (*StorageServiceNativeTransportDeleteOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceNativeTransportDeleteParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceNativeTransportDelete",
+		Method:             "DELETE",
+		PathPattern:        "/storage_service/native_transport",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceNativeTransportDeleteReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceNativeTransportDeleteOK), nil
+
+}
+
+/*
+StorageServiceNativeTransportGet is native transport running
+
+Is native transport running
+*/
+func (a *Client) StorageServiceNativeTransportGet(params *StorageServiceNativeTransportGetParams) (*StorageServiceNativeTransportGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceNativeTransportGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceNativeTransportGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/native_transport",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceNativeTransportGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceNativeTransportGetOK), nil
+
+}
+
+/*
+StorageServiceNativeTransportPost starts native transport
+
+Start native transport
+*/
+func (a *Client) StorageServiceNativeTransportPost(params *StorageServiceNativeTransportPostParams) (*StorageServiceNativeTransportPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceNativeTransportPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceNativeTransportPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/native_transport",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceNativeTransportPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceNativeTransportPostOK), nil
+
+}
+
+/*
+StorageServiceNaturalEndpointsByKeyspaceGet gets natural endpoints
+
+This method returns the N endpoints that are responsible for storing the specified key i.e for replication. the endpoint responsible for this key
+*/
+func (a *Client) StorageServiceNaturalEndpointsByKeyspaceGet(params *StorageServiceNaturalEndpointsByKeyspaceGetParams) (*StorageServiceNaturalEndpointsByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceNaturalEndpointsByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceNaturalEndpointsByKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/natural_endpoints/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceNaturalEndpointsByKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceNaturalEndpointsByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceNodesJoiningGet gets joining nodes
+
+Retrieve the list of nodes currently bootstrapping into the ring
+*/
+func (a *Client) StorageServiceNodesJoiningGet(params *StorageServiceNodesJoiningGetParams) (*StorageServiceNodesJoiningGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceNodesJoiningGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceNodesJoiningGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/nodes/joining",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceNodesJoiningGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceNodesJoiningGetOK), nil
+
+}
+
+/*
+StorageServiceNodesLeavingGet gets leaving nodes
+
+Retrieve the list of nodes currently leaving the ring
+*/
+func (a *Client) StorageServiceNodesLeavingGet(params *StorageServiceNodesLeavingGetParams) (*StorageServiceNodesLeavingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceNodesLeavingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceNodesLeavingGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/nodes/leaving",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceNodesLeavingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceNodesLeavingGetOK), nil
+
+}
+
+/*
+StorageServiceNodesMovingGet gets moving nodes
+
+Retrieve the list of nodes currently moving in the ring
+*/
+func (a *Client) StorageServiceNodesMovingGet(params *StorageServiceNodesMovingGetParams) (*StorageServiceNodesMovingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceNodesMovingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceNodesMovingGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/nodes/moving",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceNodesMovingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceNodesMovingGetOK), nil
+
+}
+
+/*
+StorageServiceOperationModeGet gets operation mode
+
+Get the operational mode (leaving, joining, normal, decommissioned, client)
+*/
+func (a *Client) StorageServiceOperationModeGet(params *StorageServiceOperationModeGetParams) (*StorageServiceOperationModeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceOperationModeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceOperationModeGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/operation_mode",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceOperationModeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceOperationModeGetOK), nil
+
+}
+
+/*
+StorageServiceOwnershipByKeyspaceGet gets effective ownership
+
+Effective ownership is % of the data each node owns given the keyspace
+*/
+func (a *Client) StorageServiceOwnershipByKeyspaceGet(params *StorageServiceOwnershipByKeyspaceGetParams) (*StorageServiceOwnershipByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceOwnershipByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceOwnershipByKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/ownership/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceOwnershipByKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceOwnershipByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceOwnershipGet gets ownership
+
+The mapping from token -> % of cluster owned by that token
+*/
+func (a *Client) StorageServiceOwnershipGet(params *StorageServiceOwnershipGetParams) (*StorageServiceOwnershipGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceOwnershipGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceOwnershipGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/ownership/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceOwnershipGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceOwnershipGetOK), nil
+
+}
+
+/*
+StorageServicePartitionerNameGet gets partitioner name
+
+Returns the cluster partitioner
+*/
+func (a *Client) StorageServicePartitionerNameGet(params *StorageServicePartitionerNameGetParams) (*StorageServicePartitionerNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServicePartitionerNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServicePartitionerNameGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/partitioner_name",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServicePartitionerNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServicePartitionerNameGetOK), nil
+
+}
+
+/*
+StorageServicePendingRangeByKeyspaceGet gets pending range to endpoint map
+
+Retrieve a map of pending ranges to endpoints that describe the ring topology
+*/
+func (a *Client) StorageServicePendingRangeByKeyspaceGet(params *StorageServicePendingRangeByKeyspaceGetParams) (*StorageServicePendingRangeByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServicePendingRangeByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServicePendingRangeByKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/pending_range/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServicePendingRangeByKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServicePendingRangeByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceRangeToEndpointMapByKeyspaceGet gets range to endpoint map
+
+Retrieve a map of range to end points that describe the ring topology of a Cassandra cluster.
+*/
+func (a *Client) StorageServiceRangeToEndpointMapByKeyspaceGet(params *StorageServiceRangeToEndpointMapByKeyspaceGetParams) (*StorageServiceRangeToEndpointMapByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRangeToEndpointMapByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRangeToEndpointMapByKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/range_to_endpoint_map/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRangeToEndpointMapByKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRangeToEndpointMapByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceRebuildPost rebuilds
+
+Initiate a process of streaming data for which we are responsible from other nodes. It is similar to bootstrap except meant to be used on a node which is already in the cluster (typically containing no data) as an alternative to running repair.
+*/
+func (a *Client) StorageServiceRebuildPost(params *StorageServiceRebuildPostParams) (*StorageServiceRebuildPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRebuildPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRebuildPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/rebuild",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRebuildPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRebuildPostOK), nil
+
+}
+
+/*
+StorageServiceReleaseVersionGet gets release version
+
+Fetch a string representation of the Cassandra version.
+*/
+func (a *Client) StorageServiceReleaseVersionGet(params *StorageServiceReleaseVersionGetParams) (*StorageServiceReleaseVersionGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceReleaseVersionGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceReleaseVersionGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/release_version",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceReleaseVersionGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceReleaseVersionGetOK), nil
+
+}
+
+/*
+StorageServiceRelocalSchemaPost resets local schema
+
+Reset local schema
+*/
+func (a *Client) StorageServiceRelocalSchemaPost(params *StorageServiceRelocalSchemaPostParams) (*StorageServiceRelocalSchemaPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRelocalSchemaPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRelocalSchemaPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/relocal_schema",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRelocalSchemaPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRelocalSchemaPostOK), nil
+
+}
+
+/*
+StorageServiceRemovalStatusGet gets removal status
+
+Get the status of a token removal.
+*/
+func (a *Client) StorageServiceRemovalStatusGet(params *StorageServiceRemovalStatusGetParams) (*StorageServiceRemovalStatusGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRemovalStatusGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRemovalStatusGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/removal_status",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRemovalStatusGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRemovalStatusGetOK), nil
+
+}
+
+/*
+StorageServiceRemoveNodePost removes node
+
+Removes token (and all data associated with enpoint that had it) from the ring
+*/
+func (a *Client) StorageServiceRemoveNodePost(params *StorageServiceRemoveNodePostParams) (*StorageServiceRemoveNodePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRemoveNodePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRemoveNodePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/remove_node",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRemoveNodePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRemoveNodePostOK), nil
+
+}
+
+/*
+StorageServiceRepairAsyncByKeyspaceGet repairs async status
+
+Track already running repair progress
+*/
+func (a *Client) StorageServiceRepairAsyncByKeyspaceGet(params *StorageServiceRepairAsyncByKeyspaceGetParams) (*StorageServiceRepairAsyncByKeyspaceGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRepairAsyncByKeyspaceGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRepairAsyncByKeyspaceGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/repair_async/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRepairAsyncByKeyspaceGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRepairAsyncByKeyspaceGetOK), nil
+
+}
+
+/*
+StorageServiceRepairAsyncByKeyspacePost repairs async
+
+Invoke repair asynchronously. You can track repair progress by using the get supplying id
+*/
+func (a *Client) StorageServiceRepairAsyncByKeyspacePost(params *StorageServiceRepairAsyncByKeyspacePostParams) (*StorageServiceRepairAsyncByKeyspacePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRepairAsyncByKeyspacePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRepairAsyncByKeyspacePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/repair_async/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRepairAsyncByKeyspacePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRepairAsyncByKeyspacePostOK), nil
+
+}
+
+/*
+StorageServiceRescheduleFailedDeletionsPost reschedules failed deletions
+
+Reschedule failed deletions
+*/
+func (a *Client) StorageServiceRescheduleFailedDeletionsPost(params *StorageServiceRescheduleFailedDeletionsPostParams) (*StorageServiceRescheduleFailedDeletionsPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRescheduleFailedDeletionsPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRescheduleFailedDeletionsPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/reschedule_failed_deletions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRescheduleFailedDeletionsPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRescheduleFailedDeletionsPostOK), nil
+
+}
+
+/*
+StorageServiceRPCServerDelete stops rpc server
+
+Allows a user to disable thrift
+*/
+func (a *Client) StorageServiceRPCServerDelete(params *StorageServiceRPCServerDeleteParams) (*StorageServiceRPCServerDeleteOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRPCServerDeleteParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRpcServerDelete",
+		Method:             "DELETE",
+		PathPattern:        "/storage_service/rpc_server",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRPCServerDeleteReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRPCServerDeleteOK), nil
+
+}
+
+/*
+StorageServiceRPCServerGet is rpc server running
+
+Determine if thrift is running
+*/
+func (a *Client) StorageServiceRPCServerGet(params *StorageServiceRPCServerGetParams) (*StorageServiceRPCServerGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRPCServerGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRpcServerGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/rpc_server",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRPCServerGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRPCServerGetOK), nil
+
+}
+
+/*
+StorageServiceRPCServerPost starts rpc server
+
+allows a user to reenable thrift
+*/
+func (a *Client) StorageServiceRPCServerPost(params *StorageServiceRPCServerPostParams) (*StorageServiceRPCServerPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRPCServerPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRpcServerPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/rpc_server",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRPCServerPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceRPCServerPostOK), nil
+
+}
+
+/*
+StorageServiceSampleKeyRangeGet samples key range
+
+Return a List of Tokens representing a sample of keys across all ColumnFamilyStores.
+*/
+func (a *Client) StorageServiceSampleKeyRangeGet(params *StorageServiceSampleKeyRangeGetParams) (*StorageServiceSampleKeyRangeGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSampleKeyRangeGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSampleKeyRangeGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/sample_key_range",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSampleKeyRangeGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSampleKeyRangeGetOK), nil
+
+}
+
+/*
+StorageServiceSavedCachesLocationGet gets saved caches location
+
+Get location of the saved caches dir
+*/
+func (a *Client) StorageServiceSavedCachesLocationGet(params *StorageServiceSavedCachesLocationGetParams) (*StorageServiceSavedCachesLocationGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSavedCachesLocationGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSavedCachesLocationGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/saved_caches/location",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSavedCachesLocationGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSavedCachesLocationGetOK), nil
+
+}
+
+/*
+StorageServiceSchemaVersionGet gets schema version
+
+Fetch a string representation of the current Schema version.
+*/
+func (a *Client) StorageServiceSchemaVersionGet(params *StorageServiceSchemaVersionGetParams) (*StorageServiceSchemaVersionGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSchemaVersionGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSchemaVersionGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/schema_version",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSchemaVersionGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSchemaVersionGetOK), nil
+
+}
+
+/*
+StorageServiceScyllaReleaseVersionGet gets scylla release version
+
+Fetch a string representation of the Scylla version.
+*/
+func (a *Client) StorageServiceScyllaReleaseVersionGet(params *StorageServiceScyllaReleaseVersionGetParams) (*StorageServiceScyllaReleaseVersionGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceScyllaReleaseVersionGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceScyllaReleaseVersionGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/scylla_release_version",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceScyllaReleaseVersionGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceScyllaReleaseVersionGetOK), nil
+
+}
+
+/*
+StorageServiceSlowQueryGet gets slow query info
+
+Returns the slow query record configuration.
+*/
+func (a *Client) StorageServiceSlowQueryGet(params *StorageServiceSlowQueryGetParams) (*StorageServiceSlowQueryGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSlowQueryGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSlowQueryGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/slow_query",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSlowQueryGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSlowQueryGetOK), nil
+
+}
+
+/*
+StorageServiceSlowQueryPost sets slow query
+
+Set slow query parameter
+*/
+func (a *Client) StorageServiceSlowQueryPost(params *StorageServiceSlowQueryPostParams) (*StorageServiceSlowQueryPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSlowQueryPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSlowQueryPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/slow_query",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSlowQueryPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSlowQueryPostOK), nil
+
+}
+
+/*
+StorageServiceSnapshotsDelete dels snapshot
+
+Remove the snapshot with the given name from the given keyspaces. If no tag is specified all snapshots will be removed
+*/
+func (a *Client) StorageServiceSnapshotsDelete(params *StorageServiceSnapshotsDeleteParams) (*StorageServiceSnapshotsDeleteOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSnapshotsDeleteParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSnapshotsDelete",
+		Method:             "DELETE",
+		PathPattern:        "/storage_service/snapshots",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSnapshotsDeleteReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSnapshotsDeleteOK), nil
+
+}
+
+/*
+StorageServiceSnapshotsGet gets snapshot details
+
+Get the details of all the snapshot
+*/
+func (a *Client) StorageServiceSnapshotsGet(params *StorageServiceSnapshotsGetParams) (*StorageServiceSnapshotsGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSnapshotsGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSnapshotsGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/snapshots",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSnapshotsGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSnapshotsGetOK), nil
+
+}
+
+/*
+StorageServiceSnapshotsPost takes snapshot
+
+Takes the snapshot for the given keyspaces. A snapshot name must be specified.
+*/
+func (a *Client) StorageServiceSnapshotsPost(params *StorageServiceSnapshotsPostParams) (*StorageServiceSnapshotsPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSnapshotsPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSnapshotsPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/snapshots",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSnapshotsPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSnapshotsPostOK), nil
+
+}
+
+/*
+StorageServiceSnapshotsSizeTrueGet trues snapshots size
+
+Get the true size taken by all snapshots across all keyspaces.
+*/
+func (a *Client) StorageServiceSnapshotsSizeTrueGet(params *StorageServiceSnapshotsSizeTrueGetParams) (*StorageServiceSnapshotsSizeTrueGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSnapshotsSizeTrueGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSnapshotsSizeTrueGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/snapshots/size/true",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSnapshotsSizeTrueGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSnapshotsSizeTrueGetOK), nil
+
+}
+
+/*
+StorageServiceSstablesByKeyspacePost loads new ss tables
+
+Load new SSTables to the given keyspace/columnFamily
+*/
+func (a *Client) StorageServiceSstablesByKeyspacePost(params *StorageServiceSstablesByKeyspacePostParams) (*StorageServiceSstablesByKeyspacePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSstablesByKeyspacePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSstablesByKeyspacePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/sstables/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSstablesByKeyspacePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceSstablesByKeyspacePostOK), nil
+
+}
+
+/*
+StorageServiceStopDaemonPost stops daemon
+
+allows a user to forcibly completely stop cassandra
+*/
+func (a *Client) StorageServiceStopDaemonPost(params *StorageServiceStopDaemonPostParams) (*StorageServiceStopDaemonPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceStopDaemonPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceStopDaemonPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/stop_daemon",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceStopDaemonPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceStopDaemonPostOK), nil
+
+}
+
+/*
+StorageServiceStreamThroughputGet gets stream throughput mb per sec
+
+Get stream throughput mb per sec
+*/
+func (a *Client) StorageServiceStreamThroughputGet(params *StorageServiceStreamThroughputGetParams) (*StorageServiceStreamThroughputGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceStreamThroughputGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceStreamThroughputGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/stream_throughput",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceStreamThroughputGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceStreamThroughputGetOK), nil
+
+}
+
+/*
+StorageServiceStreamThroughputPost sets stream throughput mb per sec
+
+set stream throughput mb per sec
+*/
+func (a *Client) StorageServiceStreamThroughputPost(params *StorageServiceStreamThroughputPostParams) (*StorageServiceStreamThroughputPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceStreamThroughputPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceStreamThroughputPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/stream_throughput",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceStreamThroughputPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceStreamThroughputPostOK), nil
+
+}
+
+/*
+StorageServiceTokensByEndpointGet gets node tokens
+
+Returns a list of the tokens for or a specified node
+*/
+func (a *Client) StorageServiceTokensByEndpointGet(params *StorageServiceTokensByEndpointGetParams) (*StorageServiceTokensByEndpointGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTokensByEndpointGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTokensByEndpointGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/tokens/{endpoint}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTokensByEndpointGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTokensByEndpointGetOK), nil
+
+}
+
+/*
+StorageServiceTokensEndpointGet gets token endpoint
+
+Returns a list of the tokens endpoint mapping
+*/
+func (a *Client) StorageServiceTokensEndpointGet(params *StorageServiceTokensEndpointGetParams) (*StorageServiceTokensEndpointGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTokensEndpointGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTokensEndpointGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/tokens_endpoint",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTokensEndpointGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTokensEndpointGetOK), nil
+
+}
+
+/*
+StorageServiceTokensGet gets tokens
+
+Returns a list of the tokens for this node
+*/
+func (a *Client) StorageServiceTokensGet(params *StorageServiceTokensGetParams) (*StorageServiceTokensGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTokensGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTokensGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/tokens",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTokensGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTokensGetOK), nil
+
+}
+
+/*
+StorageServiceTombstoneFailureThresholdGet gets tombstone failure threshold
+*/
+func (a *Client) StorageServiceTombstoneFailureThresholdGet(params *StorageServiceTombstoneFailureThresholdGetParams) (*StorageServiceTombstoneFailureThresholdGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTombstoneFailureThresholdGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTombstoneFailureThresholdGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/tombstone_failure_threshold",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTombstoneFailureThresholdGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTombstoneFailureThresholdGetOK), nil
+
+}
+
+/*
+StorageServiceTombstoneFailureThresholdPost sets tombstone failure threshold
+*/
+func (a *Client) StorageServiceTombstoneFailureThresholdPost(params *StorageServiceTombstoneFailureThresholdPostParams) (*StorageServiceTombstoneFailureThresholdPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTombstoneFailureThresholdPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTombstoneFailureThresholdPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/tombstone_failure_threshold",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTombstoneFailureThresholdPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTombstoneFailureThresholdPostOK), nil
+
+}
+
+/*
+StorageServiceTombstoneWarnThresholdGet gets tombstone warn threshold
+
+Returns the threshold for warning of queries with many tombstones
+*/
+func (a *Client) StorageServiceTombstoneWarnThresholdGet(params *StorageServiceTombstoneWarnThresholdGetParams) (*StorageServiceTombstoneWarnThresholdGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTombstoneWarnThresholdGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTombstoneWarnThresholdGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/tombstone_warn_threshold",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTombstoneWarnThresholdGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTombstoneWarnThresholdGetOK), nil
+
+}
+
+/*
+StorageServiceTombstoneWarnThresholdPost sets tombstone warn threshold
+
+Sets the threshold for warning queries with many tombstones
+*/
+func (a *Client) StorageServiceTombstoneWarnThresholdPost(params *StorageServiceTombstoneWarnThresholdPostParams) (*StorageServiceTombstoneWarnThresholdPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTombstoneWarnThresholdPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTombstoneWarnThresholdPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/tombstone_warn_threshold",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTombstoneWarnThresholdPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTombstoneWarnThresholdPostOK), nil
+
+}
+
+/*
+StorageServiceTraceProbabilityGet gets trace probability
+
+Returns the configured tracing probability.
+*/
+func (a *Client) StorageServiceTraceProbabilityGet(params *StorageServiceTraceProbabilityGetParams) (*StorageServiceTraceProbabilityGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTraceProbabilityGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTraceProbabilityGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/trace_probability",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTraceProbabilityGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTraceProbabilityGetOK), nil
+
+}
+
+/*
+StorageServiceTraceProbabilityPost sets trace probability
+
+Enables/Disables tracing for the whole system. Only thrift requests can start tracing currently
+*/
+func (a *Client) StorageServiceTraceProbabilityPost(params *StorageServiceTraceProbabilityPostParams) (*StorageServiceTraceProbabilityPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTraceProbabilityPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTraceProbabilityPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/trace_probability",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTraceProbabilityPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTraceProbabilityPostOK), nil
+
+}
+
+/*
+StorageServiceTruncateByKeyspacePost truncates
+
+Truncates (deletes) the given columnFamily from the provided keyspace. Calling truncate results in actual deletion of all data in the cluster under the given columnFamily and it will fail unless all hosts are up. All data in the given column family will be deleted, but its definition will not be affected.
+*/
+func (a *Client) StorageServiceTruncateByKeyspacePost(params *StorageServiceTruncateByKeyspacePostParams) (*StorageServiceTruncateByKeyspacePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTruncateByKeyspacePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTruncateByKeyspacePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/truncate/{keyspace}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTruncateByKeyspacePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceTruncateByKeyspacePostOK), nil
+
+}
+
+/*
+StorageServiceUpdateSnitchPost updates snitch
+
+Change endpointsnitch class and dynamic-ness (and dynamic attributes) at runtime
+*/
+func (a *Client) StorageServiceUpdateSnitchPost(params *StorageServiceUpdateSnitchPostParams) (*StorageServiceUpdateSnitchPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceUpdateSnitchPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceUpdateSnitchPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/update_snitch",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceUpdateSnitchPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceUpdateSnitchPostOK), nil
+
+}
+
+/*
+StorageServiceViewBuildStatusesByKeyspaceAndViewGet views build statuses
+
+Gets the progress of a materialized view build
+*/
+func (a *Client) StorageServiceViewBuildStatusesByKeyspaceAndViewGet(params *StorageServiceViewBuildStatusesByKeyspaceAndViewGetParams) (*StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceViewBuildStatusesByKeyspaceAndViewGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceViewBuildStatusesByKeyspaceAndViewGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/view_build_statuses/{keyspace}/{view}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceViewBuildStatusesByKeyspaceAndViewGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK), nil
+
+}
+
+/*
+StreamManagerGet gets current streams
+
+Returns the current state of all ongoing streams.
+*/
+func (a *Client) StreamManagerGet(params *StreamManagerGetParams) (*StreamManagerGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStreamManagerGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StreamManagerGet",
+		Method:             "GET",
+		PathPattern:        "/stream_manager/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StreamManagerGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StreamManagerGetOK), nil
+
+}
+
+/*
+StreamManagerMetricsIncomingByPeerGet gets total incoming bytes
+
+Get total incoming bytes
+*/
+func (a *Client) StreamManagerMetricsIncomingByPeerGet(params *StreamManagerMetricsIncomingByPeerGetParams) (*StreamManagerMetricsIncomingByPeerGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStreamManagerMetricsIncomingByPeerGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StreamManagerMetricsIncomingByPeerGet",
+		Method:             "GET",
+		PathPattern:        "/stream_manager/metrics/incoming/{peer}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StreamManagerMetricsIncomingByPeerGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StreamManagerMetricsIncomingByPeerGetOK), nil
+
+}
+
+/*
+StreamManagerMetricsIncomingGet gets all total incoming bytes
+
+Get all total incoming bytes
+*/
+func (a *Client) StreamManagerMetricsIncomingGet(params *StreamManagerMetricsIncomingGetParams) (*StreamManagerMetricsIncomingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStreamManagerMetricsIncomingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StreamManagerMetricsIncomingGet",
+		Method:             "GET",
+		PathPattern:        "/stream_manager/metrics/incoming",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StreamManagerMetricsIncomingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StreamManagerMetricsIncomingGetOK), nil
+
+}
+
+/*
+StreamManagerMetricsOutboundGet gets all active streams outbound
+
+Get number of active outbound streams
+*/
+func (a *Client) StreamManagerMetricsOutboundGet(params *StreamManagerMetricsOutboundGetParams) (*StreamManagerMetricsOutboundGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStreamManagerMetricsOutboundGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StreamManagerMetricsOutboundGet",
+		Method:             "GET",
+		PathPattern:        "/stream_manager/metrics/outbound",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StreamManagerMetricsOutboundGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StreamManagerMetricsOutboundGetOK), nil
+
+}
+
+/*
+StreamManagerMetricsOutgoingByPeerGet gets total outgoing bytes
+
+Get total outgoing bytes
+*/
+func (a *Client) StreamManagerMetricsOutgoingByPeerGet(params *StreamManagerMetricsOutgoingByPeerGetParams) (*StreamManagerMetricsOutgoingByPeerGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStreamManagerMetricsOutgoingByPeerGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StreamManagerMetricsOutgoingByPeerGet",
+		Method:             "GET",
+		PathPattern:        "/stream_manager/metrics/outgoing/{peer}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StreamManagerMetricsOutgoingByPeerGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StreamManagerMetricsOutgoingByPeerGetOK), nil
+
+}
+
+/*
+StreamManagerMetricsOutgoingGet gets all total outgoing bytes
+
+Get all total outgoing bytes
+*/
+func (a *Client) StreamManagerMetricsOutgoingGet(params *StreamManagerMetricsOutgoingGetParams) (*StreamManagerMetricsOutgoingGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStreamManagerMetricsOutgoingGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StreamManagerMetricsOutgoingGet",
+		Method:             "GET",
+		PathPattern:        "/stream_manager/metrics/outgoing",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StreamManagerMetricsOutgoingGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*StreamManagerMetricsOutgoingGetOK), nil
+
+}
+
+/*
+SystemLoggerByNameGet gets logger level
+
+Get logger level
+*/
+func (a *Client) SystemLoggerByNameGet(params *SystemLoggerByNameGetParams) (*SystemLoggerByNameGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSystemLoggerByNameGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SystemLoggerByNameGet",
+		Method:             "GET",
+		PathPattern:        "/system/logger/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SystemLoggerByNameGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SystemLoggerByNameGetOK), nil
+
+}
+
+/*
+SystemLoggerByNamePost sets logger level
+
+Set logger level
+*/
+func (a *Client) SystemLoggerByNamePost(params *SystemLoggerByNamePostParams) (*SystemLoggerByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSystemLoggerByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SystemLoggerByNamePost",
+		Method:             "POST",
+		PathPattern:        "/system/logger/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SystemLoggerByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SystemLoggerByNamePostOK), nil
+
+}
+
+/*
+SystemLoggerGet gets all logger names
+
+Get all logger names
+*/
+func (a *Client) SystemLoggerGet(params *SystemLoggerGetParams) (*SystemLoggerGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSystemLoggerGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SystemLoggerGet",
+		Method:             "GET",
+		PathPattern:        "/system/logger",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SystemLoggerGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SystemLoggerGetOK), nil
+
+}
+
+/*
+SystemLoggerPost sets all logger level
+
+Set all logger level
+*/
+func (a *Client) SystemLoggerPost(params *SystemLoggerPostParams) (*SystemLoggerPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSystemLoggerPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SystemLoggerPost",
+		Method:             "POST",
+		PathPattern:        "/system/logger",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SystemLoggerPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SystemLoggerPostOK), nil
 
 }
 

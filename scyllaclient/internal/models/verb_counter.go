@@ -15,11 +15,11 @@ import (
 // VerbCounter verb_counter
 //
 // Holds verb counters
-// swagger:model VerbCounter
+// swagger:model verb_counter
 type VerbCounter struct {
 
 	// count
-	Count int64 `json:"count,omitempty"`
+	Count interface{} `json:"count,omitempty"`
 
 	// verb
 	Verb Verb `json:"verb,omitempty"`

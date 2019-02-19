@@ -14,14 +14,14 @@ import (
 // RowMerged row_merged
 //
 // A row merged information
-// swagger:model RowMerged
+// swagger:model row_merged
 type RowMerged struct {
 
 	// The number of sstable
 	Key int32 `json:"key,omitempty"`
 
 	// The number or row compacted
-	Value int64 `json:"value,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // Validate validates this row merged

@@ -14,14 +14,14 @@ import (
 // Summary summary
 //
 // A compaction summary object
-// swagger:model Summary
+// swagger:model summary
 type Summary struct {
 
 	// The column family name
 	Cf string `json:"cf,omitempty"`
 
 	// The number of units completed
-	Completed int64 `json:"completed,omitempty"`
+	Completed interface{} `json:"completed,omitempty"`
 
 	// The UUID
 	ID string `json:"id,omitempty"`
@@ -33,7 +33,7 @@ type Summary struct {
 	TaskType string `json:"task_type,omitempty"`
 
 	// The total number of units
-	Total int64 `json:"total,omitempty"`
+	Total interface{} `json:"total,omitempty"`
 
 	// The units being used
 	Unit string `json:"unit,omitempty"`

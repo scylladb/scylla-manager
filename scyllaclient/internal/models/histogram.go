@@ -14,29 +14,29 @@ import (
 // Histogram histogram
 //
 // A histogram values
-// swagger:model Histogram
+// swagger:model histogram
 type Histogram struct {
 
 	// Total count so far
-	Count int64 `json:"count,omitempty"`
+	Count interface{} `json:"count,omitempty"`
 
 	// The max so far
-	Max int64 `json:"max,omitempty"`
+	Max interface{} `json:"max,omitempty"`
 
 	// The mean
-	Mean int32 `json:"mean,omitempty"`
+	Mean interface{} `json:"mean,omitempty"`
 
 	// The min so far
-	Min int64 `json:"min,omitempty"`
+	Min interface{} `json:"min,omitempty"`
 
 	// A sample containing the last n elements
-	Sample []int64 `json:"sample"`
+	Sample []interface{} `json:"sample"`
 
 	// Total sum so far
-	Sum int64 `json:"sum,omitempty"`
+	Sum interface{} `json:"sum,omitempty"`
 
 	// The variance
-	Variance int32 `json:"variance,omitempty"`
+	Variance interface{} `json:"variance,omitempty"`
 }
 
 // Validate validates this histogram

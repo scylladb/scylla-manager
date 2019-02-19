@@ -17,7 +17,7 @@ import (
 // TokenRange token_range
 //
 // Endpoint range information
-// swagger:model TokenRange
+// swagger:model token_range
 type TokenRange struct {
 
 	// The range start token

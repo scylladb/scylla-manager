@@ -14,17 +14,17 @@ import (
 // SlowQueryInfo slow_query_info
 //
 // Slow query triggering information
-// swagger:model SlowQueryInfo
+// swagger:model slow_query_info
 type SlowQueryInfo struct {
 
 	// Is slow query logging enable or disable
 	Enable bool `json:"enable,omitempty"`
 
 	// The slow query logging threshold in microseconds. Queries that takes longer, will be logged
-	Threshold int64 `json:"threshold,omitempty"`
+	Threshold interface{} `json:"threshold,omitempty"`
 
 	// The slow query TTL in seconds
-	TTL int64 `json:"ttl,omitempty"`
+	TTL interface{} `json:"ttl,omitempty"`
 }
 
 // Validate validates this slow query info

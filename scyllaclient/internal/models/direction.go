@@ -14,7 +14,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// Direction direction
+// Direction Direction
+//
+// The file name
 // swagger:model Direction
 type Direction string
 

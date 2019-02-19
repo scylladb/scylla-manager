@@ -15,7 +15,7 @@ import (
 )
 
 // Level level
-// swagger:model Level
+// swagger:model level
 type Level string
 
 const (

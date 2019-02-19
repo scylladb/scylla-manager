@@ -14,14 +14,14 @@ import (
 // EstimatedHistogram estimated_histogram
 //
 // An estimated histogram values
-// swagger:model EstimatedHistogram
+// swagger:model estimated_histogram
 type EstimatedHistogram struct {
 
 	// The series of values to which the counts in `buckets` correspond
-	BucketOffsets []int64 `json:"bucket_offsets"`
+	BucketOffsets []interface{} `json:"bucket_offsets"`
 
 	// The histogram buckets
-	Buckets []int64 `json:"buckets"`
+	Buckets []interface{} `json:"buckets"`
 }
 
 // Validate validates this estimated histogram

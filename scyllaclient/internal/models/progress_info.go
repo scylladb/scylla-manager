@@ -15,11 +15,11 @@ import (
 // ProgressInfo progress_info
 //
 // File transfer progress
-// swagger:model ProgressInfo
+// swagger:model progress_info
 type ProgressInfo struct {
 
 	// The current bytes
-	CurrentBytes int64 `json:"current_bytes,omitempty"`
+	CurrentBytes interface{} `json:"current_bytes,omitempty"`
 
 	// direction
 	Direction Direction `json:"direction,omitempty"`
@@ -34,7 +34,7 @@ type ProgressInfo struct {
 	SessionIndex int32 `json:"session_index,omitempty"`
 
 	// The total bytes
-	TotalBytes int64 `json:"total_bytes,omitempty"`
+	TotalBytes interface{} `json:"total_bytes,omitempty"`
 }
 
 // Validate validates this progress info

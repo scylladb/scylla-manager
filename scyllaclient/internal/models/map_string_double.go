@@ -14,14 +14,14 @@ import (
 // MapStringDouble map_string_double
 //
 // A key value mapping between a string and a double
-// swagger:model MapStringDouble
+// swagger:model map_string_double
 type MapStringDouble struct {
 
 	// The key
 	Key string `json:"key,omitempty"`
 
 	// The value
-	Value int32 `json:"value,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // Validate validates this map string double

@@ -14,7 +14,7 @@ import (
 // Snapshot snapshot
 //
 // Snapshot detail
-// swagger:model Snapshot
+// swagger:model snapshot
 type Snapshot struct {
 
 	// The column family
@@ -24,10 +24,10 @@ type Snapshot struct {
 	Ks string `json:"ks,omitempty"`
 
 	// The live snapshot size
-	Live int32 `json:"live,omitempty"`
+	Live interface{} `json:"live,omitempty"`
 
 	// The total snapshot size
-	Total int32 `json:"total,omitempty"`
+	Total interface{} `json:"total,omitempty"`
 }
 
 // Validate validates this snapshot

@@ -14,14 +14,14 @@ import (
 // EndpointPhiValue endpoint_phi_value
 //
 // Holds phi value for a single end point
-// swagger:model EndpointPhiValue
+// swagger:model endpoint_phi_value
 type EndpointPhiValue struct {
 
 	// end point address
 	Endpoint string `json:"endpoint,omitempty"`
 
 	// Phi value
-	Phi int32 `json:"phi,omitempty"`
+	Phi interface{} `json:"phi,omitempty"`
 }
 
 // Validate validates this endpoint phi value

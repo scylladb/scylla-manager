@@ -14,7 +14,7 @@ import (
 // StreamSummary stream_summary
 //
 // Stream summary info
-// swagger:model StreamSummary
+// swagger:model stream_summary
 type StreamSummary struct {
 
 	// The ID
@@ -24,7 +24,7 @@ type StreamSummary struct {
 	Files int32 `json:"files,omitempty"`
 
 	// total size
-	TotalSize int64 `json:"total_size,omitempty"`
+	TotalSize interface{} `json:"total_size,omitempty"`
 }
 
 // Validate validates this stream summary

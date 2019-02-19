@@ -14,17 +14,17 @@ import (
 // CompactionInfo compaction_info
 //
 // A key value mapping
-// swagger:model CompactionInfo
+// swagger:model compaction_info
 type CompactionInfo struct {
 
 	// The current completed
-	Completed int64 `json:"completed,omitempty"`
+	Completed interface{} `json:"completed,omitempty"`
 
 	// The operation type
 	OperationType string `json:"operation_type,omitempty"`
 
 	// The total to compact
-	Total int64 `json:"total,omitempty"`
+	Total interface{} `json:"total,omitempty"`
 
 	// The compacted unit
 	Unit string `json:"unit,omitempty"`

@@ -14,7 +14,7 @@ import (
 // VersionValue version_value
 //
 // Holds a version value for an application state
-// swagger:model VersionValue
+// swagger:model version_value
 type VersionValue struct {
 
 	// The application state enum index

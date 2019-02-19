@@ -15,7 +15,7 @@ import (
 // ProgressInfoMapper progress_info_mapper
 //
 // A mapping between file and its progress info
-// swagger:model ProgressInfoMapper
+// swagger:model progress_info_mapper
 type ProgressInfoMapper struct {
 
 	// The key

@@ -14,11 +14,11 @@ import (
 // CollectdValue collectd_value
 //
 // Holds a collectd value
-// swagger:model CollectdValue
+// swagger:model collectd_value
 type CollectdValue struct {
 
 	// An array of values
-	Values []int32 `json:"values"`
+	Values []interface{} `json:"values"`
 }
 
 // Validate validates this collectd value

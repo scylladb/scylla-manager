@@ -15,7 +15,7 @@ import (
 // RateMovingAverageAndHistogram rate_moving_average_and_histogram
 //
 // A timer metric which aggregates timing durations and provides duration statistics, plus throughput statistics
-// swagger:model RateMovingAverageAndHistogram
+// swagger:model rate_moving_average_and_histogram
 type RateMovingAverageAndHistogram struct {
 
 	// hist

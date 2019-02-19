@@ -14,7 +14,7 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// Verb verb
+// Verb Verb
 // swagger:model Verb
 type Verb string
 

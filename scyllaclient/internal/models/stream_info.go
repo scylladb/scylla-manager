@@ -17,7 +17,7 @@ import (
 // StreamInfo stream_info
 //
 // Stream session info
-// swagger:model StreamInfo
+// swagger:model stream_info
 type StreamInfo struct {
 
 	// connecting

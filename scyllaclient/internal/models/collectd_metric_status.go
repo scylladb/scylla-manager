@@ -15,7 +15,7 @@ import (
 // CollectdMetricStatus collectd_metric_status
 //
 // Holds a collectd id and an enable flag
-// swagger:model CollectdMetricStatus
+// swagger:model collectd_metric_status
 type CollectdMetricStatus struct {
 
 	// Is the metric enabled

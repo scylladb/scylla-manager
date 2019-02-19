@@ -119,7 +119,7 @@ func withPort(hostPort, port string) string {
 
 // ClusterName returns cluster name.
 func (c *Client) ClusterName(ctx context.Context) (string, error) {
-	resp, err := c.operations.GetClusterName(&operations.GetClusterNameParams{Context: ctx})
+	resp, err := c.operations.StorageServiceClusterNameGet(&operations.StorageServiceClusterNameGetParams{Context: ctx})
 	if err != nil {
 		return "", err
 	}
@@ -129,7 +129,7 @@ func (c *Client) ClusterName(ctx context.Context) (string, error) {
 
 // Datacenters returns the available datacenters in this cluster.
 func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
-	resp, err := c.operations.GetHostIDMap(&operations.GetHostIDMapParams{Context: ctx})
+	resp, err := c.operations.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 
 // HostDatacenter looks up the datacenter that the given host belongs to.
 func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error) {
-	resp, err := c.operations.GetDatacenter(&operations.GetDatacenterParams{
+	resp, err := c.operations.SnitchDatacenterGet(&operations.SnitchDatacenterGetParams{
 		Context: ctx,
 		Host:    &host,
 	})
@@ -163,7 +163,7 @@ func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error
 
 // Hosts returns a list of all hosts in a cluster.
 func (c *Client) Hosts(ctx context.Context) ([]string, error) {
-	resp, err := c.operations.GetHostIDMap(&operations.GetHostIDMapParams{Context: ctx})
+	resp, err := c.operations.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (c *Client) Hosts(ctx context.Context) ([]string, error) {
 
 // Keyspaces return a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
-	resp, err := c.operations.GetKeyspaces(&operations.GetKeyspacesParams{Context: ctx})
+	resp, err := c.operations.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 
 // DescribeRing returns a description of token range of a given keyspace.
 func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error) {
-	resp, err := c.operations.DescribeRing(&operations.DescribeRingParams{
+	resp, err := c.operations.StorageServiceDescribeRingByKeyspaceGet(&operations.StorageServiceDescribeRingByKeyspaceGetParams{
 		Context:  ctx,
 		Keyspace: keyspace,
 	})
@@ -352,7 +352,7 @@ func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, 
 
 // HostPendingCompactions returns number of pending compactions on a host.
 func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
-	resp, err := c.operations.GetAllPendingCompactions(&operations.GetAllPendingCompactionsParams{
+	resp, err := c.operations.ColumnFamilyMetricsPendingCompactionsGet(&operations.ColumnFamilyMetricsPendingCompactionsGetParams{
 		Context: forceHost(ctx, host),
 	})
 	if err != nil {
@@ -364,7 +364,7 @@ func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32
 
 // Partitioner returns cluster partitioner name.
 func (c *Client) Partitioner(ctx context.Context) (string, error) {
-	resp, err := c.operations.GetPartitionerName(&operations.GetPartitionerNameParams{Context: ctx})
+	resp, err := c.operations.StorageServicePartitionerNameGet(&operations.StorageServicePartitionerNameGetParams{Context: ctx})
 	if err != nil {
 		return "", err
 	}
@@ -383,7 +383,7 @@ type RepairConfig struct {
 
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
-	p := operations.RepairAsyncParams{
+	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
 		Context:  forceHost(ctx, host),
 		Keyspace: config.Keyspace,
 		Ranges:   &config.Ranges,
@@ -402,7 +402,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 		p.Hosts = &hosts
 	}
 
-	resp, err := c.operations.RepairAsync(&p)
+	resp, err := c.operations.StorageServiceRepairAsyncByKeyspacePost(&p)
 	if err != nil {
 		return 0, err
 	}
@@ -412,7 +412,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
-	resp, err := c.operations.RepairAsyncStatus(&operations.RepairAsyncStatusParams{
+	resp, err := c.operations.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
 		Context:  forceHost(ctx, host),
 		Keyspace: keyspace,
 		ID:       id,
@@ -457,7 +457,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 
 // Tables returns a slice of table names in a given keyspace.
 func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
-	resp, err := c.operations.GetColumnFamilyName(&operations.GetColumnFamilyNameParams{Context: ctx})
+	resp, err := c.operations.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +477,7 @@ func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) 
 
 // Tokens returns list of tokens in a cluster.
 func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
-	resp, err := c.operations.GetTokenEndpoint(&operations.GetTokenEndpointParams{Context: ctx})
+	resp, err := c.operations.StorageServiceTokensEndpointGet(&operations.StorageServiceTokensEndpointGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}

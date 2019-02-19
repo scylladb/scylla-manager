@@ -14,7 +14,7 @@ import (
 // EndpointDetail endpoint_detail
 //
 // Endpoint detail
-// swagger:model EndpointDetail
+// swagger:model endpoint_detail
 type EndpointDetail struct {
 
 	// The endpoint datacenter
