@@ -5,7 +5,6 @@ services:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
     volumes:
-      - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
@@ -16,7 +15,6 @@ services:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
     volumes:
-      - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
@@ -27,7 +25,6 @@ services:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
     volumes:
-      - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.1.properties:/etc/scylla/cassandra-rackdc.properties:ro
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
@@ -38,7 +35,6 @@ services:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
     volumes:
-      - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
@@ -49,7 +45,6 @@ services:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
     volumes:
-      - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
@@ -60,7 +55,6 @@ services:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
     volumes:
-      - ./scylla/scylla.yaml:/etc/scylla/scylla.yaml:ro
       - ./scylla/cassandra-rackdc.2.properties:/etc/scylla/cassandra-rackdc.properties:ro
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:

@@ -12,6 +12,9 @@ RUN /usr/sbin/sshd-keygen
 # Add supervisord configuration for sshd.
 ADD sshd.conf /etc/supervisord.conf.d/sshd.conf
 
+# Add scylla configuration.
+COPY scylla.yaml /etc/scylla/scylla.yaml
+
 # Set root password.
 RUN echo -e "root\nroot" | passwd --stdin root
 
