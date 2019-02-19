@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -21,12 +22,17 @@ import (
 )
 
 func TestClientDialOnceAndCloseIntegration(t *testing.T) {
+	// Protects conns.
+	var mu sync.Mutex
 	var conns []net.Conn
+
 	s := NewSSHTransport()
 	d := s.DialContext
 	s.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
 		conn, err = d(ctx, network, addr)
+		mu.Lock()
 		conns = append(conns, conn)
+		mu.Unlock()
 		return
 	}
 
@@ -40,6 +46,8 @@ func TestClientDialOnceAndCloseIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	mu.Lock()
+	defer mu.Unlock()
 	if len(conns) != 1 {
 		t.Fatal("expected dial once, got", len(conns))
 	}
