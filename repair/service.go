@@ -484,8 +484,8 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 	if err != nil {
 		return err
 	}
-
 	run.Units[unit].CoordinatorDC = dc // would be persisted by caller
+	run.Units[unit].hosts = s.repairedHosts(run, ring)
 	run.Units[unit].allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
 
 	// get hosts and segments to repair
@@ -568,12 +568,22 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			Logger:  s.logger.Named("worker").With("host", host),
 		}
 		if err := unitWorker[i].init(ctx); err != nil {
-			return errors.Wrapf(err, "failed to init repair of host %s", host)
+			return errors.Wrapf(err, "host %s: failed to init repair", host)
 		}
 	}
 	run.unitWorkers[unit] = unitWorker
 
 	return nil
+}
+
+func (s *Service) repairedHosts(run *Run, ring scyllaclient.Ring) (hosts []string) {
+	dcFilter := strset.New(run.DC...)
+	for h, dc := range ring.HostDC {
+		if dcFilter.Has(dc) {
+			hosts = append(hosts, h)
+		}
+	}
+	return
 }
 
 func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
@@ -609,7 +619,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 				if errors.Cause(err) == errDoneWithErrors && !run.failFast {
 					failed = true
 				} else {
-					return err
+					return errors.Wrapf(err, "host %s", worker.Host)
 				}
 			}
 		}

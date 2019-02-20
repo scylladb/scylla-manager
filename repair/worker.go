@@ -5,6 +5,7 @@ package repair
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -90,7 +91,6 @@ func (w *hostWorker) init(ctx context.Context) error {
 
 		w.shards[i] = &shardWorker{
 			parent:   w,
-			shard:    i,
 			segments: segments,
 			progress: p,
 			logger:   w.Logger.With("shard", i),
@@ -111,7 +111,14 @@ func (w *hostWorker) exec(ctx context.Context) error {
 
 	// check if host is available
 	if _, err := w.Client.Ping(ctx, w.Host); err != nil {
-		return errors.Wrapf(err, "host not available")
+		return errors.Wrap(err, "ping failed")
+	}
+
+	// check if no other repairs are running
+	if active, err := w.Client.ActiveRepairs(ctx, w.Run.Units[w.Unit].hosts); err != nil {
+		w.Logger.Error(ctx, "Active repair check failed", "error", err)
+	} else if len(active) > 0 {
+		return errors.Errorf("active repair on hosts: %s", strings.Join(active, ", "))
 	}
 
 	// limit nr of shards running in parallel
@@ -131,7 +138,7 @@ func (w *hostWorker) exec(ctx context.Context) error {
 				if i >= len(w.shards) {
 					return
 				}
-				wch <- w.shards[i].exec(ctx)
+				wch <- errors.Wrapf(w.shards[i].exec(ctx), "shard %d", i)
 			}
 		}()
 	}
@@ -182,7 +189,7 @@ func (w *hostWorker) exec(ctx context.Context) error {
 		w.Logger.Info(ctx, "Repair done")
 	}
 
-	return errors.Wrapf(werr, "host %s", w.Host)
+	return werr
 }
 
 func (w *hostWorker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, error) {
@@ -210,7 +217,6 @@ func (w *hostWorker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Pa
 // shardWorker repairs a single shard.
 type shardWorker struct {
 	parent   *hostWorker
-	shard    int
 	segments segments
 	progress *RunProgress
 	logger   log.Logger
@@ -253,7 +259,7 @@ func (w *shardWorker) exec(ctx context.Context) error {
 		w.logger.Info(ctx, "Repair ended", "percent_complete", w.progress.PercentComplete(), "error", err)
 	}
 
-	return errors.Wrapf(err, "shard %d", w.shard)
+	return err
 }
 
 func (w *shardWorker) newRetryIterator() *retryIterator {

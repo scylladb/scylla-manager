@@ -789,6 +789,37 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStatus(runner.StatusDone, shortWait)
 	})
 
+	t.Run("repair error nodetool repair running", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: repair is running on a host")
+		go func() {
+			_, _, err := ExecOnHost(context.Background(), ManagedClusterHosts[0], "nodetool repair -pr")
+			if err != nil {
+				t.Log(err)
+			}
+		}()
+		defer func() {
+			c, err := scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), log.Logger{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := c.KillAllRepairs(context.Background(), ManagedClusterHosts[0]); err != nil {
+				t.Fatal(err)
+			}
+		}()
+		Print("When: repair starts")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit()); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusError")
+		h.assertStatus(runner.StatusError, shortWait)
+		h.assertCause("active repair on hosts", now)
+	})
+
 	t.Run("repair error fail fast", func(t *testing.T) {
 		c := defaultConfig()
 		h := newRepairTestHelper(t, session, c)
