@@ -653,10 +653,6 @@ func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Cli
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get datacenters")
 	}
-	allSet := strset.New()
-	for dc := range all {
-		allSet.Add(dc)
-	}
 
 	dcHosts := make(map[string][]string)
 	for dc, hosts := range all {
