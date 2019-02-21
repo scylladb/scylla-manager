@@ -82,6 +82,13 @@
           "cql_rtt_ms": {
             "type": "number",
             "format": "float"
+          },
+          "api_status": {
+            "type": "string"
+          },
+          "api_rtt_ms": {
+            "type": "number",
+            "format": "float"
           }
         }
       }

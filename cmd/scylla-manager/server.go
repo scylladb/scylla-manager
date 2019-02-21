@@ -110,7 +110,8 @@ func (s *server) makeServices() error {
 	}
 
 	// register runners
-	s.schedSvc.SetRunner(sched.HealthCheckTask, s.healthSvc.Runner())
+	s.schedSvc.SetRunner(sched.HealthCheckTask, s.healthSvc.CQLRunner())
+	s.schedSvc.SetRunner(sched.HealthCheckAPITask, s.healthSvc.APIRunner())
 	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc.Runner())
 
 	return nil
@@ -121,6 +122,9 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	case cluster.Create:
 		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckTask(c.ID)); err != nil {
 			return errors.Wrapf(err, "failed to add automatically scheduled health check for cluster %s", c.ID)
+		}
+		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckAPITask(c.ID)); err != nil {
+			return errors.Wrapf(err, "failed to add automatically scheduled API health check for cluster %s", c.ID)
 		}
 		if err := s.schedSvc.PutTask(ctx, makeAutoRepairTask(c.ID)); err != nil {
 			return errors.Wrapf(err, "failed to add automatically scheduled weekly repair for cluster %s", c.ID)

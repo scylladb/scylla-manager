@@ -19,13 +19,9 @@ import (
 type healthCheckRunner struct {
 	cluster cluster.ProviderFunc
 	client  scyllaclient.ProviderFunc
+	status  *prometheus.GaugeVec
+	rtt     *prometheus.GaugeVec
 	ping    func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
-}
-
-type hostRTT struct {
-	host string
-	rtt  time.Duration
-	err  error
 }
 
 // Run implements runner.Runner.
@@ -47,11 +43,23 @@ func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runne
 
 	r.removeDecommissionedHosts(c, hosts)
 
+	r.run(ctx, hosts, c)
+
+	return nil
+}
+
+type hostRTT struct {
+	host string
+	rtt  time.Duration
+	err  error
+}
+
+func (r healthCheckRunner) run(ctx context.Context, hosts []string, c *cluster.Cluster) {
 	out := make(chan hostRTT, runtime.NumCPU()+1)
 	for _, h := range hosts {
 		v := hostRTT{host: h}
 		go func() {
-			v.rtt, v.err = r.ping(ctx, d.ClusterID, v.host)
+			v.rtt, v.err = r.ping(ctx, c.ID, v.host)
 			out <- v
 		}()
 	}
@@ -65,21 +73,19 @@ func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runne
 		}
 
 		if v.err != nil {
-			cqlStatus.With(l).Set(-1)
-			cqlRTT.With(l).Set(0)
+			r.status.With(l).Set(-1)
+			r.rtt.With(l).Set(0)
 		} else {
-			cqlStatus.With(l).Set(1)
-			cqlRTT.With(l).Set(float64(v.rtt) / 1000000)
+			r.status.With(l).Set(1)
+			r.rtt.With(l).Set(float64(v.rtt) / 1000000)
 		}
 	}
-
-	return nil
 }
 
 func (r healthCheckRunner) removeDecommissionedHosts(c *cluster.Cluster, hosts []string) {
 	m := strset.New(hosts...)
 
-	apply(collect(cqlStatus), func(cluster, host string, v float64) {
+	apply(collect(r.status), func(cluster, host string, v float64) {
 		if c.String() != cluster {
 			return
 		}
@@ -91,8 +97,8 @@ func (r healthCheckRunner) removeDecommissionedHosts(c *cluster.Cluster, hosts [
 			clusterKey: c.String(),
 			hostKey:    host,
 		}
-		cqlStatus.Delete(l)
-		cqlRTT.Delete(l)
+		r.status.Delete(l)
+		r.rtt.Delete(l)
 	})
 }
 

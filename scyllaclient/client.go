@@ -264,7 +264,7 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]stri
 		for _, h := range hosts {
 			h := h
 			go func() {
-				rtt, err := c.measure(ctx, h, 3)
+				rtt, err := c.PingN(ctx, h, 3)
 				if err != nil {
 					c.logger.Info(ctx, "Host RTT measurement failed",
 						"dc", dc,
@@ -325,7 +325,11 @@ func pickNRandomHosts(n int, hosts []string) []string {
 	return rh
 }
 
-func (c *Client) measure(ctx context.Context, host string, laps int) (time.Duration, error) {
+// PingN does "n" amount of pings torwards the host and returns average RTT
+// across all results.
+// Pings are tried sequentially and if any of the pings fail function will
+// return an error.
+func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, error) {
 	// Open connection to server.
 	_, err := c.Ping(ctx, host)
 	if err != nil {
@@ -333,17 +337,17 @@ func (c *Client) measure(ctx context.Context, host string, laps int) (time.Durat
 	}
 
 	// Measure avg host RTT.
-	mctx, cancel := context.WithTimeout(ctx, time.Duration(laps)*500*time.Millisecond)
+	mctx, cancel := context.WithTimeout(ctx, RequestTimeout)
 	defer cancel()
 	var sum time.Duration
-	for i := 0; i < laps; i++ {
+	for i := 0; i < n; i++ {
 		d, err := c.Ping(mctx, host)
 		if err != nil {
 			return 0, err
 		}
 		sum += d
 	}
-	return sum / time.Duration(laps), nil
+	return sum / time.Duration(n), nil
 }
 
 // HostPendingCompactions returns number of pending compactions on a host.

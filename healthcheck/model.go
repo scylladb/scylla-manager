@@ -13,5 +13,7 @@ type Status struct {
 	Host      string  `json:"host"`
 	SSL       bool    `json:"ssl"`
 	CQLStatus string  `json:"cql_status"`
-	RTT       float64 `json:"cql_rtt_ms"`
+	CQLRtt    float64 `json:"cql_rtt_ms"`
+	APIStatus string  `json:"api_status"`
+	APIRtt    float64 `json:"api_rtt_ms"`
 }

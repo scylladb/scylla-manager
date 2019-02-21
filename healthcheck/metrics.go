@@ -28,12 +28,28 @@ var (
 		Name:      "cql_rtt_ms",
 		Help:      "Host native port RTT",
 	}, []string{clusterKey, hostKey})
+
+	apiStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "healthcheck",
+		Name:      "api_status",
+		Help:      "Host API status",
+	}, []string{clusterKey, hostKey})
+
+	apiRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "cluster",
+		Name:      "api_rtt_ms",
+		Help:      "Host API RTT",
+	}, []string{clusterKey, hostKey})
 )
 
 func init() {
 	prometheus.MustRegister(
 		cqlStatus,
 		cqlRTT,
+		apiStatus,
+		apiRTT,
 	)
 }
 

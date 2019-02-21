@@ -6,10 +6,13 @@ package healthcheck
 
 import (
 	"context"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/kv"
@@ -38,25 +41,147 @@ func TestGetStatusIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+	compare := func(t *testing.T, got, expected []Status) {
+		t.Helper()
+		diffOpts := []cmp.Option{
+			UUIDComparer(),
+			cmpopts.IgnoreFields(Status{}, "CQLRtt", "APIRtt"),
+		}
+		if diff := cmp.Diff(got, expected, diffOpts...); diff != "" {
+			t.Error(diff)
+		}
+	}
+
+	t.Run("all nodes UP", func(t *testing.T) {
+		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		expected := []Status{
+			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", APIStatus: "UP"},
+		}
+		compare(t, status, expected)
+	})
+
+	t.Run("node_12 API DOWN", func(t *testing.T) {
+		host := "192.168.100.12"
+		blockAPI(t, host)
+		defer unblockAPI(t, host)
+
+		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		expected := []Status{
+			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", APIStatus: "DOWN"},
+			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", APIStatus: "UP"},
+		}
+		compare(t, status, expected)
+	})
+
+	t.Run("node_12 CQL DOWN", func(t *testing.T) {
+		host := "192.168.100.12"
+		blockCQL(t, host)
+		defer unblockCQL(t, host)
+
+		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		expected := []Status{
+			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "DOWN", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", APIStatus: "UP"},
+		}
+		compare(t, status, expected)
+	})
+
+	t.Run("managed cluster nodes API DOWN", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		for i := range ManagedClusterHosts {
+			blockAPI(t, ManagedClusterHosts[i])
+			defer unblockAPI(t, ManagedClusterHosts[i])
+		}
+
+		_, err := s.GetStatus(ctx, uuid.MustRandom())
+		if err == nil {
+			t.Error("Expected error got nil")
+		} else if !strings.Contains(err.Error(), "failed to get dcs for cluster") {
+			t.Errorf("Expected 'failed to get dcs for cluster' got %s", err)
+		}
+	})
+
+	t.Run("context timeout exceeded", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+		defer cancel()
+
+		_, err := s.GetStatus(ctx, uuid.MustRandom())
+		if err == nil {
+			t.Error("Expected error got nil")
+		}
+	})
+}
+
+func blockAPI(t *testing.T, h string) {
+	t.Helper()
+	if err := block(h, CmdBlockScyllaAPI); err != nil {
+		t.Error(err)
+	}
+}
+
+func unblockAPI(t *testing.T, h string) {
+	t.Helper()
+	if err := unblock(h, CmdUnblockScyllaAPI); err != nil {
+		t.Error(err)
+	}
+}
+
+func blockCQL(t *testing.T, h string) {
+	t.Helper()
+	if err := block(h, CmdBlockScyllaCQL); err != nil {
+		t.Error(err)
+	}
+}
+
+func unblockCQL(t *testing.T, h string) {
+	t.Helper()
+	if err := unblock(h, CmdUnblockScyllaCQL); err != nil {
+		t.Error(err)
+	}
+}
+
+func block(h, cmd string) error {
+	stdout, stderr, err := ExecOnHost(context.Background(), h, cmd)
 	if err != nil {
-		t.Fatal(err)
+		return errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
+	return nil
+}
 
-	expected := []Status{
-		{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP"},
-		{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP"},
-		{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP"},
-		{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP"},
-		{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP"},
-		{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP"},
+func unblock(h, cmd string) error {
+	stdout, stderr, err := ExecOnHost(context.Background(), h, cmd)
+	if err != nil {
+		return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
-
-	diffOpts := []cmp.Option{
-		UUIDComparer(),
-		cmpopts.IgnoreFields(Status{}, "RTT"),
-	}
-	if diff := cmp.Diff(status, expected, diffOpts...); diff != "" {
-		t.Fatal(diff)
-	}
+	return nil
 }

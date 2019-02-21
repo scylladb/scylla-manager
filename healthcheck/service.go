@@ -23,6 +23,10 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
+const (
+	pingLaps = 3
+)
+
 // Service manages health checks.
 type Service struct {
 	config       Config
@@ -61,14 +65,34 @@ func NewService(config Config, cp cluster.ProviderFunc, sp scyllaclient.Provider
 	}, nil
 }
 
-// Runner creates a runner.Runner that performs health checks.
-func (s *Service) Runner() runner.Runner {
+// CQLRunner creates a runner.Runner that performs health checks for CQL connectivity.
+func (s *Service) CQLRunner() runner.Runner {
 	return healthCheckRunner{
 		client:  s.client,
 		cluster: s.cluster,
-		ping:    s.ping,
+		status:  cqlStatus,
+		rtt:     cqlRTT,
+		ping:    s.pingCQL,
 	}
 }
+
+// APIRunner creates a runner.Runner that performs health checks for API connectivity.
+func (s *Service) APIRunner() runner.Runner {
+	return healthCheckRunner{
+		client:  s.client,
+		cluster: s.cluster,
+		status:  apiStatus,
+		rtt:     apiRTT,
+		ping:    s.pingAPI,
+	}
+}
+
+type pingStat struct {
+	status string
+	rtt    float64
+}
+
+type pingFunc func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
 
 // GetStatus returns the current status of the supplied cluster.
 func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status, error) {
@@ -84,39 +108,80 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 		return nil, errors.Wrapf(err, "failed to get dcs for cluster with id %s", clusterID)
 	}
 
+	check := func(host, name string, ping pingFunc, q chan pingStat) {
+		status := pingStat{
+			status: statusUp,
+		}
+		s.logger.Debug(ctx, fmt.Sprintf("pinging %s", name),
+			"cluster_id", clusterID,
+			"host", host,
+		)
+		rtt, err := ping(ctx, clusterID, host)
+		if err != nil {
+			s.logger.Error(ctx, fmt.Sprintf("%s ping failed", name),
+				"cluster_id", clusterID,
+				"host", host,
+				"error", err,
+			)
+			status.status = statusDown
+		}
+		status.rtt = float64(rtt / 1000000)
+
+		select {
+		case q <- status:
+		case <-ctx.Done():
+		}
+	}
+
 	out := make(chan Status, runtime.NumCPU()+1)
+
 	size := 0
 	for dc, hosts := range dcs {
 		for _, h := range hosts {
-			v := Status{
-				DC:   dc,
-				Host: h,
-			}
 			size++
 
-			go func() {
-				rtt, err := s.ping(ctx, clusterID, v.Host)
-				if err != nil {
-					s.logger.Info(ctx, "Ping failed",
-						"cluster_id", clusterID,
-						"host", v.Host,
-						"error", err,
-					)
-					v.CQLStatus = statusDown
-				} else {
-					v.CQLStatus = statusUp
-				}
-				v.SSL = s.hasTLSConfig(clusterID)
-				v.RTT = float64(rtt / 1000000)
+			cqlQ := make(chan pingStat)
+			apiQ := make(chan pingStat)
+			go check(h, "CQL", s.pingCQL, cqlQ)
+			go check(h, "API", s.pingAPI, apiQ)
 
-				out <- v
-			}()
+			go func(dc, h string) {
+				var cqlStatus, apiStatus pingStat
+				for cqlStatus.status == "" || apiStatus.status == "" {
+					select {
+					case cqlStatus = <-cqlQ:
+						continue
+					case apiStatus = <-apiQ:
+						continue
+					case <-ctx.Done():
+						s.logger.Error(ctx, "status check canceled",
+							"cluster_id", clusterID,
+							"host", h,
+							"error", ctx.Err(),
+						)
+						return
+					}
+				}
+				out <- Status{
+					DC:        dc,
+					Host:      h,
+					SSL:       s.hasTLSConfig(clusterID),
+					APIStatus: apiStatus.status,
+					APIRtt:    apiStatus.rtt,
+					CQLStatus: cqlStatus.status,
+					CQLRtt:    cqlStatus.rtt,
+				}
+			}(dc, h)
 		}
 	}
 
 	statuses := make([]Status, size)
 	for i := 0; i < size; i++ {
-		statuses[i] = <-out
+		select {
+		case statuses[i] = <-out:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 	sort.Slice(statuses, func(i, j int) bool {
 		if statuses[i].DC == statuses[j].DC {
@@ -128,7 +193,7 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 	return statuses, nil
 }
 
-func (s *Service) ping(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
+func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
 	tlsConfig, err := s.tlsConfig(ctx, clusterID)
 	if err != nil {
 		return 0, err
@@ -158,6 +223,15 @@ func (s *Service) ping(ctx context.Context, clusterID uuid.UUID, host string) (r
 	}
 
 	return
+}
+
+func (s *Service) pingAPI(ctx context.Context, clusterID uuid.UUID, host string) (time.Duration, error) {
+	client, err := s.client(ctx, clusterID)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to get client for cluster with id %s", clusterID)
+	}
+
+	return client.PingN(ctx, host, pingLaps)
 }
 
 func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Config, error) {

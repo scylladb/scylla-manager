@@ -16,6 +16,12 @@ const (
 
 	// CmdUnblockScyllaAPI defines the command used for unblocking the Scylla REST API.
 	CmdUnblockScyllaAPI = "iptables -D INPUT -p tcp --destination-port 10000 -j DROP"
+
+	// CmdBlockScyllaCQL defines the command used for blocking the Scylla CQL access.
+	CmdBlockScyllaCQL = "iptables -A INPUT -p tcp --destination-port 9042 -j DROP"
+
+	// CmdUnblockScyllaCQL defines the command used for unblocking the Scylla CQL access.
+	CmdUnblockScyllaCQL = "iptables -D INPUT -p tcp --destination-port 9042 -j DROP"
 )
 
 // ExecOnHost executes the given command on the given host. It returns the

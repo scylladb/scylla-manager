@@ -6,6 +6,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -109,9 +110,11 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 	}
 
 	for i, test := range table {
-		if err := testRetry(hosts, test.block, test.timeout); err != nil {
-			t.Fatal(i, err)
-		}
+		t.Run(fmt.Sprintf("%d blocking %d nodes", i, test.block), func(t *testing.T) {
+			if err := testRetry(hosts, test.block, test.timeout); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
