@@ -4,6 +4,9 @@ ifndef GOBIN
 export GOBIN := $(GOPATH)/bin
 endif
 
+GO_VERSION = "1.11.5"
+GO_CURRENT_VERSION = `go version`
+
 GOFILES := go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
 define dl
@@ -41,7 +44,11 @@ fmt: ## Format source code
 
 .PHONY: check
 check: ## Perform static code analysis
-check: .check-copyright .check-timeutc .check-lint .check-vendor
+check: .check-go-version .check-copyright .check-timeutc .check-lint .check-vendor
+
+.PHONY: .check-go-version
+.check-go-version:
+	@[[ "$(GO_CURRENT_VERSION)" =~ "$(GO_VERSION)" ]] || echo "Required go version is $(GO_VERSION), found $(GO_CURRENT_VERSION)"
 
 .PHONY: .check-copyright
 .check-copyright:
