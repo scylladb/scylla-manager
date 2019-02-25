@@ -18,10 +18,10 @@ type Unit struct {
 	Keyspace      string   `json:"keyspace" db:"keyspace_name"`
 	Tables        []string `json:"tables,omitempty"`
 	CoordinatorDC string   `json:"-"`
+	AllTables     bool     `json:"all_tables"`
 
-	hosts     []string
-	allDCs    bool
-	allTables bool
+	hosts  []string
+	allDCs bool
 }
 
 // MarshalUDT implements UDTMarshaler.
@@ -134,13 +134,13 @@ type Progress struct {
 
 // Target specifies what shall be repaired.
 type Target struct {
-	Units       []Unit
-	DC          []string
-	Host        string
-	WithHosts   []string
-	TokenRanges TokenRangesKind
-	FailFast    bool
-	Opts        runner.Opts
+	Units       []Unit          `json:"units,omitempty"`
+	DC          []string        `json:"dc,omitempty"`
+	Host        string          `json:"host,omitempty"`
+	WithHosts   []string        `json:"with_hosts,omitempty"`
+	TokenRanges TokenRangesKind `json:"token_ranges,omitempty"`
+	FailFast    bool            `json:"fail_fast,omitempty"`
+	Opts        runner.Opts     `json:"-"`
 }
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.

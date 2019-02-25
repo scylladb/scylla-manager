@@ -159,19 +159,26 @@ func (c Client) Version(ctx context.Context) (*models.Version, error) {
 	return resp.Payload, nil
 }
 
+// GetTarget fetches information about repair target.
+func (c *Client) GetTarget(ctx context.Context, clusterID string, t *Task) (*Target, error) {
+	resp, err := c.operations.PutClusterClusterIDTasksRepairTarget(&operations.PutClusterClusterIDTasksRepairTargetParams{
+		Context:    ctx,
+		ClusterID:  clusterID,
+		TaskFields: makeTaskUpdate(t),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Target{*resp.Payload}, nil
+}
+
 // CreateTask creates a new task.
 func (c *Client) CreateTask(ctx context.Context, clusterID string, t *Task) (uuid.UUID, error) {
 	resp, err := c.operations.PostClusterClusterIDTasks(&operations.PostClusterClusterIDTasksParams{
-		Context:   ctx,
-		ClusterID: clusterID,
-		TaskFields: &models.TaskUpdate{
-			Type:       t.Type,
-			Enabled:    t.Enabled,
-			Name:       t.Name,
-			Schedule:   t.Schedule,
-			Tags:       t.Tags,
-			Properties: t.Properties,
-		},
+		Context:    ctx,
+		ClusterID:  clusterID,
+		TaskFields: makeTaskUpdate(t),
 	})
 	if err != nil {
 		return uuid.Nil, err

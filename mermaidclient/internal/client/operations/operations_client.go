@@ -472,6 +472,34 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStop(params *PutClusterClu
 
 }
 
+/*
+PutClusterClusterIDTasksRepairTarget put cluster cluster ID tasks repair target API
+*/
+func (a *Client) PutClusterClusterIDTasksRepairTarget(params *PutClusterClusterIDTasksRepairTargetParams) (*PutClusterClusterIDTasksRepairTargetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDTasksRepairTargetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDTasksRepairTarget",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/tasks/repair/target",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDTasksRepairTargetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PutClusterClusterIDTasksRepairTargetOK), nil
+
+}
+
 // SetTransport changes the transport on the client
 func (a *Client) SetTransport(transport runtime.ClientTransport) {
 	a.transport = transport

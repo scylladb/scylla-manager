@@ -126,6 +126,19 @@ var repairCmd = &cobra.Command{
 			props["fail_fast"] = true
 		}
 
+		dryRun, err := cmd.Flags().GetBool("dry-run")
+		if err != nil {
+			return printableError{err}
+		}
+		if dryRun {
+			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, repair is not scheduled\n\n")
+			res, err := client.GetTarget(ctx, cfgCluster, t)
+			if err != nil {
+				return printableError{err}
+			}
+			return res.Render(cmd.OutOrStdout())
+		}
+
 		id, err := client.CreateTask(ctx, cfgCluster, t)
 		if err != nil {
 			return printableError{err}
@@ -149,6 +162,7 @@ func init() {
 	fs.StringSlice("with-hosts", nil, "comma-separated `list` of hosts to repair with")
 	fs.Var(&repairTokenRanges, "token-ranges", "`kind` of token-ranges valid values are: pr, npr, all")
 	fs.Bool("fail-fast", false, "stop repair on first error")
+	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	taskInitCommonFlags(fs)
 }
 

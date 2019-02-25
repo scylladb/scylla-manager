@@ -430,7 +430,7 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 	if !u.allDCs {
 		cfg.DC = w.parent.Run.DC
 	}
-	if !u.allTables {
+	if !u.AllTables {
 		cfg.Tables = u.Tables
 	}
 	return w.parent.Client.Repair(ctx, w.parent.Host, cfg)

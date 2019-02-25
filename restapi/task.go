@@ -58,6 +58,7 @@ func newTaskHandler(schedSvc SchedService, repairSvc RepairService) *chi.Mux {
 	m.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.listTasks)
 		r.Post("/", h.createTask)
+		r.Put("/repair/target", h.getTarget)
 	})
 
 	m.Route("/task/{task_type}/{task_id}", func(r chi.Router) {
@@ -197,6 +198,31 @@ func (h *taskHandler) parseTask(r *http.Request) (*sched.Task, error) {
 	}
 	t.ClusterID = mustClusterIDFromCtx(r)
 	return &t, nil
+}
+
+func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
+	newTask, err := h.parseTask(r)
+	if err != nil {
+		respondBadRequest(w, r, err)
+		return
+	}
+	if newTask.ID != uuid.Nil {
+		respondBadRequest(w, r, errors.Errorf("unexpected ID %q", newTask.ID))
+		return
+	}
+
+	if newTask.Type != sched.RepairTask {
+		respondBadRequest(w, r, errors.Errorf("invalid type %q", newTask.Type))
+		return
+	}
+
+	t, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties)
+	if err != nil {
+		respondError(w, r, err, "failed to get target")
+		return
+	}
+
+	render.Respond(w, r, t)
 }
 
 func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {

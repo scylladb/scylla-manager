@@ -5,6 +5,7 @@ package mermaidclient
 import (
 	"fmt"
 	"io"
+	"text/template"
 
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/mermaidclient/table"
@@ -37,6 +38,53 @@ func (cs ClusterSlice) Render(w io.Writer) error {
 
 // Task is a sched.Task representation.
 type Task = models.Task
+
+func makeTaskUpdate(t *Task) *models.TaskUpdate {
+	return &models.TaskUpdate{
+		Type:       t.Type,
+		Enabled:    t.Enabled,
+		Name:       t.Name,
+		Schedule:   t.Schedule,
+		Tags:       t.Tags,
+		Properties: t.Properties,
+	}
+}
+
+// Target is a representing results of dry running repair task.
+type Target struct {
+	models.RepairTarget
+}
+
+const targetTemplate = `{{ if ne .TokenRanges "dcpr" -}}
+Token Ranges: {{ .TokenRanges }}
+{{ end -}}
+{{ if .Host -}}
+Host: {{ .Host }}
+{{ end -}}
+{{ if .WithHosts -}}
+With Hosts:
+{{ range .WithHosts -}}
+  - {{ . }}
+{{ end -}}
+{{ end -}}
+Data Centers:
+{{ range .Dc }}  - {{ . }}
+{{ end -}}
+{{ range .Units }}Keyspace: {{ .Keyspace }}
+{{- if .AllTables }}
+  (all tables)
+{{ else -}}
+{{ range .Tables }}
+  - {{ . }}
+{{ end -}}
+{{- end -}}
+{{ end }}`
+
+// Render implements Renderer interface.
+func (t Target) Render(w io.Writer) error {
+	temp := template.Must(template.New("target").Parse(targetTemplate))
+	return temp.Execute(w, t)
+}
 
 // ExtendedTask is a representation of sched.Task with additional fields from sched.Run.
 type ExtendedTask = models.ExtendedTask

@@ -227,7 +227,7 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 		unit := Unit{
 			Keyspace:  keyspace,
 			Tables:    filteredTables,
-			allTables: len(filteredTables) == len(tables),
+			AllTables: len(filteredTables) == len(tables),
 		}
 
 		units = append(units, unit)

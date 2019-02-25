@@ -15,6 +15,9 @@ import (
 // swagger:model repairUnit
 type RepairUnit struct {
 
+	// all tables
+	AllTables bool `json:"all_tables,omitempty"`
+
 	// keyspace
 	Keyspace string `json:"keyspace,omitempty"`
 

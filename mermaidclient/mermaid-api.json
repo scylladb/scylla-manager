@@ -60,6 +60,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "all_tables": {
+          "type": "boolean"
         }
       }
     },
@@ -349,6 +352,38 @@
           "$ref": "#/definitions/repairProgress"
         }
       }
+    },
+    "repairTarget": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "dc": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "with_hosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "token_ranges": {
+          "type": "string"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/repairUnit"
+          }
+        }
+      }
     }
   },
   "paths": {
@@ -525,6 +560,35 @@
               "Location": {
                 "type": "string"
               }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/tasks/repair/target": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "put": {
+        "parameters": [
+          {
+            "name": "taskFields",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/taskUpdate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repair target",
+            "schema": {
+              "$ref": "#/definitions/repairTarget"
             }
           }
         }
