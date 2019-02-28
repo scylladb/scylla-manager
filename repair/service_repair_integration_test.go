@@ -30,17 +30,13 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Cluster nodes
 const (
 	node0 = 0
 	node1 = 1
 	node2 = 2
 
 	allShards = -1
-
-	_interval = 100 * time.Millisecond
-	now       = 0
-	shortWait = 2 * time.Second
-	longWait  = 20 * time.Second
 )
 
 type repairTestHelper struct {
@@ -75,6 +71,20 @@ func newRepairTestHelper(t *testing.T, session *gocql.Session, c repair.Config) 
 		t: t,
 	}
 }
+
+// WaitCond parameters
+const (
+	// now specifies that condition shall be true in the current state.
+	now = 0
+	// shortWait specifies that condition shall be met in immediate future
+	// such as repair filing on start.
+	shortWait = 4 * time.Second
+	// longWait specifies that condition shall be met after a while, this is
+	// useful for waiting for repair to significantly advance or finish.
+	longWait = 20 * time.Second
+
+	_interval = 100 * time.Millisecond
+)
 
 func (h *repairTestHelper) assertStatus(s runner.Status, wait time.Duration) {
 	h.t.Helper()
@@ -855,7 +865,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 
 		Print("Then: status is StatusError")
-		h.assertStatus(runner.StatusError, longWait) // should be shortWait but becomes flaky
+		h.assertStatus(runner.StatusError, shortWait)
 
 		Print("And: errors are recorded")
 		p, err := h.service.GetProgress(ctx, h.clusterID, h.taskID, h.runID)
