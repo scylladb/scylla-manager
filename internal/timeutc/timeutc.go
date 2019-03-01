@@ -4,10 +4,6 @@ package timeutc
 
 import "time"
 
-const (
-	day = 24 * time.Hour
-)
-
 // Now returns current time in UTC.
 func Now() time.Time {
 	return time.Now().UTC()
@@ -26,5 +22,6 @@ func Since(t time.Time) time.Duration {
 
 // TodayMidnight returns local midnight time in UTC.
 func TodayMidnight() time.Time {
-	return time.Now().AddDate(0, 0, 1).Truncate(day).UTC()
+	t := time.Now().AddDate(0, 0, 1)
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local).UTC()
 }
