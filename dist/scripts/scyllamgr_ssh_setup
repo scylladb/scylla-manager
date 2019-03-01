@@ -17,11 +17,14 @@ CURL_OPTS="-sS -f -o /dev/null"
 MANAGER_USER="scylla-manager"
 MANAGER_IDENTITY_FILE=~/.ssh/scylla-manager.pem
 
+SINGLE_HOST=0
+
 print_usage() {
-    echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] HOST"
+    echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [--single-host] HOST"
     echo "  -u --user			SSH username used to connect to hosts, default ${USER}"
     echo "  -i --identity-file		path to alternate SSH identity file"
     echo "  -c --config-file		path to alternate SSH configuration file, see also man ssh_config"
+    echo "  --single-host			setup the given host only (skip discovery of other nodes)"
     echo "  --debug			display debug info"
 }
 
@@ -38,6 +41,10 @@ while [[ $# > 0 ]]; do
         "-c"|"--config-file")
             SSH_CONFIG_FILE="$2"
             shift 2
+            ;;
+        "--single-host")
+            SINGLE_HOST=1
+            shift 1
             ;;
         "--debug")
             OUTPUT=/dev/stderr
@@ -124,9 +131,12 @@ fi
 
 # Discover cluster topology.
 
-echo "> Discovering cluster topology"
-if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
-    die "failed to access Scylla REST API via ${SSH_USER}${1}"
+HOSTS=$@
+if [[ ${SINGLE_HOST} == 0 ]]; then
+    echo "> Discovering cluster topology"
+    if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
+        die "failed to access Scylla REST API via ${SSH_USER}${1}"
+    fi
 fi
 
 # Load manager SSH public key.
