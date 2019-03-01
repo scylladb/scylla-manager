@@ -15,7 +15,7 @@ SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o
 CURL_OPTS="-sS -f -o /dev/null"
 
 MANAGER_USER="scylla-manager"
-MANAGER_IDENTITY_FILE=""
+MANAGER_IDENTITY_FILE=~/.ssh/scylla-manager.pem
 
 DISCOVER=0
 
@@ -27,8 +27,6 @@ print_usage() {
     echo "  -c --config-file			path to SSH configuration file, see also man ssh_config"
     echo "  -d --discover				use first host to discover and setup all hosts in a cluster"
     echo "  -i --identity-file			path to identity file containing SSH private key"
-    echo "  -m --manager-user			username that will be created and configured on hosts, default ${MANAGER_USER}"
-    echo "  -o --manager-identity-file		path to identity file containing SSH private key for manager username, if there is no such file it will be created"
     echo "  -p --local-port			local port used by the script for SSH testing, default ${API_LOCAL_PORT}"
     echo "  -u --user				SSH username used to connect to hosts"
     echo "  -v --verbose				display debug info"
@@ -46,14 +44,6 @@ while [[ $# > 0 ]]; do
             ;;
         "-i"|"--identity-file")
             SSH_IDENTITY_FILE="$2"
-            shift 2
-            ;;
-        "-m"|"--manager-user")
-            MANAGER_USER="$2"
-            shift 2
-            ;;
-        "-o"|"--manager-identity-file")
-            MANAGER_IDENTITY_FILE="$2"
             shift 2
             ;;
         "-p"|"--local-port")
@@ -98,18 +88,11 @@ if [[ -n "${SSH_CONFIG_FILE}" && (! -f "${SSH_CONFIG_FILE}" || ! -r "${SSH_CONFI
     die "failed to read file ${SSH_CONFIG_FILE}"
 fi
 
-if [[ -z "${MANAGER_USER}" ]]; then
-    die "missing --manager-user"
-fi
-
-if [[ -z "${MANAGER_IDENTITY_FILE}" ]]; then
-    die "missing --manager-identity-file"
-fi
-
 # Create manager SSH key if needed.
 
 if [[ ! -f "${MANAGER_IDENTITY_FILE}" ]]; then
     echo "> Generating SSH key '${MANAGER_IDENTITY_FILE}'"
+    mkdir -p $(dirname ${MANAGER_IDENTITY_FILE})
     if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" &> "${OUTPUT}" && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
         die "failed to generate private key ${MANAGER_IDENTITY_FILE}"
     fi
