@@ -17,41 +17,34 @@ CURL_OPTS="-sS -f -o /dev/null"
 MANAGER_USER="scylla-manager"
 MANAGER_IDENTITY_FILE=~/.ssh/scylla-manager.pem
 
-DISCOVER=0
-
 API_LOCAL_PORT="10010"
 API_REMOTE_PORT="10000"
 
 print_usage() {
-    echo "scyllamgr_ssh_setup -o <path to manager private key> [-m <manager username>] [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [-d] HOST..."
-    echo "  -c --config-file			path to SSH configuration file, see also man ssh_config"
-    echo "  -d --discover				use first host to discover and setup all hosts in a cluster"
-    echo "  -i --identity-file			path to identity file containing SSH private key"
+    echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] HOST"
+    echo "  -u --user				SSH username used to connect to hosts, default ${USER}"
+    echo "  -i --identity-file			path to alternate SSH identity file"
+    echo "  -c --config-file			path to alternate SSH configuration file, see also man ssh_config"
     echo "  -p --local-port			local port used by the script for SSH testing, default ${API_LOCAL_PORT}"
-    echo "  -u --user				SSH username used to connect to hosts"
     echo "  -v --verbose				display debug info"
 }
 
 while [[ $# > 0 ]]; do
     case "$1" in
-        "-c"|"--config-file")
-            SSH_CONFIG_FILE="$2"
+        "-u"|"--user")
+            SSH_USER="$2"
             shift 2
-            ;;
-        "-d"|"--discover")
-            DISCOVER=1
-            shift 1
             ;;
         "-i"|"--identity-file")
             SSH_IDENTITY_FILE="$2"
             shift 2
             ;;
-        "-p"|"--local-port")
-            API_LOCAL_PORT="$2"
+        "-c"|"--config-file")
+            SSH_CONFIG_FILE="$2"
             shift 2
             ;;
-        "-u"|"--user")
-            SSH_USER="$2"
+        "-p"|"--local-port")
+            API_LOCAL_PORT="$2"
             shift 2
             ;;
         "-v"|"--verbose")
@@ -76,8 +69,8 @@ die() {
     exit 1
 }
 
-if [[ $# == 0 ]]; then
-    die "no hosts to setup"
+if [[ $# != 1 ]]; then
+    die "provide IP address of a node in a cluster to setup"
 fi
 
 if [[ -n "${SSH_IDENTITY_FILE}" && (! -f "${SSH_IDENTITY_FILE}" || ! -r "${SSH_IDENTITY_FILE}") ]]; then
@@ -121,19 +114,16 @@ if [[ -n ${SSH_USER} ]]; then
     SSH_USER+="@"
 fi
 
+# Discover cluster topology.
+
+echo "> Discovering cluster topology"
+if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
+    die "failed to access Scylla REST API via ${SSH_USER}${1}"
+fi
+
 # Load manager SSH public key.
 
 MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
-
-# Discover hosts if needed.
-
-HOSTS=$@
-if [[ ${DISCOVER} == 1 ]]; then
-    echo "> Discovering cluster topology"
-    if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
-        die "failed to access Scylla REST API via ${SSH_USER}${1}"
-    fi
-fi
 
 # Distribute SSH keys and create users.
 
@@ -192,7 +182,7 @@ if [[ ${ret} != 0 ]]; then
     echo "> Done with errors, run with --verbose flag to see what failed"
 else
     echo "> Done!"
-    echo "> Continue with: sctool cluster add --host='$1' --ssh-user='${MANAGER_USER}' --ssh-identity-file='${MANAGER_IDENTITY_FILE}'"
+    echo "> If the cluster is not already added, continue with: sctool cluster add --host=$1 --ssh-user=${MANAGER_USER} --ssh-identity-file=${MANAGER_IDENTITY_FILE}"
 fi
 
 exit ${ret}
