@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
@@ -25,7 +26,11 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	session := mermaidtest.CreateSession(t)
 
-	pem, err := ioutil.ReadFile("/tmp/scyllamgr_cluster.pem")
+	p, err := fsutil.ExpandPath("~/.ssh/scylla-manager.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pem, err := ioutil.ReadFile(p)
 	if err != nil {
 		t.Fatal(err)
 	}

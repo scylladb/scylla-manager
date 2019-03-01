@@ -21,11 +21,7 @@ up: ## Start docker containers
 	@echo "==> Installing root SSH key"
 	@./install_root_key
 	@echo "==> Installing scylla-manager SSH key"
-# Gossip is sometimes too slow to discover all hosts at this point, hosts are
-# listed to avoid flakyness
-	@../dist/scripts/scyllamgr_ssh_setup -u root -i /tmp/scyllamgr_root.pem \
-	-m scylla-manager -o /tmp/scyllamgr_cluster.pem \
-	192.168.100.11 192.168.100.12 192.168.100.13 192.168.100.21 192.168.100.22 192.168.100.23
+	@until ../dist/scripts/scyllamgr_ssh_setup -u root -i ~/.ssh/scylla-manager-root.pem 192.168.100.11; do sleep 2; done
 
 .PHONY: down
 down: ## Stop docker containers

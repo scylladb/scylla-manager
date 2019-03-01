@@ -7,7 +7,7 @@ set -eu -o pipefail
 
 SSH_USER="root"
 SSH_PASS="root"
-SSH_IDENTITY_FILE="/tmp/scyllamgr_root.pem"
+SSH_IDENTITY_FILE=~/.ssh/scylla-manager-root.pem
 SSH_OPTS="-o ConnectTimeout=5 -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null"
 
 if [[ ! -f "${SSH_IDENTITY_FILE}" ]]; then
