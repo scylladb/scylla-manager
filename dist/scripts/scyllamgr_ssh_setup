@@ -17,16 +17,12 @@ CURL_OPTS="-sS -f -o /dev/null"
 MANAGER_USER="scylla-manager"
 MANAGER_IDENTITY_FILE=~/.ssh/scylla-manager.pem
 
-API_LOCAL_PORT="10010"
-API_REMOTE_PORT="10000"
-
 print_usage() {
     echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] HOST"
-    echo "  -u --user				SSH username used to connect to hosts, default ${USER}"
-    echo "  -i --identity-file			path to alternate SSH identity file"
-    echo "  -c --config-file			path to alternate SSH configuration file, see also man ssh_config"
-    echo "  -p --local-port			local port used by the script for SSH testing, default ${API_LOCAL_PORT}"
-    echo "  -v --verbose				display debug info"
+    echo "  -u --user			SSH username used to connect to hosts, default ${USER}"
+    echo "  -i --identity-file		path to alternate SSH identity file"
+    echo "  -c --config-file		path to alternate SSH configuration file, see also man ssh_config"
+    echo "  --debug			display debug info"
 }
 
 while [[ $# > 0 ]]; do
@@ -43,12 +39,9 @@ while [[ $# > 0 ]]; do
             SSH_CONFIG_FILE="$2"
             shift 2
             ;;
-        "-p"|"--local-port")
-            API_LOCAL_PORT="$2"
-            shift 2
-            ;;
-        "-v"|"--verbose")
+        "--debug")
             OUTPUT=/dev/stderr
+            CURL_OPTS+=" -v"
             SSH_OPTS+=" -v"
             shift 1
             ;;
@@ -60,6 +53,21 @@ while [[ $# > 0 ]]; do
             break
     esac
 done
+
+function ephemeral_port() {
+    low_bound=49152
+    range=16384
+    while true; do
+        p=$[${low_bound} + (${RANDOM} % ${range})]
+        if ! fuser -s -n tcp ${p}; then
+            echo ${p}
+            break
+        fi
+    done
+}
+
+API_LOCAL_PORT=$(ephemeral_port)
+API_REMOTE_PORT="10000"
 
 # Validate inputs.
 
@@ -160,7 +168,7 @@ done
 echo "> Testing Scylla API connectivity"
 
 if fuser -s -n tcp ${API_LOCAL_PORT}; then
-    die "port ${API_LOCAL_PORT} is used, select a different test port with --local-port flag"
+    die "port ${API_LOCAL_PORT} is used"
 fi
 
 for host in ${HOSTS}; do
@@ -182,7 +190,7 @@ if [[ ${ret} != 0 ]]; then
     echo "> Done with errors, run with --verbose flag to see what failed"
 else
     echo "> Done!"
-    echo "> If the cluster is not already added, continue with: sctool cluster add --host=$1 --ssh-user=${MANAGER_USER} --ssh-identity-file=${MANAGER_IDENTITY_FILE}"
+    echo "> To add a cluster run: sctool cluster add --host=$1 --ssh-user=${MANAGER_USER} --ssh-identity-file=${MANAGER_IDENTITY_FILE}"
 fi
 
 exit ${ret}
