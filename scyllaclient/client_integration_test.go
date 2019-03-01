@@ -109,15 +109,12 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		}
 	}()
 
-	Print("And: wait")
-	time.Sleep(time.Second)
-
 	Print("Then: active repairs reports host 0")
-	active, err = client.ActiveRepairs(context.Background(), hosts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(active, hosts[0:1]); diff != "" {
-		t.Fatal(diff)
-	}
+	WaitCond(t, func() bool {
+		active, err = client.ActiveRepairs(context.Background(), hosts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return cmp.Diff(active, hosts[0:1]) == ""
+	}, 500*time.Millisecond, 4*time.Second)
 }
