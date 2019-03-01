@@ -10,7 +10,7 @@ OUTPUT=/dev/null
 SSH_USER=""
 SSH_IDENTITY_FILE=""
 SSH_CONFIG_FILE=""
-SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no  -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null"
+SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 CURL_OPTS="-sS -f -o /dev/null"
 
