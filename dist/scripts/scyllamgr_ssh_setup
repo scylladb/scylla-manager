@@ -197,7 +197,7 @@ for host in ${HOSTS}; do
 done
 
 if [[ ${ret} != 0 ]]; then
-    echo "> Done with errors, run with --verbose flag to see what failed"
+    echo "> Done with errors, run with --debug flag to see what failed"
 else
     echo "> Done!"
     echo "> To add a cluster run: sctool cluster add --host=$1 --ssh-user=${MANAGER_USER} --ssh-identity-file=${MANAGER_IDENTITY_FILE}"
