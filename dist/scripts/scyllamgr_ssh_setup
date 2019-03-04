@@ -155,10 +155,10 @@ for host in ${HOSTS}; do
 
     # Create system user and group.
     getent group "${MANAGER_USER}"  || /usr/sbin/groupadd -r "${MANAGER_USER}"
-    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s $(command -v nologin) -r "${MANAGER_USER}"
+    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s \$(command -v nologin) -r "${MANAGER_USER}"
 
     # Force change shell
-    chsh -s $(command -v nologin) "${MANAGER_USER}"
+    chsh -s \$(command -v nologin) "${MANAGER_USER}"
 
     # Add public key to authorized_keys.
     mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
