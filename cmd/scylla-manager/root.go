@@ -213,11 +213,6 @@ func tryConnect(config *serverConfig) error {
 }
 
 func createKeyspace(config *serverConfig) error {
-	stmt, err := readKeyspaceTplFile(config)
-	if err != nil {
-		return err
-	}
-
 	c := gocqlConfig(config)
 	c.Keyspace = "system"
 	c.Timeout = config.Database.MigrateTimeout
@@ -228,6 +223,29 @@ func createKeyspace(config *serverConfig) error {
 		return err
 	}
 	defer session.Close()
+
+	// Auto upgrade replication factor if needed. RF=1 with multiple hosts means
+	// data loss when one of the nodes is down. This is understood with a single
+	// node deployment but must be avoided if we have more nodes.
+	if config.Database.ReplicationFactor == 1 {
+		var peers int
+		q := session.Query("SELECT COUNT(*) FROM system.peers")
+		if err := q.Scan(&peers); err != nil {
+			return err
+		}
+		if peers > 0 {
+			rf := peers + 1
+			if rf > 3 {
+				rf = 3
+			}
+			config.Database.ReplicationFactor = rf
+		}
+	}
+
+	stmt, err := readKeyspaceTplFile(config)
+	if err != nil {
+		return err
+	}
 
 	return gocqlx.Query(session.Query(stmt), nil).ExecRelease()
 }
@@ -271,12 +289,16 @@ func migrateSchema(config *serverConfig, logger log.Logger) error {
 func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	c := gocql.NewCluster(config.Database.Hosts...)
 
-	// consistency
-	if config.Database.ReplicationFactor == 1 && config.Database.LocalDC == "" {
+	// Chose consistency level, for a single node deployments use ONE, for
+	// multi-dc deployments use LOCAL_QUORUM, otherwise use QUORUM.
+	if config.Database.LocalDC != "" {
+		c.Consistency = gocql.LocalQuorum
+	} else if config.Database.ReplicationFactor == 1 {
 		c.Consistency = gocql.One
 	} else {
-		c.Consistency = gocql.LocalQuorum
+		c.Consistency = gocql.Quorum
 	}
+
 	c.Keyspace = config.Database.Keyspace
 	c.Timeout = config.Database.Timeout
 
