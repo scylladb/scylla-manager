@@ -302,7 +302,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		close(lock)
 	}()
 
-	s.logger.Info(ctx, "Initialising repair",
+	s.logger.Info(ctx, "Initializing repair",
 		"cluster_id", run.ClusterID,
 		"task_id", run.TaskID,
 		"run_id", run.ID,
@@ -537,7 +537,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 	}
 	for _, p := range prog {
 		if err := s.putRunProgress(ctx, &p); err != nil {
-			return errors.Wrapf(err, "failed to initialise the run progress %v", &p)
+			return errors.Wrapf(err, "failed to initialize the run progress %v", &p)
 		}
 	}
 
