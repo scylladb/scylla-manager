@@ -485,10 +485,11 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 	return false, nil
 }
 
-// KillAllRepairs forces a termination of all repairs running on a host.
+// KillAllRepairs forces a termination of all repairs running on a host, the
+// operation is not retried to avoid side effects of a deferred kill.
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	_, err := c.operations.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
-		Context: forceHost(ctx, host),
+		Context: noRetry(forceHost(ctx, host)),
 	})
 	return err
 }

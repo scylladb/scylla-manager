@@ -156,9 +156,6 @@ func (w *hostWorker) exec(ctx context.Context) error {
 	// join shard workers
 	for range w.shards {
 		if err := <-wch; err != nil {
-			if w.Run.failFast {
-				w.ffabrt.Store(true)
-			}
 			switch errors.Cause(err) {
 			case errStopped:
 				stopped = true
@@ -166,17 +163,23 @@ func (w *hostWorker) exec(ctx context.Context) error {
 				failed = true
 			default:
 				werr = multierr.Append(werr, err)
+				if w.Run.failFast {
+					w.ffabrt.Store(true)
+				}
 			}
 		}
 	}
 	// join metrics updater
 	u.Stop()
 
+	// try killing any remaining repairs
+	killCtx := log.CopyTraceID(context.Background(), ctx)
+	if err := w.Client.KillAllRepairs(killCtx, w.Host); err != nil {
+		w.Logger.Error(killCtx, "Failed to terminate repairs", "error", err)
+	}
+
 	// overwrite error for abort, stop, done with errors
 	switch {
-	case ctx.Err() != nil:
-		w.Logger.Info(ctx, "Repair aborted")
-		werr = errAborted
 	case werr != nil:
 		w.Logger.Info(ctx, "Repair failed")
 	case stopped:
@@ -332,11 +335,6 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			break
 		}
 
-		// run was stopped
-		if w.isStopped(ctx) {
-			return errStopped
-		}
-
 		// fail fast abort triggered, return immediately
 		if w.parent.ffabrt.Load() {
 			return nil
@@ -347,6 +345,10 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		// request segment repair
 		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
+			// repair was stopped
+			if err == errStopped {
+				return err
+			}
 			if err != nil {
 				w.logger.Error(ctx, "Failed to request repair", "error", err)
 				err = errors.Wrap(err, "failed to request repair")
@@ -358,6 +360,10 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		// if requester a repair wait for the command to finish
 		if err == nil {
 			err = w.waitCommand(ctx, id)
+			// repair was stopped
+			if err == errStopped {
+				return err
+			}
 			if err != nil {
 				w.logger.Error(ctx, "Command error", "command", id, "error", err)
 				err = errors.Wrapf(err, "command %d error", id)
@@ -368,15 +374,13 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 
 		// handle errors
 		if err != nil {
-			if w.isStopped(ctx) {
-				return errStopped
-			}
 			ri.OnError()
 			if w.parent.Run.failFast {
 				next()
 				savepoint()
 				return err
 			}
+
 			w.logger.Info(ctx, "Pausing repair due to error", "wait", w.parent.Config.ErrorBackoff)
 			time.Sleep(w.parent.Config.ErrorBackoff)
 		}
@@ -408,17 +412,6 @@ func (w *shardWorker) resetProgress() {
 	w.progress.LastCommandID = 0
 }
 
-func (w *shardWorker) isStopped(ctx context.Context) bool {
-	if ctx.Err() != nil {
-		return true
-	}
-	stopped, err := w.parent.Service.isStopped(ctx, w.parent.Run)
-	if err != nil {
-		w.logger.Error(ctx, "Service error", "error", err)
-	}
-	return stopped
-}
-
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
 	u := w.parent.Run.Units[w.parent.Unit]
 
@@ -433,7 +426,15 @@ func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, err
 	if !u.AllTables {
 		cfg.Tables = u.Tables
 	}
-	return w.parent.Client.Repair(ctx, w.parent.Host, cfg)
+	id, err := w.parent.Client.Repair(ctx, w.parent.Host, cfg)
+
+	if err != nil {
+		if ctx.Err() != nil {
+			return 0, errStopped
+		}
+	}
+
+	return id, err
 }
 
 func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
@@ -454,6 +455,9 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 		case <-t.C:
 			s, err := w.parent.Client.RepairStatus(ctx, w.parent.Host, u.Keyspace, id)
 			if err != nil {
+				if ctx.Err() != nil {
+					return errStopped
+				}
 				return err
 			}
 			switch s {

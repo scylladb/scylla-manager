@@ -32,8 +32,10 @@ type Service struct {
 	config       Config
 	cluster      cluster.ProviderFunc
 	client       scyllaclient.ProviderFunc
-	active       map[uuid.UUID]uuid.UUID // maps cluster ID to active run ID
-	activeMu     sync.Mutex
+	activeRun    map[uuid.UUID]uuid.UUID // maps cluster ID to active run ID
+	activeRunMu  sync.Mutex
+	runCancel    map[uuid.UUID]context.CancelFunc
+	runCancelMu  sync.Mutex
 	workerCtx    context.Context
 	workerCancel context.CancelFunc
 	wg           sync.WaitGroup
@@ -64,7 +66,8 @@ func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp sc
 		config:       c,
 		cluster:      cp,
 		client:       sp,
-		active:       make(map[uuid.UUID]uuid.UUID),
+		activeRun:    make(map[uuid.UUID]uuid.UUID),
+		runCancel:    make(map[uuid.UUID]context.CancelFunc),
 		workerCtx:    ctx,
 		workerCancel: cancel,
 		logger:       l,
@@ -76,33 +79,59 @@ func (s *Service) Runner() runner.Runner {
 	return repairRunner{service: s}
 }
 
-func (s *Service) tryLockCluster(run *Run) error {
-	s.activeMu.Lock()
-	defer s.activeMu.Unlock()
+func (s *Service) tryLockCluster(clusterID, runID uuid.UUID) error {
+	s.activeRunMu.Lock()
+	defer s.activeRunMu.Unlock()
 
-	owner := s.active[run.ClusterID]
+	owner := s.activeRun[clusterID]
 	if owner != uuid.Nil {
 		return errors.Errorf("cluster owned by another run: %s", owner)
 	}
 
-	s.active[run.ClusterID] = run.ID
+	s.activeRun[clusterID] = runID
 	return nil
 }
 
-func (s *Service) unlockCluster(run *Run) error {
-	s.activeMu.Lock()
-	defer s.activeMu.Unlock()
+func (s *Service) unlockCluster(clusterID, runID uuid.UUID) error {
+	s.activeRunMu.Lock()
+	defer s.activeRunMu.Unlock()
 
-	owner := s.active[run.ClusterID]
+	owner := s.activeRun[clusterID]
 	if owner == uuid.Nil {
 		return errors.Errorf("not locked")
 	}
-	if owner != run.ID {
+	if owner != runID {
 		return errors.Errorf("cluster owned by another run: %s", owner)
 	}
 
-	delete(s.active, run.ClusterID)
+	delete(s.activeRun, clusterID)
 	return nil
+}
+
+func (s *Service) newRunContext(ctx context.Context, run *Run) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
+
+	deleteAndCancel := func() {
+		s.runCancelMu.Lock()
+		delete(s.runCancel, run.ID)
+		s.runCancelMu.Unlock()
+		cancel()
+	}
+
+	s.runCancelMu.Lock()
+	s.runCancel[run.ID] = deleteAndCancel
+	s.runCancelMu.Unlock()
+
+	return ctx, deleteAndCancel
+}
+
+func (s *Service) cancelRunContext(runID uuid.UUID) {
+	s.runCancelMu.Lock()
+	cancel, ok := s.runCancel[runID]
+	s.runCancelMu.Unlock()
+	if ok {
+		cancel()
+	}
 }
 
 // GetTarget converts runner properties into repair Target.
@@ -292,13 +321,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	run.clusterName = c.String()
 
 	// make sure no other repairs are being run on that cluster
-	if err := s.tryLockCluster(run); err != nil {
+	if err := s.tryLockCluster(run.ClusterID, run.ID); err != nil {
 		s.logger.Debug(ctx, "Lock error", "error", err)
 		return fail(ErrActiveRepair)
 	}
 	defer func() {
 		if run.Status != runner.StatusRunning {
-			if err := s.unlockCluster(run); err != nil {
+			if err := s.unlockCluster(run.ClusterID, run.ID); err != nil {
 				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
 		}
@@ -405,11 +434,11 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Client) {
 	// Use parent context, so that when worker context is canceled
 	// error is properly saved.
-	repairCtx, cancel := context.WithCancel(log.CopyTraceID(s.workerCtx, ctx))
+	ctx, cancel := s.newRunContext(ctx, run)
 
 	defer func() {
 		cancel()
-		if err := s.unlockCluster(run); err != nil {
+		if err := s.unlockCluster(run.ClusterID, run.ID); err != nil {
 			s.logger.Error(ctx, "Unlock error", "error", err)
 		}
 		s.wg.Done()
@@ -417,7 +446,7 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 
 	run.unitWorkers = make([]unitWorker, len(run.Units))
 	for unit := range run.Units {
-		if err := s.initUnitWorker(repairCtx, run, unit, client); err != nil {
+		if err := s.initUnitWorker(ctx, run, unit, client); err != nil {
 			run.Status = runner.StatusError
 			run.Cause = errors.Wrapf(err, "failed to prepare repair for keyspace %s", run.Units[unit].Keyspace).Error()
 			run.EndTime = timeutc.Now()
@@ -427,23 +456,20 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 	}
 
 	for unit := range run.Units {
-		if err := s.repairUnit(repairCtx, run, unit, client); err != nil {
-			switch errors.Cause(err) {
-			case errAborted:
-				run.Status = runner.StatusAborted
-				run.Cause = "service stopped"
-				run.EndTime = timeutc.Now()
-				s.putRunLogError(ctx, run)
-			case errStopped:
+		if err := s.repairUnit(ctx, run, unit, client); err != nil {
+			if errors.Cause(err) == errStopped {
 				run.Status = runner.StatusStopped
-				run.EndTime = timeutc.Now()
-				s.putRunLogError(ctx, run)
-			default:
+				// service is stopping promote stop to abort
+				if s.workerCtx.Err() != nil {
+					run.Status = runner.StatusAborted
+					run.Cause = "service stopped"
+				}
+			} else {
 				run.Status = runner.StatusError
 				run.Cause = errors.Wrapf(err, "keyspace %s", run.Units[unit].Keyspace).Error()
-				run.EndTime = timeutc.Now()
-				s.putRunLogError(ctx, run)
 			}
+			run.EndTime = timeutc.Now()
+			s.putRunLogError(ctx, run)
 			return
 		}
 	}
@@ -773,6 +799,7 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 		"task_id", taskID,
 		"run_id", runID,
 	)
+	defer s.cancelRunContext(runID)
 
 	r.Status = runner.StatusStopping
 
@@ -780,22 +807,6 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
 
 	return q.ExecRelease()
-}
-
-// isStopped checks if repair is in StatusStopping or StatusStopped.
-func (s *Service) isStopped(ctx context.Context, run *Run) (bool, error) {
-	stmt, names := schema.RepairRun.Get("status")
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(run)
-	if q.Err() != nil {
-		return false, q.Err()
-	}
-
-	var v runner.Status
-	if err := q.Query.Scan(&v); err != nil {
-		return false, err
-	}
-
-	return v == runner.StatusStopping || v == runner.StatusStopped, nil
 }
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing
