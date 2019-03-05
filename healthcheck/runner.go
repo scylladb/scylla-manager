@@ -25,11 +25,17 @@ type healthCheckRunner struct {
 }
 
 // Run implements runner.Runner.
-func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
+func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) (err error) {
 	c, err := r.cluster(ctx, d.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get cluster")
 	}
+
+	defer func() {
+		if err != nil {
+			r.removeAll(c)
+		}
+	}()
 
 	client, err := r.client(ctx, d.ClusterID)
 	if err != nil {
@@ -80,6 +86,21 @@ func (r healthCheckRunner) run(ctx context.Context, hosts []string, c *cluster.C
 			r.rtt.With(l).Set(float64(v.rtt) / 1000000)
 		}
 	}
+}
+
+func (r healthCheckRunner) removeAll(c *cluster.Cluster) {
+	apply(collect(r.status), func(cluster, host string, v float64) {
+		if c.String() != cluster {
+			return
+		}
+
+		l := prometheus.Labels{
+			clusterKey: c.String(),
+			hostKey:    host,
+		}
+		r.status.Delete(l)
+		r.rtt.Delete(l)
+	})
 }
 
 func (r healthCheckRunner) removeDecommissionedHosts(c *cluster.Cluster, hosts []string) {
