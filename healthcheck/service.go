@@ -166,10 +166,10 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 					DC:        dc,
 					Host:      h,
 					SSL:       s.hasTLSConfig(clusterID),
-					APIStatus: apiStatus.status,
-					APIRtt:    apiStatus.rtt,
 					CQLStatus: cqlStatus.status,
 					CQLRtt:    cqlStatus.rtt,
+					APIStatus: apiStatus.status,
+					APIRtt:    apiStatus.rtt,
 				}
 			}(dc, h)
 		}
