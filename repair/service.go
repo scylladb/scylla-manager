@@ -251,6 +251,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"target", t,
 	)
 
+	// Lock is used to make sure that the initialization sequence is finished
+	// before starting the repair go routine. Otherwise code optimizations
+	// caused data races.
+	lock := make(chan struct{})
+
 	run := &Run{
 		ClusterID:   clusterID,
 		TaskID:      taskID,
@@ -293,6 +298,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				s.logger.Error(ctx, "Unlock error", "error", err)
 			}
 		}
+		// "lock" protects "run" so it needs to be closed after finishing usage of "run".
+		close(lock)
 	}()
 
 	s.logger.Info(ctx, "Initialising repair",
@@ -343,12 +350,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err := s.putRun(ctx, run); err != nil {
 		return fail(errors.Wrap(err, "failed to register the run"))
 	}
-
-	// Lock is used to make sure that the initialisation sequence is finished
-	// before starting the repair go routine. Otherwise code optimisations
-	// caused data races.
-	lock := make(chan struct{})
-	defer close(lock)
 
 	// spawn async repair
 	s.wg.Add(1)
