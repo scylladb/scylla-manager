@@ -4,7 +4,9 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 
+	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 )
@@ -27,4 +29,12 @@ func requireFlags(cmd *cobra.Command, flags ...string) {
 			panic(err)
 		}
 	}
+}
+
+func readFile(filename string) ([]byte, error) {
+	f, err := fsutil.ExpandPath(filename)
+	if err != nil {
+		return nil, err
+	}
+	return ioutil.ReadFile(f)
 }

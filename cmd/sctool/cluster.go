@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
@@ -56,7 +55,7 @@ var clusterAddCmd = &cobra.Command{
 			return printableError{errors.New("missing flag \"ssh-user\"")}
 		}
 		if cfgClusterSSHUser != "" && cfgClusterSSHIdentityFile != "" {
-			b, err := ioutil.ReadFile(cfgClusterSSHIdentityFile)
+			b, err := readFile(cfgClusterSSHIdentityFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
@@ -71,13 +70,13 @@ var clusterAddCmd = &cobra.Command{
 			return printableError{errors.New("missing flag \"ssl-user-cert-file\"")}
 		}
 		if cfgClusterSSLUserCertFile != "" {
-			b0, err := ioutil.ReadFile(cfgClusterSSLUserCertFile)
+			b0, err := readFile(cfgClusterSSLUserCertFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
 			c.SslUserCertFile = b0
 
-			b1, err := ioutil.ReadFile(cfgClusterSSLUserKeyFile)
+			b1, err := readFile(cfgClusterSSLUserKeyFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
@@ -139,7 +138,7 @@ var clusterUpdateCmd = &cobra.Command{
 			ok = true
 		}
 		if cmd.Flags().Changed("ssh-identity-file") {
-			b, err := ioutil.ReadFile(cfgClusterSSHIdentityFile)
+			b, err := readFile(cfgClusterSSHIdentityFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
@@ -150,7 +149,7 @@ var clusterUpdateCmd = &cobra.Command{
 			if cfgClusterSSLUserKeyFile == "" {
 				return printableError{errors.New("missing flag \"ssl-user-key-file\"")}
 			}
-			b, err := ioutil.ReadFile(cfgClusterSSLUserCertFile)
+			b, err := readFile(cfgClusterSSLUserCertFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
@@ -161,7 +160,7 @@ var clusterUpdateCmd = &cobra.Command{
 			if cfgClusterSSLUserCertFile == "" {
 				return printableError{errors.New("missing flag \"ssl-user-cert-file\"")}
 			}
-			b, err := ioutil.ReadFile(cfgClusterSSLUserKeyFile)
+			b, err := readFile(cfgClusterSSLUserKeyFile)
 			if err != nil {
 				return printableError{inner: err}
 			}
