@@ -236,6 +236,21 @@ func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
 
+const emptyKeyspace = "test_repair_empty_keyspace"
+
+func emptyUnit() repair.Target {
+	return repair.Target{
+		Units: []repair.Unit{
+			{
+				Keyspace: emptyKeyspace,
+			},
+		},
+		DC:          []string{"dc1"},
+		TokenRanges: repair.DCPrimaryTokenRanges,
+		Opts:        runner.DefaultOpts,
+	}
+}
+
 func singleUnit() repair.Target {
 	return repair.Target{
 		Units: []repair.Unit{
@@ -889,5 +904,46 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if ss > 10*c.SegmentsPerRepair {
 			t.Fatal("got", ss) // sometimes can be 0 or 20
 		}
+	})
+
+	t.Run("repair empty keyspace", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: empty keyspace")
+		createKeyspace(t, clusterSession, emptyKeyspace)
+
+		target := emptyUnit()
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("Then: status is StatusDone")
+		h.assertStatus(runner.StatusDone, shortWait)
+	})
+
+	t.Run("repair non existing keyspace", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: non-existing keyspace")
+
+		target := singleUnit()
+		target.Units[0].Keyspace = "non_existing_keyspace"
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusError")
+		h.assertStatus(runner.StatusError, shortWait)
 	})
 }

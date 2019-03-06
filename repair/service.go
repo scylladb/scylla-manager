@@ -224,6 +224,10 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 			continue
 		}
 
+		if err := validateSubset(filteredTables, tables); err != nil {
+			return nil, mermaid.ErrValidate(errors.Wrap(err, "keyspace %s missing tables"), "invalid unit")
+		}
+
 		unit := Unit{
 			Keyspace:  keyspace,
 			Tables:    filteredTables,
@@ -315,13 +319,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return fail(errors.Wrap(err, "failed to get client proxy"))
 	}
 
-	// validate units
-	for i, u := range run.Units {
-		if err := s.validateUnit(ctx, u, client); err != nil {
-			return fail(errors.Wrapf(err, "unit %d invalid", i))
-		}
-	}
-
 	// get the cluster topology hash
 	run.TopologyHash, err = s.topologyHash(ctx, client)
 	if err != nil {
@@ -358,21 +355,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		<-lock
 		s.repair(ctx, run, client)
 	}()
-
-	return nil
-}
-
-func (s *Service) validateUnit(ctx context.Context, u Unit, client *scyllaclient.Client) error {
-	all, err := client.Tables(ctx, u.Keyspace)
-	if err != nil {
-		return errors.Wrap(err, "failed to get keyspace info")
-	}
-	if len(all) == 0 {
-		return mermaid.ErrValidate(errors.Errorf("empty keyspace %s", u.Keyspace), "invalid unit")
-	}
-	if err := validateSubset(u.Tables, all); err != nil {
-		return mermaid.ErrValidate(errors.Wrap(err, "keyspace %s missing tables"), "invalid unit")
-	}
 
 	return nil
 }
@@ -614,7 +596,6 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 			} else if run.TopologyHash != th {
 				return errors.Errorf("topology changed old hash: %s new hash: %s", run.TopologyHash, th)
 			}
-
 			// run repair on host
 			if err := worker.exec(ctx); err != nil {
 				if errors.Cause(err) == errDoneWithErrors && !run.failFast {
