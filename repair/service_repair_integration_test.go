@@ -939,28 +939,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("repair empty keyspace", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
-		defer h.close()
-		ctx := context.Background()
-
-		Print("Given: empty keyspace")
-		createKeyspace(t, clusterSession, emptyKeyspace)
-
-		target := emptyUnit()
-
-		Print("When: run repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
-			t.Fatal(err)
-		}
-
-		Print("Then: status is StatusRunning")
-		h.assertStatus(runner.StatusRunning, now)
-
-		Print("Then: status is StatusDone")
-		h.assertStatus(runner.StatusDone, shortWait)
-	})
-
 	t.Run("repair non existing keyspace", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
