@@ -15,6 +15,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type logConfig struct {
+	Mode        log.Mode      `yaml:"mode"`
+	Level       zapcore.Level `yaml:"level"`
+	Development bool          `yaml:"development"`
+}
+
 type dbConfig struct {
 	Hosts                         []string      `yaml:"hosts"`
 	SSL                           bool          `yaml:"ssl"`
@@ -44,7 +50,7 @@ type serverConfig struct {
 	TLSKeyFile  string             `yaml:"tls_key_file"`
 	Prometheus  string             `yaml:"prometheus"`
 	Gops        string             `json:"gops"`
-	Logger      log.Config         `yaml:"logger"`
+	Logger      logConfig          `yaml:"logger"`
 	Database    dbConfig           `yaml:"database"`
 	SSL         sslConfig          `yaml:"ssl"`
 	SSH         ssh.Config         `yaml:"ssh"`
@@ -56,9 +62,10 @@ func defaultConfig() *serverConfig {
 	return &serverConfig{
 		Prometheus: ":56090",
 		Gops:       ":56112",
-		Logger: log.Config{
-			Mode:  log.SyslogMode,
-			Level: zapcore.InfoLevel,
+		Logger: logConfig{
+			Mode:        log.SyslogMode,
+			Level:       zapcore.InfoLevel,
+			Development: false,
 		},
 		Database: dbConfig{
 			Keyspace:                      "scylla_manager",

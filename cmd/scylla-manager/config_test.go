@@ -31,7 +31,7 @@ func TestConfigModification(t *testing.T) {
 		TLSKeyFile:  "tls.key",
 		Prometheus:  "127.0.0.1:9090",
 		Gops:        ":56112",
-		Logger: log.Config{
+		Logger: logConfig{
 			Mode:  log.StderrMode,
 			Level: zapcore.DebugLevel,
 		},

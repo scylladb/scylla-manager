@@ -3,6 +3,7 @@ http: 127.0.0.1:56080
 logger:
   mode: stderr
   level: info
+  development: true
 
 database:
   hosts:

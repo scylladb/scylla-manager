@@ -156,6 +156,10 @@ var rootCmd = &cobra.Command{
 }
 
 func logger(config *serverConfig) (log.Logger, error) {
+	if config.Logger.Development {
+		return log.NewDevelopmentWithLevel(config.Logger.Level), nil
+	}
+
 	if config.Logger.Mode != log.StderrMode {
 		f, err := redirectStdErrAndStdOutToFile()
 		if err != nil {
@@ -164,7 +168,10 @@ func logger(config *serverConfig) (log.Logger, error) {
 		defer f.Close()
 	}
 
-	return log.NewProduction(config.Logger)
+	return log.NewProduction(log.Config{
+		Mode:  config.Logger.Mode,
+		Level: config.Logger.Level,
+	})
 }
 
 func redirectStdErrAndStdOutToFile() (*os.File, error) {
