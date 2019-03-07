@@ -344,6 +344,7 @@ func decorateKeyspaceFilters(filters []string) []string {
 	}
 
 	filters = append(filters, "!system.*")
+	filters = append(filters, "!system_schema.*")
 
 	return filters
 }

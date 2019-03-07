@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/mermaid/internal/dht"
+	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
@@ -546,30 +547,31 @@ func TestDecorateFilters(t *testing.T) {
 	}{
 		{
 			F: []string{},
-			E: []string{"*.*", "!system.*"},
+			E: []string{"*.*", "!system.*", "!system_schema.*"},
 		},
 		{
 			F: []string{"*"},
-			E: []string{"*.*", "!system.*"},
+			E: []string{"*.*", "!system.*", "!system_schema.*"},
 		},
 		{
 			F: []string{"kalle"},
-			E: []string{"kalle.*", "!system.*"},
+			E: []string{"kalle.*", "!system.*", "!system_schema.*"},
 		},
 		{
 			F: []string{"kalle*"},
-			E: []string{"kalle*.*", "!system.*"},
+			E: []string{"kalle*.*", "!system.*", "!system_schema.*"},
 		},
 		{
 			F: []string{"*kalle"},
-			E: []string{"*kalle.*", "!system.*"},
+			E: []string{"*kalle.*", "!system.*", "!system_schema.*"},
 		},
 		{
 			F: []string{"kalle.*"},
-			E: []string{"kalle.*", "!system.*"},
-		}, {
+			E: []string{"kalle.*", "!system.*", "!system_schema.*"},
+		},
+		{
 			F: []string{"*kalle.*"},
-			E: []string{"*kalle.*", "!system.*"},
+			E: []string{"*kalle.*", "!system.*", "!system_schema.*"},
 		},
 	}
 
@@ -578,5 +580,27 @@ func TestDecorateFilters(t *testing.T) {
 		if !cmp.Equal(test.E, f, cmpopts.EquateEmpty()) {
 			t.Error(i, "expected", test.E, "got", f)
 		}
+	}
+}
+
+func TestFilterSystemKeyspaces(t *testing.T) {
+	systemTables := []string{
+		"system.peers",
+		"system_auth.roles",
+		"system_distributed.view_build_status",
+		"system_schema.columns",
+		"system_traces.events",
+	}
+	nonLocalSystemTables := []string{
+		"system_auth.roles",
+		"system_distributed.view_build_status",
+		"system_traces.events",
+	}
+	l, err := inexlist.ParseInExList(decorateKeyspaceFilters(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(l.Filter(systemTables), nonLocalSystemTables); diff != "" {
+		t.Fatal(diff)
 	}
 }
