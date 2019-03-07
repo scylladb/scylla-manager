@@ -434,7 +434,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Client) {
 	// Use parent context, so that when worker context is canceled
 	// error is properly saved.
-	ctx, cancel := s.newRunContext(ctx, run)
+	runCtx, cancel := s.newRunContext(ctx, run)
 
 	defer func() {
 		cancel()
@@ -446,7 +446,7 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 
 	run.unitWorkers = make([]unitWorker, len(run.Units))
 	for unit := range run.Units {
-		if err := s.initUnitWorker(ctx, run, unit, client); err != nil {
+		if err := s.initUnitWorker(runCtx, run, unit, client); err != nil {
 			run.Status = runner.StatusError
 			run.Cause = errors.Wrapf(err, "failed to prepare repair for keyspace %s", run.Units[unit].Keyspace).Error()
 			run.EndTime = timeutc.Now()
@@ -456,7 +456,7 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 	}
 
 	for unit := range run.Units {
-		if err := s.repairUnit(ctx, run, unit, client); err != nil {
+		if err := s.repairUnit(runCtx, run, unit, client); err != nil {
 			if errors.Cause(err) == errStopped {
 				run.Status = runner.StatusStopped
 				// service is stopping promote stop to abort
