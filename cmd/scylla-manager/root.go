@@ -77,9 +77,7 @@ var rootCmd = &cobra.Command{
 		// create logger
 		logger, err := logger(config)
 		if err != nil {
-			runError = errors.Wrapf(err, "logger")
-			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
-			return
+			return errors.Wrapf(err, "logger")
 		}
 		defer func() {
 			if runError != nil {
