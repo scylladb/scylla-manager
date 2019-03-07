@@ -107,12 +107,21 @@ func newScyllaConnPicker(conn *Conn) *scyllaConnPicker {
 func (p *scyllaConnPicker) Remove(conn *Conn) {
 	s := parseSupported(conn.supported)
 	if s.nrShards == 0 {
-		panic(fmt.Sprintf("scylla: %s not a sharded connection", conn.Address()))
+		// It is possible for Remove to be called before the connection is added to the pool.
+		// Ignoring these connections here is safe.
+		if gocqlDebug {
+			Logger.Printf("scylla: %s has unknown sharding state, ignoring it", conn.Address())
+		}
+		return
 	}
 	if gocqlDebug {
 		Logger.Printf("scylla: %s remove shard %d connection", conn.Address(), s.shard)
 	}
-	p.conns[s.shard] = nil
+
+	if p.conns[s.shard] != nil {
+		p.conns[s.shard] = nil
+		p.nrConns--
+	}
 }
 
 func (p *scyllaConnPicker) Close() {

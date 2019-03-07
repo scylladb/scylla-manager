@@ -68,7 +68,7 @@
 [[constraint]]
   name = "github.com/gocql/gocql"
   source = "git@github.com:scylladb/gocql.git"
-  version = "1.0.0"
+  version = "1.0.1"
 
 [[constraint]]
   name = "github.com/google/go-cmp"
