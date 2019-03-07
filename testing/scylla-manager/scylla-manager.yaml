@@ -13,3 +13,4 @@ database:
 
 repair:
   segments_per_repair: 10
+  error_backoff: 5s
