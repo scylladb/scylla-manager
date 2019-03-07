@@ -245,16 +245,16 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 		}
 
 		filteredTables := inclExcl.Filter(tables)
-		for i := 0; i < len(filteredTables); i++ {
-			filteredTables[i] = strings.TrimPrefix(filteredTables[i], prefix)
-		}
-
 		if len(filteredTables) == 0 {
 			continue
 		}
 
 		if err := validateSubset(filteredTables, tables); err != nil {
-			return nil, mermaid.ErrValidate(errors.Wrap(err, "keyspace %s missing tables"), "invalid unit")
+			return nil, mermaid.ErrValidate(errors.Wrapf(err, "keyspace %s missing tables", keyspace), "invalid unit")
+		}
+
+		for i := 0; i < len(filteredTables); i++ {
+			filteredTables[i] = strings.TrimPrefix(filteredTables[i], prefix)
 		}
 
 		unit := Unit{
