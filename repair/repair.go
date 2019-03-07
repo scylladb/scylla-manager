@@ -283,25 +283,34 @@ func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
 func sortUnits(units []Unit, inclExcl inexlist.InExList) {
 	positions := make(map[string]int)
 	for _, u := range units {
-		if p := inclExcl.FirstMatch(u.Keyspace); p >= 0 {
-			positions[u.Keyspace] = p
-		} else {
-			positions[u.Keyspace] = inclExcl.Size()
+		min := inclExcl.Size()
+		for _, t := range u.Tables {
+			if p := inclExcl.FirstMatch(u.Keyspace + "." + t); p >= 0 && p < min {
+				min = p
+			}
 		}
+		positions[u.Keyspace] = min
 	}
 
-	sort.SliceStable(units, func(i, j int) bool {
-		h1 := xxhash.Sum64String(units[i].Keyspace)
-		h2 := xxhash.Sum64String(units[j].Keyspace)
-		return h1 > h2
-	})
-
-	if len(positions) == 0 {
-		return
-	}
-
-	sort.SliceStable(units, func(i, j int) bool {
-		return positions[units[i].Keyspace] < positions[units[j].Keyspace]
+	sort.Slice(units, func(i, j int) bool {
+		// order by position
+		if positions[units[i].Keyspace] < positions[units[j].Keyspace] {
+			return true
+		} else if positions[units[i].Keyspace] > positions[units[j].Keyspace] {
+			return false
+		} else {
+			// promote system keyspaces
+			l := strings.HasPrefix(units[i].Keyspace, "system")
+			r := strings.HasPrefix(units[j].Keyspace, "system")
+			if l && !r {
+				return true
+			} else if !l && r {
+				return false
+			} else {
+				// order by name
+				return units[i].Keyspace < units[j].Keyspace
+			}
+		}
 	})
 }
 
