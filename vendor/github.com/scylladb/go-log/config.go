@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/syslog"
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -67,10 +68,24 @@ func NewProduction(c Config) (Logger, error) {
 		zap.AddCallerSkip(2),
 	}
 
+	cfg := zapcore.EncoderConfig{
+		// Keys can be anything except the empty string.
+		TimeKey:        "T",
+		LevelKey:       "L",
+		NameKey:        "N",
+		CallerKey:      "C",
+		MessageKey:     "M",
+		StacktraceKey:  "S",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+
 	var core zapcore.Core
 	switch c.Mode {
 	case StderrMode:
-		cfg := zap.NewProductionEncoderConfig()
 		core = zapcore.NewCore(
 			zapcore.NewJSONEncoder(cfg),
 			zapcore.Lock(os.Stderr),
@@ -83,7 +98,6 @@ func NewProduction(c Config) (Logger, error) {
 		}
 
 		// ignore level and time as they will be logged by syslog
-		cfg := zap.NewProductionEncoderConfig()
 		cfg.LevelKey = ""
 		cfg.TimeKey = ""
 
@@ -109,7 +123,14 @@ func NewDevelopment() Logger {
 // logs to standard error in a human-friendly format.
 func NewDevelopmentWithLevel(level zapcore.Level) Logger {
 	cfg := zap.NewDevelopmentConfig()
+	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	cfg.EncoderConfig.EncodeTime = shortTimeEncoder
+	cfg.EncoderConfig.CallerKey = ""
 	cfg.Level.SetLevel(level)
-	l, _ := cfg.Build(zap.AddCallerSkip(2))
+	l, _ := cfg.Build()
 	return Logger{base: l}
+}
+
+func shortTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format("15:04:05.000"))
 }
