@@ -382,7 +382,16 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			}
 
 			w.logger.Info(ctx, "Pausing repair due to error", "wait", w.parent.Config.ErrorBackoff)
-			time.Sleep(w.parent.Config.ErrorBackoff)
+			w.updateProgress(ctx)
+			w.updateMetrics()
+			t := time.NewTimer(w.parent.Config.ErrorBackoff)
+			select {
+			case <-ctx.Done():
+				t.Stop()
+				return errStopped
+			case <-t.C:
+				// continue
+			}
 		}
 
 		// reset command id and move on

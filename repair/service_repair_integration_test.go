@@ -571,6 +571,39 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStatus(runner.StatusStopped, shortWait)
 	})
 
+	t.Run("repair stop while backoff", func(t *testing.T) {
+		c := defaultConfig()
+		c.ErrorBackoff = 1000 * longWait
+		h := newRepairTestHelper(t, session, c)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, singleUnit()); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: repair of node0 advances")
+		h.assertProgress(0, node0, 1, shortWait)
+
+		Print("And: error occurs")
+		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+
+		Print("And: backoff kicks in")
+		time.Sleep(shortWait)
+
+		Print("And: stop repair")
+		if err := h.service.StopRepair(ctx, h.clusterID, h.taskID, h.runID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusStopping")
+		h.assertStatus(runner.StatusStopping, now)
+
+		Print("And: status is StatusStopped")
+		h.assertStatus(runner.StatusStopped, shortWait)
+	})
+
 	t.Run("repair restart", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		defer h.close()
