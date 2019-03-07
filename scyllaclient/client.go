@@ -181,18 +181,7 @@ func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var v []string
-	for _, s := range resp.Payload {
-		// ignore system tables on old Scylla versions
-		// see https://github.com/scylladb/scylla/issues/1380
-		if !strings.HasPrefix(s, "system") {
-			v = append(v, s)
-		}
-	}
-	sort.Strings(v)
-
-	return v, nil
+	return resp.Payload, nil
 }
 
 // DescribeRing returns a description of token range of a given keyspace.

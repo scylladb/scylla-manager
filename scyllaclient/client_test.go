@@ -54,7 +54,7 @@ func TestClientKeyspaces(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []string{"test_repair", "test_scylla_manager"}
+	expected := []string{"test_repair", "system_traces", "system_schema", "system", "test_scylla_manager"}
 	if diff := cmp.Diff(v, expected); diff != "" {
 		t.Fatal(diff)
 	}
