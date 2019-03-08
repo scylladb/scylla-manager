@@ -268,6 +268,24 @@ func TestGroupSegmentsByHost(t *testing.T) {
 				},
 			},
 		},
+		{
+			N:  "PrimaryTokenRanges with RF3 from all DCs",
+			R:  rf3,
+			DC: "",
+			K:  PrimaryTokenRanges,
+			S: map[string]segments{
+				"172.16.1.3": {
+					{9165301526494284802, 9190445181212206709},
+				},
+				"172.16.1.20": {
+					{9142565851149460331, 9143747749498840635},
+				},
+				"172.16.1.10": {
+					{dht.Murmur3MinToken, 9121190935171762434},
+					{9138850273782950336, dht.Murmur3MaxToken},
+				},
+			},
+		},
 	}
 
 	for _, test := range table {

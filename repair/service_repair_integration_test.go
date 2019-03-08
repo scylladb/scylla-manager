@@ -236,21 +236,6 @@ func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
 
-const emptyKeyspace = "test_repair_empty_keyspace"
-
-func emptyUnit() repair.Target {
-	return repair.Target{
-		Units: []repair.Unit{
-			{
-				Keyspace: emptyKeyspace,
-			},
-		},
-		DC:          []string{"dc1"},
-		TokenRanges: repair.DCPrimaryTokenRanges,
-		Opts:        runner.DefaultOpts,
-	}
-}
-
 func singleUnit() repair.Target {
 	return repair.Target{
 		Units: []repair.Unit{
@@ -411,6 +396,67 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: cause is no matching DCs")
 		h.assertCause("no matching DCs", now)
+	})
+
+	t.Run("repair simple strategy multi dc", func(t *testing.T) {
+		systemAuthUnit := repair.Target{
+			Units: []repair.Unit{
+				{
+					Keyspace: "system_auth",
+				},
+			},
+			DC:          []string{"dc1"},
+			TokenRanges: repair.DCPrimaryTokenRanges,
+			Opts:        runner.DefaultOpts,
+		}
+
+		const (
+			node3 = 3
+			node4 = 4
+			node5 = 5
+		)
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, systemAuthUnit); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: status is StatusRunning")
+		h.assertStatus(runner.StatusRunning, now)
+
+		Print("And: repair of node0 advances")
+		h.assertProgress(0, node0, 1, shortWait)
+
+		Print("When: node0 is 100% repaired")
+		h.assertProgress(0, node0, 100, longWait)
+
+		Print("Then: repair of node1 advances")
+		h.assertProgress(0, node1, 1, shortWait)
+
+		Print("When: node1 is 100% repaired")
+		h.assertProgress(0, node1, 100, longWait)
+
+		Print("Then: repair of node2 advances")
+		h.assertProgress(0, node2, 1, shortWait)
+
+		Print("When: node2 is 100% repaired")
+		h.assertProgress(0, node2, 100, longWait)
+
+		Print("When: node3 is 100% repaired")
+		h.assertProgress(0, node3, 100, longWait)
+
+		Print("When: node4 is 100% repaired")
+		h.assertProgress(0, node4, 100, longWait)
+
+		Print("When: node5 is 100% repaired")
+		h.assertProgress(0, node5, 100, longWait)
+
+		Print("Then: status is StatusDone")
+		h.assertStatus(runner.StatusDone, shortWait)
 	})
 
 	t.Run("repair host", func(t *testing.T) {

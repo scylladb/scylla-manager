@@ -497,16 +497,40 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 	}
 	ksDCs := ring.Datacenters()
 
-	dc, err := s.resolveDC(ctx, client, *u, run, ksDCs)
-	if err != nil {
-		return err
-	}
-	u.CoordinatorDC = dc // would be persisted by caller
 	u.hosts = s.repairedHosts(run, ring)
 	u.allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
 
 	// get hosts and segments to repair
-	hostSegments := groupSegmentsByHost(dc, run.Host, run.WithHosts, run.TokenRanges, ring)
+	var hostSegments map[string]segments
+
+	if ring.Replication == scyllaclient.SimpleStrategy && len(ksDCs) > 1 {
+		s.logger.Info(ctx, "SimpleStrategy replication strategy detected, conciser changing to NetworkTopologyStrategy",
+			"keyspace", u.Keyspace,
+		)
+
+		// downgrade DCPrimaryTokenRanges to PrimaryTokenRanges since there is
+		// no coordinator DC
+		tr := run.TokenRanges
+		if tr == DCPrimaryTokenRanges {
+			tr = PrimaryTokenRanges
+		}
+		hostSegments = groupSegmentsByHost("", run.Host, run.WithHosts, tr, ring)
+
+		if !u.allDCs {
+			s.logger.Info(ctx, "SimpleStrategy replication strategy with DC filtering may result in not all tokens being repaired in selected DCs ignoring DC filtering",
+				"keyspace", u.Keyspace,
+			)
+		}
+	} else {
+		// get coordinator DC
+		dc, err := s.resolveDC(ctx, client, *u, run, ksDCs)
+		if err != nil {
+			return err
+		}
+		u.CoordinatorDC = dc
+
+		hostSegments = groupSegmentsByHost(dc, run.Host, run.WithHosts, run.TokenRanges, ring)
+	}
 
 	var prog []RunProgress
 	if run.prevProg != nil {

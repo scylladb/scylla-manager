@@ -70,7 +70,7 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 			}
 		}
 
-		// select replicas from dc based on token kind
+		// select replicas based on token kind
 		hosts := strset.New()
 		switch tr {
 		case DCPrimaryTokenRanges:
@@ -81,22 +81,11 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 				}
 			}
 		case PrimaryTokenRanges:
-			h := t.Replicas[0]
-			if ring.HostDC[h] == dc {
-				hosts.Add(h)
-			}
+			hosts.Add(t.Replicas[0])
 		case NonPrimaryTokenRanges:
-			for _, h := range t.Replicas[1:] {
-				if ring.HostDC[h] == dc {
-					hosts.Add(h)
-				}
-			}
+			hosts.Add(t.Replicas[1:]...)
 		case AllTokenRanges:
-			for _, h := range t.Replicas {
-				if ring.HostDC[h] == dc {
-					hosts.Add(h)
-				}
-			}
+			hosts.Add(t.Replicas...)
 		default:
 			panic("no token ranges specified") // this should never happen...
 		}
@@ -108,6 +97,16 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 			} else {
 				continue
 			}
+		}
+
+		// filter replicas by dc (if needed)
+		if dc != "" {
+			hosts.Each(func(item string) bool {
+				if ring.HostDC[item] != dc {
+					hosts.Remove(item)
+				}
+				return true
+			})
 		}
 
 		// create and add segments for every host
