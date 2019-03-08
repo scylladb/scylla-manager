@@ -19,10 +19,21 @@ const (
 	Murmur3Partitioner = "org.apache.cassandra.dht.Murmur3Partitioner"
 )
 
+// ReplicationStrategy specifies type of a keyspace replication strategy.
+type ReplicationStrategy string
+
+// Replication strategies
+const (
+	LocalStrategy           = "org.apache.cassandra.locator.LocalStrategy"
+	SimpleStrategy          = "org.apache.cassandra.locator.SimpleStrategy"
+	NetworkTopologyStrategy = "org.apache.cassandra.locator.NetworkTopologyStrategy"
+)
+
 // Ring describes token ring of a keyspace.
 type Ring struct {
-	Tokens []TokenRange
-	HostDC map[string]string
+	Tokens      []TokenRange
+	HostDC      map[string]string
+	Replication ReplicationStrategy
 }
 
 // Datacenters returs a list of datacenters the keyspace is replicated in.

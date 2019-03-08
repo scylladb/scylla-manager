@@ -26,6 +26,7 @@ import (
 	"github.com/hailocab/go-hostpool" // shipped with gocql
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient/internal/client/operations"
 	"go.uber.org/multierr"
@@ -198,6 +199,7 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 		Tokens: make([]TokenRange, len(resp.Payload)),
 		HostDC: map[string]string{},
 	}
+	dcTokens := make(map[string]int)
 
 	for i, p := range resp.Payload {
 		// parse tokens
@@ -215,6 +217,28 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 		// update host to dc mapping
 		for _, e := range p.EndpointDetails {
 			ring.HostDC[e.Host] = e.Datacenter
+		}
+
+		// update DC token mertics
+		dcs := strset.New()
+		for _, e := range p.EndpointDetails {
+			if !dcs.Has(e.Datacenter) {
+				dcTokens[e.Datacenter]++
+				dcs.Add(e.Datacenter)
+			}
+		}
+	}
+
+	// detect replication strategy
+	if len(ring.HostDC) == 1 {
+		ring.Replication = LocalStrategy
+	} else {
+		ring.Replication = NetworkTopologyStrategy
+		for _, tokens := range dcTokens {
+			if tokens != len(ring.Tokens) {
+				ring.Replication = SimpleStrategy
+				break
+			}
 		}
 	}
 

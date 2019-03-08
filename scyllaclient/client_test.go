@@ -104,6 +104,49 @@ func TestClientDescribeRing(t *testing.T) {
 	}
 }
 
+func TestClientDescribeRingReplicationStrategy(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		N string
+		F string
+		S ReplicationStrategy
+	}{
+		{
+			N: "local",
+			F: "testdata/storage_service_describe_ring_system.json",
+			S: LocalStrategy,
+		},
+		{
+			N: "simple",
+			F: "testdata/storage_service_describe_ring_system_auth.json",
+			S: SimpleStrategy,
+		},
+		{
+			N: "network",
+			F: "testdata/storage_service_describe_ring_test_keyspace_dc2_rf2.json",
+			S: NetworkTopologyStrategy,
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.N, func(t *testing.T) {
+			t.Parallel()
+			s := mockServer(t, test.F)
+			defer s.Close()
+			c := testClient(s)
+
+			ring, err := c.DescribeRing(context.Background(), "scylla_manager")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ring.Replication != test.S {
+				t.Fatal(ring.Replication)
+			}
+		})
+	}
+}
+
 func TestClientDatacenters(t *testing.T) {
 	t.Parallel()
 
