@@ -20,6 +20,7 @@ type Unit struct {
 	CoordinatorDC string   `json:"-"`
 	AllTables     bool     `json:"all_tables"`
 
+	// helper fields added initUnitWorker
 	hosts  []string
 	allDCs bool
 }

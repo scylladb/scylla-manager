@@ -222,11 +222,11 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 		return nil, err
 	}
 
-	c, err := s.client(ctx, clusterID)
+	client, err := s.client(ctx, clusterID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get client")
 	}
-	keyspaces, err := c.Keyspaces(ctx)
+	keyspaces, err := client.Keyspaces(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read keyspaces")
 	}
@@ -234,9 +234,9 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 	var units []Unit
 
 	for _, keyspace := range keyspaces {
-		tables, err := c.Tables(ctx, keyspace)
+		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read table for keyspace %s", keyspace)
+			return nil, errors.Wrapf(err, "keyspace %s: failed to get tables", keyspace)
 		}
 
 		prefix := keyspace + "."
@@ -245,25 +245,33 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 		}
 
 		filteredTables := inclExcl.Filter(tables)
+
+		// no data, skip the keyspace
 		if len(filteredTables) == 0 {
 			continue
-		}
-
-		if err := validateSubset(filteredTables, tables); err != nil {
-			return nil, mermaid.ErrValidate(errors.Wrapf(err, "keyspace %s missing tables", keyspace), "invalid unit")
 		}
 
 		for i := 0; i < len(filteredTables); i++ {
 			filteredTables[i] = strings.TrimPrefix(filteredTables[i], prefix)
 		}
 
-		unit := Unit{
+		// get the ring description
+		ring, err := client.DescribeRing(ctx, keyspace)
+		if err != nil {
+			return nil, errors.Wrapf(err, "keyspace %s: failed to get ring description", keyspace)
+		}
+
+		// local data, skip the keyspace
+		if ring.Replication == scyllaclient.LocalStrategy {
+			continue
+		}
+
+		u := Unit{
 			Keyspace:  keyspace,
 			Tables:    filteredTables,
 			AllTables: len(filteredTables) == len(tables),
 		}
-
-		units = append(units, unit)
+		units = append(units, u)
 	}
 
 	if len(units) == 0 {
@@ -480,22 +488,22 @@ func (s *Service) repair(ctx context.Context, run *Run, client *scyllaclient.Cli
 }
 
 func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
-	u := run.Units[unit]
+	u := &run.Units[unit] // pointer to modify the unit
 
-	// get the ring description
+	// get the ring description if needed
 	ring, err := client.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the ring description")
 	}
 	ksDCs := ring.Datacenters()
 
-	dc, err := s.resolveDC(ctx, client, u, run, ksDCs)
+	dc, err := s.resolveDC(ctx, client, *u, run, ksDCs)
 	if err != nil {
 		return err
 	}
-	run.Units[unit].CoordinatorDC = dc // would be persisted by caller
-	run.Units[unit].hosts = s.repairedHosts(run, ring)
-	run.Units[unit].allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
+	u.CoordinatorDC = dc // would be persisted by caller
+	u.hosts = s.repairedHosts(run, ring)
+	u.allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
 
 	// get hosts and segments to repair
 	hostSegments := groupSegmentsByHost(dc, run.Host, run.WithHosts, run.TokenRanges, ring)

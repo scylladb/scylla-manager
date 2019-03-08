@@ -348,40 +348,6 @@ func TestValidateShardProgress(t *testing.T) {
 	}
 }
 
-func TestValidateSubset(t *testing.T) {
-	t.Parallel()
-
-	table := []struct {
-		T   []string
-		A   []string
-		Err string
-	}{
-		{},
-		{
-			A: []string{"A", "B", "C", "D"},
-		},
-		{
-			T: []string{"A", "B"},
-			A: []string{"A", "B", "C", "D"},
-		},
-		{
-			T:   []string{"A", "B"},
-			A:   []string{"A", "_", "C", "D"},
-			Err: "[B]",
-		},
-	}
-
-	for _, test := range table {
-		msg := ""
-		if err := validateSubset(test.T, test.A); err != nil {
-			msg = err.Error()
-		}
-		if diff := cmp.Diff(msg, test.Err); diff != "" {
-			t.Error(diff)
-		}
-	}
-}
-
 func TestTopologyHash(t *testing.T) {
 	t.Parallel()
 
@@ -547,31 +513,31 @@ func TestDecorateFilters(t *testing.T) {
 	}{
 		{
 			F: []string{},
-			E: []string{"*.*", "!system.*", "!system_schema.*"},
+			E: []string{"*.*"},
 		},
 		{
 			F: []string{"*"},
-			E: []string{"*.*", "!system.*", "!system_schema.*"},
+			E: []string{"*.*"},
 		},
 		{
 			F: []string{"kalle"},
-			E: []string{"kalle.*", "!system.*", "!system_schema.*"},
+			E: []string{"kalle.*"},
 		},
 		{
 			F: []string{"kalle*"},
-			E: []string{"kalle*.*", "!system.*", "!system_schema.*"},
+			E: []string{"kalle*.*"},
 		},
 		{
 			F: []string{"*kalle"},
-			E: []string{"*kalle.*", "!system.*", "!system_schema.*"},
+			E: []string{"*kalle.*"},
 		},
 		{
 			F: []string{"kalle.*"},
-			E: []string{"kalle.*", "!system.*", "!system_schema.*"},
+			E: []string{"kalle.*"},
 		},
 		{
 			F: []string{"*kalle.*"},
-			E: []string{"*kalle.*", "!system.*", "!system_schema.*"},
+			E: []string{"*kalle.*"},
 		},
 	}
 
@@ -580,28 +546,6 @@ func TestDecorateFilters(t *testing.T) {
 		if !cmp.Equal(test.E, f, cmpopts.EquateEmpty()) {
 			t.Error(i, "expected", test.E, "got", f)
 		}
-	}
-}
-
-func TestFilterSystemKeyspaces(t *testing.T) {
-	systemTables := []string{
-		"system.peers",
-		"system_auth.roles",
-		"system_distributed.view_build_status",
-		"system_schema.columns",
-		"system_traces.events",
-	}
-	nonLocalSystemTables := []string{
-		"system_auth.roles",
-		"system_distributed.view_build_status",
-		"system_traces.events",
-	}
-	l, err := inexlist.ParseInExList(decorateKeyspaceFilters(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(l.Filter(systemTables), nonLocalSystemTables); diff != "" {
-		t.Fatal(diff)
 	}
 }
 

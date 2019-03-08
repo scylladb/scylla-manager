@@ -164,24 +164,6 @@ func validateShardProgress(shards []segments, prog []*RunProgress) error {
 	return nil
 }
 
-// validateSubset checks if sub is a subset of all, if not returns error with
-// diff information.
-func validateSubset(sub []string, all []string) error {
-	if len(sub) == 0 {
-		return nil
-	}
-
-	s := strset.New(sub...)
-	for _, t := range all {
-		s.Remove(t)
-	}
-	if !s.IsEmpty() {
-		return errors.New(s.String())
-	}
-
-	return nil
-}
-
 // topologyHash returns hash of all the tokens.
 func topologyHash(tokens []int64) uuid.UUID {
 	var (
@@ -351,9 +333,6 @@ func decorateKeyspaceFilters(filters []string) []string {
 			filters[i] += ".*"
 		}
 	}
-
-	filters = append(filters, "!system.*")
-	filters = append(filters, "!system_schema.*")
 
 	return filters
 }
