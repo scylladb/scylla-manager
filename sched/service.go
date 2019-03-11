@@ -88,7 +88,7 @@ func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (
 		cluster: cp,
 		logger:  l,
 
-		cronCtx: log.WithTraceID(context.Background()),
+		cronCtx: log.WithNewTraceID(context.Background()),
 		runners: make(map[TaskType]runner.Runner),
 		tasks:   make(map[uuid.UUID]cancelableTrigger),
 		closed:  false,
@@ -175,7 +175,7 @@ func (s *Service) schedTask(ctx context.Context, now time.Time, t *Task) {
 		return
 	}
 
-	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
+	triggerCtx, cancel := context.WithCancel(log.WithNewTraceID(s.cronCtx))
 	doneCh := make(chan struct{})
 	timer := time.AfterFunc(activation.Sub(now), func() { s.execTrigger(triggerCtx, t, doneCh) })
 
@@ -374,7 +374,7 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts runner.Opts) erro
 		return errors.New("scheduler closed, please check the server status and logs")
 	}
 
-	triggerCtx, cancel := context.WithCancel(log.WithTraceID(s.cronCtx))
+	triggerCtx, cancel := context.WithCancel(log.WithNewTraceID(s.cronCtx))
 	triggerCtx = runner.WithOpts(triggerCtx, opts)
 	doneCh := make(chan struct{})
 

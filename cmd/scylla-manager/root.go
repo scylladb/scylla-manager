@@ -72,7 +72,7 @@ var rootCmd = &cobra.Command{
 		defer agent.Close()
 
 		// get a base context
-		ctx := log.WithTraceID(context.Background())
+		ctx := log.WithNewTraceID(context.Background())
 
 		// create logger
 		logger, err := logger(config)
