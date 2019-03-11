@@ -90,6 +90,7 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 
 	var (
 		extraFields int
+		extra       []zapcore.Field
 		trace       *zapcore.Field
 		ok          bool
 	)
@@ -99,6 +100,8 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 		if ok {
 			extraFields++
 		}
+		extra = Fields(ctx)
+		extraFields += len(extra)
 	}
 
 	if len(keyvals)+extraFields == 0 {
@@ -115,6 +118,10 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 		} else {
 			fields = append(fields, zap.Any(keyStr, val))
 		}
+	}
+
+	if len(extra) > 0 {
+		fields = append(fields, extra...)
 	}
 
 	if trace != nil {

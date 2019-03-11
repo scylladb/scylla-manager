@@ -19,6 +19,11 @@ func WithTraceID(ctx context.Context) context.Context {
 		return ctx
 	}
 
+	return WithNewTraceID(ctx)
+}
+
+// WithNewTraceID returns a new context with a random trace ID.
+func WithNewTraceID(ctx context.Context) context.Context {
 	v := zap.String("_trace_id", newTraceID())
 	return context.WithValue(ctx, ctxTraceID, &v)
 }
