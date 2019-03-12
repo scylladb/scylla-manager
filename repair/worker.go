@@ -138,7 +138,8 @@ func (w *hostWorker) exec(ctx context.Context) error {
 				if i >= len(w.shards) {
 					return
 				}
-				wch <- errors.Wrapf(w.shards[i].exec(ctx), "shard %d", i)
+				shardCtx := log.WithFields(ctx, "host", w.Host, "shard", i)
+				wch <- errors.Wrapf(w.shards[i].exec(shardCtx), "shard %d", i)
 			}
 		}()
 	}
