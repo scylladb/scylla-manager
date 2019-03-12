@@ -11,7 +11,8 @@ import (
 
 // Logger logs messages.
 type Logger struct {
-	base *zap.Logger
+	base       *zap.Logger
+	baseFields []zapcore.Field
 }
 
 // NewLogger creates a new logger backed by a zap.Logger.
@@ -36,7 +37,9 @@ func (l Logger) With(keyvals ...interface{}) Logger {
 	if l.base == nil {
 		return l
 	}
-	return Logger{base: l.base.With(l.zapify(context.Background(), keyvals)...)}
+	fields := l.zapify(context.Background(), keyvals)
+	baseFields := append(l.baseFields, fields...)
+	return Logger{base: l.base.With(fields...), baseFields: baseFields}
 }
 
 // Sync flushes any buffered log entries. Applications should take care to call
@@ -109,24 +112,46 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 	}
 
 	fields := make([]zapcore.Field, 0, len(keyvals)/2+extraFields)
-	for i := 0; i < len(keyvals); i += 2 {
-		// Consume this value and the next, treating them as a key-value pair.
-		key, val := keyvals[i], keyvals[i+1]
-		if keyStr, ok := key.(string); !ok {
-			l.base.DPanic("key not a string", zap.Any("key", key))
-			break
-		} else {
-			fields = append(fields, zap.Any(keyStr, val))
-		}
-	}
 
 	if len(extra) > 0 {
-		fields = append(fields, extra...)
+		// Exclude fields that are set by calling With on logger.
+		for i := range extra {
+			if containsKey(l.baseFields, extra[i].Key) > -1 {
+				continue
+			}
+			fields = append(fields, extra[i])
+		}
 	}
 
 	if trace != nil {
 		fields = append(fields, *trace)
 	}
 
+	for i := 0; i < len(keyvals); i += 2 {
+		// Consume this value and the next, treating them as a key-value pair.
+		key, val := keyvals[i], keyvals[i+1]
+
+		if keyStr, ok := key.(string); !ok {
+			l.base.DPanic("key not a string", zap.Any("key", key))
+			break
+		} else {
+			j := containsKey(fields, keyStr)
+			if j > -1 {
+				fields[j] = zap.Any(keyStr, val)
+				continue
+			}
+			fields = append(fields, zap.Any(keyStr, val))
+		}
+	}
+
 	return fields
+}
+
+func containsKey(fields []zapcore.Field, key string) int {
+	for i := range fields {
+		if fields[i].Key == key {
+			return i
+		}
+	}
+	return -1
 }
