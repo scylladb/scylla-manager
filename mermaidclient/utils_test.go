@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -54,34 +53,6 @@ func TestUUIDFromLocation(t *testing.T) {
 	}
 	if u1 != u0 {
 		t.Fatal(u1, u0)
-	}
-}
-
-func TestDumpMap(t *testing.T) {
-	table := []struct {
-		M map[string]interface{}
-		S string
-	}{
-		// Empty
-		{
-			S: "",
-		},
-		// Single element
-		{
-			M: map[string]interface{}{"a": "b"},
-			S: "a:b",
-		},
-		// Multiple elements
-		{
-			M: map[string]interface{}{"a": "b", "c": "d"},
-			S: "a:b, c:d",
-		},
-	}
-
-	for i, test := range table {
-		if diff := cmp.Diff(dumpMap(test.M), test.S); diff != "" {
-			t.Error(i, diff)
-		}
 	}
 }
 

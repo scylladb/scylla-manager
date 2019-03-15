@@ -348,6 +348,8 @@ var taskProgressCmd = &cobra.Command{
 			return printableError{err}
 		}
 
+		rp.Task = t
+
 		return render(w, rp)
 	},
 }

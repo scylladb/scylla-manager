@@ -101,7 +101,8 @@ type ExtendedTasks struct {
 
 // Render renders ExtendedTasks in a tabular format.
 func (et ExtendedTasks) Render(w io.Writer) error {
-	p := table.New("task", "next run", "ret.", "properties", "status")
+	p := table.New("task", "next run", "ret.", "arguments", "status")
+	p.LimitColumnLength(3)
 	for _, t := range et.ExtendedTaskSlice {
 		id := fmt.Sprint(t.Type, "/", t.ID)
 		if et.All && !t.Enabled {
@@ -111,8 +112,13 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 		if t.Schedule.Interval != "" {
 			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
 		}
-		s := t.Status
-		p.AddRow(id, r, formatRetries(t.Schedule.NumRetries, t.Failures), dumpMap(t.Properties.(map[string]interface{})), s)
+		pr := NewCmdRenderer(&Task{
+			ClusterID:  t.ClusterID,
+			Type:       t.Type,
+			Schedule:   t.Schedule,
+			Properties: t.Properties,
+		}, RenderTypeArgs).String()
+		p.AddRow(id, r, t.Schedule.NumRetries, pr, t.Status)
 	}
 	fmt.Fprint(w, p)
 	return nil
@@ -143,6 +149,7 @@ func (tr TaskRunSlice) Render(w io.Writer) error {
 // RepairProgress contains shard progress info.
 type RepairProgress struct {
 	*models.TaskRunRepairProgress
+	Task     *Task
 	Detailed bool
 
 	hostFilter     inexlist.InExList
@@ -234,7 +241,8 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-var progressTemplate = `{{ with .Run }}Status:		{{ .Status }}
+var progressTemplate = `Arguments:	{{ arguments }}
+{{ with .Run }}Status:		{{ .Status }}
 {{- if .Cause }}
 Cause:		{{ .Cause }}
 {{- end }}
@@ -264,8 +272,14 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"FormatTime":     FormatTime,
 		"FormatDuration": FormatDuration,
 		"FormatProgress": FormatProgress,
+		"arguments":      rp.arguments,
 	}).Parse(progressTemplate))
 	return temp.Execute(w, rp)
+}
+
+// arguments return task arguments that task was created with.
+func (rp RepairProgress) arguments() string {
+	return NewCmdRenderer(rp.Task, RenderTypeArgs).String()
 }
 
 func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {

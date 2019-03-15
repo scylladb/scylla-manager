@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"path"
-	"sort"
 	"strings"
 	"time"
 
@@ -138,22 +137,4 @@ func formatRetries(numRetries, failures int64) string {
 		rem = 0
 	}
 	return fmt.Sprintf("%d/%d", rem, numRetries)
-}
-
-func dumpMap(m map[string]interface{}) string {
-	if len(m) == 0 {
-		return ""
-	}
-
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	s := make([]string, 0, len(m))
-	for _, k := range keys {
-		s = append(s, fmt.Sprint(k, ":", m[k]))
-	}
-	return strings.Join(s, ", ")
 }
