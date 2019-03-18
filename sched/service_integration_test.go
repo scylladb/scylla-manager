@@ -315,6 +315,74 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(ctx, task, runner.StatusError)
 	})
 
+	t.Run("closed service stops the task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		m := descriptorMatcher{}
+		e := h.runner.EXPECT()
+		gomock.InOrder(
+			// run
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).AnyTimes(),
+			// stop
+			e.Stop(gomock.Any(), m).Return(nil).Return(errors.New("runner stop error")),
+			e.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil),
+			e.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil),
+		)
+
+		Print("When: task is scheduled")
+		task := h.makeTask(sched.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, runner.StatusRunning)
+
+		Print("When: service is closed")
+		h.service.Close()
+
+		Print("Then: task stops")
+		h.assertStatus(ctx, task, runner.StatusStopped)
+	})
+
+	t.Run("closed service stops the task when runner is erroring", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		m := descriptorMatcher{}
+		e := h.runner.EXPECT()
+		gomock.InOrder(
+			// run
+			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
+			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).AnyTimes(),
+			// stop
+			e.Stop(gomock.Any(), m).Return(nil).Return(errors.New("runner stop error")),
+			e.Status(gomock.Any(), m).Return(runner.Status(""), "", errors.New("runner status error")).AnyTimes(),
+		)
+
+		Print("When: task is scheduled")
+		task := h.makeTask(sched.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, runner.StatusRunning)
+
+		Print("When: service is closed")
+		h.service.Close()
+
+		Print("Then: Close finishes")
+	})
+
 	testReschedule := func(status runner.Status) func(t *testing.T) {
 		return func(t *testing.T) {
 			h := newSchedTestHelper(t, session)

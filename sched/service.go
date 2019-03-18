@@ -37,6 +37,10 @@ var (
 	}, []string{"cluster", "type", "task", "status"})
 )
 
+// runnerFailureLimit is the number of status updates that scheduler is going
+// to send to the runner before runner is considered to be down.
+const runnerFailureLimit = 10
+
 func init() {
 	prometheus.MustRegister(
 		taskActiveCount,
@@ -317,6 +321,11 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 		"run_id", run.ID,
 	)
 
+	// FIXME: This is a temporary workaround for issues related to abusing
+	// context and context cancellation in scheduler, to be removed with
+	// https://github.com/scylladb/mermaid/issues/935
+	var runnerFailures int
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -334,8 +343,14 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 			curStatus, cause, err := s.taskRunner(t).Status(ctx, run.Descriptor())
 			if err != nil {
 				logger.Error(ctx, "Failed to get task status", "error", err)
+				runnerFailures++
+				if runnerFailures == runnerFailureLimit {
+					logger.Error(ctx, "Failed to get runner status", "failures", runnerFailures)
+					return
+				}
 				continue
 			}
+			runnerFailures = 0
 			switch curStatus {
 			case runner.StatusDone, runner.StatusStopped, runner.StatusError, runner.StatusAborted:
 				run.Status = curStatus

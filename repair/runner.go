@@ -32,7 +32,7 @@ func (r repairRunner) Stop(ctx context.Context, d runner.Descriptor) error {
 func (r repairRunner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
 	run, err := r.service.GetRun(ctx, d.ClusterID, d.TaskID, d.RunID)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to load run")
+		return runner.StatusError, "", errors.Wrap(err, "failed to load run")
 	}
 	return run.Status, run.Cause, nil
 }
