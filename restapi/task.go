@@ -40,7 +40,7 @@ type SchedService interface {
 type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
-	GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties) (repair.Target, error)
+	GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties, force bool) (repair.Target, error)
 }
 
 type taskHandler struct {
@@ -216,7 +216,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties)
+	t, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false)
 	if err != nil {
 		respondError(w, r, err, "failed to get target")
 		return
@@ -237,7 +237,15 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if newTask.Type == sched.RepairTask {
-		if _, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
+		force := false
+		if f := r.FormValue("force"); f != "" {
+			force, err = strconv.ParseBool(r.FormValue("force"))
+			if err != nil {
+				respondBadRequest(w, r, err)
+				return
+			}
+		}
+		if _, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
 			respondError(w, r, err, "failed to create repair target")
 			return
 		}

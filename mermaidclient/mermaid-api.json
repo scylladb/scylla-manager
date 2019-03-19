@@ -551,6 +551,12 @@
             "schema": {
               "$ref": "#/definitions/taskUpdate"
             }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "type": "boolean",
+            "required": false
           }
         ],
         "responses": {

@@ -174,12 +174,16 @@ func (c *Client) GetTarget(ctx context.Context, clusterID string, t *Task) (*Tar
 }
 
 // CreateTask creates a new task.
-func (c *Client) CreateTask(ctx context.Context, clusterID string, t *Task) (uuid.UUID, error) {
-	resp, err := c.operations.PostClusterClusterIDTasks(&operations.PostClusterClusterIDTasksParams{
+func (c *Client) CreateTask(ctx context.Context, clusterID string, t *Task, force bool) (uuid.UUID, error) {
+	params := &operations.PostClusterClusterIDTasksParams{
 		Context:    ctx,
 		ClusterID:  clusterID,
 		TaskFields: makeTaskUpdate(t),
-	})
+	}
+	if force {
+		params.Force = &force
+	}
+	resp, err := c.operations.PostClusterClusterIDTasks(params)
 	if err != nil {
 		return uuid.Nil, err
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 
@@ -66,6 +67,8 @@ type PostClusterClusterIDTasksParams struct {
 
 	/*ClusterID*/
 	ClusterID string
+	/*Force*/
+	Force *bool
 	/*TaskFields*/
 	TaskFields *models.TaskUpdate
 
@@ -118,6 +121,17 @@ func (o *PostClusterClusterIDTasksParams) SetClusterID(clusterID string) {
 	o.ClusterID = clusterID
 }
 
+// WithForce adds the force to the post cluster cluster ID tasks params
+func (o *PostClusterClusterIDTasksParams) WithForce(force *bool) *PostClusterClusterIDTasksParams {
+	o.SetForce(force)
+	return o
+}
+
+// SetForce adds the force to the post cluster cluster ID tasks params
+func (o *PostClusterClusterIDTasksParams) SetForce(force *bool) {
+	o.Force = force
+}
+
 // WithTaskFields adds the taskFields to the post cluster cluster ID tasks params
 func (o *PostClusterClusterIDTasksParams) WithTaskFields(taskFields *models.TaskUpdate) *PostClusterClusterIDTasksParams {
 	o.SetTaskFields(taskFields)
@@ -140,6 +154,22 @@ func (o *PostClusterClusterIDTasksParams) WriteToRequest(r runtime.ClientRequest
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
 		return err
+	}
+
+	if o.Force != nil {
+
+		// query param force
+		var qrForce bool
+		if o.Force != nil {
+			qrForce = *o.Force
+		}
+		qForce := swag.FormatBool(qrForce)
+		if qForce != "" {
+			if err := r.SetQueryParam("force", qForce); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if o.TaskFields != nil {

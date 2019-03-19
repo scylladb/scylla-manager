@@ -135,7 +135,7 @@ func (s *Service) cancelRunContext(runID uuid.UUID) {
 }
 
 // GetTarget converts runner properties into repair Target.
-func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties) (Target, error) {
+func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties, force bool) (Target, error) {
 	tp := taskProperties{
 		TokenRanges: DCPrimaryTokenRanges,
 		FailFast:    false,
@@ -173,6 +173,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 	t.Units, err = s.getUnits(ctx, clusterID, tp.Keyspace)
 	if err != nil {
 		return t, err
+	}
+
+	if len(t.Units) == 0 && !force {
+		return t, mermaid.ErrValidate(errors.Errorf("no matching units found for filters, ks=%s", tp.Keyspace), "")
 	}
 
 	return t, nil
@@ -272,10 +276,6 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 			AllTables: len(filteredTables) == len(tables),
 		}
 		units = append(units, u)
-	}
-
-	if len(units) == 0 {
-		return nil, mermaid.ErrValidate(errors.Errorf("no matching units found for filters, ks=%s", filters), "")
 	}
 
 	sortUnits(units, inclExcl)

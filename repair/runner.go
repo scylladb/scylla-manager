@@ -15,7 +15,7 @@ type repairRunner struct {
 
 // Run implements runner.Runner.
 func (r repairRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) error {
-	t, err := r.service.GetTarget(ctx, d.ClusterID, p)
+	t, err := r.service.GetTarget(ctx, d.ClusterID, p, false)
 	if err != nil {
 		return errors.Wrap(err, "failed to load units")
 	}
