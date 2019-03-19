@@ -214,6 +214,9 @@ func (rp RepairProgress) addRepairProgressHeader(t *table.Table) {
 func (rp RepairProgress) addNotStartedHeader(t *table.Table) {
 	run := rp.Run
 	t.AddRow("Status", run.Status)
+	if run.Cause != "" {
+		t.AddRow("Cause", run.Cause)
+	}
 	t.AddRow("Duration", "0s")
 	t.AddRow("Progress", FormatPercent(0))
 }

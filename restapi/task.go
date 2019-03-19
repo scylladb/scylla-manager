@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched"
@@ -383,10 +384,7 @@ type taskRunProgress struct {
 func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 
-	var (
-		prog taskRunProgress
-		err  error
-	)
+	var prog taskRunProgress
 
 	if p := chi.URLParam(r, "run_id"); p == "latest" {
 		runs, err := h.schedSvc.GetLastRun(r.Context(), t, 1)
@@ -420,10 +418,18 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 
 	switch t.Type {
 	case sched.RepairTask:
-		prog.Progress, err = h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+		rp, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+		// Ignoring ErrNotFound because progress can have task runs without repair progress recorded.
+		// If we can't find any repair progress reference then just return what we have (prog.Run).
+		// prog.Progress is assigned separately to force nil on the returned value instead of an empty object.
+		// This is required for correct JSON representation and detection if Progress is empty.
 		if err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to load tak %q repair run progress", t.ID))
-			return
+			if err != mermaid.ErrNotFound {
+				respondError(w, r, err, fmt.Sprintf("failed to load task %q repair run progress", t.ID))
+				return
+			}
+		} else {
+			prog.Progress = rp
 		}
 	default:
 		respondBadRequest(w, r, errors.Errorf("unsupported task type %s", t.Type))
