@@ -332,6 +332,22 @@ var taskProgressCmd = &cobra.Command{
 			return printableError{err}
 		}
 
+		hf, err := cmd.Flags().GetStringSlice("host")
+		if err != nil {
+			return printableError{err}
+		}
+		if err := rp.SetHostFilter(hf); err != nil {
+			return printableError{err}
+		}
+
+		kf, err := cmd.Flags().GetStringSlice("keyspace")
+		if err != nil {
+			return printableError{err}
+		}
+		if err := rp.SetKeyspaceFilter(kf); err != nil {
+			return printableError{err}
+		}
+
 		return render(w, rp)
 	},
 }
@@ -343,5 +359,7 @@ func init() {
 
 	fs := cmd.Flags()
 	fs.Bool("details", false, "show detailed progress")
+	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace glob patterns to filter progress details by")
+	fs.StringSlice("host", nil, "comma-separated `list` of host glob patterns to filter progress details by")
 	fs.String("run", "", "show progress of a particular run, see sctool task history")
 }

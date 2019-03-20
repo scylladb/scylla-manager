@@ -7,6 +7,7 @@ import (
 	"io"
 	"text/template"
 
+	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/mermaidclient/table"
 )
@@ -142,7 +143,57 @@ func (tr TaskRunSlice) Render(w io.Writer) error {
 // RepairProgress contains shard progress info.
 type RepairProgress struct {
 	*models.TaskRunRepairProgress
-	Detailed bool
+	Detailed   bool
+
+	hostFilter     inexlist.InExList
+	keyspaceFilter inexlist.InExList
+}
+
+// SetHostFilter adds filtering rules used for rendering for host details.
+func (rp *RepairProgress) SetHostFilter(filters []string) (err error) {
+	rp.hostFilter, err = inexlist.ParseInExList(filters)
+	return
+}
+
+// SetKeyspaceFilter adds filtering rules used for rendering for keyspace details.
+func (rp *RepairProgress) SetKeyspaceFilter(filters []string) (err error) {
+	rp.keyspaceFilter, err = inexlist.ParseInExList(filters)
+	return
+}
+
+// hideUnit returns true if unit data doesn't match host and keyspace filters.
+// This includes keyspaces that don't have references to filtered hosts.
+func (rp RepairProgress) hideUnit(u *models.RepairProgressUnitsItems0) bool {
+	if u == nil {
+		return true
+	}
+
+	if rp.hostFilter.Size() > 0 {
+		match := false
+		for _, n := range u.Nodes {
+			if rp.hostFilter.FirstMatch(n.Host) != -1 {
+				match = true
+				break
+			}
+		}
+		if !match {
+			return true
+		}
+	}
+
+	if rp.keyspaceFilter.Size() > 0 {
+		if rp.keyspaceFilter.FirstMatch(u.Unit.Keyspace) == -1 {
+			return true
+		}
+	}
+	return false
+}
+
+func (rp RepairProgress) hideHost(host string) bool {
+	if rp.hostFilter.Size() > 0 {
+		return rp.hostFilter.FirstMatch(host) == -1
+	}
+	return false
 }
 
 // Render renders *RepairProgress in a tabular format.
@@ -161,11 +212,16 @@ func (rp RepairProgress) Render(w io.Writer) error {
 
 	if rp.Progress != nil && rp.Detailed {
 		d := table.New()
-		for i, u := range rp.Progress.Units {
-			if i > 0 {
+		addSeparator := false
+		for _, u := range rp.Progress.Units {
+			if rp.hideUnit(u) {
+				continue
+			}
+			if addSeparator {
 				d.AddSeparator()
 			}
 			d.AddRow(u.Unit.Keyspace, "shard", "progress", "segment_count", "segment_success", "segment_error")
+			addSeparator = true
 			if len(u.Nodes) > 0 {
 				d.AddSeparator()
 				rp.addRepairUnitDetailedProgress(d, u)
@@ -214,12 +270,18 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 
 func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {
 	for _, u := range rp.Progress.Units {
+		if rp.hideUnit(u) {
+			continue
+		}
 		t.AddRow(u.Unit.Keyspace, FormatProgress(u.PercentComplete, u.PercentFailed))
 	}
 }
 
 func (rp RepairProgress) addRepairUnitDetailedProgress(t *table.Table, u *RepairUnitProgress) {
 	for _, n := range u.Nodes {
+		if rp.hideHost(n.Host) {
+			continue
+		}
 		for i, s := range n.Shards {
 			t.AddRow(n.Host, i, FormatProgress(s.PercentComplete, s.PercentFailed), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
 		}
