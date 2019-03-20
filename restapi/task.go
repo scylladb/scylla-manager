@@ -111,6 +111,7 @@ type extendedTask struct {
 	StartTime      *time.Time    `json:"start_time,omitempty"`
 	EndTime        *time.Time    `json:"end_time,omitempty"`
 	NextActivation *time.Time    `json:"next_activation,omitempty"`
+	Failures       int           `json:"failures,omitempty"`
 }
 
 func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
@@ -170,9 +171,12 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			}
 			e.EndTime = runs[0].EndTime
 		}
-		if a := t.Sched.NextActivation(timeutc.Now(), runs); a.After(timeutc.Now()) {
+		now := timeutc.Now()
+		if a := t.Sched.NextActivation(now, runs); a.After(now) {
 			e.NextActivation = &a
 		}
+
+		e.Failures = t.Sched.ConsecutiveErrorCount(runs, now)
 
 		hist = append(hist, e)
 	}

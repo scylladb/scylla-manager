@@ -281,6 +281,9 @@
         "next_activation": {
           "type": "string",
           "format": "date-time"
+        },
+        "failures": {
+          "type": "integer"
         }
       }
     },

@@ -30,6 +30,9 @@ type ExtendedTask struct {
 	// Format: date-time
 	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
+	// failures
+	Failures int64 `json:"failures,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 

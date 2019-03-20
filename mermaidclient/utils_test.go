@@ -147,6 +147,10 @@ func TestParseStartDate(t *testing.T) {
 	}
 }
 
+func truncateToSecond(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, t.Location())
+}
+
 func TestFormatTimeZero(t *testing.T) {
 	if s := FormatTime(strfmt.DateTime(time.Time{})); s != "" {
 		t.Error(s)
@@ -161,6 +165,49 @@ func TestFormatTimeNonZero(t *testing.T) {
 	}
 }
 
-func truncateToSecond(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, t.Location())
+func TestFormatRetries(t *testing.T) {
+	table := []struct {
+		N string
+		R int64
+		F int64
+		E string
+	}{
+		{
+			N: "no retries zero failures",
+			R: 0,
+			F: 0,
+			E: "0",
+		},
+		{
+			N: "no retries with failures",
+			R: 0,
+			F: 10,
+			E: "0",
+		},
+		{
+			N: "retries one failure",
+			R: 3,
+			F: 1,
+			E: "3/3",
+		},
+		{
+			N: "retries failures",
+			R: 3,
+			F: 2,
+			E: "2/3",
+		},
+		{
+			N: "retries multiple failures",
+			R: 3,
+			F: 10,
+			E: "0/3",
+		},
+	}
+	for _, test := range table {
+		t.Run(test.N, func(t *testing.T) {
+			if v := formatRetries(test.R, test.F); v != test.E {
+				t.Error(v)
+			}
+		})
+	}
 }

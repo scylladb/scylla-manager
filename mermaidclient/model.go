@@ -114,7 +114,7 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 		if t.Cause != "" {
 			s += " " + t.Cause
 		}
-		p.AddRow(id, r, t.Schedule.NumRetries, dumpMap(t.Properties.(map[string]interface{})), s)
+		p.AddRow(id, r, formatRetries(t.Schedule.NumRetries, t.Failures), dumpMap(t.Properties.(map[string]interface{})), s)
 	}
 	fmt.Fprint(w, p)
 	return nil

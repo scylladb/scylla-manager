@@ -219,3 +219,49 @@ func TestSchedNextActivation(t *testing.T) {
 		}
 	}
 }
+
+func TestConsecutiveErrorCount(t *testing.T) {
+	now := timeutc.Now()
+	t0 := now.AddDate(0, 0, -1)
+	t1 := now.Add(-15 * time.Minute)
+
+	table := []struct {
+		N   string
+		S   Schedule
+		R   []*Run
+		E   int
+	}{
+		{
+			"counting no running errors",
+			makeSchedule(t0, 0, 3),
+			makeHistory(t1, runner.StatusDone, runner.StatusAborted),
+			0,
+		},
+		{
+			"counting running errors",
+			makeSchedule(t0, 0, 3),
+			makeHistory(t1, runner.StatusDone, runner.StatusError, runner.StatusError),
+			2,
+		},
+		{
+			"counting running errors after threshold",
+			makeSchedule(t0, 10*time.Minute, 3),
+			makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
+			2,
+		},
+		{
+			"counting no runs",
+			makeSchedule(t0, 10*time.Minute, 3),
+			nil,
+			0,
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.N, func(t *testing.T) {
+			if got := test.S.ConsecutiveErrorCount(test.R, now); got != test.E {
+				t.Errorf("got %d, expects %d", got, test.E)
+			}
+		})
+	}
+}
