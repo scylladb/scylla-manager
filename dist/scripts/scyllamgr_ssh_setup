@@ -15,16 +15,16 @@ SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o
 CURL_OPTS="-sS -f -o /dev/null"
 
 MANAGER_USER="scylla-manager"
-SINGLE_HOST=0
+SINGLE_NODE=0
 
 print_usage() {
-    echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [--create-user <username>] [--single-host] HOST"
-    echo "  -u --ssh-user			SSH username used to connect to the cluster nodes, must be a sudo enabled user"
-    echo "  -i --ssh-identity-file	path to identity file containing SSH private key"
-    echo "  -c --config-file		path to alternate SSH configuration file, see man ssh_config"
-    echo "  --create-user			username that will be created on the cluster nodes, default ${MANAGER_USER}"
-    echo "  --single-host			setup the given host only (skip discovery of other nodes)"
-    echo "  --debug			display debug info"
+    echo "scyllamgr_ssh_setup [--ssh-user <username>] [--ssh-identity-file <path to private key>] [--ssh-config-file <path to SSH config file>] [--create-user <username>] [--single-node] [--debug] SCYLLA_NODE_IP"
+    echo "  -u --ssh-user <username>		username used to connect to Scylla nodes, must be a sudo enabled user"
+    echo "  -i --ssh-identity-file <file>		path to SSH identity file (private key) for user"
+    echo "  -c --ssh-config-file <file>		path to alternate SSH configuration file, see man ssh_config"
+    echo "     --create-user <username>		username that will be created on Scylla nodes, default ${MANAGER_USER}"
+    echo "     --single-node			setup the given node only, skip discovery of all the cluster nodes"
+    echo "     --debug				display debug info"
 }
 
 while [[ $# > 0 ]]; do
@@ -37,7 +37,7 @@ while [[ $# > 0 ]]; do
             SSH_IDENTITY_FILE="$2"
             shift 2
             ;;
-        "-c"|"--config-file")
+        "-c"|"--ssh-config-file")
             SSH_CONFIG_FILE="$2"
             shift 2
             ;;
@@ -45,8 +45,8 @@ while [[ $# > 0 ]]; do
             MANAGER_USER=$2
             shift 2
             ;;
-        "--single-host")
-            SINGLE_HOST=1
+        "--single-node")
+            SINGLE_NODE=1
             shift 1
             ;;
         "--debug")
@@ -141,7 +141,7 @@ fi
 # Discover cluster topology.
 
 HOSTS=$@
-if [[ ${SINGLE_HOST} == 0 ]]; then
+if [[ ${SINGLE_NODE} == 0 ]]; then
     echo "> Discovering cluster topology"
     if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
         die "failed to access Scylla REST API via ${SSH_USER}${1}"
@@ -209,7 +209,7 @@ if [[ ${ret} != 0 ]]; then
     echo "> Done with errors, run with --debug flag to see what failed"
 else
     echo "> Done!"
-    echo "> To add a cluster run: sctool cluster add --host=$1 --ssh-user=${MANAGER_USER} --ssh-identity-file=${MANAGER_IDENTITY_FILE}"
+    echo "> To add a cluster run: sctool cluster add --host $1 --ssh-user '${MANAGER_USER}' --ssh-identity-file '${MANAGER_IDENTITY_FILE}'"
 fi
 
 exit ${ret}
