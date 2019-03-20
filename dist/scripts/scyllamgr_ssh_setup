@@ -15,15 +15,14 @@ SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o
 CURL_OPTS="-sS -f -o /dev/null"
 
 MANAGER_USER="scylla-manager"
-MANAGER_IDENTITY_FILE=~/.ssh/scylla-manager.pem
-
 SINGLE_HOST=0
 
 print_usage() {
-    echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [--single-host] HOST"
-    echo "  -u --ssh-user			SSH username used to connect to the cluster nodes, this must be a sudo enabled user"
+    echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [--create-user <username>] [--single-host] HOST"
+    echo "  -u --ssh-user			SSH username used to connect to the cluster nodes, must be a sudo enabled user"
     echo "  -i --ssh-identity-file	path to identity file containing SSH private key"
-    echo "  -c --config-file		path to alternate SSH configuration file, see also man ssh_config"
+    echo "  -c --config-file		path to alternate SSH configuration file, see man ssh_config"
+    echo "  --create-user			username that will be created on the cluster nodes, default ${MANAGER_USER}"
     echo "  --single-host			setup the given host only (skip discovery of other nodes)"
     echo "  --debug			display debug info"
 }
@@ -40,6 +39,10 @@ while [[ $# > 0 ]]; do
             ;;
         "-c"|"--config-file")
             SSH_CONFIG_FILE="$2"
+            shift 2
+            ;;
+        "--create-user")
+            MANAGER_USER=$2
             shift 2
             ;;
         "--single-host")
@@ -96,7 +99,13 @@ if [[ -n "${SSH_CONFIG_FILE}" && (! -f "${SSH_CONFIG_FILE}" || ! -r "${SSH_CONFI
     die "failed to read file ${SSH_CONFIG_FILE}"
 fi
 
+if [[ -z "${MANAGER_USER}" ]]; then
+    die "empty new user provided"
+fi
+
 # Create manager SSH key if needed.
+
+MANAGER_IDENTITY_FILE=~/.ssh/${MANAGER_USER}.pem
 
 if [[ ! -f "${MANAGER_IDENTITY_FILE}" ]]; then
     echo "> Generating SSH key '${MANAGER_IDENTITY_FILE}'"
