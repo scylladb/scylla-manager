@@ -21,8 +21,8 @@ SINGLE_HOST=0
 
 print_usage() {
     echo "scyllamgr_ssh_setup [-u <SSH username>] [-i <path to SSH private key>] [-c <path to SSH config file>] [--single-host] HOST"
-    echo "  -u --user			SSH username used to connect to hosts, default ${USER}"
-    echo "  -i --identity-file		path to alternate SSH identity file"
+    echo "  -u --ssh-user			SSH username used to connect to the cluster nodes, this must be a sudo enabled user"
+    echo "  -i --ssh-identity-file	path to identity file containing SSH private key"
     echo "  -c --config-file		path to alternate SSH configuration file, see also man ssh_config"
     echo "  --single-host			setup the given host only (skip discovery of other nodes)"
     echo "  --debug			display debug info"
@@ -30,11 +30,11 @@ print_usage() {
 
 while [[ $# > 0 ]]; do
     case "$1" in
-        "-u"|"--user")
+        "-u"|"--ssh-user")
             SSH_USER="$2"
             shift 2
             ;;
-        "-i"|"--identity-file")
+        "-i"|"--ssh-identity-file")
             SSH_IDENTITY_FILE="$2"
             shift 2
             ;;
