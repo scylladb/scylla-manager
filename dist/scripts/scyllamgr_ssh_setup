@@ -108,7 +108,7 @@ fi
 MANAGER_IDENTITY_FILE=~/.ssh/${MANAGER_USER}.pem
 
 if [[ ! -f "${MANAGER_IDENTITY_FILE}" ]]; then
-    echo "> Generating SSH key '${MANAGER_IDENTITY_FILE}'"
+    echo "> Generating a new SSH key pair ('${MANAGER_IDENTITY_FILE}' '${MANAGER_IDENTITY_FILE}.pub')"
     mkdir -p $(dirname ${MANAGER_IDENTITY_FILE})
     if ! ssh-keygen -t rsa -b 2048 -N "" -f "${MANAGER_IDENTITY_FILE}" &> "${OUTPUT}" && chmod 0400 "${MANAGER_IDENTITY_FILE}"; then
         die "failed to generate private key ${MANAGER_IDENTITY_FILE}"
@@ -142,7 +142,7 @@ fi
 
 HOSTS=$@
 if [[ ${SINGLE_NODE} == 0 ]]; then
-    echo "> Discovering cluster topology"
+    echo "> Discovering all the cluster nodes"
     if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
         die "failed to access Scylla REST API via ${SSH_USER}${1}"
     fi
@@ -154,7 +154,7 @@ MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
 
 # Distribute SSH keys and create users.
 
-echo "> Creating user '${MANAGER_USER}' on cluster nodes"
+echo "> Creating user '${MANAGER_USER}'"
 
 ret=0
 
@@ -209,7 +209,7 @@ if [[ ${ret} != 0 ]]; then
     echo "> Done with errors, run with --debug flag to see what failed"
 else
     echo "> Done!"
-    echo "> To add a cluster run: sctool cluster add --host $1 --ssh-user '${MANAGER_USER}' --ssh-identity-file '${MANAGER_IDENTITY_FILE}'"
+    echo "> To add the cluster to Scylla Manager run: sctool cluster add --host $1 --ssh-user '${MANAGER_USER}' --ssh-identity-file '${MANAGER_IDENTITY_FILE}'"
 fi
 
 exit ${ret}
