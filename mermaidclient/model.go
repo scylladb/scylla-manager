@@ -143,7 +143,7 @@ func (tr TaskRunSlice) Render(w io.Writer) error {
 // RepairProgress contains shard progress info.
 type RepairProgress struct {
 	*models.TaskRunRepairProgress
-	Detailed   bool
+	Detailed bool
 
 	hostFilter     inexlist.InExList
 	keyspaceFilter inexlist.InExList
@@ -273,7 +273,11 @@ func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {
 		if rp.hideUnit(u) {
 			continue
 		}
-		t.AddRow(u.Unit.Keyspace, FormatProgress(u.PercentComplete, u.PercentFailed))
+		p := "-"
+		if len(u.Nodes) > 0 {
+			p = FormatProgress(u.PercentComplete, u.PercentFailed)
+		}
+		t.AddRow(u.Unit.Keyspace, p)
 	}
 }
 
