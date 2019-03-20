@@ -111,9 +111,6 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
 		}
 		s := t.Status
-		if t.Cause != "" {
-			s += " " + t.Cause
-		}
 		p.AddRow(id, r, formatRetries(t.Schedule.NumRetries, t.Failures), dumpMap(t.Properties.(map[string]interface{})), s)
 	}
 	fmt.Fprint(w, p)
@@ -134,9 +131,6 @@ func (tr TaskRunSlice) Render(w io.Writer) error {
 	t := table.New("id", "start time", "end time", "duration", "status")
 	for _, r := range tr {
 		s := r.Status
-		if r.Cause != "" {
-			s += " " + r.Cause
-		}
 		t.AddRow(r.ID, FormatTime(r.StartTime), FormatTime(r.EndTime), FormatDuration(r.StartTime, r.EndTime), s)
 	}
 	if _, err := w.Write([]byte(t.String())); err != nil {
@@ -153,19 +147,16 @@ type RepairProgress struct {
 
 // Render renders *RepairProgress in a tabular format.
 func (rp RepairProgress) Render(w io.Writer) error {
-	t := table.New()
-
-	if rp.Progress != nil {
-		rp.addProgressHeader(t)
-		rp.addRepairProgressHeader(t)
-		t.AddSeparator()
-		rp.addRepairUnitProgress(t)
-	} else {
-		rp.addNotStartedHeader(t)
+	if err := rp.addHeader(w); err != nil {
+		return err
 	}
 
-	if _, err := w.Write([]byte(t.String())); err != nil {
-		return err
+	if rp.Progress != nil {
+		t := table.New()
+		rp.addRepairUnitProgress(t)
+		if _, err := io.WriteString(w, t.String()); err != nil {
+			return err
+		}
 	}
 
 	if rp.Progress != nil && rp.Detailed {
@@ -187,38 +178,38 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-func (rp RepairProgress) addProgressHeader(t *table.Table) {
-	run := rp.Run
-	t.AddRow("Status", run.Status)
-	if run.Cause != "" {
-		t.AddRow("Cause", run.Cause)
-	}
-	t.AddRow("Start time", FormatTime(run.StartTime))
-	if !isZero(run.EndTime) {
-		t.AddRow("End time", FormatTime(run.EndTime))
-	}
-	t.AddRow("Duration", FormatDuration(run.StartTime, run.EndTime))
-}
+var progressTemplate = `{{ with .Run }}Status:		{{ .Status }}
+{{- if .Cause }}
+Cause:		{{ .Cause }}
+{{- end }}
+{{- if not (isZero .StartTime) }}
+Start time:	{{ FormatTime .StartTime }}
+{{- end -}}
+{{- if not (isZero .EndTime) }}
+End time:	{{ FormatTime .EndTime }}
+{{- end }}
+Duration:	{{ FormatDuration .StartTime .EndTime }}
+{{ end -}}
+{{ with .Progress }}Progress:	{{ FormatProgress .PercentComplete .PercentFailed }}
+{{- if .Ranges }}
+Token ranges:	{{ .Ranges }}
+{{ end -}}
+{{ if .Dcs }}
+Datacenters:	{{ range .Dcs }}
+  - {{ . }}
+{{- end }}
+{{ end -}}
+{{ else }}Progress:	0%
+{{ end }}`
 
-func (rp RepairProgress) addRepairProgressHeader(t *table.Table) {
-	p := rp.Progress
-	t.AddRow("Progress", FormatProgress(p.PercentComplete, p.PercentFailed))
-	if len(p.Dcs) > 0 {
-		t.AddRow("Datacenters", p.Dcs)
-	}
-	if p.Ranges != "" {
-		t.AddRow("Token ranges", p.Ranges)
-	}
-}
-
-func (rp RepairProgress) addNotStartedHeader(t *table.Table) {
-	run := rp.Run
-	t.AddRow("Status", run.Status)
-	if run.Cause != "" {
-		t.AddRow("Cause", run.Cause)
-	}
-	t.AddRow("Duration", "0s")
-	t.AddRow("Progress", FormatPercent(0))
+func (rp RepairProgress) addHeader(w io.Writer) error {
+	temp := template.Must(template.New("repair_progress").Funcs(template.FuncMap{
+		"isZero":         isZero,
+		"FormatTime":     FormatTime,
+		"FormatDuration": FormatDuration,
+		"FormatProgress": FormatProgress,
+	}).Parse(progressTemplate))
+	return temp.Execute(w, rp)
 }
 
 func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {

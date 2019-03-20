@@ -107,6 +107,9 @@ func FormatTime(t strfmt.DateTime) string {
 // FormatDuration creates and formats the duration between
 // the supplied DateTime values.
 func FormatDuration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
+	if isZero(t0) && isZero(t1) {
+		return "0s"
+	}
 	var d time.Duration
 	if isZero(t1) {
 		d = timeutc.Now().Sub(time.Time(t0))
