@@ -381,7 +381,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// register the run
-	if err := s.putRun(ctx, run); err != nil {
+	if err := s.putRun(run); err != nil {
 		return fail(errors.Wrap(err, "failed to register the run"))
 	}
 
@@ -738,7 +738,7 @@ func (s *Service) GetLastStartedRun(ctx context.Context, clusterID, taskID uuid.
 		qb.Eq("cluster_id"), qb.Eq("task_id"),
 	).Limit(100).ToCql()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 	})
@@ -782,7 +782,7 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	stmt, names := schema.RepairRun.Get()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 		"id":         runID,
@@ -793,15 +793,15 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 }
 
 // putRun upserts a repair run.
-func (s *Service) putRun(ctx context.Context, r *Run) error {
+func (s *Service) putRun(r *Run) error {
 	stmt, names := schema.RepairRun.Insert()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
 	return q.ExecRelease()
 }
 
 // putRunLogError executes putRun and consumes the error.
 func (s *Service) putRunLogError(ctx context.Context, r *Run) {
-	if err := s.putRun(ctx, r); err != nil {
+	if err := s.putRun(r); err != nil {
 		s.logger.Error(ctx, "Cannot update the run",
 			"run", &r,
 			"error", err,
@@ -836,7 +836,7 @@ func (s *Service) StopRepair(ctx context.Context, clusterID, taskID, runID uuid.
 	r.Status = runner.StatusStopping
 
 	stmt, names := schema.RepairRun.Update("status")
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
 
 	return q.ExecRelease()
 }
@@ -866,7 +866,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
 	stmt, names := schema.RepairRunProgress.Select()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
@@ -876,12 +876,12 @@ func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, er
 	return p, q.SelectRelease(&p)
 }
 
-func (s *Service) getHostProgress(ctx context.Context, run *Run, unit int, host string) ([]*RunProgress, error) {
+func (s *Service) getHostProgress(run *Run, unit int, host string) ([]*RunProgress, error) {
 	stmt, names := schema.RepairRunProgress.SelectBuilder().Where(
 		qb.Eq("unit"), qb.Eq("host"),
 	).ToCql()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
@@ -898,7 +898,7 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
 
 	stmt, names := schema.RepairRunProgress.Insert()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(p)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(p)
 
 	return q.ExecRelease()
 }

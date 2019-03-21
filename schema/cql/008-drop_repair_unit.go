@@ -20,7 +20,7 @@ func init() {
 
 func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session *gocql.Session, logger log.Logger) error {
 	stmt, names := qb.Select("cluster").Columns("id").ToCql()
-	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+	q := gocqlx.Query(session.Query(stmt), names)
 	var ids []uuid.UUID
 	if err := q.SelectRelease(&ids); err != nil {
 		return err
@@ -28,7 +28,7 @@ func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session *goc
 
 	const insertTaskCql = `INSERT INTO scheduler_task(cluster_id, type, id, enabled, sched, properties) 
 VALUES (?, 'repair', uuid(), true, {start_date: ?, interval_days: ?, num_retries: ?}, ?)`
-	iq := session.Query(insertTaskCql).WithContext(ctx)
+	iq := session.Query(insertTaskCql)
 	defer iq.Release()
 
 	for _, id := range ids {

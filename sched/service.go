@@ -109,7 +109,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	)
 
 	stmt, names := qb.Select(schema.SchedTask.Name()).ToCql()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names)
+	q := gocqlx.Query(s.session.Query(stmt), names)
 	if err := q.SelectRelease(&tasks); err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 	defer s.wg.Done()
 	defer s.reschedTask(ctx, t, run, done)
 
-	if err := s.putRun(ctx, run); err != nil {
+	if err := s.putRun(run); err != nil {
 		s.logger.Error(ctx, "Failed to write run",
 			"run", run,
 			"error", err,
@@ -261,7 +261,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 		run.Status = runner.StatusError
 		run.EndTime = &now
 		run.Cause = err.Error()
-		if err := s.putRun(ctx, run); err != nil {
+		if err := s.putRun(run); err != nil {
 			s.logger.Error(ctx, "Failed to write run",
 				"run", run,
 				"error", err,
@@ -284,7 +284,7 @@ func (s *Service) execTrigger(ctx context.Context, t *Task, done chan struct{}) 
 	}).Inc()
 
 	run.Status = runner.StatusRunning
-	if err := s.putRun(ctx, run); err != nil {
+	if err := s.putRun(run); err != nil {
 		s.logger.Error(ctx, "Failed to write run",
 			"run", run,
 			"error", err,
@@ -336,7 +336,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				continue
 			}
 			run.Status = runner.StatusStopping
-			if err := s.putRun(ctx, run); err != nil {
+			if err := s.putRun(run); err != nil {
 				logger.Error(ctx, "Failed to write run", "error", err)
 			}
 		case now := <-ticker.C:
@@ -356,7 +356,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 				run.Status = curStatus
 				run.EndTime = &now
 				run.Cause = cause
-				if err := s.putRun(ctx, run); err != nil {
+				if err := s.putRun(run); err != nil {
 					logger.Error(ctx, "Failed to write run", "error", err)
 				}
 				logger.Info(ctx, "Task ended", "status", curStatus, "cause", cause)
@@ -463,7 +463,7 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 
 	stmt, names := schema.SchedTask.Get()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"type":       tp,
 		"id":         id,
@@ -498,7 +498,7 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 	}
 
 	stmt, names := b.ToCql()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(m)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(m)
 	defer q.Release()
 
 	if q.Err() != nil {
@@ -585,7 +585,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 
 	stmt, names := schema.SchedTask.Insert()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(t)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(t)
 
 	if err := q.ExecRelease(); err != nil {
 		return err
@@ -603,7 +603,7 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 
 	stmt, names := schema.SchedTask.Delete()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": t.ClusterID,
 		"type":       t.Type,
 		"id":         t.ID,
@@ -640,7 +640,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 	}
 
 	stmt, names := b.ToCql()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(m)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(m)
 	defer q.Release()
 
 	if q.Err() != nil {
@@ -669,7 +669,7 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 		TaskID:    t.ID,
 		ID:        runID,
 	}
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
 
 	if err := q.GetRelease(r); err != nil {
 		return nil, err
@@ -698,7 +698,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 	b.Limit(uint(limit))
 
 	stmt, names := b.ToCql()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": t.ClusterID,
 		"type":       t.Type,
 		"task_id":    t.ID,
@@ -717,9 +717,9 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 	return r, nil
 }
 
-func (s *Service) putRun(ctx context.Context, r *Run) error {
+func (s *Service) putRun(r *Run) error {
 	stmt, names := schema.SchedRun.Insert()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(r)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
 
 	return q.ExecRelease()
 }

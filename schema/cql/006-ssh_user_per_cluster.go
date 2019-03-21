@@ -57,14 +57,14 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Sessi
 	}
 
 	stmt, names := qb.Select("cluster").Columns("id").ToCql()
-	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+	q := gocqlx.Query(session.Query(stmt), names)
 	var ids []uuid.UUID
 	if err := q.SelectRelease(&ids); err != nil {
 		return err
 	}
 
 	const updateClusterCql = `INSERT INTO cluster(id, ssh_user) VALUES (?, ?)`
-	iq := session.Query(updateClusterCql).WithContext(ctx)
+	iq := session.Query(updateClusterCql)
 	defer iq.Release()
 
 	for _, id := range ids {

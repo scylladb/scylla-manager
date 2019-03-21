@@ -29,17 +29,17 @@ func FixRunStatus(ctx context.Context, session *gocql.Session, t *table.Table) e
 	}
 
 	stmt, names := qb.Select(t.Name()).Distinct(meta.PartKey...).ToCql()
-	q := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+	q := gocqlx.Query(session.Query(stmt), names)
 	defer q.Release()
 
 	// g is a query to get status of the first row in a partition
 	stmt, names = t.SelectBuilder().Columns(meta.SortKey...).Columns("status").Limit(1).ToCql()
-	g := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+	g := gocqlx.Query(session.Query(stmt), names)
 	defer g.Release()
 
 	// u is a query to update status and cause
 	stmt, names = t.Update("status", "cause")
-	u := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
+	u := gocqlx.Query(session.Query(stmt), names)
 	defer u.Release()
 
 	iter := q.Iter()

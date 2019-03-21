@@ -41,7 +41,7 @@ func (w *hostWorker) init(ctx context.Context) error {
 	w.Logger.Info(ctx, "Initialising repair")
 
 	// continue from a savepoint
-	prog, err := w.Service.getHostProgress(ctx, w.Run, w.Unit, w.Host)
+	prog, err := w.Service.getHostProgress(w.Run, w.Unit, w.Host)
 	if err != nil {
 		return errors.Wrap(err, "failed to get host progress")
 	}

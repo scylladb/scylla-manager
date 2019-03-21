@@ -109,7 +109,7 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	if err != nil {
 		return nil, err
 	}
-	if err := s.setKnownHosts(ctx, c, hosts); err != nil {
+	if err := s.setKnownHosts(c, hosts); err != nil {
 		return nil, errors.Wrap(err, "failed to update cluster")
 	}
 
@@ -195,17 +195,17 @@ func (s *Service) discoverHosts(ctx context.Context, client *scyllaclient.Client
 	return hosts, nil
 }
 
-func (s *Service) loadKnownHosts(ctx context.Context, c *Cluster) error {
+func (s *Service) loadKnownHosts(c *Cluster) error {
 	stmt, names := schema.Cluster.Get("known_hosts")
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(c)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
 	return q.GetRelease(c)
 }
 
-func (s *Service) setKnownHosts(ctx context.Context, c *Cluster, hosts []string) error {
+func (s *Service) setKnownHosts(c *Cluster, hosts []string) error {
 	c.KnownHosts = hosts
 
 	stmt, names := schema.Cluster.Update("known_hosts")
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(c)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
 	return q.ExecRelease()
 }
 
@@ -220,7 +220,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 
 	stmt, _ := qb.Select(schema.Cluster.Name()).ToCql()
 
-	q := s.session.Query(stmt).WithContext(ctx)
+	q := s.session.Query(stmt)
 	defer q.Release()
 
 	var clusters []*Cluster
@@ -264,7 +264,7 @@ func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, e
 
 	stmt, names := schema.Cluster.Get()
 
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"id": id,
 	})
 	defer q.Release()
@@ -377,7 +377,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	}
 
 	stmt, names := schema.Cluster.Insert()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindStruct(c)
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
 
 	if err := q.ExecRelease(); err != nil {
 		return err
@@ -395,7 +395,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	if c.Host != "" {
 		c.KnownHosts = []string{c.Host}
 	} else {
-		if err := s.loadKnownHosts(ctx, c); err != nil {
+		if err := s.loadKnownHosts(c); err != nil {
 			return errors.Wrap(err, "failed to load known hosts")
 		}
 	}
@@ -429,7 +429,7 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 	s.logger.Debug(ctx, "DeleteCluster", "cluster_id", clusterID)
 
 	stmt, names := schema.Cluster.Delete()
-	q := gocqlx.Query(s.session.Query(stmt).WithContext(ctx), names).BindMap(qb.M{
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"id": clusterID,
 	})
 
