@@ -323,7 +323,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 
 	// FIXME: This is a temporary workaround for issues related to abusing
 	// context and context cancellation in scheduler, to be removed with
-	// https://github.com/scylladb/mermaid/issues/935
+	// https://github.com/scylladb/mermaid/issues/953
 	var runnerFailures int
 
 	for {
@@ -344,7 +344,7 @@ func (s *Service) waitTask(ctx context.Context, t *Task, run *Run) {
 			if err != nil {
 				logger.Error(ctx, "Failed to get task status", "error", err)
 				runnerFailures++
-				if runnerFailures == runnerFailureLimit {
+				if runnerFailures >= runnerFailureLimit {
 					logger.Error(ctx, "Failed to get runner status", "failures", runnerFailures)
 					return
 				}
