@@ -118,7 +118,7 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 			Schedule:   t.Schedule,
 			Properties: t.Properties,
 		}, RenderTypeArgs).String()
-		p.AddRow(id, r, t.Schedule.NumRetries, pr, t.Status)
+		p.AddRow(id, r, formatRetries(t.Schedule.NumRetries, t.Failures), pr, t.Status)
 	}
 	fmt.Fprint(w, p)
 	return nil
