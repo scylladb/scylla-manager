@@ -85,6 +85,7 @@ func (l Logger) log(ctx context.Context, lvl zapcore.Level, msg string, keyvals 
 	}
 }
 
+// Filed ordering: logger fields > context fields > passed fields > trace_id.
 func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Field {
 	if len(keyvals)%2 != 0 {
 		l.base.DPanic("odd number of elements")
@@ -123,10 +124,6 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 		}
 	}
 
-	if trace != nil {
-		fields = append(fields, *trace)
-	}
-
 	for i := 0; i < len(keyvals); i += 2 {
 		// Consume this value and the next, treating them as a key-value pair.
 		key, val := keyvals[i], keyvals[i+1]
@@ -142,6 +139,10 @@ func (l Logger) zapify(ctx context.Context, keyvals []interface{}) []zapcore.Fie
 			}
 			fields = append(fields, zap.Any(keyStr, val))
 		}
+	}
+
+	if trace != nil {
+		fields = append(fields, *trace)
 	}
 
 	return fields

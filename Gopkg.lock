@@ -362,14 +362,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ff86bf2294c231759dd7b3355c4d9815b8f3dda1ac30bc47d6c37360f3a6099f"
+  digest = "1:ab0cfae9b4b61ca6b0383502376c129cb412964718230d4fdda9a2be9c3c8226"
   name = "github.com/scylladb/go-log"
   packages = [
     ".",
     "gocqllog",
   ]
   pruneopts = "UT"
-  revision = "e13c9e6964f3fb0556434f09e858b4b0cd180450"
+  revision = "00b3a3e11fea6f3ad28dbd58588bf96d4e95cd12"
 
 [[projects]]
   digest = "1:73964279c2fc01ba0d05bcdbfa2df12708fc56427d9d921fcc531394ac71106b"
