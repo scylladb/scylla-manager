@@ -226,10 +226,10 @@ func TestConsecutiveErrorCount(t *testing.T) {
 	t1 := now.Add(-15 * time.Minute)
 
 	table := []struct {
-		N   string
-		S   Schedule
-		R   []*Run
-		E   int
+		N string
+		S Schedule
+		R []*Run
+		E int
 	}{
 		{
 			"counting no running errors",
