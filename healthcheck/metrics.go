@@ -24,7 +24,7 @@ var (
 
 	cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
-		Subsystem: "cluster",
+		Subsystem: "healthcheck",
 		Name:      "cql_rtt_ms",
 		Help:      "Host native port RTT",
 	}, []string{clusterKey, hostKey})
@@ -38,7 +38,7 @@ var (
 
 	apiRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
-		Subsystem: "cluster",
+		Subsystem: "healthcheck",
 		Name:      "api_rtt_ms",
 		Help:      "Host API RTT",
 	}, []string{clusterKey, hostKey})
