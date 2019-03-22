@@ -56,12 +56,17 @@ func (rc *CmdRenderer) writeArg(in ...string) {
 		if rc.err != nil {
 			return
 		}
-		s = strings.Replace(s, "*", `\*`, -1)
+		s = escapeGlobPattern(s)
 		_, err := io.WriteString(rc.buf, s)
 		if err != nil {
 			rc.err = err
 		}
 	}
+}
+
+func escapeGlobPattern(pat string) string {
+	pat = strings.Replace(pat, "!", `\!`, -1)
+	return strings.Replace(pat, "*", `\*`, -1)
 }
 
 func (rc *CmdRenderer) writeProp(arg, prop string) {
