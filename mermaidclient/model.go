@@ -241,7 +241,8 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-var progressTemplate = `Arguments:	{{ arguments }}
+var progressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
+{{ end -}}
 {{ with .Run }}Status:		{{ .Status }}
 {{- if .Cause }}
 Cause:		{{ .Cause }}
