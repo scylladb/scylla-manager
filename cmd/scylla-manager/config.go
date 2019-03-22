@@ -68,6 +68,7 @@ func defaultConfig() *serverConfig {
 			Development: false,
 		},
 		Database: dbConfig{
+			Hosts:                         []string{"127.0.0.1"},
 			Keyspace:                      "scylla_manager",
 			KeyspaceTplFile:               "/etc/scylla-manager/create_keyspace.cql.tpl",
 			MigrateDir:                    "/etc/scylla-manager/cql",
