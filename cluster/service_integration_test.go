@@ -58,6 +58,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 
 	setup := func(t *testing.T) {
+		t.Helper()
 		q := session.Query("TRUNCATE cluster")
 		defer q.Release()
 		if err := q.Exec(); err != nil {
@@ -246,6 +247,73 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 		if change.Type != cluster.Delete {
 			t.Fatal("invalid type", change)
+		}
+	})
+
+	t.Run("list nodes", func(t *testing.T) {
+		setup(t)
+
+		c := &cluster.Cluster{
+			ID:              uuid.NewTime(),
+			Name:            "clust1",
+			Host:            mermaidtest.ManagedClusterHosts[0],
+			SSHUser:         "scylla-manager",
+			SSHIdentityFile: pem,
+		}
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		c.SSHIdentityFile = nil
+
+		got, err := s.ListNodes(ctx, c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := []cluster.Node{
+			{
+				"dc1",
+				"192.168.100.11",
+				2,
+			},
+			{
+				"dc1",
+				"192.168.100.12",
+				2,
+			},
+			{
+				"dc1",
+				"192.168.100.13",
+				2,
+			},
+			{
+				"dc2",
+				"192.168.100.21",
+				2,
+			},
+			{
+				"dc2",
+				"192.168.100.22",
+				2,
+			},
+			{
+				"dc2",
+				"192.168.100.23",
+				2,
+			},
+		}
+
+		opts := append(diffOpts, cmpopts.SortSlices(func(x, y cluster.Node) bool {
+			if x.Datacenter > y.Datacenter {
+				return false
+			}
+			if x.Address > y.Address {
+				return false
+			}
+			return true
+		}))
+
+		if diff := cmp.Diff(expected, got, opts...); diff != "" {
+			t.Fatal(diff)
 		}
 	})
 }

@@ -52,9 +52,14 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	return r
 }
 
-// NewPrometheus returns an http.Handler exposing Prometheus metrics on '/metrics'.
-func NewPrometheus() http.Handler {
+// NewPrometheus returns an http.Handler exposing Prometheus metrics on
+// '/metrics'.
+func NewPrometheus(svc ClusterService) http.Handler {
 	r := chi.NewRouter()
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+	// Exposing Consul API to Prometheus for discovering nodes.
+	// The idea is to use already working discovering mechanism to avoid
+	// extending Prometheus it self.
+	r.Mount("/v1", newConsulHandler(svc))
 	return r
 }

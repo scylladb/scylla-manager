@@ -163,7 +163,7 @@ func (s *server) makeHTTPServers() {
 		s.httpsServer = &http.Server{Addr: s.config.HTTPS, Handler: h}
 	}
 	if s.config.Prometheus != "" {
-		s.prometheusServer = &http.Server{Addr: s.config.Prometheus, Handler: restapi.NewPrometheus()}
+		s.prometheusServer = &http.Server{Addr: s.config.Prometheus, Handler: restapi.NewPrometheus(s.clusterSvc)}
 	}
 }
 
