@@ -76,3 +76,10 @@ func (f *Filter) Validate() error {
 
 	return err
 }
+
+// Node represents single node in a cluster.
+type Node struct {
+	Datacenter string
+	Address    string
+	ShardNum   uint
+}

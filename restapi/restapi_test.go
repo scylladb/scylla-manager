@@ -11,7 +11,7 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	h := restapi.NewPrometheus()
+	h := restapi.NewPrometheus(nil)
 	r := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

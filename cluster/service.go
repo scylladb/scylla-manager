@@ -451,6 +451,40 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
 }
 
+// ListNodes returns information about all the nodes in the cluster.
+// Address will be set as node name if it's not resolvable.
+func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, error) {
+	s.logger.Debug(ctx, "ListNodes", "cluster_id", clusterID)
+
+	var nodes []Node
+
+	client, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	dcs, err := client.Datacenters(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get dcs for cluster with id %s", clusterID)
+	}
+
+	for dc, hosts := range dcs {
+		for _, h := range hosts {
+			sh, err := client.ShardCount(ctx, h)
+			if err != nil {
+				s.logger.Error(ctx, "Can't get number of shards", "error", err)
+			}
+			nodes = append(nodes, Node{
+				Datacenter: dc,
+				Address:    h,
+				ShardNum:   sh,
+			})
+		}
+	}
+
+	return nodes, nil
+}
+
 func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {
 	if s.onChangeListener == nil {
 		return nil
