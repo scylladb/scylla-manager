@@ -4,7 +4,7 @@ ifndef GOBIN
 export GOBIN := $(GOPATH)/bin
 endif
 
-GO_VERSION = "1.11.6"
+GO_VERSION = "1.12.1"
 GO_CURRENT_VERSION = `go version`
 
 GOFILES := go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
