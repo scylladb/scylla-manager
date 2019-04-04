@@ -12,7 +12,6 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/table"
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/fsutil"
@@ -20,7 +19,6 @@ import (
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/sched"
-	"github.com/scylladb/mermaid/schema"
 	"go.uber.org/multierr"
 )
 
@@ -167,20 +165,6 @@ func (s *server) makeHTTPServers() {
 	}
 }
 
-func (s *server) initDatabase(ctx context.Context) error {
-	var tables = []*table.Table{
-		schema.RepairRun,
-		schema.SchedRun,
-	}
-	for _, t := range tables {
-		err := schema.FixRunStatus(ctx, s.session, t)
-		if err != nil {
-			return errors.Wrapf(err, "init service failed")
-		}
-	}
-	return nil
-}
-
 func (s *server) startServices(ctx context.Context) error {
 	if err := s.schedSvc.LoadTasks(ctx); err != nil {
 		return errors.Wrapf(err, "schedule service")
@@ -234,14 +218,10 @@ func (s *server) close() {
 		s.prometheusServer.Close()
 	}
 
-	// Due to dependencies between the services the repair service
-	// has to be closed first and then the scheduler service.
-	//
 	// The cluster service is last because it handles closing of
 	// SSH connections to the nodes. It relies on connections being
 	// idle which means that the other services needs to be
 	// closed first.
-	s.repairSvc.Close()
 	s.schedSvc.Close()
 	s.clusterSvc.Close()
 

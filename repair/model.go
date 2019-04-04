@@ -9,7 +9,6 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -141,7 +140,7 @@ type Target struct {
 	WithHosts   []string        `json:"with_hosts,omitempty"`
 	TokenRanges TokenRangesKind `json:"token_ranges,omitempty"`
 	FailFast    bool            `json:"fail_fast,omitempty"`
-	Opts        runner.Opts     `json:"-"`
+	Continue    bool            `json:"continue,omitempty"`
 }
 
 // Run tracks repair progress, shares ID with sched.Run that initiated it.
@@ -157,10 +156,7 @@ type Run struct {
 	Host         string
 	WithHosts    []string
 	TokenRanges  TokenRangesKind
-	Status       runner.Status
-	Cause        string
 	StartTime    time.Time
-	EndTime      time.Time
 
 	clusterName string
 	failFast    bool
@@ -224,4 +220,5 @@ type taskProperties struct {
 	WithHosts   []string        `json:"with_hosts"`
 	TokenRanges TokenRangesKind `json:"token_ranges"`
 	FailFast    bool            `json:"fail_fast"`
+	Continue    bool            `json:"continue"`
 }

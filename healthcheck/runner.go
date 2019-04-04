@@ -4,6 +4,7 @@ package healthcheck
 
 import (
 	"context"
+	"encoding/json"
 	"runtime"
 	"time"
 
@@ -11,12 +12,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )
 
-type healthCheckRunner struct {
+// Runner implements sched.Runner.
+type Runner struct {
 	cluster cluster.ProviderFunc
 	client  scyllaclient.ProviderFunc
 	status  *prometheus.GaugeVec
@@ -24,9 +25,8 @@ type healthCheckRunner struct {
 	ping    func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
 }
 
-// Run implements runner.Runner.
-func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runner.Properties) (err error) {
-	c, err := r.cluster(ctx, d.ClusterID)
+func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
+	c, err := r.cluster(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get cluster")
 	}
@@ -37,7 +37,7 @@ func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runne
 		}
 	}()
 
-	client, err := r.client(ctx, d.ClusterID)
+	client, err := r.client(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get client")
 	}
@@ -48,8 +48,7 @@ func (r healthCheckRunner) Run(ctx context.Context, d runner.Descriptor, p runne
 	}
 
 	r.removeDecommissionedHosts(c, hosts)
-
-	r.run(ctx, hosts, c)
+	r.checkHosts(ctx, hosts, c)
 
 	return nil
 }
@@ -60,7 +59,7 @@ type hostRTT struct {
 	err  error
 }
 
-func (r healthCheckRunner) run(ctx context.Context, hosts []string, c *cluster.Cluster) {
+func (r Runner) checkHosts(ctx context.Context, hosts []string, c *cluster.Cluster) {
 	out := make(chan hostRTT, runtime.NumCPU()+1)
 	for _, h := range hosts {
 		v := hostRTT{host: h}
@@ -88,7 +87,7 @@ func (r healthCheckRunner) run(ctx context.Context, hosts []string, c *cluster.C
 	}
 }
 
-func (r healthCheckRunner) removeAll(c *cluster.Cluster) {
+func (r Runner) removeAll(c *cluster.Cluster) {
 	apply(collect(r.status), func(cluster, host string, v float64) {
 		if c.String() != cluster {
 			return
@@ -103,7 +102,7 @@ func (r healthCheckRunner) removeAll(c *cluster.Cluster) {
 	})
 }
 
-func (r healthCheckRunner) removeDecommissionedHosts(c *cluster.Cluster, hosts []string) {
+func (r Runner) removeDecommissionedHosts(c *cluster.Cluster, hosts []string) {
 	m := strset.New(hosts...)
 
 	apply(collect(r.status), func(cluster, host string, v float64) {
@@ -121,14 +120,4 @@ func (r healthCheckRunner) removeDecommissionedHosts(c *cluster.Cluster, hosts [
 		r.status.Delete(l)
 		r.rtt.Delete(l)
 	})
-}
-
-// Stop implements runner.Runner.
-func (r healthCheckRunner) Stop(ctx context.Context, d runner.Descriptor) error {
-	return nil
-}
-
-// Status implements runner.Runner.
-func (r healthCheckRunner) Status(ctx context.Context, d runner.Descriptor) (runner.Status, string, error) {
-	return runner.StatusDone, "", nil
 }

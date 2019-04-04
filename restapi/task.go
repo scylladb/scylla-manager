@@ -4,6 +4,7 @@ package restapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -20,7 +21,6 @@ import (
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/sched"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -31,7 +31,7 @@ type SchedService interface {
 	PutTaskOnce(ctx context.Context, t *sched.Task) error
 	DeleteTask(ctx context.Context, t *sched.Task) error
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
-	StartTask(ctx context.Context, t *sched.Task, opts runner.Opts) error
+	StartTask(ctx context.Context, t *sched.Task, opts ...sched.Opt) error
 	StopTask(ctx context.Context, t *sched.Task) error
 	GetRun(ctx context.Context, t *sched.Task, runID uuid.UUID) (*sched.Run, error)
 	GetLastRun(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
@@ -41,7 +41,7 @@ type SchedService interface {
 type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
-	GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.Properties, force bool) (repair.Target, error)
+	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (repair.Target, error)
 }
 
 type taskHandler struct {
@@ -106,12 +106,12 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 
 type extendedTask struct {
 	*sched.Task
-	Status         runner.Status `json:"status,omitempty"`
-	Cause          string        `json:"cause,omitempty"`
-	StartTime      *time.Time    `json:"start_time,omitempty"`
-	EndTime        *time.Time    `json:"end_time,omitempty"`
-	NextActivation *time.Time    `json:"next_activation,omitempty"`
-	Failures       int           `json:"failures,omitempty"`
+	Status         sched.Status `json:"status,omitempty"`
+	Cause          string       `json:"cause,omitempty"`
+	StartTime      *time.Time   `json:"start_time,omitempty"`
+	EndTime        *time.Time   `json:"end_time,omitempty"`
+	NextActivation *time.Time   `json:"next_activation,omitempty"`
+	Failures       int          `json:"failures,omitempty"`
 }
 
 func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +132,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var status runner.Status
+	var status sched.Status
 	if s := r.FormValue("status"); s != "" {
 		if err := status.UnmarshalText([]byte(s)); err != nil {
 			respondBadRequest(w, r, err)
@@ -155,7 +155,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 
 		e := extendedTask{
 			Task:   t,
-			Status: runner.StatusNew,
+			Status: sched.StatusNew,
 		}
 
 		runs, err := h.schedSvc.GetLastRun(r.Context(), t, t.Sched.NumRetries+1)
@@ -311,20 +311,26 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 		respondBadRequest(w, r, err)
 	}
 
-	if err := h.schedSvc.StartTask(r.Context(), t, opts); err != nil {
+	if err := h.schedSvc.StartTask(r.Context(), t, opts...); err != nil {
 		respondError(w, r, err, fmt.Sprintf("failed to start task %q", t.ID))
 		return
 	}
 }
 
-func (h *taskHandler) optsFromRequest(r *http.Request) (opts runner.Opts, err error) {
-	opts = runner.DefaultOpts
-	if cont := r.FormValue("continue"); cont != "" {
-		if opts.Continue, err = strconv.ParseBool(cont); err != nil {
-			return
+func (h *taskHandler) optsFromRequest(r *http.Request) ([]sched.Opt, error) {
+	var opts []sched.Opt
+
+	if v := r.FormValue("continue"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse continue param")
+		}
+		if !b {
+			opts = append(opts, sched.NoContinue)
 		}
 	}
-	return
+
+	return opts, nil
 }
 
 func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
@@ -399,7 +405,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 				ClusterID: t.ClusterID,
 				Type:      t.Type,
 				TaskID:    t.ID,
-				Status:    runner.StatusNew,
+				Status:    sched.StatusNew,
 			}
 			render.Respond(w, r, prog)
 			return

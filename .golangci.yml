@@ -27,6 +27,7 @@ issues:
   exclude:
   - composite literal uses unkeyed fields
   - exported function `New.+` should have comment or be unexported
+  - exported method `Runner.Run` should have comment or be unexported
   - Error return value of `.+\.Close` is not checked
   - Error return value of `net.SplitHostPort` is not checked
   - Error return value of `strconv.ParseBool` is not checked

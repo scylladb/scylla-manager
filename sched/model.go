@@ -12,7 +12,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/duration"
-	"github.com/scylladb/mermaid/sched/runner"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/multierr"
 )
@@ -61,6 +61,73 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// Status specifies the status of a Task.
+type Status string
+
+// Status enumeration.
+const (
+	StatusNew     Status = "NEW"
+	StatusRunning Status = "RUNNING"
+	StatusStopped Status = "STOPPED"
+	StatusDone    Status = "DONE"
+	StatusError   Status = "ERROR"
+
+	StatusAborted Status = "ABORTED"
+)
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s Status) MarshalText() (text []byte, err error) {
+	return []byte(s.String()), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *Status) UnmarshalText(text []byte) error {
+	switch Status(text) {
+	case StatusNew:
+		*s = StatusNew
+	case StatusRunning:
+		*s = StatusRunning
+	case StatusStopped:
+		*s = StatusStopped
+	case StatusDone:
+		*s = StatusDone
+	case StatusError:
+		*s = StatusError
+	case StatusAborted:
+		*s = StatusAborted
+	default:
+		return fmt.Errorf("unrecognized Status %q", text)
+	}
+	return nil
+}
+
+func (s Status) isFinal() bool {
+	switch s {
+	case StatusDone:
+	case StatusStopped:
+	case StatusAborted:
+		return true
+	}
+	return false
+}
+
+// Run describes a running instance of a Task.
+type Run struct {
+	ID        uuid.UUID  `json:"id"`
+	Type      TaskType   `json:"type"`
+	ClusterID uuid.UUID  `json:"cluster_id"`
+	TaskID    uuid.UUID  `json:"task_id"`
+	Status    Status     `json:"status"`
+	Cause     string     `json:"cause,omitempty"`
+	Owner     string     `json:"owner"`
+	StartTime time.Time  `json:"start_time"`
+	EndTime   *time.Time `json:"end_time,omitempty"`
+}
+
 // Schedule defines a periodic schedule.
 type Schedule struct {
 	StartDate  time.Time         `json:"start_date"`
@@ -83,21 +150,21 @@ func (s *Schedule) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) e
 // NextActivation generates new start time based on schedule and run history.
 func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 	// if not started yet report scheduled start date
-	if len(runs) == 0 && s.StartDate.After(now.Add(taskStartNowSlack)) {
+	if len(runs) == 0 && s.StartDate.After(now.Add(startTaskNowSlack)) {
 		return s.StartDate
 	}
 
 	lastStart := s.StartDate
-	lastStatus := runner.StatusError
+	lastStatus := StatusError
 	if len(runs) > 0 {
 		lastStart = runs[0].StartTime
 		lastStatus = runs[0].Status
 	}
 
 	switch lastStatus {
-	case runner.StatusAborted:
+	case StatusAborted:
 		// skip, always retry aborted
-	case runner.StatusError:
+	case StatusError:
 		if s.ConsecutiveErrorCount(runs, now) > s.NumRetries {
 			// if no retries available report next activation according to schedule
 			return s.nextActivation(now)
@@ -111,7 +178,7 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 	t := lastStart.Add(retryTaskWait)
 	if t.Before(now) {
 		// previous activation was is in the past, and didn't occur, try again now
-		return now.Add(taskStartNowSlack)
+		return now.Add(startTaskNowSlack)
 	}
 	return t
 }
@@ -128,7 +195,7 @@ func (s *Schedule) ConsecutiveErrorCount(runs []*Run, now time.Time) int {
 	}
 	errs := 0
 	for _, r := range runs {
-		if r.Status != runner.StatusError {
+		if r.Status != StatusError {
 			break
 		}
 		if r.StartTime.Before(threshold) {
@@ -152,16 +219,16 @@ func (s *Schedule) nextActivation(now time.Time) time.Time {
 
 // Task is a schedulable entity.
 type Task struct {
-	ClusterID  uuid.UUID         `json:"cluster_id"`
-	Type       TaskType          `json:"type"`
-	ID         uuid.UUID         `json:"id"`
-	Name       string            `json:"name"`
-	Tags       []string          `json:"tags"`
-	Enabled    bool              `json:"enabled"`
-	Sched      Schedule          `json:"schedule"`
-	Properties runner.Properties `json:"properties"`
+	ClusterID  uuid.UUID  `json:"cluster_id"`
+	Type       TaskType   `json:"type"`
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	Tags       []string   `json:"tags"`
+	Enabled    bool       `json:"enabled"`
+	Sched      Schedule   `json:"schedule"`
+	Properties Properties `json:"properties"`
 
-	clusterName string
+	opts []Opt
 }
 
 // Validate checks if all the required fields are properly set.
@@ -208,24 +275,23 @@ func (t *Task) Validate() error {
 	return mermaid.ErrValidate(errs, "invalid task")
 }
 
-// Run describes a running instance of a Task.
-type Run struct {
-	ID        uuid.UUID     `json:"id"`
-	Type      TaskType      `json:"type"`
-	ClusterID uuid.UUID     `json:"cluster_id"`
-	TaskID    uuid.UUID     `json:"task_id"`
-	Status    runner.Status `json:"status"`
-	Cause     string        `json:"cause,omitempty"`
-	Owner     string        `json:"owner"`
-	StartTime time.Time     `json:"start_time"`
-	EndTime   *time.Time    `json:"end_time,omitempty"`
+func (t *Task) newCancelableTrigger() *cancelableTrigger {
+	return &cancelableTrigger{
+		ClusterID: t.ID,
+		Type:      t.Type,
+		TaskID:    t.ID,
+		RunID:     uuid.NewTime(),
+		C:         make(chan struct{}),
+	}
 }
 
-// Descriptor returns descriptor of this Run.
-func (r *Run) Descriptor() runner.Descriptor {
-	return runner.Descriptor{
-		ClusterID: r.ClusterID,
-		TaskID:    r.TaskID,
-		RunID:     r.ID,
+func (t *Task) newRun(id uuid.UUID) *Run {
+	return &Run{
+		ID:        id,
+		Type:      t.Type,
+		ClusterID: t.ClusterID,
+		TaskID:    t.ID,
+		Status:    StatusNew,
+		StartTime: timeutc.Now(),
 	}
 }

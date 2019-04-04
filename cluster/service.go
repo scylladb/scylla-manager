@@ -89,7 +89,7 @@ func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) erro
 
 // Client is cluster client provider.
 func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
-	s.logger.Debug(ctx, "Client", "clusterID", clusterID)
+	s.logger.Debug(ctx, "Client", "cluster_id", clusterID)
 	return s.clientCache.Client(ctx, clusterID)
 }
 
@@ -113,7 +113,7 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 		return nil, errors.Wrap(err, "failed to update cluster")
 	}
 
-	s.logger.Info(ctx, "New cluster client", "clusterID", clusterID)
+	s.logger.Info(ctx, "New Scylla REST client", "cluster_id", clusterID)
 
 	return s.createClient(c)
 }

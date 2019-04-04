@@ -9,13 +9,37 @@ import (
 
 	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 const (
 	week = time.Duration(7) * 24 * time.Hour
 )
+
+func TestStatusMarshalText(t *testing.T) {
+	statuses := []Status{
+		StatusNew,
+		StatusRunning,
+		StatusStopped,
+		StatusDone,
+		StatusError,
+		StatusAborted,
+	}
+
+	var v Status
+	for i, s := range statuses {
+		b, err := s.MarshalText()
+		if err != nil {
+			t.Error(err)
+		}
+		if err := v.UnmarshalText(b); err != nil {
+			t.Error(err)
+		}
+		if v != s {
+			t.Error(i, "expected", s, "got", v)
+		}
+	}
+}
 
 func TestTaskValidate(t *testing.T) {
 	table := []struct {
@@ -91,7 +115,7 @@ func makeSchedule(startDate time.Time, interval time.Duration, numRetries int) S
 	}
 }
 
-func makeHistory(startDate time.Time, runStatus ...runner.Status) []*Run {
+func makeHistory(startDate time.Time, runStatus ...Status) []*Run {
 	runs := make([]*Run, 0, len(runStatus))
 	for i, s := range runStatus {
 		runs = append(runs, &Run{
@@ -121,12 +145,12 @@ func TestSchedNextActivation(t *testing.T) {
 		// no history, old start with retries
 		{
 			S: makeSchedule(t0, week, 2),
-			A: now.Add(taskStartNowSlack),
+			A: now.Add(startTaskNowSlack),
 		},
-		// no history, start in future > taskStartNowSlack
+		// no history, start in future > startTaskNowSlack
 		{
-			S: makeSchedule(now.Add(taskStartNowSlack+time.Second), week, 2),
-			A: now.Add(taskStartNowSlack + time.Second),
+			S: makeSchedule(now.Add(startTaskNowSlack+time.Second), week, 2),
+			A: now.Add(startTaskNowSlack + time.Second),
 		},
 		// no history, start in future < tastStartNowSlack
 		{
@@ -136,80 +160,80 @@ func TestSchedNextActivation(t *testing.T) {
 		// short history 1, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, runner.StatusError),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusError),
+			A: now.Add(startTaskNowSlack),
 		},
 		// short history 2, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, runner.StatusError, runner.StatusError),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusError, StatusError),
+			A: now.Add(startTaskNowSlack),
 		},
 		// short (recent) history, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(now.Add(-retryTaskWait/2), runner.StatusError),
+			H: makeHistory(now.Add(-retryTaskWait/2), StatusError),
 			A: now.Add(retryTaskWait / 2),
 		},
 		// full history, too many activations to retry, full interval
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
+			H: makeHistory(t1, StatusError, StatusError, StatusError),
 			A: t0.AddDate(0, 0, 7),
 		},
 		// full history, old activations, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: append(makeHistory(t1, runner.StatusError), makeHistory(now.AddDate(0, 0, -5), runner.StatusError, runner.StatusError)...),
-			A: now.Add(taskStartNowSlack),
+			H: append(makeHistory(t1, StatusError), makeHistory(now.AddDate(0, 0, -5), StatusError, StatusError)...),
+			A: now.Add(startTaskNowSlack),
 		},
 		// full history with DONE, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, runner.StatusError, runner.StatusDone, runner.StatusError),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusError, StatusDone, StatusError),
+			A: now.Add(startTaskNowSlack),
 		},
 		// full history with STOPPED, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, runner.StatusError, runner.StatusStopped, runner.StatusError),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusError, StatusStopped, StatusError),
+			A: now.Add(startTaskNowSlack),
 		},
 		// one shot, short history 1, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, runner.StatusError),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusError),
+			A: now.Add(startTaskNowSlack),
 		},
 		// one shot, short history 2, retry
 		{
 			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, runner.StatusError, runner.StatusError),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusError, StatusError),
+			A: now.Add(startTaskNowSlack),
 		},
 		// one shot, full history, too many activations to retry, no retry
 		{
 			S: makeSchedule(t0, 0, 2),
-			H: makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
+			H: makeHistory(t1, StatusError, StatusError, StatusError),
 			A: time.Time{},
 		},
 		// no retry, short history 1, full interval
 		{
 			S: makeSchedule(t0, week, 0),
-			H: makeHistory(t1, runner.StatusError),
+			H: makeHistory(t1, StatusError),
 			A: t0.AddDate(0, 0, 7),
 		},
 		// one shot aborted, full history, retry
 		{
 			S: makeSchedule(t0, 0, 2),
-			H: makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusAborted),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusError, StatusError, StatusAborted),
+			A: now.Add(startTaskNowSlack),
 		},
 		// no retry aborted, short history 1, retry
 		{
 			S: makeSchedule(t0, week, 0),
-			H: makeHistory(t1, runner.StatusAborted),
-			A: now.Add(taskStartNowSlack),
+			H: makeHistory(t1, StatusAborted),
+			A: now.Add(startTaskNowSlack),
 		},
 	}
 
@@ -234,19 +258,19 @@ func TestConsecutiveErrorCount(t *testing.T) {
 		{
 			"counting no running errors",
 			makeSchedule(t0, 0, 3),
-			makeHistory(t1, runner.StatusDone, runner.StatusAborted),
+			makeHistory(t1, StatusDone, StatusAborted),
 			0,
 		},
 		{
 			"counting running errors",
 			makeSchedule(t0, 0, 3),
-			makeHistory(t1, runner.StatusDone, runner.StatusError, runner.StatusError),
+			makeHistory(t1, StatusDone, StatusError, StatusError),
 			2,
 		},
 		{
 			"counting running errors after threshold",
 			makeSchedule(t0, 10*time.Minute, 3),
-			makeHistory(t1, runner.StatusError, runner.StatusError, runner.StatusError),
+			makeHistory(t1, StatusError, StatusError, StatusError),
 			2,
 		},
 		{

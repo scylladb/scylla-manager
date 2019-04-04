@@ -18,7 +18,6 @@ import (
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/cqlping"
 	"github.com/scylladb/mermaid/internal/kv"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -65,10 +64,9 @@ func NewService(config Config, cp cluster.ProviderFunc, sp scyllaclient.Provider
 	}, nil
 }
 
-// CQLRunner creates a runner.Runner that performs health checks for CQL
-// connectivity.
-func (s *Service) CQLRunner() runner.Runner {
-	return healthCheckRunner{
+// CQLRunner creates a Runner that performs health checks for CQL connectivity.
+func (s *Service) CQLRunner() Runner {
+	return Runner{
 		client:  s.client,
 		cluster: s.cluster,
 		status:  cqlStatus,
@@ -77,10 +75,10 @@ func (s *Service) CQLRunner() runner.Runner {
 	}
 }
 
-// RESTRunner creates a runner.Runner that performs health checks for REST
+// RESTRunner creates a Runner that performs health checks for REST API
 // connectivity.
-func (s *Service) RESTRunner() runner.Runner {
-	return healthCheckRunner{
+func (s *Service) RESTRunner() Runner {
+	return Runner{
 		client:  s.client,
 		cluster: s.cluster,
 		status:  restStatus,

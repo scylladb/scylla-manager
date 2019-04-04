@@ -16,14 +16,13 @@ import (
 	"github.com/scylladb/mermaid/cluster"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/repair"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap/zapcore"
 )
 
-func TestServiceStorageIntegration(t *testing.T) {
+func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	session := CreateSession(t)
 
 	s, err := repair.NewService(
@@ -49,13 +48,16 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	putRunProgress := func(t *testing.T, r *repair.Run) {
+	putRunProgress := func(t *testing.T, r *repair.Run, segmentCount, segmentSuccess, segmentError int) {
 		p := repair.RunProgress{
-			ClusterID: r.ClusterID,
-			TaskID:    r.TaskID,
-			RunID:     r.ID,
-			Host:      "172.16.1.3",
-			Shard:     0,
+			ClusterID:      r.ClusterID,
+			TaskID:         r.TaskID,
+			RunID:          r.ID,
+			Host:           "172.16.1.3",
+			Shard:          0,
+			SegmentCount:   segmentCount,
+			SegmentSuccess: segmentSuccess,
+			SegmentError:   segmentError,
 		}
 		stmt, names := schema.RepairRunProgress.Insert()
 		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease(); err != nil {
@@ -63,7 +65,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	}
 
-	t.Run("get last started run nothing to return", func(t *testing.T) {
+	t.Run("no started runs", func(t *testing.T) {
 		t.Parallel()
 
 		clusterID := uuid.MustRandom()
@@ -73,7 +75,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    runner.StatusError,
+			Units:     []repair.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r0)
 
@@ -81,17 +83,17 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    runner.StatusError,
+			Units:     []repair.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r1)
 
-		_, err := s.GetLastStartedRun(ctx, clusterID, taskID)
+		_, err := s.GetLastResumableRun(ctx, clusterID, taskID)
 		if err != mermaid.ErrNotFound {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("get last started run return first", func(t *testing.T) {
+	t.Run("started run before done run", func(t *testing.T) {
 		t.Parallel()
 
 		clusterID := uuid.MustRandom()
@@ -101,37 +103,27 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    runner.StatusDone,
+			Units:     []repair.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r0)
+		putRunProgress(t, r0, 10, 5, 0)
 
 		r1 := &repair.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    runner.StatusStopped,
+			Units:     []repair.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r1)
+		putRunProgress(t, r0, 10, 10, 0)
 
-		r2 := &repair.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        uuid.NewTime(),
-			Status:    runner.StatusError,
-		}
-		putRun(t, r2)
-
-		r, err := s.GetLastStartedRun(ctx, clusterID, taskID)
-		if err != nil {
+		_, err := s.GetLastResumableRun(ctx, clusterID, taskID)
+		if err != mermaid.ErrNotFound {
 			t.Fatal(err)
-		}
-
-		if diff := cmp.Diff(r, r1, UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
-			t.Fatal(diff)
 		}
 	})
 
-	t.Run("get last started run return first with error", func(t *testing.T) {
+	t.Run("started run before not started run", func(t *testing.T) {
 		t.Parallel()
 
 		clusterID := uuid.MustRandom()
@@ -141,33 +133,25 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    runner.StatusDone,
+			Units:     []repair.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r0)
+		putRunProgress(t, r0, 10, 5, 1)
 
 		r1 := &repair.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Status:    runner.StatusError,
+			Units:     []repair.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r1)
-		putRunProgress(t, r1)
 
-		r2 := &repair.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        uuid.NewTime(),
-			Status:    runner.StatusError,
-		}
-		putRun(t, r2)
-
-		r, err := s.GetLastStartedRun(ctx, clusterID, taskID)
+		r, err := s.GetLastResumableRun(ctx, clusterID, taskID)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(r, r1, UUIDComparer(), cmp.AllowUnexported(repair.Run{})); diff != "" {
+		if diff := cmp.Diff(r, r0, UUIDComparer(), cmp.AllowUnexported(repair.Run{}), cmp.AllowUnexported(repair.Unit{})); diff != "" {
 			t.Fatal(diff)
 		}
 	})

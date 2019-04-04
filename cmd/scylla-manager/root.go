@@ -121,9 +121,6 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrapf(err, "server init")
 		}
-		if err := s.initDatabase(ctx); err != nil {
-			return errors.Wrapf(err, "database init")
-		}
 		if err := s.startServices(ctx); err != nil {
 			return errors.Wrapf(err, "server start")
 		}

@@ -2,18 +2,19 @@
 
 // +build all integration
 
-//go:generate mockgen -destination mock_runner_test.go -mock_names Runner=MockRunner -package sched github.com/scylladb/mermaid/sched/runner Runner
-
 package sched_test
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/schema"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
@@ -21,8 +22,8 @@ import (
 	"github.com/scylladb/mermaid/internal/timeutc"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/sched"
-	"github.com/scylladb/mermaid/sched/runner"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -32,19 +33,94 @@ const (
 	_interval = 2 * time.Millisecond
 	_wait     = 2 * time.Second
 
-	retryTaskWait       = 50 * time.Millisecond
-	taskStartNowSlack   = 5 * time.Millisecond
-	monitorTaskInterval = 10 * time.Millisecond
+	retryTaskWait     = 50 * time.Millisecond
+	stopTaskWait      = 10 * time.Millisecond
+	startTaskNowSlack = 5 * time.Millisecond
 
-	// use ONLY retries < 5, this should be a safe margin
 	interval = duration.Duration(10 * retryTaskWait)
 )
+
+type mockRunner struct {
+	in      chan error
+	props   []json.RawMessage
+	propsMu sync.Mutex
+	called  atomic.Int64
+}
+
+func newMockRunner() *mockRunner {
+	return &mockRunner{
+		in: make(chan error, 10),
+	}
+}
+
+func (r *mockRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
+	r.called.Inc()
+	r.recordProperties(properties)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case v := <-r.in:
+		return v
+	}
+}
+
+func (r *mockRunner) recordProperties(v json.RawMessage) {
+	r.propsMu.Lock()
+	r.props = append(r.props, v)
+	r.propsMu.Unlock()
+}
+
+func (r *mockRunner) Properties() []json.RawMessage {
+	r.propsMu.Lock()
+	defer r.propsMu.Unlock()
+	return r.props
+}
+
+func (r *mockRunner) Called() bool {
+	return r.called.Load() != 0
+}
+
+func (r *mockRunner) Done() {
+	select {
+	case r.in <- nil:
+	default:
+		panic("blocked on init")
+	}
+}
+
+func (r *mockRunner) Error() {
+	select {
+	case r.in <- errors.New("failed"):
+	default:
+		panic("blocked on init")
+	}
+}
+
+type neverEndingRunner struct {
+	done chan struct{}
+}
+
+func newNeverEndingRunner() *neverEndingRunner {
+	return &neverEndingRunner{
+		done: make(chan struct{}),
+	}
+}
+
+func (r *neverEndingRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
+	select {
+	case <-r.done:
+		return nil
+	}
+}
+
+func (r *neverEndingRunner) Stop() {
+	close(r.done)
+}
 
 type schedTestHelper struct {
 	session *gocql.Session
 	service *sched.Service
-	ctrl    *gomock.Controller
-	runner  *sched.MockRunner
+	runner  *mockRunner
 
 	clusterID uuid.UUID
 	taskID    uuid.UUID
@@ -58,13 +134,14 @@ func newSchedTestHelper(t *testing.T, session *gocql.Session) *schedTestHelper {
 	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task_run")
 
 	sched.SetRetryTaskWait(retryTaskWait)
-	sched.SetTaskStartNowSlack(taskStartNowSlack)
-	sched.SetMonitorTaskInterval(monitorTaskInterval)
+	sched.SetStopTaskWait(stopTaskWait)
+	sched.SetStartTaskNowSlack(startTaskNowSlack)
 
 	s := newTestService(t, session)
 	h := &schedTestHelper{
 		session: session,
 		service: s,
+		runner:  newMockRunner(),
 
 		clusterID: uuid.MustRandom(),
 		taskID:    uuid.MustRandom(),
@@ -72,27 +149,12 @@ func newSchedTestHelper(t *testing.T, session *gocql.Session) *schedTestHelper {
 
 		t: t,
 	}
-	h.resetMock()
+	s.SetRunner(mockTask, h.runner)
 
 	return h
 }
 
-func (h *schedTestHelper) resetMock() {
-	if h.ctrl != nil {
-		h.ctrl.Finish()
-	}
-
-	h.ctrl = gomock.NewController(h.t)
-	h.runner = sched.NewMockRunner(h.ctrl)
-	h.service.SetRunner(mockTask, h.runner)
-}
-
-func (h *schedTestHelper) assertMockCalled() {
-	time.Sleep(5 * retryTaskWait)
-	h.resetMock()
-}
-
-func (h *schedTestHelper) assertStatus(ctx context.Context, task *sched.Task, s runner.Status) {
+func (h *schedTestHelper) assertStatus(ctx context.Context, task *sched.Task, s sched.Status) {
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
@@ -108,7 +170,6 @@ func (h *schedTestHelper) assertStatus(ctx context.Context, task *sched.Task, s 
 }
 
 func (h *schedTestHelper) close() {
-	h.ctrl.Finish()
 	h.service.Close()
 }
 
@@ -133,7 +194,7 @@ func newTestService(t *testing.T, session *gocql.Session) *sched.Service {
 				Name: "test_cluster",
 			}, nil
 		},
-		logger.Named("repair"),
+		logger,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -145,11 +206,11 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	session := CreateSession(t)
 
 	now := func() time.Time {
-		return timeutc.Now().Add(2 * taskStartNowSlack)
+		return timeutc.Now().Add(2 * startTaskNowSlack)
 	}
-	future := time.Unix(1<<60, 0)
+	future := time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 
-	t.Run("task put once", func(t *testing.T) {
+	t.Run("put task once", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
@@ -172,7 +233,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("task put once update", func(t *testing.T) {
+	t.Run("put task once update", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
@@ -215,22 +276,43 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("task stop", func(t *testing.T) {
+	t.Run("load tasks", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
 
-		m := descriptorMatcher{}
-		e := h.runner.EXPECT()
-		gomock.InOrder(
-			// run
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).AnyTimes(),
-			// stop
-			e.Stop(gomock.Any(), m).Return(nil).Return(nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil),
-		)
+		Print("When: task is scheduled")
+		task := h.makeTask(sched.Schedule{
+			StartDate: future,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: runs are left in StatusRunning")
+		run := task.NewRun()
+		run.Status = sched.StatusRunning
+		stmt, names := schema.SchedRun.Insert()
+		if err := gocqlx.Query(h.session.Query(stmt), names).BindStruct(run).Exec(); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: load tasks")
+		if err := h.service.LoadTasks(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task status is changed from StatusRunning to status StatusAborted")
+		h.assertStatus(ctx, task, sched.StatusAborted)
+
+		Print("And: aborted tasks are immediately resumed")
+		h.assertStatus(ctx, task, sched.StatusRunning)
+	})
+
+	t.Run("stop task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
 
 		Print("When: task is scheduled")
 		task := h.makeTask(sched.Schedule{
@@ -241,7 +323,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("Then: task runs")
-		h.assertStatus(ctx, task, runner.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusRunning)
 
 		Print("When: task is stopped")
 		if err := h.service.StopTask(ctx, task); err != nil {
@@ -249,10 +331,71 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("Then: task stops")
-		h.assertStatus(ctx, task, runner.StatusStopped)
+		h.assertStatus(ctx, task, sched.StatusStopped)
 	})
 
-	t.Run("task start", func(t *testing.T) {
+	t.Run("stop not responding tasks", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: never ending task is scheduled")
+		h.service.SetRunner(mockTask, newNeverEndingRunner())
+
+		task := h.makeTask(sched.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, sched.StatusRunning)
+
+		Print("When: task is stopped")
+		if err := h.service.StopTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task stops")
+		h.assertStatus(ctx, task, sched.StatusError)
+	})
+
+	t.Run("service close aborts tasks", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: tasks are running")
+		t0 := h.makeTask(sched.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, t0); err != nil {
+			t.Fatal(err)
+		}
+
+		t1 := h.makeTask(sched.Schedule{
+			StartDate: future,
+		})
+		if err := h.service.PutTask(ctx, t1); err != nil {
+			t.Fatal(err)
+		}
+		if err := h.service.StartTask(ctx, t1); err != nil {
+			t.Fatal(err)
+		}
+
+		h.assertStatus(ctx, t0, sched.StatusRunning)
+		h.assertStatus(ctx, t1, sched.StatusRunning)
+
+		Print("When: service is closed")
+		h.service.Close()
+
+		Print("Then: tasks are aborted")
+		h.assertStatus(ctx, t0, sched.StatusAborted)
+		h.assertStatus(ctx, t1, sched.StatusAborted)
+	})
+
+	t.Run("start task", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
@@ -265,192 +408,151 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		Print("Then: nothing happens")
-		h.assertMockCalled()
-
-		Print("Given: task will run")
-		m := descriptorMatcher{}
-		e := h.runner.EXPECT()
-		gomock.InOrder(
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusDone, "", nil),
-		)
-
-		Print("When: task is started")
-		if err := h.service.StartTask(ctx, task, runner.Opts{}); err != nil {
+		Print("And: task is started")
+		if err := h.service.StartTask(ctx, task); err != nil {
 			t.Fatal(err)
 		}
 
 		Print("Then: task runs")
-		h.assertStatus(ctx, task, runner.StatusRunning)
-		h.assertStatus(ctx, task, runner.StatusDone)
+		h.assertStatus(ctx, task, sched.StatusRunning)
+
+		Print("When: task run finishes")
+		h.runner.Done()
+
+		Print("Then: task status is StatusDone")
+		h.assertStatus(ctx, task, sched.StatusDone)
 	})
 
-	t.Run("task start error retry", func(t *testing.T) {
+	t.Run("retry", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
 
 		Print("Given: run will fail")
-		m := descriptorMatcher{}
-		e := h.runner.EXPECT()
-		// AnyTimes is used because the test is flaky otherwise
-		e.Run(gomock.Any(), m, gomock.Any()).Return(errors.New("test error")).Do(m.set).AnyTimes()
+		h.runner.Error()
+		h.runner.Error()
+		h.runner.Error()
 
 		Print("When: task is scheduled with retry once")
 		task := h.makeTask(sched.Schedule{
 			StartDate:  now(),
 			NumRetries: 1,
-			Interval:   interval,
 		})
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)
 		}
 
 		Print("Then: task is ran two times")
-		h.assertStatus(ctx, task, runner.StatusStarting)
-		h.assertStatus(ctx, task, runner.StatusError)
-		h.assertStatus(ctx, task, runner.StatusStarting)
-		h.assertStatus(ctx, task, runner.StatusError)
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
 	})
 
-	t.Run("closed service stops the task", func(t *testing.T) {
+	t.Run("retry preserve options", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
 
-		m := descriptorMatcher{}
-		e := h.runner.EXPECT()
-		gomock.InOrder(
-			// run
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).AnyTimes(),
-			// stop
-			e.Stop(gomock.Any(), m).Return(nil).Return(errors.New("runner stop error")),
-			e.Status(gomock.Any(), m).Return(runner.StatusStopping, "", nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusStopped, "", nil),
-		)
+		Print("Given: run will fail")
+		h.runner.Error()
+		h.runner.Error()
+		h.runner.Error()
+
+		Print("When: task is scheduled with retry once")
+		task := h.makeTask(sched.Schedule{
+			StartDate:  future,
+			NumRetries: 1,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: task is started with additional properties")
+		a := func(v sched.Properties) sched.Properties {
+			return sched.Properties([]byte(`{"a":1}`))
+		}
+		b := func(v sched.Properties) sched.Properties {
+			return sched.Properties([]byte(`{"b":1}`))
+		}
+		if err := h.service.StartTask(ctx, task, a, b); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is ran two times")
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
+
+		Print("And: properties were preserved")
+		if diff := cmp.Diff(h.runner.Properties(), []json.RawMessage{[]byte(`{"b":1}`), []byte(`{"b":1}`)}); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("reschedule done", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: run ends successfully")
+		h.runner.Done()
 
 		Print("When: task is scheduled")
 		task := h.makeTask(sched.Schedule{
 			StartDate: now(),
+			Interval:  duration.Duration(10 * retryTaskWait),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task stops with the status")
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusDone)
+
+		Print("And: task is executed in intervals")
+		h.assertStatus(ctx, task, sched.StatusRunning)
+	})
+
+	t.Run("reschedule stopped", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled")
+		task := h.makeTask(sched.Schedule{
+			StartDate: now(),
+			Interval:  duration.Duration(10 * retryTaskWait),
 		})
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)
 		}
 
 		Print("Then: task runs")
-		h.assertStatus(ctx, task, runner.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusRunning)
 
-		Print("When: service is closed")
-		h.service.Close()
+		Print("When: task is stopped")
+		if err := h.service.StopTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
 
 		Print("Then: task stops")
-		h.assertStatus(ctx, task, runner.StatusStopped)
+		h.assertStatus(ctx, task, sched.StatusStopped)
+
+		Print("And: task is executed in intervals")
+		h.assertStatus(ctx, task, sched.StatusRunning)
 	})
 
-	t.Run("closed service stops the task when runner is erroring", func(t *testing.T) {
+	t.Run("reschedule error", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
-
-		m := descriptorMatcher{}
-		e := h.runner.EXPECT()
-		gomock.InOrder(
-			// run
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil).AnyTimes(),
-			// stop
-			e.Stop(gomock.Any(), m).Return(nil).Return(errors.New("runner stop error")),
-			e.Status(gomock.Any(), m).Return(runner.Status(""), "", errors.New("runner status error")).AnyTimes(),
-		)
-
-		Print("When: task is scheduled")
-		task := h.makeTask(sched.Schedule{
-			StartDate: now(),
-		})
-		if err := h.service.PutTask(ctx, task); err != nil {
-			t.Fatal(err)
-		}
-
-		Print("Then: task runs")
-		h.assertStatus(ctx, task, runner.StatusRunning)
-
-		Print("When: service is closed")
-		h.service.Close()
-
-		Print("Then: Close finishes")
-	})
-
-	testReschedule := func(status runner.Status) func(t *testing.T) {
-		return func(t *testing.T) {
-			h := newSchedTestHelper(t, session)
-			defer h.close()
-			ctx := context.Background()
-
-			armMock := func() {
-				m := descriptorMatcher{}
-				e := h.runner.EXPECT()
-				gomock.InOrder(
-					e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-					e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-					e.Status(gomock.Any(), m).Return(status, "", nil),
-				)
-			}
-
-			Print("Given: run ends with a given status")
-			armMock()
-
-			Print("When: task is scheduled")
-			task := h.makeTask(sched.Schedule{
-				StartDate: now(),
-				Interval:  duration.Duration(10 * retryTaskWait),
-			})
-			if err := h.service.PutTask(ctx, task); err != nil {
-				t.Fatal(err)
-			}
-
-			Print("Then: task stops")
-			h.assertStatus(ctx, task, runner.StatusRunning)
-			h.assertStatus(ctx, task, status)
-			h.assertMockCalled()
-
-			Print("Given: run ends with a given status")
-			armMock()
-
-			Print("And: task is executed in intervals")
-			h.assertStatus(ctx, task, runner.StatusRunning)
-			h.assertStatus(ctx, task, status)
-			h.assertMockCalled()
-		}
-	}
-	t.Run("done reschedule", testReschedule(runner.StatusDone))
-	t.Run("stopped reschedule", testReschedule(runner.StatusStopped))
-	t.Run("error reschedule", testReschedule(runner.StatusError))
-
-	t.Run("error retry", func(t *testing.T) {
-		h := newSchedTestHelper(t, session)
-		defer h.close()
-		ctx := context.Background()
-
-		armMock := func() {
-			m := descriptorMatcher{}
-			e := h.runner.EXPECT()
-			gomock.InOrder(
-				// run
-				e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-				e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-				e.Status(gomock.Any(), m).Return(runner.StatusError, "", nil),
-				// retry
-				e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-				e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-				e.Status(gomock.Any(), m).Return(runner.StatusError, "", nil),
-			)
-		}
 
 		Print("Given: run will fail twice")
-		armMock()
+		h.runner.Error()
+		h.runner.Error()
 
 		Print("When: task is scheduled with retry once")
 		task := h.makeTask(sched.Schedule{
@@ -463,83 +565,19 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("Then: task is ran two times")
-		h.assertStatus(ctx, task, runner.StatusRunning)
-		h.assertStatus(ctx, task, runner.StatusError)
-		h.assertStatus(ctx, task, runner.StatusRunning)
-		h.assertStatus(ctx, task, runner.StatusError)
-		h.assertMockCalled()
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
 
 		Print("Given: run will fail twice")
-		armMock()
+		h.runner.Error()
+		h.runner.Error()
 
 		Print("Then: task is ran two times in next interval")
-		h.assertStatus(ctx, task, runner.StatusRunning)
-		h.assertStatus(ctx, task, runner.StatusError)
-		h.assertStatus(ctx, task, runner.StatusRunning)
-		h.assertStatus(ctx, task, runner.StatusError)
-		h.assertMockCalled()
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
+		h.assertStatus(ctx, task, sched.StatusRunning)
+		h.assertStatus(ctx, task, sched.StatusError)
 	})
-
-	t.Run("aborted always retry", func(t *testing.T) {
-		h := newSchedTestHelper(t, session)
-		defer h.close()
-		ctx := context.Background()
-
-		Print("Given: run will always abort")
-		m := descriptorMatcher{}
-		e := h.runner.EXPECT()
-		gomock.InOrder(
-			// run
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
-			// retry
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
-			// retry
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
-			// retry
-			e.Run(gomock.Any(), m, gomock.Any()).Return(nil).Do(m.set),
-			e.Status(gomock.Any(), m).Return(runner.StatusRunning, "", nil),
-			e.Status(gomock.Any(), m).Return(runner.StatusAborted, "", nil),
-		)
-
-		Print("When: task is scheduled with retry once")
-		task := h.makeTask(sched.Schedule{
-			StartDate:  now(),
-			NumRetries: 1,
-			Interval:   interval,
-		})
-		if err := h.service.PutTask(ctx, task); err != nil {
-			t.Fatal(err)
-		}
-
-		Print("Then: task is always retried")
-		for i := 0; i < 4; i++ {
-			h.assertStatus(ctx, task, runner.StatusRunning)
-			h.assertStatus(ctx, task, runner.StatusAborted)
-		}
-	})
-}
-
-type descriptorMatcher struct {
-	d runner.Descriptor
-}
-
-func (m descriptorMatcher) String() string {
-	return fmt.Sprint(m.d)
-}
-
-func (m descriptorMatcher) Matches(v interface{}) bool {
-	if m.d.ClusterID == uuid.Nil {
-		return true
-	}
-	return m.d == v.(runner.Descriptor)
-}
-
-func (m descriptorMatcher) set(_, d, _ interface{}) {
-	m.d = d.(runner.Descriptor)
 }
