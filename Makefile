@@ -24,7 +24,7 @@ setup: ## Install required tools
 	@mkdir -p $(GOBIN)
 	@ln -s $(PWD)/vendor $(GOPATH)/src
 	@$(call dl,dep,https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64)
-	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.10.2/golangci-lint-1.10.2-linux-amd64.tar.gz)
+	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.16.0/golangci-lint-1.16.0-linux-amd64.tar.gz)
 	@rm -Rf $(GOPATH)
 
 .PHONY: setup-dev

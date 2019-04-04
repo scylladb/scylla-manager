@@ -394,10 +394,8 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	// If host changes ignore old known hosts.
 	if c.Host != "" {
 		c.KnownHosts = []string{c.Host}
-	} else {
-		if err := s.loadKnownHosts(c); err != nil {
-			return errors.Wrap(err, "failed to load known hosts")
-		}
+	} else if err := s.loadKnownHosts(c); err != nil {
+		return errors.Wrap(err, "failed to load known hosts")
 	}
 
 	client, err := s.createClient(c)

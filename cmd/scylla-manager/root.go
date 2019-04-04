@@ -296,11 +296,12 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 
 	// Chose consistency level, for a single node deployments use ONE, for
 	// multi-dc deployments use LOCAL_QUORUM, otherwise use QUORUM.
-	if config.Database.LocalDC != "" {
+	switch {
+	case config.Database.LocalDC != "":
 		c.Consistency = gocql.LocalQuorum
-	} else if config.Database.ReplicationFactor == 1 {
+	case config.Database.ReplicationFactor == 1:
 		c.Consistency = gocql.One
-	} else {
+	default:
 		c.Consistency = gocql.Quorum
 	}
 

@@ -347,11 +347,9 @@ func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, err, fmt.Sprintf("failed to update task %q", t.ID))
 			return
 		}
-	} else {
-		if err := h.schedSvc.StopTask(r.Context(), t); err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to stop task %q", t.ID))
-			return
-		}
+	} else if err := h.schedSvc.StopTask(r.Context(), t); err != nil {
+		respondError(w, r, err, fmt.Sprintf("failed to stop task %q", t.ID))
+		return
 	}
 }
 

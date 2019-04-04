@@ -119,7 +119,7 @@ func (p *Murmur3Partitioner) TokenForPrevShard(t int64, shard uint) int64 {
 	if shard > s {
 		l--
 	}
-	l = l << (64 - p.shardingIgnoreMsbBits)
+	l <<= 64 - p.shardingIgnoreMsbBits
 
 	return unzeroBased(l | p.shardStart[shard])
 }

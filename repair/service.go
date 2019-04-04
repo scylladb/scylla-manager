@@ -575,9 +575,9 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			})
 		}
 	}
-	for _, p := range prog {
-		if err := s.putRunProgress(ctx, &p); err != nil {
-			return errors.Wrapf(err, "failed to initialize the run progress %v", &p)
+	for i := range prog {
+		if err := s.putRunProgress(ctx, &prog[i]); err != nil {
+			return errors.Wrapf(err, "failed to initialize the run progress %v", prog[i])
 		}
 	}
 

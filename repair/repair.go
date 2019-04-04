@@ -110,6 +110,7 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 		}
 
 		// create and add segments for every host
+		t := t
 		hosts.Each(func(h string) bool {
 			if t.StartToken > t.EndToken {
 				hostSegments[h] = append(hostSegments[h],
@@ -197,7 +198,7 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 	idx := 0
 	for i, u := range run.Units {
 		end := sort.Search(len(prog), func(j int) bool {
-			return prog[j].Unit > i
+			return prog[j].Unit > i // nolint: scopelint
 		})
 		p := aggregateUnitProgress(u, prog[idx:end])
 		v.progress.addProgress(p.progress)
@@ -275,19 +276,21 @@ func sortUnits(units []Unit, inclExcl inexlist.InExList) {
 
 	sort.Slice(units, func(i, j int) bool {
 		// order by position
-		if positions[units[i].Keyspace] < positions[units[j].Keyspace] {
+		switch {
+		case positions[units[i].Keyspace] < positions[units[j].Keyspace]:
 			return true
-		} else if positions[units[i].Keyspace] > positions[units[j].Keyspace] {
+		case positions[units[i].Keyspace] > positions[units[j].Keyspace]:
 			return false
-		} else {
+		default:
 			// promote system keyspaces
 			l := strings.HasPrefix(units[i].Keyspace, "system")
 			r := strings.HasPrefix(units[j].Keyspace, "system")
-			if l && !r {
+			switch {
+			case l && !r:
 				return true
-			} else if !l && r {
+			case !l && r:
 				return false
-			} else {
+			default:
 				// order by name
 				return units[i].Keyspace < units[j].Keyspace
 			}
