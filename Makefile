@@ -4,6 +4,7 @@ ifndef GOBIN
 export GOBIN := $(GOPATH)/bin
 endif
 
+GO111MODULE = on
 GO_VERSION = "1.12.1"
 GO_CURRENT_VERSION = `go version`
 
@@ -23,7 +24,6 @@ setup: ## Install required tools
 	@echo "==> Installing tools at $(GOBIN) ..."
 	@mkdir -p $(GOBIN)
 	@ln -s $(PWD)/vendor $(GOPATH)/src
-	@$(call dl,dep,https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64)
 	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.16.0/golangci-lint-1.16.0-linux-amd64.tar.gz)
 	@rm -Rf $(GOPATH)
 
@@ -37,6 +37,11 @@ setup-dev: ## Install required development tools
 	@go install github.com/golang/mock/mockgen
 	@go get gopkg.in/src-d/go-license-detector.v2/cmd/license-detector
 	@rm -Rf $(GOPATH)
+
+.PHONY: vendor
+vendor: ## Fix dependencies and make vendored copies
+	@go mod tidy
+	@go mod vendor
 
 .PHONY: fmt
 fmt: ## Format source code
@@ -77,7 +82,7 @@ check: .check-go-version .check-copyright .check-timeutc .check-lint .check-vend
 
 .PHONY: .check-vendor
 .check-vendor:
-	@$(GOBIN)/dep check
+	@go mod verify
 
 .PHONY: test
 test: ## Run unit and integration tests

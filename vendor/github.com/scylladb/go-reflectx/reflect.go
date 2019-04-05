@@ -66,18 +66,16 @@ func (f StructMap) GetByTraversal(index []int) *FieldInfo {
 // behaves like most marshallers in the standard library, obeying a field tag
 // for name mapping but also providing a basic transform function.
 type Mapper struct {
-	cache      map[reflect.Type]*StructMap
+	cache      sync.Map // map[reflect.Type]*StructMap
 	tagName    string
 	tagMapFunc func(string) string
 	mapFunc    func(string) string
-	mutex      sync.Mutex
 }
 
 // NewMapper returns a new mapper using the tagName as its struct field tag.
 // If tagName is the empty string, it is ignored.
 func NewMapper(tagName string) *Mapper {
 	return &Mapper{
-		cache:   make(map[reflect.Type]*StructMap),
 		tagName: tagName,
 	}
 }
@@ -87,7 +85,6 @@ func NewMapper(tagName string) *Mapper {
 // have values like "name,omitempty".
 func NewMapperTagFunc(tagName string, mapFunc, tagMapFunc func(string) string) *Mapper {
 	return &Mapper{
-		cache:      make(map[reflect.Type]*StructMap),
 		tagName:    tagName,
 		mapFunc:    mapFunc,
 		tagMapFunc: tagMapFunc,
@@ -99,7 +96,6 @@ func NewMapperTagFunc(tagName string, mapFunc, tagMapFunc func(string) string) *
 // for any other field, the mapped name will be f(field.Name)
 func NewMapperFunc(tagName string, f func(string) string) *Mapper {
 	return &Mapper{
-		cache:   make(map[reflect.Type]*StructMap),
 		tagName: tagName,
 		mapFunc: f,
 	}
@@ -108,14 +104,13 @@ func NewMapperFunc(tagName string, f func(string) string) *Mapper {
 // TypeMap returns a mapping of field strings to int slices representing
 // the traversal down the struct to reach the field.
 func (m *Mapper) TypeMap(t reflect.Type) *StructMap {
-	m.mutex.Lock()
-	mapping, ok := m.cache[t]
-	if !ok {
-		mapping = getMapping(t, m.tagName, m.mapFunc, m.tagMapFunc)
-		m.cache[t] = mapping
+	if mapping, ok := m.cache.Load(t); ok {
+		return mapping.(*StructMap)
 	}
-	m.mutex.Unlock()
-	return mapping
+
+	mapping, _ := m.cache.LoadOrStore(t, getMapping(t, m.tagName, m.mapFunc, m.tagMapFunc))
+
+	return mapping.(*StructMap)
 }
 
 // FieldMap returns the mapper's mapping of field names to reflect values.  Panics

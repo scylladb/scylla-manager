@@ -1,0 +1,162 @@
+# github.com/PuerkitoBio/purell v1.1.0
+github.com/PuerkitoBio/purell
+# github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
+github.com/PuerkitoBio/urlesc
+# github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055
+github.com/apcera/termtables
+github.com/apcera/termtables/term
+# github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f
+github.com/asaskevich/govalidator
+# github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
+github.com/beorn7/perks/quantile
+# github.com/cespare/xxhash v1.0.0
+github.com/cespare/xxhash
+# github.com/go-chi/chi v3.3.2+incompatible
+github.com/go-chi/chi
+github.com/go-chi/chi/middleware
+# github.com/go-chi/render v1.0.0
+github.com/go-chi/render
+# github.com/go-openapi/analysis v0.0.0-20180801175213-7c1bef8f6d9f
+github.com/go-openapi/analysis
+github.com/go-openapi/analysis/internal
+# github.com/go-openapi/errors v0.0.0-20180515155515-b2b2befaf267
+github.com/go-openapi/errors
+# github.com/go-openapi/jsonpointer v0.0.0-20180322222829-3a0015ad55fa
+github.com/go-openapi/jsonpointer
+# github.com/go-openapi/jsonreference v0.0.0-20180322222742-3fb327e6747d
+github.com/go-openapi/jsonreference
+# github.com/go-openapi/loads v0.0.0-20171207192234-2a2b323bab96
+github.com/go-openapi/loads
+# github.com/go-openapi/runtime v0.0.0-20180628220156-9a3091f566c0
+github.com/go-openapi/runtime
+github.com/go-openapi/runtime/client
+github.com/go-openapi/runtime/middleware
+github.com/go-openapi/runtime/logger
+github.com/go-openapi/runtime/middleware/denco
+github.com/go-openapi/runtime/middleware/header
+github.com/go-openapi/runtime/middleware/untyped
+github.com/go-openapi/runtime/security
+# github.com/go-openapi/spec v0.0.0-20180801175345-384415f06ee2
+github.com/go-openapi/spec
+# github.com/go-openapi/strfmt v0.0.0-20180703152050-913ee058e387
+github.com/go-openapi/strfmt
+# github.com/go-openapi/swag v0.0.0-20180715190254-becd2f08beaf
+github.com/go-openapi/swag
+# github.com/go-openapi/validate v0.0.0-20180809073206-7c1911976134
+github.com/go-openapi/validate
+# github.com/gobwas/glob v0.2.3
+github.com/gobwas/glob
+github.com/gobwas/glob/compiler
+github.com/gobwas/glob/syntax
+github.com/gobwas/glob/match
+github.com/gobwas/glob/syntax/ast
+github.com/gobwas/glob/util/runes
+github.com/gobwas/glob/syntax/lexer
+github.com/gobwas/glob/util/strings
+# github.com/gocql/gocql v0.0.0-20181124151448-70385f88b28b => github.com/scylladb/gocql v1.0.4
+github.com/gocql/gocql
+github.com/gocql/gocql/internal/lru
+github.com/gocql/gocql/internal/murmur
+github.com/gocql/gocql/internal/streams
+# github.com/golang/mock v1.1.1
+github.com/golang/mock/mockgen
+github.com/golang/mock/mockgen/model
+github.com/golang/mock/gomock
+# github.com/golang/protobuf v1.1.0
+github.com/golang/protobuf/proto
+# github.com/golang/snappy v0.0.0-20170215233205-553a64147049
+github.com/golang/snappy
+# github.com/google/go-cmp v0.2.0
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/cmpopts
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
+# github.com/google/gops v0.3.3
+github.com/google/gops/agent
+github.com/google/gops/internal
+github.com/google/gops/signal
+# github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
+github.com/hailocab/go-hostpool
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
+github.com/kardianos/osext
+# github.com/mailru/easyjson v0.0.0-20180323154445-8b799c424f57
+github.com/mailru/easyjson/jlexer
+github.com/mailru/easyjson/jwriter
+github.com/mailru/easyjson/buffer
+# github.com/mattn/go-runewidth v0.0.2
+github.com/mattn/go-runewidth
+# github.com/matttproud/golang_protobuf_extensions v1.0.0
+github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/mitchellh/mapstructure v0.0.0-20180220230111-00c29f56e238
+github.com/mitchellh/mapstructure
+# github.com/pkg/errors v0.8.0
+github.com/pkg/errors
+# github.com/prometheus/client_golang v0.8.0
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/promhttp
+# github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.0.0-20180426121432-d811d2e9bf89
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/model
+github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+# github.com/prometheus/procfs v0.0.0-20180408092902-8b1c2da0d56d
+github.com/prometheus/procfs
+github.com/prometheus/procfs/nfs
+github.com/prometheus/procfs/xfs
+github.com/prometheus/procfs/internal/util
+# github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea
+github.com/scylladb/go-log
+github.com/scylladb/go-log/gocqllog
+# github.com/scylladb/go-reflectx v1.0.1
+github.com/scylladb/go-reflectx
+# github.com/scylladb/go-set v1.0.1
+github.com/scylladb/go-set/strset
+github.com/scylladb/go-set/i64set
+# github.com/scylladb/gocqlx v1.2.2
+github.com/scylladb/gocqlx
+github.com/scylladb/gocqlx/qb
+github.com/scylladb/gocqlx/migrate
+github.com/scylladb/gocqlx/table
+# github.com/spf13/cobra v0.0.3
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.1
+github.com/spf13/pflag
+# go.uber.org/atomic v1.3.2
+go.uber.org/atomic
+# go.uber.org/multierr v1.1.0
+go.uber.org/multierr
+# go.uber.org/zap v1.9.1
+go.uber.org/zap/zapcore
+go.uber.org/zap
+go.uber.org/zap/buffer
+go.uber.org/zap/internal/bufferpool
+go.uber.org/zap/internal/color
+go.uber.org/zap/internal/exit
+# golang.org/x/crypto v0.0.0-20180509205747-2d027ae1dddd
+golang.org/x/crypto/ssh
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/internal/chacha20
+golang.org/x/crypto/poly1305
+golang.org/x/crypto/ed25519/internal/edwards25519
+# golang.org/x/net v0.0.0-20180509002218-f73e4c9ed3b7
+golang.org/x/net/context
+golang.org/x/net/context/ctxhttp
+golang.org/x/net/idna
+# golang.org/x/text v0.3.0
+golang.org/x/text/unicode/norm
+golang.org/x/text/width
+golang.org/x/text/secure/bidirule
+golang.org/x/text/unicode/bidi
+golang.org/x/text/transform
+# gopkg.in/inf.v0 v0.9.1
+gopkg.in/inf.v0
+# gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
+gopkg.in/mgo.v2/bson
+gopkg.in/mgo.v2/internal/json
+# gopkg.in/yaml.v2 v2.2.1
+gopkg.in/yaml.v2

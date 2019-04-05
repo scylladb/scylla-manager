@@ -80,12 +80,17 @@ func isScyllaConn(conn *Conn) bool {
 
 // scyllaConnPicker is a specialised ConnPicker that selects connections based
 // on token trying to get connection to a shard containing the given token.
+// A list of excess connections is maintained to allow for lazy closing of
+// connections to already opened shards. Keeping excess connections open helps
+// reaching equilibrium faster since the likelihood of hitting the same shard
+// decreases with the number of connections to the shard.
 type scyllaConnPicker struct {
-	conns     []*Conn
-	nrConns   int
-	nrShards  int
-	msbIgnore uint64
-	pos       int32
+	conns       []*Conn
+	excessConns []*Conn
+	nrConns     int
+	nrShards    int
+	msbIgnore   uint64
+	pos         int32
 }
 
 func newScyllaConnPicker(conn *Conn) *scyllaConnPicker {
@@ -144,13 +149,7 @@ func (p *scyllaConnPicker) Pick(t token) *Conn {
 	}
 
 	if t == nil {
-		idx := int(atomic.AddInt32(&p.pos, 1))
-		for i := 0; i < len(p.conns); i++ {
-			if conn := p.conns[(idx+i)%len(p.conns)]; conn != nil {
-				return conn
-			}
-		}
-		return nil
+		return p.randomConn()
 	}
 
 	mmt, ok := t.(murmur3Token)
@@ -160,7 +159,12 @@ func (p *scyllaConnPicker) Pick(t token) *Conn {
 	}
 
 	idx := p.shardOf(mmt)
-	return p.conns[idx]
+	if c := p.conns[idx]; c != nil {
+		// We have this shard's connection
+		// so let's give it to the caller.
+		return c
+	}
+	return p.randomConn()
 }
 
 func (p *scyllaConnPicker) shardOf(token murmur3Token) int {
@@ -175,6 +179,8 @@ func (p *scyllaConnPicker) shardOf(token murmur3Token) int {
 }
 
 func (p *scyllaConnPicker) Put(conn *Conn) {
+	const maxExcessConnsFactor = 10
+
 	s := parseSupported(conn.supported)
 	if s.nrShards == 0 {
 		panic(fmt.Sprintf("scylla: %s not a sharded connection", conn.Address()))
@@ -189,12 +195,47 @@ func (p *scyllaConnPicker) Put(conn *Conn) {
 		copy(p.conns, conns)
 	}
 	if c := p.conns[s.shard]; c != nil {
-		conn.Close()
+		p.excessConns = append(p.excessConns, conn)
+		if len(p.excessConns) > maxExcessConnsFactor*p.nrShards {
+			if gocqlDebug {
+				Logger.Printf("scylla: excess connections limit reached (%d)", maxExcessConnsFactor*p.nrShards)
+			}
+			p.closeExcessConns()
+		}
 		return
 	}
 	p.conns[s.shard] = conn
 	p.nrConns++
+	if p.nrConns >= p.nrShards {
+		// We have reached one connection to each shard and
+		// it's time to close the excess connections.
+		p.closeExcessConns()
+	}
 	if gocqlDebug {
 		Logger.Printf("scylla: %s put shard %d connection total: %d missing: %d", conn.Address(), s.shard, p.nrConns, p.nrShards-p.nrConns)
 	}
+}
+
+// closeExcessConns closes the excess connections and clears
+// the excessConns slice. This function needs to be called
+// in a goroutine safe context, i.e. when the external pool
+// write lock is held or other synchronization is needed.
+func (p *scyllaConnPicker) closeExcessConns() {
+	if gocqlDebug {
+		Logger.Printf("scylla: closing %d excess connections", len(p.excessConns))
+	}
+	for _, c := range p.excessConns {
+		c.Close()
+	}
+	p.excessConns = nil
+}
+
+func (p *scyllaConnPicker) randomConn() *Conn {
+	idx := int(atomic.AddInt32(&p.pos, 1))
+	for i := 0; i < len(p.conns); i++ {
+		if conn := p.conns[(idx+i)%len(p.conns)]; conn != nil {
+			return conn
+		}
+	}
+	return nil
 }
