@@ -29,6 +29,7 @@ require (
 	github.com/google/go-cmp v0.2.0
 	github.com/google/gops v0.3.3
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
+	github.com/hashicorp/go-version v1.1.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1 // indirect
 	github.com/mailru/easyjson v0.0.0-20180323154445-8b799c424f57 // indirect
