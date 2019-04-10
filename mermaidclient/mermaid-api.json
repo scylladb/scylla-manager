@@ -86,10 +86,10 @@
             "type": "number",
             "format": "float"
           },
-          "api_status": {
+          "rest_status": {
             "type": "string"
           },
-          "api_rtt_ms": {
+          "rest_rtt_ms": {
             "type": "number",
             "format": "float"
           }

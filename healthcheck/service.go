@@ -65,7 +65,8 @@ func NewService(config Config, cp cluster.ProviderFunc, sp scyllaclient.Provider
 	}, nil
 }
 
-// CQLRunner creates a runner.Runner that performs health checks for CQL connectivity.
+// CQLRunner creates a runner.Runner that performs health checks for CQL
+// connectivity.
 func (s *Service) CQLRunner() runner.Runner {
 	return healthCheckRunner{
 		client:  s.client,
@@ -76,14 +77,15 @@ func (s *Service) CQLRunner() runner.Runner {
 	}
 }
 
-// APIRunner creates a runner.Runner that performs health checks for API connectivity.
-func (s *Service) APIRunner() runner.Runner {
+// RESTRunner creates a runner.Runner that performs health checks for REST
+// connectivity.
+func (s *Service) RESTRunner() runner.Runner {
 	return healthCheckRunner{
 		client:  s.client,
 		cluster: s.cluster,
-		status:  apiStatus,
-		rtt:     apiRTT,
-		ping:    s.pingAPI,
+		status:  restStatus,
+		rtt:     restRTT,
+		ping:    s.pingREST,
 	}
 }
 
@@ -141,17 +143,17 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 			size++
 
 			cqlQ := make(chan pingStat)
-			apiQ := make(chan pingStat)
+			restQ := make(chan pingStat)
 			go check(h, "CQL", s.pingCQL, cqlQ)
-			go check(h, "API", s.pingAPI, apiQ)
+			go check(h, "REST", s.pingREST, restQ)
 
 			go func(dc, h string) {
-				var cqlStatus, apiStatus pingStat
-				for cqlStatus.status == "" || apiStatus.status == "" {
+				var cqlStatus, restStatus pingStat
+				for cqlStatus.status == "" || restStatus.status == "" {
 					select {
 					case cqlStatus = <-cqlQ:
 						continue
-					case apiStatus = <-apiQ:
+					case restStatus = <-restQ:
 						continue
 					case <-ctx.Done():
 						s.logger.Error(ctx, "status check canceled",
@@ -163,13 +165,13 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 					}
 				}
 				out <- Status{
-					DC:        dc,
-					Host:      h,
-					SSL:       s.hasTLSConfig(clusterID),
-					CQLStatus: cqlStatus.status,
-					CQLRtt:    cqlStatus.rtt,
-					APIStatus: apiStatus.status,
-					APIRtt:    apiStatus.rtt,
+					DC:         dc,
+					Host:       h,
+					SSL:        s.hasTLSConfig(clusterID),
+					CQLStatus:  cqlStatus.status,
+					CQLRtt:     cqlStatus.rtt,
+					RESTStatus: restStatus.status,
+					RESTRtt:    restStatus.rtt,
 				}
 			}(dc, h)
 		}
@@ -225,7 +227,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 	return
 }
 
-func (s *Service) pingAPI(ctx context.Context, clusterID uuid.UUID, host string) (time.Duration, error) {
+func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string) (time.Duration, error) {
 	client, err := s.client(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrapf(err, "failed to get client for cluster with id %s", clusterID)

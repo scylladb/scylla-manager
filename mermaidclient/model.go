@@ -320,7 +320,7 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 
 	var (
 		dc = cs[0].Dc
-		t  = table.New("CQL", "API", "SSL", "Host")
+		t  = table.New("CQL", "SSL", "REST", "Host")
 	)
 
 	for _, s := range cs {
@@ -329,21 +329,21 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 				return err
 			}
 			dc = s.Dc
-			t = table.New("CQL", "API", "SSL", "Host")
+			t = table.New("CQL", "SSL", "REST", "Host")
 		}
 		cqlStatus := statusDown
 		if s.CqlStatus != statusDown {
 			cqlStatus = fmt.Sprintf("%s (%.0fms)", s.CqlStatus, s.CqlRttMs)
 		}
-		apiStatus := statusDown
-		if s.APIStatus != statusDown {
-			apiStatus = fmt.Sprintf("%s (%.0fms)", s.APIStatus, s.APIRttMs)
+		restStatus := statusDown
+		if s.RestStatus != statusDown {
+			restStatus = fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
 		}
 		ssl := "OFF"
 		if s.Ssl {
 			ssl = "ON"
 		}
-		t.AddRow(cqlStatus, apiStatus, ssl, s.Host)
+		t.AddRow(cqlStatus, ssl, restStatus, s.Host)
 	}
 	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
 		return err

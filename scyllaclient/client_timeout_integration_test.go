@@ -69,7 +69,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	block := func(ctx context.Context, hosts []string) error {
 		for _, h := range hosts {
-			stdout, stderr, err := ExecOnHost(context.Background(), h, CmdBlockScyllaAPI)
+			stdout, stderr, err := ExecOnHost(context.Background(), h, CmdBlockScyllaREST)
 			if err != nil {
 				return errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 			}
@@ -80,7 +80,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	unblock := func(ctx context.Context) error {
 		for _, h := range blockedHosts {
-			stdout, stderr, err := ExecOnHost(ctx, h, CmdUnblockScyllaAPI)
+			stdout, stderr, err := ExecOnHost(ctx, h, CmdUnblockScyllaREST)
 			if err != nil {
 				return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 			}
