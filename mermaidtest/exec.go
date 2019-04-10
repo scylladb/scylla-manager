@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	// CmdBlockScyllaAPI defines the command used for blocking the Scylla REST API.
-	CmdBlockScyllaAPI = "iptables -A INPUT -p tcp --destination-port 10000 -j DROP"
+	// CmdBlockScyllaREST defines the command used for blocking the Scylla REST REST.
+	CmdBlockScyllaREST = "iptables -A INPUT -p tcp --destination-port 10000 -j DROP"
 
-	// CmdUnblockScyllaAPI defines the command used for unblocking the Scylla REST API.
-	CmdUnblockScyllaAPI = "iptables -D INPUT -p tcp --destination-port 10000 -j DROP"
+	// CmdUnblockScyllaREST defines the command used for unblocking the Scylla REST REST.
+	CmdUnblockScyllaREST = "iptables -D INPUT -p tcp --destination-port 10000 -j DROP"
 
 	// CmdBlockScyllaCQL defines the command used for blocking the Scylla CQL access.
 	CmdBlockScyllaCQL = "iptables -A INPUT -p tcp --destination-port 9042 -j DROP"

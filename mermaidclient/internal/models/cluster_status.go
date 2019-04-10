@@ -48,12 +48,6 @@ func (m ClusterStatus) Validate(formats strfmt.Registry) error {
 // swagger:model ClusterStatusItems0
 type ClusterStatusItems0 struct {
 
-	// api rtt ms
-	APIRttMs float32 `json:"api_rtt_ms,omitempty"`
-
-	// api status
-	APIStatus string `json:"api_status,omitempty"`
-
 	// cql rtt ms
 	CqlRttMs float32 `json:"cql_rtt_ms,omitempty"`
 
@@ -65,6 +59,12 @@ type ClusterStatusItems0 struct {
 
 	// host
 	Host string `json:"host,omitempty"`
+
+	// rest rtt ms
+	RestRttMs float32 `json:"rest_rtt_ms,omitempty"`
+
+	// rest status
+	RestStatus string `json:"rest_status,omitempty"`
 
 	// ssl
 	Ssl bool `json:"ssl,omitempty"`

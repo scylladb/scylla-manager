@@ -27,10 +27,10 @@ func makeAutoHealthCheckTask(clusterID uuid.UUID) *sched.Task {
 	}
 }
 
-func makeAutoHealthCheckAPITask(clusterID uuid.UUID) *sched.Task {
+func makeAutoHealthCheckRESTTask(clusterID uuid.UUID) *sched.Task {
 	return &sched.Task{
 		ClusterID: clusterID,
-		Type:      sched.HealthCheckAPITask,
+		Type:      sched.HealthCheckRESTTask,
 		Enabled:   true,
 		Sched: sched.Schedule{
 			Interval:   duration.Duration(1 * time.Hour),

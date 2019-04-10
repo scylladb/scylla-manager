@@ -45,7 +45,7 @@ func TestGetStatusIntegration(t *testing.T) {
 		t.Helper()
 		diffOpts := []cmp.Option{
 			UUIDComparer(),
-			cmpopts.IgnoreFields(Status{}, "CQLRtt", "APIRtt"),
+			cmpopts.IgnoreFields(Status{}, "CQLRtt", "RESTRtt"),
 		}
 		if diff := cmp.Diff(got, expected, diffOpts...); diff != "" {
 			t.Error(diff)
@@ -60,20 +60,20 @@ func TestGetStatusIntegration(t *testing.T) {
 		}
 
 		expected := []Status{
-			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
 		compare(t, status, expected)
 	})
 
-	t.Run("node_12 API DOWN", func(t *testing.T) {
+	t.Run("node_12 REST DOWN", func(t *testing.T) {
 		host := "192.168.100.12"
-		blockAPI(t, host)
-		defer unblockAPI(t, host)
+		blockREST(t, host)
+		defer unblockREST(t, host)
 
 		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
 		if err != nil {
@@ -82,12 +82,12 @@ func TestGetStatusIntegration(t *testing.T) {
 		}
 
 		expected := []Status{
-			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", APIStatus: "DOWN"},
-			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN"},
+			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
 		compare(t, status, expected)
 	})
@@ -104,23 +104,23 @@ func TestGetStatusIntegration(t *testing.T) {
 		}
 
 		expected := []Status{
-			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "DOWN", APIStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", APIStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", APIStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "DOWN", RESTStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
 		compare(t, status, expected)
 	})
 
-	t.Run("managed cluster nodes API DOWN", func(t *testing.T) {
+	t.Run("managed cluster nodes REST DOWN", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		for i := range ManagedClusterHosts {
-			blockAPI(t, ManagedClusterHosts[i])
-			defer unblockAPI(t, ManagedClusterHosts[i])
+			blockREST(t, ManagedClusterHosts[i])
+			defer unblockREST(t, ManagedClusterHosts[i])
 		}
 
 		_, err := s.GetStatus(ctx, uuid.MustRandom())
@@ -142,16 +142,16 @@ func TestGetStatusIntegration(t *testing.T) {
 	})
 }
 
-func blockAPI(t *testing.T, h string) {
+func blockREST(t *testing.T, h string) {
 	t.Helper()
-	if err := block(h, CmdBlockScyllaAPI); err != nil {
+	if err := block(h, CmdBlockScyllaREST); err != nil {
 		t.Error(err)
 	}
 }
 
-func unblockAPI(t *testing.T, h string) {
+func unblockREST(t *testing.T, h string) {
 	t.Helper()
-	if err := unblock(h, CmdUnblockScyllaAPI); err != nil {
+	if err := unblock(h, CmdUnblockScyllaREST); err != nil {
 		t.Error(err)
 	}
 }
