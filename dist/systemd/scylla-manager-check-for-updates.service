@@ -1,0 +1,12 @@
+[Unit]
+Description=Scylla Manager Server
+After=network-online.target
+
+[Service]
+Type=simple
+User=scylla-manager
+Group=scylla-manager
+ExecStart=/usr/bin/scylla-manager check-for-updates
+
+[Install]
+WantedBy=multi-user.target

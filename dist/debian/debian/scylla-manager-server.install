@@ -6,5 +6,6 @@ dist/scripts/scyllamgr_ssh_setup usr/sbin
 dist/scripts/scyllamgr_ssl_cert_gen usr/sbin
 dist/etc/scylla-manager.yaml etc/scylla-manager
 dist/etc/create_keyspace.cql.tpl etc/scylla-manager
-dist/systemd/scylla-manager.service lib/systemd/system
+dist/systemd/*.service lib/systemd/system
+dist/systemd/*.timer lib/systemd/system
 schema/cql/*.cql etc/scylla-manager/cql

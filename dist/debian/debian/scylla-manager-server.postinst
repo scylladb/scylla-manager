@@ -1,1 +1,2 @@
 /usr/sbin/scyllamgr_ssl_cert_gen --silent
+/usr/bin/scylla-manager check-for-updates --install
