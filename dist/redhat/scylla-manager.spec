@@ -63,6 +63,7 @@ install -m644 dist/etc/*.yaml %{buildroot}%{_sysconfdir}/%{name}/
 install -m644 dist/etc/*.tpl %{buildroot}%{_sysconfdir}/%{name}/
 install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/%{name}/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
+install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
 
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
@@ -101,6 +102,8 @@ the database management tasks.
 %config(noreplace) %{_sysconfdir}/%{name}/*.tpl
 %{_sysconfdir}/%{name}/cql/*.cql
 %{_unitdir}/%{name}.service
+%{_unitdir}/%{name}-check-for-updates.service
+%{_unitdir}/%{name}-check-for-updates.timer
 %attr(0700, %{name}, %{name}) %{_sharedstatedir}/%{name}
 
 %pre server
@@ -110,6 +113,7 @@ getent passwd %{name} || /usr/sbin/useradd \
 
 %post server
 %{_sbindir}/scyllamgr_ssl_cert_gen --silent
+%{_bindir}/scylla-manager check-for-updates --install
 %systemd_post %{name}.service
 
 %preun server

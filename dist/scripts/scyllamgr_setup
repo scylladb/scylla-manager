@@ -47,6 +47,7 @@ fi
 
 ENABLE_SCYLLA=0
 ENABLE_SERVICE=1
+ENABLE_CHECK_FOR_UPDATES=1
 
 if [[ $# != 0 ]]; then
     INTERACTIVE=0
@@ -61,6 +62,8 @@ if [[ ${INTERACTIVE} == 1 ]]; then
     fi
     interactive_ask_service "Do you want to enable Scylla Manager?" "Answer yes to automatically start Scylla Manager when the node boots; answer no to skip this step." "yes" &&:
     ENABLE_SERVICE=$?
+    interactive_ask_service "Do you want to enable Scylla Manager to automatically check for updates?" "Yes - start the Scylla Manager housekeeping service to check for a newer version. This check runs periodically. No - skips this step." "yes" &&:
+    ENABLE_CHECK_FOR_UPDATES=$?
 fi
 
 if [[ ${ENABLE_SCYLLA} == 1 ]]; then
@@ -73,6 +76,13 @@ fi
 if [[ ${ENABLE_SERVICE} == 1 ]]; then
     if is_systemd; then
         systemctl enable scylla-manager.service
+    fi
+fi
+
+if [[ ${ENABLE_CHECK_FOR_UPDATES} == 1 ]]; then
+    if is_systemd; then
+        systemctl enable scylla-manager-check-for-updates.timer
+        systemctl start scylla-manager-check-for-updates.timer
     fi
 fi
 

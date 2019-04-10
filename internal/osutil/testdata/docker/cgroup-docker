@@ -1,0 +1,14 @@
+13:docker:/
+12:net_cls,net_prio:/
+11:cpuset:/
+10:cpu,cpuacct:/
+9:hugetlb:/
+8:rdma:/
+7:pids:/
+6:perf_event:/
+5:devices:/
+4:memory:/
+3:freezer:/
+2:blkio:/
+1:name=systemd:/init.scope
+0::/init.scope
