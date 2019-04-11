@@ -122,19 +122,3 @@ func FormatDuration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
 func isZero(t strfmt.DateTime) bool {
 	return time.Time(t).IsZero()
 }
-
-func formatRetries(numRetries, failures int64) string {
-	if numRetries == 0 {
-		return "0"
-	}
-	var rem = numRetries
-	if failures > 1 {
-		rem = numRetries - failures + 1 // first failure does not account for a retry
-	}
-	// If task was manually started and failed we can get more failures than nr
-	// of retries.
-	if rem < 0 {
-		rem = 0
-	}
-	return fmt.Sprintf("%d/%d", rem, numRetries)
-}
