@@ -101,7 +101,7 @@ type ExtendedTasks struct {
 
 // Render renders ExtendedTasks in a tabular format.
 func (et ExtendedTasks) Render(w io.Writer) error {
-	p := table.New("task", "next run", "ret.", "arguments", "status")
+	p := table.New("task", "arguments", "next run", "status")
 	p.LimitColumnLength(3)
 	for _, t := range et.ExtendedTaskSlice {
 		id := fmt.Sprint(t.Type, "/", t.ID)
@@ -112,13 +112,17 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 		if t.Schedule.Interval != "" {
 			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
 		}
+		s := t.Status
+		if t.Status == "ERROR" && t.Schedule.NumRetries > 0 {
+			s += fmt.Sprintf(" (%d/%d)", t.Failures, t.Schedule.NumRetries+1)
+		}
 		pr := NewCmdRenderer(&Task{
 			ClusterID:  t.ClusterID,
 			Type:       t.Type,
 			Schedule:   t.Schedule,
 			Properties: t.Properties,
 		}, RenderTypeArgs).String()
-		p.AddRow(id, r, formatRetries(t.Schedule.NumRetries, t.Failures), pr, t.Status)
+		p.AddRow(id, pr, r, s)
 	}
 	fmt.Fprint(w, p)
 	return nil
