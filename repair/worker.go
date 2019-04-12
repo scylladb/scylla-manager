@@ -222,7 +222,6 @@ type shardWorker struct {
 
 func (w *shardWorker) init(ctx context.Context) {
 	w.updateProgress(ctx)
-	w.updateMetrics()
 }
 
 func (w *shardWorker) exec(ctx context.Context) error {
@@ -234,7 +233,7 @@ func (w *shardWorker) exec(ctx context.Context) error {
 	if w.progress.SegmentError > w.parent.Config.ShardFailedSegmentsMax {
 		w.logger.Info(ctx, "Starting from scratch: too many errors")
 		w.resetProgress()
-		w.updateMetrics()
+		w.updateProgress(ctx)
 	}
 
 	w.logger.Info(ctx, "Repairing", "percent_complete", w.progress.PercentComplete())
@@ -273,7 +272,6 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 
 func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	w.updateProgress(ctx)
-	w.updateMetrics()
 
 	var (
 		start int
@@ -308,7 +306,6 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		}
 
 		w.updateProgress(ctx)
-		w.updateMetrics()
 	}
 
 	next()
@@ -336,10 +333,6 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
-				if ctx.Err() != nil {
-					// repair was stopped return immediately
-					return err
-				}
 				w.logger.Error(ctx, "Failed to request repair", "error", err)
 				err = errors.Wrap(err, "failed to request repair")
 			} else {
@@ -351,10 +344,6 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 		if err == nil {
 			err = w.waitCommand(ctx, id)
 			if err != nil {
-				if ctx.Err() != nil {
-					// repair was stopped return immediately
-					return err
-				}
 				w.logger.Error(ctx, "Command error", "command", id, "error", err)
 				err = errors.Wrapf(err, "command %d error", id)
 			} else {
@@ -362,18 +351,23 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			}
 		}
 
-		// handle errors
+		// handle error
 		if err != nil {
+			// if repair was stopped return immediately
+			if ctx.Err() != nil {
+				return err
+			}
+
 			ri.OnError()
+
 			if w.parent.Run.failFast {
 				next()
 				savepoint()
 				return err
 			}
 
-			w.logger.Info(ctx, "Pausing repair due to error", "wait", w.parent.Config.ErrorBackoff)
+			w.logger.Info(ctx, "Pausing repair due to an error", "wait", w.parent.Config.ErrorBackoff)
 			w.updateProgress(ctx)
-			w.updateMetrics()
 			t := time.NewTimer(w.parent.Config.ErrorBackoff)
 			select {
 			case <-ctx.Done():
@@ -396,15 +390,6 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 	}
 
 	return nil
-}
-
-func (w *shardWorker) resetProgress() {
-	w.progress.SegmentSuccess = 0
-	w.progress.SegmentError = 0
-	w.progress.SegmentErrorStartTokens = nil
-	w.progress.LastStartToken = 0
-	w.progress.LastStartTime = time.Time{}
-	w.progress.LastCommandID = 0
 }
 
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
@@ -460,13 +445,20 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 	}
 }
 
+func (w *shardWorker) resetProgress() {
+	w.progress.SegmentSuccess = 0
+	w.progress.SegmentError = 0
+	w.progress.SegmentErrorStartTokens = nil
+	w.progress.LastStartToken = 0
+	w.progress.LastStartTime = time.Time{}
+	w.progress.LastCommandID = 0
+}
+
 func (w *shardWorker) updateProgress(ctx context.Context) {
 	if err := w.parent.Service.putRunProgress(ctx, w.progress); err != nil {
 		w.logger.Error(ctx, "Cannot update the run progress", "error", err)
 	}
-}
 
-func (w *shardWorker) updateMetrics() {
 	w.repairSegmentsTotal.Set(float64(w.progress.SegmentCount))
 	w.repairSegmentsSuccess.Set(float64(w.progress.SegmentSuccess))
 	w.repairSegmentsError.Set(float64(w.progress.SegmentError))

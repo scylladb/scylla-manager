@@ -126,19 +126,29 @@ func (h *repairTestHelper) assertDone(wait time.Duration) {
 	}, _interval, wait)
 }
 
-func (h *repairTestHelper) assertStopped(wait time.Duration) {
-	h.t.Helper()
-	h.assertError(context.Canceled.Error(), wait)
-}
-
-func (h *repairTestHelper) assertError(cause string, wait time.Duration) {
+func (h *repairTestHelper) assertError(wait time.Duration) {
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		return h.done && h.result != nil && (cause == "" || strings.Contains(h.result.Error(), cause))
+		return h.done && h.result != nil
 	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertErrorContains(cause string, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		return h.done && h.result != nil && strings.Contains(h.result.Error(), cause)
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertStopped(wait time.Duration) {
+	h.t.Helper()
+	h.assertErrorContains(context.Canceled.Error(), wait)
 }
 
 func (h *repairTestHelper) assertProgress(unit, node, percent int, wait time.Duration) {
@@ -413,7 +423,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: repair fails")
-		h.assertError("no matching DCs", shortWait)
+		h.assertErrorContains("no matching DCs", shortWait)
 	})
 
 	t.Run("repair simple strategy multi dc", func(t *testing.T) {
@@ -900,7 +910,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.runRepair(ctx, singleUnit())
 
 		Print("Then: repair fails")
-		h.assertError("active repair on hosts", shortWait)
+		h.assertErrorContains("active repair on hosts", shortWait)
 	})
 
 	t.Run("repair error fail fast", func(t *testing.T) {
@@ -936,7 +946,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.runRepair(ctx, unit)
 
 		Print("Then: repair fails")
-		h.assertError("", shortWait)
+		h.assertError(shortWait)
 
 		Print("And: errors are recorded")
 		p, err := h.service.GetProgress(ctx, h.clusterID, h.taskID, h.runID)
@@ -976,6 +986,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.runRepair(ctx, target)
 
 		Print("Then: repair fails")
-		h.assertError("", shortWait)
+		h.assertError(shortWait)
 	})
 }
