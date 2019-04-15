@@ -19,22 +19,22 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/repair"
-	"github.com/scylladb/mermaid/sched"
+	"github.com/scylladb/mermaid/service/repair"
+	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 // SchedService is the scheduler service interface required by the scheduler REST API handlers.
 type SchedService interface {
-	GetTask(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType, idOrName string) (*sched.Task, error)
-	PutTask(ctx context.Context, t *sched.Task) error
-	PutTaskOnce(ctx context.Context, t *sched.Task) error
-	DeleteTask(ctx context.Context, t *sched.Task) error
-	ListTasks(ctx context.Context, clusterID uuid.UUID, tp sched.TaskType) ([]*sched.Task, error)
-	StartTask(ctx context.Context, t *sched.Task, opts ...sched.Opt) error
-	StopTask(ctx context.Context, t *sched.Task) error
-	GetRun(ctx context.Context, t *sched.Task, runID uuid.UUID) (*sched.Run, error)
-	GetLastRun(ctx context.Context, t *sched.Task, n int) ([]*sched.Run, error)
+	GetTask(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType, idOrName string) (*scheduler.Task, error)
+	PutTask(ctx context.Context, t *scheduler.Task) error
+	PutTaskOnce(ctx context.Context, t *scheduler.Task) error
+	DeleteTask(ctx context.Context, t *scheduler.Task) error
+	ListTasks(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType) ([]*scheduler.Task, error)
+	StartTask(ctx context.Context, t *scheduler.Task, opts ...scheduler.Opt) error
+	StopTask(ctx context.Context, t *scheduler.Task) error
+	GetRun(ctx context.Context, t *scheduler.Task, runID uuid.UUID) (*scheduler.Run, error)
+	GetLastRun(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
 }
 
 // RepairService is the repair service interface required by the repair REST API handlers.
@@ -79,7 +79,7 @@ func newTaskHandler(schedSvc SchedService, repairSvc RepairService) *chi.Mux {
 func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
-		var taskType sched.TaskType
+		var taskType scheduler.TaskType
 		if t := rctx.URLParam("task_type"); t == "" {
 			respondBadRequest(w, r, errors.New("missing task type"))
 			return
@@ -105,13 +105,13 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 }
 
 type extendedTask struct {
-	*sched.Task
-	Status         sched.Status `json:"status,omitempty"`
-	Cause          string       `json:"cause,omitempty"`
-	StartTime      *time.Time   `json:"start_time,omitempty"`
-	EndTime        *time.Time   `json:"end_time,omitempty"`
-	NextActivation *time.Time   `json:"next_activation,omitempty"`
-	Failures       int          `json:"failures,omitempty"`
+	*scheduler.Task
+	Status         scheduler.Status `json:"status,omitempty"`
+	Cause          string           `json:"cause,omitempty"`
+	StartTime      *time.Time       `json:"start_time,omitempty"`
+	EndTime        *time.Time       `json:"end_time,omitempty"`
+	NextActivation *time.Time       `json:"next_activation,omitempty"`
+	Failures       int              `json:"failures,omitempty"`
 }
 
 func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +124,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	var taskType sched.TaskType
+	var taskType scheduler.TaskType
 	if t := r.FormValue("type"); t != "" {
 		if err := taskType.UnmarshalText([]byte(t)); err != nil {
 			respondBadRequest(w, r, err)
@@ -132,7 +132,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var status sched.Status
+	var status scheduler.Status
 	if s := r.FormValue("status"); s != "" {
 		if err := status.UnmarshalText([]byte(s)); err != nil {
 			respondBadRequest(w, r, err)
@@ -155,7 +155,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 
 		e := extendedTask{
 			Task:   t,
-			Status: sched.StatusNew,
+			Status: scheduler.StatusNew,
 		}
 
 		runs, err := h.schedSvc.GetLastRun(r.Context(), t, t.Sched.NumRetries+1)
@@ -196,8 +196,8 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, hist)
 }
 
-func (h *taskHandler) parseTask(r *http.Request) (*sched.Task, error) {
-	var t sched.Task
+func (h *taskHandler) parseTask(r *http.Request) (*scheduler.Task, error) {
+	var t scheduler.Task
 	if err := render.DecodeJSON(r.Body, &t); err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newTask.Type != sched.RepairTask {
+	if newTask.Type != scheduler.RepairTask {
 		respondBadRequest(w, r, errors.Errorf("invalid type %q", newTask.Type))
 		return
 	}
@@ -241,7 +241,7 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newTask.Type == sched.RepairTask {
+	if newTask.Type == scheduler.RepairTask {
 		force := false
 		if f := r.FormValue("force"); f != "" {
 			force, err = strconv.ParseBool(r.FormValue("force"))
@@ -256,7 +256,7 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if newTask.Type == sched.HealthCheckTask {
+	if newTask.Type == scheduler.HealthCheckTask {
 		if err := h.schedSvc.PutTaskOnce(r.Context(), newTask); err != nil {
 			respondError(w, r, err, "failed to create task")
 			return
@@ -317,8 +317,8 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *taskHandler) optsFromRequest(r *http.Request) ([]sched.Opt, error) {
-	var opts []sched.Opt
+func (h *taskHandler) optsFromRequest(r *http.Request) ([]scheduler.Opt, error) {
+	var opts []scheduler.Opt
 
 	if v := r.FormValue("continue"); v != "" {
 		b, err := strconv.ParseBool(v)
@@ -326,7 +326,7 @@ func (h *taskHandler) optsFromRequest(r *http.Request) ([]sched.Opt, error) {
 			return nil, errors.Wrap(err, "failed to parse continue param")
 		}
 		if !b {
-			opts = append(opts, sched.NoContinue)
+			opts = append(opts, scheduler.NoContinue)
 		}
 	}
 
@@ -385,8 +385,8 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 type taskRunProgress struct {
-	Run      *sched.Run  `json:"run"`
-	Progress interface{} `json:"progress"`
+	Run      *scheduler.Run `json:"run"`
+	Progress interface{}    `json:"progress"`
 }
 
 func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
@@ -401,11 +401,11 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(runs) == 0 {
-			prog.Run = &sched.Run{
+			prog.Run = &scheduler.Run{
 				ClusterID: t.ClusterID,
 				Type:      t.Type,
 				TaskID:    t.ID,
-				Status:    sched.StatusNew,
+				Status:    scheduler.StatusNew,
 			}
 			render.Respond(w, r, prog)
 			return
@@ -425,7 +425,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch t.Type {
-	case sched.RepairTask:
+	case scheduler.RepairTask:
 		rp, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 		// Ignoring ErrNotFound because progress can have task runs without repair progress recorded.
 		// If we can't find any repair progress reference then just return what we have (prog.Run).

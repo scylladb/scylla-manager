@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/sched"
+	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -35,8 +35,8 @@ func mustClusterFromCtx(r *http.Request) *cluster.Cluster {
 	return c
 }
 
-func mustTaskFromCtx(r *http.Request) *sched.Task {
-	u, ok := r.Context().Value(ctxTask).(*sched.Task)
+func mustTaskFromCtx(r *http.Request) *scheduler.Task {
+	u, ok := r.Context().Value(ctxTask).(*scheduler.Task)
 	if !ok {
 		panic("missing task in context")
 	}

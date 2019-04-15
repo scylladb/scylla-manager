@@ -9,10 +9,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/service/healthcheck"
+	"github.com/scylladb/mermaid/service/repair"
 	"go.uber.org/zap/zapcore"
 )
 

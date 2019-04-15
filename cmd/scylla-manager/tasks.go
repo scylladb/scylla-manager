@@ -7,18 +7,18 @@ import (
 
 	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/sched"
+	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 var emptyProperties = []byte{'{', '}'}
 
-func makeAutoHealthCheckTask(clusterID uuid.UUID) *sched.Task {
-	return &sched.Task{
+func makeAutoHealthCheckTask(clusterID uuid.UUID) *scheduler.Task {
+	return &scheduler.Task{
 		ClusterID: clusterID,
-		Type:      sched.HealthCheckTask,
+		Type:      scheduler.HealthCheckTask,
 		Enabled:   true,
-		Sched: sched.Schedule{
+		Sched: scheduler.Schedule{
 			Interval:   duration.Duration(15 * time.Second),
 			StartDate:  timeutc.Now().Add(30 * time.Second),
 			NumRetries: 0,
@@ -27,12 +27,12 @@ func makeAutoHealthCheckTask(clusterID uuid.UUID) *sched.Task {
 	}
 }
 
-func makeAutoHealthCheckRESTTask(clusterID uuid.UUID) *sched.Task {
-	return &sched.Task{
+func makeAutoHealthCheckRESTTask(clusterID uuid.UUID) *scheduler.Task {
+	return &scheduler.Task{
 		ClusterID: clusterID,
-		Type:      sched.HealthCheckRESTTask,
+		Type:      scheduler.HealthCheckRESTTask,
 		Enabled:   true,
-		Sched: sched.Schedule{
+		Sched: scheduler.Schedule{
 			Interval:   duration.Duration(1 * time.Hour),
 			StartDate:  timeutc.Now().Add(1 * time.Minute),
 			NumRetries: 0,
@@ -41,12 +41,12 @@ func makeAutoHealthCheckRESTTask(clusterID uuid.UUID) *sched.Task {
 	}
 }
 
-func makeAutoRepairTask(clusterID uuid.UUID) *sched.Task {
-	return &sched.Task{
+func makeAutoRepairTask(clusterID uuid.UUID) *scheduler.Task {
+	return &scheduler.Task{
 		ClusterID: clusterID,
-		Type:      sched.RepairTask,
+		Type:      scheduler.RepairTask,
 		Enabled:   true,
-		Sched: sched.Schedule{
+		Sched: scheduler.Schedule{
 			Interval:   duration.Duration(7 * 24 * time.Hour),
 			StartDate:  timeutc.TodayMidnight(),
 			NumRetries: 3,

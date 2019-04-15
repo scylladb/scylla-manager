@@ -24,8 +24,8 @@ import (
 	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/httputil"
 	. "github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/service/repair"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap/zapcore"
 )

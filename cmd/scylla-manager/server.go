@@ -13,12 +13,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/cluster"
-	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/kv"
-	"github.com/scylladb/mermaid/repair"
 	"github.com/scylladb/mermaid/restapi"
-	"github.com/scylladb/mermaid/sched"
+	"github.com/scylladb/mermaid/service/healthcheck"
+	"github.com/scylladb/mermaid/service/repair"
+	"github.com/scylladb/mermaid/service/scheduler"
 	"go.uber.org/multierr"
 )
 
@@ -30,7 +30,7 @@ type server struct {
 	clusterSvc *cluster.Service
 	healthSvc  *healthcheck.Service
 	repairSvc  *repair.Service
-	schedSvc   *sched.Service
+	schedSvc   *scheduler.Service
 
 	httpServer       *http.Server
 	httpsServer      *http.Server
@@ -98,7 +98,7 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "repair service")
 	}
 
-	s.schedSvc, err = sched.NewService(
+	s.schedSvc, err = scheduler.NewService(
 		s.session,
 		s.clusterSvc.GetClusterByID,
 		s.logger.Named("scheduler"),
@@ -108,9 +108,9 @@ func (s *server) makeServices() error {
 	}
 
 	// register runners
-	s.schedSvc.SetRunner(sched.HealthCheckTask, s.healthSvc.CQLRunner())
-	s.schedSvc.SetRunner(sched.HealthCheckRESTTask, s.healthSvc.RESTRunner())
-	s.schedSvc.SetRunner(sched.RepairTask, s.repairSvc.Runner())
+	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.CQLRunner())
+	s.schedSvc.SetRunner(scheduler.HealthCheckRESTTask, s.healthSvc.RESTRunner())
+	s.schedSvc.SetRunner(scheduler.RepairTask, s.repairSvc.Runner())
 
 	return nil
 }

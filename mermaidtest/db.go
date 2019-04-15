@@ -6,12 +6,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/migrate"
 )
@@ -47,10 +51,48 @@ func CreateSession(tb testing.TB) *gocql.Session {
 	})
 	session := createSessionFromCluster(tb, cluster)
 
-	if err := migrate.Migrate(context.Background(), session, "../schema/cql"); err != nil {
+	dir, err := findDirInParentDir("schema", 3)
+	if err != nil {
+		tb.Fatal("migrate:", err)
+	}
+
+	if err := migrate.Migrate(context.Background(), session, path.Join(dir, "cql")); err != nil {
 		tb.Fatal("migrate:", err)
 	}
 	return session
+}
+
+func findDirInParentDir(name string, n int) (string, error) {
+	p, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for i := 0; i < n; i++ {
+		p = path.Join(p, "..")
+		ok, err := hasDir(p, name)
+		if err != nil {
+			return "", err
+		}
+		if ok {
+			return path.Join(p, name), nil
+		}
+	}
+
+	return "", errors.Errorf("directory %q not found", name)
+}
+
+func hasDir(dir, subdir string) (bool, error) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return false, err
+	}
+	for _, f := range files {
+		if f.IsDir() && f.Name() == subdir {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // CreateSessionWithoutMigration clears the database on scylla manager cluster

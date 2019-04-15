@@ -102,9 +102,9 @@ integration-test: ## Run integration tests
 	@go test -cover -race -v -tags integration -run Integration ./internal/ssh $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./healthcheck $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./repair $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./sched $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./service/healthcheck $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./service/repair $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./service/scheduler $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./schema/cql $(INTEGRATION_TEST_ARGS)
 
 .PHONY: dev-server

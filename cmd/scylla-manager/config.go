@@ -8,9 +8,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/healthcheck"
 	"github.com/scylladb/mermaid/internal/ssh"
-	"github.com/scylladb/mermaid/repair"
+	"github.com/scylladb/mermaid/service/healthcheck"
+	"github.com/scylladb/mermaid/service/repair"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
 )

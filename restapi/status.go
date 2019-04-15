@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
-	"github.com/scylladb/mermaid/healthcheck"
+	"github.com/scylladb/mermaid/service/healthcheck"
 	"github.com/scylladb/mermaid/uuid"
 )
 
