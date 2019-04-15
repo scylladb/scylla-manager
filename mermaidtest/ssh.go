@@ -8,12 +8,13 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/ssh"
 )
 
 // NewSSHTransport returns http.RoundTripper suitable for usage with test cluster.
 func NewSSHTransport() *http.Transport {
-	dialer := ssh.NewProxyDialer(sshConfig(), ssh.ContextDialer(&net.Dialer{}))
+	dialer := ssh.NewProxyDialer(sshConfig(), ssh.ContextDialer(&net.Dialer{}), log.Logger{})
 
 	transport := &http.Transport{
 		DialContext:           dialer.DialContext,

@@ -146,11 +146,15 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 		return nil, errors.Wrap(err, "invalid SSH configuration")
 	}
 
-	dialer := ssh.NewProxyDialer(config, ssh.ContextDialer(&net.Dialer{
-		Timeout:   3 * time.Second,
-		KeepAlive: 30 * time.Second,
-		DualStack: true,
-	}))
+	dialer := ssh.NewProxyDialer(
+		config,
+		ssh.ContextDialer(&net.Dialer{
+			Timeout:   3 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}),
+		s.logger.Named("ssh"),
+	)
 
 	dialer.OnDial = func(host string, err error) {
 		labels := prometheus.Labels{"cluster": c.String(), "host": host}

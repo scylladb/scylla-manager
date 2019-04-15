@@ -64,13 +64,15 @@ unit-test: ## Run unit tests
 	@echo "==> Running tests (race)..."
 	@go test -cover -race ./...
 
+include testing/testacc.env
+
 INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.100.11
 
 .PHONY: integration-test
 integration-test: ## Run integration tests
 	@echo "==> Running integration tests..."
+	@go test -cover -race -v -tags acc ./internal/ssh
 	@go test -cover -race -v -tags integration -run Integration ./internal/cqlping $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./internal/ssh $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./service/cluster $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./service/healthcheck $(INTEGRATION_TEST_ARGS)
