@@ -15,8 +15,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/restapi"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 

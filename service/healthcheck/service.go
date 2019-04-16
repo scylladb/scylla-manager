@@ -15,10 +15,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/cqlping"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 

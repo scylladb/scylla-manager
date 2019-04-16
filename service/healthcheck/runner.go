@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 

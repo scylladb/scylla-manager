@@ -101,7 +101,7 @@ integration-test: ## Run integration tests
 	@go test -cover -race -v -tags integration -run Integration ./internal/cqlping $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./internal/ssh $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./cluster $(INTEGRATION_TEST_ARGS)
+	@go test -cover -race -v -tags integration -run Integration ./service/cluster $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./service/healthcheck $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./service/repair $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./service/scheduler $(INTEGRATION_TEST_ARGS)

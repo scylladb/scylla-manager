@@ -7,7 +7,7 @@ package restapi
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	cluster "github.com/scylladb/mermaid/cluster"
+	cluster "github.com/scylladb/mermaid/service/cluster"
 	uuid "github.com/scylladb/mermaid/uuid"
 	reflect "reflect"
 )

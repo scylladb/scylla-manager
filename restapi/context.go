@@ -5,7 +5,7 @@ package restapi
 import (
 	"net/http"
 
-	"github.com/scylladb/mermaid/cluster"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )

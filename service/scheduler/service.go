@@ -15,9 +15,9 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 

@@ -10,8 +10,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 

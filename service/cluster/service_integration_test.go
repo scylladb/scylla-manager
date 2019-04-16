@@ -15,11 +15,11 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/cluster"
 	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/service/cluster/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 
