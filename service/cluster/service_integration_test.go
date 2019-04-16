@@ -19,7 +19,7 @@ import (
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/service/cluster/cluster"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -154,6 +154,22 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 		if diff := cmp.Diff(c0, c2, diffOpts...); diff != "" {
 			t.Fatal("read write mismatch", diff)
+		}
+	})
+
+	t.Run("get cluster name", func(t *testing.T) {
+		setup(t)
+
+		c := validCluster(pem, "scylla-manager")
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		clusterName, err := s.GetClusterName(ctx, c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if clusterName != c.Name {
+			t.Fatal("expected", c.Name, "got", clusterName)
 		}
 	})
 

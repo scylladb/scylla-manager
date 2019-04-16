@@ -17,7 +17,6 @@ import (
 	"github.com/scylladb/mermaid/internal/kv"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap/zapcore"
 )
@@ -27,8 +26,8 @@ func TestGetStatusIntegration(t *testing.T) {
 
 	s, err := NewService(
 		DefaultConfig(),
-		func(ctx context.Context, id uuid.UUID) (*cluster.Cluster, error) {
-			return &cluster.Cluster{ID: id}, nil
+		func(ctx context.Context, id uuid.UUID) (string, error) {
+			return "test_cluster", nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), logger.Named("scylla"))

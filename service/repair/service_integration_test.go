@@ -16,7 +16,6 @@ import (
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/repair"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap/zapcore"
@@ -28,8 +27,8 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	s, err := repair.NewService(
 		session,
 		repair.DefaultConfig(),
-		func(context.Context, uuid.UUID) (*cluster.Cluster, error) {
-			return nil, errors.New("not implemented")
+		func(context.Context, uuid.UUID) (string, error) {
+			return "", errors.New("not implemented")
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")

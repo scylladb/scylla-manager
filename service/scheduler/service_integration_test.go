@@ -20,7 +20,6 @@ import (
 	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	. "github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/atomic"
@@ -188,11 +187,8 @@ func newTestService(t *testing.T, session *gocql.Session) *scheduler.Service {
 
 	s, err := scheduler.NewService(
 		session,
-		func(_ context.Context, id uuid.UUID) (*cluster.Cluster, error) {
-			return &cluster.Cluster{
-				ID:   id,
-				Name: "test_cluster",
-			}, nil
+		func(_ context.Context, id uuid.UUID) (string, error) {
+			return "test_cluster", nil
 		},
 		logger,
 	)

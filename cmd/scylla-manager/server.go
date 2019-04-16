@@ -82,7 +82,15 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "cluster service")
 	}
 	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
-	s.healthSvc, err = healthcheck.NewService(s.config.Healthcheck, s.clusterSvc.GetClusterByID, s.clusterSvc.Client, sslCertStore, sslKeyStore, s.logger.Named("healthcheck"))
+
+	s.healthSvc, err = healthcheck.NewService(
+		s.config.Healthcheck,
+		s.clusterSvc.GetClusterName,
+		s.clusterSvc.Client,
+		sslCertStore,
+		sslKeyStore,
+		s.logger.Named("healthcheck"),
+	)
 	if err != nil {
 		return errors.Wrapf(err, "healthcheck service")
 	}
@@ -90,7 +98,7 @@ func (s *server) makeServices() error {
 	s.repairSvc, err = repair.NewService(
 		s.session,
 		s.config.Repair,
-		s.clusterSvc.GetClusterByID,
+		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.logger.Named("repair"),
 	)
@@ -100,7 +108,7 @@ func (s *server) makeServices() error {
 
 	s.schedSvc, err = scheduler.NewService(
 		s.session,
-		s.clusterSvc.GetClusterByID,
+		s.clusterSvc.GetClusterName,
 		s.logger.Named("scheduler"),
 	)
 	if err != nil {

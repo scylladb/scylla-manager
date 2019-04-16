@@ -17,7 +17,6 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -68,14 +67,17 @@ func (tg *cancelableTrigger) Cancel() bool {
 	return true
 }
 
+// ClusterNameFunc returns name for a given ID.
+type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
+
 // Service is a CRON alike scheduler. The scheduler is agnostic of logic it's
 // executing, it can execute a Task of a given type provided that there is
 // a Runner for that TaskType. Runners must be registered with SetRunner
 // function and there can be only one Runner for a TaskType.
 type Service struct {
-	session *gocql.Session
-	cluster cluster.ProviderFunc
-	logger  log.Logger
+	session     *gocql.Session
+	clusterName ClusterNameFunc
+	logger      log.Logger
 
 	mu      sync.Mutex
 	closing bool
@@ -91,21 +93,21 @@ var (
 	startTaskNowSlack = 10 * time.Second
 )
 
-func NewService(session *gocql.Session, cp cluster.ProviderFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
-	if cp == nil {
-		return nil, errors.New("invalid cluster provider")
+	if clusterName == nil {
+		return nil, errors.New("invalid cluster name provider")
 	}
 
 	return &Service{
-		session: session,
-		cluster: cp,
-		logger:  l,
-		runners: make(map[TaskType]Runner),
-		tasks:   make(map[uuid.UUID]*cancelableTrigger),
+		session:     session,
+		clusterName: clusterName,
+		logger:      logger,
+		runners:     make(map[TaskType]Runner),
+		tasks:       make(map[uuid.UUID]*cancelableTrigger),
 	}, nil
 }
 
@@ -331,7 +333,18 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 	}
 
 	// get cluster name
-	clusterName := s.clusterName(ctx, t.ClusterID)
+	clusterName, err := s.clusterName(ctx, t.ClusterID)
+	if err != nil {
+		s.logger.Error(ctx, "Failed to get cluster name",
+			"cluster_id", t.ClusterID,
+			"task_type", t.Type,
+			"task_id", t.ID,
+			"run_id", run.ID,
+			"error", err,
+		)
+		run.Status = StatusError
+		return
+	}
 
 	// update metrics
 	taskActiveCount.With(prometheus.Labels{
@@ -357,7 +370,6 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 	var (
 		taskStop        = tg.C
 		taskStopTimeout <-chan time.Time
-		err             error
 	)
 
 wait:
@@ -422,14 +434,6 @@ wait:
 		"task":    t.ID.String(),
 		"status":  run.Status.String(),
 	}).Inc()
-}
-
-func (s *Service) clusterName(ctx context.Context, clusterID uuid.UUID) string {
-	c, _ := s.cluster(ctx, clusterID) // nolint: errcheck
-	if c != nil {
-		return c.String()
-	}
-	return clusterID.String()
 }
 
 // StartTask starts execution of a task immediately, regardless of the task's schedule.

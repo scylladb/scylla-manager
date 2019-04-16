@@ -18,7 +18,6 @@ import (
 	"github.com/scylladb/mermaid/internal/cqlping"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -26,11 +25,14 @@ const (
 	pingLaps = 3
 )
 
+// ClusterNameFunc returns name for a given ID.
+type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
+
 // Service manages health checks.
 type Service struct {
 	config       Config
-	cluster      cluster.ProviderFunc
-	client       scyllaclient.ProviderFunc
+	clusterName  ClusterNameFunc
+	scyllaClient scyllaclient.ProviderFunc
 	sslCertStore kv.Store
 	sslKeyStore  kv.Store
 	cache        map[uuid.UUID]*tls.Config
@@ -38,12 +40,12 @@ type Service struct {
 	logger       log.Logger
 }
 
-func NewService(config Config, cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc,
+func NewService(config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
 	sslCertStore, sslKeyStore kv.Store, logger log.Logger) (*Service, error) {
-	if cp == nil {
-		return nil, errors.New("invalid cluster provider")
+	if clusterName == nil {
+		return nil, errors.New("invalid cluster name provider")
 	}
-	if sp == nil {
+	if scyllaClient == nil {
 		return nil, errors.New("invalid scylla provider")
 	}
 	if sslCertStore == nil {
@@ -55,8 +57,8 @@ func NewService(config Config, cp cluster.ProviderFunc, sp scyllaclient.Provider
 
 	return &Service{
 		config:       config,
-		cluster:      cp,
-		client:       sp,
+		clusterName:  clusterName,
+		scyllaClient: scyllaClient,
 		sslCertStore: sslCertStore,
 		sslKeyStore:  sslKeyStore,
 		cache:        make(map[uuid.UUID]*tls.Config),
@@ -67,11 +69,11 @@ func NewService(config Config, cp cluster.ProviderFunc, sp scyllaclient.Provider
 // CQLRunner creates a Runner that performs health checks for CQL connectivity.
 func (s *Service) CQLRunner() Runner {
 	return Runner{
-		client:  s.client,
-		cluster: s.cluster,
-		status:  cqlStatus,
-		rtt:     cqlRTT,
-		ping:    s.pingCQL,
+		scyllaClient: s.scyllaClient,
+		clusterName:  s.clusterName,
+		status:       cqlStatus,
+		rtt:          cqlRTT,
+		ping:         s.pingCQL,
 	}
 }
 
@@ -79,11 +81,11 @@ func (s *Service) CQLRunner() Runner {
 // connectivity.
 func (s *Service) RESTRunner() Runner {
 	return Runner{
-		client:  s.client,
-		cluster: s.cluster,
-		status:  restStatus,
-		rtt:     restRTT,
-		ping:    s.pingREST,
+		scyllaClient: s.scyllaClient,
+		clusterName:  s.clusterName,
+		status:       restStatus,
+		rtt:          restRTT,
+		ping:         s.pingREST,
 	}
 }
 
@@ -98,7 +100,7 @@ type pingFunc func(ctx context.Context, clusterID uuid.UUID, host string) (rtt t
 func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status, error) {
 	s.logger.Debug(ctx, "GetStatus", "cluster_id", clusterID)
 
-	client, err := s.client(ctx, clusterID)
+	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get client for cluster with id %s", clusterID)
 	}
@@ -226,7 +228,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 }
 
 func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string) (time.Duration, error) {
-	client, err := s.client(ctx, clusterID)
+	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrapf(err, "failed to get client for cluster with id %s", clusterID)
 	}

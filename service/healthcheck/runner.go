@@ -12,32 +12,31 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 // Runner implements sched.Runner.
 type Runner struct {
-	cluster cluster.ProviderFunc
-	client  scyllaclient.ProviderFunc
-	status  *prometheus.GaugeVec
-	rtt     *prometheus.GaugeVec
-	ping    func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
+	clusterName  ClusterNameFunc
+	scyllaClient scyllaclient.ProviderFunc
+	status       *prometheus.GaugeVec
+	rtt          *prometheus.GaugeVec
+	ping         func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
 }
 
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	c, err := r.cluster(ctx, clusterID)
+	clusterName, err := r.clusterName(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get cluster")
 	}
 
 	defer func() {
 		if err != nil {
-			r.removeAll(c)
+			r.removeAll(clusterName)
 		}
 	}()
 
-	client, err := r.client(ctx, clusterID)
+	client, err := r.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get client")
 	}
@@ -47,8 +46,8 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 		return errors.Wrap(err, "failed to get hosts")
 	}
 
-	r.removeDecommissionedHosts(c, hosts)
-	r.checkHosts(ctx, hosts, c)
+	r.removeDecommissionedHosts(clusterName, hosts)
+	r.checkHosts(ctx, clusterID, clusterName, hosts)
 
 	return nil
 }
@@ -59,12 +58,12 @@ type hostRTT struct {
 	err  error
 }
 
-func (r Runner) checkHosts(ctx context.Context, hosts []string, c *cluster.Cluster) {
+func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, hosts []string) {
 	out := make(chan hostRTT, runtime.NumCPU()+1)
 	for _, h := range hosts {
 		v := hostRTT{host: h}
 		go func() {
-			v.rtt, v.err = r.ping(ctx, c.ID, v.host)
+			v.rtt, v.err = r.ping(ctx, clusterID, v.host)
 			out <- v
 		}()
 	}
@@ -73,7 +72,7 @@ func (r Runner) checkHosts(ctx context.Context, hosts []string, c *cluster.Clust
 		v := <-out
 
 		l := prometheus.Labels{
-			clusterKey: c.String(),
+			clusterKey: clusterName,
 			hostKey:    v.host,
 		}
 
@@ -87,14 +86,14 @@ func (r Runner) checkHosts(ctx context.Context, hosts []string, c *cluster.Clust
 	}
 }
 
-func (r Runner) removeAll(c *cluster.Cluster) {
+func (r Runner) removeAll(clusterName string) {
 	apply(collect(r.status), func(cluster, host string, v float64) {
-		if c.String() != cluster {
+		if clusterName != cluster {
 			return
 		}
 
 		l := prometheus.Labels{
-			clusterKey: c.String(),
+			clusterKey: clusterName,
 			hostKey:    host,
 		}
 		r.status.Delete(l)
@@ -102,11 +101,11 @@ func (r Runner) removeAll(c *cluster.Cluster) {
 	})
 }
 
-func (r Runner) removeDecommissionedHosts(c *cluster.Cluster, hosts []string) {
+func (r Runner) removeDecommissionedHosts(clusterName string, hosts []string) {
 	m := strset.New(hosts...)
 
 	apply(collect(r.status), func(cluster, host string, v float64) {
-		if c.String() != cluster {
+		if clusterName != cluster {
 			return
 		}
 		if m.Has(host) {
@@ -114,7 +113,7 @@ func (r Runner) removeDecommissionedHosts(c *cluster.Cluster, hosts []string) {
 		}
 
 		l := prometheus.Labels{
-			clusterKey: c.String(),
+			clusterKey: clusterName,
 			hostKey:    host,
 		}
 		r.status.Delete(l)

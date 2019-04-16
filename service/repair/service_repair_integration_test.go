@@ -24,7 +24,6 @@ import (
 	"github.com/scylladb/mermaid/internal/httputil"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/repair"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap/zapcore"
@@ -216,11 +215,8 @@ func newTestService(t *testing.T, session *gocql.Session, hrt *HackableRoundTrip
 	s, err := repair.NewService(
 		session,
 		c,
-		func(_ context.Context, id uuid.UUID) (*cluster.Cluster, error) {
-			return &cluster.Cluster{
-				ID:   id,
-				Name: "test_cluster",
-			}, nil
+		func(_ context.Context, id uuid.UUID) (string, error) {
+			return "test_cluster", nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return scyllaclient.NewClient(ManagedClusterHosts, hrt, logger.Named("scylla"))

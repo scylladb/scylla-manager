@@ -257,7 +257,7 @@ func (s *Service) GetCluster(ctx context.Context, idOrName string) (*Cluster, er
 	return s.GetClusterByName(ctx, idOrName)
 }
 
-// GetClusterByID returns repair cluster based on ID. If nothing was found
+// GetClusterByID returns cluster based on ID. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, error) {
 	s.logger.Debug(ctx, "GetClusterByID", "id", id)
@@ -281,7 +281,7 @@ func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, e
 	return &c, nil
 }
 
-// GetClusterByName returns repair cluster based on name. If nothing was found
+// GetClusterByName returns cluster based on name. If nothing was found
 // mermaid.ErrNotFound is returned.
 func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, error) {
 	s.logger.Debug(ctx, "GetClusterByName", "name", name)
@@ -299,6 +299,19 @@ func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, 
 	default:
 		return nil, errors.Errorf("multiple clusters share the same name %q", name)
 	}
+}
+
+// GetClusterName returns cluster name for a given ID. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetClusterName(ctx context.Context, id uuid.UUID) (string, error) {
+	s.logger.Debug(ctx, "GetClusterName", "id", id)
+
+	c, err := s.GetClusterByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	return c.String(), nil
 }
 
 // PutCluster upserts a cluster, cluster instance must pass Validate() checks.

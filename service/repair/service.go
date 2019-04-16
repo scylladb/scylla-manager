@@ -21,47 +21,50 @@ import (
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/multierr"
 )
 
-// Service orchestrates cluster repairs.
+// ClusterNameFunc returns name for a given ID.
+type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
+
+// Service orchestrates clusterName repairs.
 type Service struct {
 	session *gocql.Session
 	config  Config
-	cluster cluster.ProviderFunc
-	client  scyllaclient.ProviderFunc
-	logger  log.Logger
+
+	clusterName  ClusterNameFunc
+	scyllaClient scyllaclient.ProviderFunc
+	logger       log.Logger
 
 	activeRunMu sync.Mutex
-	activeRun   map[uuid.UUID]uuid.UUID // maps cluster ID to active run ID
+	activeRun   map[uuid.UUID]uuid.UUID // maps clusterName ID to active run ID
 }
 
-func NewService(session *gocql.Session, c Config, cp cluster.ProviderFunc, sp scyllaclient.ProviderFunc, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
-	if err := c.Validate(); err != nil {
+	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
 	}
 
-	if cp == nil {
-		return nil, errors.New("invalid cluster provider")
+	if clusterName == nil {
+		return nil, errors.New("invalid clusterName provider")
 	}
 
-	if sp == nil {
+	if scyllaClient == nil {
 		return nil, errors.New("invalid scylla provider")
 	}
 
 	return &Service{
-		session:   session,
-		config:    c,
-		cluster:   cp,
-		client:    sp,
-		logger:    l,
-		activeRun: make(map[uuid.UUID]uuid.UUID),
+		session:      session,
+		config:       config,
+		clusterName:  clusterName,
+		scyllaClient: scyllaClient,
+		logger:       logger,
+		activeRun:    make(map[uuid.UUID]uuid.UUID),
 	}, nil
 }
 
@@ -155,7 +158,7 @@ func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, filters []str
 		return nil, nil, err
 	}
 
-	c, err := s.client(ctx, clusterID)
+	c, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to get client")
 	}
@@ -191,7 +194,7 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 		return nil, err
 	}
 
-	client, err := s.client(ctx, clusterID)
+	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get client")
 	}
@@ -272,11 +275,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// get cluster name
-	c, err := s.cluster(ctx, run.ClusterID)
+	clusterName, err := s.clusterName(ctx, run.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "invalid cluster")
 	}
-	run.clusterName = c.String()
+	run.clusterName = clusterName
 
 	// make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(run.ClusterID, run.ID); err != nil {
@@ -297,7 +300,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	)
 
 	// get the cluster client
-	client, err := s.client(ctx, run.ClusterID)
+	client, err := s.scyllaClient(ctx, run.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get client proxy")
 	}
