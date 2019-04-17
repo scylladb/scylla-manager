@@ -42,10 +42,7 @@ check: .check-go-version .check-copyright .check-comments .check-timeutc .check-
 .PHONY: .check-timeutc
 .check-timeutc:
 	@set -e; for f in `$(GOFILES)`; do \
-		[[ $$f =~ /internal/timeutc/ ]] || \
-		[[ $$f =~ /internal/retryablehttp/ ]] || \
-		[[ $$f =~ /mermaidclient/internal/ ]] || \
-		[[ $$f =~ /scyllaclient/internal/ ]] || \
+		[[ $$f =~ /internal/ ]] || \
 		! e=`grep -n 'time.\(Now\|Parse(\|Since\)' $$f` || \
 		(echo $$f $$e; false); \
 	done
