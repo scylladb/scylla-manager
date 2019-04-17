@@ -4,7 +4,7 @@ FROM scylladb/scylla:${SCYLLA_VERSION}
 
 # Install sshd.
 RUN yum makecache && \
-    yum -y install initscripts openssh-server passwd sudo && \
+    yum -y install initscripts openssh-server openssh-clients passwd sudo && \
     yum clean all
 RUN mkdir /var/run/sshd
 RUN /usr/sbin/sshd-keygen
