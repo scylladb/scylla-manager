@@ -2,27 +2,25 @@
 
 set -u -o pipefail
 
-FEDORA=$(command -v dnf)
-UBUNTU="$(command -v apt-get)"
+FEDORA_PKGS="jq make moreutils sshpass pcre-tools python2   python2-pip rpm-build"
+UBUNTU_PKGS="jq make moreutils sshpass pcregrep   python2.7 python-pip"
 
-set -e
+PYTHON_PKGS="cqlsh docker-compose"
 
-if [ -n "$FEDORA" ]; then
-    sudo dnf install jq make sshpass python2 python2-pip
-    # For building cross platform packages.
-    sudo dnf install createrepo rpm-build moreutils
-elif [ -n "$UBUNTU" ]; then
-    sudo apt-get install jq make sshpass python2.7 python-pip
-else
-    echo "Unsupported OS."
-    echo "Only Fedora and Ubuntu are supported atm."
-    exit 1
-fi
+echo "> Installing system packages"
+DISTRO=` cat /etc/os-release | grep '^ID=' | cut -d= -f2`
+case ${DISTRO} in
+    "fedora")
+        sudo dnf install ${FEDORA_PKGS}
+        ;;
+    "ubuntu")
+        echo "> Installing required system packages"
+        sudo apt-get install ${UBUNTU_PKGS}
+        ;;
+    *)
+        echo "Your OS ${DISTRO} is not supported, conciser switching to Fedora"
+        exit 1
+esac
 
-# Install Python specific tools
-if ! command -v docker-compose; then
-    pip install --user docker-compose
-fi
-if ! command -v cqlsh; then
-    pip install --user cqlsh
-fi
+echo "> Installing python packages"
+pip install --user ${PYTHON_PKGS}
