@@ -139,7 +139,7 @@ func RegUUID() uuid.UUID {
 	switch LinuxDistro() {
 	case Ubuntu, Debian:
 		out, err = regExecCommand("apt-cache", "policy", "scylla-manager-server")
-	case Rehl, Centos, Fedora:
+	case Amazon, Rehl, Centos, Fedora:
 		out, err = regExecCommand("repoquery", "--location", "scylla-manager-server")
 	default:
 		return uuid.Nil
