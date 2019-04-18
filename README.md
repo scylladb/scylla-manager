@@ -7,17 +7,11 @@ Mermaid repository provides tools for managing clusters of Scylla servers. It co
 
 ## Setting up development environment
 
-Install Docker and Go.
-
-Make sure that `GOPATH` environment variable is properly set and that `GOPATH/bin` is under `PATH` before running this because following command will try to setup required tools based on those variables:
-
-```bash
-make setup setup-dev
-```
+* Install Go, make sure that `GOPATH` environment variable is properly set.
+* Install and Docker.
+* Run installation script `install_deps.sh`.
 
 ## Running a development server and sctool
-
-![Overview](.github/overview.png)
 
 Let's start the test cluster.
 Docker compose environment for test cluster is located in the `testing` directory.
@@ -75,6 +69,8 @@ eb8e19c04d97        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hou
 08e9a46112e2        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_dc1_node_1_1
 
 ```
+
+![Overview](.github/overview.png)
 
 Open new terminal window to build and start `scylla-manager` development server:
 
