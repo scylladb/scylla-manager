@@ -218,7 +218,7 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 
 		filteredTables := inclExcl.Filter(tables)
 
-		// no data, skip the keyspace
+		// No data, skip the keyspace
 		if len(filteredTables) == 0 {
 			continue
 		}
@@ -227,13 +227,13 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 			filteredTables[i] = strings.TrimPrefix(filteredTables[i], prefix)
 		}
 
-		// get the ring description
+		// Get the ring description
 		ring, err := client.DescribeRing(ctx, keyspace)
 		if err != nil {
 			return nil, errors.Wrapf(err, "keyspace %s: failed to get ring description", keyspace)
 		}
 
-		// local data, skip the keyspace
+		// Local data, skip the keyspace
 		if ring.Replication == scyllaclient.LocalStrategy {
 			continue
 		}
@@ -274,14 +274,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		failFast: t.FailFast,
 	}
 
-	// get cluster name
+	// Get cluster name
 	clusterName, err := s.clusterName(ctx, run.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "invalid cluster")
 	}
 	run.clusterName = clusterName
 
-	// make sure no other repairs are being run on that cluster
+	// Make sure no other repairs are being run on that cluster
 	if err := s.tryLockCluster(run.ClusterID, run.ID); err != nil {
 		s.logger.Debug(ctx, "Lock error", "error", err)
 		return ErrActiveRepair
@@ -299,13 +299,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"target", t,
 	)
 
-	// get the cluster client
+	// Get the cluster client
 	client, err := s.scyllaClient(ctx, run.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get client proxy")
 	}
 
-	// get the cluster topology hash
+	// Get the cluster topology hash
 	run.TopologyHash, err = s.topologyHash(ctx, client)
 	if err != nil {
 		return errors.Wrap(err, "failed to get topology hash")
@@ -320,7 +320,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// check the cluster partitioner
+	// Check the cluster partitioner
 	p, err := client.Partitioner(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get client partitioner name")
@@ -329,12 +329,12 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner)
 	}
 
-	// register the run
+	// Register the run
 	if err := s.putRun(run); err != nil {
 		return errors.Wrap(err, "failed to register the run")
 	}
 
-	// initialize unit runners
+	// Initialize unit runners
 	run.unitWorkers = make([]unitWorker, len(run.Units))
 	for unit := range run.Units {
 		if err := s.initUnitWorker(ctx, run, unit, client); err != nil {
@@ -343,7 +343,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	s.putRunLogError(ctx, run)
 
-	// repair units
+	// Repair units
 	for unit := range run.Units {
 		if err := s.repairUnit(ctx, run, unit, client); err != nil {
 			return errors.Wrapf(err, "keyspace %s", run.Units[unit].Keyspace)
@@ -364,7 +364,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 		return errors.Wrap(err, "failed to get previous run")
 	}
 
-	// check if can continue from prev
+	// Check if can continue from prev
 	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
 	switch {
 	case timeutc.Since(prev.StartTime) > s.config.AgeMax:
@@ -375,7 +375,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 		return nil
 	}
 
-	// decorate run
+	// Decorate run
 	run.PrevID = prev.ID
 	run.prevProg, err = s.getProgress(ctx, &Run{
 		ClusterID: run.ClusterID,
@@ -396,7 +396,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
 	u := &run.Units[unit] // pointer to modify the unit
 
-	// get the ring description if needed
+	// Get the ring description if needed
 	ring, err := client.DescribeRing(ctx, u.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the ring description")
@@ -406,7 +406,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 	u.hosts = s.repairedHosts(run, ring)
 	u.allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
 
-	// get hosts and segments to repair
+	// Get hosts and segments to repair
 	var hostSegments map[string]segments
 
 	if ring.Replication == scyllaclient.SimpleStrategy && len(ksDCs) > 1 {
@@ -414,7 +414,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			"keyspace", u.Keyspace,
 		)
 
-		// downgrade DCPrimaryTokenRanges to PrimaryTokenRanges since there is
+		// Downgrade DCPrimaryTokenRanges to PrimaryTokenRanges since there is
 		// no coordinator DC
 		tr := run.TokenRanges
 		if tr == DCPrimaryTokenRanges {
@@ -457,7 +457,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			prog[i].RunID = run.ID
 		}
 
-		// check if hosts did not change
+		// Check if hosts did not change
 		prevHosts := strset.New()
 		for _, p := range prog {
 			prevHosts.Add(p.Host)
@@ -492,7 +492,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 		}
 	}
 
-	// shuffle hosts
+	// Shuffle hosts
 	hosts := make([]string, 0, len(hostSegments))
 	for host := range hostSegments {
 		hosts = append(hosts, host)
@@ -501,7 +501,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 		return xxhash.Sum64String(hosts[i]) < xxhash.Sum64String(hosts[j])
 	})
 
-	// prepare host workers for unit
+	// Prepare host workers for unit
 	unitWorker := make([]*hostWorker, len(hosts))
 	for i, host := range hosts {
 		// ping host
@@ -541,7 +541,7 @@ func (s *Service) repairedHosts(run *Run, ring scyllaclient.Ring) (hosts []strin
 func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
 	s.logger.Info(ctx, "Repairing unit", "unit", run.Units[unit])
 
-	// calculate number of tries
+	// Calculate number of tries
 	allComplete := true
 	for _, worker := range run.unitWorkers[unit] {
 		for _, shard := range worker.shards {
@@ -582,7 +582,7 @@ func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *sc
 		}
 	}
 
-	// check if segment repair errors occurred and report it
+	// Check if segment repair errors occurred and report it
 	var err error
 	for _, worker := range run.unitWorkers[unit] {
 		if worker.segmentErrors() > 0 {

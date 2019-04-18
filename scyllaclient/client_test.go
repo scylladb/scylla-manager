@@ -428,7 +428,7 @@ func mockServerMatching(t *testing.T, m Matcher) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
-		// emulate ScyllaDB bug
+		// Emulate ScyllaDB bug
 		r.Header.Set("Content-Type", "text/plain")
 
 		file := m(r)

@@ -102,7 +102,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 		return
 	}
 
-	// not aggregated keyspace host shard progress
+	// Not aggregated keyspace host shard progress
 	for _, p := range prog {
 		repairProgress.With(prometheus.Labels{
 			"cluster":  u.run.clusterName,
@@ -115,7 +115,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 
 	p := aggregateProgress(u.run, prog)
 
-	// aggregated keyspace host progress
+	// Aggregated keyspace host progress
 	for _, unit := range p.Units {
 		for _, n := range unit.Nodes {
 			repairProgress.With(prometheus.Labels{
@@ -128,7 +128,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 		}
 	}
 
-	// aggregated keyspace progress
+	// Aggregated keyspace progress
 	for _, unit := range p.Units {
 		repairProgress.With(prometheus.Labels{
 			"cluster":  u.run.clusterName,
@@ -139,7 +139,7 @@ func (u *progressMetricsUpdater) Update(ctx context.Context) {
 		}).Set(unit.PercentComplete)
 	}
 
-	// aggregated total progress
+	// Aggregated total progress
 	repairProgress.With(prometheus.Labels{
 		"cluster":  u.run.clusterName,
 		"task":     u.run.TaskID.String(),

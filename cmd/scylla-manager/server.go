@@ -115,7 +115,7 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "scheduler service")
 	}
 
-	// register runners
+	// Register the runners
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.CQLRunner())
 	s.schedSvc.SetRunner(scheduler.HealthCheckRESTTask, s.healthSvc.RESTRunner())
 	s.schedSvc.SetRunner(scheduler.RepairTask, s.repairSvc.Runner())

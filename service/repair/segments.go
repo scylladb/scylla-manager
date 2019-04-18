@@ -49,7 +49,7 @@ func (s segments) merge() segments {
 		return s
 	}
 
-	// sort
+	// Sort
 	sort.Slice(s, func(i, j int) bool {
 		return s[i].StartToken < s[j].StartToken
 	})
@@ -81,7 +81,7 @@ func (s segments) split(sizeLimit int64) segments {
 		return s
 	}
 
-	// calculate slice size after the split
+	// Calculate slice size after the split
 	size := int64(0)
 	for _, seg := range s {
 		r := seg.EndToken - seg.StartToken
@@ -91,12 +91,12 @@ func (s segments) split(sizeLimit int64) segments {
 		size++
 	}
 
-	// no split needed
+	// No split needed
 	if size == int64(len(s)) {
 		return s
 	}
 
-	// split the segments
+	// Split the segments
 	split := make(segments, 0, size)
 	for _, seg := range s {
 		r := seg.EndToken - seg.StartToken
@@ -164,7 +164,7 @@ func (s segments) validateShards(shards []segments, p *dht.Murmur3Partitioner) e
 	startTokens := i64set.New()
 	endTokens := i64set.New()
 
-	// check that the s belong to the correct shards
+	// Check that the s belong to the correct shards
 	for shard, s := range shards {
 		for _, r := range s {
 			if p.ShardOf(r.StartToken) != uint(shard) {
@@ -174,13 +174,13 @@ func (s segments) validateShards(shards []segments, p *dht.Murmur3Partitioner) e
 				return errors.Errorf("wrong shard of an end token %d, expected %d, got %d", r.EndToken-1, p.ShardOf(r.EndToken-1), shard)
 			}
 
-			// extract tokens
+			// Extract tokens
 			startTokens.Add(r.StartToken)
 			endTokens.Add(r.EndToken)
 		}
 	}
 
-	// check that shards contain the original start and end tokens
+	// Check that shards contain the original start and end tokens
 	for _, r := range s {
 		if !startTokens.Has(r.StartToken) {
 			return errors.Errorf("no start token %d", r.StartToken)
@@ -193,7 +193,7 @@ func (s segments) validateShards(shards []segments, p *dht.Murmur3Partitioner) e
 		endTokens.Remove(r.EndToken)
 	}
 
-	// check that the range is continuous
+	// Check that the range is continuous
 	var err error
 
 	startTokens.Each(func(item int64) bool {

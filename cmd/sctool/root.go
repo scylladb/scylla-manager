@@ -27,14 +27,14 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
-		// init client
+		// Init client
 		c, err := mermaidclient.NewClient(cfgURL)
 		if err != nil {
 			return err
 		}
 		client = c
 
-		// requireFlags cluster
+		// RequireFlags cluster
 		if needsCluster(cmd) {
 			if os.Getenv("SCYLLA_MANAGER_CLUSTER") == "" {
 				if err := cmd.Root().MarkFlagRequired("cluster"); err != nil {

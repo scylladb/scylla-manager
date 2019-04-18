@@ -60,7 +60,8 @@ func (p *Murmur3Partitioner) initZeroBasedShardStart() {
 		t = token.Uint64()
 		t >>= p.shardingIgnoreMsbBits
 
-		// token is the start of the next shard, and can be slightly before due to rounding errors; adjust
+		// Token is the start of the next shard, and can be slightly before due
+		// to rounding errors adjust.
 		for p.zeroBasedShardOf(t) != s {
 			t++
 		}

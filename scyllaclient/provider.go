@@ -31,13 +31,13 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// cache hit
+	// Cache hit
 	c, ok := p.clients[clusterID]
 	if ok {
 		return c, nil
 	}
 
-	// create new
+	// Create new
 	c, err := p.inner(ctx, clusterID)
 	if err != nil {
 		return c, err

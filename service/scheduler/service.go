@@ -184,7 +184,7 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 		return
 	}
 
-	// calculate next activation time
+	// Calculate next activation time
 	runs, err := s.GetLastRun(ctx, t, t.Sched.NumRetries+1)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get history of task", "task", t, "error", err)
@@ -196,7 +196,7 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 		activation = t.Sched.NextActivation(now, runs)
 	)
 
-	// skip if not runnable
+	// Skip if not runnable
 	if activation.IsZero() {
 		s.logger.Debug(ctx, "Task has no activation - not scheduling", "task", t)
 		return
@@ -219,12 +219,12 @@ func (s *Service) updateTrigger(ctx context.Context, t *Task, tg *cancelableTrig
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// skip if service is closing
+	// Skip if service is closing
 	if s.closing {
 		return false
 	}
 
-	// set new trigger and cancel previous one
+	// Set new trigger and cancel previous one
 	prev := s.tasks[t.ID]
 	s.tasks[t.ID] = tg
 	if prev.Cancel() {
@@ -269,16 +269,16 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 	s.wg.Add(1)
 	defer s.wg.Done()
 
-	// create a new task run with the given ID
+	// Create a new task run with the given ID
 	run := t.newRun(tg.RunID)
 
-	// create a new context, the context lifecycle is managed by this function
+	// Create a new context, the context lifecycle is managed by this function
 	ctx := log.WithNewTraceID(context.Background())
 
-	// upon returning reschedule
+	// Upon returning reschedule
 	defer s.rescheduleIfNeeded(ctx, t, run)
 
-	// log task start and end
+	// Log task start and end
 	s.logInfoOrDebug(t.Type)(ctx, "Task started",
 		"cluster_id", t.ClusterID,
 		"task_type", t.Type,
@@ -306,11 +306,11 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 		}
 	}()
 
-	// closing the context indicates that runner shall stop execution
+	// Closing the context indicates that runner shall stop execution
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// ignore if cancelled
+	// Ignore if cancelled
 	select {
 	case <-tg.C:
 		return
@@ -318,7 +318,7 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 		// continue
 	}
 
-	// register the run
+	// Register the run
 	run.Status = StatusRunning
 	if err := s.putRun(run); err != nil {
 		s.logger.Error(ctx, "Failed to register task run",
@@ -332,7 +332,7 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 		return
 	}
 
-	// get cluster name
+	// Get cluster name
 	clusterName, err := s.clusterName(ctx, t.ClusterID)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get cluster name",
@@ -346,27 +346,27 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 		return
 	}
 
-	// update metrics
+	// Update metrics
 	taskActiveCount.With(prometheus.Labels{
 		"cluster": clusterName,
 		"type":    t.Type.String(),
 		"task":    t.ID.String(),
 	}).Inc()
 
-	// decorate task properties
+	// Decorate task properties
 	props := t.Properties
 	for _, f := range t.opts {
 		props = f(props)
 	}
 
-	// run task async
+	// Run task async
 	result := make(chan error, 1)
 
 	go func() {
 		result <- s.mustRunner(t.Type).Run(ctx, t.ClusterID, t.ID, run.ID, props)
 	}()
 
-	// wait for run result
+	// Wait for run result
 	var (
 		taskStop        = tg.C
 		taskStopTimeout <-chan time.Time
@@ -413,7 +413,7 @@ wait:
 		}
 	}
 
-	// if closing override StatusStopped to StatusAborted
+	// If closing override StatusStopped to StatusAborted
 	if run.Status == StatusStopped && s.isClosing() {
 		run.Status = StatusAborted
 		run.Cause = "service stopped"
@@ -421,7 +421,7 @@ wait:
 
 	s.putRunLogError(ctx, run)
 
-	// update metrics
+	// Update metrics
 	taskActiveCount.With(prometheus.Labels{
 		"cluster": clusterName,
 		"type":    t.Type.String(),
@@ -696,7 +696,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun", "task", t, "run_id", runID)
 
-	// validate the task
+	// Validate the task
 	if err := t.Validate(); err != nil {
 		return nil, err
 	}
@@ -721,7 +721,7 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, error) {
 	s.logger.Debug(ctx, "GetLastRun", "task", t, "limit", limit)
 
-	// validate the task
+	// Validate the task
 	if err := t.Validate(); err != nil {
 		return nil, err
 	}
@@ -782,7 +782,7 @@ func (s *Service) Close() {
 	// enter closing state
 	s.closing = true
 
-	// cancel all tasks
+	// Cancel all tasks
 	for _, tg := range s.tasks {
 		if tg.Cancel() {
 			s.logInfoOrDebug(tg.Type)(ctx, "Task execution canceled",
@@ -796,7 +796,7 @@ func (s *Service) Close() {
 	s.tasks = nil
 	s.mu.Unlock()
 
-	// wait for tasks to stop
+	// Wait for tasks to stop
 	s.wg.Wait()
 	s.logger.Info(ctx, "All tasks ended")
 }

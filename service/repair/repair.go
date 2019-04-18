@@ -70,7 +70,7 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 			}
 		}
 
-		// select replicas based on token kind
+		// Select replicas based on token kind
 		hosts := strset.New()
 		switch tr {
 		case DCPrimaryTokenRanges:
@@ -90,7 +90,7 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 			panic("no token ranges specified") // this should never happen...
 		}
 
-		// filter replicas by host (if needed)
+		// Filter replicas by host (if needed)
 		if host != "" {
 			if hosts.Has(host) {
 				hosts = strset.New(host)
@@ -99,7 +99,7 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 			}
 		}
 
-		// filter replicas by dc (if needed)
+		// Filter replicas by dc (if needed)
 		if dc != "" {
 			hosts.Each(func(item string) bool {
 				if ring.HostDC[item] != dc {
@@ -109,7 +109,7 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 			})
 		}
 
-		// create and add segments for every host
+		// Create and add segments for every host
 		t := t
 		hosts.Each(func(h string) bool {
 			if t.StartToken > t.EndToken {
@@ -124,7 +124,7 @@ func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRan
 		})
 	}
 
-	// remove segments for withHosts as they should not be coordinator hosts
+	// Remove segments for withHosts as they should not be coordinator hosts
 	if !replicaFilter.IsEmpty() {
 		replicaFilter.Each(func(h string) bool {
 			delete(hostSegments, h)

@@ -40,20 +40,20 @@ type hostWorker struct {
 func (w *hostWorker) init(ctx context.Context) error {
 	w.Logger.Info(ctx, "Initialising repair")
 
-	// continue from a savepoint
+	// Continue from a savepoint
 	prog, err := w.Service.getHostProgress(w.Run, w.Unit, w.Host)
 	if err != nil {
 		return errors.Wrap(err, "failed to get host progress")
 	}
 
-	// split segments to shards
+	// Split segments to shards
 	p, err := w.partitioner(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get partitioner")
 	}
 	shards := w.splitSegmentsToShards(ctx, p)
 
-	// check if savepoint can be used
+	// Check if savepoint can be used
 	if err := validateShardProgress(shards, prog); err != nil {
 		if len(prog) > 1 {
 			w.Logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error(), "progress", prog)
@@ -80,7 +80,7 @@ func (w *hostWorker) init(ctx context.Context) error {
 			}
 		}
 
-		// prepare labels
+		// Prepare labels
 		labels := prometheus.Labels{
 			"cluster":  w.Run.clusterName,
 			"task":     w.Run.TaskID.String(),
@@ -131,19 +131,19 @@ func (w *hostWorker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Pa
 func (w *hostWorker) exec(ctx context.Context) error {
 	w.Logger.Info(ctx, "Repairing")
 
-	// check if host is available
+	// Check if host is available
 	if _, err := w.Client.Ping(ctx, w.Host); err != nil {
 		return errors.Wrap(err, "ping failed")
 	}
 
-	// check if no other repairs are running
+	// Check if no other repairs are running
 	if active, err := w.Client.ActiveRepairs(ctx, w.Run.Units[w.Unit].hosts); err != nil {
 		w.Logger.Error(ctx, "Active repair check failed", "error", err)
 	} else if len(active) > 0 {
 		return errors.Errorf("active repair on hosts: %s", strings.Join(active, ", "))
 	}
 
-	// limit nr of shards running in parallel
+	// Limit nr of shards running in parallel
 	limit := len(w.shards)
 	if l := w.Config.ShardParallelMax; l > 0 && l < limit {
 		limit = l
@@ -151,7 +151,7 @@ func (w *hostWorker) exec(ctx context.Context) error {
 
 	idx := atomic.NewInt32(0)
 
-	// run shard workers
+	// Run shard workers
 	wch := make(chan error)
 	for j := 0; j < limit; j++ {
 		go func() {
@@ -166,11 +166,11 @@ func (w *hostWorker) exec(ctx context.Context) error {
 		}()
 	}
 
-	// run metrics updater
+	// Run metrics updater
 	u := newProgressMetricsUpdater(w.Run, w.Service.getProgress, w.Logger)
 	go u.Run(ctx, 5*time.Second)
 
-	// join shard workers
+	// Join shard workers
 	var werr error
 
 	for range w.shards {
@@ -184,13 +184,13 @@ func (w *hostWorker) exec(ctx context.Context) error {
 	// join metrics updater
 	u.Stop()
 
-	// try killing any remaining repairs
+	// Try killing any remaining repairs
 	killCtx := log.CopyTraceID(context.Background(), ctx)
 	if err := w.Client.KillAllRepairs(killCtx, w.Host); err != nil {
 		w.Logger.Error(killCtx, "Failed to terminate repairs", "error", err)
 	}
 
-	// if repair was canceled return ctx.Err()
+	// If repair was canceled return ctx.Err()
 	if ctx.Err() != nil {
 		w.Logger.Info(ctx, "Repair stopped")
 		return ctx.Err()
@@ -317,19 +317,19 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			lastPercentComplete = p
 		}
 
-		// no more segments
+		// No more segments
 		if !ok {
 			break
 		}
 
-		// fail fast abort triggered, return immediately
+		// Fail fast abort triggered, return immediately
 		if w.parent.ffabrt.Load() {
 			return nil
 		}
 
 		var err error
 
-		// request segment repair
+		// Request segment repair
 		if id == 0 {
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
@@ -340,7 +340,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			}
 		}
 
-		// if requester a repair wait for the command to finish
+		// If requester a repair wait for the command to finish
 		if err == nil {
 			err = w.waitCommand(ctx, id)
 			if err != nil {
@@ -351,7 +351,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			}
 		}
 
-		// handle error
+		// Handle error
 		if err != nil {
 			// if repair was stopped return immediately
 			if ctx.Err() != nil {
@@ -378,12 +378,12 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 			}
 		}
 
-		// reset command id and move on
+		// Reset command id and move on
 		id = 0
 		next()
 		savepoint()
 
-		// check if there is not too many errors
+		// Check if there is not too many errors
 		if w.progress.SegmentError > w.parent.Config.ShardFailedSegmentsMax {
 			return errors.New("too many failed segments")
 		}

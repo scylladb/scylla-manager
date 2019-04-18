@@ -28,7 +28,7 @@ func TestCachedProvider(t *testing.T) {
 	m := mockProvider{}
 	p := NewCachedProvider(m.Client)
 
-	// error
+	// Error
 	m.err = errors.New("mock")
 
 	c, err := p.Client(context.Background(), id)
@@ -42,7 +42,7 @@ func TestCachedProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// success
+	// Success
 	m.client = &Client{}
 	m.err = nil
 	m.called = false
@@ -58,7 +58,7 @@ func TestCachedProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// cached
+	// Cached
 	m.called = false
 
 	c, err = p.Client(context.Background(), id)
@@ -72,7 +72,7 @@ func TestCachedProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// invalidate
+	// Invalidate
 	p.Invalidate(id)
 
 	m.called = false

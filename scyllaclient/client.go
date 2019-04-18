@@ -214,12 +214,12 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 		// save replicas
 		ring.Tokens[i].Replicas = p.Endpoints
 
-		// update host to dc mapping
+		// Update host to DC mapping
 		for _, e := range p.EndpointDetails {
 			ring.HostDC[e.Host] = e.Datacenter
 		}
 
-		// update DC token mertics
+		// Update DC token mertics
 		dcs := strset.New()
 		for _, e := range p.EndpointDetails {
 			if !dcs.Has(e.Datacenter) {
@@ -229,7 +229,7 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 		}
 	}
 
-	// detect replication strategy
+	// Detect replication strategy
 	if len(ring.HostDC) == 1 {
 		ring.Replication = LocalStrategy
 	} else {

@@ -174,7 +174,7 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 		return s.nextActivation(now)
 	}
 
-	// if retries available add retryTaskWait
+	// If retries available add retryTaskWait
 	t := lastStart.Add(retryTaskWait)
 	if t.Before(now) {
 		// previous activation was is in the past, and didn't occur, try again now

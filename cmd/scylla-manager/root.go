@@ -52,7 +52,7 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		// read configuration
+		// Read configuration
 		config, err := newConfigFromFile(cfgConfigFile...)
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", cfgConfigFile)
@@ -65,16 +65,16 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		// launch gops agent
+		// Launch gops agent
 		if err := agent.Listen(agent.Options{Addr: config.Gops, ShutdownCleanup: false}); err != nil {
 			return errors.Wrapf(err, "gops agent startup")
 		}
 		defer agent.Close()
 
-		// get a base context
+		// Get a base context
 		ctx := log.WithNewTraceID(context.Background())
 
-		// create logger
+		// Create logger
 		logger, err := logger(config)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
@@ -89,18 +89,18 @@ var rootCmd = &cobra.Command{
 		}()
 		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config))
 
-		// set gocql logger
+		// Set gocql logger
 		gocql.Logger = gocqllog.StdLogger{
 			BaseCtx: ctx,
 			Logger:  logger.Named("gocql"),
 		}
 
-		// wait for database
+		// Wait for database
 		if err := waitForDatabase(ctx, config, logger); err != nil {
 			return err
 		}
 
-		// create manager keyspace
+		// Create manager keyspace
 		logger.Info(ctx, "Using keyspace",
 			"keyspace", config.Database.Keyspace,
 			"template", config.Database.KeyspaceTplFile,
@@ -109,14 +109,14 @@ var rootCmd = &cobra.Command{
 			return errors.Wrapf(err, "database")
 		}
 
-		// migrate schema
+		// Migrate schema
 		logger.Info(ctx, "Migrating schema", "dir", config.Database.MigrateDir)
 		if err := migrateSchema(config, logger); err != nil {
 			return errors.Wrapf(err, "database migration")
 		}
 		logger.Info(ctx, "Migrating schema done")
 
-		// start server
+		// Start server
 		s, err := newServer(config, logger)
 		if err != nil {
 			return errors.Wrapf(err, "server init")
@@ -129,7 +129,7 @@ var rootCmd = &cobra.Command{
 
 		logger.Info(ctx, "Service started")
 
-		// wait signal
+		// Wait signal
 		signalCh := make(chan os.Signal, 1)
 		signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 		select {
@@ -143,7 +143,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		// close
+		// Close
 		s.shutdownServers(ctx, 30*time.Second)
 
 		return
@@ -305,7 +305,7 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 	c.Keyspace = config.Database.Keyspace
 	c.Timeout = config.Database.Timeout
 
-	// ssl
+	// SSL
 	if config.Database.SSL {
 		c.SslOpts = &gocql.SslOptions{
 			CaPath:                 config.SSL.CertFile,
@@ -315,7 +315,7 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 		}
 	}
 
-	// authentication
+	// Authentication
 	if config.Database.User != "" {
 		c.Authenticator = gocql.PasswordAuthenticator{
 			Username: config.Database.User,
@@ -323,7 +323,7 @@ func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
 		}
 	}
 
-	// enable token aware host selection policy
+	// Enable token aware host selection policy
 	fallback := gocql.RoundRobinHostPolicy()
 	if config.Database.LocalDC != "" {
 		fallback = gocql.DCAwareRoundRobinPolicy(config.Database.LocalDC)

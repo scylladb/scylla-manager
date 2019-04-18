@@ -66,19 +66,19 @@ func mwHostPool(next http.RoundTripper, pool hostpool.HostPool) http.RoundTrippe
 			hpr hostpool.HostPoolResponse
 		)
 
-		// get host from context
+		// Get host from context
 		h, ok := ctx.Value(ctxHost).(string)
 
-		// get host from pool
+		// Get host from pool
 		if !ok {
 			hpr = pool.Get()
 			h = hpr.Host()
 		}
 
-		// clone request
+		// Clone request
 		r := cloneRequest(req)
 
-		// set host
+		// Set host
 		r.Host = h
 		r.URL.Host = h
 
@@ -91,7 +91,7 @@ func mwHostPool(next http.RoundTripper, pool hostpool.HostPool) http.RoundTrippe
 
 		resp, err := next.RoundTrip(r)
 
-		// mark response
+		// Mark response
 		if hpr != nil {
 			hpr.Mark(err)
 		}
@@ -149,13 +149,13 @@ func mwTimeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper 
 func cloneRequest(req *http.Request) *http.Request {
 	r := new(http.Request)
 
-	// shallow clone
+	// Shallow clone
 	*r = *req
 
-	// deep copy headers
+	// Deep copy headers
 	r.Header = cloneHeader(req.Header)
 
-	// deep copy URL
+	// Deep copy URL
 	r.URL = new(url.URL)
 	*r.URL = *req.URL
 

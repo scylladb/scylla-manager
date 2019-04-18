@@ -213,7 +213,7 @@ func (s *Service) setKnownHosts(c *Cluster, hosts []string) error {
 func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, error) {
 	s.logger.Debug(ctx, "ListClusters", "filter", f)
 
-	// validate the filter
+	// Validate the filter
 	if err := f.Validate(); err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 		return bytes.Compare(clusters[i].ID.Bytes(), clusters[j].ID.Bytes()) < 0
 	})
 
-	// nothing to filter
+	// Nothing to filter
 	if f.Name == "" {
 		return clusters, nil
 	}

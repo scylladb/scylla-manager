@@ -22,7 +22,7 @@ func (err printableError) Error() string {
 		}
 		s := string(msg)
 
-		// try indent
+		// Try indent
 		if b, err := json.MarshalIndent(msg, "", "  "); err == nil {
 			s = string(b)
 		}

@@ -49,7 +49,7 @@ fmt: ## Format source code
 
 .PHONY: check
 check: ## Perform static code analysis
-check: .check-go-version .check-copyright .check-timeutc .check-lint .check-vendor
+check: .check-go-version .check-copyright .check-comments .check-timeutc .check-lint .check-vendor
 
 .PHONY: .check-go-version
 .check-go-version:
@@ -63,6 +63,16 @@ check: .check-go-version .check-copyright .check-timeutc .check-lint .check-vend
 		[[ $$f =~ /mock_.*_test[.]go ]] || \
 		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
 		(echo $$f; false); \
+	done
+
+.PHONY: .check-comments
+.check-comments:
+	@set -e; for f in `$(GOFILES)`; do \
+		[[ $$f =~ _string\.go ]] || \
+		[[ $$f =~ /mermaidclient/internal/ ]] || \
+		[[ $$f =~ /scyllaclient/internal/ ]] || \
+		! e=`pcregrep -oM '$$\n\n\s+//\s*[a-z].*' $$f` || \
+		(echo $$f $$e; false); \
 	done
 
 .PHONY: .check-timeutc
