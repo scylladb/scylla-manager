@@ -61,7 +61,7 @@ check: .check-go-version .check-copyright .check-comments .check-timeutc .check-
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ /mock_.*_test[.]go ]] || \
-		[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ] || \
+		[[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ]] || \
 		(echo $$f; false); \
 	done
 
@@ -71,7 +71,7 @@ check: .check-go-version .check-copyright .check-comments .check-timeutc .check-
 		[[ $$f =~ _string\.go ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
-		! e=`pcregrep -oM '$$\n\n\s+//\s*[a-z].*' $$f` || \
+		! e=`pcregrep -noM '$$\n\n\s+//\s*[a-z].*' $$f` || \
 		(echo $$f $$e; false); \
 	done
 
@@ -82,8 +82,8 @@ check: .check-go-version .check-copyright .check-comments .check-timeutc .check-
 		[[ $$f =~ /internal/retryablehttp/ ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
-		[ "`grep 'time.\(Now\|Parse(\|Since\)' $$f`" == "" ] || \
-		(echo $$f; false); \
+		! e=`grep -n 'time.\(Now\|Parse(\|Since\)' $$f` || \
+		(echo $$f $$e; false); \
 	done
 
 .PHONY: .check-lint
