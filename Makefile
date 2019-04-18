@@ -92,7 +92,7 @@ check: .check-go-version .check-copyright .check-comments .check-timeutc .check-
 
 .PHONY: .check-vendor
 .check-vendor:
-	@go mod verify
+	@e=`go mod verify` || (echo $$e; false)
 
 .PHONY: test
 test: ## Run unit and integration tests
