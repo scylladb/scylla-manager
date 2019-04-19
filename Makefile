@@ -4,11 +4,8 @@ ifndef GOBIN
 export GOBIN := $(GOPATH)/bin
 endif
 
-GO111MODULE = on
-GO_VERSION = "1.12.1"
-GO_CURRENT_VERSION = `go version`
-
-GOFILES := go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
+GO111MODULE := on
+GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' ./...
 
 .PHONY: fmt
 fmt: ## Format source code
@@ -20,7 +17,7 @@ check: .check-go-version .check-copyright .check-comments .check-timeutc .check-
 
 .PHONY: .check-go-version
 .check-go-version:
-	@[[ "$(GO_CURRENT_VERSION)" =~ "$(GO_VERSION)" ]] || echo "Required go version is $(GO_VERSION), found $(GO_CURRENT_VERSION)"
+	@[[ "`go version`" =~ "`cat .go-version`" ]] || echo "[WARNING] Required Go version is `cat .go-version`, found `go version | grep -o -E '1\.[0-9\.]+'`"
 
 .PHONY: .check-copyright
 .check-copyright:
