@@ -5,18 +5,6 @@
 
 set -eu -o pipefail
 
-OUTPUT=/dev/null
-
-SSH_USER=""
-SSH_IDENTITY_FILE=""
-SSH_CONFIG_FILE=""
-SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-
-CURL_OPTS="-sS -f -o /dev/null"
-
-MANAGER_USER="scylla-manager"
-SINGLE_NODE=0
-
 print_usage() {
     echo "scyllamgr_ssh_setup [--ssh-user <username>] [--ssh-identity-file <path to private key>] [--ssh-config-file <path to SSH config file>] [--create-user <username>] [--single-node] [--debug] SCYLLA_NODE_IP"
     echo "  -u --ssh-user <username>		username used to connect to Scylla nodes, must be a sudo enabled user"
@@ -26,6 +14,26 @@ print_usage() {
     echo "     --single-node			setup the given node only, skip discovery of all the cluster nodes"
     echo "     --debug				display debug info"
 }
+
+die() {
+    echo -e "$@\n"
+    print_usage
+    exit 1
+}
+
+HOSTS=()
+HOST=""
+
+SSH_USER=""
+SSH_IDENTITY_FILE=""
+SSH_CONFIG_FILE=""
+
+MANAGER_USER="scylla-manager"
+SINGLE_NODE=0
+
+OUTPUT="/dev/null"
+CURL_OPTS="-sS -f -o /dev/null"
+SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 while [[ $# > 0 ]]; do
     case "$1" in
@@ -59,8 +67,12 @@ while [[ $# > 0 ]]; do
             print_usage
             exit 0
             ;;
+        -*)
+            die "unknown option $1"
+            ;;
         *)
-            break
+            HOSTS+=($1)
+            shift 1
     esac
 done
 
@@ -81,15 +93,10 @@ API_REMOTE_PORT="10000"
 
 # Validate inputs.
 
-die() {
-    echo -e "$@\n"
-    print_usage
-    exit 1
-}
-
-if [[ $# != 1 ]]; then
+if [[ ${#HOSTS[@]} == 0 ]]; then
     die "provide IP address of a node in a cluster to setup"
 fi
+HOST=${HOSTS[0]}
 
 if [[ -n "${SSH_IDENTITY_FILE}" && (! -f "${SSH_IDENTITY_FILE}" || ! -r "${SSH_IDENTITY_FILE}") ]]; then
     die "failed to read file ${SSH_IDENTITY_FILE}"
@@ -140,10 +147,9 @@ fi
 
 # Discover cluster topology.
 
-HOSTS=$@
 if [[ ${SINGLE_NODE} == 0 ]]; then
     echo "> Discovering all the cluster nodes"
-    if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${1}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
+    if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${HOST}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
         die "failed to access Scylla REST API via ${SSH_USER}${1}"
     fi
 fi
@@ -209,7 +215,7 @@ if [[ ${ret} != 0 ]]; then
     echo "> Done with errors, run with --debug flag to see what failed"
 else
     echo "> Done!"
-    echo "> To add the cluster to Scylla Manager run: sctool cluster add --host $1 --ssh-user '${MANAGER_USER}' --ssh-identity-file '${MANAGER_IDENTITY_FILE}'"
+    echo "> To add the cluster to Scylla Manager run: sctool cluster add --host ${HOST} --ssh-user '${MANAGER_USER}' --ssh-identity-file '${MANAGER_IDENTITY_FILE}'"
 fi
 
 exit ${ret}
