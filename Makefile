@@ -17,7 +17,7 @@ check: .check-go-version .check-copyright .check-comments .check-timeutc .check-
 
 .PHONY: .check-go-version
 .check-go-version:
-	@[[ "`go version`" =~ "`cat .go-version`" ]] || echo "[WARNING] Required Go version is `cat .go-version`, found `go version | grep -o -E '1\.[0-9\.]+'`"
+	@[[ "`go version`" =~ "`cat .go-version`" ]] || echo "[WARNING] Required Go version `cat .go-version` found `go version | grep -o -E '1\.[0-9\.]+'`"
 
 .PHONY: .check-copyright
 .check-copyright:
