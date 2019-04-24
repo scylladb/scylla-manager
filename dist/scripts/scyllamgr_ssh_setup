@@ -168,12 +168,15 @@ for host in ${HOSTS}; do
     if ssh ${ROOT_SSH_OPTS} "${SSH_USER}${host}" &> "${OUTPUT}" sudo su - << EOF
     set -eux -o pipefail
 
+    # Add /sbin to PATH for searching to support Scylla AMI
+    SHELL=\$(PATH=\${PATH}:/sbin command -v nologin)
+
     # Create system user and group
     getent group "${MANAGER_USER}"  || /usr/sbin/groupadd -r "${MANAGER_USER}"
-    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s \$(command -v nologin) -r "${MANAGER_USER}"
+    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s \${SHELL} -r "${MANAGER_USER}"
 
     # Force change shell
-    chsh -s \$(command -v nologin) "${MANAGER_USER}"
+    chsh -s \${SHELL} "${MANAGER_USER}"
 
     # Add public key to authorized_keys
     mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
