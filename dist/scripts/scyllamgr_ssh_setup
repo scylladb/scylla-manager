@@ -175,6 +175,9 @@ for host in ${HOSTS}; do
     getent group "${MANAGER_USER}"  || /usr/sbin/groupadd -r "${MANAGER_USER}"
     getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s \${SHELL} -r "${MANAGER_USER}"
 
+    # Set scylla user ID (alias)
+    /usr/sbin/usermod -ou \$(id -u scylla) "${MANAGER_USER}"
+
     # Force change shell
     chsh -s \${SHELL} "${MANAGER_USER}"
 
