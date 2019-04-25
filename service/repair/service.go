@@ -51,7 +51,7 @@ func NewService(session *gocql.Session, config Config, clusterName ClusterNameFu
 	}
 
 	if clusterName == nil {
-		return nil, errors.New("invalid clusterName provider")
+		return nil, errors.New("invalid cluster name provider")
 	}
 
 	if scyllaClient == nil {

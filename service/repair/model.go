@@ -143,7 +143,7 @@ type Target struct {
 	Continue    bool            `json:"continue,omitempty"`
 }
 
-// Run tracks repair progress, shares ID with sched.Run that initiated it.
+// Run tracks repair progress, shares ID with scheduler.Run that initiated it.
 type Run struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
