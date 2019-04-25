@@ -23,3 +23,8 @@ RUN echo -e "root\nroot" | passwd --stdin root
 
 # Install SSL certificate.
 ADD db.crt db.key /etc/scylla/
+
+# Force running Scylla processes as scylla user
+RUN echo "user: scylla" >> /etc/supervisord.conf.d/scylla-server.conf
+RUN echo "user: scylla" >> /etc/supervisord.conf.d/scylla-housekeeping.conf
+RUN echo "user: scylla" >> /etc/supervisord.conf.d/scylla-jmx.conf
