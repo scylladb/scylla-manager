@@ -32,8 +32,10 @@ MANAGER_USER="scylla-manager"
 SINGLE_NODE=0
 
 OUTPUT="/dev/null"
+
 CURL_OPTS="-sS -f -o /dev/null"
 SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+AGENT_BIN_PATH="/bin/true"
 
 while [[ $# > 0 ]]; do
     case "$1" in
@@ -156,7 +158,11 @@ fi
 
 # Load manager SSH public key
 
-MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
+declare -r MANAGER_SHELL="/var/lib/${MANAGER_USER}/bin/agent"
+declare -r MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
+# TODO: add no-port-forwarding when we have agent that can do reverse proxy
+# declare -r MANAGER_PUBLIC_KEY_WITH_OPTIONS="no-agent-forwarding,no-port-forwarding,no-X11-forwarding ${MANAGER_PUBLIC_KEY}"
+declare -r MANAGER_PUBLIC_KEY_WITH_OPTIONS="no-agent-forwarding,no-X11-forwarding ${MANAGER_PUBLIC_KEY}"
 
 # Distribute SSH keys and create users
 
@@ -168,25 +174,25 @@ for host in ${HOSTS}; do
     if ssh ${ROOT_SSH_OPTS} "${SSH_USER}${host}" &> "${OUTPUT}" sudo su - << EOF
     set -eux -o pipefail
 
-    # Add /sbin to PATH for searching to support Scylla AMI
-    SHELL=\$(PATH=\${PATH}:/sbin command -v nologin)
-
     # Create system user and group
     getent group "${MANAGER_USER}"  || /usr/sbin/groupadd -r "${MANAGER_USER}"
-    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -s \${SHELL} -r "${MANAGER_USER}"
+    getent passwd "${MANAGER_USER}" || /usr/sbin/useradd  -g "${MANAGER_USER}" -d "/var/lib/${MANAGER_USER}" -r "${MANAGER_USER}"
 
     # Set scylla user ID (alias)
     /usr/sbin/usermod -ou \$(id -u scylla) "${MANAGER_USER}"
 
-    # Force change shell
-    chsh -s \${SHELL} "${MANAGER_USER}"
+    # Set agent as a shell
+    mkdir -p "$(dirname ${MANAGER_SHELL})"
+    base64 -d > "${MANAGER_SHELL}" <<< "$(base64 ${AGENT_BIN_PATH})"
+    chmod 700 "${MANAGER_SHELL}"
+    chsh -s "${MANAGER_SHELL}" "${MANAGER_USER}"
 
     # Add public key to authorized_keys
     mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
-    grep "${MANAGER_PUBLIC_KEY}" "/var/lib/${MANAGER_USER}/.ssh/authorized_keys" || echo -e "# Added by Scylla Manager\n${MANAGER_PUBLIC_KEY}" >> "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
+    echo -e "# Added by Scylla Manager\n${MANAGER_PUBLIC_KEY_WITH_OPTIONS}" > "/var/lib/${MANAGER_USER}/.ssh/authorized_keys"
 
-    # Set owner to manager user
-    chown -R "${MANAGER_USER}:${MANAGER_USER}" "/var/lib/${MANAGER_USER}/.ssh"
+    # Fix file ownership
+    chown -R "${MANAGER_USER}:${MANAGER_USER}" "/var/lib/${MANAGER_USER}"
 EOF
     then
         echo "${host}	OK"
