@@ -4,8 +4,40 @@ package schema
 
 import "github.com/scylladb/gocqlx/table"
 
-// table models
+// Table models
 var (
+	BackupRun = table.New(table.Metadata{
+		Name: "backup_run",
+		Columns: []string{
+			"cluster_id",
+			"task_id",
+			"id",
+			"prev_id",
+			"units",
+			"dc",
+			"uri",
+			"ttl",
+		},
+		PartKey: []string{"cluster_id", "task_id"},
+		SortKey: []string{"id"},
+	})
+
+	BackupRunProgress = table.New(table.Metadata{
+		Name: "backup_run_progress",
+		Columns: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+			"host",
+			"unit",
+			"table_id",
+			"size",
+			"uploaded",
+		},
+		PartKey: []string{"cluster_id", "task_id", "run_id"},
+		SortKey: []string{"host", "unit", "table_name", "file"},
+	})
+
 	Cluster = table.New(table.Metadata{
 		Name: "cluster",
 		Columns: []string{
