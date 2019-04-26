@@ -205,18 +205,6 @@ func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) 
 	return tables, nil
 }
 
-// HostPendingCompactions returns number of pending compactions on a host.
-func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
-	resp, err := c.operations.ColumnFamilyMetricsPendingCompactionsGet(&operations.ColumnFamilyMetricsPendingCompactionsGetParams{
-		Context: forceHost(ctx, host),
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return resp.Payload, nil
-}
-
 // Tokens returns list of tokens in a cluster.
 func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 	resp, err := c.operations.StorageServiceTokensEndpointGet(&operations.StorageServiceTokensEndpointGetParams{Context: ctx})
@@ -244,15 +232,6 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 	}
 
 	return resp.Payload, nil
-}
-
-// RepairConfig specifies what to repair.
-type RepairConfig struct {
-	Keyspace string
-	Tables   []string
-	DC       []string
-	Hosts    []string
-	Ranges   string
 }
 
 // ShardCount returns number of shards in a node.
@@ -344,6 +323,15 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 	}
 
 	return ring, nil
+}
+
+// RepairConfig specifies what to repair.
+type RepairConfig struct {
+	Keyspace string
+	Tables   []string
+	DC       []string
+	Hosts    []string
+	Ranges   string
 }
 
 // Repair invokes async repair and returns the repair command ID.

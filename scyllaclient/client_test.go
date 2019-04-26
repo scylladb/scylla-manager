@@ -122,23 +122,6 @@ func TestHosts(t *testing.T) {
 	}
 }
 
-func TestClientHostPendingCompactions(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/column_family_metrics_pending_compactions.json")
-	defer s.Close()
-	c := testClient(s)
-
-	h := s.Listener.Addr().String()
-	v, err := c.HostPendingCompactions(context.Background(), h)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != 1 {
-		t.Fatal(v)
-	}
-}
-
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 
