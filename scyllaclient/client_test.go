@@ -42,6 +42,35 @@ func TestClientClusterName(t *testing.T) {
 	}
 }
 
+func TestClientDatacenters(t *testing.T) {
+	t.Parallel()
+
+	m := func(req *http.Request) string {
+		if strings.HasPrefix(req.URL.Path, "/storage_service/host_id") {
+			return "testdata/host_id_map.json"
+		}
+		if strings.HasPrefix(req.URL.Path, "/snitch/datacenter") {
+			if req.FormValue("host") == "192.168.100.12" {
+				return "testdata/host_id_dc_1.json"
+			}
+			return "testdata/host_id_dc_2.json"
+		}
+		return ""
+	}
+
+	s := mockServerMatching(t, m)
+	defer s.Close()
+
+	c := testClient(s)
+	dcs, err := c.Datacenters(context.Background())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(dcs) != 2 {
+		t.Errorf("expected 2 dcs got %d", len(dcs))
+	}
+}
+
 func TestClientKeyspaces(t *testing.T) {
 	t.Parallel()
 
@@ -57,6 +86,105 @@ func TestClientKeyspaces(t *testing.T) {
 	expected := []string{"test_repair", "system_traces", "system_schema", "system", "test_scylla_manager"}
 	if diff := cmp.Diff(v, expected); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestClientTables(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/column_family_name.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Tables(context.Background(), "scylla_manager")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []string{"event", "repair_run_segment", "repair_config", "scheduler_active_run_by_cluster", "scheduler_task_run", "scheduler_user_task", "repair_run", "repair_unit", "scheduler_task"}
+	if diff := cmp.Diff(v, expected); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestHosts(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/host_id_map.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Hosts(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v) != 2 {
+		t.Fatal(v)
+	}
+}
+
+func TestClientHostPendingCompactions(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/column_family_metrics_pending_compactions.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	v, err := c.HostPendingCompactions(context.Background(), h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 1 {
+		t.Fatal(v)
+	}
+}
+
+func TestClientTokens(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/tokens_endpoint.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Tokens(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v) != 3*256 {
+		t.Fatal(len(v))
+	}
+}
+
+func TestClientPartitioner(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_partitioner_name.json")
+	defer s.Close()
+	c := testClient(s)
+
+	v, err := c.Partitioner(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != Murmur3Partitioner {
+		t.Fatal(v)
+	}
+}
+
+func TestClientShardCount(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/metrics")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	v, err := c.ShardCount(context.Background(), h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 4 {
+		t.Fatal(v)
 	}
 }
 
@@ -147,84 +275,6 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 	}
 }
 
-func TestClientDatacenters(t *testing.T) {
-	t.Parallel()
-
-	m := func(req *http.Request) string {
-		if strings.HasPrefix(req.URL.Path, "/storage_service/host_id") {
-			return "testdata/host_id_map.json"
-		}
-		if strings.HasPrefix(req.URL.Path, "/snitch/datacenter") {
-			if req.FormValue("host") == "192.168.100.12" {
-				return "testdata/host_id_dc_1.json"
-			}
-			return "testdata/host_id_dc_2.json"
-		}
-		return ""
-	}
-
-	s := mockServerMatching(t, m)
-	defer s.Close()
-
-	c := testClient(s)
-	dcs, err := c.Datacenters(context.Background())
-	if err != nil {
-		t.Error(err)
-	}
-	if len(dcs) != 2 {
-		t.Errorf("expected 2 dcs got %d", len(dcs))
-	}
-}
-
-func TestHosts(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/host_id_map.json")
-	defer s.Close()
-	c := testClient(s)
-
-	v, err := c.Hosts(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(v) != 2 {
-		t.Fatal(v)
-	}
-}
-
-func TestClientHostPendingCompactions(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/column_family_metrics_pending_compactions.json")
-	defer s.Close()
-	c := testClient(s)
-
-	h := s.Listener.Addr().String()
-	v, err := c.HostPendingCompactions(context.Background(), h)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != 1 {
-		t.Fatal(v)
-	}
-}
-
-func TestClientPartitioner(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/storage_service_partitioner_name.json")
-	defer s.Close()
-	c := testClient(s)
-
-	v, err := c.Partitioner(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != Murmur3Partitioner {
-		t.Fatal(v)
-	}
-}
-
 func TestClientRepair(t *testing.T) {
 	t.Parallel()
 
@@ -262,6 +312,20 @@ func TestClientRepairStatus(t *testing.T) {
 	}
 }
 
+func TestClientRepairStatusForWrongID(t *testing.T) {
+	t.Parallel()
+
+	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_2.json")
+	defer s.Close()
+	c := testClient(s)
+
+	h := s.Listener.Addr().String()
+	_, err := c.RepairStatus(context.Background(), h, "scylla_manager", 5)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestClientActiveRepairs(t *testing.T) {
 	t.Parallel()
 
@@ -290,70 +354,6 @@ func TestClientKillAllRepairs(t *testing.T) {
 	err := c.KillAllRepairs(context.Background(), h)
 	if err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestClientRepairStatusForWrongID(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_2.json")
-	defer s.Close()
-	c := testClient(s)
-
-	h := s.Listener.Addr().String()
-	_, err := c.RepairStatus(context.Background(), h, "scylla_manager", 5)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-func TestClientShardCount(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/metrics")
-	defer s.Close()
-	c := testClient(s)
-
-	h := s.Listener.Addr().String()
-	v, err := c.ShardCount(context.Background(), h)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != 4 {
-		t.Fatal(v)
-	}
-}
-
-func TestClientTables(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/column_family_name.json")
-	defer s.Close()
-	c := testClient(s)
-
-	v, err := c.Tables(context.Background(), "scylla_manager")
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected := []string{"event", "repair_run_segment", "repair_config", "scheduler_active_run_by_cluster", "scheduler_task_run", "scheduler_user_task", "repair_run", "repair_unit", "scheduler_task"}
-	if diff := cmp.Diff(v, expected); diff != "" {
-		t.Fatal(diff)
-	}
-}
-
-func TestClientTokens(t *testing.T) {
-	t.Parallel()
-
-	s := mockServer(t, "testdata/tokens_endpoint.json")
-	defer s.Close()
-	c := testClient(s)
-
-	v, err := c.Tokens(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(v) != 3*256 {
-		t.Fatal(len(v))
 	}
 }
 

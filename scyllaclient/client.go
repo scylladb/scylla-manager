@@ -185,6 +185,107 @@ func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 	return resp.Payload, nil
 }
 
+// Tables returns a slice of table names in a given keyspace.
+func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
+	resp, err := c.operations.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		prefix = keyspace + ":"
+		tables []string
+	)
+	for _, v := range resp.Payload {
+		if strings.HasPrefix(v, prefix) {
+			tables = append(tables, v[len(prefix):])
+		}
+	}
+
+	return tables, nil
+}
+
+// HostPendingCompactions returns number of pending compactions on a host.
+func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
+	resp, err := c.operations.ColumnFamilyMetricsPendingCompactionsGet(&operations.ColumnFamilyMetricsPendingCompactionsGetParams{
+		Context: forceHost(ctx, host),
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Payload, nil
+}
+
+// Tokens returns list of tokens in a cluster.
+func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
+	resp, err := c.operations.StorageServiceTokensEndpointGet(&operations.StorageServiceTokensEndpointGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	tokens := make([]int64, len(resp.Payload))
+	for i, p := range resp.Payload {
+		v, err := strconv.ParseInt(p.Key, 10, 64)
+		if err != nil {
+			return tokens, fmt.Errorf("parsing failed at pos %d: %s", i, err)
+		}
+		tokens[i] = v
+	}
+
+	return tokens, nil
+}
+
+// Partitioner returns cluster partitioner name.
+func (c *Client) Partitioner(ctx context.Context) (string, error) {
+	resp, err := c.operations.StorageServicePartitionerNameGet(&operations.StorageServicePartitionerNameGetParams{Context: ctx})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Payload, nil
+}
+
+// RepairConfig specifies what to repair.
+type RepairConfig struct {
+	Keyspace string
+	Tables   []string
+	DC       []string
+	Hosts    []string
+	Ranges   string
+}
+
+// ShardCount returns number of shards in a node.
+func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   host,
+		Path:   "/metrics",
+	}
+
+	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+	r = r.WithContext(context.WithValue(ctx, ctxHost, withPort(host, DefaultPrometheusPort)))
+
+	resp, err := c.transport.RoundTrip(r)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	var shards uint
+	s := bufio.NewScanner(resp.Body)
+	for s.Scan() {
+		if strings.HasPrefix(s.Text(), "scylla_database_total_writes{") {
+			shards++
+		}
+	}
+
+	return shards, nil
+}
+
 // DescribeRing returns a description of token range of a given keyspace.
 func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error) {
 	resp, err := c.operations.StorageServiceDescribeRingByKeyspaceGet(&operations.StorageServiceDescribeRingByKeyspaceGetParams{
@@ -243,155 +344,6 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 	}
 
 	return ring, nil
-}
-
-// ClosestDC takes output of Datacenters, a map from DC to it's hosts and
-// returns DCs sorted by speed the hosts respond. It's determined by
-// the lowest latency over 3 Ping() invocations across random selection of
-// hosts for each DC.
-func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]string, error) {
-	if len(dcs) == 0 {
-		return nil, errors.Errorf("no dcs to choose from")
-	}
-
-	// Single DC no need to measure anything.
-	if len(dcs) == 1 {
-		for dc := range dcs {
-			return []string{dc}, nil
-		}
-	}
-
-	type dcRTT struct {
-		dc  string
-		rtt time.Duration
-	}
-	out := make(chan dcRTT, runtime.NumCPU()+1)
-	size := 0
-
-	// Test latency of 3 random hosts from each DC.
-	for dc, hosts := range dcs {
-		dc := dc
-		hosts := pickNRandomHosts(3, hosts)
-		size += len(hosts)
-
-		for _, h := range hosts {
-			h := h
-			go func() {
-				rtt, err := c.PingN(ctx, h, 3)
-				if err != nil {
-					c.logger.Info(ctx, "Host RTT measurement failed",
-						"dc", dc,
-						"host", h,
-						"err", err,
-					)
-					rtt = math.MaxInt64
-				}
-				out <- dcRTT{dc: dc, rtt: rtt}
-			}()
-		}
-	}
-
-	// Select the lowest latency for each DC.
-	min := make(map[string]time.Duration, len(dcs))
-	for i := 0; i < size; i++ {
-		v := <-out
-		if m, ok := min[v.dc]; !ok || m > v.rtt {
-			min[v.dc] = v.rtt
-		}
-	}
-
-	// Sort DCs by lowest latency.
-	sored := make([]string, 0, len(dcs))
-	for dc := range dcs {
-		sored = append(sored, dc)
-	}
-	sort.Slice(sored, func(i, j int) bool {
-		return min[sored[i]] < min[sored[j]]
-	})
-
-	// All hosts failed...
-	if min[sored[0]] == math.MaxInt64 {
-		return nil, errors.New("failed to connect to any node")
-	}
-
-	return sored, nil
-}
-
-func pickNRandomHosts(n int, hosts []string) []string {
-	if n >= len(hosts) {
-		return hosts
-	}
-
-	rand := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
-
-	idxs := make(map[int]struct{})
-	rh := make([]string, 0, n)
-	for ; n > 0; n-- {
-		idx := rand.Intn(len(hosts))
-		if _, ok := idxs[idx]; !ok {
-			idxs[idx] = struct{}{}
-			rh = append(rh, hosts[idx])
-		} else {
-			n++
-		}
-	}
-	return rh
-}
-
-// PingN does "n" amount of pings torwards the host and returns average RTT
-// across all results.
-// Pings are tried sequentially and if any of the pings fail function will
-// return an error.
-func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, error) {
-	// Open connection to server.
-	_, err := c.Ping(ctx, host)
-	if err != nil {
-		return 0, err
-	}
-
-	// Measure avg host RTT.
-	mctx, cancel := context.WithTimeout(ctx, RequestTimeout)
-	defer cancel()
-	var sum time.Duration
-	for i := 0; i < n; i++ {
-		d, err := c.Ping(mctx, host)
-		if err != nil {
-			return 0, err
-		}
-		sum += d
-	}
-	return sum / time.Duration(n), nil
-}
-
-// HostPendingCompactions returns number of pending compactions on a host.
-func (c *Client) HostPendingCompactions(ctx context.Context, host string) (int32, error) {
-	resp, err := c.operations.ColumnFamilyMetricsPendingCompactionsGet(&operations.ColumnFamilyMetricsPendingCompactionsGetParams{
-		Context: forceHost(ctx, host),
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return resp.Payload, nil
-}
-
-// Partitioner returns cluster partitioner name.
-func (c *Client) Partitioner(ctx context.Context) (string, error) {
-	resp, err := c.operations.StorageServicePartitionerNameGet(&operations.StorageServicePartitionerNameGetParams{Context: ctx})
-	if err != nil {
-		return "", err
-	}
-
-	return resp.Payload, nil
-}
-
-// RepairConfig specifies what to repair.
-type RepairConfig struct {
-	Keyspace string
-	Tables   []string
-	DC       []string
-	Hosts    []string
-	Ranges   string
 }
 
 // Repair invokes async repair and returns the repair command ID.
@@ -507,74 +459,122 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	return err
 }
 
-// ShardCount returns number of shards in a node.
-func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
-	u := url.URL{
-		Scheme: "http",
-		Host:   host,
-		Path:   "/metrics",
+// ClosestDC takes output of Datacenters, a map from DC to it's hosts and
+// returns DCs sorted by speed the hosts respond. It's determined by
+// the lowest latency over 3 Ping() invocations across random selection of
+// hosts for each DC.
+func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]string, error) {
+	if len(dcs) == 0 {
+		return nil, errors.Errorf("no dcs to choose from")
 	}
 
-	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
-	if err != nil {
-		return 0, err
-	}
-	r = r.WithContext(context.WithValue(ctx, ctxHost, withPort(host, DefaultPrometheusPort)))
-
-	resp, err := c.transport.RoundTrip(r)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	var shards uint
-	s := bufio.NewScanner(resp.Body)
-	for s.Scan() {
-		if strings.HasPrefix(s.Text(), "scylla_database_total_writes{") {
-			shards++
+	// Single DC no need to measure anything.
+	if len(dcs) == 1 {
+		for dc := range dcs {
+			return []string{dc}, nil
 		}
 	}
 
-	return shards, nil
-}
-
-// Tables returns a slice of table names in a given keyspace.
-func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
-	resp, err := c.operations.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})
-	if err != nil {
-		return nil, err
+	type dcRTT struct {
+		dc  string
+		rtt time.Duration
 	}
+	out := make(chan dcRTT, runtime.NumCPU()+1)
+	size := 0
 
-	var (
-		prefix = keyspace + ":"
-		tables []string
-	)
-	for _, v := range resp.Payload {
-		if strings.HasPrefix(v, prefix) {
-			tables = append(tables, v[len(prefix):])
+	// Test latency of 3 random hosts from each DC.
+	for dc, hosts := range dcs {
+		dc := dc
+		hosts := pickNRandomHosts(3, hosts)
+		size += len(hosts)
+
+		for _, h := range hosts {
+			h := h
+			go func() {
+				rtt, err := c.PingN(ctx, h, 3)
+				if err != nil {
+					c.logger.Info(ctx, "Host RTT measurement failed",
+						"dc", dc,
+						"host", h,
+						"err", err,
+					)
+					rtt = math.MaxInt64
+				}
+				out <- dcRTT{dc: dc, rtt: rtt}
+			}()
 		}
 	}
 
-	return tables, nil
-}
-
-// Tokens returns list of tokens in a cluster.
-func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
-	resp, err := c.operations.StorageServiceTokensEndpointGet(&operations.StorageServiceTokensEndpointGetParams{Context: ctx})
-	if err != nil {
-		return nil, err
+	// Select the lowest latency for each DC.
+	min := make(map[string]time.Duration, len(dcs))
+	for i := 0; i < size; i++ {
+		v := <-out
+		if m, ok := min[v.dc]; !ok || m > v.rtt {
+			min[v.dc] = v.rtt
+		}
 	}
 
-	tokens := make([]int64, len(resp.Payload))
-	for i, p := range resp.Payload {
-		v, err := strconv.ParseInt(p.Key, 10, 64)
+	// Sort DCs by lowest latency.
+	sored := make([]string, 0, len(dcs))
+	for dc := range dcs {
+		sored = append(sored, dc)
+	}
+	sort.Slice(sored, func(i, j int) bool {
+		return min[sored[i]] < min[sored[j]]
+	})
+
+	// All hosts failed...
+	if min[sored[0]] == math.MaxInt64 {
+		return nil, errors.New("failed to connect to any node")
+	}
+
+	return sored, nil
+}
+
+func pickNRandomHosts(n int, hosts []string) []string {
+	if n >= len(hosts) {
+		return hosts
+	}
+
+	rand := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
+
+	idxs := make(map[int]struct{})
+	rh := make([]string, 0, n)
+	for ; n > 0; n-- {
+		idx := rand.Intn(len(hosts))
+		if _, ok := idxs[idx]; !ok {
+			idxs[idx] = struct{}{}
+			rh = append(rh, hosts[idx])
+		} else {
+			n++
+		}
+	}
+	return rh
+}
+
+// PingN does "n" amount of pings towards the host and returns average RTT
+// across all results.
+// Pings are tried sequentially and if any of the pings fail function will
+// return an error.
+func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, error) {
+	// Open connection to server.
+	_, err := c.Ping(ctx, host)
+	if err != nil {
+		return 0, err
+	}
+
+	// Measure avg host RTT.
+	mctx, cancel := context.WithTimeout(ctx, RequestTimeout)
+	defer cancel()
+	var sum time.Duration
+	for i := 0; i < n; i++ {
+		d, err := c.Ping(mctx, host)
 		if err != nil {
-			return tokens, fmt.Errorf("parsing failed at pos %d: %s", i, err)
+			return 0, err
 		}
-		tokens[i] = v
+		sum += d
 	}
-
-	return tokens, nil
+	return sum / time.Duration(n), nil
 }
 
 // Ping checks if host is available using HTTP ping.
