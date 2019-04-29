@@ -150,7 +150,7 @@ fi
 if [[ ${SINGLE_NODE} == 0 ]]; then
     echo "> Discovering all the cluster nodes"
     if ! HOSTS=`ssh ${ROOT_SSH_OPTS} "${SSH_USER}${HOST}" 2> "${OUTPUT}" curl -sS -f 0.0.0.0:${API_REMOTE_PORT}/storage_service/host_id | jq -r '.[].key' | sort`; then
-        die "failed to access Scylla REST API via ${SSH_USER}${1}"
+        die "failed to access Scylla REST API via ${SSH_USER}${HOST}"
     fi
 fi
 
