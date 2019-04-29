@@ -32,7 +32,11 @@ func TestClientDialOnceAndCloseIntegration(t *testing.T) {
 		return
 	}
 
-	client, err := scyllaclient.NewClient(ManagedClusterHosts, s, log.NewDevelopment())
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = ManagedClusterHosts
+	config.Transport = s
+
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +61,11 @@ func TestClientDialOnceAndCloseIntegration(t *testing.T) {
 }
 
 func TestClientClosestDCIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), log.NewDevelopment())
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = ManagedClusterHosts
+	config.Transport = NewSSHTransport()
+
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +85,11 @@ func TestClientClosestDCIntegration(t *testing.T) {
 }
 
 func TestClientActiveRepairsIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), log.NewDevelopment())
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = ManagedClusterHosts
+	config.Transport = NewSSHTransport()
+
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

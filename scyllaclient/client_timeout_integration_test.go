@@ -57,7 +57,11 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 }
 
 func getHosts() ([]string, error) {
-	client, err := scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), log.NewDevelopment())
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = ManagedClusterHosts
+	config.Transport = NewSSHTransport()
+
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +92,9 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*scyllaclient.RequestTimeout)
+	config := scyllaclient.DefaultConfig()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*config.RequestTimeout)
 	defer cancel()
 	defer unblock(context.Background())
 
@@ -96,9 +102,11 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 		return err
 	}
 
+	config.Hosts = hosts
 	triedHosts := make(map[string]int)
+	config.Transport = hostRecorder(NewSSHTransport(), triedHosts)
 
-	client, err := scyllaclient.NewClient(hosts, hostRecorder(NewSSHTransport(), triedHosts), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		return err
 	}

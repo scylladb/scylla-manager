@@ -32,42 +32,23 @@ import (
 	"go.uber.org/multierr"
 )
 
-// DefaultAPIPort is Scylla API port.
-var (
-	DefaultAPIPort        = "10000"
-	DefaultPrometheusPort = "9180"
-
-	// Timeout specifies end-to-end time to complete Scylla REST API request
-	// including retries.
-	Timeout = 30 * time.Second
-
-	// RequestTimeout specifies time to complete a single request to Scylla
-	// REST API possibly including opening SSH tunneled connection.
-	RequestTimeout = 5 * time.Second
-
-	// PoolDecayDuration specifies size of time window to measure average
-	// request time in Epsilon-Greedy host pool.
-	PoolDecayDuration = 30 * time.Minute
-)
-
 var initOnce sync.Once
 
 //go:generate ./gen-internal.sh
 
 // Client provides means to interact with Scylla nodes.
 type Client struct {
+	config Config
+	logger log.Logger
+
 	operations *operations.Client
-	inner      http.RoundTripper
 	transport  http.RoundTripper
-	logger     log.Logger
 }
 
-func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Client, error) {
-	if len(hosts) == 0 {
-		return nil, errors.New("missing hosts")
+func NewClient(config Config, logger log.Logger) (*Client, error) {
+	if err := config.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid config")
 	}
-
-	inner := transport
 
 	initOnce.Do(func() {
 		// Timeout is defined in http client that we provide in api.NewWithClient.
@@ -79,22 +60,26 @@ func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Clie
 		middleware.Debug = false
 	})
 
-	addrs := make([]string, len(hosts))
-	for i, h := range hosts {
-		addrs[i] = withPort(h, DefaultAPIPort)
+	addrs := make([]string, len(config.Hosts))
+	for i, h := range config.Hosts {
+		addrs[i] = withPort(h, config.APIPort)
 	}
-	pool := hostpool.NewEpsilonGreedy(addrs, PoolDecayDuration, &hostpool.LinearEpsilonValueCalculator{})
+	pool := hostpool.NewEpsilonGreedy(addrs, config.PoolDecayDuration, &hostpool.LinearEpsilonValueCalculator{})
 
-	transport = mwTimeout(transport, RequestTimeout)
-	transport = mwLogger(transport, l)
+	if config.Transport == nil {
+		config.Transport = http.DefaultTransport
+	}
+	transport := config.Transport
+	transport = mwTimeout(transport, config.RequestTimeout)
+	transport = mwLogger(transport, logger)
 	transport = mwHostPool(transport, pool)
-	transport = mwRetry(transport, len(hosts), l)
+	transport = mwRetry(transport, len(config.Hosts), logger)
 	transport = mwOpenAPIFix(transport)
 
 	client := api.NewWithClient(
 		"mermaid.magic.host", "", []string{"http"},
 		&http.Client{
-			Timeout:   Timeout,
+			Timeout:   config.Timeout,
 			Transport: transport,
 		},
 	)
@@ -102,20 +87,16 @@ func NewClient(hosts []string, transport http.RoundTripper, l log.Logger) (*Clie
 	client.Debug = false
 
 	return &Client{
+		config:     config,
+		logger:     logger,
 		operations: operations.New(client, strfmt.Default),
-		inner:      inner,
 		transport:  transport,
-		logger:     l,
 	}, nil
 }
 
-func withPort(hostPort, port string) string {
-	_, p, _ := net.SplitHostPort(hostPort)
-	if p != "" {
-		return hostPort
-	}
-
-	return fmt.Sprint(hostPort, ":", port)
+// Timeout returns a timeout for a request.
+func (c *Client) Timeout() time.Duration {
+	return c.config.Timeout
 }
 
 // ClusterName returns cluster name.
@@ -236,6 +217,26 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 
 // ShardCount returns number of shards in a node.
 func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
+	body, err := c.metrics(ctx, host, c.config.MetricsPort)
+	if err != nil {
+		return 0, err
+	}
+	defer body.Close()
+
+	s := bufio.NewScanner(body)
+
+	var shards uint
+	for s.Scan() {
+		if strings.HasPrefix(s.Text(), "scylla_database_total_writes{") {
+			shards++
+		}
+	}
+	return shards, nil
+}
+
+// metrics returns Prometheus metrics response body, caller is responsible for
+// closing the returned body.
+func (c *Client) metrics(ctx context.Context, host, port string) (io.ReadCloser, error) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   host,
@@ -244,25 +245,16 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 
 	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	r = r.WithContext(context.WithValue(ctx, ctxHost, withPort(host, DefaultPrometheusPort)))
+	r = r.WithContext(context.WithValue(ctx, ctxHost, withPort(host, port)))
 
 	resp, err := c.transport.RoundTrip(r)
 	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	var shards uint
-	s := bufio.NewScanner(resp.Body)
-	for s.Scan() {
-		if strings.HasPrefix(s.Text(), "scylla_database_total_writes{") {
-			shards++
-		}
+		return nil, err
 	}
 
-	return shards, nil
+	return resp.Body, nil
 }
 
 // DescribeRing returns a description of token range of a given keyspace.
@@ -337,7 +329,7 @@ type RepairConfig struct {
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
-		Context:  forceHost(ctx, host),
+		Context:  forceHostPort(ctx, host, c.config.APIPort),
 		Keyspace: config.Keyspace,
 		Ranges:   &config.Ranges,
 	}
@@ -366,7 +358,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
 	resp, err := c.operations.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
-		Context:  forceHost(ctx, host),
+		Context:  forceHostPort(ctx, host, c.config.APIPort),
 		Keyspace: keyspace,
 		ID:       id,
 	})
@@ -418,7 +410,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 	const wait = 50 * time.Millisecond
 	for i := 0; i < 10; i++ {
 		resp, err := c.operations.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
-			Context: forceHost(ctx, host),
+			Context: forceHostPort(ctx, host, c.config.APIPort),
 		})
 		if err != nil {
 			return false, err
@@ -442,7 +434,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 // operation is not retried to avoid side effects of a deferred kill.
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	_, err := c.operations.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
-		Context: noRetry(forceHost(ctx, host)),
+		Context: noRetry(forceHostPort(ctx, host, c.config.APIPort)),
 	})
 	return err
 }
@@ -552,7 +544,7 @@ func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, 
 	}
 
 	// Measure avg host RTT.
-	mctx, cancel := context.WithTimeout(ctx, RequestTimeout)
+	mctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout)
 	defer cancel()
 	var sum time.Duration
 	for i := 0; i < n; i++ {
@@ -567,7 +559,7 @@ func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, 
 
 // Ping checks if host is available using HTTP ping.
 func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
-	ctx, cancel := context.WithTimeout(noRetry(ctx), RequestTimeout)
+	ctx, cancel := context.WithTimeout(noRetry(ctx), c.config.RequestTimeout)
 	defer cancel()
 
 	u := url.URL{Scheme: "http", Host: host, Path: "/"}
@@ -575,7 +567,7 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	r = r.WithContext(forceHost(ctx, host))
+	r = r.WithContext(forceHostPort(ctx, host, c.config.APIPort))
 
 	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)
@@ -588,8 +580,17 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 
 // Close closes all the idle connections.
 func (c *Client) Close() error {
-	if t, ok := c.inner.(*http.Transport); ok {
+	if t, ok := c.config.Transport.(*http.Transport); ok {
 		t.CloseIdleConnections()
 	}
 	return nil
+}
+
+func withPort(hostPort, port string) string {
+	_, p, _ := net.SplitHostPort(hostPort)
+	if p != "" {
+		return hostPort
+	}
+
+	return fmt.Sprint(hostPort, ":", port)
 }

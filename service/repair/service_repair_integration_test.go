@@ -41,6 +41,7 @@ const (
 type repairTestHelper struct {
 	session *gocql.Session
 	hrt     *HackableRoundTripper
+	client  *scyllaclient.Client
 	service *repair.Service
 
 	clusterID uuid.UUID
@@ -54,17 +55,23 @@ type repairTestHelper struct {
 	t *testing.T
 }
 
-func newRepairTestHelper(t *testing.T, session *gocql.Session, c repair.Config) *repairTestHelper {
+func newRepairTestHelper(t *testing.T, session *gocql.Session, config repair.Config) *repairTestHelper {
+	t.Helper()
+
 	ExecStmt(t, session, "TRUNCATE TABLE repair_run")
 	ExecStmt(t, session, "TRUNCATE TABLE repair_run_progress")
 
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+
 	hrt := NewHackableRoundTripper(NewSSHTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
-	s := newTestService(t, session, hrt, c)
+	c := newTestClient(t, hrt, logger)
+	s := newTestService(t, session, c, config, logger)
 
 	return &repairTestHelper{
 		session: session,
 		hrt:     hrt,
+		client:  c,
 		service: s,
 
 		clusterID: uuid.MustRandom(),
@@ -209,8 +216,21 @@ func (h *repairTestHelper) progress(unit, node, shard int) int {
 	return int(p.Units[unit].Nodes[node].Shards[shard].PercentComplete)
 }
 
-func newTestService(t *testing.T, session *gocql.Session, hrt *HackableRoundTripper, c repair.Config) *repair.Service {
-	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
+	t.Helper()
+
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = ManagedClusterHosts
+	config.Transport = hrt
+	c, err := scyllaclient.NewClient(config, logger.Named("scylla"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
+
+func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
+	t.Helper()
 
 	s, err := repair.NewService(
 		session,
@@ -219,7 +239,7 @@ func newTestService(t *testing.T, session *gocql.Session, hrt *HackableRoundTrip
 			return "test_cluster", nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return scyllaclient.NewClient(ManagedClusterHosts, hrt, logger.Named("scylla"))
+			return client, nil
 		},
 		logger.Named("repair"),
 	)
@@ -816,12 +836,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: no network for 5s with 1s backoff")
 		h.hrt.SetInterceptor(dialErrorInterceptor())
-		time.AfterFunc(3*scyllaclient.Timeout, func() {
+		time.AfterFunc(3*h.client.Timeout(), func() {
 			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 		})
 
 		Print("Then: node1 repair continues")
-		h.assertProgress(0, node1, 60, 3*scyllaclient.Timeout+longWait)
+		h.assertProgress(0, node1, 60, 3*h.client.Timeout()+longWait)
 
 		Print("When: node1 is 95% repaired")
 		h.assertProgress(0, node1, 95, longWait)
@@ -894,11 +914,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			}
 		}()
 		defer func() {
-			c, err := scyllaclient.NewClient(ManagedClusterHosts, NewSSHTransport(), log.Logger{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := c.KillAllRepairs(context.Background(), ManagedClusterHosts[0]); err != nil {
+			if err := h.client.KillAllRepairs(context.Background(), ManagedClusterHosts[0]); err != nil {
 				t.Fatal(err)
 			}
 		}()

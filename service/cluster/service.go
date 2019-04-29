@@ -124,12 +124,16 @@ func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
 		return nil, errors.Wrap(err, "failed to create transport")
 	}
 
-	return scyllaclient.NewClient(c.KnownHosts, t, s.logger.Named("client"))
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = c.KnownHosts
+	config.Transport = t
+
+	return scyllaclient.NewClient(config, s.logger.Named("client"))
 }
 
 func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 	if c.SSHUser == "" {
-		return http.DefaultTransport, nil
+		return nil, nil
 	}
 
 	identityFile := c.SSHIdentityFile

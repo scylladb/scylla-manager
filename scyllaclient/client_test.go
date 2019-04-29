@@ -15,6 +15,45 @@ import (
 	"github.com/scylladb/go-log"
 )
 
+// Matcher defines a function used to determine the file to return from a given mockServer call.
+type Matcher func(req *http.Request) string
+
+// FileMatcher is a simple matcher created for backwards compatibility.
+func FileMatcher(file string) Matcher {
+	return func(req *http.Request) string {
+		return file
+	}
+}
+
+func mockServer(t *testing.T, file string) *httptest.Server {
+	return mockServerMatching(t, FileMatcher(file))
+}
+
+func mockServerMatching(t *testing.T, m Matcher) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+
+		// Emulate ScyllaDB bug
+		r.Header.Set("Content-Type", "text/plain")
+
+		file := m(r)
+
+		f, err := os.Open(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		io.Copy(w, f)
+	}))
+}
+
+func testClient(s *httptest.Server) *Client {
+	config := DefaultConfig()
+	config.Hosts = []string{s.Listener.Addr().String()}
+	c, _ := NewClient(config, log.NewDevelopment())
+	return c
+}
+
 func TestWithPort(t *testing.T) {
 	t.Parallel()
 
@@ -391,41 +430,4 @@ func TestPickNRandomHosts(t *testing.T) {
 			t.Errorf("picked %d hosts, expected %d in test %d", len(picked), test.E, i)
 		}
 	}
-}
-
-// Matcher defines a function used to determine the file to return from a given mockServer call.
-type Matcher func(req *http.Request) string
-
-// FileMatcher is a simple matcher created for backwards compatibility.
-func FileMatcher(file string) Matcher {
-	return func(req *http.Request) string {
-		return file
-	}
-}
-
-func mockServer(t *testing.T, file string) *httptest.Server {
-	return mockServerMatching(t, FileMatcher(file))
-}
-
-func mockServerMatching(t *testing.T, m Matcher) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-
-		// Emulate ScyllaDB bug
-		r.Header.Set("Content-Type", "text/plain")
-
-		file := m(r)
-
-		f, err := os.Open(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		io.Copy(w, f)
-	}))
-}
-
-func testClient(s *httptest.Server) *Client {
-	c, _ := NewClient([]string{s.Listener.Addr().String()}, http.DefaultTransport, log.NewDevelopment())
-	return c
 }
