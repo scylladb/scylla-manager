@@ -5,6 +5,7 @@ package scyllaclient
 import (
 	"context"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,7 +16,7 @@ import (
 	"github.com/scylladb/go-log"
 )
 
-// Matcher defines a function used to determine the file to return from a given mockServer call.
+// Matcher defines a function used to determine the file to return from a given newMockServer call.
 type Matcher func(req *http.Request) string
 
 // FileMatcher is a simple matcher created for backwards compatibility.
@@ -25,12 +26,12 @@ func FileMatcher(file string) Matcher {
 	}
 }
 
-func mockServer(t *testing.T, file string) *httptest.Server {
-	return mockServerMatching(t, FileMatcher(file))
+func newMockServer(t *testing.T, file string) (*Client, func()) {
+	return newMockServerMatching(t, FileMatcher(file))
 }
 
-func mockServerMatching(t *testing.T, m Matcher) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func newMockServerMatching(t *testing.T, m Matcher) (*Client, func()) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
 		// Emulate ScyllaDB bug
@@ -45,14 +46,24 @@ func mockServerMatching(t *testing.T, m Matcher) *httptest.Server {
 		defer f.Close()
 		io.Copy(w, f)
 	}))
+
+	addr := s.Listener.Addr().String()
+
+	config := DefaultConfig()
+	config.Hosts = []string{addr}
+	_, port, _ := net.SplitHostPort(addr)
+	config.APIPort = port
+	config.MetricsPort = port
+
+	c, err := NewClient(config, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return c, s.Close
 }
 
-func testClient(s *httptest.Server) *Client {
-	config := DefaultConfig()
-	config.Hosts = []string{s.Listener.Addr().String()}
-	c, _ := NewClient(config, log.NewDevelopment())
-	return c
-}
+const testHost = "127.0.0.1"
 
 func TestWithPort(t *testing.T) {
 	t.Parallel()
@@ -68,9 +79,8 @@ func TestWithPort(t *testing.T) {
 func TestClientClusterName(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_cluster_name.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_cluster_name.json")
+	defer close()
 
 	v, err := c.ClusterName(context.Background())
 	if err != nil {
@@ -86,21 +96,20 @@ func TestClientDatacenters(t *testing.T) {
 
 	m := func(req *http.Request) string {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/host_id") {
-			return "testdata/host_id_map.json"
+			return "testdata/scylla_api/host_id_map.json"
 		}
 		if strings.HasPrefix(req.URL.Path, "/snitch/datacenter") {
 			if req.FormValue("host") == "192.168.100.12" {
-				return "testdata/host_id_dc_1.json"
+				return "testdata/scylla_api/host_id_dc_1.json"
 			}
-			return "testdata/host_id_dc_2.json"
+			return "testdata/scylla_api/host_id_dc_2.json"
 		}
 		return ""
 	}
 
-	s := mockServerMatching(t, m)
-	defer s.Close()
+	c, close := newMockServerMatching(t, m)
+	defer close()
 
-	c := testClient(s)
 	dcs, err := c.Datacenters(context.Background())
 	if err != nil {
 		t.Error(err)
@@ -113,9 +122,8 @@ func TestClientDatacenters(t *testing.T) {
 func TestClientKeyspaces(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_keyspaces.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_keyspaces.json")
+	defer close()
 
 	v, err := c.Keyspaces(context.Background())
 	if err != nil {
@@ -131,9 +139,8 @@ func TestClientKeyspaces(t *testing.T) {
 func TestClientTables(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/column_family_name.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/column_family_name.json")
+	defer close()
 
 	v, err := c.Tables(context.Background(), "scylla_manager")
 	if err != nil {
@@ -148,9 +155,8 @@ func TestClientTables(t *testing.T) {
 func TestHosts(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/host_id_map.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/host_id_map.json")
+	defer close()
 
 	v, err := c.Hosts(context.Background())
 	if err != nil {
@@ -164,9 +170,8 @@ func TestHosts(t *testing.T) {
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/tokens_endpoint.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/tokens_endpoint.json")
+	defer close()
 
 	v, err := c.Tokens(context.Background())
 	if err != nil {
@@ -180,9 +185,8 @@ func TestClientTokens(t *testing.T) {
 func TestClientPartitioner(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_partitioner_name.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_partitioner_name.json")
+	defer close()
 
 	v, err := c.Partitioner(context.Background())
 	if err != nil {
@@ -196,12 +200,10 @@ func TestClientPartitioner(t *testing.T) {
 func TestClientShardCount(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/metrics")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_metrics/metrics")
+	defer close()
 
-	h := s.Listener.Addr().String()
-	v, err := c.ShardCount(context.Background(), h)
+	v, err := c.ShardCount(context.Background(), testHost)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,9 +215,8 @@ func TestClientShardCount(t *testing.T) {
 func TestClientDescribeRing(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/describe_ring_scylla_manager.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/describe_ring_scylla_manager.json")
+	defer close()
 
 	ring, err := c.DescribeRing(context.Background(), "scylla_manager")
 	if err != nil {
@@ -264,17 +265,17 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 	}{
 		{
 			N: "local",
-			F: "testdata/storage_service_describe_ring_system.json",
+			F: "testdata/scylla_api/storage_service_describe_ring_system.json",
 			S: LocalStrategy,
 		},
 		{
 			N: "simple",
-			F: "testdata/storage_service_describe_ring_system_auth.json",
+			F: "testdata/scylla_api/storage_service_describe_ring_system_auth.json",
 			S: SimpleStrategy,
 		},
 		{
 			N: "network",
-			F: "testdata/storage_service_describe_ring_test_keyspace_dc2_rf2.json",
+			F: "testdata/scylla_api/storage_service_describe_ring_test_keyspace_dc2_rf2.json",
 			S: NetworkTopologyStrategy,
 		},
 	}
@@ -282,9 +283,8 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 	for _, test := range table {
 		t.Run(test.N, func(t *testing.T) {
 			t.Parallel()
-			s := mockServer(t, test.F)
-			defer s.Close()
-			c := testClient(s)
+			c, close := newMockServer(t, test.F)
+			defer close()
 
 			ring, err := c.DescribeRing(context.Background(), "scylla_manager")
 			if err != nil {
@@ -300,12 +300,10 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 func TestClientRepair(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_0.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_0.json")
+	defer close()
 
-	h := s.Listener.Addr().String()
-	v, err := c.Repair(context.Background(), h, &RepairConfig{
+	v, err := c.Repair(context.Background(), testHost, &RepairConfig{
 		Keyspace: "scylla_manager",
 		Ranges:   "100:110,120:130",
 	})
@@ -320,12 +318,10 @@ func TestClientRepair(t *testing.T) {
 func TestClientRepairStatus(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_1.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_1.json")
+	defer close()
 
-	h := s.Listener.Addr().String()
-	v, err := c.RepairStatus(context.Background(), h, "scylla_manager", 1)
+	v, err := c.RepairStatus(context.Background(), testHost, "scylla_manager", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,12 +333,10 @@ func TestClientRepairStatus(t *testing.T) {
 func TestClientRepairStatusForWrongID(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_repair_async_scylla_manager_2.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_2.json")
+	defer close()
 
-	h := s.Listener.Addr().String()
-	_, err := c.RepairStatus(context.Background(), h, "scylla_manager", 5)
+	_, err := c.RepairStatus(context.Background(), testHost, "scylla_manager", 5)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -351,16 +345,14 @@ func TestClientRepairStatusForWrongID(t *testing.T) {
 func TestClientActiveRepairs(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_active_repair.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_active_repair.json")
+	defer close()
 
-	h := s.Listener.Addr().String()
-	v, err := c.ActiveRepairs(context.Background(), []string{h})
+	v, err := c.ActiveRepairs(context.Background(), []string{testHost})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(v, []string{h}); diff != "" {
+	if diff := cmp.Diff(v, []string{testHost}); diff != "" {
 		t.Fatal(v)
 	}
 }
@@ -368,12 +360,10 @@ func TestClientActiveRepairs(t *testing.T) {
 func TestClientKillAllRepairs(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "testdata/storage_service_force_terminate_repair.json")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_force_terminate_repair.json")
+	defer close()
 
-	h := s.Listener.Addr().String()
-	err := c.KillAllRepairs(context.Background(), h)
+	err := c.KillAllRepairs(context.Background(), testHost)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -382,11 +372,10 @@ func TestClientKillAllRepairs(t *testing.T) {
 func TestClientPing(t *testing.T) {
 	t.Parallel()
 
-	s := mockServer(t, "/dev/null")
-	defer s.Close()
-	c := testClient(s)
+	c, close := newMockServer(t, "/dev/null")
+	defer close()
 
-	if _, err := c.Ping(context.Background(), s.Listener.Addr().String()); err != nil {
+	if _, err := c.Ping(context.Background(), testHost); err != nil {
 		t.Fatal(err)
 	}
 
