@@ -439,6 +439,49 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	return err
 }
 
+// Snapshots lists available snapshots.
+func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
+	resp, err := c.operations.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
+		Context: forceHostPort(ctx, host, c.config.APIPort),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var tags []string
+	for _, p := range resp.Payload {
+		tags = append(tags, p.Key)
+	}
+
+	return tags, err
+}
+
+// TakeSnapshot takes a snapshot of a keyspace, multiple keyspaces may have
+// the same tag.
+func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
+	params := &operations.StorageServiceSnapshotsPostParams{
+		Context: forceHostPort(ctx, host, c.config.APIPort),
+		Tag:     &tag,
+		Kn:      &keyspace,
+	}
+	if len(keyspace) > 0 {
+		cf := strings.Join(tables, ",")
+		params.Cf = &cf
+	}
+
+	_, err := c.operations.StorageServiceSnapshotsPost(params) // nolint: errcheck
+	return err
+}
+
+// DeleteSnapshot removes a snapshot with a given tag.
+func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
+	_, err := c.operations.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
+		Context: forceHostPort(ctx, host, c.config.APIPort),
+		Tag:     &tag,
+	})
+	return err
+}
+
 // ClosestDC takes output of Datacenters, a map from DC to it's hosts and
 // returns DCs sorted by speed the hosts respond. It's determined by
 // the lowest latency over 3 Ping() invocations across random selection of

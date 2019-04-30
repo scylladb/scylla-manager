@@ -130,3 +130,46 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		return cmp.Diff(active, hosts[0:1]) == ""
 	}, 500*time.Millisecond, 4*time.Second)
 }
+
+func TestClientSnapshotIntegration(t *testing.T) {
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = ManagedClusterHosts
+	config.Transport = NewSSHTransport()
+
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	host := ManagedClusterHosts[0]
+	tag := "snap_0"
+
+	Print("When: snapshot is taken")
+	if err := client.TakeSnapshot(ctx, host, tag, "system_auth"); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: snapshot is visible on a list")
+	snaps, err := client.Snapshots(ctx, host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(snaps, []string{tag}); diff != "" {
+		t.Fatal(diff)
+	}
+
+	Print("When: snapshot is removed")
+	if err := client.DeleteSnapshot(ctx, host, tag); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: there are no snapshots")
+	snaps, err = client.Snapshots(ctx, host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snaps) != 0 {
+		t.Fatal("expected no snapshots got", snaps)
+	}
+}
