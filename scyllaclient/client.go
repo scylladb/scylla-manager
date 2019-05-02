@@ -495,20 +495,20 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]stri
 	}
 
 	// Sort DCs by lowest latency.
-	sored := make([]string, 0, len(dcs))
+	sorted := make([]string, 0, len(dcs))
 	for dc := range dcs {
-		sored = append(sored, dc)
+		sorted = append(sorted, dc)
 	}
-	sort.Slice(sored, func(i, j int) bool {
-		return min[sored[i]] < min[sored[j]]
+	sort.Slice(sorted, func(i, j int) bool {
+		return min[sorted[i]] < min[sorted[j]]
 	})
 
 	// All hosts failed...
-	if min[sored[0]] == math.MaxInt64 {
+	if min[sorted[0]] == math.MaxInt64 {
 		return nil, errors.New("failed to connect to any node")
 	}
 
-	return sored, nil
+	return sorted, nil
 }
 
 func pickNRandomHosts(n int, hosts []string) []string {
