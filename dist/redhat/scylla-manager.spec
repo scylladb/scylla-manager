@@ -79,7 +79,7 @@ Summary: Scylla Manager server
 
 %{?systemd_requires}
 BuildRequires: systemd
-Requires: bash curl jq openssh-clients openssl psmisc
+Requires: bash curl jq openssh-clients openssl psmisc yum-utils
 
 %description server
 Scylla is a highly scalable, eventually consistent, distributed, partitioned row
