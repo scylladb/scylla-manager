@@ -5,29 +5,98 @@ package ssh
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )
 
+// proxyConn is a net.Conn that writes to the SSH shell stdin and reads from
+// the SSH shell stdout.
 type proxyConn struct {
-	net.Conn
-	client        *ssh.Client
-	keepaliveDone chan struct{}
-	free          func()
+	client  *ssh.Client
+	session *ssh.Session
+	stdin   io.WriteCloser
+	stdout  io.Reader
+
+	free func()
 }
 
-// Close closes the connection and frees the associated resources.
-func (c proxyConn) Close() error {
-	if c.keepaliveDone != nil {
-		close(c.keepaliveDone)
+// newProxyConn opens a new session and start the shell. When the connection is
+// closed the client is closed and the free function is called.
+func newProxyConn(client *ssh.Client, free func()) (*proxyConn, error) {
+	// Open new session to the agent
+	session, err := client.NewSession()
+	if err != nil {
+		return nil, err
 	}
-	defer c.free()
 
-	// Close closes the underlying network connection.
-	return c.client.Close()
+	// Get a pipe to stdin so that we can send data down
+	stdin, err := session.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get a pipe to stdout so that we can get responses back
+	stdout, err := session.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	// Start the shell on the other side
+	if err := session.Shell(); err != nil {
+		return nil, err
+	}
+
+	return &proxyConn{
+		client:  client,
+		session: session,
+		stdin:   stdin,
+		stdout:  stdout,
+		free:    free,
+	}, nil
+}
+
+func (conn *proxyConn) Read(b []byte) (n int, err error) {
+	return conn.stdout.Read(b)
+}
+
+func (conn *proxyConn) Write(b []byte) (n int, err error) {
+	return conn.stdin.Write(b)
+}
+
+func (conn *proxyConn) Close() error {
+	var err error
+	err = multierr.Append(err, conn.session.Close())
+	err = multierr.Append(err, conn.client.Close())
+	if conn.free != nil {
+		conn.free()
+	}
+	return err
+}
+
+func (conn *proxyConn) LocalAddr() net.Addr {
+	return conn.client.LocalAddr()
+}
+
+func (conn *proxyConn) RemoteAddr() net.Addr {
+	return conn.client.RemoteAddr()
+}
+
+func (*proxyConn) SetDeadline(t time.Time) error {
+	return errors.New("ssh: deadline not supported")
+}
+
+func (*proxyConn) SetReadDeadline(t time.Time) error {
+	return errors.New("ssh: deadline not supported")
+}
+
+func (*proxyConn) SetWriteDeadline(t time.Time) error {
+	return errors.New("ssh: deadline not supported")
 }
 
 // ProxyDialer is a dialler that allows for proxying connections over SSH.
@@ -55,7 +124,7 @@ func NewProxyDialer(config Config, dial DialContextFunc, logger log.Logger) *Pro
 // DialContext to addr HOST:PORT establishes an SSH connection to HOST and then
 // proxies the connection to localhost:PORT.
 func (p *ProxyDialer) DialContext(ctx context.Context, network, addr string) (conn net.Conn, err error) {
-	host, port, _ := net.SplitHostPort(addr)
+	host, _, _ := net.SplitHostPort(addr)
 
 	defer func() {
 		if p.OnDial != nil {
@@ -70,37 +139,30 @@ func (p *ProxyDialer) DialContext(ctx context.Context, network, addr string) (co
 		return nil, errors.Wrap(err, "ssh: dial failed")
 	}
 
-	// This is a local dial and should not hang but if it does http client
-	// would end up with "context deadline exceeded" error.
-	// To be fixed when used with something else then http client.
+	p.logger.Debug(ctx, "Starting session", "host", host)
 
-	p.logger.Info(ctx, "Opening tunnel", "host", host, "port", port)
+	keepaliveDone := make(chan struct{})
+	free := func() {
+		close(keepaliveDone)
+		if p.OnConnClose != nil {
+			p.OnConnClose(host)
+		}
+		p.logger.Info(ctx, "Connection closed", "host", host)
+	}
 
-	conn, connErr := client.Dial(network, net.JoinHostPort("0.0.0.0", port))
-
-	if connErr != nil {
+	pconn, err := newProxyConn(client, free)
+	if err != nil {
 		client.Close()
-		return nil, errors.Wrap(connErr, "ssh: remote dial failed")
+		return nil, errors.Wrap(err, "ssh: failed to connect to scylla-manager agent")
 	}
 
 	p.logger.Info(ctx, "Connected!", "host", host)
 
-	pc := proxyConn{
-		Conn:   conn,
-		client: client,
-		free: func() {
-			if p.OnConnClose != nil {
-				p.OnConnClose(host)
-			}
-		},
-	}
-
 	// Init SSH keepalive if needed
 	if p.config.KeepaliveEnabled() {
 		p.logger.Debug(ctx, "Starting ssh KeepAlives", "host", host)
-		pc.keepaliveDone = make(chan struct{})
-		go keepalive(client, p.config.ServerAliveInterval, p.config.ServerAliveCountMax, pc.keepaliveDone)
+		go keepalive(client, p.config.ServerAliveInterval, p.config.ServerAliveCountMax, keepaliveDone)
 	}
 
-	return pc, nil
+	return pconn, nil
 }
