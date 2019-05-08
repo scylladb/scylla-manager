@@ -27,15 +27,12 @@ HOST=""
 SSH_USER=""
 SSH_IDENTITY_FILE=""
 SSH_CONFIG_FILE=""
+SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 MANAGER_USER="scylla-manager"
 SINGLE_NODE=0
 
 OUTPUT="/dev/null"
-
-CURL_OPTS="-sS -f -o /dev/null"
-SSH_OPTS="-q -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-AGENT_BIN_PATH="/bin/true"
 
 while [[ $# > 0 ]]; do
     case "$1" in
@@ -61,7 +58,6 @@ while [[ $# > 0 ]]; do
             ;;
         "--debug")
             OUTPUT=/dev/stderr
-            CURL_OPTS+=" -v"
             SSH_OPTS+=" -v"
             shift 1
             ;;
@@ -160,9 +156,7 @@ fi
 
 declare -r MANAGER_SHELL="/var/lib/${MANAGER_USER}/bin/agent"
 declare -r MANAGER_PUBLIC_KEY=$(<"${MANAGER_IDENTITY_FILE}.pub")
-# TODO: add no-port-forwarding when we have agent that can do reverse proxy
-# declare -r MANAGER_PUBLIC_KEY_WITH_OPTIONS="no-agent-forwarding,no-port-forwarding,no-X11-forwarding ${MANAGER_PUBLIC_KEY}"
-declare -r MANAGER_PUBLIC_KEY_WITH_OPTIONS="no-agent-forwarding,no-X11-forwarding ${MANAGER_PUBLIC_KEY}"
+declare -r MANAGER_PUBLIC_KEY_WITH_OPTIONS="no-agent-forwarding,no-port-forwarding,no-X11-forwarding ${MANAGER_PUBLIC_KEY}"
 
 # Distribute SSH keys and create users
 
@@ -181,11 +175,10 @@ for host in ${HOSTS}; do
     # Set scylla user ID (alias)
     /usr/sbin/usermod -ou \$(id -u scylla) "${MANAGER_USER}"
 
+    # TODO: install agent from a pkg
+
     # Set agent as a shell
-    mkdir -p "$(dirname ${MANAGER_SHELL})"
-    base64 -d > "${MANAGER_SHELL}" <<< "$(base64 ${AGENT_BIN_PATH})"
-    chmod 700 "${MANAGER_SHELL}"
-    chsh -s "${MANAGER_SHELL}" "${MANAGER_USER}"
+    chsh -s /usr/bin/scylla-manager-agent "${MANAGER_USER}"
 
     # Add public key to authorized_keys
     mkdir -p "/var/lib/${MANAGER_USER}/.ssh"
@@ -209,17 +202,11 @@ if fuser -s -n tcp ${API_LOCAL_PORT}; then
 fi
 
 for host in ${HOSTS}; do
-    if ! ssh -i "${MANAGER_IDENTITY_FILE}" -N -f ${SSH_OPTS} -L ${API_LOCAL_PORT}:0.0.0.0:${API_REMOTE_PORT} "${MANAGER_USER}@${host}" &> ${OUTPUT}; then
-        echo "${host}	SSH FAILED"
-        ret=1
+    if ssh ${SSH_OPTS} "${MANAGER_USER}@${host}" -i "${MANAGER_IDENTITY_FILE}" <<< $'GET /storage_service/cluster_name HTTP/1.1\r\n' &> ${OUTPUT}; then
+        echo "${host}	OK"
     else
-        if curl ${CURL_OPTS} "localhost:${API_LOCAL_PORT}/storage_service/cluster_name" &> ${OUTPUT}; then
-            echo "${host}	OK"
-        else
-            echo "${host}	FAILED"
-                ret=1
-        fi
-        fuser -s -n tcp ${API_LOCAL_PORT} -k -15 ||:
+        echo "${host}	FAILED"
+            ret=1
     fi
 done
 
