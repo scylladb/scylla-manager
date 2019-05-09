@@ -29,7 +29,7 @@ case ${DISTRO} in
 esac
 
 echo "> Installing Python packages"
-pip install --user ${PYTHON_PKGS}
+pip install --user --upgrade ${PYTHON_PKGS}
 
 export GOBIN=${GOBIN:-${GOPATH}/bin}
 mkdir -p ${GOBIN}
