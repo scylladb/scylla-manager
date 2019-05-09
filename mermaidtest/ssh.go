@@ -3,18 +3,21 @@
 package mermaidtest
 
 import (
+	"io/ioutil"
 	"net"
 	"net/http"
+	"path"
 	"runtime"
 	"time"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/ssh"
 )
 
 // NewSSHTransport returns http.RoundTripper suitable for usage with test cluster.
 func NewSSHTransport() *http.Transport {
-	dialer := ssh.NewProxyDialer(sshConfig(), ssh.ContextDialer(&net.Dialer{}), log.Logger{})
+	dialer := ssh.NewProxyDialer(sshAsScyllaManager(), ssh.ContextDialer(&net.Dialer{}), log.NewDevelopment())
 
 	transport := &http.Transport{
 		DialContext:           dialer.DialContext,
@@ -28,6 +31,14 @@ func NewSSHTransport() *http.Transport {
 	return transport
 }
 
-func sshConfig() ssh.Config {
-	return ssh.DefaultConfig().WithPasswordAuth("root", "root")
+func sshAsScyllaManager() ssh.Config {
+	b, err := ioutil.ReadFile(path.Join(fsutil.HomeDir(), "/.ssh/scylla-manager.pem"))
+	if err != nil {
+		panic(err)
+	}
+	config, err := ssh.DefaultConfig().WithIdentityFileAuth("scylla-manager", b)
+	if err != nil {
+		panic(err)
+	}
+	return config
 }
