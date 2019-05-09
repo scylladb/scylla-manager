@@ -6,6 +6,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 	"testing"
@@ -110,7 +111,7 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 
 	Print("When: repair is running on host 0")
 	go func() {
-		_, _, err = ExecOnHost(context.Background(), hosts[0], "nodetool repair -pr")
+		_, _, err := ExecOnHost(context.Background(), hosts[0], "nodetool repair -pr")
 		if err != nil {
 			t.Log(err)
 		}
@@ -143,7 +144,7 @@ func TestClientSnapshotIntegration(t *testing.T) {
 
 	ctx := context.Background()
 	host := ManagedClusterHosts[0]
-	tag := "snap_0"
+	tag := fmt.Sprint("test_snap_", time.Now().Unix())
 
 	Print("When: snapshot is taken")
 	if err := client.TakeSnapshot(ctx, host, tag, "system_auth"); err != nil {
@@ -155,8 +156,8 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(snaps, []string{tag}); diff != "" {
-		t.Fatal(diff)
+	if !contains(snaps, tag) {
+		t.Fatal("missing snapshot", tag)
 	}
 
 	Print("When: snapshot is removed")
@@ -169,7 +170,16 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(snaps) != 0 {
-		t.Fatal("expected no snapshots got", snaps)
+	if contains(snaps, tag) {
+		t.Fatal("snapshot was not deleted", tag)
 	}
+}
+
+func contains(v []string, s string) bool {
+	for _, e := range v {
+		if e == s {
+			return true
+		}
+	}
+	return false
 }
