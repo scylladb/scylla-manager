@@ -13,7 +13,7 @@ swagger             https://github.com/go-swagger/go-swagger/releases/download/0
 license-detector    https://github.com/src-d/go-license-detector/releases/download/2.0.2/license-detector.linux_amd64.gz \
 mockgen             github.com/golang/mock/mockgen"
 
-echo "> Installing system packages"
+echo "==> Installing system packages"
 DISTRO=` cat /etc/os-release | grep '^ID=' | cut -d= -f2`
 case ${DISTRO} in
     "fedora")
@@ -28,13 +28,13 @@ case ${DISTRO} in
         exit 1
 esac
 
-echo "> Installing Python packages"
+echo "==> Installing Python packages"
 pip install --user --upgrade ${PYTHON_PKGS}
 
 export GOBIN=${GOBIN:-${GOPATH}/bin}
 mkdir -p ${GOBIN}
 
-echo "> Installing Go packages at ${GOBIN}"
+echo "==> Installing Go packages at ${GOBIN}"
 
 function download() {
     case $2 in
@@ -73,4 +73,4 @@ for i in "${!pkgs[@]}"; do
     fi
 done
 
-echo "> Complete!"
+echo "==> Complete!"
