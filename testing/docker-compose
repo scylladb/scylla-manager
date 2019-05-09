@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-docker-compose -f networks.yaml -f manager.yaml -f cluster.yaml $*

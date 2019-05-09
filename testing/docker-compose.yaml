@@ -1,0 +1,117 @@
+version: "3.7"
+
+services:
+  dc1_node_1:
+    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    privileged: true
+    volumes:
+      - type: bind
+        source: ../agent.dev
+        target: /usr/bin/scylla-manager-agent
+      - type: bind
+        source: ./scylla/cassandra-rackdc.1.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    networks:
+      public:
+        ipv4_address: 192.168.100.11
+
+  dc1_node_2:
+    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    privileged: true
+    volumes:
+      - type: bind
+        source: ../agent.dev
+        target: /usr/bin/scylla-manager-agent
+      - type: bind
+        source: ./scylla/cassandra-rackdc.1.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    networks:
+      public:
+        ipv4_address: 192.168.100.12
+
+  dc1_node_3:
+    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    privileged: true
+    volumes:
+      - type: bind
+        source: ../agent.dev
+        target: /usr/bin/scylla-manager-agent
+      - type: bind
+        source: ./scylla/cassandra-rackdc.1.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    networks:
+      public:
+        ipv4_address: 192.168.100.13
+
+  dc2_node_1:
+    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    privileged: true
+    volumes:
+      - type: bind
+        source: ../agent.dev
+        target: /usr/bin/scylla-manager-agent
+      - type: bind
+        source: ./scylla/cassandra-rackdc.2.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    networks:
+      public:
+        ipv4_address: 192.168.100.21
+
+  dc2_node_2:
+    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    privileged: true
+    volumes:
+      - type: bind
+        source: ../agent.dev
+        target: /usr/bin/scylla-manager-agent
+      - type: bind
+        source: ./scylla/cassandra-rackdc.2.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    networks:
+      public:
+        ipv4_address: 192.168.100.22
+
+  dc2_node_3:
+    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    privileged: true
+    volumes:
+      - type: bind
+        source: ../agent.dev
+        target: /usr/bin/scylla-manager-agent
+      - type: bind
+        source: ./scylla/cassandra-rackdc.2.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    networks:
+      public:
+        ipv4_address: 192.168.100.23
+
+  scylla-manager-db:
+    image: scylladb/scylla:${SCYLLA_VERSION}
+    command: --smp 1 --api-address 0.0.0.0
+    networks:
+      public:
+        ipv4_address: 192.168.100.100
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - type: bind
+        source: ./prometheus/prometheus.yaml
+        target: /etc/prometheus/prometheus.yml
+    ports:
+      - 9090
+    network_mode: host
+
+networks:
+  public:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.100.0/24

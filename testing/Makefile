@@ -1,6 +1,6 @@
 all: help
 
-COMPOSE=./docker-compose
+COMPOSE=docker-compose
 CQLSH=cqlsh --cqlversion=3.3.1
 
 include .env
@@ -12,6 +12,8 @@ build: ## Build custom docker images
 
 .PHONY: up
 up: ## Start docker containers
+	@echo "==> Building agent..."
+	@go build -o ../agent.dev ../cmd/agent
 	@echo "==> Starting containers"
 	@$(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
