@@ -231,6 +231,11 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 			shards++
 		}
 	}
+
+	if shards == 0 {
+		return 0, errors.New("failed to get shard count")
+	}
+
 	return shards, nil
 }
 
