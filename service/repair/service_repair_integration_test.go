@@ -908,9 +908,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Given: repair is running on a host")
 		go func() {
-			_, _, err := ExecOnHost(context.Background(), ManagedClusterHosts[0], "nodetool repair -pr")
+			stdout, stderr, err := ExecOnHost(context.Background(), ManagedClusterHosts[0], "nodetool repair -pr")
 			if err != nil {
-				t.Log(err)
+				t.Log(err, stdout, stderr)
 			}
 		}()
 		defer func() {
