@@ -5,30 +5,44 @@ package main
 import (
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
+	"path"
+	"strings"
 
 	"github.com/pkg/errors"
 )
 
-const defaultAPIPort = "10000"
+const host = "0.0.0.0"
 
-type dispatcher struct {
+type router struct {
+	config config
+	rclone http.Handler
 	client *http.Client
 }
 
-func (d dispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, port, _ := net.SplitHostPort(r.Host)
-	if port == "" {
-		port = defaultAPIPort
+func newRouter(config config, rclone http.Handler, client *http.Client) *router {
+	return &router{
+		config: config,
+		rclone: rclone,
+		client: client,
 	}
-
-	d.sendRequest(w, withHost(r, "0.0.0.0:"+port))
 }
 
-func (d dispatcher) sendRequest(w http.ResponseWriter, r *http.Request) {
-	resp, err := d.client.Do(r)
+func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	p := path.Clean(r.URL.Path) + "/"
+	switch {
+	case strings.HasPrefix(p, "/rclone/"):
+		mux.rclone.ServeHTTP(w, r)
+	case strings.HasPrefix(p, "/metrics/"):
+		mux.sendRequest(w, withHost(r, host+":"+mux.config.ScyllaMetricsPort))
+	default:
+		mux.sendRequest(w, withHost(r, host+":"+mux.config.ScyllaAPIPort))
+	}
+}
+
+func (mux *router) sendRequest(w http.ResponseWriter, r *http.Request) {
+	resp, err := mux.client.Do(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errors.Wrap(err, "proxy error").Error())) // nolint: errcheck
@@ -53,7 +67,7 @@ func withHost(r *http.Request, host string) *http.Request {
 	return req
 }
 
-// clone request creates a new client request from server request.
+// clone request creates a new client request from router request.
 func cloneRequest(r *http.Request) *http.Request {
 	// New copy basic fields, same that are set with http.NewRequest
 	req := &http.Request{

@@ -57,7 +57,7 @@ func mwRetry(next http.RoundTripper, poolSize int, logger log.Logger) http.Round
 }
 
 // mwHostPool sets request host from a pool.
-func mwHostPool(next http.RoundTripper, pool hostpool.HostPool) http.RoundTripper {
+func mwHostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
 	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		ctx := req.Context()
 
@@ -78,9 +78,10 @@ func mwHostPool(next http.RoundTripper, pool hostpool.HostPool) http.RoundTrippe
 		// Clone request
 		r := cloneRequest(req)
 
-		// Set host
-		r.Host = h
-		r.URL.Host = h
+		// Set host and port
+		hp := h + ":" + port
+		r.Host = hp
+		r.URL.Host = hp
 
 		// RoundTrip shall not modify requests, here we modify it to fix error
 		// messages see https://github.com/scylladb/mermaid/issues/266.

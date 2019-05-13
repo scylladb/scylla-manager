@@ -29,10 +29,8 @@ type Config struct {
 	// request time in Epsilon-Greedy host pool.
 	PoolDecayDuration time.Duration
 
-	// APIPort specifies the default Scylla API port.
-	APIPort string
-	// MetricsPort specifies the default Scylla Prometheus metrics endpoint port.
-	MetricsPort string
+	// AgentPort specifies the default Scylla Manager agent port.
+	AgentPort string
 }
 
 // DefaultConfig returns a Config initialized with default values.
@@ -42,8 +40,7 @@ func DefaultConfig() Config {
 		RequestTimeout:    5 * time.Second,
 		PoolDecayDuration: 30 * time.Minute,
 
-		APIPort:     "10000",
-		MetricsPort: "9180",
+		AgentPort: "10001",
 	}
 }
 
@@ -53,11 +50,8 @@ func (c Config) Validate() error {
 	if len(c.Hosts) == 0 {
 		err = multierr.Append(err, errors.New("missing hosts"))
 	}
-	if c.APIPort == "" {
-		err = multierr.Append(err, errors.New("missing api_port"))
-	}
-	if c.MetricsPort == "" {
-		err = multierr.Append(err, errors.New("missing metrics_port"))
+	if c.AgentPort == "" {
+		err = multierr.Append(err, errors.New("missing agent_port"))
 	}
 
 	return err

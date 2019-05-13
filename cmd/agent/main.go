@@ -7,14 +7,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/scylladb/mermaid/cmd/agent/rclone"
 )
 
 func main() {
 	server := http.Server{
-		Handler: dispatcher{http.DefaultClient},
+		Handler: newRouter(
+			defaultConfig(),
+			rclone.NewHandler(),
+			http.DefaultClient,
+		),
 	}
 
-	if err := server.Serve(newListener(os.Stdout, os.Stdin)); err != nil {
+	l := newListener(os.Stdout, os.Stdin)
+	if err := server.Serve(l); err != nil {
 		if err != io.EOF {
 			log.Fatalln(err)
 		}

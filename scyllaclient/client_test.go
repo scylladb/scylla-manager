@@ -52,8 +52,7 @@ func newMockServerMatching(t *testing.T, m Matcher) (*Client, func()) {
 	config := DefaultConfig()
 	config.Hosts = []string{addr}
 	_, port, _ := net.SplitHostPort(addr)
-	config.APIPort = port
-	config.MetricsPort = port
+	config.AgentPort = port
 
 	c, err := NewClient(config, log.NewDevelopment())
 	if err != nil {
@@ -64,17 +63,6 @@ func newMockServerMatching(t *testing.T, m Matcher) (*Client, func()) {
 }
 
 const testHost = "127.0.0.1"
-
-func TestWithPort(t *testing.T) {
-	t.Parallel()
-
-	if h := withPort("host", "10000"); h != "host:10000" {
-		t.Fatal(h)
-	}
-	if h := withPort("host:80", "10000"); h != "host:80" {
-		t.Fatal(h)
-	}
-}
 
 func TestClientClusterName(t *testing.T) {
 	t.Parallel()

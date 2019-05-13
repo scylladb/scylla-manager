@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
-	"net"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -60,11 +59,11 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		middleware.Debug = false
 	})
 
-	addrs := make([]string, len(config.Hosts))
-	for i, h := range config.Hosts {
-		addrs[i] = withPort(h, config.APIPort)
-	}
-	pool := hostpool.NewEpsilonGreedy(addrs, config.PoolDecayDuration, &hostpool.LinearEpsilonValueCalculator{})
+	// Copy hosts
+	hosts := make([]string, len(config.Hosts))
+	copy(hosts, config.Hosts)
+
+	pool := hostpool.NewEpsilonGreedy(hosts, config.PoolDecayDuration, &hostpool.LinearEpsilonValueCalculator{})
 
 	if config.Transport == nil {
 		config.Transport = http.DefaultTransport
@@ -72,7 +71,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	transport := config.Transport
 	transport = mwTimeout(transport, config.RequestTimeout)
 	transport = mwLogger(transport, logger)
-	transport = mwHostPool(transport, pool)
+	transport = mwHostPool(transport, pool, config.AgentPort)
 	transport = mwRetry(transport, len(config.Hosts), logger)
 	transport = mwOpenAPIFix(transport)
 
@@ -217,7 +216,7 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 
 // ShardCount returns number of shards in a node.
 func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
-	body, err := c.metrics(ctx, host, c.config.MetricsPort)
+	body, err := c.metrics(ctx, host)
 	if err != nil {
 		return 0, err
 	}
@@ -241,7 +240,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 
 // metrics returns Prometheus metrics response body, caller is responsible for
 // closing the returned body.
-func (c *Client) metrics(ctx context.Context, host, port string) (io.ReadCloser, error) {
+func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   host,
@@ -252,7 +251,7 @@ func (c *Client) metrics(ctx context.Context, host, port string) (io.ReadCloser,
 	if err != nil {
 		return nil, err
 	}
-	r = r.WithContext(context.WithValue(ctx, ctxHost, withPort(host, port)))
+	r = r.WithContext(forceHost(ctx, host))
 
 	resp, err := c.transport.RoundTrip(r)
 	if err != nil {
@@ -334,7 +333,7 @@ type RepairConfig struct {
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
-		Context:  forceHostPort(ctx, host, c.config.APIPort),
+		Context:  forceHost(ctx, host),
 		Keyspace: config.Keyspace,
 		Ranges:   &config.Ranges,
 	}
@@ -363,7 +362,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
 	resp, err := c.operations.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
-		Context:  forceHostPort(ctx, host, c.config.APIPort),
+		Context:  forceHost(ctx, host),
 		Keyspace: keyspace,
 		ID:       id,
 	})
@@ -415,7 +414,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 	const wait = 50 * time.Millisecond
 	for i := 0; i < 10; i++ {
 		resp, err := c.operations.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
-			Context: forceHostPort(ctx, host, c.config.APIPort),
+			Context: forceHost(ctx, host),
 		})
 		if err != nil {
 			return false, err
@@ -439,7 +438,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 // operation is not retried to avoid side effects of a deferred kill.
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	_, err := c.operations.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
-		Context: noRetry(forceHostPort(ctx, host, c.config.APIPort)),
+		Context: noRetry(forceHost(ctx, host)),
 	})
 	return err
 }
@@ -447,7 +446,7 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 // Snapshots lists available snapshots.
 func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 	resp, err := c.operations.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
-		Context: forceHostPort(ctx, host, c.config.APIPort),
+		Context: forceHost(ctx, host),
 	})
 	if err != nil {
 		return nil, err
@@ -465,7 +464,7 @@ func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 // the same tag.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
 	params := &operations.StorageServiceSnapshotsPostParams{
-		Context: forceHostPort(ctx, host, c.config.APIPort),
+		Context: forceHost(ctx, host),
 		Tag:     &tag,
 		Kn:      &keyspace,
 	}
@@ -481,7 +480,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 // DeleteSnapshot removes a snapshot with a given tag.
 func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
 	_, err := c.operations.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
-		Context: forceHostPort(ctx, host, c.config.APIPort),
+		Context: forceHost(ctx, host),
 		Tag:     &tag,
 	})
 	return err
@@ -615,7 +614,7 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	r = r.WithContext(forceHostPort(ctx, host, c.config.APIPort))
+	r = r.WithContext(forceHost(ctx, host))
 
 	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)
@@ -632,13 +631,4 @@ func (c *Client) Close() error {
 		t.CloseIdleConnections()
 	}
 	return nil
-}
-
-func withPort(hostPort, port string) string {
-	_, p, _ := net.SplitHostPort(hostPort)
-	if p != "" {
-		return hostPort
-	}
-
-	return fmt.Sprint(hostPort, ":", port)
 }

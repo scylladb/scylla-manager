@@ -13,8 +13,8 @@ const (
 	ctxNoRetry
 )
 
-func forceHostPort(ctx context.Context, host, port string) context.Context {
-	return context.WithValue(ctx, ctxHost, withPort(host, port))
+func forceHost(ctx context.Context, host string) context.Context {
+	return context.WithValue(ctx, ctxHost, host)
 }
 
 func noRetry(ctx context.Context) context.Context {
