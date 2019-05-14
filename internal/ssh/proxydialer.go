@@ -28,7 +28,7 @@ type proxyConn struct {
 
 // newProxyConn opens a new session and start the shell. When the connection is
 // closed the client is closed and the free function is called.
-func newProxyConn(client *ssh.Client, free func()) (*proxyConn, error) {
+func newProxyConn(client *ssh.Client, stderr io.Writer, free func()) (*proxyConn, error) {
 	// Open new session to the agent
 	session, err := client.NewSession()
 	if err != nil {
@@ -46,6 +46,9 @@ func newProxyConn(client *ssh.Client, free func()) (*proxyConn, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Set stderr
+	session.Stderr = stderr
 
 	// Start the shell on the other side
 	if err := session.Shell(); err != nil {
@@ -99,6 +102,16 @@ func (*proxyConn) SetWriteDeadline(t time.Time) error {
 	return errors.New("ssh: deadline not supported")
 }
 
+type logStderr struct {
+	ctx    context.Context
+	logger log.Logger
+}
+
+func (w *logStderr) Write(p []byte) (n int, err error) {
+	w.logger.Error(w.ctx, "stderr", string(p))
+	return len(p), nil
+}
+
 // ProxyDialer is a dialler that allows for proxying connections over SSH.
 type ProxyDialer struct {
 	config Config
@@ -150,7 +163,7 @@ func (p *ProxyDialer) DialContext(ctx context.Context, network, addr string) (co
 		p.logger.Info(ctx, "Connection closed", "host", host)
 	}
 
-	pconn, err := newProxyConn(client, free)
+	pconn, err := newProxyConn(client, &logStderr{ctx, p.logger.With("host", host)}, free)
 	if err != nil {
 		client.Close()
 		return nil, errors.Wrap(err, "ssh: failed to connect to scylla-manager agent")
