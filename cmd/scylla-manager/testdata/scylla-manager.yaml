@@ -35,6 +35,9 @@ healthcheck:
   timeout: 1s
   ssl_timeout: 1s
 
+backup:
+  disk_space_free_min_percent: 1
+
 repair:
   segments_per_repair: 7
   segment_tokens_max: 10

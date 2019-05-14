@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/service/backup"
 	"github.com/scylladb/mermaid/service/healthcheck"
 	"github.com/scylladb/mermaid/service/repair"
 	"go.uber.org/zap/zapcore"
@@ -63,6 +64,9 @@ func TestConfigModification(t *testing.T) {
 		Healthcheck: healthcheck.Config{
 			Timeout:    time.Second,
 			SSLTimeout: time.Second,
+		},
+		Backup: backup.Config{
+			DiskSpaceFreeMinPercent: 1,
 		},
 		Repair: repair.Config{
 			SegmentsPerRepair:      7,

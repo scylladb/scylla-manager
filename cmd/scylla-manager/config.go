@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/ssh"
+	"github.com/scylladb/mermaid/service/backup"
 	"github.com/scylladb/mermaid/service/healthcheck"
 	"github.com/scylladb/mermaid/service/repair"
 	"go.uber.org/zap/zapcore"
@@ -55,6 +56,7 @@ type serverConfig struct {
 	SSL         sslConfig          `yaml:"ssl"`
 	SSH         ssh.Config         `yaml:"ssh"`
 	Healthcheck healthcheck.Config `yaml:"healthcheck"`
+	Backup      backup.Config      `yaml:"backup"`
 	Repair      repair.Config      `yaml:"repair"`
 }
 
@@ -82,6 +84,7 @@ func defaultConfig() *serverConfig {
 		},
 		SSH:         ssh.DefaultConfig(),
 		Healthcheck: healthcheck.DefaultConfig(),
+		Backup:      backup.DefaultConfig(),
 		Repair:      repair.DefaultConfig(),
 	}
 }

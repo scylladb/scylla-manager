@@ -82,6 +82,10 @@ tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 #  timeout: 250ms
 #  ssl_timeout: 750ms
 
+# Backup service configuration.
+#backup:
+#  disk_space_free_min_percent: 10
+
 # Repair service configuration.
 #repair:
 # Maximal number of tokens in a segment.
