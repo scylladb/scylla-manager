@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/restapi"
+	"github.com/scylladb/mermaid/service/backup"
 	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/healthcheck"
 	"github.com/scylladb/mermaid/service/repair"
@@ -29,6 +30,7 @@ type server struct {
 
 	clusterSvc *cluster.Service
 	healthSvc  *healthcheck.Service
+	backupSvc  *backup.Service
 	repairSvc  *repair.Service
 	schedSvc   *scheduler.Service
 
@@ -95,6 +97,17 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "healthcheck service")
 	}
 
+	s.backupSvc, err = backup.NewService(
+		s.session,
+		s.config.Backup,
+		s.clusterSvc.GetClusterName,
+		s.clusterSvc.Client,
+		s.logger.Named("backup"),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "backup service")
+	}
+
 	s.repairSvc, err = repair.NewService(
 		s.session,
 		s.config.Repair,
@@ -118,6 +131,7 @@ func (s *server) makeServices() error {
 	// Register the runners
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.CQLRunner())
 	s.schedSvc.SetRunner(scheduler.HealthCheckRESTTask, s.healthSvc.RESTRunner())
+	s.schedSvc.SetRunner(scheduler.BackupTask, s.backupSvc.Runner())
 	s.schedSvc.SetRunner(scheduler.RepairTask, s.repairSvc.Runner())
 
 	return nil
