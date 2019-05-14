@@ -47,11 +47,9 @@ func newMockServerMatching(t *testing.T, m Matcher) (*Client, func()) {
 		io.Copy(w, f)
 	}))
 
-	addr := s.Listener.Addr().String()
-
 	config := DefaultConfig()
-	config.Hosts = []string{addr}
-	_, port, _ := net.SplitHostPort(addr)
+	host, port, _ := net.SplitHostPort(s.Listener.Addr().String())
+	config.Hosts = []string{host}
 	config.AgentPort = port
 
 	c, err := NewClient(config, log.NewDevelopment())
