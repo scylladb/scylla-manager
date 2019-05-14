@@ -5,8 +5,8 @@ package backup
 import (
 	"context"
 	"encoding/json"
-	"github.com/pkg/errors"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/uuid"
 )
 

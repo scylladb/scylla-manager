@@ -5,15 +5,15 @@ package backup
 import (
 	"context"
 	"encoding/json"
-	"github.com/cespare/xxhash"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/schema"
 	"sort"
 
+	"github.com/cespare/xxhash"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/internal/timeutc"
+	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -67,6 +67,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	return Target{}, nil
 }
 
+// Backup executes a backup on a given target.
 func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.UUID, runID uuid.UUID, target Target) error {
 	s.logger.Debug(ctx, "Backup",
 		"cluster_id", clusterID,
@@ -109,6 +110,9 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 	// Get target hosts
 	var hosts []string
 	dcHosts, err := client.Datacenters(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get host datacenters")
+	}
 	for _, dc := range run.DC {
 		dh := dcHosts[dc]
 
@@ -124,6 +128,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 	}
 
 	// TODO: implement
+	s.logger.Debug(ctx, "todo", "config", s.config)
 
 	return nil
 }
@@ -136,11 +141,11 @@ func (s *Service) putRun(r *Run) error {
 }
 
 // putRunLogError executes putRun and consumes the error.
-func (s *Service) putRunLogError(ctx context.Context, r *Run) {
-	if err := s.putRun(r); err != nil {
-		s.logger.Error(ctx, "Cannot update the run",
-			"run", &r,
-			"error", err,
-		)
-	}
-}
+//func (s *Service) putRunLogError(ctx context.Context, r *Run) {
+//	if err := s.putRun(r); err != nil {
+//		s.logger.Error(ctx, "Cannot update the run",
+//			"run", &r,
+//			"error", err,
+//		)
+//	}
+//}
