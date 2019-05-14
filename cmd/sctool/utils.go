@@ -5,6 +5,7 @@ package main
 import (
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/mermaidclient"
@@ -37,4 +38,13 @@ func readFile(filename string) ([]byte, error) {
 		return nil, err
 	}
 	return ioutil.ReadFile(f)
+}
+
+// accommodate for escaping of bash expansions, we can safely remove '\'
+// as it's not a valid char in keyspace or table name
+func unescapeFilters(strs []string) []string {
+	for i := range strs {
+		strs[i] = strings.Replace(strs[i], "\\", "", -1)
+	}
+	return strs
 }

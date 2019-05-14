@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/internal/duration"
@@ -158,7 +157,7 @@ var repairCmd = &cobra.Command{
 func init() {
 	cmd := repairCmd
 	withScyllaDocs(cmd, "/sctool/#repair")
-	register(repairCmd, rootCmd)
+	register(cmd, rootCmd)
 
 	fs := cmd.Flags()
 	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, e.g. keyspace,!keyspace.table_prefix_*")
@@ -167,16 +166,7 @@ func init() {
 	fs.StringSlice("with-hosts", nil, "comma-separated `list` of hosts to repair with")
 	fs.Var(&repairTokenRanges, "token-ranges", "`kind` of token-ranges valid values are: pr, npr, all")
 	fs.Bool("fail-fast", false, "stop repair on first error")
-	fs.Bool("force", false, "force repair to skip database validation and schedule repair even if there no matching keyspaces/tables")
+	fs.Bool("force", false, "force repair to skip database validation and schedule even if there are no matching keyspaces/tables")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	taskInitCommonFlags(fs)
-}
-
-// accommodate for escaping of bash expansions, we can safely remove '\'
-// as it's not a valid char in keyspace or table name
-func unescapeFilters(strs []string) []string {
-	for i := range strs {
-		strs[i] = strings.Replace(strs[i], "\\", "", -1)
-	}
-	return strs
 }

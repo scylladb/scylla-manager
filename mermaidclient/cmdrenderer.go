@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	backupTaskType = "backup"
 	repairTaskType = "repair"
 )
 
@@ -112,7 +113,14 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 		}
 		fallthrough
 	case RenderTypeArgs:
-		if rc.task.Type == repairTaskType {
+		switch rc.task.Type {
+		case backupTaskType:
+			rc.writeProp("-K", "keyspace")
+			rc.writeProp("--dc", "dc")
+			rc.writeProp("-L", "location")
+			rc.writeProp("--retention", "retention")
+			rc.writeProp("--rate-limit", "rate-limit")
+		case repairTaskType:
 			rc.writeProp("-K", "keyspace")
 			rc.writeProp("--dc", "dc")
 			rc.writeProp("--host", "host")
