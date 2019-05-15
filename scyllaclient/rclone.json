@@ -1,0 +1,601 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "0.0.1",
+    "title": "Scylla Manager Agent API",
+    "contact": {}
+  },
+  "host": "www.example.com",
+  "basePath": "/rclone",
+  "schemes": ["http"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/core/bwlimit": {
+      "post": {
+        "description": "This sets the bandwidth limit to that passed in",
+        "summary": "Set the bandwidth limit",
+        "operationId": "CoreBwlimit",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "bandwidth_rate",
+            "description": "bandwidth rate",
+            "schema": {
+              "$ref": "#/definitions/Bandwidth"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "bandwidth rate",
+            "schema": {
+              "$ref": "#/definitions/Bandwidth"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/operations/about": {
+      "post": {
+        "description": "Get usage information from the remote",
+        "summary": "About remote",
+        "operationId": "OperationsAbout",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "about",
+            "description": "about",
+            "schema": {
+              "$ref": "#/definitions/RemotePath"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File system details",
+            "schema": {
+              "$ref": "#/definitions/FileSystemDetails"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/operations/list": {
+      "post": {
+        "description": "List the given remote and path",
+        "summary": "List remote",
+        "operationId": "OperationsList",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "listOpts",
+            "description": "listOpts",
+            "schema": {
+              "$ref": "#/definitions/ListOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of items",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ListItem"
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/operations/copyfile?_async=true": {
+      "post": {
+        "description": "Copy a file from source remote to destination remote",
+        "summary": "Copy a file",
+        "operationId": "OperationsCopyfile",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "copyfile",
+            "description": "copyfile",
+            "schema": {
+              "$ref": "#/definitions/CopyOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/sync/copy?_async=true": {
+      "post": {
+        "description": "Copy a directory from source remote to destination remote",
+        "summary": "Copy directory",
+        "operationId": "SyncCopy",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "copydir",
+            "description": "copydir",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "srcFs": {
+                  "description": "A remote name string eg. drive: for the source",
+                  "type": "string"
+                },
+                "dstFs": {
+                  "description": "A remote name string eg. drive: for the destination",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job ID",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/operations/purge?_async=true": {
+      "post": {
+        "description": "Remove a directory or container and all of its contents",
+        "summary": "Purge container",
+        "operationId": "OperationsPurge",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "purge",
+            "description": "purge",
+            "schema": {
+              "$ref": "#/definitions/RemotePath"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job ID",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/job/status": {
+      "post": {
+        "description": "Reads the status of the job ID",
+        "summary": "Job status",
+        "operationId": "JobStatus",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "jobid",
+            "description": "jobid",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job details",
+            "schema": {
+              "$ref": "#/definitions/Job"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/config/create": {
+      "post": {
+        "description": "Create configuration entry for the remote",
+        "summary": "Create new remote",
+        "operationId": "ConfigCreate",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "remote",
+            "description": "remote configuration",
+            "schema": {
+              "$ref": "#/definitions/Remote"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "definitions": {
+    "Bandwidth": {
+      "title": "bandwidth rate",
+      "description": "Rate at witch to rate limit bandwidth",
+      "type": "object",
+      "properties": {
+        "rate": {
+          "description": "String representation of the bandwidth rate limit (eg. 100k, 1M, ...).",
+          "type": "string"
+        }
+      }
+    },
+    "Jobid": {
+      "type": "object",
+      "properties": {
+        "jobid": {
+          "description": "ID of the job",
+          "type": "integer"
+        }
+      }
+    },
+    "Job": {
+      "title": "job",
+      "description": "Status information about the job",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "ID of the job",
+          "type": "integer"
+        },
+        "duration": {
+          "description": "Time in seconds that the job ran for",
+          "type": "integer"
+        },
+        "finished": {
+          "description": "Job has finished execution",
+          "type": "boolean"
+        },
+        "success": {
+          "description": "True for success false otherwise",
+          "type": "boolean"
+        },
+        "startTime": {
+          "description": "Time the job started (eg 2018-10-26T18:50:20.528746884+01:00)",
+          "type": "string"
+        },
+        "endTime": {
+          "description": "Time the job finished (eg 2018-10-26T18:50:20.528746884+01:00)",
+          "type": "string"
+        },
+        "error": {
+          "description": "Error from the job or empty string for no error",
+          "type": "string"
+        },
+        "output": {
+          "description": "Output of the job as would have been returned if called synchronously",
+          "type": "object"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "title": "error",
+      "description": "Details about error response",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Requested path",
+          "type": "string"
+        },
+        "status": {
+          "description": "HTTP status code",
+          "type": "integer"
+        },
+        "error": {
+          "description": "Error description",
+          "type": "string"
+        },
+        "input": {
+          "description": "Map of request parameters",
+          "type": "object"
+        }
+      }
+    },
+    "RemotePath": {
+      "type": "object",
+      "properties": {
+        "fs": {
+          "description": "A remote name string eg. drive:",
+          "type": "string"
+        },
+        "remote": {
+          "description": "A path within that remote eg. dir",
+          "type": "string"
+        }
+      }
+    },
+    "ListOptions": {
+      "type": "object",
+      "properties": {
+        "fs": {
+          "description": "A remote name string eg. drive:",
+          "type": "string"
+        },
+        "remote": {
+          "description": "A path within that remote eg. dir",
+          "type": "string"
+        },
+        "opt": {
+          "description": "A path within that remote eg. dir",
+          "type": "object",
+          "properties": {
+            "recurse": {
+              "description": "If set recurse directories",
+              "type": "boolean"
+            },
+            "noModTime": {
+              "description": "If set return modification time",
+              "type": "boolean"
+            },
+            "showEncrypted": {
+              "description": "If set show decrypted names",
+              "type": "boolean"
+            },
+            "showOrigIDs": {
+              "description": "If set show the IDs for each item if known",
+              "type": "boolean"
+            },
+            "showHash": {
+              "description": "If set return a dictionary of hashes",
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "FileSystemDetails": {
+      "type": "object",
+      "properties": {
+        "free": {
+          "description": "Free space in bytes",
+          "type": "integer"
+        },
+        "total": {
+          "description": "Available space in bytes",
+          "type": "integer"
+        },
+        "used": {
+          "description": "Used space in bytes",
+          "type": "integer"
+        }
+      }
+    },
+    "ListItem": {
+      "type": "object",
+      "properties": {
+        "Hashes": {
+          "description": "Hash of the item",
+          "type": "object"
+        },
+        "ID": {
+          "description": "ID of the item",
+          "type": "string"
+        },
+        "OrigID": {
+          "description": "Original ID of the item",
+          "type": "string"
+        },
+        "IsDir": {
+          "description": "true if item is directory",
+          "type": "boolean"
+        },
+        "MimeType": {
+          "description": "mime type of the item",
+          "type": "string"
+        },
+        "ModTime": {
+          "description": "Modification time",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name of the item",
+          "type": "string"
+        },
+        "Encrypted": {
+          "description": "Encrypted name",
+          "type": "string"
+        },
+        "Path": {
+          "description": "Path of the item",
+          "type": "string"
+        },
+        "Size": {
+          "description": "Size in bytes",
+          "type": "integer"
+        }
+      }
+    },
+    "CopyOptions": {
+      "type": "object",
+      "properties": {
+        "srcFs": {
+          "description": "A remote name string eg. drive: for the source",
+          "type": "string"
+        },
+        "srcRemote": {
+          "description": "A path within that remote eg. file.txt for the source",
+          "type": "string"
+        },
+        "dstFs": {
+          "description": "A remote name string eg. drive: for the destination",
+          "type": "string"
+        },
+        "dstRemote": {
+          "description": "A path within that remote eg. file.txt for the destination",
+          "type": "string"
+        }
+      }
+    },
+    "Remote": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the remote",
+          "type": "string"
+        },
+        "type": {
+          "description": "Type of the new remote",
+          "type": "string"
+        },
+        "parameters": {
+          "description": "Additional parameters for the remote",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "tags": []
+}
