@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/scylladb/mermaid/cmd/agent/rclone"
+	"github.com/scylladb/mermaid/rclone/rcserver"
 )
 
 func main() {
 	server := http.Server{
 		Handler: newRouter(
 			defaultConfig(),
-			rclone.NewHandler(),
+			rcserver.New(),
 			http.DefaultClient,
 		),
 	}
