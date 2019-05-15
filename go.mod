@@ -8,7 +8,6 @@ require (
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055
 	github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f // indirect
-	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/cespare/xxhash v1.0.0
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/go-chi/render v1.0.0
@@ -24,40 +23,35 @@ require (
 	github.com/go-openapi/validate v0.0.0-20180809073206-7c1911976134
 	github.com/gobwas/glob v0.2.3
 	github.com/gocql/gocql v0.0.0-20181124151448-70385f88b28b
-	github.com/golang/mock v1.1.1
-	github.com/golang/protobuf v1.1.0 // indirect
+	github.com/golang/mock v1.2.0
 	github.com/google/go-cmp v0.2.0
 	github.com/google/gops v0.3.3
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.1.0
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1 // indirect
 	github.com/mailru/easyjson v0.0.0-20180323154445-8b799c424f57 // indirect
-	github.com/mattn/go-runewidth v0.0.2 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v0.0.0-20180220230111-00c29f56e238 // indirect
+	github.com/ncw/rclone v1.47.0
+	github.com/onsi/ginkgo v1.8.0 // indirect
+	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pborman/uuid v1.2.0 // indirect
-	github.com/pkg/errors v0.8.0
+	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.8.0
-	github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5
-	github.com/prometheus/common v0.0.0-20180426121432-d811d2e9bf89 // indirect
-	github.com/prometheus/procfs v0.0.0-20180408092902-8b1c2da0d56d // indirect
+	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
 	github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea
 	github.com/scylladb/go-set v1.0.1
 	github.com/scylladb/gocqlx v1.2.2
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/spf13/cobra v0.0.3
-	github.com/spf13/pflag v1.0.1
+	github.com/spf13/cobra v0.0.4-0.20190109003409-7547e83b2d85
+	github.com/spf13/pflag v1.0.3
 	go.uber.org/atomic v1.3.2
 	go.uber.org/multierr v1.1.0
 	go.uber.org/zap v1.9.1
-	golang.org/x/crypto v0.0.0-20180509205747-2d027ae1dddd
-	golang.org/x/net v0.0.0-20180509002218-f73e4c9ed3b7
+	golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f
+	golang.org/x/net v0.0.0-20190206173232-65e2d4e15006
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect
 	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e // indirect
-	golang.org/x/text v0.3.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528 // indirect
-	gopkg.in/yaml.v2 v2.2.1
+	gopkg.in/yaml.v2 v2.2.2
 )
 
 replace github.com/gocql/gocql => github.com/scylladb/gocql v1.0.4
