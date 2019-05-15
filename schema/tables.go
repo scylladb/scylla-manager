@@ -15,7 +15,7 @@ var (
 			"prev_id",
 			"units",
 			"dc",
-			"uri",
+			"location",
 			"ttl",
 		},
 		PartKey: []string{"cluster_id", "task_id"},

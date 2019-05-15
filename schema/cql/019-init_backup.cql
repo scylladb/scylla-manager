@@ -13,7 +13,7 @@ CREATE TABLE backup_run (
     prev_id timeuuid,
     units list<frozen<backup_unit>>,
     dc list<text>,
-    uri text,
+    location text,
     ttl timestamp,
     PRIMARY KEY ((cluster_id, task_id), id)
 ) WITH CLUSTERING ORDER BY (id DESC);

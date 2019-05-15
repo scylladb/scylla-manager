@@ -82,7 +82,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		ID:        runID,
 		Units:     target.Units,
 		DC:        target.DC,
-		URI:       target.URI,
+		Location:  target.Location,
 		TTL:       timeutc.Now().Add(target.TTL),
 	}
 
