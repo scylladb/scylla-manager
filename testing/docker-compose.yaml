@@ -108,6 +108,22 @@ services:
       - 9090
     network_mode: host
 
+  minio:
+    image: minio/minio
+    volumes:
+      - type: bind
+        source: /tmp/miniodata
+        target: /data
+    ports:
+      - 9000
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    command: server /data
+    networks:
+      public:
+        ipv4_address: 192.168.100.99
+
 networks:
   public:
     driver: bridge

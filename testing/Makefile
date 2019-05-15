@@ -14,6 +14,7 @@ build: ## Build custom docker images
 up: ## Start docker containers
 	@echo "==> Building agent..."
 	@go build -o ../agent.dev ../cmd/agent
+	@mkdir -p /tmp/miniodata
 	@echo "==> Starting containers"
 	@$(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
