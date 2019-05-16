@@ -12,6 +12,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
+	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -63,8 +66,82 @@ func (s *Service) Runner() Runner {
 
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (Target, error) {
-	// TODO implement
-	return Target{}, nil
+	p := defaultTaskProperties()
+
+	if err := json.Unmarshal(properties, &p); err != nil {
+		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties), "")
+	}
+
+	t := Target{
+		Location:  p.Location,
+		Retention: p.Retention,
+		RateLimit: p.RateLimit,
+	}
+
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return t, errors.Wrapf(err, "failed to get client")
+	}
+
+	// Get hosts in DCs
+	dcMap, err := client.Datacenters(ctx)
+	if err != nil {
+		return t, errors.Wrap(err, "failed to read datacenters")
+	}
+
+	// Filter DCs
+	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
+		return t, err
+	}
+
+	// Filter keyspaces
+	f, err := ksfilter.NewFilter(p.Keyspace)
+	if err != nil {
+		return t, err
+	}
+
+	keyspaces, err := client.Keyspaces(ctx)
+	if err != nil {
+		return t, errors.Wrapf(err, "failed to read keyspaces")
+	}
+	for _, keyspace := range keyspaces {
+		tables, err := client.Tables(ctx, keyspace)
+		if err != nil {
+			return t, errors.Wrapf(err, "keyspace %s: failed to get tables", keyspace)
+		}
+
+		// Get the ring description and skip local data
+		ring, err := client.DescribeRing(ctx, keyspace)
+		if err != nil {
+			return t, errors.Wrapf(err, "keyspace %s: failed to get ring description", keyspace)
+		}
+		if ring.Replication == scyllaclient.LocalStrategy {
+			continue
+		}
+
+		// Add to the filter
+		f.Add(keyspace, tables)
+	}
+
+	// Get the filtered units
+	v, err := f.Apply(force)
+	if err != nil {
+		return t, err
+	}
+
+	// Copy units
+	for _, u := range v {
+		uu := Unit{
+			Keyspace: u.Keyspace,
+			Tables:   u.Tables,
+		}
+		if u.AllTables {
+			uu.Tables = nil
+		}
+		t.Units = append(t.Units, uu)
+	}
+
+	return t, nil
 }
 
 // Backup executes a backup on a given target.
@@ -83,7 +160,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		Units:     target.Units,
 		DC:        target.DC,
 		Location:  target.Location,
-		TTL:       timeutc.Now().Add(target.TTL),
+		TTL:       timeutc.Now().Add(target.Retention.Duration()),
 	}
 
 	// TODO: run single task at a time #980

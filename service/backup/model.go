@@ -16,17 +16,17 @@ import (
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units    []Unit        `json:"units,omitempty"`
-	DC       []string      `json:"dc,omitempty"`
-	Location Location      `json:"location"`
-	TTL      time.Duration `json:"ttl"`
+	Units     []Unit            `json:"units,omitempty"`
+	DC        []string          `json:"dc,omitempty"`
+	Location  Location          `json:"location"`
+	Retention duration.Duration `json:"retention"`
+	RateLimit int64             `json:"rate_limit"`
 }
 
 // Unit represents keyspace and its tables.
 type Unit struct {
-	Keyspace  string   `json:"keyspace" db:"keyspace_name"`
-	Tables    []string `json:"tables,omitempty"`
-	AllTables bool     `json:"all_tables"`
+	Keyspace string   `json:"keyspace" db:"keyspace_name"`
+	Tables   []string `json:"tables,omitempty"`
 }
 
 // MarshalUDT implements UDTMarshaler.

@@ -2,8 +2,7 @@
 
 CREATE TYPE backup_unit (
     keyspace_name text,
-    tables set<text>,
-    all_tables boolean
+    tables set<text>
 );
 
 CREATE TABLE backup_run (
