@@ -13,7 +13,9 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	rcloneClient "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client"
 	rcloneOperations "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client/operations"
+	scyllaClient "github.com/scylladb/mermaid/scyllaclient/internal/scylla/client"
 	scyllaOperations "github.com/scylladb/mermaid/scyllaclient/internal/scylla/client/operations"
 )
 
@@ -63,21 +65,26 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	transport = mwRetry(transport, len(config.Hosts), logger)
 	transport = mwOpenAPIFix(transport)
 
-	client := api.NewWithClient(
-		"mermaid.magic.host", "", []string{"http"},
-		&http.Client{
-			Timeout:   config.Timeout,
-			Transport: transport,
-		},
+	c := &http.Client{
+		Timeout:   config.Timeout,
+		Transport: transport,
+	}
+
+	scyllaRuntime := api.NewWithClient(
+		scyllaClient.DefaultHost, scyllaClient.DefaultBasePath, []string{"http"}, c,
+	)
+	rcloneRuntime := api.NewWithClient(
+		rcloneClient.DefaultHost, rcloneClient.DefaultBasePath, []string{"http"}, c,
 	)
 	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
-	client.Debug = false
+	scyllaRuntime.Debug = false
+	rcloneRuntime.Debug = false
 
 	return &Client{
 		config:     config,
 		logger:     logger,
-		scyllaOpts: scyllaOperations.New(client, strfmt.Default),
-		rcloneOpts: rcloneOperations.New(client, strfmt.Default),
+		scyllaOpts: scyllaOperations.New(scyllaRuntime, strfmt.Default),
+		rcloneOpts: rcloneOperations.New(rcloneRuntime, strfmt.Default),
 		transport:  transport,
 	}, nil
 }

@@ -5,7 +5,7 @@
     "title": "Swagger API",
     "contact": {}
   },
-  "host": "www.example.com",
+  "host": "mermaid.magic.host",
   "basePath": "/",
   "schemes": [
     "http"
