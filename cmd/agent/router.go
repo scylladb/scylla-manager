@@ -33,8 +33,8 @@ func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p := path.Clean(r.URL.Path) + "/"
 	switch {
 	case strings.HasPrefix(p, "/rclone/"):
-		// Stripping prefix to use clean paths in rclone server.
-		// Eg. "/rclone/operations/about" to "/operations/about".
+		// Stripping prefix to use clean paths in rclone server
+		// eg. "/rclone/operations/about" to "/operations/about".
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
 		mux.rclone.ServeHTTP(w, r)
 	case strings.HasPrefix(p, "/metrics/"):
