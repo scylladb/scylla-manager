@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/cespare/xxhash"
@@ -17,7 +16,6 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
 	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/internal/timeutc"
@@ -125,18 +123,13 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return Target{}, errors.Wrapf(err, "failed to get client")
+		return t, errors.Wrapf(err, "failed to get client")
 	}
 
 	// Get hosts in DCs
 	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
-		return Target{}, errors.Wrap(err, "failed to read datacenters")
-	}
-
-	// Filter DCs
-	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
-		return t, err
+		return t, errors.Wrap(err, "failed to read datacenters")
 	}
 
 	hosts := t.WithHosts
@@ -144,89 +137,59 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		hosts = append(hosts, t.Host)
 	}
 	if err := validateHostsBelongToCluster(dcMap, hosts...); err != nil {
-		return Target{}, mermaid.ErrValidate(err, "")
+		return t, mermaid.ErrValidate(err, "")
 	}
 
-	t.Units, err = s.getUnits(ctx, clusterID, p.Keyspace)
+	// Filter DCs
+	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
+		return t, err
+	}
+
+	// Filter keyspaces
+	f, err := ksfilter.NewFilter(p.Keyspace)
 	if err != nil {
 		return t, err
 	}
 
-	if len(t.Units) == 0 && !force {
-		return t, mermaid.ErrValidate(errors.Errorf("no matching units found for filters, ks=%s", p.Keyspace), "")
-	}
-
-	return t, nil
-}
-
-// getUnits loads available repair units (keyspaces) filtered through the
-// supplied filters. If no units are found or a filter is invalid a validation
-// error is returned.
-func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []string) ([]Unit, error) {
-	if err := validateKeyspaceFilters(filters); err != nil {
-		return nil, err
-	}
-
-	inclExcl, err := inexlist.ParseInExList(decorateKeyspaceFilters(filters))
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := s.scyllaClient(ctx, clusterID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get client")
-	}
 	keyspaces, err := client.Keyspaces(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read keyspaces")
+		return t, errors.Wrapf(err, "failed to read keyspaces")
 	}
-
-	var units []Unit
-
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "keyspace %s: failed to get tables", keyspace)
+			return t, errors.Wrapf(err, "keyspace %s: failed to get tables", keyspace)
 		}
 
-		prefix := keyspace + "."
-		for i := 0; i < len(tables); i++ {
-			tables[i] = prefix + tables[i]
-		}
-
-		filteredTables := inclExcl.Filter(tables)
-
-		// No data, skip the keyspace
-		if len(filteredTables) == 0 {
-			continue
-		}
-
-		for i := 0; i < len(filteredTables); i++ {
-			filteredTables[i] = strings.TrimPrefix(filteredTables[i], prefix)
-		}
-
-		// Get the ring description
+		// Get the ring description and skip local data
 		ring, err := client.DescribeRing(ctx, keyspace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "keyspace %s: failed to get ring description", keyspace)
+			return t, errors.Wrapf(err, "keyspace %s: failed to get ring description", keyspace)
 		}
-
-		// Local data, skip the keyspace
 		if ring.Replication == scyllaclient.LocalStrategy {
 			continue
 		}
 
-		u := Unit{
-			Keyspace:  keyspace,
-			Tables:    filteredTables,
-			AllTables: len(filteredTables) == len(tables),
-		}
-		units = append(units, u)
+		// Add to the filter
+		f.Add(keyspace, tables)
 	}
 
-	sortUnits(units, inclExcl)
+	// Get the filtered units
+	v, err := f.Apply(force)
+	if err != nil {
+		return t, err
+	}
 
-	return units, nil
+	// Copy units
+	for _, u := range v {
+		t.Units = append(t.Units, Unit{
+			Keyspace:  u.Keyspace,
+			Tables:    u.Tables,
+			AllTables: u.AllTables,
+		})
+	}
+
+	return t, nil
 }
 
 // Repair performs the repair process on the Target.

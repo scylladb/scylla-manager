@@ -11,12 +11,9 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/dht"
-	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/multierr"
 )
 
 // validateHostsBelongToCluster checks that the hosts belong to the cluster.
@@ -260,81 +257,4 @@ func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
 	})
 	v.progress.calculateProgress()
 	return v
-}
-
-func sortUnits(units []Unit, inclExcl inexlist.InExList) {
-	positions := make(map[string]int)
-	for _, u := range units {
-		min := inclExcl.Size()
-		for _, t := range u.Tables {
-			if p := inclExcl.FirstMatch(u.Keyspace + "." + t); p >= 0 && p < min {
-				min = p
-			}
-		}
-		positions[u.Keyspace] = min
-	}
-
-	sort.Slice(units, func(i, j int) bool {
-		// order by position
-		switch {
-		case positions[units[i].Keyspace] < positions[units[j].Keyspace]:
-			return true
-		case positions[units[i].Keyspace] > positions[units[j].Keyspace]:
-			return false
-		default:
-			// promote system keyspaces
-			l := strings.HasPrefix(units[i].Keyspace, "system")
-			r := strings.HasPrefix(units[j].Keyspace, "system")
-			switch {
-			case l && !r:
-				return true
-			case !l && r:
-				return false
-			default:
-				// order by name
-				return units[i].Keyspace < units[j].Keyspace
-			}
-		}
-	})
-}
-
-func validateKeyspaceFilters(filters []string) error {
-	var errs error
-	for i, f := range filters {
-		err := validateKeyspaceFilter(filters[i])
-		if err != nil {
-			errs = multierr.Append(errs, errors.Wrapf(err, "%q on position %d", f, i))
-			continue
-		}
-	}
-	return mermaid.ErrValidate(errs, "invalid filters")
-}
-
-func validateKeyspaceFilter(filter string) error {
-	if filter == "*" || filter == "!*" {
-		return nil
-	}
-	if strings.HasPrefix(filter, ".") {
-		return errors.New("missing keyspace")
-	}
-	return nil
-}
-
-func decorateKeyspaceFilters(filters []string) []string {
-	if len(filters) == 0 {
-		filters = append(filters, "*.*")
-	}
-
-	for i, f := range filters {
-		if strings.Contains(f, ".") {
-			continue
-		}
-		if strings.HasSuffix(f, "*") {
-			filters[i] = strings.TrimSuffix(f, "*") + "*.*"
-		} else {
-			filters[i] += ".*"
-		}
-	}
-
-	return filters
 }

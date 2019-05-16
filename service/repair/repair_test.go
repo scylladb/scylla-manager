@@ -10,7 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/mermaid/internal/dht"
-	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
@@ -497,123 +496,6 @@ func TestAggregateUnitProgress(t *testing.T) {
 
 		if diff := cmp.Diff(p, aggregateUnitProgress(u, test.P), opts); diff != "" {
 			t.Error(i, diff)
-		}
-	}
-}
-
-func TestValidateKeyspaceFilters(t *testing.T) {
-	table := []struct {
-		F []string
-		E string
-	}{
-		//known invalid cases
-		{
-			F: []string{".*kalle.*"},
-			E: "invalid filters: \".*kalle.*\" on position 0: missing keyspace",
-		},
-		{
-			F: []string{".*"},
-			E: "invalid filters: \".*\" on position 0: missing keyspace",
-		},
-	}
-
-	for i, test := range table {
-		if err := validateKeyspaceFilters(test.F); err == nil || err.Error() != test.E {
-			t.Error(i, "got", err, "expected", test.E)
-		}
-	}
-}
-
-func TestDecorateFilters(t *testing.T) {
-	table := []struct {
-		F []string
-		E []string
-	}{
-		{
-			F: []string{},
-			E: []string{"*.*"},
-		},
-		{
-			F: []string{"*"},
-			E: []string{"*.*"},
-		},
-		{
-			F: []string{"kalle"},
-			E: []string{"kalle.*"},
-		},
-		{
-			F: []string{"kalle*"},
-			E: []string{"kalle*.*"},
-		},
-		{
-			F: []string{"*kalle"},
-			E: []string{"*kalle.*"},
-		},
-		{
-			F: []string{"kalle.*"},
-			E: []string{"kalle.*"},
-		},
-		{
-			F: []string{"*kalle.*"},
-			E: []string{"*kalle.*"},
-		},
-	}
-
-	for i, test := range table {
-		f := decorateKeyspaceFilters(test.F)
-		if !cmp.Equal(test.E, f, cmpopts.EquateEmpty()) {
-			t.Error(i, "expected", test.E, "got", f)
-		}
-	}
-}
-
-func TestSortUnits(t *testing.T) {
-	defaultTables := []string{"t"}
-
-	var table = []struct {
-		P []string
-		U []string
-		E []string
-	}{
-		// no patterns, promote system tables
-		{
-			P: nil,
-			U: []string{"test_keyspace_dc1_rf2", "test_keyspace_dc2_rf3", "test_keyspace_rf2", "test_keyspace_rf3", "system_auth", "system_traces"},
-			E: []string{"system_auth", "system_traces", "test_keyspace_dc1_rf2", "test_keyspace_dc2_rf3", "test_keyspace_rf2", "test_keyspace_rf3"},
-		},
-		// follow pattern order
-		{
-			P: []string{"test*", "system*"},
-			U: []string{"test_keyspace_dc1_rf2", "test_keyspace_dc2_rf3", "test_keyspace_rf2", "test_keyspace_rf3", "system_auth", "system_traces"},
-			E: []string{"test_keyspace_dc1_rf2", "test_keyspace_dc2_rf3", "test_keyspace_rf2", "test_keyspace_rf3", "system_auth", "system_traces"},
-		},
-		// follow pattern order
-		{
-			P: []string{"*dc2*", "system*", "*dc1*"},
-			U: []string{"test_keyspace_dc1_rf2", "test_keyspace_dc2_rf3", "test_keyspace_rf2", "test_keyspace_rf3", "system_auth", "system_traces"},
-			E: []string{"test_keyspace_dc2_rf3", "system_auth", "system_traces", "test_keyspace_dc1_rf2", "test_keyspace_rf2", "test_keyspace_rf3"},
-		},
-	}
-
-	for i, test := range table {
-		l, err := inexlist.ParseInExList(decorateKeyspaceFilters(test.P))
-		if err != nil {
-			t.Fatal(err)
-		}
-		u := make([]Unit, len(test.U))
-		for i := range test.U {
-			u[i] = Unit{
-				Keyspace: test.U[i],
-				Tables:   defaultTables,
-			}
-		}
-		sortUnits(u, l)
-		e := make([]string, len(test.U))
-		for i := range test.U {
-			e[i] = u[i].Keyspace
-		}
-		if diff := cmp.Diff(e, test.E); diff != "" {
-			t.Error(i, e)
 		}
 	}
 }
