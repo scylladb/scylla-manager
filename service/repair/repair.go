@@ -338,10 +338,3 @@ func decorateKeyspaceFilters(filters []string) []string {
 
 	return filters
 }
-
-func decorateDCFilters(filters []string) []string {
-	if len(filters) == 0 {
-		filters = append(filters, "*")
-	}
-	return filters
-}

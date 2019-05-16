@@ -18,6 +18,8 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/inexlist"
+	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
+	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -121,12 +123,19 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		Continue:    p.Continue,
 	}
 
-	var (
-		err   error
-		dcMap map[string][]string
-	)
-	t.DC, dcMap, err = s.getDCs(ctx, clusterID, p.DC)
+	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
+		return Target{}, errors.Wrapf(err, "failed to get client")
+	}
+
+	// Get hosts in DCs
+	dcMap, err := client.Datacenters(ctx)
+	if err != nil {
+		return Target{}, errors.Wrap(err, "failed to read datacenters")
+	}
+
+	// Filter DCs
+	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
 		return t, err
 	}
 
@@ -148,37 +157,6 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	return t, nil
-}
-
-// getDCs loads available datacenters filtered through the supplied filter.
-// If no DCs are found or a filter is invalid a validation error is returned.
-func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, filters []string) ([]string, map[string][]string, error) {
-	dcInclExcl, err := inexlist.ParseInExList(decorateDCFilters(filters))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	c, err := s.scyllaClient(ctx, clusterID)
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to get client")
-	}
-	dcMap, err := c.Datacenters(ctx)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to read datacenters")
-	}
-
-	dcs := make([]string, 0, len(dcMap))
-	for dc := range dcMap {
-		dcs = append(dcs, dc)
-	}
-
-	filteredDCs := dcInclExcl.Filter(dcs)
-	if len(filteredDCs) == 0 {
-		return nil, nil, mermaid.ErrValidate(errors.Errorf("no matching dc found for dc=%s", filters), "")
-	}
-	sort.Strings(filteredDCs)
-
-	return filteredDCs, dcMap, nil
 }
 
 // getUnits loads available repair units (keyspaces) filtered through the
