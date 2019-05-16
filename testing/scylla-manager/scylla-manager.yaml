@@ -12,6 +12,9 @@ database:
   migrate_dir: schema/cql
   timeout: 1s
 
+backup:
+  poll_interval: 50ms
+
 repair:
   segments_per_repair: 10
   error_backoff: 5s

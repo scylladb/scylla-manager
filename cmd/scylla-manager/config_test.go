@@ -67,6 +67,7 @@ func TestConfigModification(t *testing.T) {
 		},
 		Backup: backup.Config{
 			DiskSpaceFreeMinPercent: 1,
+			PollInterval:            5 * time.Second,
 		},
 		Repair: repair.Config{
 			SegmentsPerRepair:      7,

@@ -3,24 +3,25 @@
 package backup
 
 import (
+	"fmt"
+	"path"
 	"reflect"
 	"regexp"
-	"time"
+	"strconv"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units     []Unit            `json:"units,omitempty"`
-	DC        []string          `json:"dc,omitempty"`
-	Location  Location          `json:"location"`
-	Retention duration.Duration `json:"retention"`
-	RateLimit int64             `json:"rate_limit"`
+	Units     []Unit      `json:"units,omitempty"`
+	DC        []string    `json:"dc,omitempty"`
+	Location  []Location  `json:"location"`
+	Retention int         `json:"retention"`
+	RateLimit []RateLimit `json:"rate_limit"`
 }
 
 // Unit represents keyspace and its tables.
@@ -29,13 +30,11 @@ type Unit struct {
 	Tables   []string `json:"tables,omitempty"`
 }
 
-// MarshalUDT implements UDTMarshaler.
 func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
 	return gocql.Marshal(info, f.Interface())
 }
 
-// UnmarshalUDT implements UDTUnmarshaler.
 func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
@@ -50,8 +49,7 @@ type Run struct {
 	PrevID   uuid.UUID
 	Units    []Unit
 	DC       []string
-	Location Location
-	TTL      time.Time
+	Location []Location
 }
 
 // RunProgress describes backup progress on per file basis.
@@ -96,50 +94,110 @@ func (p *Provider) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// Location specifies storage provider and container/resource.
+// Location specifies storage provider and container/resource for a DC.
 type Location struct {
+	DC       string
 	Provider Provider
 	Path     string
 }
 
 func (l Location) String() string {
-	return l.Provider.String() + ":" + l.Path
+	p := l.Provider.String() + ":" + l.Path
+	if l.DC != "" {
+		p = l.DC + ":" + p
+	}
+	return p
 }
 
-// MarshalText implements encoding.TextMarshaler.
 func (l Location) MarshalText() (text []byte, err error) {
 	return []byte(l.String()), nil
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
 func (l *Location) UnmarshalText(text []byte) error {
-	providerPath := regexp.MustCompile(`^([a-z0-9]+):([a-z0-9\-\.]+)$`)
+	pattern := regexp.MustCompile(`^(([a-z0-9\-\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
 
-	m := providerPath.FindSubmatch(text)
-	if len(m) != 3 {
+	m := pattern.FindSubmatch(text)
+	if m == nil {
 		return errors.Errorf("invalid location format")
 	}
 
-	if err := l.Provider.UnmarshalText(m[1]); err != nil {
+	if err := l.Provider.UnmarshalText(m[3]); err != nil {
 		return errors.Wrap(err, "invalid location")
 	}
 
-	l.Path = string(m[2])
+	l.DC = string(m[2])
+	l.Path = string(m[4])
+
+	return nil
+}
+
+func (l Location) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
+	return l.MarshalText()
+}
+
+func (l *Location) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+	return l.UnmarshalText(data)
+}
+
+// RemoteName returns the rclone remote name for that location.
+func (l Location) RemoteName() string {
+	return l.Provider.String()
+}
+
+// RemotePath returns string that can be used with rclone to specify a path in
+// the given location.
+func (l Location) RemotePath(p string) string {
+	return path.Join(l.RemoteName()+":"+l.Path, p)
+}
+
+// RateLimit specifies a rate limit for a DC.
+type RateLimit struct {
+	DC    string
+	Limit int
+}
+
+func (r RateLimit) String() string {
+	p := fmt.Sprint(r.Limit)
+	if r.DC != "" {
+		p = r.DC + ":" + p
+	}
+	return p
+}
+
+func (r RateLimit) MarshalText() (text []byte, err error) {
+	return []byte(r.String()), nil
+}
+
+func (r *RateLimit) UnmarshalText(text []byte) error {
+	pattern := regexp.MustCompile(`^(([a-z0-9\-\.]+):)?([0-9]+)$`)
+
+	m := pattern.FindSubmatch(text)
+	if m == nil {
+		return errors.Errorf("invalid location format")
+	}
+
+	limit, err := strconv.ParseInt(string(m[3]), 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "invalid limit")
+	}
+
+	r.DC = string(m[2])
+	r.Limit = int(limit)
 
 	return nil
 }
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace  []string          `json:"keyspace"`
-	DC        []string          `json:"dc"`
-	Location  Location          `json:"location"`
-	Retention duration.Duration `json:"retention"`
-	RateLimit int64             `json:"rate_limit"`
+	Keyspace  []string    `json:"keyspace"`
+	DC        []string    `json:"dc"`
+	Location  []Location  `json:"location"`
+	Retention int         `json:"retention"`
+	RateLimit []RateLimit `json:"rate_limit"`
 }
 
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
-		Retention: duration.Duration(7 * 24 * time.Hour),
+		Retention: 3,
 	}
 }

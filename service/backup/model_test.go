@@ -21,20 +21,80 @@ func TestProviderMarshalUnmarshalText(t *testing.T) {
 }
 
 func TestLocationMarshalUnmarshalText(t *testing.T) {
-	k := Location{
-		Provider: S3,
-		Path:     "my-bucket.domain",
+	table := []struct {
+		Name     string
+		Location Location
+	}{
+		{
+			Name: "with dc",
+			Location: Location{
+				DC:       "dc",
+				Provider: S3,
+				Path:     "my-bucket.domain",
+			},
+		},
+		{
+			Name: "without dc",
+			Location: Location{
+				Provider: S3,
+				Path:     "my-bucket.domain",
+			},
+		},
 	}
-	b, err := k.MarshalText()
-	if err != nil {
-		t.Error(k, err)
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			golden := test.Location
+			b, err := golden.MarshalText()
+			if err != nil {
+				t.Error(golden, err)
+			}
+			var l Location
+			if err := l.UnmarshalText(b); err != nil {
+				t.Error(err)
+			}
+			if golden != l {
+				t.Errorf("got %s, expected %s", l, golden)
+			}
+		})
 	}
-	var l Location
-	if err := l.UnmarshalText(b); err != nil {
-		t.Error(err)
+}
+
+func TestRateLimitMarshalUnmarshalText(t *testing.T) {
+	table := []struct {
+		Name      string
+		RateLimit RateLimit
+	}{
+		{
+			Name: "with dc",
+			RateLimit: RateLimit{
+				DC:    "dc",
+				Limit: 100,
+			},
+		},
+		{
+			Name: "without dc",
+			RateLimit: RateLimit{
+				Limit: 100,
+			},
+		},
 	}
-	if k != l {
-		t.Errorf("got %s, expected %s", l, k)
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			golden := test.RateLimit
+			b, err := golden.MarshalText()
+			if err != nil {
+				t.Error(golden, err)
+			}
+			var r RateLimit
+			if err := r.UnmarshalText(b); err != nil {
+				t.Error(err)
+			}
+			if golden != r {
+				t.Errorf("got %s, expected %s", r, golden)
+			}
+		})
 	}
 }
 
@@ -50,6 +110,14 @@ func TestInvalidLocationUnmarshalText(t *testing.T) {
 		{
 			Name:     "empty path",
 			Location: "s3:",
+		},
+		{
+			Name:     "empty path with dc",
+			Location: "dc:s3:",
+		},
+		{
+			Name:     "invalid dc",
+			Location: "dc aaa:foo:bar",
 		},
 		{
 			Name:     "invalid provider",
@@ -68,5 +136,32 @@ func TestInvalidLocationUnmarshalText(t *testing.T) {
 				t.Error("expected error")
 			}
 		})
+	}
+}
+
+func TestLocationRemotePath(t *testing.T) {
+	l := Location{
+		Provider: S3,
+		Path:     "foo",
+	}
+
+	table := []struct {
+		Path       string
+		RemotePath string
+	}{
+		{
+			Path:       "bar",
+			RemotePath: "s3:foo/bar",
+		},
+		{
+			Path:       "/bar",
+			RemotePath: "s3:foo/bar",
+		},
+	}
+
+	for _, test := range table {
+		if p := l.RemotePath(test.Path); p != test.RemotePath {
+			t.Error("expected", test.RemotePath, "got", p)
+		}
 	}
 }

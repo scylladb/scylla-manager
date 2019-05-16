@@ -54,3 +54,8 @@ func S3InitBucket(t *testing.T, bucket string) {
 		t.Fatal(err)
 	}
 }
+
+// S3TestEndpoint returns an endpoint for testing like minio.
+func S3TestEndpoint() string {
+	return *flagS3Endpoint
+}

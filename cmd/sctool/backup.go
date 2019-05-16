@@ -62,19 +62,17 @@ var backupCmd = &cobra.Command{
 			props["dc"] = unescapeFilters(dc)
 		}
 
-		// Providers require that resource names are DNS compliant.
-		// The following is a super simplified DNS (plus provider prefix)
-		// matching regexp.
-		providerDNS := regexp.MustCompile(`^(s3):([a-z0-9\-\.]+)$`)
-
-		location := cmd.Flag("location").Value.String()
-		if !providerDNS.MatchString(location) {
-			return printableError{errors.New("invalid location")}
+		locations, err := cmd.Flags().GetStringSlice("location")
+		if err != nil {
+			return printableError{err}
 		}
-		props["location"] = location
+		if err := validateLocations(locations); err != nil {
+			return printableError{err}
+		}
+		props["location"] = locations
 
 		if f = cmd.Flag("retention"); f.Changed {
-			retention, err := duration.ParseDuration(f.Value.String())
+			retention, err := cmd.Flags().GetInt("retention")
 			if err != nil {
 				return printableError{err}
 			}
@@ -82,11 +80,14 @@ var backupCmd = &cobra.Command{
 		}
 
 		if f = cmd.Flag("rate-limit"); f.Changed {
-			rateLimit, err := cmd.Flags().GetInt64("rate-limit")
+			rateLimits, err := cmd.Flags().GetStringSlice("rate-limit")
 			if err != nil {
 				return printableError{err}
 			}
-			props["rate-limit"] = rateLimit
+			if err := validateRateLimits(rateLimits); err != nil {
+				return printableError{err}
+			}
+			props["rate_limit"] = rateLimits
 		}
 
 		force, err := cmd.Flags().GetBool("force")
@@ -105,6 +106,31 @@ var backupCmd = &cobra.Command{
 	},
 }
 
+func validateLocations(locations []string) error {
+	// Providers require that resource names are DNS compliant.
+	// The following is a super simplified DNS (plus provider prefix)
+	// matching regexp.
+	providerDNSPattern := regexp.MustCompile(`^([a-z0-9\-\.]+:)?(s3):([a-z0-9\-\.]+)$`)
+
+	for _, l := range locations {
+		if !providerDNSPattern.MatchString(l) {
+			return errors.Errorf("invalid location %s", l)
+		}
+	}
+	return nil
+}
+
+func validateRateLimits(rateLimits []string) error {
+	rateLimitPattern := regexp.MustCompile(`^([a-z0-9\-\.]+:)([0-9]+)$`)
+
+	for _, r := range rateLimits {
+		if !rateLimitPattern.MatchString(r) {
+			return printableError{errors.Errorf("invalid rate-limit %s", r)}
+		}
+	}
+	return nil
+}
+
 func init() {
 	cmd := backupCmd
 	withScyllaDocs(cmd, "/sctool/#backup")
@@ -113,9 +139,9 @@ func init() {
 	fs := cmd.Flags()
 	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, e.g. keyspace,!keyspace.table_prefix_*")
 	fs.StringSlice("dc", nil, "comma-separated `list` of data centers glob patterns, e.g. dc1,!otherdc*")
-	fs.StringP("location", "L", "", "where to save the backup, in a format <provider>:<path> ex. s3:my-bucket, the supported providers are: s3")
-	fs.String("retention", "7d", "data retention, how long backup data shall be kept")
-	fs.Int64("rate-limit", 0, "rate limit as megabytes (MiB) per second")
+	fs.StringSliceP("location", "L", nil, "comma-separated `list` of backup locations in the format <dc>:<provider>:<path>, the dc part is optional and only needed when different datacenters upload data to different locations, the supported providers are: s3") //nolint: lll
+	fs.Int("retention", 3, "data retention, how many backups shall be kept")
+	fs.StringSlice("rate-limit", nil, "comma-separated `list` of rate limit as megabytes (MiB) per second in the format <dc>:<limit>, the dc part is optional and only needed when different datacenters need different upload limits") //nolint: lll
 	fs.Bool("force", false, "force backup to skip database validation and schedule even if there are no matching keyspaces/tables")
 
 	taskInitCommonFlags(fs)

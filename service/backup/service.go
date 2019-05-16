@@ -5,9 +5,7 @@ package backup
 import (
 	"context"
 	"encoding/json"
-	"sort"
 
-	"github.com/cespare/xxhash"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -15,7 +13,6 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
 	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
-	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -53,6 +50,7 @@ func NewService(session *gocql.Session, config Config, clusterName ClusterNameFu
 
 	return &Service{
 		session:      session,
+		config:       config,
 		clusterName:  clusterName,
 		scyllaClient: scyllaClient,
 		logger:       logger,
@@ -67,15 +65,19 @@ func (s *Service) Runner() Runner {
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (Target, error) {
 	p := defaultTaskProperties()
+	t := Target{}
 
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties), "")
+		return t, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties), "")
 	}
 
-	t := Target{
-		Location:  p.Location,
-		Retention: p.Retention,
-		RateLimit: p.RateLimit,
+	// Copy simple properties
+	t.Location = p.Location
+	t.RateLimit = p.RateLimit
+	t.Retention = p.Retention
+
+	if p.Location == nil {
+		return t, errors.Errorf("missing location")
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -92,6 +94,19 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Filter DCs
 	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
 		return t, err
+	}
+
+	// Validate location DCs
+	if err := checkDCs(func(i int) (string, string) { return t.Location[i].DC, t.Location[i].String() }, len(t.Location), dcMap); err != nil {
+		return t, errors.Wrap(err, "invalid location")
+	}
+	if err := checkAllDCsCovered(func(i int) string { return t.Location[i].DC }, len(t.Location), t.DC); err != nil {
+		return t, errors.Wrap(err, "invalid location")
+	}
+
+	// Validate rate limit DCs
+	if err := checkDCs(func(i int) (string, string) { return t.RateLimit[i].DC, t.RateLimit[i].String() }, len(t.RateLimit), dcMap); err != nil {
+		return t, errors.Wrap(err, "invalid rate-limit")
 	}
 
 	// Filter keyspaces
@@ -160,11 +175,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		Units:     target.Units,
 		DC:        target.DC,
 		Location:  target.Location,
-		TTL:       timeutc.Now().Add(target.Retention.Duration()),
 	}
-
-	// TODO: run single task at a time #980
-	// TODO: continue previous run
 
 	s.logger.Info(ctx, "Initializing backup",
 		"cluster_id", run.ClusterID,
@@ -184,30 +195,43 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		return errors.Wrap(err, "failed to get client proxy")
 	}
 
-	// Get target hosts
-	var hosts []string
-	dcHosts, err := client.Datacenters(ctx)
+	// Get hosts in all DCs
+	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get host datacenters")
+		return errors.Wrap(err, "failed to read datacenters")
 	}
-	for _, dc := range run.DC {
-		dh := dcHosts[dc]
 
-		sort.Slice(dh, func(i, j int) bool {
-			return xxhash.Sum64String(hosts[i]) < xxhash.Sum64String(hosts[j])
-		})
-
-		hosts = append(hosts, dh...)
-	}
+	// Get hosts in the given DCs
+	hosts := dcHosts(dcMap, run.DC)
 	if len(hosts) == 0 {
-		s.logger.Info(ctx, "no matching hosts found")
-		return nil
+		return errors.Wrap(err, "no matching hosts found")
 	}
 
-	// TODO: implement
-	s.logger.Debug(ctx, "todo", "config", s.config)
+	// Get host IDs
+	hostIDs, err := client.HostIDs(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get host IDs")
+	}
 
-	return nil
+	// Create hostInfo for hosts
+	hi, err := hostInfoFromHosts(hosts, dcMap, hostIDs, target.Location, target.RateLimit)
+	if err != nil {
+		return err
+	}
+
+	// Create a worker
+	w := worker{
+		clusterID: clusterID,
+		taskID:    taskID,
+		runID:     runID,
+
+		config: s.config,
+		units:  run.Units,
+		client: client,
+		logger: s.logger.Named("worker"),
+	}
+
+	return w.Exec(ctx, hi)
 }
 
 // putRun upserts a backup run.

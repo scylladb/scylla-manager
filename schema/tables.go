@@ -16,7 +16,6 @@ var (
 			"units",
 			"dc",
 			"location",
-			"ttl",
 		},
 		PartKey: []string{"cluster_id", "task_id"},
 		SortKey: []string{"id"},

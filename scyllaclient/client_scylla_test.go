@@ -153,6 +153,27 @@ func TestHosts(t *testing.T) {
 	}
 }
 
+func TestHostIDs(t *testing.T) {
+	t.Parallel()
+
+	c, close := newMockServer(t, "testdata/scylla_api/host_id_map.json")
+	defer close()
+
+	golden := map[string]string{
+		"192.168.100.12": "2938f381-882b-4da7-b94b-e78ad66a5ed4",
+		"192.168.100.22": "e0e4aa5a-d908-43a6-ab07-d850c4943150",
+	}
+
+	v, err := c.HostIDs(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(v, golden); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 

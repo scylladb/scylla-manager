@@ -83,6 +83,20 @@ func (c *Client) Hosts(ctx context.Context) ([]string, error) {
 	return v, nil
 }
 
+// HostIDs returns a mapping from host IP to UUID.
+func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
+	resp, err := c.scyllaOpts.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	v := make(map[string]string, len(resp.Payload))
+	for i := 0; i < len(resp.Payload); i++ {
+		v[resp.Payload[i].Key] = resp.Payload[i].Value
+	}
+	return v, nil
+}
+
 // Keyspaces return a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 	resp, err := c.scyllaOpts.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{Context: ctx})
