@@ -142,8 +142,10 @@ github.com/ncw/rclone/backend/local
 github.com/ncw/rclone/backend/s3
 github.com/ncw/rclone/fs
 github.com/ncw/rclone/fs/accounting
+github.com/ncw/rclone/fs/config
 github.com/ncw/rclone/fs/operations
 github.com/ncw/rclone/fs/rc
+github.com/ncw/rclone/fs/sync
 github.com/ncw/rclone/fs/config/configmap
 github.com/ncw/rclone/fs/config/configstruct
 github.com/ncw/rclone/fs/fserrors
@@ -156,19 +158,18 @@ github.com/ncw/rclone/lib/pacer
 github.com/ncw/rclone/lib/rest
 github.com/ncw/rclone/fs/fspath
 github.com/ncw/rclone/fs/asyncreader
+github.com/ncw/rclone/fs/config/obscure
+github.com/ncw/rclone/fs/driveletter
 github.com/ncw/rclone/backend/crypt
-github.com/ncw/rclone/fs/config
 github.com/ncw/rclone/fs/march
 github.com/ncw/rclone/fs/object
 github.com/ncw/rclone/cmd/serve/httplib
-github.com/ncw/rclone/fs/config/obscure
 github.com/ncw/rclone/fs/version
+github.com/ncw/rclone/fs/filter
 github.com/ncw/rclone/backend/dropbox/dbhash
 github.com/ncw/rclone/backend/onedrive/quickxorhash
-github.com/ncw/rclone/fs/filter
 github.com/ncw/rclone/fs/list
 github.com/ncw/rclone/lib/errors
-github.com/ncw/rclone/fs/driveletter
 github.com/ncw/rclone/lib/pool
 github.com/ncw/rclone/backend/crypt/pkcs7
 github.com/ncw/rclone/cmd/serve/httplib/serve/data
@@ -228,12 +229,12 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/poly1305
+golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/subtle
-golang.org/x/crypto/nacl/secretbox
-golang.org/x/crypto/scrypt
-golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/salsa20/salsa
+golang.org/x/crypto/scrypt
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
@@ -250,9 +251,9 @@ golang.org/x/sys/windows
 # golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
+golang.org/x/text/transform
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
-golang.org/x/text/transform
 # golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 golang.org/x/time/rate
 # gopkg.in/inf.v0 v0.9.1
