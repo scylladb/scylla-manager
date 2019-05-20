@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 
@@ -23,8 +24,11 @@ import (
 // NewOperationsCopyfileParams creates a new OperationsCopyfileParams object
 // with the default values initialized.
 func NewOperationsCopyfileParams() *OperationsCopyfileParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsCopyfileParams{
+		Async: asyncDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -33,8 +37,11 @@ func NewOperationsCopyfileParams() *OperationsCopyfileParams {
 // NewOperationsCopyfileParamsWithTimeout creates a new OperationsCopyfileParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewOperationsCopyfileParamsWithTimeout(timeout time.Duration) *OperationsCopyfileParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsCopyfileParams{
+		Async: asyncDefault,
 
 		timeout: timeout,
 	}
@@ -43,8 +50,11 @@ func NewOperationsCopyfileParamsWithTimeout(timeout time.Duration) *OperationsCo
 // NewOperationsCopyfileParamsWithContext creates a new OperationsCopyfileParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewOperationsCopyfileParamsWithContext(ctx context.Context) *OperationsCopyfileParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsCopyfileParams{
+		Async: asyncDefault,
 
 		Context: ctx,
 	}
@@ -53,8 +63,11 @@ func NewOperationsCopyfileParamsWithContext(ctx context.Context) *OperationsCopy
 // NewOperationsCopyfileParamsWithHTTPClient creates a new OperationsCopyfileParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewOperationsCopyfileParamsWithHTTPClient(client *http.Client) *OperationsCopyfileParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsCopyfileParams{
+		Async:      asyncDefault,
 		HTTPClient: client,
 	}
 }
@@ -64,6 +77,11 @@ for the operations copyfile operation typically these are written to a http.Requ
 */
 type OperationsCopyfileParams struct {
 
+	/*Async
+	  Async request
+
+	*/
+	Async bool
 	/*Copyfile
 	  copyfile
 
@@ -108,6 +126,17 @@ func (o *OperationsCopyfileParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithAsync adds the async to the operations copyfile params
+func (o *OperationsCopyfileParams) WithAsync(async bool) *OperationsCopyfileParams {
+	o.SetAsync(async)
+	return o
+}
+
+// SetAsync adds the async to the operations copyfile params
+func (o *OperationsCopyfileParams) SetAsync(async bool) {
+	o.Async = async
+}
+
 // WithCopyfile adds the copyfile to the operations copyfile params
 func (o *OperationsCopyfileParams) WithCopyfile(copyfile *models.CopyOptions) *OperationsCopyfileParams {
 	o.SetCopyfile(copyfile)
@@ -126,6 +155,15 @@ func (o *OperationsCopyfileParams) WriteToRequest(r runtime.ClientRequest, reg s
 		return err
 	}
 	var res []error
+
+	// query param _async
+	qrAsync := o.Async
+	qAsync := swag.FormatBool(qrAsync)
+	if qAsync != "" {
+		if err := r.SetQueryParam("_async", qAsync); err != nil {
+			return err
+		}
+	}
 
 	if o.Copyfile != nil {
 		if err := r.SetBodyParam(o.Copyfile); err != nil {

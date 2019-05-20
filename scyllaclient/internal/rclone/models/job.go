@@ -18,7 +18,7 @@ import (
 type Job struct {
 
 	// Time in seconds that the job ran for
-	Duration int64 `json:"duration,omitempty"`
+	Duration float64 `json:"duration,omitempty"`
 
 	// Time the job finished (eg 2018-10-26T18:50:20.528746884+01:00)
 	EndTime string `json:"endTime,omitempty"`

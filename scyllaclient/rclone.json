@@ -115,9 +115,14 @@
           "200": {
             "description": "List of items",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/ListItem"
+              "type": "object",
+              "properties": {
+                "list": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ListItem"
+                  }
+                }
               }
             },
             "headers": {}
@@ -140,13 +145,21 @@
         "security": []
       }
     },
-    "/operations/copyfile?_async=true": {
+    "/operations/copyfile": {
       "post": {
         "description": "Copy a file from source remote to destination remote",
         "summary": "Copy a file",
         "operationId": "OperationsCopyfile",
         "produces": ["application/json"],
         "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
           {
             "in": "body",
             "name": "copyfile",
@@ -182,13 +195,21 @@
         "security": []
       }
     },
-    "/sync/copy?_async=true": {
+    "/sync/copy": {
       "post": {
         "description": "Copy a directory from source remote to destination remote",
         "summary": "Copy directory",
         "operationId": "SyncCopy",
         "produces": ["application/json"],
         "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
           {
             "in": "body",
             "name": "copydir",
@@ -234,7 +255,7 @@
         "security": []
       }
     },
-    "/operations/purge?_async=true": {
+    "/operations/purge": {
       "post": {
         "description": "Remove a directory or container and all of its contents",
         "summary": "Purge container",
@@ -242,9 +263,67 @@
         "produces": ["application/json"],
         "parameters": [
           {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
+          {
             "in": "body",
             "name": "purge",
             "description": "purge",
+            "schema": {
+              "$ref": "#/definitions/RemotePath"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job ID",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/operations/deletefile": {
+      "post": {
+        "description": "Remove the single file pointed to",
+        "summary": "Delete file",
+        "operationId": "OperationsDeletefile",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
+          {
+            "in": "body",
+            "name": "deletefile",
+            "description": "deletefile",
             "schema": {
               "$ref": "#/definitions/RemotePath"
             }
@@ -286,6 +365,7 @@
           {
             "in": "body",
             "name": "jobid",
+            "required": true,
             "description": "jobid",
             "schema": {
               "$ref": "#/definitions/Jobid"
@@ -393,7 +473,8 @@
         },
         "duration": {
           "description": "Time in seconds that the job ran for",
-          "type": "integer"
+          "type": "number",
+          "format": "double"
         },
         "finished": {
           "description": "Job has finished execution",
@@ -459,6 +540,9 @@
     },
     "ListOptions": {
       "type": "object",
+      "required": [
+        "fs", "remote"
+      ],
       "properties": {
         "fs": {
           "description": "A remote name string eg. drive:",

@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 
@@ -23,8 +24,11 @@ import (
 // NewOperationsPurgeParams creates a new OperationsPurgeParams object
 // with the default values initialized.
 func NewOperationsPurgeParams() *OperationsPurgeParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsPurgeParams{
+		Async: asyncDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -33,8 +37,11 @@ func NewOperationsPurgeParams() *OperationsPurgeParams {
 // NewOperationsPurgeParamsWithTimeout creates a new OperationsPurgeParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewOperationsPurgeParamsWithTimeout(timeout time.Duration) *OperationsPurgeParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsPurgeParams{
+		Async: asyncDefault,
 
 		timeout: timeout,
 	}
@@ -43,8 +50,11 @@ func NewOperationsPurgeParamsWithTimeout(timeout time.Duration) *OperationsPurge
 // NewOperationsPurgeParamsWithContext creates a new OperationsPurgeParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewOperationsPurgeParamsWithContext(ctx context.Context) *OperationsPurgeParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsPurgeParams{
+		Async: asyncDefault,
 
 		Context: ctx,
 	}
@@ -53,8 +63,11 @@ func NewOperationsPurgeParamsWithContext(ctx context.Context) *OperationsPurgePa
 // NewOperationsPurgeParamsWithHTTPClient creates a new OperationsPurgeParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewOperationsPurgeParamsWithHTTPClient(client *http.Client) *OperationsPurgeParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &OperationsPurgeParams{
+		Async:      asyncDefault,
 		HTTPClient: client,
 	}
 }
@@ -64,6 +77,11 @@ for the operations purge operation typically these are written to a http.Request
 */
 type OperationsPurgeParams struct {
 
+	/*Async
+	  Async request
+
+	*/
+	Async bool
 	/*Purge
 	  purge
 
@@ -108,6 +126,17 @@ func (o *OperationsPurgeParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithAsync adds the async to the operations purge params
+func (o *OperationsPurgeParams) WithAsync(async bool) *OperationsPurgeParams {
+	o.SetAsync(async)
+	return o
+}
+
+// SetAsync adds the async to the operations purge params
+func (o *OperationsPurgeParams) SetAsync(async bool) {
+	o.Async = async
+}
+
 // WithPurge adds the purge to the operations purge params
 func (o *OperationsPurgeParams) WithPurge(purge *models.RemotePath) *OperationsPurgeParams {
 	o.SetPurge(purge)
@@ -126,6 +155,15 @@ func (o *OperationsPurgeParams) WriteToRequest(r runtime.ClientRequest, reg strf
 		return err
 	}
 	var res []error
+
+	// query param _async
+	qrAsync := o.Async
+	qAsync := swag.FormatBool(qrAsync)
+	if qAsync != "" {
+		if err := r.SetQueryParam("_async", qAsync); err != nil {
+			return err
+		}
+	}
 
 	if o.Purge != nil {
 		if err := r.SetBodyParam(o.Purge); err != nil {

@@ -158,7 +158,7 @@ func (a *Client) OperationsCopyfile(params *OperationsCopyfileParams) (*Operatio
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "OperationsCopyfile",
 		Method:             "POST",
-		PathPattern:        "/operations/copyfile?_async=true",
+		PathPattern:        "/operations/copyfile",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -171,6 +171,36 @@ func (a *Client) OperationsCopyfile(params *OperationsCopyfileParams) (*Operatio
 		return nil, err
 	}
 	return result.(*OperationsCopyfileOK), nil
+
+}
+
+/*
+OperationsDeletefile deletes file
+
+Remove the single file pointed to
+*/
+func (a *Client) OperationsDeletefile(params *OperationsDeletefileParams) (*OperationsDeletefileOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewOperationsDeletefileParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "OperationsDeletefile",
+		Method:             "POST",
+		PathPattern:        "/operations/deletefile",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &OperationsDeletefileReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*OperationsDeletefileOK), nil
 
 }
 
@@ -218,7 +248,7 @@ func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurg
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "OperationsPurge",
 		Method:             "POST",
-		PathPattern:        "/operations/purge?_async=true",
+		PathPattern:        "/operations/purge",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -248,7 +278,7 @@ func (a *Client) SyncCopy(params *SyncCopyParams) (*SyncCopyOK, error) {
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "SyncCopy",
 		Method:             "POST",
-		PathPattern:        "/sync/copy?_async=true",
+		PathPattern:        "/sync/copy",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

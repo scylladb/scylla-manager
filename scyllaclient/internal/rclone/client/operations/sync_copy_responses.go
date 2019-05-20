@@ -66,7 +66,7 @@ type SyncCopyOK struct {
 }
 
 func (o *SyncCopyOK) Error() string {
-	return fmt.Sprintf("[POST /sync/copy?_async=true][%d] syncCopyOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /sync/copy][%d] syncCopyOK  %+v", 200, o.Payload)
 }
 
 func (o *SyncCopyOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,7 +95,7 @@ type SyncCopyNotFound struct {
 }
 
 func (o *SyncCopyNotFound) Error() string {
-	return fmt.Sprintf("[POST /sync/copy?_async=true][%d] syncCopyNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /sync/copy][%d] syncCopyNotFound  %+v", 404, o.Payload)
 }
 
 func (o *SyncCopyNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -124,7 +124,7 @@ type SyncCopyInternalServerError struct {
 }
 
 func (o *SyncCopyInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /sync/copy?_async=true][%d] syncCopyInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /sync/copy][%d] syncCopyInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *SyncCopyInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

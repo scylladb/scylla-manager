@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // ListOptions list options
@@ -17,26 +18,45 @@ import (
 type ListOptions struct {
 
 	// A remote name string eg. drive:
-	Fs string `json:"fs,omitempty"`
+	// Required: true
+	Fs *string `json:"fs"`
 
 	// opt
 	Opt *ListOptionsOpt `json:"opt,omitempty"`
 
 	// A path within that remote eg. dir
-	Remote string `json:"remote,omitempty"`
+	// Required: true
+	Remote *string `json:"remote"`
 }
 
 // Validate validates this list options
 func (m *ListOptions) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateFs(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateOpt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRemote(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ListOptions) validateFs(formats strfmt.Registry) error {
+
+	if err := validate.Required("fs", "body", m.Fs); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -53,6 +73,15 @@ func (m *ListOptions) validateOpt(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *ListOptions) validateRemote(formats strfmt.Registry) error {
+
+	if err := validate.Required("remote", "body", m.Remote); err != nil {
+		return err
 	}
 
 	return nil

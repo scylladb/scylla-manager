@@ -65,7 +65,7 @@ type OperationsPurgeOK struct {
 }
 
 func (o *OperationsPurgeOK) Error() string {
-	return fmt.Sprintf("[POST /operations/purge?_async=true][%d] operationsPurgeOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /operations/purge][%d] operationsPurgeOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsPurgeOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ type OperationsPurgeNotFound struct {
 }
 
 func (o *OperationsPurgeNotFound) Error() string {
-	return fmt.Sprintf("[POST /operations/purge?_async=true][%d] operationsPurgeNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /operations/purge][%d] operationsPurgeNotFound  %+v", 404, o.Payload)
 }
 
 func (o *OperationsPurgeNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -123,7 +123,7 @@ type OperationsPurgeInternalServerError struct {
 }
 
 func (o *OperationsPurgeInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /operations/purge?_async=true][%d] operationsPurgeInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /operations/purge][%d] operationsPurgeInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *OperationsPurgeInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

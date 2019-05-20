@@ -2,6 +2,7 @@ all: help
 
 COMPOSE=docker-compose
 CQLSH=cqlsh --cqlversion=3.3.1
+MINIODIR=/tmp/miniodata
 
 include .env
 
@@ -14,7 +15,7 @@ build: ## Build custom docker images
 up: ## Start docker containers
 	@echo "==> Building agent..."
 	@go build -o ../agent.dev ../cmd/agent
-	@mkdir -p /tmp/miniodata
+	@mkdir -p $(MINIODIR)
 	@echo "==> Starting containers"
 	@$(COMPOSE) up -d
 	@echo "==> Waiting for cluster"

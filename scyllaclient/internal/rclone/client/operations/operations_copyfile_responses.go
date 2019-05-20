@@ -65,7 +65,7 @@ type OperationsCopyfileOK struct {
 }
 
 func (o *OperationsCopyfileOK) Error() string {
-	return fmt.Sprintf("[POST /operations/copyfile?_async=true][%d] operationsCopyfileOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /operations/copyfile][%d] operationsCopyfileOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsCopyfileOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ type OperationsCopyfileNotFound struct {
 }
 
 func (o *OperationsCopyfileNotFound) Error() string {
-	return fmt.Sprintf("[POST /operations/copyfile?_async=true][%d] operationsCopyfileNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /operations/copyfile][%d] operationsCopyfileNotFound  %+v", 404, o.Payload)
 }
 
 func (o *OperationsCopyfileNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -123,7 +123,7 @@ type OperationsCopyfileInternalServerError struct {
 }
 
 func (o *OperationsCopyfileInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /operations/copyfile?_async=true][%d] operationsCopyfileInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /operations/copyfile][%d] operationsCopyfileInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *OperationsCopyfileInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -8,8 +8,11 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 
@@ -61,7 +64,7 @@ func NewOperationsListOK() *OperationsListOK {
 List of items
 */
 type OperationsListOK struct {
-	Payload []*models.ListItem
+	Payload *OperationsListOKBody
 }
 
 func (o *OperationsListOK) Error() string {
@@ -70,8 +73,10 @@ func (o *OperationsListOK) Error() string {
 
 func (o *OperationsListOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
+	o.Payload = new(OperationsListOKBody)
+
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -133,5 +138,71 @@ func (o *OperationsListInternalServerError) readResponse(response runtime.Client
 		return err
 	}
 
+	return nil
+}
+
+/*OperationsListOKBody operations list o k body
+swagger:model OperationsListOKBody
+*/
+type OperationsListOKBody struct {
+
+	// list
+	List []*models.ListItem `json:"list"`
+}
+
+// Validate validates this operations list o k body
+func (o *OperationsListOKBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateList(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *OperationsListOKBody) validateList(formats strfmt.Registry) error {
+
+	if swag.IsZero(o.List) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.List); i++ {
+		if swag.IsZero(o.List[i]) { // not required
+			continue
+		}
+
+		if o.List[i] != nil {
+			if err := o.List[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("operationsListOK" + "." + "list" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *OperationsListOKBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *OperationsListOKBody) UnmarshalBinary(b []byte) error {
+	var res OperationsListOKBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
 	return nil
 }

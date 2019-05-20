@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -21,8 +22,11 @@ import (
 // NewSyncCopyParams creates a new SyncCopyParams object
 // with the default values initialized.
 func NewSyncCopyParams() *SyncCopyParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &SyncCopyParams{
+		Async: asyncDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -31,8 +35,11 @@ func NewSyncCopyParams() *SyncCopyParams {
 // NewSyncCopyParamsWithTimeout creates a new SyncCopyParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewSyncCopyParamsWithTimeout(timeout time.Duration) *SyncCopyParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &SyncCopyParams{
+		Async: asyncDefault,
 
 		timeout: timeout,
 	}
@@ -41,8 +48,11 @@ func NewSyncCopyParamsWithTimeout(timeout time.Duration) *SyncCopyParams {
 // NewSyncCopyParamsWithContext creates a new SyncCopyParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewSyncCopyParamsWithContext(ctx context.Context) *SyncCopyParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &SyncCopyParams{
+		Async: asyncDefault,
 
 		Context: ctx,
 	}
@@ -51,8 +61,11 @@ func NewSyncCopyParamsWithContext(ctx context.Context) *SyncCopyParams {
 // NewSyncCopyParamsWithHTTPClient creates a new SyncCopyParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewSyncCopyParamsWithHTTPClient(client *http.Client) *SyncCopyParams {
-	var ()
+	var (
+		asyncDefault = bool(true)
+	)
 	return &SyncCopyParams{
+		Async:      asyncDefault,
 		HTTPClient: client,
 	}
 }
@@ -62,6 +75,11 @@ for the sync copy operation typically these are written to a http.Request
 */
 type SyncCopyParams struct {
 
+	/*Async
+	  Async request
+
+	*/
+	Async bool
 	/*Copydir
 	  copydir
 
@@ -106,6 +124,17 @@ func (o *SyncCopyParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithAsync adds the async to the sync copy params
+func (o *SyncCopyParams) WithAsync(async bool) *SyncCopyParams {
+	o.SetAsync(async)
+	return o
+}
+
+// SetAsync adds the async to the sync copy params
+func (o *SyncCopyParams) SetAsync(async bool) {
+	o.Async = async
+}
+
 // WithCopydir adds the copydir to the sync copy params
 func (o *SyncCopyParams) WithCopydir(copydir SyncCopyBody) *SyncCopyParams {
 	o.SetCopydir(copydir)
@@ -124,6 +153,15 @@ func (o *SyncCopyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 		return err
 	}
 	var res []error
+
+	// query param _async
+	qrAsync := o.Async
+	qAsync := swag.FormatBool(qrAsync)
+	if qAsync != "" {
+		if err := r.SetQueryParam("_async", qAsync); err != nil {
+			return err
+		}
+	}
 
 	if err := r.SetBodyParam(o.Copydir); err != nil {
 		return err
