@@ -3,9 +3,11 @@
 package rcserver
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ncw/rclone/fs"
+	"github.com/ncw/rclone/fs/rc"
 )
 
 func init() {
@@ -15,8 +17,46 @@ func init() {
 func registerInMemoryConf() {
 	c := &inMemoryConf{}
 	// Set inMemoryConf as default handler for rclone/fs configuration.
-	fs.ConfigFileGet = c.GetFlag
+	fs.ConfigFileGet = c.Get
 	fs.ConfigFileSet = c.Set
+
+	call := rc.Calls.Get("config/create")
+	call.Fn = func(in rc.Params) (rc.Params, error) {
+		name, err := in.GetString("name")
+		if err != nil {
+			return nil, err
+		}
+		parameters := rc.Params{}
+		err = in.GetStruct("parameters", &parameters)
+		if err != nil {
+			return nil, err
+		}
+		remoteType, err := in.GetString("type")
+		if err != nil {
+			return nil, err
+		}
+		c.Set(name, "type", remoteType)
+		for k, v := range parameters {
+			c.Set(name, k, fmt.Sprintf("%v", v))
+		}
+		return nil, nil
+	}
+	call = rc.Calls.Get("config/get")
+	call.Fn = func(in rc.Params) (rc.Params, error) {
+		name, err := in.GetString("name")
+		if err != nil {
+			return nil, err
+		}
+		section, ok := c.sections[name]
+		if !ok {
+			return nil, fmt.Errorf("unknown name %q", name)
+		}
+		params := rc.Params{}
+		for key, val := range section {
+			params[key] = val
+		}
+		return params, nil
+	}
 }
 
 // inMemoryConf is in-memory implementation of rclone configuration for remote file
@@ -26,9 +66,9 @@ type inMemoryConf struct {
 	sections map[string]map[string]string
 }
 
-// GetFlag gets the config key under section returning the
-// the value and true if found and or ("", false) otherwise.
-func (c *inMemoryConf) GetFlag(section, key string) (string, bool) {
+// Get config key under section returning the the value and true if found or
+// ("", false) otherwise.
+func (c *inMemoryConf) Get(section, key string) (string, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.sections == nil {
@@ -42,8 +82,8 @@ func (c *inMemoryConf) GetFlag(section, key string) (string, bool) {
 	return v, ok
 }
 
-// Set sets the key in section to value.  It doesn't save
-// the config file.
+// Set the key in section to value.
+// It doesn't save the config file.
 func (c *inMemoryConf) Set(section, key, value string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

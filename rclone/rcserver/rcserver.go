@@ -7,18 +7,40 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/ncw/rclone/fs"
 	"github.com/ncw/rclone/fs/accounting"
+	"github.com/ncw/rclone/fs/fshttp"
 	"github.com/ncw/rclone/fs/rc"
 	"github.com/pkg/errors"
 )
+
+var initOnce sync.Once
 
 // Server implements http.Handler interface.
 type Server struct{}
 
 // New creates new rclone server.
+// Since we are overriding default behavior of saving remote configuration to
+// files, we need to include code that was called in
+// rclone/fs/config.LoadConfig, which initializes accounting processes but is
+// no longer called.
+// It's probably done this way to make sure that configuration has opportunity
+// to modify global config object before these processes are started as they
+// depend on it.
+// We are initializing it once here to make sure it's executed only when server
+// is needed and configuration is completely loaded.
 func New() *Server {
+	initOnce.Do(func() {
+		// Start the token bucket limiter
+		accounting.StartTokenBucket()
+		// Start the bandwidth update ticker
+		accounting.StartTokenTicker()
+		// Start the transactions per second limiter
+		fshttp.StartHTTPTokenBucket()
+	})
+
 	return &Server{}
 }
 
@@ -63,6 +85,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
 	contentType := r.Header.Get("Content-Type")
+	w.Header().Set("Content-Type", "application/json")
 
 	values := r.URL.Query()
 	if contentType == "application/x-www-form-urlencoded" {
