@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-// +build tools
+// +build modules
 
 package mermaid
 
