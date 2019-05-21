@@ -112,13 +112,14 @@ services:
     image: minio/minio
     volumes:
       - type: bind
-        source: /tmp/miniodata
+        source: ${MINIO_DATA_DIR}
         target: /data
     ports:
       - 9000
     environment:
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: minio123
+    user: ${MINIO_UID}
     command: server /data
     networks:
       public:

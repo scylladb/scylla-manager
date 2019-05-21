@@ -6,12 +6,9 @@ package scyllaclient_test
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -26,9 +23,8 @@ import (
 )
 
 const (
-	remote   = "s3"
-	bucket   = "testing"
-	minioDir = "/tmp/miniodata"
+	remote = "s3"
+	bucket = "testing"
 )
 
 // setupS3Remote  removes testing bucket if it's already there and creates new
@@ -37,18 +33,13 @@ const (
 func setupS3Remote(t *testing.T, c *scyllaclient.Client, host string) string {
 	t.Helper()
 
-	bucketPath := filepath.Join(minioDir, bucket)
-	if err := os.RemoveAll(bucketPath); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Mkdir(bucketPath, os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	S3InitBucket(t, bucket)
+
 	err := c.RcloneRegisterS3Remote(context.Background(), host, remote, S3ParamsFromFlags())
 	if err != nil {
 		t.Fatal(err)
 	}
-	return fmt.Sprintf("%s:%s", remote, bucketPath)
+	return remote + ":" + bucket
 }
 
 func newClient(t *testing.T) (*scyllaclient.Client, string, func()) {

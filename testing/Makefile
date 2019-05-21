@@ -2,7 +2,8 @@ all: help
 
 COMPOSE=docker-compose
 CQLSH=cqlsh --cqlversion=3.3.1
-MINIODIR=/tmp/miniodata
+
+export MINIO_UID=$(shell echo "`id -u`:`id -g`")
 
 include .env
 
@@ -15,7 +16,8 @@ build: ## Build custom docker images
 up: ## Start docker containers
 	@echo "==> Building agent..."
 	@go build -o ../agent.dev ../cmd/agent
-	@mkdir -p $(MINIODIR)
+	@echo "==> Creating local S3 directory at $(MINIO_DATA_DIR)"
+	@mkdir -p $(MINIO_DATA_DIR)
 	@echo "==> Starting containers"
 	@$(COMPOSE) up -d
 	@echo "==> Waiting for cluster"

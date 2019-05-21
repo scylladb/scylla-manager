@@ -66,7 +66,7 @@ unit-test: ## Run unit tests
 
 include testing/testacc.env
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.100.11
+INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.100.11 -s3-local-data-dir $(PWD)/testing/minio/data
 
 .PHONY: integration-test
 integration-test: ## Run integration tests
