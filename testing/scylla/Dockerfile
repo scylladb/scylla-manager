@@ -39,3 +39,6 @@ ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scy
 
 # Add scylla-manager-agent configuration
 COPY etc/scylla-manager-agent/scylla-manager-agent.yaml /etc/scylla-manager-agent/scylla-manager-agent.yaml
+
+# Add default environment variables
+COPY etc/environment /etc/environment

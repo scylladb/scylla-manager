@@ -66,7 +66,8 @@ unit-test: ## Run unit tests
 
 include testing/testacc.env
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.100.11 -s3-local-data-dir $(PWD)/testing/minio/data
+S3_ARGS               := -s3-data-dir $(PWD)/testing/minio/data -s3-endpoint http://192.168.100.99:9000 -s3-access-key-id minio -s3-secret-access-key minio123
+INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.100.11 $(S3_ARGS)
 
 .PHONY: integration-test
 integration-test: ## Run integration tests

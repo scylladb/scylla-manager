@@ -22,57 +22,56 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
 )
 
-const (
-	remote = "s3"
-	bucket = "testing"
-)
-
-// setupS3Remote  removes testing bucket if it's already there and creates new
-// bucket and then it registers it with rclone server.
-// It returns remote path to the bucket.
-func setupS3Remote(t *testing.T, c *scyllaclient.Client, host string) string {
+func newMockRcloneServer(t *testing.T) (*scyllaclient.Client, func()) {
 	t.Helper()
 
-	S3InitBucket(t, bucket)
-
-	err := c.RcloneRegisterS3Remote(context.Background(), host, remote, S3ParamsFromFlags())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return remote + ":" + bucket
-}
-
-func newClient(t *testing.T) (*scyllaclient.Client, string, func()) {
-	t.Helper()
-	rch := rcserver.New()
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	rc := rcserver.New()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
-		rch.ServeHTTP(w, r)
+		rc.ServeHTTP(w, r)
 	}))
 
-	host, port, err := net.SplitHostPort(s.Listener.Addr().String())
+	host, port, err := net.SplitHostPort(server.Listener.Addr().String())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = []string{host}
-	config.Transport = http.DefaultTransport
 	config.AgentPort = port
 
-	c, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
-	return c, host, func() { s.Close() }
+	return client, func() { server.Close() }
+}
+
+const (
+	testRemote = "s3"
+	testBucket = "testing"
+	testHost   = "127.0.0.1"
+)
+
+func registerRemote(t *testing.T, c *scyllaclient.Client, host string) {
+	t.Helper()
+
+	if err := c.RcloneRegisterS3Remote(context.Background(), host, testRemote, NewS3Params()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func remotePath(path string) string {
+	return testRemote + ":" + testBucket + path
 }
 
 func TestRcloneListDirIntegration(t *testing.T) {
-	ctx := context.Background()
-	c, host, finish := newClient(t)
-	defer finish()
+	client, close := newMockRcloneServer(t)
+	defer close()
 
-	got, err := c.RcloneListDir(ctx, host, "testdata/rclone/list", true)
+	ctx := context.Background()
+
+	got, err := client.RcloneListDir(ctx, testHost, "testdata/rclone/list", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,11 +93,12 @@ func TestRcloneListDirIntegration(t *testing.T) {
 }
 
 func TestRcloneDiskUsageIntegration(t *testing.T) {
-	ctx := context.Background()
-	c, host, finish := newClient(t)
-	defer finish()
+	client, close := newMockRcloneServer(t)
+	defer close()
 
-	got, err := c.RcloneDiskUsage(ctx, host, "testdata/rclone/")
+	ctx := context.Background()
+
+	got, err := client.RcloneDiskUsage(ctx, testHost, "testdata/rclone/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,20 +108,22 @@ func TestRcloneDiskUsageIntegration(t *testing.T) {
 	}
 }
 func TestRcloneCopyDirIntegration(t *testing.T) {
+	client, close := newMockRcloneServer(t)
+	defer close()
+
+	S3InitBucket(t, testBucket)
+	registerRemote(t, client, testHost)
+
 	ctx := context.Background()
-	c, host, finish := newClient(t)
-	defer finish()
 
-	remotePath := setupS3Remote(t, c, host) + "/copy"
-
-	id, err := c.RcloneCopyDir(ctx, host, remotePath, "testdata/rclone/copy")
+	id, err := client.RcloneCopyDir(ctx, testHost, remotePath("/copy"), "testdata/rclone/copy")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(50 * time.Millisecond)
 
-	status, err := c.RcloneJobStatus(ctx, host, id)
+	status, err := client.RcloneJobStatus(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,22 +133,22 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 		t.Errorf("Expected copy dir job to finish successfully")
 	}
 
-	f, err := c.RcloneListDir(ctx, host, remotePath, true)
+	d, err := client.RcloneListDir(ctx, testHost, remotePath("/copy"), true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f) != 3 {
-		t.Errorf("Expected bucket have 3 items, got: len(files)=%d", len(f))
+	if len(d) != 3 {
+		t.Errorf("Expected bucket have 3 items, got: len(files)=%d", len(d))
 	}
 
-	id, err = c.RcloneDeleteDir(ctx, host, remotePath)
+	id, err = client.RcloneDeleteDir(ctx, testHost, remotePath("/copy"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(50 * time.Millisecond)
 
-	status, err = c.RcloneJobStatus(ctx, host, id)
+	status, err = client.RcloneJobStatus(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,32 +158,32 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 		t.Errorf("Expected purge job to finish successfully")
 	}
 
-	f, err = c.RcloneListDir(ctx, host, remotePath, true)
+	d, err = client.RcloneListDir(ctx, testHost, remotePath("/copy"), true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f) > 0 {
-		t.Errorf("Expected bucket to be empty, got: %v", f)
+	if len(d) > 0 {
+		t.Errorf("Expected bucket to be empty, got: %v", d)
 	}
 }
 
 func TestRcloneCopyFileIntegration(t *testing.T) {
+	client, close := newMockRcloneServer(t)
+	defer close()
+
+	S3InitBucket(t, testBucket)
+	registerRemote(t, client, testHost)
+
 	ctx := context.Background()
-	c, host, finish := newClient(t)
-	defer finish()
 
-	remotePath := setupS3Remote(t, c, host)
-
-	dstPath := remotePath + "/file2.txt"
-
-	id, err := c.RcloneCopyFile(ctx, host, dstPath, "testdata/rclone/copy/file.txt")
+	id, err := client.RcloneCopyFile(ctx, testHost, remotePath("/file2.txt"), "testdata/rclone/copy/file.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(50 * time.Millisecond)
 
-	status, err := c.RcloneJobStatus(ctx, host, id)
+	status, err := client.RcloneJobStatus(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,22 +193,22 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 		t.Errorf("Expected copy file job to finish successfully")
 	}
 
-	f, err := c.RcloneListDir(ctx, host, remotePath, true)
+	d, err := client.RcloneListDir(ctx, testHost, remotePath(""), true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f) != 1 {
-		t.Errorf("Expected bucket have 1 item, got: len(files)=%d", len(f))
+	if len(d) != 1 {
+		t.Errorf("Expected bucket have 1 item, got: len(files)=%d", len(d))
 	}
 
-	id, err = c.RcloneDeleteFile(ctx, host, dstPath)
+	id, err = client.RcloneDeleteFile(ctx, testHost, remotePath("/file2.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(50 * time.Millisecond)
 
-	status, err = c.RcloneJobStatus(ctx, host, id)
+	status, err = client.RcloneJobStatus(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,11 +218,11 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 		t.Errorf("Expected purge job to finish successfully")
 	}
 
-	f, err = c.RcloneListDir(ctx, host, remotePath, true)
+	d, err = client.RcloneListDir(ctx, testHost, remotePath(""), true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f) > 0 {
-		t.Errorf("Expected bucket to be empty, got: len(files)=%d", len(f))
+	if len(d) > 0 {
+		t.Errorf("Expected bucket to be empty, got: len(files)=%d", len(d))
 	}
 }
