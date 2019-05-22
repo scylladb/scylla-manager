@@ -395,7 +395,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 		Tag:     &tag,
 		Kn:      &keyspace,
 	}
-	if len(keyspace) > 0 {
+	if len(tables) > 0 {
 		cf := strings.Join(tables, ",")
 		params.Cf = &cf
 	}
