@@ -1,0 +1,5 @@
+http: 127.0.0.1:1000
+
+scylla:
+  api_port: 1000
+  prometheus_port: 1000

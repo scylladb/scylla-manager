@@ -38,9 +38,9 @@ func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
 		mux.rclone.ServeHTTP(w, r)
 	case strings.HasPrefix(p, "/metrics/"):
-		mux.sendRequest(w, withHost(r, host+":"+mux.config.ScyllaMetricsPort))
+		mux.sendRequest(w, withHost(r, host+":"+mux.config.Scylla.PrometheusPort))
 	default:
-		mux.sendRequest(w, withHost(r, host+":"+mux.config.ScyllaAPIPort))
+		mux.sendRequest(w, withHost(r, host+":"+mux.config.Scylla.APIPort))
 	}
 }
 
