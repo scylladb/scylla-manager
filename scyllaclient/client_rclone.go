@@ -96,12 +96,15 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.
-func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
+// To exclude files by filename pattern (just filename without directory path)
+// pass them as variadic arguments.
+func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string, exclude ...string) (int64, error) {
 	p := operations.SyncCopyParams{
 		Context: forceHost(ctx, host),
 		Copydir: operations.SyncCopyBody{
-			SrcFs: srcRemotePath,
-			DstFs: dstRemotePath,
+			SrcFs:   srcRemotePath,
+			DstFs:   dstRemotePath,
+			Exclude: exclude,
 		},
 		Async: true,
 	}
@@ -112,8 +115,8 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, 
 	return resp.Payload.Jobid, nil
 }
 
-// RcloneDeleteDir removes a directory or container and all of its contents from
-// the remote.
+// RcloneDeleteDir removes a directory or container and all of its contents
+// from the remote.
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.
 func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath string) (int64, error) {

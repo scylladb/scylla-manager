@@ -11,6 +11,7 @@ import (
 
 	"github.com/ncw/rclone/fs"
 	"github.com/ncw/rclone/fs/accounting"
+	"github.com/ncw/rclone/fs/filter"
 	"github.com/ncw/rclone/fs/fshttp"
 	"github.com/ncw/rclone/fs/rc"
 	"github.com/pkg/errors"
@@ -112,6 +113,29 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		if err != nil {
 			writeError(path, in, w, errors.Wrap(err, "failed to read input JSON"), http.StatusBadRequest)
 			return
+		}
+	}
+
+	exclude, err := in.Get("exclude")
+	if rc.NotErrParamNotFound(err) {
+		writeError(path, in, w, err, http.StatusBadRequest)
+		return
+	}
+	if exclude != nil {
+		e, ok := exclude.([]interface{})
+		if !ok {
+			writeError(path, in, w, errors.New("exclude should be list of strings"), http.StatusBadRequest)
+			return
+		}
+		for i := range e {
+			v, ok := e[i].(string)
+			if !ok {
+				writeError(path, in, w, errors.New("exclude should be list of strings"), http.StatusBadRequest)
+			}
+			if err := filter.Active.Add(false, v); err != nil {
+				writeError(path, in, w, errors.Wrap(err, "failed to read exclude pattern"), http.StatusBadRequest)
+				return
+			}
 		}
 	}
 

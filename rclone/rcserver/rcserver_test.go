@@ -293,6 +293,20 @@ func TestRCAsyncErrorStatus(t *testing.T) {
 	})
 }
 
+func TestRCExcludeParams(t *testing.T) {
+	registerInMemoryConf()
+	rcServer := New()
+
+	runHTTPTest(t, rcServer, httpTest{
+		Name:        "ok",
+		URL:         "rc/noop",
+		Method:      "POST",
+		ContentType: "application/json",
+		Body:        `{ "exclude": ["test1", "test2"] }`,
+		Status:      http.StatusOK,
+	})
+}
+
 // httpTest specifies expected request response cycle behavior needed to test
 // http handlers.
 type httpTest struct {
