@@ -38,7 +38,7 @@ release/rpm: $(GO_BUNDLE) release/scylla-manager-$(VERSION_NAME).tar.gz ## Creat
 	@tar -xzf $(GO_BUNDLE) -C $(RPMBUILD)/BUILD
 	@cp release/scylla-manager-$(VERSION_NAME).tar.gz $(RPMBUILD)/SOURCES
 
-	@rpmbuild -bb --target x86_64 --quiet \
+	@rpmbuild -bb --target x86_64 \
 	--define "mermaid_version $(VERSION)" \
 	--define "mermaid_release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)"  \
@@ -58,7 +58,7 @@ release/deb: release/scylla-manager-$(VERSION_NAME).tar.gz ## Create DEB package
 
 .PHONY: inspect/rpm
 inspect/rpm: ## Display RPM package meta-data
-	@rpm -qpli release/rpm/scylla-manager{,-server,-client}-$(VERSION_NAME).x86_64.rpm
+	@rpm -qpli release/rpm/scylla-manager{,-server,-client,-agent}-$(VERSION_NAME).x86_64.rpm
 
 .PHONY: help
 help:

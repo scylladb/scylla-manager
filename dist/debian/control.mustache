@@ -10,25 +10,25 @@ Package: scylla-manager-server
 Architecture: amd64
 Section: databases
 Depends: bash, curl, jq, openssh-client, openssl, psmisc
-Description: Scylla Manager
- Scylla is a highly scalable, eventually consistent, distributed, partitioned row
- database. This package provides the Scylla Manager server that manages 
- routine tasks for Scylla DB clusters.
+Description: Scylla Manager Server
+ Scylla is a highly scalable, eventually consistent, distributed, partitioned row database. This package provides the Scylla Manager server that manages maintenance tasks for Scylla database clusters.
 
 Package: scylla-manager-client
 Architecture: amd64
 Section: databases
 Depends: bash-completion
-Description: Scylla Manager CLI
- Scylla is a highly scalable, eventually consistent, distributed, partitioned row
- database. This package provides sctool, the CLI for interacting with the
- Scylla Manager server.
+Description: Scylla Manager Client
+ Scylla is a highly scalable, eventually consistent, distributed, partitioned row database. This package provides sctool, the CLI for interacting with the Scylla Manager server.
+
+Package: scylla-manager-agent
+Architecture: amd64
+Section: databases
+Description: Scylla Manager Agent
+ Scylla is a highly scalable, eventually consistent, distributed, partitioned row database. This package provides the Scylla Manager Agent installed alongside Scylla database server.
 
 Package: scylla-manager
 Architecture: amd64
 Section: databases
 Depends: scylla-enterprise, scylla-manager-server, scylla-manager-client
 Description: Scylla Manager Metapackage
- Scylla is a highly scalable, eventually consistent, distributed, partitioned row
- database. This package is a meta package that installs all scylla-manager* packages as
- well as scylla database server.
+ Scylla is a highly scalable, eventually consistent, distributed, partitioned row database. This package is a meta package that installs the Scylla Manager server and client as well as Scylla database server that is used for storage.

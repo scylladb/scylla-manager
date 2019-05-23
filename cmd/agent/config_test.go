@@ -39,7 +39,7 @@ func TestParseConfigFiles(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := parseConfigFiles("../../dist/etc/scylla-manager-agent.yaml", "")
+	c, err := parseConfigFiles("../../dist/etc/scylla-manager-agent/scylla-manager-agent.yaml", "")
 	if err != nil {
 		t.Fatal(err)
 	}

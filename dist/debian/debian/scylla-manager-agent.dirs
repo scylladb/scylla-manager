@@ -1,0 +1,4 @@
+etc/scylla-manager-agent
+lib/systemd/system
+var/lib/scylla-manager
+usr/share/doc/scylla-manager

@@ -1,0 +1,17 @@
+[Unit]
+Description=Scylla Manager Agent
+Wants=scylla-server.service
+After=scylla-server.service
+After=network-online.target
+
+[Service]
+Type=simple
+User=scylla-manager
+Group=scylla-manager
+ExecStart=/usr/bin/scylla-manager-agent
+TimeoutStartSec=900
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

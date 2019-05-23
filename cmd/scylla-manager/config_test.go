@@ -86,7 +86,7 @@ func TestConfigModification(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := newConfigFromFile("../../dist/etc/scylla-manager.yaml")
+	c, err := newConfigFromFile("../../dist/etc/scylla-manager/scylla-manager.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

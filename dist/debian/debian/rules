@@ -1,14 +1,16 @@
 #!/usr/bin/make -f
 
-pkg_name   := github.com/scylladb/mermaid
-builddir   := /tmp/mermaid_deb
+import_path := github.com/scylladb/mermaid
+builddir    := /tmp/mermaid_deb
 
-GO         := /tmp/go/bin/go
-GO_VERSION := 1.12.1
-GO_HASH    := 2a3fdabf665496a0db5f41ec6af7a9b15a49fbe71a85a50ca38b1f13a103aeec
-GO_URL     := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
-GO_BUNDLE := /tmp/go$(GO_VERSION).linux-amd64.tar.gz
-GOLDFLAGS  := -w -extldflags '-static' -X $(pkg_name).version=$(shell dpkg-parsechangelog --show-field Version)
+GO          := /tmp/go/bin/go
+GO_VERSION  := 1.12.1
+GO_HASH     := 2a3fdabf665496a0db5f41ec6af7a9b15a49fbe71a85a50ca38b1f13a103aeec
+GO_URL      := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
+GO_BUNDLE   := /tmp/go$(GO_VERSION).linux-amd64.tar.gz
+GOPATH      := $(builddir)/_build
+GOGCFLAGS   := all=-trimpath=$(GOPATH)
+GOLDFLAGS   := -w -extldflags '-static' -X $(import_path).version=$(shell dpkg-parsechangelog --show-field Version)
 
 %:
 	dh $@ --with=systemd
@@ -20,18 +22,21 @@ override_dh_auto_build:
 	curl -sSq $(GO_URL) -o $(GO_BUNDLE)
 	[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "$(GO_HASH)" ]
 	tar -zxf $(GO_BUNDLE) -C /tmp
-	mkdir -p $(builddir)/src/github.com/scylladb
-	ln -s `pwd` $(builddir)/src/github.com/scylladb/mermaid
 
-	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a \
-	-gcflags "all=-trimpath=$(GOPATH)" \
-	-ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" \
-	-o release/linux_amd64/scylla-manager $(pkg_name)/cmd/scylla-manager
+	mkdir -p $(builddir)/_build/src/github.com/scylladb
+	ln -s `pwd` $(builddir)/_build/src/$(import_path)
 
-	GOPATH=$(builddir) CGO_ENABLED=0 $(GO) build -a \
-	-gcflags "all=-trimpath=$(GOPATH)" \
-	-ldflags "-B 0x$(head -c20 < /dev/urandom | xxd -p -c20) $(GOLDFLAGS)" \
-	-o release/linux_amd64/sctool $(pkg_name)/cmd/sctool
+	CGO_ENABLED=0 $(GO) build -a -mod vendor \
+	-gcflags "$(GOGCFLAGS)" -ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+	-o release/linux_amd64/scylla-manager $(import_path)/cmd/scylla-manager
+
+	CGO_ENABLED=0 $(GO) build -a -mod vendor \
+	-gcflags "$(GOGCFLAGS)" -ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+	-o release/linux_amd64/sctool $(import_path)/cmd/sctool
+
+	CGO_ENABLED=0 $(GO) build -a -mod vendor \
+	-gcflags "$(GOGCFLAGS)" -ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+	-o release/linux_amd64/scylla-manager-agent $(import_path)/cmd/agent
 
 	mkdir -p release/bash_completion
 	release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
