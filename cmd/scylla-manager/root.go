@@ -46,7 +46,7 @@ var rootCmd = &cobra.Command{
 	SilenceErrors: true,
 
 	RunE: func(cmd *cobra.Command, args []string) (runError error) {
-		// print version and return
+		// Print version and return
 		if cfgVersion {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", mermaid.Version())
 			return
