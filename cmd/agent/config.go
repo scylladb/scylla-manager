@@ -9,11 +9,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	defaultConfigFile       = "/etc/scylla-manager-agent/scylla-manager-agent.yaml"
-	defaultScyllaConfigFile = "/etc/scylla/scylla.yaml"
-)
-
 // config specifies the agent configuration.
 type config struct {
 	HTTP   string       `yaml:"http"`
