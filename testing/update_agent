@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
+
+set -eu -o pipefail
+
+echo "==> Building agent"
+go build -o ../agent.dev ../cmd/agent
+
+for name in `docker ps -f name=mermaid_dc --format {{.Names}}`; do
+    echo "==> Updating ${name}"
+    docker cp ../agent.dev ${name}:/usr/bin/scylla-manager-agent
+    docker exec ${name} supervisorctl restart scylla-manager-agent
+done

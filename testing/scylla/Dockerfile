@@ -25,6 +25,17 @@ COPY etc/scylla/scylla.yaml /etc/scylla/scylla.yaml
 ADD db.crt db.key /etc/scylla/
 
 # Force running Scylla processes as scylla user
-RUN echo "user: scylla" >> /etc/supervisord.conf.d/scylla-server.conf
-RUN echo "user: scylla" >> /etc/supervisord.conf.d/scylla-housekeeping.conf
-RUN echo "user: scylla" >> /etc/supervisord.conf.d/scylla-jmx.conf
+RUN echo "user=scylla" >> /etc/supervisord.conf.d/scylla-server.conf
+RUN echo "user=scylla" >> /etc/supervisord.conf.d/scylla-housekeeping.conf
+RUN echo "user=scylla" >> /etc/supervisord.conf.d/scylla-jmx.conf
+
+# Create scylla-manager user
+RUN groupadd -r scylla-manager && \
+    useradd -g scylla-manager -d /var/lib/scylla-manager -m -s /sbin/nologin -r scylla-manager && \
+    usermod -ou $(id -u scylla) scylla-manager
+
+# Add supervisord configuration for scylla-manager-agent
+ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scylla-manager-agent.conf
+
+# Add scylla-manager-agent configuration
+COPY etc/scylla-manager-agent/scylla-manager-agent.yaml /etc/scylla-manager-agent/scylla-manager-agent.yaml

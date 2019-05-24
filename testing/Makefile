@@ -12,8 +12,6 @@ build: ## Build custom docker images
 
 .PHONY: up
 up: ## Start docker containers
-	@echo "==> Building agent..."
-	@go build -o ../agent.dev ../cmd/agent
 	@echo "==> Starting containers"
 	@mkdir -p $(MINIO_DATA_DIR)
 	@$(COMPOSE) up -d
@@ -23,8 +21,7 @@ up: ## Start docker containers
 	@$(CQLSH) 192.168.100.11 -f init.cql
 	@echo "==> Installing root SSH key"
 	@./install_root_key
-	@echo "==> Installing scylla-manager SSH key"
-	@until ../dist/scripts/scyllamgr_ssh_setup -u root -i ~/.ssh/scylla-manager-root.pem 192.168.100.11; do sleep 2; done
+	@./update_agent
 
 .PHONY: down
 down: ## Stop docker containers
