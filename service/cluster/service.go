@@ -157,7 +157,6 @@ func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
 			KeepAlive: 30 * time.Second,
 			DualStack: true,
 		}),
-		s.logger.Named("ssh"),
 	)
 
 	dialer.OnDial = func(host string, err error) {
