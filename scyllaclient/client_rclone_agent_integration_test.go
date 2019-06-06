@@ -16,7 +16,7 @@ import (
 func registerRemoteWithEnvAuth(t *testing.T, c *scyllaclient.Client, host string) {
 	t.Helper()
 
-	if err := c.RcloneRegisterS3Remote(context.Background(), host, testRemote, NewS3Params()); err != nil {
+	if err := c.RcloneRegisterS3Remote(context.Background(), host, testRemote, NewS3ParamsEnvAuth()); err != nil {
 		t.Fatal(err)
 	}
 }
