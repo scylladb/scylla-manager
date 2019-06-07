@@ -18,6 +18,7 @@ EXPOSE 56112
 
 VOLUME /var/lib/scylla-manager/.certs
 
+USER scylla-manager
 ENV HOME /var/lib/scylla-manager/
 ENTRYPOINT ["/usr/bin/scylla-manager"]
 CMD ["-c", "/etc/scylla-manager/scylla-manager.yaml", "-c", "/etc/scylla-manager/scylla-manager-docker.yaml"]
