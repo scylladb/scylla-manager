@@ -4,11 +4,14 @@ services:
   dc1_node_1:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
       public:
         ipv4_address: 192.168.100.11
@@ -16,11 +19,14 @@ services:
   dc1_node_2:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
       public:
         ipv4_address: 192.168.100.12
@@ -28,11 +34,14 @@ services:
   dc1_node_3:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
       public:
         ipv4_address: 192.168.100.13
@@ -40,11 +49,14 @@ services:
   dc2_node_1:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
         target: /etc/scylla/cassandra-rackdc.properties
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
       public:
         ipv4_address: 192.168.100.21
@@ -52,11 +64,14 @@ services:
   dc2_node_2:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
         target: /etc/scylla/cassandra-rackdc.properties
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
       public:
         ipv4_address: 192.168.100.22
@@ -64,11 +79,14 @@ services:
   dc2_node_3:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
+    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
         target: /etc/scylla/cassandra-rackdc.properties
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     networks:
       public:
         ipv4_address: 192.168.100.23
@@ -92,17 +110,17 @@ services:
 
   minio:
     image: minio/minio
+    user: ${MINIO_USER}
+    command: server /data
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - type: bind
         source: ${MINIO_DATA_DIR}
         target: /data
     ports:
       - 9000
-    environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-    user: ${MINIO_USER}
-    command: server /data
     networks:
       public:
         ipv4_address: 192.168.100.99
