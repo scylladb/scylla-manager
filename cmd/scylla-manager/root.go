@@ -3,16 +3,13 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path"
 	"strings"
 	"syscall"
-	"text/template"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -20,11 +17,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-log/gocqllog"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/fsutil"
-	"github.com/scylladb/mermaid/schema/cql"
 	"github.com/spf13/cobra"
 )
 
@@ -96,36 +90,41 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Wait for database
+		logger.Info(ctx, "Waiting for database...")
 		if err := waitForDatabase(ctx, config, logger); err != nil {
-			return err
+			return errors.Wrapf(err, "db init")
 		}
 
-		// Create manager keyspace
-		logger.Info(ctx, "Using keyspace",
-			"keyspace", config.Database.Keyspace,
-			"template", config.Database.KeyspaceTplFile,
-		)
-		if err := createKeyspace(config); err != nil {
-			return errors.Wrapf(err, "database")
+		// Create keyspace if needed
+		ok, err := keyspaceExists(config)
+		if err != nil {
+			return errors.Wrapf(err, "db init")
+		}
+		if !ok {
+			logger.Info(ctx, "Creating keyspace", "keyspace", config.Database.Keyspace)
+			if err := createKeyspace(config); err != nil {
+				return errors.Wrapf(err, "db init")
+			}
+			logger.Info(ctx, "Keyspace created", "keyspace", config.Database.Keyspace)
 		}
 
 		// Migrate schema
-		logger.Info(ctx, "Migrating schema", "dir", config.Database.MigrateDir)
+		logger.Info(ctx, "Migrating schema", "keyspace", config.Database.Keyspace, "dir", config.Database.MigrateDir)
 		if err := migrateSchema(config, logger); err != nil {
-			return errors.Wrapf(err, "database migration")
+			return errors.Wrapf(err, "db init")
 		}
-		logger.Info(ctx, "Migrating schema done")
+		logger.Info(ctx, "Done migrating schema", "keyspace", config.Database.Keyspace, "dir", config.Database.MigrateDir)
 
 		// Start server
-		s, err := newServer(config, logger)
+		server, err := newServer(config, logger)
 		if err != nil {
 			return errors.Wrapf(err, "server init")
 		}
-		if err := s.startServices(ctx); err != nil {
+		if err := server.startServices(ctx); err != nil {
 			return errors.Wrapf(err, "server start")
 		}
-		s.startHTTPServers(ctx)
-		defer s.close()
+		server.startHTTPServers(ctx)
+		defer server.close()
 
 		logger.Info(ctx, "Service started")
 
@@ -133,18 +132,16 @@ var rootCmd = &cobra.Command{
 		signalCh := make(chan os.Signal, 1)
 		signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 		select {
-		case err := <-s.errCh:
+		case err := <-server.errCh:
 			if err != nil {
 				logger.Error(ctx, "Server error", "error", err)
 			}
 		case sig := <-signalCh:
-			{
-				logger.Info(ctx, "Received signal", "signal", sig)
-			}
+			logger.Info(ctx, "Received signal", "signal", sig)
 		}
 
 		// Close
-		s.shutdownServers(ctx, 30*time.Second)
+		server.shutdownServers(ctx, 30*time.Second)
 
 		return
 	},
@@ -180,157 +177,6 @@ func redirectStdErrAndStdOutToFile() (*os.File, error) {
 	os.Stdout = f
 	os.Stderr = f
 	return f, nil
-}
-
-func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logger) error {
-	const (
-		wait        = 5 * time.Second
-		maxAttempts = 60
-	)
-
-	for i := 0; i < maxAttempts; i++ {
-		if err := tryConnect(config); err != nil {
-			logger.Info(ctx, "Could not connect to database",
-				"sleep", wait,
-				"error", err,
-			)
-			time.Sleep(wait)
-		} else {
-			return nil
-		}
-	}
-
-	return errors.New("could not connect to database, max attempts reached")
-}
-
-func tryConnect(config *serverConfig) error {
-	c := gocqlConfig(config)
-	c.Keyspace = "system"
-
-	sesion, err := c.CreateSession()
-	if sesion != nil {
-		sesion.Close()
-	}
-	return err
-}
-
-func createKeyspace(config *serverConfig) error {
-	c := gocqlConfig(config)
-	c.Keyspace = "system"
-	c.Timeout = config.Database.MigrateTimeout
-	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
-
-	session, err := c.CreateSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	// Auto upgrade replication factor if needed. RF=1 with multiple hosts means
-	// data loss when one of the nodes is down. This is understood with a single
-	// node deployment but must be avoided if we have more nodes.
-	if config.Database.ReplicationFactor == 1 {
-		var peers int
-		q := session.Query("SELECT COUNT(*) FROM system.peers")
-		if err := q.Scan(&peers); err != nil {
-			return err
-		}
-		if peers > 0 {
-			rf := peers + 1
-			if rf > 3 {
-				rf = 3
-			}
-			config.Database.ReplicationFactor = rf
-		}
-	}
-
-	stmt, err := readKeyspaceTplFile(config)
-	if err != nil {
-		return err
-	}
-
-	return gocqlx.Query(session.Query(stmt), nil).ExecRelease()
-}
-
-func readKeyspaceTplFile(config *serverConfig) (stmt string, err error) {
-	b, err := ioutil.ReadFile(config.Database.KeyspaceTplFile)
-	if err != nil {
-		return "", errors.Wrapf(err, "could not read file %s", config.Database.KeyspaceTplFile)
-	}
-
-	t := template.New("")
-	if _, err := t.Parse(string(b)); err != nil {
-		return "", errors.Wrapf(err, "template error file %s", config.Database.KeyspaceTplFile)
-	}
-
-	buf := new(bytes.Buffer)
-	if err := t.Execute(buf, config.Database); err != nil {
-		return "", errors.Wrapf(err, "template error file %s", config.Database.KeyspaceTplFile)
-	}
-
-	return buf.String(), err
-}
-
-func migrateSchema(config *serverConfig, logger log.Logger) error {
-	c := gocqlConfig(config)
-	c.Timeout = config.Database.MigrateTimeout
-	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
-
-	session, err := c.CreateSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	cql.Logger = logger
-	migrate.Callback = cql.MigrateCallback
-
-	return migrate.Migrate(context.Background(), session, config.Database.MigrateDir)
-}
-
-func gocqlConfig(config *serverConfig) *gocql.ClusterConfig {
-	c := gocql.NewCluster(config.Database.Hosts...)
-
-	// Chose consistency level, for a single node deployments use ONE, for
-	// multi-dc deployments use LOCAL_QUORUM, otherwise use QUORUM.
-	switch {
-	case config.Database.LocalDC != "":
-		c.Consistency = gocql.LocalQuorum
-	case config.Database.ReplicationFactor == 1:
-		c.Consistency = gocql.One
-	default:
-		c.Consistency = gocql.Quorum
-	}
-
-	c.Keyspace = config.Database.Keyspace
-	c.Timeout = config.Database.Timeout
-
-	// SSL
-	if config.Database.SSL {
-		c.SslOpts = &gocql.SslOptions{
-			CaPath:                 config.SSL.CertFile,
-			CertPath:               config.SSL.UserCertFile,
-			KeyPath:                config.SSL.UserKeyFile,
-			EnableHostVerification: config.SSL.Validate,
-		}
-	}
-
-	// Authentication
-	if config.Database.User != "" {
-		c.Authenticator = gocql.PasswordAuthenticator{
-			Username: config.Database.User,
-			Password: config.Database.Password,
-		}
-	}
-
-	// Enable token aware host selection policy
-	fallback := gocql.RoundRobinHostPolicy()
-	if config.Database.LocalDC != "" {
-		fallback = gocql.DCAwareRoundRobinPolicy(config.Database.LocalDC)
-	}
-	c.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(fallback)
-
-	return c
 }
 
 func obfuscatePasswords(config *serverConfig) serverConfig {

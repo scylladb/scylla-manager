@@ -99,7 +99,6 @@ Requires: bash curl jq openssl psmisc yum-utils
 %{_sbindir}/scyllamgr_setup
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yaml
-%config(noreplace) %{_sysconfdir}/%{name}/*.tpl
 %{_sysconfdir}/%{name}/cql/*.cql
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}-check-for-updates.service

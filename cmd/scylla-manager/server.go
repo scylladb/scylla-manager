@@ -41,7 +41,7 @@ type server struct {
 }
 
 func newServer(config *serverConfig, logger log.Logger) (*server, error) {
-	session, err := gocqlConfig(config).CreateSession()
+	session, err := gocqlClusterConfig(config).CreateSession()
 	if err != nil {
 		return nil, errors.Wrapf(err, "database")
 	}

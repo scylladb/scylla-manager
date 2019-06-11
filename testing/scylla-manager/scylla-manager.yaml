@@ -8,7 +8,6 @@ logger:
 database:
   hosts:
     - 192.168.100.100
-  keyspace_tpl_file: dist/etc/scylla-manager/create_keyspace.cql.tpl
   migrate_dir: schema/cql
   timeout: 1s
 

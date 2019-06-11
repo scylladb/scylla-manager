@@ -43,7 +43,7 @@ tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 # Database connection timeout.
 #  timeout: 600ms
 #
-# Keyspace for management data, for create statement see /etc/scylla-manager/create_keyspace.cql.tpl.
+# Keyspace for management data.
 #  keyspace: scylla_manager
 #  replication_factor: 1
 
