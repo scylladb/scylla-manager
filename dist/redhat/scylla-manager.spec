@@ -48,7 +48,6 @@ mkdir -p release/bash_completion
 ./release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
 
 %install
-mkdir -p %{buildroot}%{_docdir}/%{name}/
 mkdir -p %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_sbindir}/
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d/
@@ -58,9 +57,10 @@ mkdir -p %{buildroot}%{_sysconfdir}/%{name}-agent/
 mkdir -p %{buildroot}%{_unitdir}/
 mkdir -p %{buildroot}%{_prefix}/lib/%{name}/
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}/
+mkdir -p %{buildroot}%{_docdir}/%{name}-server/
+mkdir -p %{buildroot}%{_docdir}/%{name}-client/
+mkdir -p %{buildroot}%{_docdir}/%{name}-agent/
 
-install -m644 LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}/LICENSE
-install -m644 LICENSE.3RD_PARTY %{buildroot}%{_docdir}/%{name}/LICENSE.3RD_PARTY
 install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
 install -m644 release/bash_completion/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 install -m644 dist/etc/%{name}/* %{buildroot}%{_sysconfdir}/%{name}/
@@ -69,11 +69,16 @@ install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/%{name}/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
-
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssh_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssh_test %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
+install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-server/LICENSE
+install -m644 license/LICENSE.3RD_PARTY.%{name}-server %{buildroot}%{_docdir}/%{name}-server/LICENSE.3RD_PARTY
+install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-client/LICENSE
+install -m644 license/LICENSE.3RD_PARTY.%{name}-client %{buildroot}%{_docdir}/%{name}-client/LICENSE.3RD_PARTY
+install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-agent/LICENSE
+install -m644 license/LICENSE.3RD_PARTY.%{name}-agent %{buildroot}%{_docdir}/%{name}-agent/LICENSE.3RD_PARTY
 
 %files
 %defattr(-,root,root)
@@ -90,8 +95,6 @@ Requires: bash curl jq openssh-clients openssl psmisc yum-utils
 
 %files server
 %defattr(-,root,root)
-%license %{_docdir}/%{name}/LICENSE
-%license %{_docdir}/%{name}/LICENSE.3RD_PARTY
 %{_bindir}/%{name}
 %{_prefix}/lib/%{name}/scyllamgr_setup
 %{_prefix}/lib/%{name}/scyllamgr_ssh_setup
@@ -106,6 +109,8 @@ Requires: bash curl jq openssh-clients openssl psmisc yum-utils
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}-check-for-updates.service
 %{_unitdir}/%{name}-check-for-updates.timer
+%license %{_docdir}/%{name}-server/LICENSE
+%license %{_docdir}/%{name}-server/LICENSE.3RD_PARTY
 %attr(0700, %{user}, %{user}) %{_sharedstatedir}/%{user}
 
 %pre server
@@ -133,10 +138,10 @@ Requires: bash-completion
 
 %files client
 %defattr(-,root,root)
-%license %{_docdir}/%{name}/LICENSE
-%license %{_docdir}/%{name}/LICENSE.3RD_PARTY
 %{_bindir}/sctool
 %{_sysconfdir}/bash_completion.d/sctool.bash
+%license %{_docdir}/%{name}-client/LICENSE
+%license %{_docdir}/%{name}-client/LICENSE.3RD_PARTY
 
 
 %package agent
@@ -150,11 +155,11 @@ BuildRequires: systemd
 
 %files agent
 %defattr(-,root,root)
-%license %{_docdir}/%{name}/LICENSE
-%license %{_docdir}/%{name}/LICENSE.3RD_PARTY
 %{_bindir}/%{name}-agent
 %config(noreplace) %{_sysconfdir}/%{name}-agent/%{name}-agent.yaml
 %{_unitdir}/%{name}-agent.service
+%license %{_docdir}/%{name}-agent/LICENSE
+%license %{_docdir}/%{name}-agent/LICENSE.3RD_PARTY
 %attr(0700, %{user}, %{user}) %{_sharedstatedir}/%{user}
 
 %pre agent
