@@ -150,6 +150,7 @@ BuildRequires: systemd
 %files agent
 %defattr(-,root,root)
 %{_bindir}/%{name}-agent
+%{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}-agent/%{name}-agent.yaml
 %{_unitdir}/%{name}-agent.service
 %license %{_docdir}/%{name}-agent/LICENSE
@@ -162,6 +163,7 @@ getent passwd %{user} || /usr/sbin/useradd -g %{user} -d %{_sharedstatedir}/%{us
 usermod -ou $(id -u scylla) %{user}
 
 %post agent
+%{_sbindir}/scyllamgr_ssl_cert_gen
 %systemd_post %{name}-agent.service
 
 %preun agent
