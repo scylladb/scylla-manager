@@ -32,13 +32,6 @@
         "host": {
           "type": "string"
         },
-        "ssh_user": {
-          "type": "string"
-        },
-        "ssh_identity_file": {
-          "type": "string",
-          "format": "byte"
-        },
         "ssl_user_cert_file": {
           "type": "string",
           "format": "byte"

@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/service/backup"
 	"github.com/scylladb/mermaid/service/healthcheck"
@@ -55,11 +54,6 @@ func TestConfigModification(t *testing.T) {
 			Validate:     false,
 			UserCertFile: "ssl.cert",
 			UserKeyFile:  "ssl.key",
-		},
-		SSH: ssh.Config{
-			Port:                22000,
-			ServerAliveInterval: 15 * time.Second,
-			ServerAliveCountMax: 3,
 		},
 		Healthcheck: healthcheck.Config{
 			Timeout:    time.Second,

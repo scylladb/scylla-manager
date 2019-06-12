@@ -32,7 +32,6 @@ func TestGetStatusIntegration(t *testing.T) {
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			config := scyllaclient.DefaultConfig()
 			config.Hosts = ManagedClusterHosts
-			config.Transport = NewSSHTransport()
 			return scyllaclient.NewClient(config, logger.Named("scylla"))
 		},
 		kv.NopStore{},
@@ -173,7 +172,7 @@ func unblockCQL(t *testing.T, h string) {
 }
 
 func block(h, cmd string) error {
-	stdout, stderr, err := ExecOnHost(context.Background(), h, cmd)
+	stdout, stderr, err := ExecOnHost(h, cmd)
 	if err != nil {
 		return errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
@@ -181,7 +180,7 @@ func block(h, cmd string) error {
 }
 
 func unblock(h, cmd string) error {
-	stdout, stderr, err := ExecOnHost(context.Background(), h, cmd)
+	stdout, stderr, err := ExecOnHost(h, cmd)
 	if err != nil {
 		return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}

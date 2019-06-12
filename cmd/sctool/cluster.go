@@ -23,8 +23,6 @@ func init() {
 var (
 	cfgClusterName            string
 	cfgClusterHost            string
-	cfgClusterSSHUser         string
-	cfgClusterSSHIdentityFile string
 	cfgClusterSSLUserCertFile string
 	cfgClusterSSLUserKeyFile  string
 )
@@ -32,8 +30,6 @@ var (
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "`alias` you can give to your cluster")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
-	cmd.Flags().StringVar(&cfgClusterSSHUser, "ssh-user", "", "SSH user `name` used to connect to the cluster nodes")
-	cmd.Flags().StringVar(&cfgClusterSSHIdentityFile, "ssh-identity-file", "", "`path` to identity file containing SSH private key")
 	cmd.Flags().StringVar(&cfgClusterSSLUserCertFile, "ssl-user-cert-file", "", "`path` to client certificate when using client/server encryption with require_client_auth enabled")
 	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
 }
@@ -46,21 +42,6 @@ var clusterAddCmd = &cobra.Command{
 		c := &mermaidclient.Cluster{
 			Name: cfgClusterName,
 			Host: cfgClusterHost,
-		}
-
-		if cfgClusterSSHUser != "" && cfgClusterSSHIdentityFile == "" {
-			return printableError{errors.New("missing flag \"ssh-identity-file\"")}
-		}
-		if cfgClusterSSHIdentityFile != "" && cfgClusterSSHUser == "" {
-			return printableError{errors.New("missing flag \"ssh-user\"")}
-		}
-		if cfgClusterSSHUser != "" && cfgClusterSSHIdentityFile != "" {
-			b, err := readFile(cfgClusterSSHIdentityFile)
-			if err != nil {
-				return printableError{inner: err}
-			}
-			c.SSHIdentityFile = b
-			c.SSHUser = cfgClusterSSHUser
 		}
 
 		if cfgClusterSSLUserCertFile != "" && cfgClusterSSLUserKeyFile == "" {
@@ -131,18 +112,6 @@ var clusterUpdateCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("host") {
 			cluster.Host = cfgClusterHost
-			ok = true
-		}
-		if cmd.Flags().Changed("ssh-user") {
-			cluster.SSHUser = cfgClusterSSHUser
-			ok = true
-		}
-		if cmd.Flags().Changed("ssh-identity-file") {
-			b, err := readFile(cfgClusterSSHIdentityFile)
-			if err != nil {
-				return printableError{inner: err}
-			}
-			cluster.SSHIdentityFile = b
 			ok = true
 		}
 		if cmd.Flags().Changed("ssl-user-cert-file") {

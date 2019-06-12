@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/service/backup"
 	"github.com/scylladb/mermaid/service/healthcheck"
 	"github.com/scylladb/mermaid/service/repair"
@@ -54,7 +53,6 @@ type serverConfig struct {
 	Logger      logConfig          `yaml:"logger"`
 	Database    dbConfig           `yaml:"database"`
 	SSL         sslConfig          `yaml:"ssl"`
-	SSH         ssh.Config         `yaml:"ssh"`
 	Healthcheck healthcheck.Config `yaml:"healthcheck"`
 	Backup      backup.Config      `yaml:"backup"`
 	Repair      repair.Config      `yaml:"repair"`
@@ -82,7 +80,6 @@ func defaultConfig() *serverConfig {
 		SSL: sslConfig{
 			Validate: true,
 		},
-		SSH:         ssh.DefaultConfig(),
 		Healthcheck: healthcheck.DefaultConfig(),
 		Backup:      backup.DefaultConfig(),
 		Repair:      repair.DefaultConfig(),
@@ -123,11 +120,9 @@ func (c *serverConfig) validate() error {
 	if c.Database.ReplicationFactor <= 0 {
 		return errors.New("invalid database.replication_factor <= 0")
 	}
-
-	if err := c.SSH.Validate(); err != nil {
-		return errors.Wrap(err, "ssh")
+	if err := c.Backup.Validate(); err != nil {
+		return errors.Wrap(err, "backup")
 	}
-
 	if err := c.Repair.Validate(); err != nil {
 		return errors.Wrap(err, "repair")
 	}

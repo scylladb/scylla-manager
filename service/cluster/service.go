@@ -5,21 +5,15 @@ package cluster
 import (
 	"bytes"
 	"context"
-	"net"
-	"net/http"
-	"runtime"
 	"sort"
-	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/kv"
-	"github.com/scylladb/mermaid/internal/ssh"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -44,8 +38,6 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          *gocql.Session
-	sshConfig        ssh.Config
-	sshKeyStore      kv.Store
 	sslCertStore     kv.Store
 	sslKeyStore      kv.Store
 	clientCache      *scyllaclient.CachedProvider
@@ -53,13 +45,9 @@ type Service struct {
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session *gocql.Session, sshConfig ssh.Config, sshKeyStore kv.Store,
-	sslCertStore, sslKeyStore kv.Store, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, sslCertStore, sslKeyStore kv.Store, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
-	}
-	if sshKeyStore == nil {
-		return nil, errors.New("missing SSH key store")
 	}
 	if sslCertStore == nil {
 		return nil, errors.New("missing SSL cert store")
@@ -70,8 +58,6 @@ func NewService(session *gocql.Session, sshConfig ssh.Config, sshKeyStore kv.Sto
 
 	s := &Service{
 		session:      session,
-		sshConfig:    sshConfig,
-		sshKeyStore:  sshKeyStore,
 		sslCertStore: sslCertStore,
 		sslKeyStore:  sslKeyStore,
 		logger:       l,
@@ -119,69 +105,9 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 }
 
 func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
-	t, err := s.createTransport(c)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transport")
-	}
-
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = c.KnownHosts
-	config.Transport = t
-
 	return scyllaclient.NewClient(config, s.logger.Named("client"))
-}
-
-func (s *Service) createTransport(c *Cluster) (http.RoundTripper, error) {
-	if c.SSHUser == "" {
-		return nil, nil
-	}
-
-	identityFile := c.SSHIdentityFile
-	if identityFile == nil {
-		b, err := s.sshKeyStore.Get(c.ID)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to read SSH identity file")
-		}
-		identityFile = b
-	}
-
-	config, err := s.sshConfig.WithIdentityFileAuth(c.SSHUser, identityFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid SSH configuration")
-	}
-
-	dialer := ssh.NewProxyDialer(
-		config,
-		ssh.ContextDialer(&net.Dialer{
-			Timeout:   3 * time.Second,
-			KeepAlive: 30 * time.Second,
-			DualStack: true,
-		}),
-	)
-
-	dialer.OnDial = func(host string, err error) {
-		labels := prometheus.Labels{"cluster": c.String(), "host": host}
-		if err != nil {
-			sshErrorsTotal.With(labels).Inc()
-		} else {
-			sshOpenStreamsCount.With(labels).Inc()
-		}
-	}
-	dialer.OnConnClose = func(host string) {
-		labels := prometheus.Labels{"cluster": c.String(), "host": host}
-		sshOpenStreamsCount.With(labels).Dec()
-	}
-
-	transport := &http.Transport{
-		DialContext:           dialer.DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
-	}
-
-	return transport, nil
 }
 
 // discoverHosts returns a list of all hosts sorted by DC speed. This is
@@ -373,14 +299,6 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		}
 	}()
 
-	// Save SSH and SSL files in a dedicated secure storage.
-	if shouldSaveIdentityFile(c) {
-		r, err := putWithRollback(s.sshKeyStore, c.ID, c.SSHIdentityFile)
-		rollback = append(rollback, r)
-		if err != nil {
-			return errors.Wrap(err, "failed to save SSH identity file")
-		}
-	}
 	if len(c.SSLUserCertFile) != 0 {
 		r, err := putWithRollback(s.sslCertStore, c.ID, c.SSLUserCertFile)
 		rollback = append(rollback, r)
@@ -455,7 +373,7 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 		return err
 	}
 
-	for _, kv := range []kv.Store{s.sshKeyStore, s.sslKeyStore, s.sslCertStore} {
+	for _, kv := range []kv.Store{s.sslKeyStore, s.sslCertStore} {
 		if err := kv.Put(clusterID, nil); err != nil {
 			s.logger.Error(ctx, "Failed to delete file",
 				"cluster_id", clusterID,
@@ -510,14 +428,7 @@ func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {
 	return s.onChangeListener(ctx, c)
 }
 
-func shouldSaveIdentityFile(c *Cluster) bool {
-	if len(c.SSHIdentityFile) > 0 {
-		return true
-	}
-	return c.SSHUser == ""
-}
-
-// Close closes all SSH connections to cluster.
+// Close closes all connections to cluster.
 func (s *Service) Close() {
 	s.clientCache.Close()
 }

@@ -23,7 +23,7 @@ type Config struct {
 	// including retries.
 	Timeout time.Duration
 	// RequestTimeout specifies time to complete a single request to Scylla
-	// REST API possibly including opening SSH tunneled connection.
+	// REST API possibly including opening a TCP connection.
 	RequestTimeout time.Duration
 	// PoolDecayDuration specifies size of time window to measure average
 	// request time in Epsilon-Greedy host pool.

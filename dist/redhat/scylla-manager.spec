@@ -70,8 +70,6 @@ install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
-ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssh_setup %{buildroot}%{_sbindir}/
-ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssh_test %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
 install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-server/LICENSE
 install -m644 license/LICENSE.3RD_PARTY.%{name}-server %{buildroot}%{_docdir}/%{name}-server/LICENSE.3RD_PARTY
@@ -88,7 +86,7 @@ Summary: Scylla Manager server
 
 %{?systemd_requires}
 BuildRequires: systemd
-Requires: bash curl jq openssh-clients openssl psmisc yum-utils
+Requires: bash curl jq openssl psmisc yum-utils
 
 %description server
 %{common_description} This package provides the Scylla Manager server that manages maintenance tasks for Scylla database clusters.
@@ -97,11 +95,8 @@ Requires: bash curl jq openssh-clients openssl psmisc yum-utils
 %defattr(-,root,root)
 %{_bindir}/%{name}
 %{_prefix}/lib/%{name}/scyllamgr_setup
-%{_prefix}/lib/%{name}/scyllamgr_ssh_setup
 %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
 %{_sbindir}/scyllamgr_setup
-%{_sbindir}/scyllamgr_ssh_setup
-%{_sbindir}/scyllamgr_ssh_test
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yaml
 %config(noreplace) %{_sysconfdir}/%{name}/*.tpl

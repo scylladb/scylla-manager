@@ -28,9 +28,6 @@ ssl:
   user_key_file: ssl.key
   user_cert_file: ssl.cert
 
-ssh:
-  port: 22000
-
 healthcheck:
   timeout: 1s
   ssl_timeout: 1s

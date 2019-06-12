@@ -25,13 +25,6 @@ type Cluster struct {
 	// name
 	Name string `json:"name,omitempty"`
 
-	// ssh identity file
-	// Format: byte
-	SSHIdentityFile strfmt.Base64 `json:"ssh_identity_file,omitempty"`
-
-	// ssh user
-	SSHUser string `json:"ssh_user,omitempty"`
-
 	// ssl user cert file
 	// Format: byte
 	SslUserCertFile strfmt.Base64 `json:"ssl_user_cert_file,omitempty"`
@@ -45,10 +38,6 @@ type Cluster struct {
 func (m *Cluster) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateSSHIdentityFile(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateSslUserCertFile(formats); err != nil {
 		res = append(res, err)
 	}
@@ -60,17 +49,6 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *Cluster) validateSSHIdentityFile(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.SSHIdentityFile) { // not required
-		return nil
-	}
-
-	// Format "byte" (base64 string) is already validated when unmarshalled
-
 	return nil
 }
 

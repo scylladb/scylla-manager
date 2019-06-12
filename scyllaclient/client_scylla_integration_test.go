@@ -7,8 +7,6 @@ package scyllaclient_test
 import (
 	"context"
 	"fmt"
-	"net"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,53 +16,9 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-func TestClientDialOnceAndCloseIntegration(t *testing.T) {
-	// Protects conns.
-	var mu sync.Mutex
-	var conns []net.Conn
-
-	s := NewSSHTransport()
-	d := s.DialContext
-	s.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
-		conn, err = d(ctx, network, addr)
-		mu.Lock()
-		conns = append(conns, conn)
-		mu.Unlock()
-		return
-	}
-
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = ManagedClusterHosts
-	config.Transport = s
-
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := 0; i < 10; i++ {
-		_, err := client.Keyspaces(context.Background())
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	mu.Lock()
-	defer mu.Unlock()
-	if len(conns) != 1 {
-		t.Fatal("expected dial once, got", len(conns))
-	}
-
-	if err := client.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if err := conns[0].SetDeadline(time.Time{}); err == nil {
-		t.Fatal("expected connection to be closed")
-	}
-}
-
 func TestClientClosestDCIntegration(t *testing.T) {
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = ManagedClusterHosts
-	config.Transport = NewSSHTransport()
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
@@ -88,7 +42,6 @@ func TestClientClosestDCIntegration(t *testing.T) {
 func TestClientActiveRepairsIntegration(t *testing.T) {
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = ManagedClusterHosts
-	config.Transport = NewSSHTransport()
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
@@ -111,7 +64,7 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 
 	Print("When: repair is running on host 0")
 	go func() {
-		stdout, stderr, err := ExecOnHost(context.Background(), hosts[0], "nodetool repair -pr")
+		stdout, stderr, err := ExecOnHost(hosts[0], "nodetool repair -pr")
 		if err != nil {
 			t.Log(err, stdout, stderr)
 		}
@@ -135,7 +88,6 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 func TestClientSnapshotIntegration(t *testing.T) {
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = ManagedClusterHosts
-	config.Transport = NewSSHTransport()
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {

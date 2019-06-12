@@ -63,7 +63,7 @@ func newRepairTestHelper(t *testing.T, session *gocql.Session, config repair.Con
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
-	hrt := NewHackableRoundTripper(NewSSHTransport())
+	hrt := NewHackableRoundTripper(http.DefaultTransport)
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	c := newTestClient(t, hrt, logger)
 	s := newTestService(t, session, c, config, logger)
@@ -908,7 +908,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Given: repair is running on a host")
 		go func() {
-			stdout, stderr, err := ExecOnHost(context.Background(), ManagedClusterHosts[0], "nodetool repair -pr")
+			stdout, stderr, err := ExecOnHost(ManagedClusterHosts[0], "nodetool repair -pr")
 			if err != nil {
 				t.Log(err, stdout, stderr)
 			}

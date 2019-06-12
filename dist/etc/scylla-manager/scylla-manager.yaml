@@ -60,22 +60,6 @@ tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 #  user_cert_file:
 #  user_key_file
 
-# SSH global configuration, SSH is used to access scylla nodes. Username and
-# identity file are specified per cluster with sctool.
-#ssh:
-# Alternative default SSH port.
-#  port: 22
-#
-# Interval to send keepalive message through the encrypted channel and
-# request a response from the server.
-#  server_alive_interval: 15s
-#
-# The number of server keepalive messages which may be sent without receiving
-# any messages back from the server. If this threshold is reached while server
-# keepalive messages are being sent, ssh will disconnect from the server,
-# terminating the session.
-#  server_alive_count_max: 3
-
 # Healthcheck service configuration.
 #healthcheck:
 # Timeout for CQL status checks.

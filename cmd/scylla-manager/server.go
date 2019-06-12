@@ -66,10 +66,6 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 func (s *server) makeServices() error {
 	baseDir := filepath.Join(fsutil.HomeDir(), ".certs")
 
-	sshKeyStore, err := kv.NewFsStore(baseDir, "")
-	if err != nil {
-		return errors.Wrap(err, "failed to create SSH key store")
-	}
 	sslCertStore, err := kv.NewFsStore(baseDir, "cert")
 	if err != nil {
 		return errors.Wrap(err, "failed to create SSL cert store")
@@ -79,7 +75,7 @@ func (s *server) makeServices() error {
 		return errors.Wrap(err, "failed to create SSL key store")
 	}
 
-	s.clusterSvc, err = cluster.NewService(s.session, s.config.SSH, sshKeyStore, sslCertStore, sslKeyStore, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, sslCertStore, sslKeyStore, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
@@ -240,13 +236,10 @@ func (s *server) close() {
 		s.prometheusServer.Close()
 	}
 
-	// The cluster service is last because it handles closing of
-	// SSH connections to the nodes. It relies on connections being
-	// idle which means that the other services needs to be
-	// closed first.
+	// The cluster service needs to be closed last because it handles closing of
+	// connections to agent running on the nodes.
 	s.schedSvc.Close()
 	s.clusterSvc.Close()
-
 	s.session.Close()
 }
 

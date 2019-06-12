@@ -59,7 +59,6 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 func getHosts() ([]string, error) {
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = ManagedClusterHosts
-	config.Transport = NewSSHTransport()
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
@@ -73,7 +72,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	block := func(ctx context.Context, hosts []string) error {
 		for _, h := range hosts {
-			stdout, stderr, err := ExecOnHost(context.Background(), h, CmdBlockScyllaREST)
+			stdout, stderr, err := ExecOnHost(h, CmdBlockScyllaREST)
 			if err != nil {
 				return errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 			}
@@ -84,7 +83,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	unblock := func(ctx context.Context) error {
 		for _, h := range blockedHosts {
-			stdout, stderr, err := ExecOnHost(ctx, h, CmdUnblockScyllaREST)
+			stdout, stderr, err := ExecOnHost(h, CmdUnblockScyllaREST)
 			if err != nil {
 				return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 			}
@@ -104,7 +103,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	config.Hosts = hosts
 	triedHosts := make(map[string]int)
-	config.Transport = hostRecorder(NewSSHTransport(), triedHosts)
+	config.Transport = hostRecorder(http.DefaultTransport, triedHosts)
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {

@@ -22,7 +22,6 @@ up: ## Start docker containers
 	@echo "==> Installing root SSH key"
 	@./install_root_key
 	@./update_agent
-	@../dist/scripts/scyllamgr_ssh_setup -u root -i ~/.ssh/scylla-manager-root.pem 192.168.100.11
 
 .PHONY: down
 down: ## Stop docker containers

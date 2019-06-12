@@ -17,8 +17,6 @@ type Cluster struct {
 	Name            string    `json:"name"`
 	Host            string    `json:"host" db:"-"`
 	KnownHosts      []string  `json:"-"`
-	SSHUser         string    `json:"ssh_user,omitempty"`
-	SSHIdentityFile []byte    `json:"ssh_identity_file,omitempty" db:"-"`
 	SSLUserCertFile []byte    `json:"ssl_user_cert_file,omitempty" db:"-"`
 	SSLUserKeyFile  []byte    `json:"ssl_user_key_file,omitempty" db:"-"`
 }
