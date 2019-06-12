@@ -5,50 +5,51 @@
 
 set -eu -o pipefail
 
-KEY_FILE="/var/lib/scylla-manager/scylla_manager.key"
-CRT_FILE="/var/lib/scylla-manager/scylla_manager.crt"
-SUBJECT="/C=US/ST=Scylla/L=Scylla/O=Scylla/OU=Scylla/CN=scylla.com"
+declare -r CRT_FILE="/var/lib/scylla-manager/scylla_manager.crt"
+declare -r KEY_FILE="/var/lib/scylla-manager/scylla_manager.key"
+declare -r SUBJECT="/C=US/ST=Scylla/L=Scylla/O=Scylla/OU=Scylla/CN=scylla.com"
 
 print_usage() {
-    echo "scyllamgr_ssl_cert_gen --subject <certificate subject>"
-    echo "     --subject                specify certificate info, default is '${SUBJECT}'"
-    echo "  -s --silent                 suppress error messages, default is false"
+    echo "scyllamgr_ssl_cert_gen [--key <file>][--cert <file>][--subject <certificate subject>]"
+    echo "  --cert	path to certificate to be generated, default ${CRT_FILE}"
+    echo "  --key		path to key to the certificate, default ${KEY_FILE}"
+    echo "  --subject	subject of the certificate, default ${SUBJECT}"
 }
 
-if [[ "$(id -u)" != "0" ]]; then
-    echo "Requires root permission."
+die() {
+    echo -e "$@\n"
+    print_usage
     exit 1
-fi
+}
 
-SILENT=0
+crt_file=${CRT_FILE}
+key_file=${CRT_FILE}
+subject=${SUBJECT}
 
 while [[ $# > 0 ]]; do
     case "$1" in
-        "-s"|"--silent")
-            SILENT=1
-            shift 1
+        "--cert")
+            crt_file=$2
+            shift 2
+            ;;
+        "--key")
+            key_file=$2
+            shift 2
             ;;
         "--subject")
-            SUBJECT="$2"
+            subject=$2
             shift 2
             ;;
         "-h" | "--help")
             print_usage
             exit 0
             ;;
-        *)
-            break
+        -*)
+            die "unknown option $1"
+            ;;
     esac
 done
 
-
-if [[ -f ${KEY_FILE} || -f ${CRT_FILE} ]]; then
-    if [[ ${SILENT} == 0 ]]; then
-        echo "certificate exists, to recreate run 'rm $KEY_FILE $CRT_FILE' and try again"
-    fi
-    exit 0
-fi
-
-openssl genrsa -out ${KEY_FILE} 4096 &> /dev/null
-openssl req -new -x509 -sha512 -subj "${SUBJECT}" -key ${KEY_FILE} -out ${CRT_FILE} -days 365
-chown scylla-manager:scylla-manager ${KEY_FILE} ${CRT_FILE}
+openssl genrsa -out "${key_file}" 4096
+openssl req -new -x509 -sha512 -subj "${subject}" -key "${key_file}" -out "${crt_file}" -days 365
+chown scylla-manager:scylla-manager "${key_file}" "${crt_file}" ||:

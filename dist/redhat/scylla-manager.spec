@@ -112,7 +112,7 @@ getent group  %{user} || /usr/sbin/groupadd -r %{user} > /dev/null
 getent passwd %{user} || /usr/sbin/useradd -g %{user} -d %{_sharedstatedir}/%{user} -m -s /sbin/nologin -r %{user} > /dev/null
 
 %post server
-%{_sbindir}/scyllamgr_ssl_cert_gen --silent
+%{_sbindir}/scyllamgr_ssl_cert_gen
 %{_bindir}/scylla-manager check-for-updates --install
 %systemd_post %{name}.service
 
