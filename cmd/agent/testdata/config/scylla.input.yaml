@@ -1,0 +1,6 @@
+listen_address: "la"
+broadcast_address: "ba"
+api_address: "aa"
+api_port: 1001
+prometheus_address: "pa"
+prometheus_port: 1002

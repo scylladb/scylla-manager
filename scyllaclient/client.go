@@ -3,7 +3,10 @@
 package scyllaclient
 
 import (
+	"crypto/tls"
+	"net"
 	"net/http"
+	"runtime"
 	"sync"
 	"time"
 
@@ -22,6 +25,29 @@ import (
 var initOnce sync.Once
 
 //go:generate ./gen-internal.sh
+
+// DefaultTransport returns a new http.Transport with similar default values to
+// http.DefaultTransport. Do not use this for transient transports as it can
+// leak file descriptors over time. Only use this for transports that will be
+// re-used for the same host(s).
+func DefaultTransport() *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
+
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+}
 
 // Client provides means to interact with Scylla nodes.
 type Client struct {
@@ -56,7 +82,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	pool := hostpool.NewEpsilonGreedy(hosts, config.PoolDecayDuration, &hostpool.LinearEpsilonValueCalculator{})
 
 	if config.Transport == nil {
-		config.Transport = http.DefaultTransport
+		config.Transport = DefaultTransport()
 	}
 	transport := config.Transport
 	transport = mwTimeout(transport, config.RequestTimeout)
@@ -71,10 +97,10 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	}
 
 	scyllaRuntime := api.NewWithClient(
-		scyllaClient.DefaultHost, scyllaClient.DefaultBasePath, []string{"http"}, c,
+		scyllaClient.DefaultHost, scyllaClient.DefaultBasePath, []string{config.Scheme}, c,
 	)
 	rcloneRuntime := api.NewWithClient(
-		rcloneClient.DefaultHost, rcloneClient.DefaultBasePath, []string{"http"}, c,
+		rcloneClient.DefaultHost, rcloneClient.DefaultBasePath, []string{config.Scheme}, c,
 	)
 	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
 	scyllaRuntime.Debug = false

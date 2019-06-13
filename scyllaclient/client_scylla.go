@@ -183,7 +183,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 // closing the returned body.
 func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error) {
 	u := url.URL{
-		Scheme: "http",
+		Scheme: c.config.Scheme,
 		Host:   host,
 		Path:   "/metrics",
 	}
@@ -550,7 +550,11 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	ctx, cancel := context.WithTimeout(noRetry(ctx), c.config.RequestTimeout)
 	defer cancel()
 
-	u := url.URL{Scheme: "http", Host: host, Path: "/"}
+	u := url.URL{
+		Scheme: c.config.Scheme,
+		Host:   host,
+		Path:   "/",
+	}
 	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return 0, err

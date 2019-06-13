@@ -22,12 +22,9 @@ func registerRemoteWithEnvAuth(t *testing.T, c *scyllaclient.Client, host string
 }
 
 func TestRcloneListDirAgentIntegration(t *testing.T) {
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = ManagedClusterHosts
-
 	testHost := ManagedClusterHosts[0]
 
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

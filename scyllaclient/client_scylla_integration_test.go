@@ -17,10 +17,7 @@ import (
 )
 
 func TestClientClosestDCIntegration(t *testing.T) {
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = ManagedClusterHosts
-
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,10 +37,7 @@ func TestClientClosestDCIntegration(t *testing.T) {
 }
 
 func TestClientActiveRepairsIntegration(t *testing.T) {
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = ManagedClusterHosts
-
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

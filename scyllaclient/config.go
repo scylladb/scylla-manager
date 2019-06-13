@@ -15,10 +15,11 @@ type Config struct {
 	// Hosts specifies all the cluster hosts that for a pool of hosts for the
 	// client.
 	Hosts []string
+	// Transport scheme HTTP or HTTPS.
+	Scheme string
 	// Transport allows for setting a custom round tripper to send HTTP requests
 	// over not standard connections i.e. over SSH tunnel.
 	Transport http.RoundTripper
-
 	// Timeout specifies end-to-end time to complete Scylla REST API request
 	// including retries.
 	Timeout time.Duration
@@ -36,12 +37,21 @@ type Config struct {
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
+		Scheme:            "https",
 		Timeout:           30 * time.Second,
 		RequestTimeout:    5 * time.Second,
 		PoolDecayDuration: 30 * time.Minute,
 
 		AgentPort: "10001",
 	}
+}
+
+// DefaultConfigWithHosts is a convenience function equal to calling
+// DefaultConfig and setting hosts on it manually.
+func DefaultConfigWithHosts(hosts []string) Config {
+	config := DefaultConfig()
+	config.Hosts = hosts
+	return config
 }
 
 // Validate checks if all the fields are properly set.

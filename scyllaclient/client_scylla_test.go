@@ -50,6 +50,7 @@ func newMockServerMatching(t *testing.T, m Matcher) (*Client, func()) {
 	config := DefaultConfig()
 	host, port, _ := net.SplitHostPort(s.Listener.Addr().String())
 	config.Hosts = []string{host}
+	config.Scheme = "http"
 	config.AgentPort = port
 
 	c, err := NewClient(config, log.NewDevelopment())

@@ -38,6 +38,7 @@ func newMockRcloneServer(t *testing.T) (*scyllaclient.Client, func()) {
 
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = []string{host}
+	config.Scheme = "http"
 	config.AgentPort = port
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())

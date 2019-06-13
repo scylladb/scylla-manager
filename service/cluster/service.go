@@ -105,9 +105,7 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 }
 
 func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = c.KnownHosts
-	return scyllaclient.NewClient(config, s.logger.Named("client"))
+	return scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(c.KnownHosts), s.logger.Named("client"))
 }
 
 // discoverHosts returns a list of all hosts sorted by DC speed. This is

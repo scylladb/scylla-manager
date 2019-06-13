@@ -63,7 +63,7 @@ func newRepairTestHelper(t *testing.T, session *gocql.Session, config repair.Con
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
-	hrt := NewHackableRoundTripper(http.DefaultTransport)
+	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	c := newTestClient(t, hrt, logger)
 	s := newTestService(t, session, c, config, logger)

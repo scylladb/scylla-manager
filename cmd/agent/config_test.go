@@ -3,47 +3,69 @@
 package main
 
 import (
+	"bytes"
+	"flag"
+	"io/ioutil"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"gopkg.in/yaml.v2"
 )
 
-func TestParseConfigFiles(t *testing.T) {
-	expected := config{
-		HTTP: "127.0.0.1:1000",
-		Scylla: scyllaConfig{
-			APIPort:        "1000",
-			PrometheusPort: "1000",
+var update = flag.Bool("update", false, "update .golden files")
+
+func TestConfigParse(t *testing.T) {
+	table := []struct {
+		Name   string
+		Input  string
+		Golden string
+	}{
+		{
+			Name:   "basic",
+			Input:  "./testdata/config/basic.input.yaml",
+			Golden: "./testdata/config/basic.golden.yaml",
+		},
+		{
+			Name:   "scylla overwrite",
+			Input:  "./testdata/config/scylla_overwrite.input.yaml",
+			Golden: "./testdata/config/scylla_overwrite.golden.yaml",
+		},
+		{
+			Name:   "https overwrite",
+			Input:  "./testdata/config/https_overwrite.input.yaml",
+			Golden: "./testdata/config/https_overwrite.golden.yaml",
 		},
 	}
 
-	t.Run("with scylla", func(t *testing.T) {
-		c, err := parseConfigFiles("testdata/scylla-manager-agent-with-scylla.yaml", "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if diff := cmp.Diff(expected, c); diff != "" {
-			t.Fatal(diff)
-		}
-	})
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			b, err := ioutil.ReadFile(test.Input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var c config
+			if err := yaml.Unmarshal(b, &c); err != nil {
+				t.Fatal(err)
+			}
+			buf := bytes.Buffer{}
+			if err := yaml.NewEncoder(&buf).Encode(c); err != nil {
+				t.Fatal(err)
+			}
 
-	t.Run("without scylla", func(t *testing.T) {
-		c, err := parseConfigFiles("testdata/scylla-manager-agent-without-scylla.yaml", "testdata/scylla.yaml")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if diff := cmp.Diff(expected, c); diff != "" {
-			t.Fatal(diff)
-		}
-	})
-}
+			if *update {
+				if err := ioutil.WriteFile(test.Golden, buf.Bytes(), 0666); err != nil {
+					t.Error(err)
+				}
+			}
 
-func TestDefaultConfig(t *testing.T) {
-	c, err := parseConfigFiles("../../dist/etc/scylla-manager-agent/scylla-manager-agent.yaml", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(defaultConfig(), c); diff != "" {
-		t.Fatal(diff)
+			golden, err := ioutil.ReadFile(test.Golden)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(buf.Bytes(), golden); diff != "" {
+				t.Fatal(diff)
+			}
+		})
 	}
 }
