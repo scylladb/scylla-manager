@@ -60,7 +60,7 @@ func (p *ProxyDialer) DialContext(ctx context.Context, network, addr string) (co
 
 	var connErr error
 
-	for _, h := range []string{"localhost", host} {
+	for _, h := range []string{"0.0.0.0", host} {
 		// This is a local dial and should not hang but if it does http client
 		// would end up with "context deadline exceeded" error.
 		// To be fixed when used with something else then http client.
