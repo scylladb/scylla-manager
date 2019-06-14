@@ -229,6 +229,15 @@ func createKeyspace(config *serverConfig) error {
 	}
 	defer session.Close()
 
+	var cnt int
+	q := session.Query("SELECT COUNT(keyspace_name) FROM system_schema.keyspaces WHERE keyspace_name = ?").Bind(config.Database.Keyspace)
+	if err := q.Scan(&cnt); err != nil {
+		return err
+	}
+	if cnt == 1 {
+		return nil
+	}
+
 	// Auto upgrade replication factor if needed. RF=1 with multiple hosts means
 	// data loss when one of the nodes is down. This is understood with a single
 	// node deployment but must be avoided if we have more nodes.
