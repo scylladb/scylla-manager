@@ -64,10 +64,7 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 
 	Print("When: repair is running on host 0")
 	go func() {
-		stdout, stderr, err := ExecOnHost(hosts[0], "nodetool repair -pr")
-		if err != nil {
-			t.Log(err, stdout, stderr)
-		}
+		ExecOnHost(hosts[0], "nodetool repair -pr")
 	}()
 	defer func() {
 		if err := client.KillAllRepairs(context.Background(), hosts[0]); err != nil {
