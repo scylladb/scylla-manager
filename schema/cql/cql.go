@@ -43,12 +43,12 @@ func migrationCallback(name string, ev migrate.CallbackEvent) callback {
 
 // MigrateCallback is the main callback dispatcher we use for custom migrations.
 func MigrateCallback(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
+	if ev == migrate.BeforeMigration {
+		Logger.Info(ctx, "Running migration", "migration", name)
+	}
+
 	if f := migrationCallback(name, ev); f != nil {
-		l := Logger.With("event", ev, "migration", name)
-		l.Debug(ctx, "Start")
-		err := f(ctx, session, l)
-		l.Debug(ctx, "Stop")
-		return err
+		return f(ctx, session, Logger.With("migration", name, "event", ev))
 	}
 
 	return nil
