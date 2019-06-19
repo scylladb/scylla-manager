@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"net"
 	"text/template"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid/schema/cql"
+	"go.uber.org/multierr"
 )
 
 func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logger) error {
@@ -22,7 +24,7 @@ func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logge
 	)
 
 	for i := 0; i < maxAttempts; i++ {
-		if err := tryConnectToDatabase(config); err != nil {
+		if _, err := tryConnectToDatabase(config); err != nil {
 			logger.Info(ctx, "Could not connect to database",
 				"sleep", wait,
 				"error", err,
@@ -36,12 +38,20 @@ func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logge
 	return errors.New("could not connect to database, max attempts reached")
 }
 
-func tryConnectToDatabase(config *serverConfig) error {
-	session, err := gocqlClusterConfigForDBInit(config).CreateSession()
-	if session != nil {
-		session.Close()
+func tryConnectToDatabase(config *serverConfig) (string, error) {
+	var errs error
+
+	for _, host := range config.Database.Hosts {
+		conn, err := net.Dial("tcp", net.JoinHostPort(host, "9042"))
+		conn.Close()
+
+		if err == nil {
+			return host, nil
+		}
+		errs = multierr.Append(errs, errors.Wrap(err, host))
 	}
-	return err
+
+	return "", errs
 }
 
 func keyspaceExists(config *serverConfig) (bool, error) {
@@ -103,6 +113,16 @@ func mustEvaluateCreateKeyspaceStmt(config *serverConfig) string {
 func migrateSchema(config *serverConfig, logger log.Logger) error {
 	c := gocqlClusterConfigForDBInit(config)
 	c.Keyspace = config.Database.Keyspace
+
+	// Use only a single host for migrations, using multiple hosts may lead to
+	// conflicting schema changes. This can be avoided by awaiting schema
+	// changes see https://github.com/scylladb/gocqlx/issues/106.
+	host, err := tryConnectToDatabase(config)
+	if err != nil {
+		return err
+	}
+	c.Hosts = []string{host}
+	c.DisableInitialHostLookup = true
 
 	session, err := c.CreateSession()
 	if err != nil {
