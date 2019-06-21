@@ -3,10 +3,17 @@
 package scyllaclient
 
 import (
+	"context"
 	"crypto/tls"
+	"io"
+	"io/ioutil"
+	"math"
+	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
 
@@ -16,6 +23,7 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	rcloneClient "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client"
 	rcloneOperations "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client/operations"
 	scyllaClient "github.com/scylladb/mermaid/scyllaclient/internal/scylla/client"
@@ -118,4 +126,155 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 // Timeout returns a timeout for a request.
 func (c *Client) Timeout() time.Duration {
 	return c.config.Timeout
+}
+
+// ClosestDC takes output of Datacenters, a map from DC to it's hosts and
+// returns DCs sorted by speed the hosts respond. It's determined by
+// the lowest latency over 3 Ping() invocations across random selection of
+// hosts for each DC.
+func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]string, error) {
+	if len(dcs) == 0 {
+		return nil, errors.Errorf("no dcs to choose from")
+	}
+
+	// Single DC no need to measure anything.
+	if len(dcs) == 1 {
+		for dc := range dcs {
+			return []string{dc}, nil
+		}
+	}
+
+	type dcRTT struct {
+		dc  string
+		rtt time.Duration
+	}
+	out := make(chan dcRTT, runtime.NumCPU()+1)
+	size := 0
+
+	// Test latency of 3 random hosts from each DC.
+	for dc, hosts := range dcs {
+		dc := dc
+		hosts := pickNRandomHosts(3, hosts)
+		size += len(hosts)
+
+		for _, h := range hosts {
+			h := h
+			go func() {
+				rtt, err := c.PingN(ctx, h, 3)
+				if err != nil {
+					c.logger.Info(ctx, "Host RTT measurement failed",
+						"dc", dc,
+						"host", h,
+						"err", err,
+					)
+					rtt = math.MaxInt64
+				}
+				out <- dcRTT{dc: dc, rtt: rtt}
+			}()
+		}
+	}
+
+	// Select the lowest latency for each DC.
+	min := make(map[string]time.Duration, len(dcs))
+	for i := 0; i < size; i++ {
+		v := <-out
+		if m, ok := min[v.dc]; !ok || m > v.rtt {
+			min[v.dc] = v.rtt
+		}
+	}
+
+	// Sort DCs by lowest latency.
+	sorted := make([]string, 0, len(dcs))
+	for dc := range dcs {
+		sorted = append(sorted, dc)
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return min[sorted[i]] < min[sorted[j]]
+	})
+
+	// All hosts failed...
+	if min[sorted[0]] == math.MaxInt64 {
+		return nil, errors.New("failed to connect to any node")
+	}
+
+	return sorted, nil
+}
+
+func pickNRandomHosts(n int, hosts []string) []string {
+	if n >= len(hosts) {
+		return hosts
+	}
+
+	rand := rand.New(rand.NewSource(timeutc.Now().UnixNano()))
+
+	idxs := make(map[int]struct{})
+	rh := make([]string, 0, n)
+	for ; n > 0; n-- {
+		idx := rand.Intn(len(hosts))
+		if _, ok := idxs[idx]; !ok {
+			idxs[idx] = struct{}{}
+			rh = append(rh, hosts[idx])
+		} else {
+			n++
+		}
+	}
+	return rh
+}
+
+// PingN does "n" amount of pings towards the host and returns average RTT
+// across all results.
+// Pings are tried sequentially and if any of the pings fail function will
+// return an error.
+func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, error) {
+	// Open connection to server.
+	_, err := c.Ping(ctx, host)
+	if err != nil {
+		return 0, err
+	}
+
+	// Measure avg host RTT.
+	mctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout)
+	defer cancel()
+	var sum time.Duration
+	for i := 0; i < n; i++ {
+		d, err := c.Ping(mctx, host)
+		if err != nil {
+			return 0, err
+		}
+		sum += d
+	}
+	return sum / time.Duration(n), nil
+}
+
+// Ping checks if host is available using HTTP ping.
+func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
+	ctx, cancel := context.WithTimeout(noRetry(ctx), c.config.RequestTimeout)
+	defer cancel()
+
+	u := url.URL{
+		Scheme: c.config.Scheme,
+		Host:   host,
+		Path:   "/",
+	}
+	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+	r = r.WithContext(forceHost(ctx, host))
+
+	t := timeutc.Now()
+	resp, err := c.transport.RoundTrip(r)
+	if resp != nil {
+		io.Copy(ioutil.Discard, io.LimitReader(resp.Body, 1024)) // nolint: errcheck
+		resp.Body.Close()
+	}
+	return timeutc.Since(t), err
+}
+
+// Close closes all the idle connections.
+func (c *Client) Close() error {
+	if t, ok := c.config.Transport.(*http.Transport); ok {
+		t.CloseIdleConnections()
+	}
+	return nil
 }
