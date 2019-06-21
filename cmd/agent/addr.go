@@ -24,7 +24,7 @@ func httpsListenAddr(c scyllaConfig) (string, error) {
 		return addrs[0], nil
 	}
 
-	return "", errors.Errorf("cannot guess Scylla broadcast/listen address please set https property in configuration file %s available IP addresses are %s", rootArgs.configFile, addrs)
+	return "", errors.Errorf("cannot guess Scylla broadcast/listen address please set https property in configuration file %s available IP addresses are %s", rootArgs.configFile, addrs) //nolint: lll
 }
 
 func guessAddr() []string {
