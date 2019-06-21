@@ -59,8 +59,10 @@ type serverConfig struct {
 
 func defaultConfig() *serverConfig {
 	return &serverConfig{
-		Prometheus: ":56090",
-		Gops:       ":56112",
+		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
+		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
+		Prometheus:  ":56090",
+		Gops:        ":56112",
 		Logger: logConfig{
 			Mode:        log.SyslogMode,
 			Level:       zapcore.InfoLevel,
