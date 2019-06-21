@@ -90,7 +90,6 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Wait for database
-		logger.Info(ctx, "Waiting for database...")
 		if err := waitForDatabase(ctx, config, logger); err != nil {
 			return errors.Wrapf(err, "db init")
 		}
@@ -113,7 +112,7 @@ var rootCmd = &cobra.Command{
 		if err := migrateSchema(config, logger); err != nil {
 			return errors.Wrapf(err, "db init")
 		}
-		logger.Info(ctx, "Done migrating schema", "keyspace", config.Database.Keyspace, "dir", config.Database.MigrateDir)
+		logger.Info(ctx, "Schema up to date", "keyspace", config.Database.Keyspace)
 
 		// Start server
 		server, err := newServer(config, logger)
