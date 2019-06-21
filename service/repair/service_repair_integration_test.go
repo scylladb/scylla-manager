@@ -289,6 +289,10 @@ func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
 	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
 
+func dropKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
+	ExecStmt(t, session, "DROP KEYSPACE "+keyspace)
+}
+
 func singleUnit() repair.Target {
 	return repair.Target{
 		Units: []repair.Unit{
@@ -317,9 +321,11 @@ func multipleUnits() repair.Target {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	clusterSession := CreateManagedClusterSession(t)
+
 	createKeyspace(t, clusterSession, "test_repair")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair")
 
 	defaultConfig := func() repair.Config {
 		c := repair.DefaultConfig()
