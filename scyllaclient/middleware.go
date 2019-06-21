@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"time"
 
 	"github.com/hailocab/go-hostpool"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/httputil"
+	httputilx "github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 )
@@ -20,7 +22,7 @@ import (
 // mwOpenAPIFix adjusts Scylla REST API response so that it can be consumed
 // by Open API.
 func mwOpenAPIFix(next http.RoundTripper) http.RoundTripper {
-	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		defer func() {
 			if resp != nil {
 				// Force JSON, Scylla returns "text/plain" that misleads the
@@ -43,7 +45,7 @@ func mwRetry(next http.RoundTripper, poolSize int, logger log.Logger) http.Round
 	poolRetry.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration { return 0 }
 	poolRetry.RetryMax = poolSize
 
-	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		if _, ok := req.Context().Value(ctxNoRetry).(bool); ok {
 			return next.RoundTrip(req)
 		}
@@ -58,7 +60,7 @@ func mwRetry(next http.RoundTripper, poolSize int, logger log.Logger) http.Round
 
 // mwHostPool sets request host from a pool.
 func mwHostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
-	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	return httputilx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		ctx := req.Context()
 
 		var (
@@ -103,18 +105,29 @@ func mwHostPool(next http.RoundTripper, pool hostpool.HostPool, port string) htt
 
 // mwLogger logs requests and responses.
 func mwLogger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
-	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		start := timeutc.Now()
 		defer func() {
 			if resp != nil {
-				logger.Debug(req.Context(), "HTTP",
+				f := []interface{}{
 					"host", req.Host,
 					"method", req.Method,
 					"uri", req.URL.RequestURI(),
 					"status", resp.StatusCode,
 					"bytes", resp.ContentLength,
 					"duration", fmt.Sprintf("%dms", timeutc.Since(start)/1000000),
-				)
+				}
+
+				// Dump body of failed requests
+				if resp.StatusCode >= 400 {
+					if b, err := httputil.DumpResponse(resp, true); err != nil {
+						f = append(f, "dump", errors.Wrap(err, "failed to dump request"))
+					} else {
+						f = append(f, "dump", string(b))
+					}
+				}
+
+				logger.Debug(req.Context(), "HTTP", f...)
 			}
 		}()
 		return next.RoundTrip(req)
@@ -134,7 +147,7 @@ func (b body) Close() error {
 
 // mwTimeout sets request context timeout for individual requests.
 func mwTimeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
-	return httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
 		defer func() {
 			if resp != nil {
