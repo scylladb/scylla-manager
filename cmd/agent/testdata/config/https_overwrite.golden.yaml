@@ -1,6 +1,7 @@
 https: foobar
 tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
 tls_key_file: /var/lib/scylla-manager/scylla_manager.key
+cpu: -1
 scylla_config_file: ./testdata/config/scylla.input.yaml
 scylla:
   listen_address: la

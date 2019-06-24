@@ -28,6 +28,7 @@ type config struct {
 	HTTPS            string       `yaml:"https"`
 	TLSCertFile      string       `yaml:"tls_cert_file"`
 	TLSKeyFile       string       `yaml:"tls_key_file"`
+	CPU              int          `yaml:"cpu"`
 	ScyllaConfigFile string       `yaml:"scylla_config_file"`
 	Scylla           scyllaConfig `yaml:"scylla"`
 }
@@ -36,6 +37,7 @@ func defaultConfig() config {
 	return config{
 		TLSCertFile:      "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:       "/var/lib/scylla-manager/scylla_manager.key",
+		CPU:              -1,
 		ScyllaConfigFile: "/etc/scylla/scylla.yaml",
 		Scylla: scyllaConfig{
 			APIAddress:        "127.0.0.1",

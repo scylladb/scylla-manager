@@ -10,6 +10,12 @@
 #tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
 #tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 
+# CPU to run Scylla Manager Agent on. By default the agent would read Scylla
+# configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by
+# Scylla. If that's not possible user must specify a core that the agent would
+# cohabit with a Scylla shard.
+# cpu: 0
+
 # Scylla configuration file.
 #scylla_config_file: /etc/scylla/scylla.yaml
 
