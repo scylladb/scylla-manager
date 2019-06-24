@@ -803,6 +803,7 @@ func MustFindByName(name string) *fs.RegInfo {
 
 // RemoteConfig runs the config helper for the remote if needed
 func RemoteConfig(name string) {
+	fmt.Printf("Remote config\n")
 	f := MustFindByName(name)
 	if f.Config != nil {
 		m := fs.ConfigMap(f, name)

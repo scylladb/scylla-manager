@@ -49,7 +49,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f
 	golang.org/x/net v0.0.0-20190206173232-65e2d4e15006
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect
-	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e // indirect
+	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
