@@ -229,10 +229,6 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 	if err := w.uploadDir(ctx, h.IP, dataDst, dataSrc); err != nil {
 		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, dataSrc, dataDst)
 	}
-	// Delete the duplicate manifest
-	if err := w.deleteFile(ctx, h.IP, path.Join(dataDst, manifestFile)); err != nil {
-		w.logger.Error(ctx, "Deleting duplicate manifest failed", "error", err)
-	}
 
 	return nil
 }
@@ -248,16 +244,7 @@ func (w *worker) uploadFile(ctx context.Context, ip, dst, src string) error {
 
 func (w *worker) uploadDir(ctx context.Context, ip, dst, src string) error {
 	w.logger.Debug(ctx, "Uploading dir", "host", ip, "from", src, "to", dst)
-	id, err := w.client.RcloneCopyDir(ctx, ip, dst, src)
-	if err != nil {
-		return err
-	}
-	return w.waitJob(ctx, ip, id)
-}
-
-func (w *worker) deleteFile(ctx context.Context, ip, path string) error {
-	w.logger.Debug(ctx, "Deleting file", "host", ip, "path", path)
-	id, err := w.client.RcloneDeleteFile(ctx, ip, path)
+	id, err := w.client.RcloneCopyDir(ctx, ip, dst, src, manifestFile)
 	if err != nil {
 		return err
 	}
