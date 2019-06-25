@@ -43,8 +43,9 @@ func tryConnectToDatabase(config *serverConfig) (string, error) {
 
 	for _, host := range config.Database.Hosts {
 		conn, err := net.Dial("tcp", net.JoinHostPort(host, "9042"))
-		conn.Close()
-
+		if conn != nil {
+			conn.Close()
+		}
 		if err == nil {
 			return host, nil
 		}
