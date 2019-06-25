@@ -17,7 +17,7 @@ func main() {
 	log.SetOutput(ioutil.Discard)
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(rootCmd.OutOrStderr(), "STARTUP ERROR: %s\n", err)
+		fmt.Fprintf(rootCmd.OutOrStderr(), "STARTUP ERROR:\n\n%s\n", err)
 		os.Exit(1)
 	}
 
