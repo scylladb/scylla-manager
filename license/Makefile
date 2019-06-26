@@ -3,10 +3,10 @@ all: LICENSE.3RD_PARTY.scylla-manager-server LICENSE.3RD_PARTY.scylla-manager-cl
 .PHONY: *
 
 LICENSE.3RD_PARTY.scylla-manager-server:
-	./licensegen ../cmd/scylla-manager > $@
+	./licensegen.sh ../cmd/scylla-manager > $@
 
 LICENSE.3RD_PARTY.scylla-manager-client:
-	./licensegen ../cmd/sctool > $@
+	./licensegen.sh ../cmd/sctool > $@
 
 LICENSE.3RD_PARTY.scylla-manager-agent:
-	./licensegen ../cmd/agent > $@
+	./licensegen.sh ../cmd/agent > $@

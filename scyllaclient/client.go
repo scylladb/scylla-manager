@@ -32,7 +32,7 @@ import (
 
 var initOnce sync.Once
 
-//go:generate ./internalgen
+//go:generate ./internalgen.sh
 
 // DefaultTransport returns a new http.Transport with similar default values to
 // http.DefaultTransport. Do not use this for transient transports as it can
