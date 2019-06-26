@@ -290,10 +290,14 @@ func (w *worker) waitJob(ctx context.Context, ip string, id int64) error {
 func (w *worker) remoteMetaDir(h hostInfo, d snapshotDir) string {
 	return path.Join(
 		"backup",
+		"cluster",
 		w.clusterID.String(),
 		"META",
+		"task",
 		w.taskID.String(),
+		"run",
 		w.runID.String(),
+		"node",
 		h.ID,
 		d.Keyspace,
 		d.Table,
@@ -304,8 +308,10 @@ func (w *worker) remoteMetaDir(h hostInfo, d snapshotDir) string {
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 	return path.Join(
 		"backup",
+		"cluster",
 		w.clusterID.String(),
 		"SST",
+		"node",
 		h.ID,
 		d.Keyspace,
 		d.Table,
