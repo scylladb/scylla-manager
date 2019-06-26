@@ -5,6 +5,7 @@ package main
 import (
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -12,8 +13,6 @@ import (
 
 	"github.com/pkg/errors"
 )
-
-const host = "0.0.0.0"
 
 type router struct {
 	config config
@@ -30,6 +29,7 @@ func newRouter(config config, rclone http.Handler, client *http.Client) *router 
 }
 
 func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s := mux.config.Scylla
 	p := path.Clean(r.URL.Path) + "/"
 	switch {
 	case strings.HasPrefix(p, "/rclone/"):
@@ -38,9 +38,9 @@ func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
 		mux.rclone.ServeHTTP(w, r)
 	case strings.HasPrefix(p, "/metrics/"):
-		mux.sendRequest(w, withHost(r, host+":"+mux.config.Scylla.PrometheusPort))
+		mux.sendRequest(w, withHostPort(r, s.PrometheusAddress, s.PrometheusPort))
 	default:
-		mux.sendRequest(w, withHost(r, host+":"+mux.config.Scylla.APIPort))
+		mux.sendRequest(w, withHostPort(r, s.APIAddress, s.APIPort))
 	}
 }
 
@@ -62,10 +62,11 @@ func (mux *router) sendRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func withHost(r *http.Request, host string) *http.Request {
+func withHostPort(r *http.Request, host, port string) *http.Request {
+	hp := net.JoinHostPort(host, port)
 	req := cloneRequest(r)
-	req.Host = host
-	req.URL.Host = host
+	req.Host = hp
+	req.URL.Host = hp
 	req.URL.Scheme = "http"
 	return req
 }
