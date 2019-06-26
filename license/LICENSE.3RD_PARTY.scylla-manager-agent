@@ -19,3 +19,5 @@ This product includes software from golang.org/x/text licensed under BSD-3-Claus
 This product includes software from golang.org/x/time licensed under BSD-3-Clause license.
 This product includes software from gopkg.in/inf.v0 licensed under BSD-3-Clause license.
 This product includes software from gopkg.in/yaml.v2 licensed under Apache-2.0 license.
+This product includes software from go.uber.org/atomic licensed under MIT license.
+This product includes software from go.uber.org/multierr licensed under MIT license.

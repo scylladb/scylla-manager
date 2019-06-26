@@ -176,8 +176,7 @@ func (r *request) buildHTTP(mediaType, basePath string, producers map[string]run
 					if err != nil {
 						pw.CloseWithError(err)
 						log.Println(err)
-					}
-					if _, err := io.Copy(wrtr, fi); err != nil {
+					} else if _, err := io.Copy(wrtr, fi); err != nil {
 						pw.CloseWithError(err)
 						log.Println(err)
 					}
@@ -214,9 +213,6 @@ func (r *request) buildHTTP(mediaType, basePath string, producers map[string]run
 				return nil, err
 			}
 
-			if _, err := r.buf.Write(b.Bytes()); err != nil {
-				return nil, err
-			}
 			return ioutil.NopCloser(&b), nil
 		}
 
@@ -287,6 +283,11 @@ func (r *request) SetHeaderParam(name string, values ...string) error {
 	return nil
 }
 
+// GetHeaderParams returns the all headers currently set for the request
+func (r *request) GetHeaderParams() http.Header {
+	return r.header
+}
+
 // SetQueryParam adds a query param to the request
 // when there is only 1 value provided for the varargs, it will set it.
 // when there are several values provided for the varargs it will add it (no overriding)
@@ -353,11 +354,19 @@ func (r *request) SetFileParam(name string, files ...runtime.NamedReadCloser) er
 	return nil
 }
 
+func (r *request) GetFileParam() map[string][]runtime.NamedReadCloser {
+	return r.fileFields
+}
+
 // SetBodyParam sets a body parameter on the request.
 // This does not yet serialze the object, this happens as late as possible.
 func (r *request) SetBodyParam(payload interface{}) error {
 	r.payload = payload
 	return nil
+}
+
+func (r *request) GetBodyParam() interface{} {
+	return r.payload
 }
 
 // SetTimeout sets the timeout for a request

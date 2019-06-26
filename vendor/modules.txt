@@ -1,4 +1,4 @@
-# github.com/PuerkitoBio/purell v1.1.0
+# github.com/PuerkitoBio/purell v1.1.1
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
@@ -9,7 +9,7 @@ github.com/abbot/go-http-auth
 # github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055
 github.com/apcera/termtables
 github.com/apcera/termtables/term
-# github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f
+# github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 github.com/asaskevich/govalidator
 # github.com/aws/aws-sdk-go v1.16.31
 github.com/aws/aws-sdk-go/aws
@@ -52,23 +52,26 @@ github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash v1.0.0
 github.com/cespare/xxhash
+# github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+github.com/globalsign/mgo/bson
+github.com/globalsign/mgo/internal/json
 # github.com/go-chi/chi v3.3.2+incompatible
 github.com/go-chi/chi
 github.com/go-chi/chi/middleware
 # github.com/go-chi/render v1.0.0
 github.com/go-chi/render
-# github.com/go-openapi/analysis v0.0.0-20180801175213-7c1bef8f6d9f
+# github.com/go-openapi/analysis v0.19.2
 github.com/go-openapi/analysis
 github.com/go-openapi/analysis/internal
-# github.com/go-openapi/errors v0.0.0-20180515155515-b2b2befaf267
+# github.com/go-openapi/errors v0.19.2
 github.com/go-openapi/errors
-# github.com/go-openapi/jsonpointer v0.0.0-20180322222829-3a0015ad55fa
+# github.com/go-openapi/jsonpointer v0.19.2
 github.com/go-openapi/jsonpointer
-# github.com/go-openapi/jsonreference v0.0.0-20180322222742-3fb327e6747d
+# github.com/go-openapi/jsonreference v0.19.2
 github.com/go-openapi/jsonreference
-# github.com/go-openapi/loads v0.0.0-20171207192234-2a2b323bab96
+# github.com/go-openapi/loads v0.19.2
 github.com/go-openapi/loads
-# github.com/go-openapi/runtime v0.0.0-20180628220156-9a3091f566c0
+# github.com/go-openapi/runtime v0.19.2
 github.com/go-openapi/runtime
 github.com/go-openapi/runtime/client
 github.com/go-openapi/runtime/middleware
@@ -77,13 +80,13 @@ github.com/go-openapi/runtime/middleware/denco
 github.com/go-openapi/runtime/middleware/header
 github.com/go-openapi/runtime/middleware/untyped
 github.com/go-openapi/runtime/security
-# github.com/go-openapi/spec v0.0.0-20180801175345-384415f06ee2
+# github.com/go-openapi/spec v0.19.2
 github.com/go-openapi/spec
-# github.com/go-openapi/strfmt v0.0.0-20180703152050-913ee058e387
+# github.com/go-openapi/strfmt v0.19.0
 github.com/go-openapi/strfmt
-# github.com/go-openapi/swag v0.0.0-20180715190254-becd2f08beaf
+# github.com/go-openapi/swag v0.19.2
 github.com/go-openapi/swag
-# github.com/go-openapi/validate v0.0.0-20180809073206-7c1911976134
+# github.com/go-openapi/validate v0.19.2
 github.com/go-openapi/validate
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
@@ -127,7 +130,7 @@ github.com/inconshreveable/mousetrap
 github.com/jmespath/go-jmespath
 # github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
 github.com/kardianos/osext
-# github.com/mailru/easyjson v0.0.0-20180323154445-8b799c424f57
+# github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
 github.com/mailru/easyjson/buffer
@@ -135,7 +138,7 @@ github.com/mailru/easyjson/buffer
 github.com/mattn/go-runewidth
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mitchellh/mapstructure v0.0.0-20180220230111-00c29f56e238
+# github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
 # github.com/ncw/rclone v1.47.0
 github.com/ncw/rclone/backend/local
@@ -224,7 +227,7 @@ go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
-# golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f
+# golang.org/x/crypto v0.0.0-20190617133340-57b3e21c3d56
 golang.org/x/crypto/ssh
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
@@ -239,17 +242,17 @@ golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
-# golang.org/x/net v0.0.0-20190206173232-65e2d4e15006
+# golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 golang.org/x/net/context
-golang.org/x/net/context/ctxhttp
 golang.org/x/net/publicsuffix
 golang.org/x/net/idna
-# golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
+# golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
+# golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
+golang.org/x/sys/cpu
+# golang.org/x/text v0.3.2
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
 golang.org/x/text/secure/bidirule
@@ -259,8 +262,5 @@ golang.org/x/text/transform
 golang.org/x/time/rate
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
-# gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
-gopkg.in/mgo.v2/bson
-gopkg.in/mgo.v2/internal/json
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2

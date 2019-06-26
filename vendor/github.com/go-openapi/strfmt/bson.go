@@ -19,10 +19,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
-
-	"gopkg.in/mgo.v2/bson"
 )
 
 func init() {
@@ -36,7 +35,7 @@ func IsBSONObjectID(str string) bool {
 	return bson.IsObjectIdHex(str)
 }
 
-// ObjectId represents a BSON object ID (alias to gopkg.in/mgo.v2/bson.ObjectId)
+// ObjectId represents a BSON object ID (alias to github.com/globalsign/mgo/bson.ObjectId)
 //
 // swagger:strfmt bsonobjectid
 type ObjectId bson.ObjectId
@@ -125,4 +124,19 @@ func (id *ObjectId) SetBSON(raw bson.Raw) error {
 	}
 
 	return errors.New("couldn't unmarshal bson raw value as ObjectId")
+}
+
+// DeepCopyInto copies the receiver and writes its value into out.
+func (id *ObjectId) DeepCopyInto(out *ObjectId) {
+	*out = *id
+}
+
+// DeepCopy copies the receiver into a new ObjectId.
+func (id *ObjectId) DeepCopy() *ObjectId {
+	if id == nil {
+		return nil
+	}
+	out := new(ObjectId)
+	id.DeepCopyInto(out)
+	return out
 }

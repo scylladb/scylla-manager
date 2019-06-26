@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
-
+	"github.com/globalsign/mgo/bson"
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 )
@@ -148,4 +147,19 @@ func (d *Date) SetBSON(raw bson.Raw) error {
 	}
 
 	return errors.New("couldn't unmarshal bson raw value as Date")
+}
+
+// DeepCopyInto copies the receiver and writes its value into out.
+func (d *Date) DeepCopyInto(out *Date) {
+	*out = *d
+}
+
+// DeepCopy copies the receiver into a new Date.
+func (d *Date) DeepCopy() *Date {
+	if d == nil {
+		return nil
+	}
+	out := new(Date)
+	d.DeepCopyInto(out)
+	return out
 }
