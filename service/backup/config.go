@@ -15,7 +15,7 @@ type Config struct {
 	PollInterval            time.Duration `yaml:"poll_interval"`
 
 	// Additional configuration for testing
-	TestEndpoint string `yaml:"-"`
+	TestS3Endpoint string `yaml:"test_s3_endpoint"`
 }
 
 // DefaultConfig returns a Config initialized with default values.

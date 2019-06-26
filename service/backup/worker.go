@@ -192,7 +192,7 @@ func (w *worker) register(ctx context.Context, h hostInfo) error {
 		EnvAuth:         true,
 		DisableChecksum: true,
 
-		Endpoint: w.config.TestEndpoint,
+		Endpoint: w.config.TestS3Endpoint,
 	}
 	return w.client.RcloneRegisterS3Remote(ctx, h.IP, h.Location.RemoteName(), p)
 }

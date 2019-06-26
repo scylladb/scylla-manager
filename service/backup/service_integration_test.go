@@ -228,7 +228,7 @@ func TestBackupIntegration(t *testing.T) {
 	S3InitBucket(t, bucket)
 
 	config := backup.DefaultConfig()
-	config.TestEndpoint = S3TestEndpoint()
+	config.TestS3Endpoint = S3TestEndpoint()
 
 	var (
 		session = CreateSession(t)
