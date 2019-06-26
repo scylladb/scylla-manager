@@ -3,7 +3,7 @@
 # Bind REST API to the specified TCP address using HTTPS protocol. By default
 # Scylla Manager Agent uses Scylla broadcast address that is read from the
 # scylla configuration file.
-# https: 0.0.0.0:10001
+#https: 0.0.0.0:10001
 
 # TLS certificate and key files to use with HTTPS. To regenerate the files use
 # scyllamgr_ssl_cert_gen script shipped with the Scylla Manager Agent.
@@ -14,7 +14,7 @@
 # configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by
 # Scylla. If that's not possible user must specify a core that the agent would
 # cohabit with a Scylla shard.
-# cpu: 0
+#cpu: 0
 
 # Scylla configuration file.
 #scylla_config_file: /etc/scylla/scylla.yaml
