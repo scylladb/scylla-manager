@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
-	"sync"
 
 	"github.com/cespare/xxhash"
 	"github.com/gocql/gocql"
@@ -36,9 +35,6 @@ type Service struct {
 	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
 	logger       log.Logger
-
-	activeRunMu sync.Mutex
-	activeRun   map[uuid.UUID]uuid.UUID // maps clusterName ID to active run ID
 }
 
 func NewService(session *gocql.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
@@ -64,42 +60,12 @@ func NewService(session *gocql.Session, config Config, clusterName ClusterNameFu
 		clusterName:  clusterName,
 		scyllaClient: scyllaClient,
 		logger:       logger,
-		activeRun:    make(map[uuid.UUID]uuid.UUID),
 	}, nil
 }
 
 // Runner creates a Runner that handles repairs.
 func (s *Service) Runner() Runner {
 	return Runner{service: s}
-}
-
-func (s *Service) tryLockCluster(clusterID, runID uuid.UUID) error {
-	s.activeRunMu.Lock()
-	defer s.activeRunMu.Unlock()
-
-	owner := s.activeRun[clusterID]
-	if owner != uuid.Nil {
-		return errors.Errorf("cluster owned by another run: %s", owner)
-	}
-
-	s.activeRun[clusterID] = runID
-	return nil
-}
-
-func (s *Service) unlockCluster(clusterID, runID uuid.UUID) error {
-	s.activeRunMu.Lock()
-	defer s.activeRunMu.Unlock()
-
-	owner := s.activeRun[clusterID]
-	if owner == uuid.Nil {
-		return errors.Errorf("not locked")
-	}
-	if owner != runID {
-		return errors.Errorf("cluster owned by another run: %s", owner)
-	}
-
-	delete(s.activeRun, clusterID)
-	return nil
 }
 
 // GetTarget converts runner properties into repair Target.
@@ -221,17 +187,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "invalid cluster")
 	}
 	run.clusterName = clusterName
-
-	// Make sure no other repairs are being run on that cluster
-	if err := s.tryLockCluster(run.ClusterID, run.ID); err != nil {
-		s.logger.Debug(ctx, "Lock error", "error", err)
-		return ErrActiveRepair
-	}
-	defer func() {
-		if err := s.unlockCluster(run.ClusterID, run.ID); err != nil {
-			s.logger.Error(ctx, "Unlock error", "error", err)
-		}
-	}()
 
 	s.logger.Info(ctx, "Initializing repair",
 		"cluster_id", run.ClusterID,
