@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/scylladb/go-log"
@@ -34,20 +36,25 @@ func traceIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func recoverPanicsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if rvr := recover(); rvr != nil {
-				if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
-					le.Panic(rvr, nil)
+func recoverPanicsMiddleware(logger log.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if rvr := recover(); rvr != nil {
+					rvrs := fmt.Sprintf("%+v", rvr)
+					if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
+						le.Panic(rvr, nil)
+					} else {
+						logger.Error(r.Context(), rvrs)
+					}
+					httpErrorRender(w, r, errors.New(rvrs))
 				}
-				httpErrorRender(w, r, rvr)
-			}
 
-		}()
+			}()
 
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {
