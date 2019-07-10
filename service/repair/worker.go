@@ -217,7 +217,7 @@ type shardWorker struct {
 	repairSegmentsTotal   prometheus.Gauge
 	repairSegmentsSuccess prometheus.Gauge
 	repairSegmentsError   prometheus.Gauge
-	repairDurationSeconds prometheus.Summary
+	repairDurationSeconds prometheus.Observer
 }
 
 func (w *shardWorker) init(ctx context.Context) {

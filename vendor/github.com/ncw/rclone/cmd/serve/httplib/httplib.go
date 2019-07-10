@@ -2,6 +2,7 @@
 package httplib
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -114,6 +115,11 @@ type Server struct {
 	HTMLTemplate    *template.Template // HTML template for web interface
 }
 
+type contextUserType struct{}
+
+// ContextUserKey is a simple context key
+var ContextUserKey = &contextUserType{}
+
 // singleUserProvider provides the encrypted password for a single user
 func (s *Server) singleUserProvider(user, realm string) string {
 	if user == s.Opt.BasicUser {
@@ -150,6 +156,11 @@ func NewServer(handler http.Handler, opt *Options) *Server {
 		authenticator := auth.NewBasicAuthenticator(s.Opt.Realm, secretProvider)
 		oldHandler := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// No auth wanted for OPTIONS method
+			if r.Method == "OPTIONS" {
+				oldHandler.ServeHTTP(w, r)
+				return
+			}
 			if username := authenticator.CheckAuth(r); username == "" {
 				authHeader := r.Header.Get(authenticator.Headers.V().Authorization)
 				if authHeader != "" {
@@ -167,6 +178,7 @@ func NewServer(handler http.Handler, opt *Options) *Server {
 				}
 				authenticator.RequireAuth(w, r)
 			} else {
+				r = r.WithContext(context.WithValue(r.Context(), ContextUserKey, username))
 				oldHandler.ServeHTTP(w, r)
 			}
 		})
@@ -180,17 +192,17 @@ func NewServer(handler http.Handler, opt *Options) *Server {
 
 	// FIXME make a transport?
 	s.httpServer = &http.Server{
-		Addr:           s.Opt.ListenAddr,
-		Handler:        handler,
-		ReadTimeout:    s.Opt.ServerReadTimeout,
-		WriteTimeout:   s.Opt.ServerWriteTimeout,
-		MaxHeaderBytes: s.Opt.MaxHeaderBytes,
+		Addr:              s.Opt.ListenAddr,
+		Handler:           handler,
+		ReadTimeout:       s.Opt.ServerReadTimeout,
+		WriteTimeout:      s.Opt.ServerWriteTimeout,
+		MaxHeaderBytes:    s.Opt.MaxHeaderBytes,
+		ReadHeaderTimeout: 10 * time.Second, // time to send the headers
+		IdleTimeout:       60 * time.Second, // time to keep idle connections open
 		TLSConfig: &tls.Config{
 			MinVersion: tls.VersionTLS10, // disable SSL v3.0 and earlier
 		},
 	}
-	// go version specific initialisation
-	initServer(s.httpServer)
 
 	if s.Opt.ClientCA != "" {
 		if !s.useSSL {
@@ -267,7 +279,7 @@ func (s *Server) Wait() {
 
 // Close shuts the running server down
 func (s *Server) Close() {
-	err := closeServer(s.httpServer)
+	err := s.httpServer.Close()
 	if err != nil {
 		log.Printf("Error on closing HTTP server: %v", err)
 		return

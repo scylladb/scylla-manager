@@ -3,6 +3,7 @@
 package rcserver
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -21,7 +22,7 @@ func registerInMemoryConf() {
 	fs.ConfigFileSet = c.Set
 
 	call := rc.Calls.Get("config/create")
-	call.Fn = func(in rc.Params) (rc.Params, error) {
+	call.Fn = func(ctx context.Context, in rc.Params) (rc.Params, error) {
 		name, err := in.GetString("name")
 		if err != nil {
 			return nil, err
@@ -42,7 +43,7 @@ func registerInMemoryConf() {
 		return nil, nil
 	}
 	call = rc.Calls.Get("config/get")
-	call.Fn = func(in rc.Params) (rc.Params, error) {
+	call.Fn = func(ctx context.Context, in rc.Params) (rc.Params, error) {
 		name, err := in.GetString("name")
 		if err != nil {
 			return nil, err

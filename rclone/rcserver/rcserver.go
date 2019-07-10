@@ -5,6 +5,7 @@ package rcserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 	"github.com/ncw/rclone/fs/filter"
 	"github.com/ncw/rclone/fs/fshttp"
 	"github.com/ncw/rclone/fs/rc"
+	"github.com/ncw/rclone/fs/rc/jobs"
 	"github.com/pkg/errors"
 )
 
@@ -146,8 +148,6 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		return
 	}
 
-	call.Fn = wrapCall(call.Fn)
-
 	// Check to see if it is async or not
 	isAsync, err := in.GetBool("_async")
 	if rc.NotErrParamNotFound(err) {
@@ -157,9 +157,11 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 
 	var out rc.Params
 	if isAsync {
-		out, err = rc.StartJob(call.Fn, in)
+		out, err = jobs.StartAsyncJob(call.Fn, in)
 	} else {
-		out, err = call.Fn(in)
+		var jobID int64
+		out, jobID, err = jobs.ExecuteJob(r.Context(), call.Fn, in)
+		w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 	}
 	if err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)
@@ -178,17 +180,4 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 
 func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
 	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-}
-
-// wrapCall wrap functional call with error and stats.
-func wrapCall(f rc.Func) rc.Func {
-	return func(in rc.Params) (rc.Params, error) {
-		var err error
-		out, err := f(in)
-		if err != nil {
-			return out, err
-		}
-		lastErr := accounting.Stats.GetLastError()
-		return out, lastErr
-	}
 }

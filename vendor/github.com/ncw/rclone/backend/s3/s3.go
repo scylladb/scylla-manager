@@ -14,6 +14,7 @@ What happens if you CTRL-C a multipart upload
 */
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -369,6 +370,10 @@ func init() {
 				Value:    "s3.us-west-1.wasabisys.com",
 				Help:     "Wasabi US West endpoint",
 				Provider: "Wasabi",
+			}, {
+				Value:    "s3.eu-central-1.wasabisys.com",
+				Help:     "Wasabi EU Central endpoint",
+				Provider: "Wasabi",
 			}},
 		}, {
 			Name:     "location_constraint",
@@ -648,6 +653,9 @@ isn't set then "acl" is used instead.`,
 			}, {
 				Value: "DEEP_ARCHIVE",
 				Help:  "Glacier Deep Archive storage class",
+			}, {
+				Value: "INTELLIGENT_TIERING",
+				Help:  "Intelligent-Tiering storage class",
 			}},
 		}, {
 			// Mapping from here: https://www.alibabacloud.com/help/doc-detail/64919.htm
@@ -732,6 +740,14 @@ If it is set then rclone will use v2 authentication.
 Use this only if v4 signatures don't work, eg pre Jewel/v10 CEPH.`,
 			Default:  false,
 			Advanced: true,
+		}, {
+			Name:     "use_accelerate_endpoint",
+			Provider: "AWS",
+			Help: `If true use the AWS S3 accelerated endpoint.
+
+See: [AWS S3 Transfer acceleration](https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html)`,
+			Default:  false,
+			Advanced: true,
 		}},
 	})
 }
@@ -752,25 +768,26 @@ const (
 
 // Options defines the configuration for this backend
 type Options struct {
-	Provider             string        `config:"provider"`
-	EnvAuth              bool          `config:"env_auth"`
-	AccessKeyID          string        `config:"access_key_id"`
-	SecretAccessKey      string        `config:"secret_access_key"`
-	Region               string        `config:"region"`
-	Endpoint             string        `config:"endpoint"`
-	LocationConstraint   string        `config:"location_constraint"`
-	ACL                  string        `config:"acl"`
-	BucketACL            string        `config:"bucket_acl"`
-	ServerSideEncryption string        `config:"server_side_encryption"`
-	SSEKMSKeyID          string        `config:"sse_kms_key_id"`
-	StorageClass         string        `config:"storage_class"`
-	UploadCutoff         fs.SizeSuffix `config:"upload_cutoff"`
-	ChunkSize            fs.SizeSuffix `config:"chunk_size"`
-	DisableChecksum      bool          `config:"disable_checksum"`
-	SessionToken         string        `config:"session_token"`
-	UploadConcurrency    int           `config:"upload_concurrency"`
-	ForcePathStyle       bool          `config:"force_path_style"`
-	V2Auth               bool          `config:"v2_auth"`
+	Provider              string        `config:"provider"`
+	EnvAuth               bool          `config:"env_auth"`
+	AccessKeyID           string        `config:"access_key_id"`
+	SecretAccessKey       string        `config:"secret_access_key"`
+	Region                string        `config:"region"`
+	Endpoint              string        `config:"endpoint"`
+	LocationConstraint    string        `config:"location_constraint"`
+	ACL                   string        `config:"acl"`
+	BucketACL             string        `config:"bucket_acl"`
+	ServerSideEncryption  string        `config:"server_side_encryption"`
+	SSEKMSKeyID           string        `config:"sse_kms_key_id"`
+	StorageClass          string        `config:"storage_class"`
+	UploadCutoff          fs.SizeSuffix `config:"upload_cutoff"`
+	ChunkSize             fs.SizeSuffix `config:"chunk_size"`
+	DisableChecksum       bool          `config:"disable_checksum"`
+	SessionToken          string        `config:"session_token"`
+	UploadConcurrency     int           `config:"upload_concurrency"`
+	ForcePathStyle        bool          `config:"force_path_style"`
+	V2Auth                bool          `config:"v2_auth"`
+	UseAccelerateEndpoint bool          `config:"use_accelerate_endpoint"`
 }
 
 // Fs represents a remote s3 server
@@ -944,14 +961,15 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 	if opt.Region == "" {
 		opt.Region = "us-east-1"
 	}
-	if opt.Provider == "Alibaba" || opt.Provider == "Netease" {
+	if opt.Provider == "Alibaba" || opt.Provider == "Netease" || opt.UseAccelerateEndpoint {
 		opt.ForcePathStyle = false
 	}
 	awsConfig := aws.NewConfig().
 		WithMaxRetries(maxRetries).
 		WithCredentials(cred).
 		WithHTTPClient(fshttp.NewClient(fs.Config)).
-		WithS3ForcePathStyle(opt.ForcePathStyle)
+		WithS3ForcePathStyle(opt.ForcePathStyle).
+		WithS3UseAccelerate(opt.UseAccelerateEndpoint)
 	if opt.Region != "" {
 		awsConfig.WithRegion(opt.Region)
 	}
@@ -1095,7 +1113,7 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 // Return an Object from a path
 //
 //If it can't be found it returns the error ErrorObjectNotFound.
-func (f *Fs) newObjectWithInfo(remote string, info *s3.Object) (fs.Object, error) {
+func (f *Fs) newObjectWithInfo(ctx context.Context, remote string, info *s3.Object) (fs.Object, error) {
 	o := &Object{
 		fs:     f,
 		remote: remote,
@@ -1111,7 +1129,7 @@ func (f *Fs) newObjectWithInfo(remote string, info *s3.Object) (fs.Object, error
 		o.etag = aws.StringValue(info.ETag)
 		o.bytes = aws.Int64Value(info.Size)
 	} else {
-		err := o.readMetaData() // reads info and meta, returning an error
+		err := o.readMetaData(ctx) // reads info and meta, returning an error
 		if err != nil {
 			return nil, err
 		}
@@ -1121,8 +1139,8 @@ func (f *Fs) newObjectWithInfo(remote string, info *s3.Object) (fs.Object, error
 
 // NewObject finds the Object at remote.  If it can't be found
 // it returns the error fs.ErrorObjectNotFound.
-func (f *Fs) NewObject(remote string) (fs.Object, error) {
-	return f.newObjectWithInfo(remote, nil)
+func (f *Fs) NewObject(ctx context.Context, remote string) (fs.Object, error) {
+	return f.newObjectWithInfo(ctx, remote, nil)
 }
 
 // Gets the bucket location
@@ -1178,7 +1196,7 @@ type listFn func(remote string, object *s3.Object, isDirectory bool) error
 // dir is the starting directory, "" for root
 //
 // Set recurse to read sub directories
-func (f *Fs) list(dir string, recurse bool, fn listFn) error {
+func (f *Fs) list(ctx context.Context, dir string, recurse bool, fn listFn) error {
 	root := f.root
 	if dir != "" {
 		root += dir + "/"
@@ -1201,7 +1219,7 @@ func (f *Fs) list(dir string, recurse bool, fn listFn) error {
 		var resp *s3.ListObjectsOutput
 		var err error
 		err = f.pacer.Call(func() (bool, error) {
-			resp, err = f.c.ListObjects(&req)
+			resp, err = f.c.ListObjectsWithContext(ctx, &req)
 			return f.shouldRetry(err)
 		})
 		if err != nil {
@@ -1275,7 +1293,7 @@ func (f *Fs) list(dir string, recurse bool, fn listFn) error {
 }
 
 // Convert a list item into a DirEntry
-func (f *Fs) itemToDirEntry(remote string, object *s3.Object, isDirectory bool) (fs.DirEntry, error) {
+func (f *Fs) itemToDirEntry(ctx context.Context, remote string, object *s3.Object, isDirectory bool) (fs.DirEntry, error) {
 	if isDirectory {
 		size := int64(0)
 		if object.Size != nil {
@@ -1284,7 +1302,7 @@ func (f *Fs) itemToDirEntry(remote string, object *s3.Object, isDirectory bool) 
 		d := fs.NewDir(remote, time.Time{}).SetSize(size)
 		return d, nil
 	}
-	o, err := f.newObjectWithInfo(remote, object)
+	o, err := f.newObjectWithInfo(ctx, remote, object)
 	if err != nil {
 		return nil, err
 	}
@@ -1302,10 +1320,10 @@ func (f *Fs) markBucketOK() {
 }
 
 // listDir lists files and directories to out
-func (f *Fs) listDir(dir string) (entries fs.DirEntries, err error) {
+func (f *Fs) listDir(ctx context.Context, dir string) (entries fs.DirEntries, err error) {
 	// List the objects and directories
-	err = f.list(dir, false, func(remote string, object *s3.Object, isDirectory bool) error {
-		entry, err := f.itemToDirEntry(remote, object, isDirectory)
+	err = f.list(ctx, dir, false, func(remote string, object *s3.Object, isDirectory bool) error {
+		entry, err := f.itemToDirEntry(ctx, remote, object, isDirectory)
 		if err != nil {
 			return err
 		}
@@ -1323,14 +1341,14 @@ func (f *Fs) listDir(dir string) (entries fs.DirEntries, err error) {
 }
 
 // listBuckets lists the buckets to out
-func (f *Fs) listBuckets(dir string) (entries fs.DirEntries, err error) {
+func (f *Fs) listBuckets(ctx context.Context, dir string) (entries fs.DirEntries, err error) {
 	if dir != "" {
 		return nil, fs.ErrorListBucketRequired
 	}
 	req := s3.ListBucketsInput{}
 	var resp *s3.ListBucketsOutput
 	err = f.pacer.Call(func() (bool, error) {
-		resp, err = f.c.ListBuckets(&req)
+		resp, err = f.c.ListBucketsWithContext(ctx, &req)
 		return f.shouldRetry(err)
 	})
 	if err != nil {
@@ -1352,11 +1370,11 @@ func (f *Fs) listBuckets(dir string) (entries fs.DirEntries, err error) {
 //
 // This should return ErrDirNotFound if the directory isn't
 // found.
-func (f *Fs) List(dir string) (entries fs.DirEntries, err error) {
+func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err error) {
 	if f.bucket == "" {
-		return f.listBuckets(dir)
+		return f.listBuckets(ctx, dir)
 	}
-	return f.listDir(dir)
+	return f.listDir(ctx, dir)
 }
 
 // ListR lists the objects and directories of the Fs starting
@@ -1375,13 +1393,13 @@ func (f *Fs) List(dir string) (entries fs.DirEntries, err error) {
 //
 // Don't implement this unless you have a more efficient way
 // of listing recursively that doing a directory traversal.
-func (f *Fs) ListR(dir string, callback fs.ListRCallback) (err error) {
+func (f *Fs) ListR(ctx context.Context, dir string, callback fs.ListRCallback) (err error) {
 	if f.bucket == "" {
 		return fs.ErrorListBucketRequired
 	}
 	list := walk.NewListRHelper(callback)
-	err = f.list(dir, true, func(remote string, object *s3.Object, isDirectory bool) error {
-		entry, err := f.itemToDirEntry(remote, object, isDirectory)
+	err = f.list(ctx, dir, true, func(remote string, object *s3.Object, isDirectory bool) error {
+		entry, err := f.itemToDirEntry(ctx, remote, object, isDirectory)
 		if err != nil {
 			return err
 		}
@@ -1396,29 +1414,29 @@ func (f *Fs) ListR(dir string, callback fs.ListRCallback) (err error) {
 }
 
 // Put the Object into the bucket
-func (f *Fs) Put(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) (fs.Object, error) {
+func (f *Fs) Put(ctx context.Context, in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) (fs.Object, error) {
 	// Temporary Object under construction
 	fs := &Object{
 		fs:     f,
 		remote: src.Remote(),
 	}
-	return fs, fs.Update(in, src, options...)
+	return fs, fs.Update(ctx, in, src, options...)
 }
 
 // PutStream uploads to the remote path with the modTime given of indeterminate size
-func (f *Fs) PutStream(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) (fs.Object, error) {
-	return f.Put(in, src, options...)
+func (f *Fs) PutStream(ctx context.Context, in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) (fs.Object, error) {
+	return f.Put(ctx, in, src, options...)
 }
 
 // Check if the bucket exists
 //
 // NB this can return incorrect results if called immediately after bucket deletion
-func (f *Fs) dirExists() (bool, error) {
+func (f *Fs) dirExists(ctx context.Context) (bool, error) {
 	req := s3.HeadBucketInput{
 		Bucket: &f.bucket,
 	}
 	err := f.pacer.Call(func() (bool, error) {
-		_, err := f.c.HeadBucket(&req)
+		_, err := f.c.HeadBucketWithContext(ctx, &req)
 		return f.shouldRetry(err)
 	})
 	if err == nil {
@@ -1433,14 +1451,14 @@ func (f *Fs) dirExists() (bool, error) {
 }
 
 // Mkdir creates the bucket if it doesn't exist
-func (f *Fs) Mkdir(dir string) error {
+func (f *Fs) Mkdir(ctx context.Context, dir string) error {
 	f.bucketOKMu.Lock()
 	defer f.bucketOKMu.Unlock()
 	if f.bucketOK {
 		return nil
 	}
 	if !f.bucketDeleted {
-		exists, err := f.dirExists()
+		exists, err := f.dirExists(ctx)
 		if err == nil {
 			f.bucketOK = exists
 		}
@@ -1458,7 +1476,7 @@ func (f *Fs) Mkdir(dir string) error {
 		}
 	}
 	err := f.pacer.Call(func() (bool, error) {
-		_, err := f.c.CreateBucket(&req)
+		_, err := f.c.CreateBucketWithContext(ctx, &req)
 		return f.shouldRetry(err)
 	})
 	if err, ok := err.(awserr.Error); ok {
@@ -1477,7 +1495,7 @@ func (f *Fs) Mkdir(dir string) error {
 // Rmdir deletes the bucket if the fs is at the root
 //
 // Returns an error if it isn't empty
-func (f *Fs) Rmdir(dir string) error {
+func (f *Fs) Rmdir(ctx context.Context, dir string) error {
 	f.bucketOKMu.Lock()
 	defer f.bucketOKMu.Unlock()
 	if f.root != "" || dir != "" {
@@ -1487,7 +1505,7 @@ func (f *Fs) Rmdir(dir string) error {
 		Bucket: &f.bucket,
 	}
 	err := f.pacer.Call(func() (bool, error) {
-		_, err := f.c.DeleteBucket(&req)
+		_, err := f.c.DeleteBucketWithContext(ctx, &req)
 		return f.shouldRetry(err)
 	})
 	if err == nil {
@@ -1518,8 +1536,8 @@ func pathEscape(s string) string {
 // Will only be called if src.Fs().Name() == f.Name()
 //
 // If it isn't possible then return fs.ErrorCantCopy
-func (f *Fs) Copy(src fs.Object, remote string) (fs.Object, error) {
-	err := f.Mkdir("")
+func (f *Fs) Copy(ctx context.Context, src fs.Object, remote string) (fs.Object, error) {
+	err := f.Mkdir(ctx, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1548,13 +1566,13 @@ func (f *Fs) Copy(src fs.Object, remote string) (fs.Object, error) {
 		req.StorageClass = &f.opt.StorageClass
 	}
 	err = f.pacer.Call(func() (bool, error) {
-		_, err = f.c.CopyObject(&req)
+		_, err = f.c.CopyObjectWithContext(ctx, &req)
 		return f.shouldRetry(err)
 	})
 	if err != nil {
 		return nil, err
 	}
-	return f.NewObject(remote)
+	return f.NewObject(ctx, remote)
 }
 
 // Hashes returns the supported hash sets.
@@ -1585,14 +1603,14 @@ func (o *Object) Remote() string {
 var matchMd5 = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 // Hash returns the Md5sum of an object returning a lowercase hex string
-func (o *Object) Hash(t hash.Type) (string, error) {
+func (o *Object) Hash(ctx context.Context, t hash.Type) (string, error) {
 	if t != hash.MD5 {
 		return "", hash.ErrUnsupported
 	}
 	hash := strings.Trim(strings.ToLower(o.etag), `"`)
 	// Check the etag is a valid md5sum
 	if !matchMd5.MatchString(hash) {
-		err := o.readMetaData()
+		err := o.readMetaData(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -1618,7 +1636,7 @@ func (o *Object) Size() int64 {
 // readMetaData gets the metadata if it hasn't already been fetched
 //
 // it also sets the info
-func (o *Object) readMetaData() (err error) {
+func (o *Object) readMetaData(ctx context.Context) (err error) {
 	if o.meta != nil {
 		return nil
 	}
@@ -1630,7 +1648,7 @@ func (o *Object) readMetaData() (err error) {
 	var resp *s3.HeadObjectOutput
 	err = o.fs.pacer.Call(func() (bool, error) {
 		var err error
-		resp, err = o.fs.c.HeadObject(&req)
+		resp, err = o.fs.c.HeadObjectWithContext(ctx, &req)
 		return o.fs.shouldRetry(err)
 	})
 	if err != nil {
@@ -1664,11 +1682,11 @@ func (o *Object) readMetaData() (err error) {
 //
 // It attempts to read the objects mtime and if that isn't present the
 // LastModified returned in the http headers
-func (o *Object) ModTime() time.Time {
+func (o *Object) ModTime(ctx context.Context) time.Time {
 	if fs.Config.UseServerModTime {
 		return o.lastModified
 	}
-	err := o.readMetaData()
+	err := o.readMetaData(ctx)
 	if err != nil {
 		fs.Logf(o, "Failed to read metadata: %v", err)
 		return time.Now()
@@ -1688,8 +1706,8 @@ func (o *Object) ModTime() time.Time {
 }
 
 // SetModTime sets the modification time of the local fs object
-func (o *Object) SetModTime(modTime time.Time) error {
-	err := o.readMetaData()
+func (o *Object) SetModTime(ctx context.Context, modTime time.Time) error {
+	err := o.readMetaData(ctx)
 	if err != nil {
 		return err
 	}
@@ -1701,7 +1719,7 @@ func (o *Object) SetModTime(modTime time.Time) error {
 	}
 
 	// Guess the content type
-	mimeType := fs.MimeType(o)
+	mimeType := fs.MimeType(ctx, o)
 
 	// Copy the object to itself to update the metadata
 	key := o.fs.root + o.remote
@@ -1722,11 +1740,14 @@ func (o *Object) SetModTime(modTime time.Time) error {
 	if o.fs.opt.SSEKMSKeyID != "" {
 		req.SSEKMSKeyId = &o.fs.opt.SSEKMSKeyID
 	}
+	if o.fs.opt.StorageClass == "GLACIER" || o.fs.opt.StorageClass == "DEEP_ARCHIVE" {
+		return fs.ErrorCantSetModTime
+	}
 	if o.fs.opt.StorageClass != "" {
 		req.StorageClass = &o.fs.opt.StorageClass
 	}
 	err = o.fs.pacer.Call(func() (bool, error) {
-		_, err := o.fs.c.CopyObject(&req)
+		_, err := o.fs.c.CopyObjectWithContext(ctx, &req)
 		return o.fs.shouldRetry(err)
 	})
 	return err
@@ -1738,7 +1759,7 @@ func (o *Object) Storable() bool {
 }
 
 // Open an object for read
-func (o *Object) Open(options ...fs.OpenOption) (in io.ReadCloser, err error) {
+func (o *Object) Open(ctx context.Context, options ...fs.OpenOption) (in io.ReadCloser, err error) {
 	key := o.fs.root + o.remote
 	req := s3.GetObjectInput{
 		Bucket: &o.fs.bucket,
@@ -1758,7 +1779,7 @@ func (o *Object) Open(options ...fs.OpenOption) (in io.ReadCloser, err error) {
 	var resp *s3.GetObjectOutput
 	err = o.fs.pacer.Call(func() (bool, error) {
 		var err error
-		resp, err = o.fs.c.GetObject(&req)
+		resp, err = o.fs.c.GetObjectWithContext(ctx, &req)
 		return o.fs.shouldRetry(err)
 	})
 	if err, ok := err.(awserr.RequestFailure); ok {
@@ -1773,12 +1794,12 @@ func (o *Object) Open(options ...fs.OpenOption) (in io.ReadCloser, err error) {
 }
 
 // Update the Object from in with modTime and size
-func (o *Object) Update(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) error {
-	err := o.fs.Mkdir("")
+func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) error {
+	err := o.fs.Mkdir(ctx, "")
 	if err != nil {
 		return err
 	}
-	modTime := src.ModTime()
+	modTime := src.ModTime(ctx)
 	size := src.Size()
 
 	multipart := size < 0 || size >= int64(o.fs.opt.UploadCutoff)
@@ -1813,7 +1834,7 @@ func (o *Object) Update(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOptio
 	// disable checksum isn't present.
 	var md5sum string
 	if !multipart || !o.fs.opt.DisableChecksum {
-		hash, err := src.Hash(hash.MD5)
+		hash, err := src.Hash(ctx, hash.MD5)
 		if err == nil && matchMd5.MatchString(hash) {
 			hashBytes, err := hex.DecodeString(hash)
 			if err == nil {
@@ -1826,7 +1847,7 @@ func (o *Object) Update(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOptio
 	}
 
 	// Guess the content type
-	mimeType := fs.MimeType(src)
+	mimeType := fs.MimeType(ctx, src)
 
 	key := o.fs.root + o.remote
 	if multipart {
@@ -1849,7 +1870,7 @@ func (o *Object) Update(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOptio
 			req.StorageClass = &o.fs.opt.StorageClass
 		}
 		err = o.fs.pacer.CallNoRetry(func() (bool, error) {
-			_, err = uploader.Upload(&req)
+			_, err = uploader.UploadWithContext(ctx, &req)
 			return o.fs.shouldRetry(err)
 		})
 		if err != nil {
@@ -1898,6 +1919,7 @@ func (o *Object) Update(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOptio
 		if err != nil {
 			return errors.Wrap(err, "s3 upload: new request")
 		}
+		httpReq = httpReq.WithContext(ctx)
 
 		// set the headers we signed and the length
 		httpReq.Header = headers
@@ -1925,27 +1947,27 @@ func (o *Object) Update(in io.Reader, src fs.ObjectInfo, options ...fs.OpenOptio
 
 	// Read the metadata from the newly created object
 	o.meta = nil // wipe old metadata
-	err = o.readMetaData()
+	err = o.readMetaData(ctx)
 	return err
 }
 
 // Remove an object
-func (o *Object) Remove() error {
+func (o *Object) Remove(ctx context.Context) error {
 	key := o.fs.root + o.remote
 	req := s3.DeleteObjectInput{
 		Bucket: &o.fs.bucket,
 		Key:    &key,
 	}
 	err := o.fs.pacer.Call(func() (bool, error) {
-		_, err := o.fs.c.DeleteObject(&req)
+		_, err := o.fs.c.DeleteObjectWithContext(ctx, &req)
 		return o.fs.shouldRetry(err)
 	})
 	return err
 }
 
 // MimeType of an Object if known, "" otherwise
-func (o *Object) MimeType() string {
-	err := o.readMetaData()
+func (o *Object) MimeType(ctx context.Context) string {
+	err := o.readMetaData(ctx)
 	if err != nil {
 		fs.Logf(o, "Failed to read metadata: %v", err)
 		return ""

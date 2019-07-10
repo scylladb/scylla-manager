@@ -20,6 +20,7 @@ var ErrorMaxTransferLimitReached = fserrors.FatalError(errors.New("Max transfer 
 
 // Account limits and accounts for one transfer
 type Account struct {
+	stats *StatsInfo
 	// The mutex is to make sure Read() and Close() aren't called
 	// concurrently.  Unfortunately the persistent connection loop
 	// in http transport calls Read() after Do() returns on
@@ -45,10 +46,11 @@ type Account struct {
 
 const averagePeriod = 16 // period to do exponentially weighted averages over
 
-// NewAccountSizeName makes a Account reader for an io.ReadCloser of
+// newAccountSizeName makes a Account reader for an io.ReadCloser of
 // the given size and name
-func NewAccountSizeName(in io.ReadCloser, size int64, name string) *Account {
+func newAccountSizeName(stats *StatsInfo, in io.ReadCloser, size int64, name string) *Account {
 	acc := &Account{
+		stats:  stats,
 		in:     in,
 		close:  in,
 		origIn: in,
@@ -60,13 +62,8 @@ func NewAccountSizeName(in io.ReadCloser, size int64, name string) *Account {
 		max:    int64(fs.Config.MaxTransfer),
 	}
 	go acc.averageLoop()
-	Stats.inProgress.set(acc.name, acc)
+	stats.inProgress.set(acc.name, acc)
 	return acc
-}
-
-// NewAccount makes a Account reader for an object
-func NewAccount(in io.ReadCloser, obj fs.Object) *Account {
-	return NewAccountSizeName(in, obj.Size(), obj.Remote())
 }
 
 // WithBuffer - If the file is above a certain size it adds an Async reader
@@ -116,7 +113,7 @@ func (acc *Account) StopBuffering() {
 }
 
 // UpdateReader updates the underlying io.ReadCloser stopping the
-// asynb buffer (if any) and re-adding it
+// async buffer (if any) and re-adding it
 func (acc *Account) UpdateReader(in io.ReadCloser) {
 	acc.mu.Lock()
 	acc.StopBuffering()
@@ -154,31 +151,42 @@ func (acc *Account) averageLoop() {
 	}
 }
 
-// read bytes from the io.Reader passed in and account them
-func (acc *Account) read(in io.Reader, p []byte) (n int, err error) {
+// Check the read is valid
+func (acc *Account) checkRead() (err error) {
 	acc.statmu.Lock()
-	if acc.max >= 0 && Stats.GetBytes() >= acc.max {
+	if acc.max >= 0 && acc.stats.GetBytes() >= acc.max {
 		acc.statmu.Unlock()
-		return 0, ErrorMaxTransferLimitReached
+		return ErrorMaxTransferLimitReached
 	}
 	// Set start time.
 	if acc.start.IsZero() {
 		acc.start = time.Now()
 	}
 	acc.statmu.Unlock()
+	return nil
+}
 
-	n, err = in.Read(p)
-
+// Account the read and limit bandwidth
+func (acc *Account) accountRead(n int) {
 	// Update Stats
 	acc.statmu.Lock()
 	acc.lpBytes += n
 	acc.bytes += int64(n)
 	acc.statmu.Unlock()
 
-	Stats.Bytes(int64(n))
+	acc.stats.Bytes(int64(n))
 
 	limitBandwidth(n)
-	return
+}
+
+// read bytes from the io.Reader passed in and account them
+func (acc *Account) read(in io.Reader, p []byte) (n int, err error) {
+	err = acc.checkRead()
+	if err == nil {
+		n, err = in.Read(p)
+		acc.accountRead(n)
+	}
+	return n, err
 }
 
 // Read bytes from the object - see io.Reader
@@ -186,6 +194,17 @@ func (acc *Account) Read(p []byte) (n int, err error) {
 	acc.mu.Lock()
 	defer acc.mu.Unlock()
 	return acc.read(acc.in, p)
+}
+
+// AccountRead account having read n bytes
+func (acc *Account) AccountRead(n int) (err error) {
+	acc.mu.Lock()
+	defer acc.mu.Unlock()
+	err = acc.checkRead()
+	if err == nil {
+		acc.accountRead(n)
+	}
+	return err
 }
 
 // Close the object
@@ -197,7 +216,10 @@ func (acc *Account) Close() error {
 	}
 	acc.closed = true
 	close(acc.exit)
-	Stats.inProgress.clear(acc.name)
+	acc.stats.inProgress.clear(acc.name)
+	if acc.close == nil {
+		return nil
+	}
 	return acc.close.Close()
 }
 

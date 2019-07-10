@@ -14,7 +14,6 @@ import (
 	"log"
 	mathrand "math/rand"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -25,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Unknwon/goconfig"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/ncw/rclone/fs"
 	"github.com/ncw/rclone/fs/accounting"
 	"github.com/ncw/rclone/fs/config/configmap"
@@ -105,17 +105,20 @@ func getConfigData() *goconfig.ConfigFile {
 
 // Return the path to the configuration file
 func makeConfigPath() string {
-	// Find user's home directory
-	usr, err := user.Current()
-	var homedir string
+
+	// Use rclone.conf from rclone executable directory if already existing
+	exe, err := os.Executable()
 	if err == nil {
-		homedir = usr.HomeDir
-	} else {
-		// Fall back to reading $HOME - work around user.Current() not
-		// working for cross compiled binaries on OSX.
-		// https://github.com/golang/go/issues/6376
-		homedir = os.Getenv("HOME")
+		exedir := filepath.Dir(exe)
+		cfgpath := filepath.Join(exedir, configFileName)
+		_, err := os.Stat(cfgpath)
+		if err == nil {
+			return cfgpath
+		}
 	}
+
+	// Find user's home directory
+	homeDir, err := homedir.Dir()
 
 	// Find user's configuration directory.
 	// Prefer XDG config path, with fallback to $HOME/.config.
@@ -126,9 +129,9 @@ func makeConfigPath() string {
 	if xdgdir != "" {
 		// User's configuration directory for rclone is $XDG_CONFIG_HOME/rclone
 		cfgdir = filepath.Join(xdgdir, "rclone")
-	} else if homedir != "" {
+	} else if homeDir != "" {
 		// User's configuration directory for rclone is $HOME/.config/rclone
-		cfgdir = filepath.Join(homedir, ".config", "rclone")
+		cfgdir = filepath.Join(homeDir, ".config", "rclone")
 	}
 
 	// Use rclone.conf from user's configuration directory if already existing
@@ -143,8 +146,8 @@ func makeConfigPath() string {
 
 	// Use .rclone.conf from user's home directory if already existing
 	var homeconf string
-	if homedir != "" {
-		homeconf = filepath.Join(homedir, hiddenConfigFileName)
+	if homeDir != "" {
+		homeconf = filepath.Join(homeDir, hiddenConfigFileName)
 		_, err := os.Stat(homeconf)
 		if err == nil {
 			return homeconf
@@ -222,6 +225,16 @@ var errorConfigFileNotFound = errors.New("config file not found")
 // loadConfigFile will load a config file, and
 // automatically decrypt it.
 func loadConfigFile() (*goconfig.ConfigFile, error) {
+	envpw := os.Getenv("RCLONE_CONFIG_PASS")
+	if len(configKey) == 0 && envpw != "" {
+		err := setConfigPassword(envpw)
+		if err != nil {
+			fs.Errorf(nil, "Using RCLONE_CONFIG_PASS returned: %v", err)
+		} else {
+			fs.Debugf(nil, "Using RCLONE_CONFIG_PASS password.")
+		}
+	}
+
 	b, err := ioutil.ReadFile(ConfigPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -229,7 +242,6 @@ func loadConfigFile() (*goconfig.ConfigFile, error) {
 		}
 		return nil, err
 	}
-
 	// Find first non-empty line
 	r := bufio.NewReader(bytes.NewBuffer(b))
 	for {
@@ -263,7 +275,6 @@ func loadConfigFile() (*goconfig.ConfigFile, error) {
 	if len(box) < 24+secretbox.Overhead {
 		return nil, errors.New("Configuration data too short")
 	}
-	envpw := os.Getenv("RCLONE_CONFIG_PASS")
 
 	var out []byte
 	for {
@@ -284,14 +295,6 @@ func loadConfigFile() (*goconfig.ConfigFile, error) {
 			configKey = []byte(obscure.MustReveal(string(obscuredKey)))
 			fs.Debugf(nil, "using _RCLONE_CONFIG_KEY_FILE for configKey")
 		} else {
-			if len(configKey) == 0 && envpw != "" {
-				err := setConfigPassword(envpw)
-				if err != nil {
-					fmt.Println("Using RCLONE_CONFIG_PASS returned:", err)
-				} else {
-					fs.Debugf(nil, "Using RCLONE_CONFIG_PASS password.")
-				}
-			}
 			if len(configKey) == 0 {
 				if !fs.Config.AskPassword {
 					return nil, errors.New("unable to decrypt configuration and not allowed to ask for password - set RCLONE_CONFIG_PASS to your configuration password")
@@ -316,7 +319,6 @@ func loadConfigFile() (*goconfig.ConfigFile, error) {
 		// Retry
 		fs.Errorf(nil, "Couldn't decrypt configuration, most likely wrong password.")
 		configKey = nil
-		envpw = ""
 	}
 	return goconfig.LoadFromReader(bytes.NewBuffer(out))
 }
@@ -676,11 +678,11 @@ func ConfirmWithConfig(m configmap.Getter, configName string, Default bool) bool
 
 // Choose one of the defaults or type a new string if newOk is set
 func Choose(what string, defaults, help []string, newOk bool) string {
-	valueDescripton := "an existing"
+	valueDescription := "an existing"
 	if newOk {
-		valueDescripton = "your own"
+		valueDescription = "your own"
 	}
-	fmt.Printf("Choose a number from below, or type in %s value\n", valueDescripton)
+	fmt.Printf("Choose a number from below, or type in %s value\n", valueDescription)
 	for i, text := range defaults {
 		var lines []string
 		if help != nil {
@@ -944,9 +946,38 @@ func suppressConfirm() func() {
 // keyValues should be key, value pairs.
 func UpdateRemote(name string, keyValues rc.Params) error {
 	defer suppressConfirm()()
+
+	// Work out which options need to be obscured
+	needsObscure := map[string]struct{}{}
+	if fsType := FileGet(name, "type"); fsType != "" {
+		if ri, err := fs.Find(fsType); err != nil {
+			fs.Debugf(nil, "Couldn't find fs for type %q", fsType)
+		} else {
+			for _, opt := range ri.Options {
+				if opt.IsPassword {
+					needsObscure[opt.Name] = struct{}{}
+				}
+			}
+		}
+	} else {
+		fs.Debugf(nil, "UpdateRemote: Couldn't find fs type")
+	}
+
 	// Set the config
 	for k, v := range keyValues {
-		getConfigData().SetValue(name, k, fmt.Sprint(v))
+		vStr := fmt.Sprint(v)
+		// Obscure parameter if necessary
+		if _, ok := needsObscure[k]; ok {
+			_, err := obscure.Reveal(vStr)
+			if err != nil {
+				// If error => not already obscured, so obscure it
+				vStr, err = obscure.Obscure(vStr)
+				if err != nil {
+					return errors.Wrap(err, "UpdateRemote: obscure failed")
+				}
+			}
+		}
+		getConfigData().SetValue(name, k, vStr)
 	}
 	RemoteConfig(name)
 	SaveConfig()
@@ -1308,6 +1339,16 @@ func FileDeleteKey(section, key string) bool {
 }
 
 var matchEnv = regexp.MustCompile(`^RCLONE_CONFIG_(.*?)_TYPE=.*$`)
+
+// FileRefresh ensures the latest configFile is loaded from disk
+func FileRefresh() error {
+	reloadedConfigFile, err := loadConfigFile()
+	if err != nil {
+		return err
+	}
+	configFile = reloadedConfigFile
+	return nil
+}
 
 // FileSections returns the sections in the config file
 // including any defined by environment variables.

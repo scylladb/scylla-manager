@@ -3,6 +3,7 @@
 package rcserver
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -48,7 +49,7 @@ func TestInMemoryConf(t *testing.T) {
 			if call == nil {
 				t.Fatalf("Can't find %s call", test.Path)
 			}
-			out, err := call.Fn(test.In)
+			out, err := call.Fn(context.Background(), test.In)
 			if err != nil {
 				if !test.Err {
 					t.Fatalf("Didn't expect error: %+v", err)
