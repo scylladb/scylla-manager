@@ -25,7 +25,7 @@ require (
 	github.com/google/gops v0.3.3
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.1.0
-	github.com/ncw/rclone v1.47.0
+	github.com/ncw/rclone v1.48.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
@@ -47,4 +47,4 @@ require (
 
 replace github.com/gocql/gocql => github.com/scylladb/gocql v1.2.0
 
-replace github.com/ncw/rclone => github.com/ajankovic/rclone v1.48.1-0.20190724091830-5ee575bb3
+replace github.com/ncw/rclone => github.com/ajankovic/rclone v1.48.1-0.20190724091830-11b66f773

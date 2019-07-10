@@ -6,6 +6,8 @@ package rcserver
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
@@ -86,6 +88,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+const bodySizeLimit int64 = 1024 * 1024
+
 func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
 	contentType := r.Header.Get("Content-Type")
 	w.Header().Set("Content-Type", "application/json")
@@ -111,10 +115,16 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 
 	// Parse a JSON blob from the input
 	if contentType == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(&in)
+		j, err := ioutil.ReadAll(&io.LimitedReader{R: r.Body, N: bodySizeLimit})
 		if err != nil {
-			writeError(path, in, w, errors.Wrap(err, "failed to read input JSON"), http.StatusBadRequest)
+			writeError(path, in, w, errors.Wrap(err, "failed to read request body"), http.StatusBadRequest)
 			return
+		}
+		if len(j) > 0 {
+			if err := json.Unmarshal(j, &in); err != nil {
+				writeError(path, in, w, errors.Wrap(err, "failed to read input JSON"), http.StatusBadRequest)
+				return
+			}
 		}
 	}
 

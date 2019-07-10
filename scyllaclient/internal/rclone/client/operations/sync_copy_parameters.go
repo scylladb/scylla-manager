@@ -79,6 +79,11 @@ type SyncCopyParams struct {
 
 	*/
 	Async bool
+	/*Group
+	  Place this operation under this stat group
+
+	*/
+	Group string
 	/*Copydir
 	  copydir
 
@@ -134,6 +139,17 @@ func (o *SyncCopyParams) SetAsync(async bool) {
 	o.Async = async
 }
 
+// WithGroup adds the group to the sync copy params
+func (o *SyncCopyParams) WithGroup(group string) *SyncCopyParams {
+	o.SetGroup(group)
+	return o
+}
+
+// SetGroup adds the group to the sync copy params
+func (o *SyncCopyParams) SetGroup(group string) {
+	o.Group = group
+}
+
 // WithCopydir adds the copydir to the sync copy params
 func (o *SyncCopyParams) WithCopydir(copydir SyncCopyBody) *SyncCopyParams {
 	o.SetCopydir(copydir)
@@ -158,6 +174,15 @@ func (o *SyncCopyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 	qAsync := swag.FormatBool(qrAsync)
 	if qAsync != "" {
 		if err := r.SetQueryParam("_async", qAsync); err != nil {
+			return err
+		}
+	}
+
+	// query param _group
+	qrGroup := o.Group
+	qGroup := qrGroup
+	if qGroup != "" {
+		if err := r.SetQueryParam("_group", qGroup); err != nil {
 			return err
 		}
 	}

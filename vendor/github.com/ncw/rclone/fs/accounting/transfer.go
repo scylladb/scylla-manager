@@ -48,6 +48,7 @@ type Transfer struct {
 	// Protects all bellow
 	mu          sync.Mutex
 	acc         *Account
+	err         error
 	startedAt   time.Time
 	completedAt time.Time
 }
@@ -82,6 +83,7 @@ func (tr *Transfer) Done(err error) {
 
 	if err != nil {
 		tr.stats.Error(err)
+		tr.err = err
 	}
 	if tr.acc != nil {
 		if err := tr.acc.Close(); err != nil {
@@ -131,7 +133,7 @@ func (tr *Transfer) Snapshot() TransferSnapshot {
 
 	var s, b int64 = tr.size, 0
 	if tr.acc != nil {
-		s, b = tr.acc.progress()
+		b, s = tr.acc.progress()
 	}
 	return TransferSnapshot{
 		Name:        tr.remote,
@@ -140,5 +142,6 @@ func (tr *Transfer) Snapshot() TransferSnapshot {
 		Bytes:       b,
 		StartedAt:   tr.startedAt,
 		CompletedAt: tr.completedAt,
+		Error:       tr.err,
 	}
 }

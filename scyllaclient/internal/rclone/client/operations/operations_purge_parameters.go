@@ -81,6 +81,11 @@ type OperationsPurgeParams struct {
 
 	*/
 	Async bool
+	/*Group
+	  Place this operation under this stat group
+
+	*/
+	Group string
 	/*Purge
 	  purge
 
@@ -136,6 +141,17 @@ func (o *OperationsPurgeParams) SetAsync(async bool) {
 	o.Async = async
 }
 
+// WithGroup adds the group to the operations purge params
+func (o *OperationsPurgeParams) WithGroup(group string) *OperationsPurgeParams {
+	o.SetGroup(group)
+	return o
+}
+
+// SetGroup adds the group to the operations purge params
+func (o *OperationsPurgeParams) SetGroup(group string) {
+	o.Group = group
+}
+
 // WithPurge adds the purge to the operations purge params
 func (o *OperationsPurgeParams) WithPurge(purge *models.RemotePath) *OperationsPurgeParams {
 	o.SetPurge(purge)
@@ -160,6 +176,15 @@ func (o *OperationsPurgeParams) WriteToRequest(r runtime.ClientRequest, reg strf
 	qAsync := swag.FormatBool(qrAsync)
 	if qAsync != "" {
 		if err := r.SetQueryParam("_async", qAsync); err != nil {
+			return err
+		}
+	}
+
+	// query param _group
+	qrGroup := o.Group
+	qGroup := qrGroup
+	if qGroup != "" {
+		if err := r.SetQueryParam("_group", qGroup); err != nil {
 			return err
 		}
 	}

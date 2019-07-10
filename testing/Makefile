@@ -14,7 +14,7 @@ build: ## Build custom docker images
 up: ## Start docker containers
 	@echo "==> Starting containers"
 	@mkdir -p $(MINIO_DATA_DIR)
-	@$(COMPOSE) up -d
+	@source ./.env && $(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
 	@until $(CQLSH) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
 	@echo "==> Creating tables"

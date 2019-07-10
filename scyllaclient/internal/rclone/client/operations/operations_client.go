@@ -85,6 +85,96 @@ func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) 
 }
 
 /*
+CoreGroupList groups names
+
+Returns list of group names
+*/
+func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCoreGroupListParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CoreGroupList",
+		Method:             "POST",
+		PathPattern:        "/core/group_list",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CoreGroupListReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CoreGroupListOK), nil
+
+}
+
+/*
+CoreStats stats about transfers
+
+Returns stats about current transfers
+*/
+func (a *Client) CoreStats(params *CoreStatsParams) (*CoreStatsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCoreStatsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CoreStats",
+		Method:             "POST",
+		PathPattern:        "/core/stats",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CoreStatsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CoreStatsOK), nil
+
+}
+
+/*
+CoreTransferred completeds transfers
+
+Returns stats about completed transfers
+*/
+func (a *Client) CoreTransferred(params *CoreTransferredParams) (*CoreTransferredOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCoreTransferredParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CoreTransferred",
+		Method:             "POST",
+		PathPattern:        "/core/transferred",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CoreTransferredReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CoreTransferredOK), nil
+
+}
+
+/*
 JobStatus jobs status
 
 Reads the status of the job ID
@@ -111,6 +201,36 @@ func (a *Client) JobStatus(params *JobStatusParams) (*JobStatusOK, error) {
 		return nil, err
 	}
 	return result.(*JobStatusOK), nil
+
+}
+
+/*
+JobStop stops async job
+
+Stops job with provided ID
+*/
+func (a *Client) JobStop(params *JobStopParams) (*JobStopOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewJobStopParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "JobStop",
+		Method:             "POST",
+		PathPattern:        "/job/stop",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &JobStopReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*JobStopOK), nil
 
 }
 

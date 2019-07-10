@@ -81,6 +81,11 @@ type OperationsDeletefileParams struct {
 
 	*/
 	Async bool
+	/*Group
+	  Place this operation under this stat group
+
+	*/
+	Group string
 	/*Deletefile
 	  deletefile
 
@@ -136,6 +141,17 @@ func (o *OperationsDeletefileParams) SetAsync(async bool) {
 	o.Async = async
 }
 
+// WithGroup adds the group to the operations deletefile params
+func (o *OperationsDeletefileParams) WithGroup(group string) *OperationsDeletefileParams {
+	o.SetGroup(group)
+	return o
+}
+
+// SetGroup adds the group to the operations deletefile params
+func (o *OperationsDeletefileParams) SetGroup(group string) {
+	o.Group = group
+}
+
 // WithDeletefile adds the deletefile to the operations deletefile params
 func (o *OperationsDeletefileParams) WithDeletefile(deletefile *models.RemotePath) *OperationsDeletefileParams {
 	o.SetDeletefile(deletefile)
@@ -160,6 +176,15 @@ func (o *OperationsDeletefileParams) WriteToRequest(r runtime.ClientRequest, reg
 	qAsync := swag.FormatBool(qrAsync)
 	if qAsync != "" {
 		if err := r.SetQueryParam("_async", qAsync); err != nil {
+			return err
+		}
+	}
+
+	// query param _group
+	qrGroup := o.Group
+	qGroup := qrGroup
+	if qGroup != "" {
+		if err := r.SetQueryParam("_group", qGroup); err != nil {
 			return err
 		}
 	}

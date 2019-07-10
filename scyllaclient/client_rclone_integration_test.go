@@ -108,7 +108,6 @@ func TestRcloneDiskUsageIntegration(t *testing.T) {
 		t.Errorf("Expected usage bigger than zero, got: %+v", got)
 	}
 }
-
 func TestRcloneCopyDirIntegration(t *testing.T) {
 	client, close := newMockRcloneServer(t)
 	defer close()
@@ -125,6 +124,19 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
+	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.JobIDToGroup(id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 2 {
+		t.Errorf("Expected two transfers, got: len(Transferred)=%d", len(res))
+	}
+	for _, r := range res {
+		if r.Error != "" {
+			t.Errorf("Expected no error got: %s, %v", r.Error, r)
+		}
+	}
+
 	status, err := client.RcloneJobStatus(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
@@ -132,10 +144,41 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 
 	if !status.Finished || !status.Success {
 		t.Log(status)
-		t.Errorf("Expected copy dir operation to finish successfully")
+		t.Errorf("Expected copy dir job to finish successfully")
 	}
 
-	checkAndDispose(t, ctx, client, "/copy", 3)
+	d, err := client.RcloneListDir(ctx, testHost, remotePath("/copy"), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d) != 3 {
+		t.Errorf("Expected bucket have 3 items, got: len(files)=%d", len(d))
+	}
+
+	id, err = client.RcloneDeleteDir(ctx, testHost, remotePath("/copy"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	status, err = client.RcloneJobStatus(ctx, testHost, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !status.Finished || !status.Success {
+		t.Log(status)
+		t.Errorf("Expected purge job to finish successfully")
+	}
+
+	d, err = client.RcloneListDir(ctx, testHost, remotePath("/copy"), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d) > 0 {
+		t.Errorf("Expected bucket to be empty, got: %v", d)
+	}
 }
 
 func TestRcloneCopyFileIntegration(t *testing.T) {
@@ -154,6 +197,19 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
+	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.JobIDToGroup(id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 1 {
+		t.Errorf("Expected one transfer, got: len(Transferred)=%d", len(res))
+	}
+	for _, r := range res {
+		if r.Error != "" {
+			t.Errorf("Expected no error got: %s, %v", r.Error, r)
+		}
+	}
+
 	status, err := client.RcloneJobStatus(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
@@ -161,7 +217,7 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 
 	if !status.Finished || !status.Success {
 		t.Log(status)
-		t.Errorf("Expected copy file operation to finish successfully")
+		t.Errorf("Expected copy file job to finish successfully")
 	}
 
 	d, err := client.RcloneListDir(ctx, testHost, remotePath(""), true)
@@ -186,7 +242,7 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 
 	if !status.Finished || !status.Success {
 		t.Log(status)
-		t.Errorf("Expected delete operation to finish successfully")
+		t.Errorf("Expected purge job to finish successfully")
 	}
 
 	d, err = client.RcloneListDir(ctx, testHost, remotePath(""), true)
@@ -195,70 +251,5 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 	}
 	if len(d) > 0 {
 		t.Errorf("Expected bucket to be empty, got: len(files)=%d", len(d))
-	}
-}
-
-func TestRcloneExcludeFilesIntegration(t *testing.T) {
-	client, close := newMockRcloneServer(t)
-	defer close()
-
-	S3InitBucket(t, testBucket)
-	registerRemote(t, client, testHost)
-
-	ctx := context.Background()
-
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath("/exclude"), "testdata/rclone/exclude", "exclude.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	time.Sleep(50 * time.Millisecond)
-
-	status, err := client.RcloneJobStatus(ctx, testHost, id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !status.Finished || !status.Success {
-		t.Errorf("Expected copy dir operation to finish successfully")
-	}
-
-	checkAndDispose(t, ctx, client, "/exclude", 3)
-}
-
-func checkAndDispose(t *testing.T, ctx context.Context, client *scyllaclient.Client, path string, fileCount int) {
-	t.Helper()
-
-	d, err := client.RcloneListDir(ctx, testHost, remotePath(path), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(d) != fileCount {
-		t.Errorf("Expected bucket to have %d items, got: len(files)=%d", fileCount, len(d))
-	}
-
-	id, err := client.RcloneDeleteDir(ctx, testHost, remotePath(path))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	time.Sleep(50 * time.Millisecond)
-
-	status, err := client.RcloneJobStatus(ctx, testHost, id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !status.Finished || !status.Success {
-		t.Log(status)
-		t.Errorf("Expected delete operation to finish successfully")
-	}
-
-	d, err = client.RcloneListDir(ctx, testHost, remotePath(path), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(d) > 0 {
-		t.Errorf("Expected bucket to be empty, got: %v", d)
 	}
 }

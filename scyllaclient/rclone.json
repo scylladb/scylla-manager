@@ -53,6 +53,131 @@
         "security": []
       }
     },
+    "/core/stats": {
+      "post": {
+        "description": "Returns stats about current transfers",
+        "summary": "Stats about transfers",
+        "operationId": "CoreStats",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "StatsParams",
+            "description": "Stats parameters",
+            "schema": {
+              "$ref": "#/definitions/StatsParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current transfers",
+            "schema": {
+              "$ref": "#/definitions/Stats"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/core/transferred": {
+      "post": {
+        "description": "Returns stats about completed transfers",
+        "summary": "Completed transfers",
+        "operationId": "CoreTransferred",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "StatsParams",
+            "description": "Stats parameters",
+            "schema": {
+              "$ref": "#/definitions/StatsParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Completed transfers",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "transferred": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Transfer"
+                  }
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/core/group_list": {
+      "post": {
+        "description": "Returns list of group names",
+        "summary": "Group names",
+        "operationId": "CoreGroupList",
+        "produces": ["application/json"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current groups",
+            "schema": {
+              "$ref": "#/definitions/GroupList"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/operations/about": {
       "post": {
         "description": "Get usage information from the remote",
@@ -161,6 +286,13 @@
             "default": true
           },
           {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
+          },
+          {
             "in": "body",
             "name": "copyfile",
             "description": "copyfile",
@@ -209,6 +341,13 @@
             "type": "boolean",
             "required": true,
             "default": true
+          },
+          {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
           },
           {
             "in": "body",
@@ -278,6 +417,13 @@
             "default": true
           },
           {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
+          },
+          {
             "in": "body",
             "name": "purge",
             "description": "purge",
@@ -326,6 +472,13 @@
             "type": "boolean",
             "required": true,
             "default": true
+          },
+          {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
           },
           {
             "in": "body",
@@ -384,6 +537,49 @@
             "description": "Job details",
             "schema": {
               "$ref": "#/definitions/Job"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/job/stop": {
+      "post": {
+        "description": "Stops job with provided ID",
+        "summary": "Stop async job",
+        "operationId": "JobStop",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "jobid",
+            "required": true,
+            "description": "jobid",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
             },
             "headers": {}
           },
@@ -547,9 +743,7 @@
     },
     "ListOptions": {
       "type": "object",
-      "required": [
-        "fs", "remote"
-      ],
+      "required": ["fs", "remote"],
       "properties": {
         "fs": {
           "description": "A remote name string eg. drive:",
@@ -684,6 +878,155 @@
         "parameters": {
           "description": "Additional parameters for the remote",
           "type": "object"
+        }
+      }
+    },
+    "Transfer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "name of the file",
+          "type": "string"
+        },
+        "size": {
+          "description": "size of the file in bytes",
+          "type": "integer"
+        },
+        "bytes": {
+          "description": "total transferred bytes for this file",
+          "type": "integer"
+        },
+        "checked": {
+          "description": "if the transfer is only checked (skipped, deleted)",
+          "type": "boolean"
+        },
+        "started_at": {
+          "description": "time at which transfer started",
+          "type": "string"
+        },
+        "completed_at": {
+          "description": "time at which transfer completed ",
+          "type": "string"
+        },
+        "error": {
+          "description": "string description of the error (empty if successful)",
+          "type": "string"
+        }
+      }
+    },
+    "GroupList": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "group name"
+          }
+        }
+      }
+    },
+    "StatsParams": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "description": "group name",
+          "type": "string"
+        }
+      }
+    },
+    "Stats": {
+      "type": "object",
+      "properties": {
+        "speed": {
+          "description": "average speed in bytes/sec since start of the process",
+          "type": "number",
+          "format": "double"
+        },
+        "bytes": {
+          "description": "total transferred bytes since the start of the process",
+          "type": "integer"
+        },
+        "errors": {
+          "description": "number of errors",
+          "type": "integer"
+        },
+        "fatalError": {
+          "description": "whether there has been at least one FatalError",
+          "type": "boolean"
+        },
+        "retryError": {
+          "description": "whether there has been at least one non-NoRetryError",
+          "type": "boolean"
+        },
+        "checks": {
+          "description": "number of checked files",
+          "type": "integer"
+        },
+        "transfers": {
+          "description": "number of transferred files",
+          "type": "integer"
+        },
+        "deletes": {
+          "description": "number of deleted files",
+          "type": "integer"
+        },
+        "elapsedTime": {
+          "description": "time in seconds since the start of the process",
+          "type": "number",
+          "format": "double"
+        },
+        "lastError": {
+          "description": "last occurred error",
+          "type": "string"
+        },
+        "transferring": {
+          "description": "an array of currently active file transfers",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "bytes": {
+                "description": "total transferred bytes for this file",
+                "type": "integer"
+              },
+              "eta": {
+                "description": "estimated time in seconds until file transfer completion",
+                "type": "number",
+                "format": "double"
+              },
+              "name": {
+                "description": "name of the file",
+                "type": "string"
+              },
+              "percentage": {
+                "description": "progress of the file transfer in percent",
+                "type": "number",
+                "format": "double"
+              },
+              "speed": {
+                "description": "speed in bytes/sec",
+                "type": "number",
+                "format": "double"
+              },
+              "speedAvg": {
+                "description": "speed in bytes/sec as an exponentially weighted moving average",
+                "type": "number",
+                "format": "double"
+              },
+              "size": {
+                "description": "size of the file in bytes",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "checking": {
+          "description": "an array of names of currently active file checks",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

@@ -37,7 +37,7 @@ func NewS3ParamsEnvAuth() scyllaclient.S3Params {
 	}
 }
 
-// S3InitBucket recreates a local bucket if s3-local-data-dir flag is specified.
+// S3InitBucket recreates a local bucket if s3-data-dir flag is specified.
 func S3InitBucket(t *testing.T, bucket string) {
 	t.Helper()
 

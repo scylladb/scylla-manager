@@ -81,6 +81,11 @@ type OperationsCopyfileParams struct {
 
 	*/
 	Async bool
+	/*Group
+	  Place this operation under this stat group
+
+	*/
+	Group string
 	/*Copyfile
 	  copyfile
 
@@ -136,6 +141,17 @@ func (o *OperationsCopyfileParams) SetAsync(async bool) {
 	o.Async = async
 }
 
+// WithGroup adds the group to the operations copyfile params
+func (o *OperationsCopyfileParams) WithGroup(group string) *OperationsCopyfileParams {
+	o.SetGroup(group)
+	return o
+}
+
+// SetGroup adds the group to the operations copyfile params
+func (o *OperationsCopyfileParams) SetGroup(group string) {
+	o.Group = group
+}
+
 // WithCopyfile adds the copyfile to the operations copyfile params
 func (o *OperationsCopyfileParams) WithCopyfile(copyfile *models.CopyOptions) *OperationsCopyfileParams {
 	o.SetCopyfile(copyfile)
@@ -160,6 +176,15 @@ func (o *OperationsCopyfileParams) WriteToRequest(r runtime.ClientRequest, reg s
 	qAsync := swag.FormatBool(qrAsync)
 	if qAsync != "" {
 		if err := r.SetQueryParam("_async", qAsync); err != nil {
+			return err
+		}
+	}
+
+	// query param _group
+	qrGroup := o.Group
+	qGroup := qrGroup
+	if qGroup != "" {
+		if err := r.SetQueryParam("_group", qGroup); err != nil {
 			return err
 		}
 	}

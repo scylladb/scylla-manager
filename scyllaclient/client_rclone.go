@@ -66,6 +66,43 @@ func (c *Client) RcloneJobStatus(ctx context.Context, host string, id int64) (*m
 	return resp.Payload, nil
 }
 
+// RcloneJobStop stops running job.
+func (c *Client) RcloneJobStop(ctx context.Context, host string, id int64) error {
+	p := operations.JobStopParams{
+		Context: forceHost(ctx, host),
+		Jobid:   &models.Jobid{Jobid: id},
+	}
+	_, err := c.rcloneOpts.JobStop(&p) //nolint:errcheck
+	return err
+}
+
+// RcloneTransferred fetches information about all completed transfers.
+func (c *Client) RcloneTransferred(ctx context.Context, host string, group string) ([]*models.Transfer, error) {
+	p := operations.CoreTransferredParams{
+		Context: forceHost(ctx, host),
+		StatsParams: &models.StatsParams{
+			Group: group,
+		},
+	}
+	resp, err := c.rcloneOpts.CoreTransferred(&p)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Payload.Transferred, nil
+}
+
+// RcloneStats fetches stats about current transfers.
+func (c *Client) RcloneStats(ctx context.Context, host string) (*models.Stats, error) {
+	p := operations.CoreStatsParams{
+		Context: forceHost(ctx, host),
+	}
+	resp, err := c.rcloneOpts.CoreStats(&p)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Payload, nil
+}
+
 // RcloneCopyFile copies file from the srcRemotePath to dstRemotePath.
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
@@ -192,4 +229,9 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, rec
 		return nil, err
 	}
 	return resp.Payload.List, nil
+}
+
+// JobIDToGroup returns default group name based on job id.
+func JobIDToGroup(jobID int64) string {
+	return fmt.Sprintf("job/%d", jobID)
 }
