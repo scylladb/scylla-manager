@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/scylladb/mermaid/rclone"
+
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/rclone/rcserver"
@@ -42,6 +44,7 @@ var rootCmd = &cobra.Command{
 		if err := yaml.Unmarshal(b, &c); err != nil {
 			return errors.Wrapf(err, "failed to parse config file %s", rootArgs.configFile)
 		}
+		rclone.SetDefaultConfig()
 
 		cpus, err := pinToCPU(c.CPU)
 		if err != nil {
