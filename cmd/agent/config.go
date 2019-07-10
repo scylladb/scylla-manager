@@ -6,12 +6,18 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/ncw/rclone/fs"
+
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 	"gopkg.in/yaml.v2"
 )
 
 const defaultHTTPSPort = "10001"
+
+type logConfig struct {
+	Level fs.LogLevel `yaml:"level"`
+}
 
 // scyllaConfig contains selected elements of Scylla configuration.
 type scyllaConfig struct {
@@ -31,6 +37,7 @@ type config struct {
 	CPU              int          `yaml:"cpu"`
 	ScyllaConfigFile string       `yaml:"scylla_config_file"`
 	Scylla           scyllaConfig `yaml:"scylla"`
+	Logger           logConfig    `yaml:"logger"`
 }
 
 func defaultConfig() config {
@@ -44,6 +51,9 @@ func defaultConfig() config {
 			APIPort:           "10000",
 			PrometheusAddress: "0.0.0.0",
 			PrometheusPort:    "9180",
+		},
+		Logger: logConfig{
+			fs.LogLevelInfo,
 		},
 	}
 }

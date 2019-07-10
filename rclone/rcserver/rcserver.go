@@ -155,6 +155,7 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		return
 	}
 
+	fs.Debugf(nil, "rc: %q: with parameters %+v", path, in)
 	var out rc.Params
 	if isAsync {
 		out, err = jobs.StartAsyncJob(call.Fn, in)
@@ -171,6 +172,7 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		out = make(rc.Params)
 	}
 
+	fs.Debugf(nil, "rc: %q: reply %+v: %v", path, out, err)
 	err = rc.WriteJSON(w, out)
 	if err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)
@@ -179,5 +181,6 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 }
 
 func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
+	fs.Errorf(nil, "rc: received unsupported GET request")
 	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 }

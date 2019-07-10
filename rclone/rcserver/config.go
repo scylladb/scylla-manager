@@ -58,6 +58,8 @@ func registerInMemoryConf() {
 		}
 		return params, nil
 	}
+
+	fs.Debugf(nil, "config: registered in-memory config")
 }
 
 // inMemoryConf is in-memory implementation of rclone configuration for remote file

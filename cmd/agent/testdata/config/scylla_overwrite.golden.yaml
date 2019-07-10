@@ -10,3 +10,5 @@ scylla:
   api_port: "1001"
   prometheus_address: pa
   prometheus_port: "1002"
+logger:
+  level: 6

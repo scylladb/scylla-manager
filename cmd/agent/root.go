@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/scylladb/mermaid/rclone"
-
+	"github.com/ncw/rclone/fs"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -44,15 +44,15 @@ var rootCmd = &cobra.Command{
 		if err := yaml.Unmarshal(b, &c); err != nil {
 			return errors.Wrapf(err, "failed to parse config file %s", rootArgs.configFile)
 		}
-		rclone.SetDefaultConfig()
+		rclone.SetDefaultConfig(c.Logger.Level)
 
 		cpus, err := pinToCPU(c.CPU)
 		if err != nil {
 			return errors.Wrap(err, "failed to pin to CPU")
 		}
-		fmt.Println("Pinned to CPUs", cpus)
+		fs.Infof(nil, "Pinned to CPUs %+v", cpus)
 
-		fmt.Println("Starting HTTPS address", c.HTTPS)
+		fs.Infof(nil, "Starting HTTPS address %s", c.HTTPS)
 
 		// Start server
 		server := http.Server{
