@@ -415,7 +415,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 			"cluster_id", c.ID,
 			"error", err,
 		)
-		return mermaid.ErrValidate(errors.New("host connectivity check failed"), "")
+		return mermaid.ErrValidate(err, "host connectivity check failed")
 	}
 
 	// Update known hosts.
