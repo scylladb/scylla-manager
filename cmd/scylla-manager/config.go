@@ -33,6 +33,7 @@ type dbConfig struct {
 	MigrateMaxWaitSchemaAgreement time.Duration `yaml:"migrate_max_wait_schema_agreement"`
 	ReplicationFactor             int           `yaml:"replication_factor"`
 	Timeout                       time.Duration `yaml:"timeout"`
+	TokenAware                    bool          `yaml:"token_aware"`
 }
 
 type sslConfig struct {
@@ -76,6 +77,7 @@ func defaultConfig() *serverConfig {
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
+			TokenAware:                    false,
 		},
 		SSL: sslConfig{
 			Validate: true,
