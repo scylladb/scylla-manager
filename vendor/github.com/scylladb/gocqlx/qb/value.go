@@ -4,7 +4,10 @@
 
 package qb
 
-import "bytes"
+import (
+	"bytes"
+	"strconv"
+)
 
 // value is a CQL value expression for use in an initializer, assignment,
 // or comparison.
@@ -20,6 +23,27 @@ type param string
 func (p param) writeCql(cql *bytes.Buffer) (names []string) {
 	cql.WriteByte('?')
 	return []string{string(p)}
+}
+
+// param is a named CQL tuple '?' parameter.
+type tupleParam struct {
+	param param
+	count int
+}
+
+func (t tupleParam) writeCql(cql *bytes.Buffer) (names []string) {
+	baseName := string(t.param) + "_"
+	cql.WriteByte('(')
+	for i := 0; i < t.count-1; i++ {
+		cql.WriteByte('?')
+		cql.WriteByte(',')
+		names = append(names, baseName+strconv.Itoa(i))
+	}
+	cql.WriteByte('?')
+	cql.WriteByte(')')
+	names = append(names, baseName+strconv.Itoa(t.count-1))
+
+	return
 }
 
 // lit is a literal CQL value.

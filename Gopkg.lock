@@ -181,7 +181,7 @@
   version = "v0.2.3"
 
 [[projects]]
-  digest = "1:e240e184aa8755b12cb5f9fed089cb1470047272dbe5862dff963413eb15cfd7"
+  digest = "1:35d87ffbe485ea668380e8ad5aa0dc341914ada72b27f6aa619903ec9e9f6276"
   name = "github.com/gocql/gocql"
   packages = [
     ".",
@@ -190,9 +190,9 @@
     "internal/streams",
   ]
   pruneopts = "UT"
-  revision = "83c184dcd73e27522af9c2a48c958e4018a87601"
+  revision = "d2cd4a0e5e4e4a8d5791928b5022bcf0e5ecd93d"
   source = "git@github.com:scylladb/gocql.git"
-  version = "v1.0.1"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:7ded16107bddae6f7ad4bf105887304d35b13db44882bf516cb2d1854adb3fe2"
@@ -399,7 +399,7 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:c566b1c34b7897a0637ce76bf7da625e9d3af24ea7a95c4a218dc78ac5d6c1de"
+  digest = "1:d3823037877d9e5c4b6f9b2460f6c60809ea00f6eae49f5954657305f1647fbd"
   name = "github.com/scylladb/gocqlx"
   packages = [
     ".",
@@ -408,8 +408,8 @@
     "table",
   ]
   pruneopts = "UT"
-  revision = "2265c3fdbb459cd8bd014fbd074b54810955e301"
-  version = "v1.2.1"
+  revision = "8b6f083cdc7cd91a46a27752c5a5cd2a7a6e1a30"
+  version = "v1.3.1"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"

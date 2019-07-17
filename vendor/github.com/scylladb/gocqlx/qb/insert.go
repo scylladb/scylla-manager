@@ -24,6 +24,7 @@ type InsertBuilder struct {
 	columns []initializer
 	unique  bool
 	using   using
+	json    bool
 }
 
 // Insert returns a new InsertBuilder with the given table name.
@@ -42,6 +43,13 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 	cql.WriteString("INTO ")
 	cql.WriteString(b.table)
 	cql.WriteByte(' ')
+
+	if b.json {
+		// Ignore everything else since it goes into the Json
+		cql.WriteString("JSON ?")
+		stmt = cql.String()
+		return
+	}
 
 	cql.WriteByte('(')
 	for i, c := range b.columns {
@@ -73,6 +81,12 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 // Into sets the INTO clause of the query.
 func (b *InsertBuilder) Into(table string) *InsertBuilder {
 	b.table = table
+	return b
+}
+
+// Json sets the Json clause of the query.
+func (b *InsertBuilder) Json() *InsertBuilder {
+	b.json = true
 	return b
 }
 
@@ -110,6 +124,18 @@ func (b *InsertBuilder) FuncColumn(column string, fn *Func) *InsertBuilder {
 	b.columns = append(b.columns, initializer{
 		column: column,
 		value:  fn,
+	})
+	return b
+}
+
+// TupleColumn adds an insert column for a tuple value to the query.
+func (b *InsertBuilder) TupleColumn(column string, count int) *InsertBuilder {
+	b.columns = append(b.columns, initializer{
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
 	})
 	return b
 }
