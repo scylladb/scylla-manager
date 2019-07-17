@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"path"
@@ -192,7 +193,7 @@ func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logge
 	)
 
 	for i := 0; i < maxAttempts; i++ {
-		if err := tryConnect(config); err != nil {
+		if _, err := tryConnect(config); err != nil {
 			logger.Info(ctx, "Could not connect to database",
 				"sleep", wait,
 				"error", err,
@@ -206,15 +207,17 @@ func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logge
 	return errors.New("could not connect to database, max attempts reached")
 }
 
-func tryConnect(config *serverConfig) error {
-	c := gocqlConfig(config)
-	c.Keyspace = "system"
-
-	sesion, err := c.CreateSession()
-	if sesion != nil {
-		sesion.Close()
+func tryConnect(config *serverConfig) (string, error) {
+	for _, host := range config.Database.Hosts {
+		conn, err := net.Dial("tcp", net.JoinHostPort(host, "9042"))
+		if conn != nil {
+			conn.Close()
+		}
+		if err == nil {
+			return host, nil
+		}
 	}
-	return err
+	return "", errors.Errorf("tried all hosts %s", config.Database.Hosts)
 }
 
 func createKeyspace(config *serverConfig) error {
