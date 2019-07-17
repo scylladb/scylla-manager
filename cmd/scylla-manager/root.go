@@ -287,9 +287,16 @@ func readKeyspaceTplFile(config *serverConfig) (stmt string, err error) {
 }
 
 func migrateSchema(config *serverConfig, logger log.Logger) error {
+	host, err := tryConnect(config)
+	if err != nil {
+		return err
+	}
+
 	c := gocqlConfig(config)
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
+	c.DisableInitialHostLookup = true
+	c.Hosts = []string{host}
 
 	session, err := c.CreateSession()
 	if err != nil {
