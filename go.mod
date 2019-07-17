@@ -19,7 +19,7 @@ require (
 	github.com/go-openapi/swag v0.19.2
 	github.com/go-openapi/validate v0.19.2
 	github.com/gobwas/glob v0.2.3
-	github.com/gocql/gocql v0.0.0-20181124151448-70385f88b28b
+	github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163
 	github.com/golang/mock v1.2.0
 	github.com/google/go-cmp v0.2.0
 	github.com/google/gops v0.3.3
@@ -33,7 +33,7 @@ require (
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
 	github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea
 	github.com/scylladb/go-set v1.0.1
-	github.com/scylladb/gocqlx v1.2.2
+	github.com/scylladb/gocqlx v1.3.1
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.4-0.20190109003409-7547e83b2d85
 	github.com/spf13/pflag v1.0.3
@@ -41,10 +41,8 @@ require (
 	go.uber.org/multierr v1.1.0
 	go.uber.org/zap v1.9.1
 	golang.org/x/crypto v0.0.0-20190617133340-57b3e21c3d56
-	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
-	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
 
-replace github.com/gocql/gocql => github.com/scylladb/gocql v1.0.4
+replace github.com/gocql/gocql => github.com/scylladb/gocql v1.2.0

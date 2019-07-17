@@ -97,7 +97,7 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/strings
-# github.com/gocql/gocql v0.0.0-20181124151448-70385f88b28b => github.com/scylladb/gocql v1.0.4
+# github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163 => github.com/scylladb/gocql v1.2.0
 github.com/gocql/gocql
 github.com/gocql/gocql/internal/lru
 github.com/gocql/gocql/internal/murmur
@@ -108,7 +108,7 @@ github.com/golang/mock/mockgen/model
 github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
-# github.com/golang/snappy v0.0.0-20170215233205-553a64147049
+# github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/go-cmp v0.2.0
 github.com/google/go-cmp/cmp
@@ -145,6 +145,7 @@ github.com/ncw/rclone/backend/local
 github.com/ncw/rclone/backend/s3
 github.com/ncw/rclone/fs
 github.com/ncw/rclone/fs/accounting
+github.com/ncw/rclone/fs/filter
 github.com/ncw/rclone/fs/fshttp
 github.com/ncw/rclone/fs/operations
 github.com/ncw/rclone/fs/rc
@@ -167,7 +168,6 @@ github.com/ncw/rclone/fs/object
 github.com/ncw/rclone/cmd/serve/httplib
 github.com/ncw/rclone/fs/config/obscure
 github.com/ncw/rclone/fs/version
-github.com/ncw/rclone/fs/filter
 github.com/ncw/rclone/backend/dropbox/dbhash
 github.com/ncw/rclone/backend/onedrive/quickxorhash
 github.com/ncw/rclone/fs/list
@@ -206,7 +206,7 @@ github.com/scylladb/go-reflectx
 github.com/scylladb/go-set/iset
 github.com/scylladb/go-set/strset
 github.com/scylladb/go-set/i64set
-# github.com/scylladb/gocqlx v1.2.2
+# github.com/scylladb/gocqlx v1.3.1
 github.com/scylladb/gocqlx/migrate
 github.com/scylladb/gocqlx
 github.com/scylladb/gocqlx/table
@@ -243,9 +243,9 @@ golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 # golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
-golang.org/x/net/context
 golang.org/x/net/publicsuffix
 golang.org/x/net/idna
+golang.org/x/net/context
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
