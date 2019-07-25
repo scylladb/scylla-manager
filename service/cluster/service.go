@@ -255,13 +255,13 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 
 	t := Update
 	if c.ID == uuid.Nil {
-		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
 		t = Create
 
 		var err error
 		if c.ID, err = uuid.NewRandom(); err != nil {
 			return errors.Wrap(err, "couldn't generate random UUID for Cluster")
 		}
+		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
 	}
 
 	// Validate cluster model.
