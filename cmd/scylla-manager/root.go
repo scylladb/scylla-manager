@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-log/gocqllog"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/spf13/cobra"
 )
 
@@ -151,31 +149,10 @@ func logger(config *serverConfig) (log.Logger, error) {
 		return log.NewDevelopmentWithLevel(config.Logger.Level), nil
 	}
 
-	if config.Logger.Mode != log.StderrMode {
-		f, err := redirectStdErrAndStdOutToFile()
-		if err != nil {
-			return log.NopLogger, err
-		}
-		defer f.Close()
-	}
-
 	return log.NewProduction(log.Config{
 		Mode:  config.Logger.Mode,
 		Level: config.Logger.Level,
 	})
-}
-
-func redirectStdErrAndStdOutToFile() (*os.File, error) {
-	p := path.Join(fsutil.HomeDir(), "stdout")
-
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-	if err != nil {
-		return nil, err
-	}
-
-	os.Stdout = f
-	os.Stderr = f
-	return f, nil
 }
 
 func obfuscatePasswords(config *serverConfig) serverConfig {

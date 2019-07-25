@@ -65,7 +65,7 @@ func defaultConfig() *serverConfig {
 		Prometheus:  ":56090",
 		Gops:        ":56112",
 		Logger: logConfig{
-			Mode:        log.SyslogMode,
+			Mode:        log.StderrMode,
 			Level:       zapcore.InfoLevel,
 			Development: false,
 		},

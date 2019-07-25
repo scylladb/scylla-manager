@@ -19,9 +19,6 @@ https: 127.0.0.1:56443
 
 # Logging configuration.
 #logger:
-# Where to output logs, syslog or stderr.
-#  mode: syslog
-#
 # Available log levels are error, info and debug.
 #  level: info
 
