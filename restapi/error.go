@@ -22,7 +22,13 @@ type httpError struct {
 }
 
 func (e *httpError) Error() string {
-	return e.Cause
+	var out string
+	if e.Cause != "" {
+		out = fmt.Sprintf("%s: %s", e.Cause, e.Message)
+	} else {
+		out = e.Message
+	}
+	return out
 }
 
 func respondBadRequest(w http.ResponseWriter, r *http.Request, err error) {
