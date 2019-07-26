@@ -1016,7 +1016,7 @@
               },
               "size": {
                 "description": "size of the file in bytes",
-                "type": "string"
+                "type": "integer"
               }
             }
           }

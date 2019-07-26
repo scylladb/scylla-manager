@@ -146,7 +146,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
-# github.com/ncw/rclone v1.48.0 => github.com/ajankovic/rclone v1.48.1-0.20190724091830-11b66f773
+# github.com/ncw/rclone v1.48.0 => github.com/ajankovic/rclone v1.48.1-0.20190726091830-8aeefb16b
 github.com/ncw/rclone/fs
 github.com/ncw/rclone/backend/local
 github.com/ncw/rclone/backend/s3

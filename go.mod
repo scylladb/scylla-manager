@@ -47,4 +47,4 @@ require (
 
 replace github.com/gocql/gocql => github.com/scylladb/gocql v1.2.0
 
-replace github.com/ncw/rclone => github.com/ajankovic/rclone v1.48.1-0.20190724091830-11b66f773
+replace github.com/ncw/rclone => github.com/ajankovic/rclone v1.48.1-0.20190726091830-8aeefb16b

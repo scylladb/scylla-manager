@@ -258,6 +258,13 @@ func (w *worker) waitJob(ctx context.Context, ip string, id int64) error {
 	for {
 		select {
 		case <-ctx.Done():
+			err := w.client.RcloneJobStop(context.Background(), ip, id)
+			if err != nil {
+				w.logger.Error(ctx, "Failed to stop rclone job",
+					"error", err,
+					"host", ip,
+					"jobid", id)
+			}
 			return ctx.Err()
 		case <-t.C:
 			s, err := w.client.RcloneJobStatus(ctx, ip, id)

@@ -96,9 +96,9 @@ func (p *Provider) UnmarshalText(text []byte) error {
 
 // Location specifies storage provider and container/resource for a DC.
 type Location struct {
-	DC       string
-	Provider Provider
-	Path     string
+	DC       string   `json:"dc"`
+	Provider Provider `json:"provider"`
+	Path     string   `json:"path"`
 }
 
 func (l Location) String() string {
@@ -152,8 +152,8 @@ func (l Location) RemotePath(p string) string {
 
 // RateLimit specifies a rate limit for a DC.
 type RateLimit struct {
-	DC    string
-	Limit int
+	DC    string `json:"dc"`
+	Limit int    `json:"limit"`
 }
 
 func (r RateLimit) String() string {

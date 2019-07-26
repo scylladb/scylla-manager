@@ -28,8 +28,8 @@ github.com/Unknwon/goconfig v0.0.0-20190425194916-3dba17dd7b9e/go.mod h1:wngxua9
 github.com/a8m/tree v0.0.0-20181222104329-6a0b80129de4/go.mod h1:FSdwKX97koS5efgm8WevNf7XS3PqtyFkKDDXrz778cg=
 github.com/abbot/go-http-auth v0.4.0 h1:QjmvZ5gSC7jm3Zg54DqWE/T5m1t2AfDu6QlXJT0EVT0=
 github.com/abbot/go-http-auth v0.4.0/go.mod h1:Cz6ARTIzApMJDzh5bRMSUou6UMSp0IEXg9km/ci7TJM=
-github.com/ajankovic/rclone v1.48.1-0.20190724091830-11b66f773 h1:ti/Z6bh2GOGQZ+6RdxZsYRVZcE/wGoccg+qGDQFsnqc=
-github.com/ajankovic/rclone v1.48.1-0.20190724091830-11b66f773/go.mod h1:E6KgEKBh0ZgUINv/A1XjRfkUmT1gnou/O8AYVfZgyKU=
+github.com/ajankovic/rclone v1.48.1-0.20190726091830-8aeefb16b h1:b6164P9aBaNktFQG18DigYfsz+AofyIhyzMSJqCYd2o=
+github.com/ajankovic/rclone v1.48.1-0.20190726091830-8aeefb16b/go.mod h1:i0fM1i32VhhpLMn2uowBIQ+aqJqJMMcv35Bx7jh+W1A=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/anacrolix/dms v1.0.0/go.mod h1:1TQoem5yf/k/DiVLFFQi+JFQ6GZeKxmJfwGr3goLmFQ=
@@ -210,8 +210,8 @@ github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0/go.mod h1:1NbS8ALr
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/koofr/go-httpclient v0.0.0-20180104120329-03786175608a h1:W+gnfphB7WpRj0rbTF40e3edULfri4fou2kUFw6AF3A=
 github.com/koofr/go-httpclient v0.0.0-20180104120329-03786175608a/go.mod h1:3xszwh+rNrYk1r9SStc4iJ326gne1OaBcrdB1ACsbzI=
-github.com/koofr/go-koofrclient v0.0.0-20190131164641-7f327592caff h1:GlfzG8bgyoJYz+5sMvGpYnHrg4veNVNnDGuE9hTEMHk=
-github.com/koofr/go-koofrclient v0.0.0-20190131164641-7f327592caff/go.mod h1:MRAz4Gsxd+OzrZ0owwrUHc0zLESL+1Y5syqK/sJxK2A=
+github.com/koofr/go-koofrclient v0.0.0-20190715104037-2c5813f3c29c h1:MaVra5jrE7MxT4k0v0JD2Gh6h94BFu2DgDYq+zMGBW0=
+github.com/koofr/go-koofrclient v0.0.0-20190715104037-2c5813f3c29c/go.mod h1:MRAz4Gsxd+OzrZ0owwrUHc0zLESL+1Y5syqK/sJxK2A=
 github.com/kr/fs v0.1.0 h1:Jskdu9ieNAYnjxsi0LbQp1ulIKZV1LAFgK1tWhpZgl8=
 github.com/kr/fs v0.1.0/go.mod h1:FFnZGqtBN9Gxj7eW1uZ42v5BccTP0vu6NEaFoC2HwRg=
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=

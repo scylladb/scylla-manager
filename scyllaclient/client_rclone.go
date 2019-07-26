@@ -92,9 +92,12 @@ func (c *Client) RcloneTransferred(ctx context.Context, host string, group strin
 }
 
 // RcloneStats fetches stats about current transfers.
-func (c *Client) RcloneStats(ctx context.Context, host string) (*models.Stats, error) {
+func (c *Client) RcloneStats(ctx context.Context, host string, group string) (*models.Stats, error) {
 	p := operations.CoreStatsParams{
 		Context: forceHost(ctx, host),
+		StatsParams: &models.StatsParams{
+			Group: group,
+		},
 	}
 	resp, err := c.rcloneOpts.CoreStats(&p)
 	if err != nil {

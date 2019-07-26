@@ -24,6 +24,7 @@ type backupTestHelper struct {
 	session *gocql.Session
 	client  *scyllaclient.Client
 	service *backup.Service
+	runner  backup.Runner
 
 	clusterID uuid.UUID
 	taskID    uuid.UUID
@@ -42,6 +43,7 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 		session: session,
 		client:  client,
 		service: service,
+		runner:  service.Runner(),
 
 		clusterID: uuid.MustRandom(),
 		taskID:    uuid.MustRandom(),

@@ -129,7 +129,7 @@ type StatsTransferringItems0 struct {
 	Percentage float64 `json:"percentage,omitempty"`
 
 	// size of the file in bytes
-	Size string `json:"size,omitempty"`
+	Size int64 `json:"size,omitempty"`
 
 	// speed in bytes/sec
 	Speed float64 `json:"speed,omitempty"`
