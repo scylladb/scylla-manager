@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
 )
 
@@ -44,7 +45,7 @@ var rootCmd = &cobra.Command{
 		if err := yaml.Unmarshal(b, &c); err != nil {
 			return errors.Wrapf(err, "failed to parse config file %s", rootArgs.configFile)
 		}
-		rclone.SetDefaultConfig(c.Logger.Level)
+		rclone.SetDefaultConfig(toRcloneLogLevel(c.Logger.Level))
 
 		cpus, err := pinToCPU(c.CPU)
 		if err != nil {
@@ -61,6 +62,16 @@ var rootCmd = &cobra.Command{
 		}
 		return server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile)
 	},
+}
+
+func toRcloneLogLevel(level zapcore.Level) fs.LogLevel {
+	switch level {
+	case zapcore.DebugLevel:
+		return fs.LogLevelDebug
+	case zapcore.ErrorLevel:
+		return fs.LogLevelError
+	}
+	return fs.LogLevelInfo
 }
 
 func init() {

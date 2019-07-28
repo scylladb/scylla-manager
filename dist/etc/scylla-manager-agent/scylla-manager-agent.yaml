@@ -16,6 +16,11 @@
 # cohabit with a Scylla shard.
 #cpu: 0
 
+# Logging configuration.
+#logger:
+# Available log levels are error, info and debug.
+#  level: info
+
 # Scylla configuration file.
 #scylla_config_file: /etc/scylla/scylla.yaml
 

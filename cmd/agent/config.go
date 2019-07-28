@@ -6,17 +6,16 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/rclone/rclone/fs"
-
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
 )
 
 const defaultHTTPSPort = "10001"
 
 type logConfig struct {
-	Level fs.LogLevel `yaml:"level"`
+	Level zapcore.Level `yaml:"level"`
 }
 
 // scyllaConfig contains selected elements of Scylla configuration.
@@ -53,7 +52,7 @@ func defaultConfig() config {
 			PrometheusPort:    "9180",
 		},
 		Logger: logConfig{
-			fs.LogLevelInfo,
+			zapcore.InfoLevel,
 		},
 	}
 }

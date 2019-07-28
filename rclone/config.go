@@ -13,6 +13,7 @@ import (
 // SetDefaultConfig sets default config values expected for correct agent
 // behaviour.
 func SetDefaultConfig(level fs.LogLevel) {
+	fs.Config.UseJSONLog = true      // Use JSON log format in logging
 	fs.Config.LogLevel = level       // Default logging level
 	fs.Config.IgnoreErrors = true    // Delete even if there are I/O errors
 	fs.Config.SizeOnly = true        // Only use size to compare files

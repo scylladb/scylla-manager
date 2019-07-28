@@ -11,4 +11,4 @@ scylla:
   prometheus_address: pa
   prometheus_port: "1002"
 logger:
-  level: 6
+  level: info
