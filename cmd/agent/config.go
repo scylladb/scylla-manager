@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/ncw/rclone/fs"
+	"github.com/rclone/rclone/fs"
 
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"

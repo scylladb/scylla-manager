@@ -4,7 +4,7 @@ This product includes software from github.com/gocql/gocql licensed under BSD-3-
 This product includes software from github.com/golang/snappy licensed under BSD-3-Clause license.
 This product includes software from github.com/hailocab/go-hostpool licensed under MIT license.
 This product includes software from github.com/jmespath/go-jmespath licensed under Apache-2.0 license.
-This product includes software from github.com/ncw/rclone licensed under MIT license.
+This product includes software from github.com/rclone/rclone licensed under MIT license.
 This product includes software from github.com/ncw/swift licensed under MIT license.
 This product includes software from github.com/pkg/errors licensed under BSD-2-Clause license.
 This product includes software from github.com/rfjakob/eme licensed under MIT license.

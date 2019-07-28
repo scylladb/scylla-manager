@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/ncw/rclone/fs/rc"
+	"github.com/rclone/rclone/fs/rc"
 )
 
 func TestInMemoryConf(t *testing.T) {
