@@ -32,7 +32,6 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	r.Use(
 		heartbeatMiddleware("/ping"),
 		traceIDMiddleware,
-		recoverPanicsMiddleware(logger),
 		middleware.RequestLogger(httpLogger{logger}),
 		render.SetContentType(render.ContentTypeJSON),
 	)
