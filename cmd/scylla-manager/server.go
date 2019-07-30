@@ -4,6 +4,9 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"sync"
@@ -57,8 +60,9 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 	if err := s.makeServices(); err != nil {
 		return nil, err
 	}
-
-	s.makeHTTPServers()
+	if err := s.makeHTTPServers(); err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }
@@ -165,7 +169,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	return nil
 }
 
-func (s *server) makeHTTPServers() {
+func (s *server) makeHTTPServers() error {
 	h := restapi.New(&restapi.Services{
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
@@ -178,10 +182,26 @@ func (s *server) makeHTTPServers() {
 	}
 	if s.config.HTTPS != "" {
 		s.httpsServer = &http.Server{Addr: s.config.HTTPS, Handler: h}
+		if s.config.TLSCAFile != "" {
+			pool := x509.NewCertPool()
+			b, err := ioutil.ReadFile(s.config.TLSCAFile)
+			if err != nil {
+				return errors.Wrapf(err, "https failed to read certificate file %s", s.config.TLSCAFile)
+			}
+			if !pool.AppendCertsFromPEM(b) {
+				return errors.Errorf("https no certificates found in %s", s.config.TLSCAFile)
+			}
+			s.httpsServer.TLSConfig = &tls.Config{
+				ClientCAs:  pool,
+				ClientAuth: tls.RequireAndVerifyClientCert,
+			}
+		}
 	}
 	if s.config.Prometheus != "" {
 		s.prometheusServer = &http.Server{Addr: s.config.Prometheus, Handler: restapi.NewPrometheus(s.clusterSvc)}
 	}
+
+	return nil
 }
 
 func (s *server) startServices(ctx context.Context) error {
@@ -200,7 +220,7 @@ func (s *server) startHTTPServers(ctx context.Context) {
 	}
 
 	if s.httpsServer != nil {
-		s.logger.Info(ctx, "Starting HTTPS", "address", s.httpsServer.Addr)
+		s.logger.Info(ctx, "Starting HTTPS", "address", s.httpsServer.Addr, "client_ca", s.config.TLSCAFile)
 		go func() {
 			s.errCh <- s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile)
 		}()

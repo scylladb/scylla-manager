@@ -3,8 +3,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 )
@@ -12,8 +14,10 @@ import (
 var (
 	defaultURL = "https://127.0.0.1:56443/api/v1"
 
-	cfgURL     string
-	cfgCluster string
+	cfgAPIURL      string
+	cfgAPICertFile string
+	cfgAPIKeyFile  string
+	cfgCluster     string
 
 	client mermaidclient.Client
 )
@@ -28,7 +32,24 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Init client
-		c, err := mermaidclient.NewClient(cfgURL)
+		tlsConfig := mermaidclient.DefaultTLSConfig()
+
+		// Load TLS certificate if provided
+		if cfgAPICertFile != "" && cfgAPIKeyFile == "" {
+			return printableError{errors.New("missing flag \"api-key-file\"")}
+		}
+		if cfgAPIKeyFile != "" && cfgAPICertFile == "" {
+			return printableError{errors.New("missing flag \"api-cert-file\"")}
+		}
+		if cfgAPICertFile != "" {
+			cert, err := tls.LoadX509KeyPair(cfgAPICertFile, cfgAPIKeyFile)
+			if err != nil {
+				return printableError{inner: errors.Wrap(err, "failed to load client certificate")}
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+
+		c, err := mermaidclient.NewClient(cfgAPIURL, tlsConfig)
 		if err != nil {
 			return err
 		}
@@ -56,12 +77,15 @@ func needsCluster(cmd *cobra.Command) bool {
 }
 
 func init() {
+	f := rootCmd.PersistentFlags()
+
 	url := os.Getenv("SCYLLA_MANAGER_API_URL")
 	if url == "" {
 		url = defaultURL
 	}
-	rootCmd.PersistentFlags().StringVar(&cfgURL, "api-url", url, "`URL` of Scylla Manager server")
+	f.StringVar(&cfgAPIURL, "api-url", url, "`URL` of Scylla Manager server")
+	f.StringVar(&cfgAPICertFile, "api-cert-file", os.Getenv("SCYLLA_MANAGER_API_CERT_FILE"), "`path` to HTTPS client certificate to access Scylla Manager server")
+	f.StringVar(&cfgAPIKeyFile, "api-key-file", os.Getenv("SCYLLA_MANAGER_API_KEY_FILE"), "`path` to HTTPS client key to access Scylla Manager server")
 
-	cluster := os.Getenv("SCYLLA_MANAGER_CLUSTER")
-	rootCmd.PersistentFlags().StringVarP(&cfgCluster, "cluster", "c", cluster, "target cluster `name` or ID")
+	f.StringVarP(&cfgCluster, "cluster", "c", os.Getenv("SCYLLA_MANAGER_CLUSTER"), "target cluster `name` or ID")
 }

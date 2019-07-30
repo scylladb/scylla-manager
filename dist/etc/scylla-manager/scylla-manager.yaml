@@ -10,6 +10,10 @@ https: 127.0.0.1:56443
 # scyllamgr_ssl_cert_gen script shipped with the Scylla Manager.
 #tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
 #tls_key_file: /var/lib/scylla-manager/scylla_manager.key
+#
+# CA to validate client certificates, if set client must present a certificate
+# signed by the CA.
+#tls_ca_file:
 
 # Bind prometheus API to the specified TCP address using HTTP protocol.
 # By default it binds to all network interfaces but you can restrict it
