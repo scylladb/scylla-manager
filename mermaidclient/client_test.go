@@ -19,7 +19,7 @@ func TestClientError(t *testing.T) {
 	}))
 	defer s.Close()
 
-	c, err := NewClient(s.URL)
+	c, err := NewClient(s.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

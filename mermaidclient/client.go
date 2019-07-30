@@ -29,7 +29,15 @@ type Client struct {
 	operations *operations.Client
 }
 
-func NewClient(rawurl string) (Client, error) {
+// DefaultTLSConfig specifies default TLS configuration used when creating a new
+// client.
+var DefaultTLSConfig = func() *tls.Config {
+	return &tls.Config{
+		InsecureSkipVerify: true,
+	}
+}
+
+func NewClient(rawurl string, tlsConfig *tls.Config) (Client, error) {
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		return Client{}, err
@@ -39,11 +47,13 @@ func NewClient(rawurl string) (Client, error) {
 		middleware.Debug = false
 	})
 
+	if tlsConfig == nil {
+		tlsConfig = DefaultTLSConfig()
+	}
+
 	httpClient := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
+			TLSClientConfig: tlsConfig,
 		},
 	}
 

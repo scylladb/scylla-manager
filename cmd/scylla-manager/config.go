@@ -49,6 +49,7 @@ type serverConfig struct {
 	HTTPS       string             `yaml:"https"`
 	TLSCertFile string             `yaml:"tls_cert_file"`
 	TLSKeyFile  string             `yaml:"tls_key_file"`
+	TLSCAFile   string             `yaml:"tls_ca_file"`
 	Prometheus  string             `yaml:"prometheus"`
 	Gops        string             `json:"gops"`
 	Logger      logConfig          `yaml:"logger"`
