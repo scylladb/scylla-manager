@@ -4,10 +4,13 @@ This product includes software from github.com/gocql/gocql licensed under BSD-3-
 This product includes software from github.com/golang/snappy licensed under BSD-3-Clause license.
 This product includes software from github.com/hailocab/go-hostpool licensed under MIT license.
 This product includes software from github.com/jmespath/go-jmespath licensed under Apache-2.0 license.
-This product includes software from github.com/rclone/rclone licensed under MIT license.
+This product includes software from github.com/jzelinskie/whirlpool licensed under BSD-3-Clause license.
+This product includes software from github.com/mitchellh/go-homedir licensed under MIT license.
 This product includes software from github.com/ncw/swift licensed under MIT license.
 This product includes software from github.com/pkg/errors licensed under BSD-2-Clause license.
+This product includes software from github.com/rclone/rclone licensed under MIT license.
 This product includes software from github.com/rfjakob/eme licensed under MIT license.
+This product includes software from github.com/sirupsen/logrus licensed under MIT license.
 This product includes software from github.com/spf13/cobra licensed under Apache-2.0 license.
 This product includes software from github.com/spf13/pflag licensed under BSD-3-Clause license.
 This product includes software from github.com/Unknwon/goconfig licensed under Apache-2.0 license.
@@ -21,3 +24,5 @@ This product includes software from gopkg.in/inf.v0 licensed under BSD-3-Clause 
 This product includes software from gopkg.in/yaml.v2 licensed under Apache-2.0 license.
 This product includes software from go.uber.org/atomic licensed under MIT license.
 This product includes software from go.uber.org/multierr licensed under MIT license.
+This product includes software from go.uber.org/zap/buffer licensed under null license.
+This product includes software from go.uber.org/zap/zapcore licensed under null license.
