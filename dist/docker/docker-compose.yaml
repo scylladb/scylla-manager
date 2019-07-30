@@ -1,15 +1,15 @@
-version: '3'
+version: "3.7"
 
 services:
   scylla-manager:
     image: scylladb/scylla-manager
     volumes:
-      - ./certs:/var/lib/scylla-manager/.certs:Z
+      - type: bind
+        source: ./certs
+        target: /var/lib/scylla-manager/.certs
     depends_on:
       - scylla-manager-db
 
   scylla-manager-db:
     image: scylladb/scylla
-    volumes:
-      - ./data:/var/lib/scylla/data:Z
-      - ./commitlog:/var/lib/scylla/commitlog:Z
+    command: --api-address 0.0.0.0
