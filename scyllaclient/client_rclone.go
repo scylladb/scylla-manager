@@ -246,3 +246,14 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, rec
 	}
 	return resp.Payload.List, nil
 }
+
+// TransferredByFilename returns all transferred entries for the file.
+func TransferredByFilename(filename string, transferred []*models.Transfer) []*models.Transfer {
+	var out []*models.Transfer
+	for _, tr := range transferred {
+		if tr.Name == filename {
+			out = append(out, tr)
+		}
+	}
+	return out
+}

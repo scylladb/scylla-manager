@@ -13,6 +13,7 @@ import (
 type Config struct {
 	DiskSpaceFreeMinPercent int           `yaml:"disk_space_free_min_percent"`
 	PollInterval            time.Duration `yaml:"poll_interval"`
+	AgeMax                  time.Duration `yaml:"age_max"`
 
 	// Additional configuration for testing
 	TestS3Endpoint string `yaml:"test_s3_endpoint"`
@@ -23,6 +24,7 @@ func DefaultConfig() Config {
 	return Config{
 		DiskSpaceFreeMinPercent: 10,
 		PollInterval:            time.Second,
+		AgeMax:                  12 * time.Hour,
 	}
 }
 

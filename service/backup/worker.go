@@ -4,6 +4,7 @@ package backup
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"regexp"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/multierr"
@@ -25,6 +27,8 @@ type worker struct {
 	units  []Unit
 	client *scyllaclient.Client
 	logger log.Logger
+
+	OnRunProgress func(ctx context.Context, p *RunProgress)
 }
 
 type hostInfo struct {
@@ -34,29 +38,14 @@ type hostInfo struct {
 	RateLimit RateLimit
 }
 
-func (w *worker) Exec(ctx context.Context, hosts []hostInfo) error {
-	return w.inParallel(hosts, func(h hostInfo) error {
-		return w.execHost(ctx, h)
+func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo) error {
+	return w.inParallel(ctx, hosts, func(h hostInfo) error {
+		return w.snapshotHost(ctx, h)
 	})
 }
 
-func (w *worker) inParallel(hosts []hostInfo, f func(h hostInfo) error) error {
-	out := make(chan error)
-	for _, h := range hosts {
-		h := h
-		go func() {
-			out <- errors.Wrapf(f(h), "host %s", h)
-		}()
-	}
-
-	var errs error
-	for range hosts {
-		errs = multierr.Append(errs, <-out)
-	}
-	return errs
-}
-
-func (w *worker) execHost(ctx context.Context, h hostInfo) error {
+func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
+	w.logger.Info(ctx, "Starting snapshot procedure", "host", h.IP)
 	if err := w.checkAvailableDiskSpace(ctx, h); err != nil {
 		return errors.Wrap(err, "disk space check")
 	}
@@ -67,6 +56,25 @@ func (w *worker) execHost(ctx context.Context, h hostInfo) error {
 		// Not a fatal error we can continue, just log the error
 		w.logger.Error(ctx, "Failed to delete old snapshots", "error", err)
 	}
+	dirs, err := w.findSnapshotDirs(ctx, h)
+	if err != nil {
+		return errors.Wrap(err, "failed to list snapshot dirs")
+	}
+	if err := w.initProgress(ctx, dirs); err != nil {
+		return errors.Wrap(err, "failed to initialize progress")
+	}
+	w.logger.Info(ctx, "Snapshot procedure completed", "host", h.IP)
+	return nil
+}
+
+func (w *worker) Upload(ctx context.Context, hosts []hostInfo, progress []*RunProgress) error {
+	return w.inParallel(ctx, hosts, func(h hostInfo) error {
+		return w.uploadHost(ctx, h, progress)
+	})
+}
+
+func (w *worker) uploadHost(ctx context.Context, h hostInfo, progress []*RunProgress) error {
+	w.logger.Info(ctx, "Starting upload procedure", "host", h.IP)
 	if err := w.register(ctx, h); err != nil {
 		return errors.Wrap(err, "failed to register remote")
 	}
@@ -79,12 +87,55 @@ func (w *worker) execHost(ctx context.Context, h hostInfo) error {
 		return errors.Wrap(err, "failed to list snapshot dirs")
 	}
 	for _, d := range dirs {
-		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
+		// Check if we should attach to a previous job and wait for it to complete.
+		if err := w.attachToJob(ctx, h, d, progress); err != nil {
+			return errors.Wrap(err, "failed to attach to the agent job")
+		}
+		// Start new upload with new job.
+		if err := w.uploadSnapshotDir(ctx, h, d, progress); err != nil {
 			return errors.Wrap(err, "failed to upload snapshot")
 		}
 	}
-
+	w.logger.Info(ctx, "Upload procedure completed", "host", h.IP)
 	return nil
+}
+
+func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir, progress []*RunProgress) error {
+	if jobID := w.snapshotJobID(ctx, d, progress); jobID != uuid.Nil {
+		w.logger.Info(ctx, "Attaching to the previous agent job",
+			"host", h.IP,
+			"keyspace", d.Keyspace,
+			"tag", snapshotTag(w.runID),
+			"jobid", jobID.String(),
+		)
+		if err := w.waitJob(ctx, jobID, d, progress); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// snapshotJobID returns the id of the job that was last responsible for
+// uploading the snapshot directory.
+// If it's not available it will return uuid.Nil
+func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir, progress []*RunProgress) uuid.UUID {
+	for _, p := range w.getSnapshotDirProgress(d, progress) {
+		if p.AgentJobID == uuid.Nil || p.Size == p.Uploaded {
+			continue
+		}
+		status, _ := w.getJobStatus(ctx, p.AgentJobID, d) //nolint:errcheck
+		switch status {
+		case jobError:
+			return uuid.Nil
+		case jobNotFound:
+			return uuid.Nil
+		case jobSuccess:
+			return p.AgentJobID
+		case jobRunning:
+			return p.AgentJobID
+		}
+	}
+	return uuid.Nil
 }
 
 func (w *worker) checkAvailableDiskSpace(ctx context.Context, h hostInfo) error {
@@ -109,8 +160,8 @@ func (w *worker) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
 
 func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 	for _, u := range w.units {
-		w.logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", w.snapshotTag())
-		if err := w.client.TakeSnapshot(ctx, h.IP, w.snapshotTag(), u.Keyspace, u.Tables...); err != nil {
+		w.logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", snapshotTag(w.runID))
+		if err := w.client.TakeSnapshot(ctx, h.IP, snapshotTag(w.runID), u.Keyspace, u.Tables...); err != nil {
 			return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
 		}
 	}
@@ -124,7 +175,7 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	}
 
 	for _, t := range tags {
-		if claimTag(t) && t != w.snapshotTag() {
+		if claimTag(t) && t != snapshotTag(w.runID) {
 			w.logger.Info(ctx, "Deleting snapshot", "host", h.IP, "tag", t)
 			if err := w.client.DeleteSnapshot(ctx, h.IP, t); err != nil {
 				return err
@@ -137,6 +188,8 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 
 // snapshotDir represents a remote directory containing a table snapshot.
 type snapshotDir struct {
+	Host     string
+	Unit     int64
 	Path     string
 	Keyspace string
 	Table    string
@@ -147,10 +200,15 @@ type snapshotDir struct {
 func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDir, error) {
 	var dirs []snapshotDir
 
-	r := regexp.MustCompile("^([A-Za-z0-9_]+)-([a-f0-9]{32})/snapshots/" + w.snapshotTag() + "$")
+	r := regexp.MustCompile("^([A-Za-z0-9_]+)-([a-f0-9]{32})/snapshots/" + snapshotTag(w.runID) + "$")
 
-	for _, u := range w.units {
-		w.logger.Debug(ctx, "Inspecting snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", w.snapshotTag())
+	for i, u := range w.units {
+		w.logger.Debug(ctx, "Inspecting snapshot",
+			"host", h.IP,
+			"keyspace", u.Keyspace,
+			"tag", snapshotTag(w.runID),
+			"dir", keyspaceDir(u.Keyspace),
+		)
 
 		list, err := w.client.RcloneListDir(ctx, h.IP, keyspaceDir(u.Keyspace), true)
 		if err != nil {
@@ -169,6 +227,8 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 				continue
 			}
 			dirs = append(dirs, snapshotDir{
+				Host:     h.IP,
+				Unit:     int64(i),
 				Path:     f.Path,
 				Keyspace: u.Keyspace,
 				Table:    m[1],
@@ -179,6 +239,39 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 	}
 
 	return dirs, nil
+}
+
+func (w *worker) initProgress(ctx context.Context, dirs []snapshotDir) error {
+	for _, d := range dirs {
+		dirPath := path.Join(keyspaceDir(d.Keyspace), d.Path)
+		w.logger.Debug(ctx, "Initializing progress",
+			"host", d.Host,
+			"keyspace", d.Keyspace,
+			"tag", snapshotTag(w.runID),
+			"dir", dirPath,
+		)
+		list, err := w.client.RcloneListDir(ctx, d.Host, dirPath, false)
+		if err != nil {
+			return err
+		}
+		for _, l := range list {
+			if l.IsDir {
+				continue
+			}
+			p := &RunProgress{
+				ClusterID: w.clusterID,
+				TaskID:    w.taskID,
+				RunID:     w.runID,
+				Host:      d.Host,
+				Unit:      d.Unit,
+				TableName: d.Table,
+				FileName:  l.Name,
+				Size:      l.Size,
+			}
+			w.onRunProgress(ctx, p)
+		}
+	}
+	return nil
 }
 
 func (w *worker) register(ctx context.Context, h hostInfo) error {
@@ -204,7 +297,7 @@ func (w *worker) setRateLimit(ctx context.Context, h hostInfo) error {
 
 const manifestFile = "manifest.json"
 
-func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDir) error {
+func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDir, progress []*RunProgress) error {
 	w.logger.Info(ctx, "Uploading",
 		"host", h.IP,
 		"keyspace", d.Keyspace,
@@ -217,7 +310,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		manifestDst = path.Join(h.Location.RemotePath(w.remoteMetaDir(h, d)), manifestFile)
 		manifestSrc = path.Join(dataDir, d.Keyspace, d.Path, manifestFile)
 	)
-	if err := w.uploadFile(ctx, h.IP, manifestDst, manifestSrc); err != nil {
+	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d, progress); err != nil {
 		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, manifestSrc, manifestDst)
 	}
 
@@ -226,58 +319,215 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		dataDst = h.Location.RemotePath(w.remoteSSTableDir(h, d))
 		dataSrc = path.Join(dataDir, d.Keyspace, d.Path)
 	)
-	if err := w.uploadDir(ctx, h.IP, dataDst, dataSrc); err != nil {
+	if err := w.uploadDir(ctx, dataDst, dataSrc, d, progress); err != nil {
 		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, dataSrc, dataDst)
 	}
 
 	return nil
 }
 
-func (w *worker) uploadFile(ctx context.Context, ip, dst, src string) error {
-	w.logger.Debug(ctx, "Uploading file", "host", ip, "from", src, "to", dst)
-	id, err := w.client.RcloneCopyFile(ctx, ip, dst, src)
+func (w *worker) uploadFile(ctx context.Context, dst, src string, d snapshotDir, progress []*RunProgress) error {
+	w.logger.Info(ctx, "Uploading file", "host", d.Host, "from", src, "to", dst)
+	id, err := w.client.RcloneCopyFile(ctx, d.Host, dst, src)
 	if err != nil {
 		return err
 	}
-	return w.waitJob(ctx, ip, id)
+	p := w.getManifestProgress(d, progress)
+	if p != nil {
+		p.AgentJobID = id
+		w.onRunProgress(ctx, p)
+	}
+	return w.waitJob(ctx, id, d, progress)
 }
 
-func (w *worker) uploadDir(ctx context.Context, ip, dst, src string) error {
-	w.logger.Debug(ctx, "Uploading dir", "host", ip, "from", src, "to", dst)
-	id, err := w.client.RcloneCopyDir(ctx, ip, dst, src, manifestFile)
+func (w *worker) getManifestProgress(d snapshotDir, progress []*RunProgress) *RunProgress {
+	for _, p := range progress {
+		if p.FileName == manifestFile && p.Unit == d.Unit && p.TableName == d.Table && p.Host == d.Host {
+			return p
+		}
+	}
+	return nil
+}
+
+func (w *worker) uploadDir(ctx context.Context, dst, src string, d snapshotDir, progress []*RunProgress) error {
+	w.logger.Info(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst)
+	id, err := w.client.RcloneCopyDir(ctx, d.Host, dst, src, manifestFile)
 	if err != nil {
 		return err
 	}
-	return w.waitJob(ctx, ip, id)
+
+	for _, p := range w.getSnapshotDirProgress(d, progress) {
+		p.AgentJobID = id
+		w.onRunProgress(ctx, p)
+	}
+	return w.waitJob(ctx, id, d, progress)
 }
 
-func (w *worker) waitJob(ctx context.Context, ip string, id uuid.UUID) error {
+func (w *worker) getSnapshotDirProgress(d snapshotDir, progress []*RunProgress) []*RunProgress {
+	var out []*RunProgress
+	for _, p := range progress {
+		if p.Unit == d.Unit && p.TableName == d.Table && p.Host == d.Host {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir, progress []*RunProgress) error {
 	t := time.NewTicker(w.config.PollInterval)
 	defer t.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			err := w.client.RcloneJobStop(context.Background(), ip, id)
+			err := w.client.RcloneJobStop(context.Background(), d.Host, id)
 			if err != nil {
 				w.logger.Error(ctx, "Failed to stop rclone job",
 					"error", err,
-					"host", ip,
-					"jobid", id)
+					"host", d.Host,
+					"unit", d.Unit,
+					"jobid", id,
+					"table", d.Table,
+				)
 			}
+			w.updateProgress(ctx, id, d, progress)
 			return ctx.Err()
 		case <-t.C:
-			s, err := w.client.RcloneJobStatus(ctx, ip, id)
-			if err != nil {
+			status, err := w.getJobStatus(ctx, id, d)
+			switch status {
+			case jobError:
 				return err
-			}
-			if s.Finished {
-				if s.Success {
-					return nil
-				}
-				return errors.New(s.Error)
+			case jobNotFound:
+				return errors.Errorf("job not found (%s)", id)
+			case jobSuccess:
+				w.updateProgress(ctx, id, d, progress)
+				return nil
+			case jobRunning:
+				w.updateProgress(ctx, id, d, progress)
 			}
 		}
+	}
+}
+
+func (w *worker) getJobStatus(ctx context.Context, jobID uuid.UUID, d snapshotDir) (jobStatus, error) {
+	s, err := w.client.RcloneJobStatus(ctx, d.Host, jobID)
+	if err != nil {
+		w.logger.Error(ctx, "Failed to fetch job status",
+			"error", err,
+			"host", d.Host,
+			"unit", d.Unit,
+			"jobid", jobID.String(),
+			"table", d.Table,
+		)
+		if strings.Contains(err.Error(), "job not found") {
+			// If job is no longer available fail.
+			return jobNotFound, nil
+		}
+		return jobError, err
+	}
+	if s.Finished {
+		if s.Success {
+			return jobSuccess, nil
+		}
+		return jobError, errors.New(s.Error)
+	}
+	return jobRunning, nil
+}
+
+func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshotDir, progress []*RunProgress) {
+	transferred, err := w.client.RcloneTransferred(ctx, d.Host, jobID.String())
+	if err != nil {
+		w.logger.Error(ctx, "Failed to get transferred files",
+			"error", err,
+			"host", d.Host,
+			"jobid", jobID,
+		)
+		return
+	}
+	stats, err := w.client.RcloneStats(ctx, d.Host, jobID.String())
+	if err != nil {
+		w.logger.Error(ctx, "Failed to get transfer stats",
+			"error", err,
+			"host", d.Host,
+			"jobid", jobID,
+		)
+		return
+	}
+
+	for _, p := range w.getSnapshotDirProgress(d, progress) {
+		if p.AgentJobID != jobID || p.Size == p.Uploaded {
+			continue
+		}
+		trs := scyllaclient.TransferredByFilename(p.FileName, transferred)
+		switch len(trs) {
+		case 0: // Nothing in transferred so inspect transfers in progress.
+			for _, tr := range stats.Transferring {
+				if tr.Name == p.FileName {
+					p.Uploaded = tr.Bytes
+					w.onRunProgress(ctx, p)
+					break
+				}
+			}
+		case 1: // Only one transfer or one check.
+			w.setProgressDates(ctx, p, d, jobID, trs[0].StartedAt, trs[0].CompletedAt)
+			if trs[0].Error != "" {
+				p.Error = trs[0].Error
+				p.Uploaded = trs[0].Bytes
+			} else {
+				if trs[0].Checked {
+					// File is already uploaded we just checked.
+					p.Uploaded = trs[0].Size
+				} else {
+					p.Uploaded = trs[0].Bytes
+				}
+			}
+			w.onRunProgress(ctx, p)
+		case 2: // File is found and updated on remote (check plus transfer).
+			// Order Check > Transfer is expected.
+			// Taking start time from the check.
+			w.setProgressDates(ctx, p, d, jobID, trs[0].StartedAt, trs[1].CompletedAt)
+			if trs[0].Error != "" {
+				p.Error = trs[0].Error
+			}
+			if trs[1].Error != "" {
+				p.Error = fmt.Sprintf("%s %s", p.Error, trs[1].Error)
+			}
+			p.Uploaded = trs[1].Bytes
+			w.onRunProgress(ctx, p)
+		}
+	}
+}
+
+func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
+	if w.OnRunProgress != nil {
+		w.OnRunProgress(ctx, p)
+	}
+}
+
+func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapshotDir, jobID uuid.UUID, start, end string) {
+	startedAt, err := timeutc.Parse(time.RFC3339, start)
+	if err != nil {
+		w.logger.Error(ctx, "Failed to parse start time",
+			"error", err,
+			"host", d.Host,
+			"jobid", jobID,
+			"value", start,
+		)
+	}
+	if !startedAt.IsZero() {
+		p.StartedAt = &startedAt
+	}
+	completedAt, err := timeutc.Parse(time.RFC3339, end)
+	if err != nil {
+		w.logger.Error(ctx, "Failed to parse complete time",
+			"error", err,
+			"host", d.Host,
+			"jobid", jobID,
+			"value", end,
+		)
+	}
+	if !completedAt.IsZero() {
+		p.CompletedAt = &completedAt
 	}
 }
 
@@ -315,14 +565,30 @@ func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 	)
 }
 
-func (w *worker) snapshotTag() string {
-	return snapshotTag(w.runID)
+func (w *worker) inParallel(ctx context.Context, hosts []hostInfo, f func(h hostInfo) error) error {
+	out := make(chan error)
+	for _, h := range hosts {
+		h := h
+		go func() {
+			out <- errors.Wrapf(f(h), "host %s", h)
+		}()
+	}
+
+	var errs error
+	for range hosts {
+		err := <-out
+		if err != nil {
+			w.logger.Error(ctx, "Backup host worker", "error", err)
+		}
+		errs = multierr.Append(errs, err)
+	}
+	return errs
 }
 
 const dataDir = "/var/lib/scylla/data"
 
 func keyspaceDir(keyspace string) string {
-	return dataDir + "/" + keyspace
+	return path.Join(dataDir, keyspace)
 }
 
 func snapshotTag(id uuid.UUID) string {

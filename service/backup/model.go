@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -22,6 +23,7 @@ type Target struct {
 	Location  []Location  `json:"location"`
 	Retention int         `json:"retention"`
 	RateLimit []RateLimit `json:"rate_limit"`
+	Continue  bool        `json:"continue"`
 }
 
 // Unit represents keyspace and its tables.
@@ -46,22 +48,43 @@ type Run struct {
 	TaskID    uuid.UUID
 	ID        uuid.UUID
 
-	PrevID   uuid.UUID
-	Units    []Unit
-	DC       []string
-	Location []Location
+	PrevID    uuid.UUID
+	Units     []Unit
+	DC        []string
+	Location  []Location
+	StartTime time.Time
 }
 
 // RunProgress describes backup progress on per file basis.
 type RunProgress struct {
-	ClusterID uuid.UUID
-	TaskID    uuid.UUID
-	RunID     uuid.UUID
+	ClusterID  uuid.UUID
+	TaskID     uuid.UUID
+	RunID      uuid.UUID
+	AgentJobID uuid.UUID
 
-	Host  string
-	Unit  int
-	Table int `db:"table_id"`
+	Host      string
+	Unit      int64
+	TableName string
+	FileName  string
 
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+	Error       string
+	Size        int64
+	Uploaded    int64
+}
+
+type jobStatus string
+
+const (
+	jobRunning  jobStatus = "running"
+	jobError    jobStatus = "error"
+	jobNotFound jobStatus = "not_found"
+	jobSuccess  jobStatus = "success"
+)
+
+// Progress specifies backup progress of a run.
+type Progress struct {
 	Size     int64
 	Uploaded int64
 }
@@ -194,10 +217,12 @@ type taskProperties struct {
 	Location  []Location  `json:"location"`
 	Retention int         `json:"retention"`
 	RateLimit []RateLimit `json:"rate_limit"`
+	Continue  bool        `json:"continue"`
 }
 
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
 		Retention: 3,
+		Continue:  true,
 	}
 }

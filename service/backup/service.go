@@ -10,9 +10,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
 	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -21,7 +23,7 @@ import (
 // ClusterNameFunc returns name for a given ID.
 type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
 
-// Service orchestrates clusterName repairs.
+// Service orchestrates clusterName backups.
 type Service struct {
 	session *gocql.Session
 	config  Config
@@ -75,6 +77,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	t.Location = p.Location
 	t.RateLimit = p.RateLimit
 	t.Retention = p.Retention
+	t.Continue = p.Continue
 
 	if p.Location == nil {
 		return t, errors.Errorf("missing location")
@@ -175,6 +178,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		Units:     target.Units,
 		DC:        target.DC,
 		Location:  target.Location,
+		StartTime: timeutc.Now().UTC(),
 	}
 
 	s.logger.Info(ctx, "Initializing backup",
@@ -219,6 +223,16 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		return err
 	}
 
+	if target.Continue {
+		if err := s.decorateWithPrevRun(ctx, run); err != nil {
+			return err
+		}
+		// Update run with previous progress.
+		if run.PrevID != uuid.Nil {
+			s.putRunLogError(ctx, run)
+		}
+	}
+
 	// Create a worker
 	w := worker{
 		clusterID: clusterID,
@@ -229,9 +243,114 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		units:  run.Units,
 		client: client,
 		logger: s.logger.Named("worker"),
+
+		OnRunProgress: s.putRunProgressLogError,
 	}
 
-	return w.Exec(ctx, hi)
+	if run.PrevID == uuid.Nil {
+		if err := w.Snapshot(ctx, hi); err != nil {
+			return err
+		}
+	}
+	prog, err := s.getProgress(run)
+	if err != nil {
+		return errors.Wrap(err, "failed to load run progress")
+	}
+
+	return w.Upload(ctx, hi, prog)
+}
+
+// decorateWithPrevRun gets task previous run and if it can be continued
+// sets PrevID on the given run.
+func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
+	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
+	if err == mermaid.ErrNotFound {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "failed to get previous run")
+	}
+
+	// Check if can continue from prev
+	s.logger.Info(ctx, "Found previous run", "run_id", prev.ID, "prev_run_id", prev.PrevID)
+	if timeutc.Since(prev.StartTime) > s.config.AgeMax {
+		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
+		return nil
+	}
+
+	run.PrevID = prev.ID
+	run.Units = prev.Units
+	run.DC = prev.DC
+
+	return nil
+}
+
+// GetLastResumableRun returns the the most recent started but not done run of
+// the task, if there is a recent run that is completely done ErrNotFound is
+// reported.
+func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetLastResumableRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+	)
+
+	stmt, names := qb.Select(schema.BackupRun.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+	).Limit(20).ToCql()
+
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+	})
+
+	var runs []*Run
+	if err := q.SelectRelease(&runs); err != nil {
+		return nil, err
+	}
+
+	for _, r := range runs {
+		prog, err := s.getProgress(r)
+		if err != nil {
+			return nil, err
+		}
+		size, uploaded := aggregateProgress(r, prog)
+		if size > 0 {
+			if size == uploaded {
+				break
+			}
+			return r, nil
+		}
+	}
+
+	return nil, mermaid.ErrNotFound
+}
+
+func aggregateProgress(run *Run, prog []*RunProgress) (int64, int64) {
+	var size, uploaded int64
+	if len(run.Units) == 0 {
+		return size, uploaded
+	}
+
+	for i := range prog {
+		size += prog[i].Size
+		uploaded += prog[i].Uploaded
+	}
+
+	return size, uploaded
+}
+
+func (s *Service) getProgress(run *Run) ([]*RunProgress, error) {
+	stmt, names := schema.BackupRunProgress.Select()
+
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+		"cluster_id": run.ClusterID,
+		"task_id":    run.TaskID,
+		"run_id":     run.ID,
+	})
+
+	var p []*RunProgress
+	return p, q.SelectRelease(&p)
 }
 
 // putRun upserts a backup run.
@@ -242,11 +361,31 @@ func (s *Service) putRun(r *Run) error {
 }
 
 // putRunLogError executes putRun and consumes the error.
-//func (s *Service) putRunLogError(ctx context.Context, r *Run) {
-//	if err := s.putRun(r); err != nil {
-//		s.logger.Error(ctx, "Cannot update the run",
-//			"run", &r,
-//			"error", err,
-//		)
-//	}
-//}
+func (s *Service) putRunLogError(ctx context.Context, r *Run) {
+	if err := s.putRun(r); err != nil {
+		s.logger.Error(ctx, "failed to update the run",
+			"run", r,
+			"error", err,
+		)
+	}
+}
+
+// putRunProgress upserts a backup run progress.
+func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
+	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
+
+	stmt, names := schema.BackupRunProgress.Insert()
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(p)
+
+	return q.ExecRelease()
+}
+
+// putRunProgressLogError executes putRunProgress and consumes the error.
+func (s *Service) putRunProgressLogError(ctx context.Context, p *RunProgress) {
+	if err := s.putRunProgress(ctx, p); err != nil {
+		s.logger.Error(ctx, "Failed to update file progress",
+			"progress", p,
+			"error", err,
+		)
+	}
+}
