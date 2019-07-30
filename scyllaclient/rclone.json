@@ -95,6 +95,48 @@
         "security": []
       }
     },
+    "/core/stats-reset": {
+      "post": {
+        "description": "Resets stats",
+        "summary": "Resets all or specific stats group",
+        "operationId": "CoreStatsReset",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "StatsParams",
+            "description": "Stats parameters",
+            "schema": {
+              "$ref": "#/definitions/StatsParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/core/transferred": {
       "post": {
         "description": "Returns stats about completed transfers",
@@ -145,7 +187,7 @@
         "security": []
       }
     },
-    "/core/group_list": {
+    "/core/group-list": {
       "post": {
         "description": "Returns list of group names",
         "summary": "Group names",

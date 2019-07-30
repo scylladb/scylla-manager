@@ -106,6 +106,18 @@ func (c *Client) RcloneStats(ctx context.Context, host string, group string) (*m
 	return resp.Payload, nil
 }
 
+// RcloneStatsReset resets stats.
+func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string) error {
+	p := operations.CoreStatsResetParams{
+		Context: forceHost(ctx, host),
+		StatsParams: &models.StatsParams{
+			Group: group,
+		},
+	}
+	_, err := c.rcloneOpts.CoreStatsReset(&p) //nolint:errcheck
+	return err
+}
+
 // RcloneCopyFile copies file from the srcRemotePath to dstRemotePath.
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.

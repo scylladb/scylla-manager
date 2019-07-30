@@ -65,7 +65,7 @@ type CoreGroupListOK struct {
 }
 
 func (o *CoreGroupListOK) Error() string {
-	return fmt.Sprintf("[POST /core/group_list][%d] coreGroupListOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /core/group-list][%d] coreGroupListOK  %+v", 200, o.Payload)
 }
 
 func (o *CoreGroupListOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ type CoreGroupListNotFound struct {
 }
 
 func (o *CoreGroupListNotFound) Error() string {
-	return fmt.Sprintf("[POST /core/group_list][%d] coreGroupListNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /core/group-list][%d] coreGroupListNotFound  %+v", 404, o.Payload)
 }
 
 func (o *CoreGroupListNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -123,7 +123,7 @@ type CoreGroupListInternalServerError struct {
 }
 
 func (o *CoreGroupListInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /core/group_list][%d] coreGroupListInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /core/group-list][%d] coreGroupListInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *CoreGroupListInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

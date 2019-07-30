@@ -98,7 +98,7 @@ func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, e
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "CoreGroupList",
 		Method:             "POST",
-		PathPattern:        "/core/group_list",
+		PathPattern:        "/core/group-list",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -141,6 +141,36 @@ func (a *Client) CoreStats(params *CoreStatsParams) (*CoreStatsOK, error) {
 		return nil, err
 	}
 	return result.(*CoreStatsOK), nil
+
+}
+
+/*
+CoreStatsReset resets all or specific stats group
+
+Resets stats
+*/
+func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCoreStatsResetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CoreStatsReset",
+		Method:             "POST",
+		PathPattern:        "/core/stats-reset",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CoreStatsResetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CoreStatsResetOK), nil
 
 }
 
