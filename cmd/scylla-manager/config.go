@@ -77,7 +77,7 @@ func defaultConfig() *serverConfig {
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
 			Timeout:                       600 * time.Millisecond,
-			TokenAware:                    false,
+			TokenAware:                    true,
 		},
 		SSL: sslConfig{
 			Validate: true,

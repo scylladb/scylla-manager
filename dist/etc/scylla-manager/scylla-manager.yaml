@@ -26,6 +26,7 @@ https: 127.0.0.1:56443
 #database:
 #  hosts:
 #    - 127.0.0.1
+#
 # Enable or disable client/server encryption.
 #  ssl: false
 #
@@ -36,12 +37,16 @@ https: 127.0.0.1:56443
 # Local datacenter name, specify if using a remote, multi-dc cluster.
 #  local_dc:
 #
-# Database connection timeout.
-#  timeout: 600ms
-#
 # Keyspace for management data.
 #  keyspace: scylla_manager
 #  replication_factor: 1
+#
+# Database connection timeout.
+#  timeout: 600ms
+#
+# Should we use a token aware driver, this would make manager access appropriate
+# host and shard to execute a request eliminating request routing.
+#  token_aware: true
 
 # Optional custom client/server encryption options.
 #ssl:

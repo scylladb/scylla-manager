@@ -20,6 +20,7 @@ database:
   password: password
   local_dc: local
   replication_factor: 3
+  token_aware: false
 
 ssl:
   cert_file: ca.pem
