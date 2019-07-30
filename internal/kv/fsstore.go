@@ -21,13 +21,22 @@ type FsStore struct {
 
 // NewFsStore creates a new FsStore.
 func NewFsStore(dir string, ext string) (*FsStore, error) {
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	const perm = os.FileMode(0700)
+
+	if err := os.MkdirAll(dir, perm); err != nil {
 		return nil, err
 	}
+	s, err := os.Stat(dir)
+	if err != nil {
+		return nil, err
+	}
+	if p := s.Mode().Perm(); p != perm {
+		return nil, errors.Errorf("invalid directory permissions, expected 0%o got 0%o", perm, p)
+	}
+
 	if ext != "" {
 		ext = "." + ext
 	}
-
 	return &FsStore{dir: dir, ext: ext}, nil
 }
 

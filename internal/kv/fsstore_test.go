@@ -82,3 +82,20 @@ func TestFsStore(t *testing.T) {
 		}
 	})
 }
+
+func TestFsStoreInvalidPermissions(t *testing.T) {
+	dir, err := ioutil.TempDir("", "mermaid.internal.kv.TestFsStoreInvalidPermissions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		os.Remove(dir)
+	}()
+
+	os.Chmod(dir, 0777)
+	_, err = NewFsStore(dir, "test")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	t.Log(err)
+}

@@ -64,15 +64,15 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 }
 
 func (s *server) makeServices() error {
-	baseDir := filepath.Join(fsutil.HomeDir(), ".certs")
+	dir := filepath.Join(fsutil.HomeDir(), ".certs")
 
-	sslCertStore, err := kv.NewFsStore(baseDir, "cert")
+	sslCertStore, err := kv.NewFsStore(dir, "cert")
 	if err != nil {
-		return errors.Wrap(err, "failed to create SSL cert store")
+		return errors.Wrapf(err, "failed to init SSL cert store at %s", dir)
 	}
-	sslKeyStore, err := kv.NewFsStore(baseDir, "key")
+	sslKeyStore, err := kv.NewFsStore(dir, "key")
 	if err != nil {
-		return errors.Wrap(err, "failed to create SSL key store")
+		return errors.Wrapf(err, "failed to init SSL key store at %s", dir)
 	}
 
 	s.clusterSvc, err = cluster.NewService(s.session, sslCertStore, sslKeyStore, s.logger.Named("cluster"))

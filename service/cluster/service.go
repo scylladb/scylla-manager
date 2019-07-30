@@ -292,7 +292,9 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	defer func() {
 		if err != nil {
 			for _, r := range rollback {
-				r()
+				if r != nil {
+					r()
+				}
 			}
 		}
 	}()
