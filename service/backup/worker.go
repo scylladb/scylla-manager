@@ -251,7 +251,7 @@ func (w *worker) uploadDir(ctx context.Context, ip, dst, src string) error {
 	return w.waitJob(ctx, ip, id)
 }
 
-func (w *worker) waitJob(ctx context.Context, ip string, id int64) error {
+func (w *worker) waitJob(ctx context.Context, ip string, id uuid.UUID) error {
 	t := time.NewTicker(w.config.PollInterval)
 	defer t.Stop()
 

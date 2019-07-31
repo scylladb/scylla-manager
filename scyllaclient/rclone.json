@@ -703,7 +703,7 @@
       "properties": {
         "jobid": {
           "description": "ID of the job",
-          "type": "integer"
+          "type": "string"
         }
       }
     },
@@ -714,7 +714,7 @@
       "properties": {
         "id": {
           "description": "ID of the job",
-          "type": "integer"
+          "type": "string"
         },
         "duration": {
           "description": "Time in seconds that the job ran for",

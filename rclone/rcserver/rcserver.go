@@ -6,7 +6,6 @@ package rcserver
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +18,7 @@ import (
 	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/rc"
-	"github.com/rclone/rclone/fs/rc/jobs"
+	"github.com/scylladb/mermaid/rclone/jobs"
 )
 
 var initOnce sync.Once
@@ -184,9 +183,9 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 	if isAsync {
 		out, err = jobs.StartAsyncJob(fn, in)
 	} else {
-		var jobID int64
+		var jobID string
 		out, jobID, err = jobs.ExecuteJob(r.Context(), fn, in)
-		w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
+		w.Header().Add("x-rclone-jobid", jobID)
 	}
 	if err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)

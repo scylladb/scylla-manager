@@ -9,6 +9,7 @@ import (
 
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/client/operations"
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
+	"github.com/scylladb/mermaid/uuid"
 )
 
 // S3Params defines parameters for S3 remote.
@@ -54,10 +55,10 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 }
 
 // RcloneJobStatus fetches information about the created job.
-func (c *Client) RcloneJobStatus(ctx context.Context, host string, id int64) (*models.Job, error) {
+func (c *Client) RcloneJobStatus(ctx context.Context, host string, id uuid.UUID) (*models.Job, error) {
 	p := operations.JobStatusParams{
 		Context: forceHost(ctx, host),
-		Jobid:   &models.Jobid{Jobid: id},
+		Jobid:   &models.Jobid{Jobid: id.String()},
 	}
 	resp, err := c.rcloneOpts.JobStatus(&p)
 	if err != nil {
@@ -67,10 +68,10 @@ func (c *Client) RcloneJobStatus(ctx context.Context, host string, id int64) (*m
 }
 
 // RcloneJobStop stops running job.
-func (c *Client) RcloneJobStop(ctx context.Context, host string, id int64) error {
+func (c *Client) RcloneJobStop(ctx context.Context, host string, id uuid.UUID) error {
 	p := operations.JobStopParams{
 		Context: forceHost(ctx, host),
-		Jobid:   &models.Jobid{Jobid: id},
+		Jobid:   &models.Jobid{Jobid: id.String()},
 	}
 	_, err := c.rcloneOpts.JobStop(&p) //nolint:errcheck
 	return err
@@ -124,7 +125,7 @@ func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the file.
 // Both dstRemotePath and srRemotePath must point to a file.
-func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
+func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (uuid.UUID, error) {
 	p := operations.OperationsCopyfileParams{
 		Context: forceHost(ctx, host),
 		Copyfile: &models.CopyOptions{
@@ -137,9 +138,9 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 	}
 	resp, err := c.rcloneOpts.OperationsCopyfile(&p)
 	if err != nil {
-		return 0, err
+		return uuid.Nil, err
 	}
-	return resp.Payload.Jobid, nil
+	return uuid.Parse(resp.Payload.Jobid)
 }
 
 // RcloneCopyDir copies contents of the directory pointed by srcRemotePath to
@@ -150,7 +151,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 // which is just path to the directory.
 // To exclude files by filename pattern (just filename without directory path)
 // pass them as variadic arguments.
-func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string, exclude ...string) (int64, error) {
+func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string, exclude ...string) (uuid.UUID, error) {
 	p := operations.SyncCopyParams{
 		Context: forceHost(ctx, host),
 		Copydir: operations.SyncCopyBody{
@@ -162,16 +163,16 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, 
 	}
 	resp, err := c.rcloneOpts.SyncCopy(&p)
 	if err != nil {
-		return 0, err
+		return uuid.Nil, err
 	}
-	return resp.Payload.Jobid, nil
+	return uuid.Parse(resp.Payload.Jobid)
 }
 
 // RcloneDeleteDir removes a directory or container and all of its contents
 // from the remote.
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.
-func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath string) (int64, error) {
+func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath string) (uuid.UUID, error) {
 	p := operations.OperationsPurgeParams{
 		Context: forceHost(ctx, host),
 		Purge: &models.RemotePath{
@@ -182,15 +183,15 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath st
 	}
 	resp, err := c.rcloneOpts.OperationsPurge(&p)
 	if err != nil {
-		return 0, err
+		return uuid.Nil, err
 	}
-	return resp.Payload.Jobid, nil
+	return uuid.Parse(resp.Payload.Jobid)
 }
 
 // RcloneDeleteFile removes the single file pointed to by remotePath
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.
-func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath string) (int64, error) {
+func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath string) (uuid.UUID, error) {
 	p := operations.OperationsDeletefileParams{
 		Context: forceHost(ctx, host),
 		Deletefile: &models.RemotePath{
@@ -201,9 +202,9 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath s
 	}
 	resp, err := c.rcloneOpts.OperationsDeletefile(&p)
 	if err != nil {
-		return 0, err
+		return uuid.Nil, err
 	}
-	return resp.Payload.Jobid, nil
+	return uuid.Parse(resp.Payload.Jobid)
 }
 
 // RcloneDiskUsage get disk space usage.
@@ -244,9 +245,4 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, rec
 		return nil, err
 	}
 	return resp.Payload.List, nil
-}
-
-// JobIDToGroup returns default group name based on job id.
-func JobIDToGroup(jobID int64) string {
-	return fmt.Sprintf("job/%d", jobID)
 }

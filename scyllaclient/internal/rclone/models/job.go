@@ -30,7 +30,7 @@ type Job struct {
 	Finished bool `json:"finished,omitempty"`
 
 	// ID of the job
-	ID int64 `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 
 	// Output of the job as would have been returned if called synchronously
 	Output interface{} `json:"output,omitempty"`
