@@ -12,6 +12,7 @@ ExecStart=/usr/bin/scylla-manager-agent
 TimeoutStartSec=900
 KillMode=process
 Restart=on-failure
+Slice=scylla-helper
 
 [Install]
 WantedBy=multi-user.target
