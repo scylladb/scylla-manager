@@ -188,6 +188,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		r = req
 	}
 
+loop:
 	for i := 0; ; i++ {
 		// Attempt the request
 		resp, err = t.parent.RoundTrip(r)
@@ -236,7 +237,16 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			"wait", wait,
 			"left", remain,
 		)
-		time.Sleep(wait)
+
+		select {
+		case <-req.Context().Done():
+			// If we hit this point that means we are waiting for another
+			// retry. break allows to preserve previous err after returning.
+			// It was just coincidence that context was canceled while there
+			// were errors.
+			break loop
+		case <-time.After(wait):
+		}
 	}
 
 	if t.ErrorHandler != nil {
