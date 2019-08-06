@@ -4,6 +4,7 @@
 package rcserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,7 +25,10 @@ import (
 var initOnce sync.Once
 
 // Server implements http.Handler interface.
-type Server struct{}
+type Server struct {
+	mu     sync.Mutex
+	filter *filter.Filter
+}
 
 // New creates new rclone server.
 // Since we are overriding default behavior of saving remote configuration to
@@ -46,7 +50,9 @@ func New() *Server {
 		fshttp.StartHTTPTokenBucket()
 	})
 
-	return &Server{}
+	return &Server{
+		filter: filter.Active,
+	}
 }
 
 // writeError writes a formatted error to the output.
@@ -128,34 +134,42 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		}
 	}
 
-	exclude, err := in.Get("exclude")
-	if rc.NotErrParamNotFound(err) {
-		writeError(path, in, w, err, http.StatusBadRequest)
-		return
-	}
-	if exclude != nil {
-		e, ok := exclude.([]interface{})
-		if !ok {
-			writeError(path, in, w, errors.New("exclude should be list of strings"), http.StatusBadRequest)
-			return
-		}
-		for i := range e {
-			v, ok := e[i].(string)
-			if !ok {
-				writeError(path, in, w, errors.New("exclude should be list of strings"), http.StatusBadRequest)
-			}
-			if err := filter.Active.Add(false, v); err != nil {
-				writeError(path, in, w, errors.Wrap(err, "failed to read exclude pattern"), http.StatusBadRequest)
-				return
-			}
-		}
-	}
-
 	// Find the call
 	call := rc.Calls.Get(path)
 	if call == nil {
 		writeError(path, in, w, errors.Errorf("couldn't find method %q", path), http.StatusNotFound)
 		return
+	}
+	fn := call.Fn
+	exclude, err := getExclude(in)
+	if err != nil {
+		writeError(path, in, w, err, http.StatusBadRequest)
+		return
+	}
+	if len(exclude) > 0 {
+		// File filter is global variable and this is a workaround to serialize
+		// access to it.
+		// In the current setup server is the only access point to this
+		// variable so we are blocking access to it until underlying function
+		// is complete.
+		// In the use of the API this is not a big problem because parameter
+		// use is always synchronous but we are protecting it to be safe.
+		// The change is needed upstream to remove this.
+		fn = func(fn rc.Func) rc.Func {
+			return func(ctx context.Context, in rc.Params) (rc.Params, error) {
+				s.mu.Lock()
+				defer func() {
+					s.filter.Clear()
+					s.mu.Unlock()
+				}()
+				for _, e := range exclude {
+					if err := s.filter.Add(false, e); err != nil {
+						return nil, errors.Wrap(err, "failed to set exclude pattern")
+					}
+				}
+				return fn(ctx, in)
+			}
+		}(fn)
 	}
 
 	// Check to see if it is async or not
@@ -168,10 +182,10 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 	fs.Debugf(nil, "rc: %q: with parameters %+v", path, in)
 	var out rc.Params
 	if isAsync {
-		out, err = jobs.StartAsyncJob(call.Fn, in)
+		out, err = jobs.StartAsyncJob(fn, in)
 	} else {
 		var jobID int64
-		out, jobID, err = jobs.ExecuteJob(r.Context(), call.Fn, in)
+		out, jobID, err = jobs.ExecuteJob(r.Context(), fn, in)
 		w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 	}
 	if err != nil {
@@ -193,4 +207,26 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
 	fs.Errorf(nil, "rc: received unsupported GET request")
 	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+}
+
+func getExclude(in rc.Params) ([]string, error) {
+	exclude, err := in.Get("exclude")
+	if rc.NotErrParamNotFound(err) {
+		return nil, err
+	}
+	var out []string
+	if exclude != nil {
+		e, ok := exclude.([]interface{})
+		if !ok {
+			return nil, errors.New("exclude should be list of strings")
+		}
+		for i := range e {
+			v, ok := e[i].(string)
+			if !ok {
+				return nil, errors.New("exclude should be list of strings")
+			}
+			out = append(out, v)
+		}
+	}
+	return out, nil
 }
