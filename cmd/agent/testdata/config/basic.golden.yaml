@@ -11,4 +11,6 @@ scylla:
   prometheus_address: pa
   prometheus_port: "1002"
 logger:
+  mode: stderr
   level: info
+  development: false

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"go.uber.org/multierr"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
@@ -15,7 +16,9 @@ import (
 const defaultHTTPSPort = "10001"
 
 type logConfig struct {
-	Level zapcore.Level `yaml:"level"`
+	Mode        log.Mode      `yaml:"mode"`
+	Level       zapcore.Level `yaml:"level"`
+	Development bool          `yaml:"development"`
 }
 
 // scyllaConfig contains selected elements of Scylla configuration.
@@ -52,7 +55,9 @@ func defaultConfig() config {
 			PrometheusPort:    "9180",
 		},
 		Logger: logConfig{
-			zapcore.InfoLevel,
+			Mode:        log.StderrMode,
+			Level:       zapcore.InfoLevel,
+			Development: false,
 		},
 	}
 }

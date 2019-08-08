@@ -12,12 +12,12 @@ import (
 
 // SetDefaultConfig sets default config values expected for correct agent
 // behaviour.
-func SetDefaultConfig(level fs.LogLevel) {
-	fs.Config.UseJSONLog = true      // Use JSON log format in logging
-	fs.Config.LogLevel = level       // Default logging level
-	fs.Config.IgnoreErrors = true    // Delete even if there are I/O errors
-	fs.Config.SizeOnly = true        // Only use size to compare files
-	fs.Config.NoUpdateModTime = true // Don't update destination mod-time if files identical
+func SetDefaultConfig() {
+	fs.Config.UseJSONLog = false          // Use JSON log format in logging
+	fs.Config.LogLevel = fs.LogLevelDebug // Default logging level
+	fs.Config.IgnoreErrors = true         // Delete even if there are I/O errors
+	fs.Config.SizeOnly = true             // Only use size to compare files
+	fs.Config.NoUpdateModTime = true      // Don't update destination mod-time if files identical
 	fs.Config.UserAgent = fmt.Sprintf(
 		"Scylla Manager Agent %s", mermaid.Version()) // Set proper agent for backend clients
 	fs.Config.RcJobExpireDuration = 1 * time.Hour   // Expire async jobs after this duration

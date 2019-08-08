@@ -18,6 +18,7 @@ import (
 	"github.com/scylladb/go-log/gocqllog"
 	"github.com/scylladb/mermaid"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 var (
@@ -80,6 +81,9 @@ var rootCmd = &cobra.Command{
 			logger.Sync() // nolint
 		}()
 		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config))
+
+		// Redirect standard logger to the logger
+		zap.RedirectStdLog(log.BaseOf(logger))
 
 		// Set gocql logger
 		gocql.Logger = gocqllog.StdLogger{

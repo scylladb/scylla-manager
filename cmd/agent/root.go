@@ -3,17 +3,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/pkg/errors"
-	"github.com/rclone/rclone/fs"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
@@ -29,7 +30,7 @@ var rootCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) (runError error) {
 		// Print version and return
 		if rootArgs.version {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", mermaid.Version())
@@ -45,33 +46,61 @@ var rootCmd = &cobra.Command{
 		if err := yaml.Unmarshal(b, &c); err != nil {
 			return errors.Wrapf(err, "failed to parse config file %s", rootArgs.configFile)
 		}
-		rclone.SetDefaultConfig(toRcloneLogLevel(c.Logger.Level))
 
+		// Get a base context
+		ctx := log.WithNewTraceID(context.Background())
+
+		// Create logger
+		logger, err := logger(&c)
+		if err != nil {
+			return errors.Wrapf(err, "logger")
+		}
+		defer func() {
+			if runError != nil {
+				logger.Error(ctx, "Bye", "error", runError)
+			} else {
+				logger.Info(ctx, "Bye")
+			}
+			logger.Sync() // nolint
+		}()
+		logger.Info(ctx, "Using config", "config", c)
+
+		// Redirect standard logger to the logger
+		zap.RedirectStdLog(log.BaseOf(logger))
+
+		// Pin to CPU if possible
 		cpus, err := pinToCPU(c.CPU)
 		if err != nil {
-			return errors.Wrap(err, "failed to pin to CPU")
+			logger.Info(ctx, "Running on all CPUs", "error", err.Error())
+		} else {
+			logger.Info(ctx, "Pinned to CPUs", "cpus", cpus)
 		}
-		fs.Infof(nil, "Pinned to CPUs %+v", cpus)
 
-		fs.Infof(nil, "Starting HTTPS address %s", c.HTTPS)
+		// Init rclone config options
+		rclone.SetDefaultConfig()
+		// Redirect rclone logger to the logger
+		rclone.RedirectLogPrint(logger.Named("rclone"))
 
-		// Start server
+		// Start HTTPS server
+		logger.Info(ctx, "Starting HTTPS", "address", c.HTTPS)
+
 		server := http.Server{
 			Addr:    c.HTTPS,
 			Handler: newRouter(c, rcserver.New(), http.DefaultClient),
 		}
-		return server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile)
+		return errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server failed to start")
 	},
 }
 
-func toRcloneLogLevel(level zapcore.Level) fs.LogLevel {
-	switch level {
-	case zapcore.DebugLevel:
-		return fs.LogLevelDebug
-	case zapcore.ErrorLevel:
-		return fs.LogLevelError
+func logger(c *config) (log.Logger, error) {
+	if c.Logger.Development {
+		return log.NewDevelopmentWithLevel(c.Logger.Level), nil
 	}
-	return fs.LogLevelInfo
+
+	return log.NewProduction(log.Config{
+		Mode:  c.Logger.Mode,
+		Level: c.Logger.Level,
+	})
 }
 
 func init() {
