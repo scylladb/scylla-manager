@@ -286,10 +286,6 @@ github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R
 github.com/prometheus/procfs v0.0.2/go.mod h1:TjEm7ze935MbeOT/UhFTIMYKhuLP4wbCsTZCD3I8kEA=
 github.com/prometheus/procfs v0.0.3 h1:CTwfnzjQ+8dS6MhHHu4YswVAD99sL2wjPqP+VkURmKE=
 github.com/prometheus/procfs v0.0.3/go.mod h1:4A/X28fw3Fc593LaREMrKMqOKvUAntwMDaekg4FpcdQ=
-github.com/rclone/rclone v0.0.0-20190728074750-57d5de6fba12 h1:afJj8W8gAoQ1AATKZtliU1JudccxiHcWtJMF+usWgLk=
-github.com/rclone/rclone v0.0.0-20190728074750-57d5de6fba12/go.mod h1:VRONl/H4SNFQSldrgHruXc7DlAsxdx937bqJz8nSCZw=
-github.com/rclone/rclone v1.48.1-0.20190728174738-57d5de6fba12 h1:Q1LCQrADcMJ1zB4KYIn5S5Tg92xnro3xNnk/lrst39c=
-github.com/rclone/rclone v1.48.1-0.20190728174738-57d5de6fba12/go.mod h1:VRONl/H4SNFQSldrgHruXc7DlAsxdx937bqJz8nSCZw=
 github.com/rclone/rclone v1.48.1-0.20190808224203-5195075677e6 h1:Oi2kNxL0W3B7cF7JXKSuH6iuoPP6WdR2cltrC5SXnhc=
 github.com/rclone/rclone v1.48.1-0.20190808224203-5195075677e6/go.mod h1:VRONl/H4SNFQSldrgHruXc7DlAsxdx937bqJz8nSCZw=
 github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46 h1:w2CpS5muK+jyydnmlkqpAhzKmHmMBzBkfYUDjQNS1Dk=
@@ -297,8 +293,6 @@ github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46/go.mod h1:U2bmx0hDj8Ey
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46/go.mod h1:uAQ5PCi+MFsC7HjREoAz1BU+Mq60+05gifQSsHSDG/8=
-github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea h1:HAcuLKyctinEhVGwVRybInvmMW/WG3uiMNsCy0pjyEk=
-github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea/go.mod h1:DkwlG8salCBbaM/tPKuvbPAIHjJeXgKUTBY+lFm4it0=
 github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18 h1:RtLd0N+xr2Dd6BSo+2RG+s2EkzyXKfEMBlHQYwQLhuk=
 github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18/go.mod h1:DkwlG8salCBbaM/tPKuvbPAIHjJeXgKUTBY+lFm4it0=
 github.com/scylladb/go-reflectx v1.0.1 h1:b917wZM7189pZdlND9PbIJ6NQxfDPfBvUaQ7cjj1iZQ=
