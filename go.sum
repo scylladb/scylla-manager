@@ -299,6 +299,8 @@ github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR
 github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46/go.mod h1:uAQ5PCi+MFsC7HjREoAz1BU+Mq60+05gifQSsHSDG/8=
 github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea h1:HAcuLKyctinEhVGwVRybInvmMW/WG3uiMNsCy0pjyEk=
 github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea/go.mod h1:DkwlG8salCBbaM/tPKuvbPAIHjJeXgKUTBY+lFm4it0=
+github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18 h1:RtLd0N+xr2Dd6BSo+2RG+s2EkzyXKfEMBlHQYwQLhuk=
+github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18/go.mod h1:DkwlG8salCBbaM/tPKuvbPAIHjJeXgKUTBY+lFm4it0=
 github.com/scylladb/go-reflectx v1.0.1 h1:b917wZM7189pZdlND9PbIJ6NQxfDPfBvUaQ7cjj1iZQ=
 github.com/scylladb/go-reflectx v1.0.1/go.mod h1:rWnOfDIRWBGN0miMLIcoPt/Dhi2doCMZqwMCJ3KupFc=
 github.com/scylladb/go-set v1.0.1 h1:pAr18FZAQgXTEVRaKH5nV0/v362d0dCAvl0Ng1D6K5g=

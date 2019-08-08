@@ -209,7 +209,7 @@ github.com/rclone/rclone/cmd/serve/httplib/serve/data
 github.com/rclone/rclone/lib/mmap
 # github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46
 github.com/rfjakob/eme
-# github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea
+# github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
 github.com/scylladb/go-log
 github.com/scylladb/go-log/gocqllog
 # github.com/scylladb/go-reflectx v1.0.1

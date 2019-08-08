@@ -61,12 +61,12 @@ type Config struct {
 }
 
 // NewProduction builds a production Logger based on the configuration.
-func NewProduction(c Config) (Logger, error) {
-	opts := []zap.Option{
+func NewProduction(c Config, opts ...zap.Option) (Logger, error) {
+	opts = append([]zap.Option{
 		zap.ErrorOutput(os.Stderr),
 		zap.AddStacktrace(zapcore.ErrorLevel),
 		zap.AddCallerSkip(2),
-	}
+	}, opts...)
 
 	cfg := zapcore.EncoderConfig{
 		// Keys can be anything except the empty string.
