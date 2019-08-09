@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/google/gops/agent"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-log/gocqllog"
@@ -57,12 +56,6 @@ var rootCmd = &cobra.Command{
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
-
-		// Launch gops agent
-		if err := agent.Listen(agent.Options{Addr: config.Gops, ShutdownCleanup: false}); err != nil {
-			return errors.Wrapf(err, "gops agent startup")
-		}
-		defer agent.Close()
 
 		// Get a base context
 		ctx := log.WithNewTraceID(context.Background())

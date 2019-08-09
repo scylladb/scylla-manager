@@ -118,10 +118,6 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/gops v0.3.3
-github.com/google/gops/agent
-github.com/google/gops/internal
-github.com/google/gops/signal
 # github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 github.com/hailocab/go-hostpool
 # github.com/hashicorp/go-version v1.1.0
@@ -132,8 +128,6 @@ github.com/inconshreveable/mousetrap
 github.com/jmespath/go-jmespath
 # github.com/jzelinskie/whirlpool v0.0.0-20170603002051-c19460b8caa6
 github.com/jzelinskie/whirlpool
-# github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
-github.com/kardianos/osext
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63

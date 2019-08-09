@@ -22,7 +22,6 @@ require (
 	github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163
 	github.com/golang/mock v1.2.0
 	github.com/google/go-cmp v0.3.0
-	github.com/google/gops v0.3.3
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.1.0
 	github.com/pkg/errors v0.8.1
