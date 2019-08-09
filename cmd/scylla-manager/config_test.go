@@ -29,6 +29,7 @@ func TestConfigModification(t *testing.T) {
 		HTTPS:       "127.0.0.1:443",
 		TLSCertFile: "tls.cert",
 		TLSKeyFile:  "tls.key",
+		TLSCAFile:   "ca.cert",
 		Prometheus:  "127.0.0.1:9090",
 		Gops:        ":56112",
 		Logger: logConfig{
