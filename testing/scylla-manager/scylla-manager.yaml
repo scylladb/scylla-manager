@@ -1,4 +1,5 @@
 http: 127.0.0.1:56080
+debug: 127.0.0.1:56112
 
 logger:
   level: info

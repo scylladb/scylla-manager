@@ -35,6 +35,11 @@ func TestConfigParse(t *testing.T) {
 			Input:  "./testdata/config/https_overwrite.input.yaml",
 			Golden: "./testdata/config/https_overwrite.golden.yaml",
 		},
+		{
+			Name:   "debug overwrite",
+			Input:  "./testdata/config/debug_overwrite.input.yaml",
+			Golden: "./testdata/config/debug_overwrite.golden.yaml",
+		},
 	}
 
 	for _, test := range table {

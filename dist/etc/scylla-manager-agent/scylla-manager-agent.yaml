@@ -10,6 +10,10 @@
 #tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
 #tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 
+# Start a debug server that allows to run pporf profiling on demand on a live
+# system, by default the server is not running.
+#debug: 127.0.0.1:56112
+
 # CPU to run Scylla Manager Agent on. By default the agent would read Scylla
 # configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by
 # Scylla. If that's not possible user must specify a core that the agent would

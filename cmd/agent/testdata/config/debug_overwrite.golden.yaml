@@ -1,5 +1,5 @@
 https: ba:10001
-debug: ""
+debug: "1002"
 tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
 tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 cpu: -1

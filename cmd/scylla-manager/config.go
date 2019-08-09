@@ -50,7 +50,7 @@ type serverConfig struct {
 	TLSKeyFile  string             `yaml:"tls_key_file"`
 	TLSCAFile   string             `yaml:"tls_ca_file"`
 	Prometheus  string             `yaml:"prometheus"`
-	Gops        string             `json:"gops"`
+	Debug       string             `json:"debug"`
 	Logger      logConfig          `yaml:"logger"`
 	Database    dbConfig           `yaml:"database"`
 	SSL         sslConfig          `yaml:"ssl"`
@@ -64,7 +64,7 @@ func defaultConfig() *serverConfig {
 		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
 		Prometheus:  ":56090",
-		Gops:        ":56112",
+		Debug:       "",
 		Logger: logConfig{
 			Mode:        log.StderrMode,
 			Level:       zapcore.InfoLevel,

@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/spf13/cobra"
@@ -81,14 +82,27 @@ var rootCmd = &cobra.Command{
 		// Redirect rclone logger to the logger
 		rclone.RedirectLogPrint(logger.Named("rclone"))
 
-		// Start HTTPS server
-		logger.Info(ctx, "Starting HTTPS", "address", c.HTTPS)
+		// Start servers
+		errCh := make(chan error, 2)
 
-		server := http.Server{
-			Addr:    c.HTTPS,
-			Handler: newRouter(c, rcserver.New(), http.DefaultClient),
+		logger.Info(ctx, "Starting HTTPS server", "address", c.HTTPS)
+		go func() {
+			server := http.Server{
+				Addr:    c.HTTPS,
+				Handler: newRouter(c, rcserver.New(), http.DefaultClient),
+			}
+			errCh <- errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server failed to start")
+		}()
+		if c.Debug != "" {
+			logger.Info(ctx, "Starting debug server", "address", c.Debug)
+			server := http.Server{
+				Addr:    c.Debug,
+				Handler: httputil.PprofHandler(),
+			}
+			errCh <- errors.Wrap(server.ListenAndServe(), "debug server failed to start")
 		}
-		return errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server failed to start")
+
+		return <-errCh
 	},
 }
 

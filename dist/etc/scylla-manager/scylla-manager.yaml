@@ -19,7 +19,11 @@ https: 127.0.0.1:56443
 # By default it binds to all network interfaces but you can restrict it
 # by specifying it like this 127:0.0.1:56090 or any other combination
 # of ip and port.
-# prometheus: ':56090'
+#prometheus: ':56090'
+
+# Start a debug server that allows to run pporf profiling on demand on a live
+# system, by default the server is not running.
+#debug: 127.0.0.1:56112
 
 # Logging configuration.
 #logger:

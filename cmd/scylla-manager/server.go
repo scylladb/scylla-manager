@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/fsutil"
+	"github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/service/backup"
@@ -40,7 +41,9 @@ type server struct {
 	httpServer       *http.Server
 	httpsServer      *http.Server
 	prometheusServer *http.Server
-	errCh            chan error
+	debugServer      *http.Server
+
+	errCh chan error
 }
 
 func newServer(config *serverConfig, logger log.Logger) (*server, error) {
@@ -54,7 +57,7 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 		session: session,
 		logger:  logger,
 
-		errCh: make(chan error, 2),
+		errCh: make(chan error, 4),
 	}
 
 	if err := s.makeServices(); err != nil {
@@ -178,10 +181,17 @@ func (s *server) makeHTTPServers() error {
 	}, s.logger.Named("restapi"))
 
 	if s.config.HTTP != "" {
-		s.httpServer = &http.Server{Addr: s.config.HTTP, Handler: h}
+		s.httpServer = &http.Server{
+			Addr:    s.config.HTTP,
+			Handler: h,
+		}
 	}
 	if s.config.HTTPS != "" {
-		s.httpsServer = &http.Server{Addr: s.config.HTTPS, Handler: h}
+		s.httpsServer = &http.Server{
+			Addr:    s.config.HTTPS,
+			Handler: h,
+		}
+
 		if s.config.TLSCAFile != "" {
 			pool := x509.NewCertPool()
 			b, err := ioutil.ReadFile(s.config.TLSCAFile)
@@ -198,7 +208,16 @@ func (s *server) makeHTTPServers() error {
 		}
 	}
 	if s.config.Prometheus != "" {
-		s.prometheusServer = &http.Server{Addr: s.config.Prometheus, Handler: restapi.NewPrometheus(s.clusterSvc)}
+		s.prometheusServer = &http.Server{
+			Addr:    s.config.Prometheus,
+			Handler: restapi.NewPrometheus(s.clusterSvc),
+		}
+	}
+	if s.config.Debug != "" {
+		s.debugServer = &http.Server{
+			Addr:    s.config.Debug,
+			Handler: httputil.PprofHandler(),
+		}
 	}
 
 	return nil
@@ -213,23 +232,30 @@ func (s *server) startServices(ctx context.Context) error {
 
 func (s *server) startHTTPServers(ctx context.Context) {
 	if s.httpServer != nil {
-		s.logger.Info(ctx, "Starting HTTP", "address", s.httpServer.Addr)
+		s.logger.Info(ctx, "Starting HTTP server", "address", s.httpServer.Addr)
 		go func() {
 			s.errCh <- s.httpServer.ListenAndServe()
 		}()
 	}
 
 	if s.httpsServer != nil {
-		s.logger.Info(ctx, "Starting HTTPS", "address", s.httpsServer.Addr, "client_ca", s.config.TLSCAFile)
+		s.logger.Info(ctx, "Starting HTTPS server", "address", s.httpsServer.Addr, "client_ca", s.config.TLSCAFile)
 		go func() {
 			s.errCh <- s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile)
 		}()
 	}
 
 	if s.prometheusServer != nil {
-		s.logger.Info(ctx, "Starting Prometheus HTTP", "address", s.prometheusServer.Addr)
+		s.logger.Info(ctx, "Starting Prometheus server", "address", s.prometheusServer.Addr)
 		go func() {
 			s.errCh <- s.prometheusServer.ListenAndServe()
+		}()
+	}
+
+	if s.debugServer != nil {
+		s.logger.Info(ctx, "Starting debug server", "address", s.debugServer.Addr)
+		go func() {
+			s.errCh <- s.debugServer.ListenAndServe()
 		}()
 	}
 }
@@ -239,10 +265,11 @@ func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
 	defer cancel()
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(4)
 	shutdownHTTPServer(tctx, s.httpServer, &wg, s.logger)
 	shutdownHTTPServer(tctx, s.httpsServer, &wg, s.logger)
 	shutdownHTTPServer(tctx, s.prometheusServer, &wg, s.logger)
+	shutdownHTTPServer(tctx, s.debugServer, &wg, s.logger)
 	wg.Wait()
 }
 
@@ -273,9 +300,9 @@ func shutdownHTTPServer(ctx context.Context, s *http.Server, wg *sync.WaitGroup,
 	go func() {
 		defer wg.Done()
 		if err := s.Shutdown(ctx); err != nil {
-			l.Info(ctx, "Closing HTTP(S) server failed", "addr", s.Addr, "error", err)
+			l.Info(ctx, "Closing server failed", "addr", s.Addr, "error", err)
 		} else {
-			l.Info(ctx, "Closing HTTP(S) server done", "addr", s.Addr)
+			l.Info(ctx, "Closing server done", "addr", s.Addr)
 		}
 	}()
 }

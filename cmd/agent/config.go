@@ -34,6 +34,7 @@ type scyllaConfig struct {
 // config specifies the agent and scylla configuration.
 type config struct {
 	HTTPS            string       `yaml:"https"`
+	Debug            string       `yaml:"debug"`
 	TLSCertFile      string       `yaml:"tls_cert_file"`
 	TLSKeyFile       string       `yaml:"tls_key_file"`
 	CPU              int          `yaml:"cpu"`
