@@ -290,6 +290,8 @@ github.com/rclone/rclone v0.0.0-20190728074750-57d5de6fba12 h1:afJj8W8gAoQ1AATKZ
 github.com/rclone/rclone v0.0.0-20190728074750-57d5de6fba12/go.mod h1:VRONl/H4SNFQSldrgHruXc7DlAsxdx937bqJz8nSCZw=
 github.com/rclone/rclone v1.48.1-0.20190728174738-57d5de6fba12 h1:Q1LCQrADcMJ1zB4KYIn5S5Tg92xnro3xNnk/lrst39c=
 github.com/rclone/rclone v1.48.1-0.20190728174738-57d5de6fba12/go.mod h1:VRONl/H4SNFQSldrgHruXc7DlAsxdx937bqJz8nSCZw=
+github.com/rclone/rclone v1.48.1-0.20190808224203-5195075677e6 h1:Oi2kNxL0W3B7cF7JXKSuH6iuoPP6WdR2cltrC5SXnhc=
+github.com/rclone/rclone v1.48.1-0.20190808224203-5195075677e6/go.mod h1:VRONl/H4SNFQSldrgHruXc7DlAsxdx937bqJz8nSCZw=
 github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46 h1:w2CpS5muK+jyydnmlkqpAhzKmHmMBzBkfYUDjQNS1Dk=
 github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46/go.mod h1:U2bmx0hDj8EyDdcxmD5t3XHDnBFnyNNc22n1R4008eM=
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=

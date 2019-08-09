@@ -30,7 +30,7 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
-	github.com/rclone/rclone v1.48.1-0.20190728174738-57d5de6fba12
+	github.com/rclone/rclone v1.48.1-0.20190808224203-5195075677e6
 	github.com/scylladb/go-log v0.0.0-20190321090841-00b3a3e11fea
 	github.com/scylladb/go-set v1.0.1
 	github.com/scylladb/gocqlx v1.3.1

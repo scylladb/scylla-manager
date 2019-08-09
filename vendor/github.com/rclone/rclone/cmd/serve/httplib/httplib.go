@@ -44,6 +44,11 @@ for a transfer.
 --max-header-bytes controls the maximum number of bytes the server will
 accept in the HTTP header.
 
+--prefix controls the URL prefix that rclone serves from.  By default
+rclone will serve from the root.  If you used --prefix "rclone" then
+rclone would serve from a URL starting with "/rclone/".  This is
+useful if you wish to proxy rclone serve.
+
 #### Authentication
 
 By default this will serve files without needing a login.
@@ -81,6 +86,7 @@ certificate authority certificate.
 // Options contains options for the http Server
 type Options struct {
 	ListenAddr         string        // Port to listen on
+	Prefix             string        // prefix to strip from URLs
 	ServerReadTimeout  time.Duration // Timeout for server reading data
 	ServerWriteTimeout time.Duration // Timeout for server writing data
 	MaxHeaderBytes     int           // Maximum size of request header
@@ -91,7 +97,14 @@ type Options struct {
 	Realm              string        // realm for authentication
 	BasicUser          string        // single username for basic auth if not using Htpasswd
 	BasicPass          string        // password for BasicUser
+	Auth               AuthFn        // custom Auth (not set by command line flags)
 }
+
+// AuthFn if used will be used to authenticate user, pass. If an error
+// is returned then the user is not authenticated.
+//
+// If a non nil value is returned then it is added to the context under the key
+type AuthFn func(user, pass string) (value interface{}, err error)
 
 // DefaultOpt is the default values used for Options
 var DefaultOpt = Options{
@@ -117,8 +130,13 @@ type Server struct {
 
 type contextUserType struct{}
 
-// ContextUserKey is a simple context key
+// ContextUserKey is a simple context key for storing the username of the request
 var ContextUserKey = &contextUserType{}
+
+type contextAuthType struct{}
+
+// ContextAuthKey is a simple context key for storing info returned by AuthFn
+var ContextAuthKey = &contextAuthType{}
 
 // singleUserProvider provides the encrypted password for a single user
 func (s *Server) singleUserProvider(user, realm string) string {
@@ -126,6 +144,27 @@ func (s *Server) singleUserProvider(user, realm string) string {
 		return s.basicPassHashed
 	}
 	return ""
+}
+
+// parseAuthorization parses the Authorization header into user, pass
+// it returns a boolean as to whether the parse was successful
+func parseAuthorization(r *http.Request) (user, pass string, ok bool) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		s := strings.SplitN(authHeader, " ", 2)
+		if len(s) == 2 && s[0] == "Basic" {
+			b, err := base64.StdEncoding.DecodeString(s[1])
+			if err == nil {
+				parts := strings.SplitN(string(b), ":", 2)
+				user = parts[0]
+				if len(parts) > 1 {
+					pass = parts[1]
+					ok = true
+				}
+			}
+		}
+	}
+	return
 }
 
 // NewServer creates an http server.  The opt can be nil in which case
@@ -143,17 +182,20 @@ func NewServer(handler http.Handler, opt *Options) *Server {
 	}
 
 	// Use htpasswd if required on everything
-	if s.Opt.HtPasswd != "" || s.Opt.BasicUser != "" {
-		var secretProvider auth.SecretProvider
-		if s.Opt.HtPasswd != "" {
-			fs.Infof(nil, "Using %q as htpasswd storage", s.Opt.HtPasswd)
-			secretProvider = auth.HtpasswdFileProvider(s.Opt.HtPasswd)
-		} else {
-			fs.Infof(nil, "Using --user %s --pass XXXX as authenticated user", s.Opt.BasicUser)
-			s.basicPassHashed = string(auth.MD5Crypt([]byte(s.Opt.BasicPass), []byte("dlPL2MqE"), []byte("$1$")))
-			secretProvider = s.singleUserProvider
+	if s.Opt.HtPasswd != "" || s.Opt.BasicUser != "" || s.Opt.Auth != nil {
+		var authenticator *auth.BasicAuth
+		if s.Opt.Auth == nil {
+			var secretProvider auth.SecretProvider
+			if s.Opt.HtPasswd != "" {
+				fs.Infof(nil, "Using %q as htpasswd storage", s.Opt.HtPasswd)
+				secretProvider = auth.HtpasswdFileProvider(s.Opt.HtPasswd)
+			} else {
+				fs.Infof(nil, "Using --user %s --pass XXXX as authenticated user", s.Opt.BasicUser)
+				s.basicPassHashed = string(auth.MD5Crypt([]byte(s.Opt.BasicPass), []byte("dlPL2MqE"), []byte("$1$")))
+				secretProvider = s.singleUserProvider
+			}
+			authenticator = auth.NewBasicAuthenticator(s.Opt.Realm, secretProvider)
 		}
-		authenticator := auth.NewBasicAuthenticator(s.Opt.Realm, secretProvider)
 		oldHandler := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// No auth wanted for OPTIONS method
@@ -161,26 +203,36 @@ func NewServer(handler http.Handler, opt *Options) *Server {
 				oldHandler.ServeHTTP(w, r)
 				return
 			}
-			if username := authenticator.CheckAuth(r); username == "" {
-				authHeader := r.Header.Get(authenticator.Headers.V().Authorization)
-				if authHeader != "" {
-					s := strings.SplitN(authHeader, " ", 2)
-					var userName = "UNKNOWN"
-					if len(s) == 2 && s[0] == "Basic" {
-						b, err := base64.StdEncoding.DecodeString(s[1])
-						if err == nil {
-							userName = strings.SplitN(string(b), ":", 2)[0]
-						}
-					}
-					fs.Infof(r.URL.Path, "%s: Unauthorized request from %s", r.RemoteAddr, userName)
-				} else {
-					fs.Infof(r.URL.Path, "%s: Basic auth challenge sent", r.RemoteAddr)
-				}
-				authenticator.RequireAuth(w, r)
-			} else {
-				r = r.WithContext(context.WithValue(r.Context(), ContextUserKey, username))
-				oldHandler.ServeHTTP(w, r)
+			unauthorized := func() {
+				w.Header().Set("Content-Type", "text/plain")
+				w.Header().Set("WWW-Authenticate", `Basic realm="`+s.Opt.Realm+`"`)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			}
+			user, pass, authValid := parseAuthorization(r)
+			if !authValid {
+				unauthorized()
+				return
+			}
+			if s.Opt.Auth == nil {
+				if username := authenticator.CheckAuth(r); username == "" {
+					fs.Infof(r.URL.Path, "%s: Unauthorized request from %s", r.RemoteAddr, user)
+					unauthorized()
+					return
+				}
+			} else {
+				// Custom Auth
+				value, err := s.Opt.Auth(user, pass)
+				if err != nil {
+					fs.Infof(r.URL.Path, "%s: Auth failed from %s: %v", r.RemoteAddr, user, err)
+					unauthorized()
+					return
+				}
+				if value != nil {
+					r = r.WithContext(context.WithValue(r.Context(), ContextAuthKey, value))
+				}
+			}
+			r = r.WithContext(context.WithValue(r.Context(), ContextUserKey, user))
+			oldHandler.ServeHTTP(w, r)
 		})
 		s.usingAuth = true
 	}
@@ -188,6 +240,14 @@ func NewServer(handler http.Handler, opt *Options) *Server {
 	s.useSSL = s.Opt.SslKey != ""
 	if (s.Opt.SslCert != "") != s.useSSL {
 		log.Fatalf("Need both -cert and -key to use SSL")
+	}
+
+	// If a Path is set then serve from there
+	if strings.HasSuffix(s.Opt.Prefix, "/") {
+		s.Opt.Prefix = s.Opt.Prefix[:len(s.Opt.Prefix)-1]
+	}
+	if s.Opt.Prefix != "" && !strings.HasPrefix(s.Opt.Prefix, "/") {
+		s.Opt.Prefix = "/" + s.Opt.Prefix
 	}
 
 	// FIXME make a transport?
@@ -299,10 +359,27 @@ func (s *Server) URL() string {
 		// (i.e. port assigned by operating system)
 		addr = s.listener.Addr().String()
 	}
-	return fmt.Sprintf("%s://%s/", proto, addr)
+	return fmt.Sprintf("%s://%s%s/", proto, addr, s.Opt.Prefix)
 }
 
 // UsingAuth returns true if authentication is required
 func (s *Server) UsingAuth() bool {
 	return s.usingAuth
+}
+
+// Path returns the current path with the Prefix stripped
+//
+// If it returns false, then the path was invalid and the handler
+// should exit as the error response has already been sent
+func (s *Server) Path(w http.ResponseWriter, r *http.Request) (Path string, ok bool) {
+	Path = r.URL.Path
+	if s.Opt.Prefix == "" {
+		return Path, true
+	}
+	if !strings.HasPrefix(Path, s.Opt.Prefix+"/") {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return Path, false
+	}
+	Path = Path[len(s.Opt.Prefix):]
+	return Path, true
 }
