@@ -173,7 +173,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 }
 
 func (s *server) makeHTTPServers() error {
-	h := restapi.New(&restapi.Services{
+	h := restapi.New(restapi.Services{
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
 		Repair:      s.repairSvc,

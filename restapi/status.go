@@ -3,20 +3,12 @@
 package restapi
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
-	"github.com/scylladb/mermaid/service/healthcheck"
-	"github.com/scylladb/mermaid/uuid"
 )
-
-// HealthCheckService is the health check service interface required by the repair REST API handlers.
-type HealthCheckService interface {
-	GetStatus(ctx context.Context, clusterID uuid.UUID) ([]healthcheck.Status, error)
-}
 
 type statusHandler struct {
 	clusterFilter

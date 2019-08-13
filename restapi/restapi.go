@@ -17,16 +17,8 @@ func init() {
 	render.Respond = httpErrorRender
 }
 
-// Services contains REST API services.
-type Services struct {
-	Cluster     ClusterService
-	HealthCheck HealthCheckService
-	Repair      RepairService
-	Scheduler   SchedService
-}
-
 // New returns an http.Handler implementing mermaid v1 REST API.
-func New(svc *Services, logger log.Logger) http.Handler {
+func New(services Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -37,11 +29,11 @@ func New(svc *Services, logger log.Logger) http.Handler {
 	)
 
 	r.Get("/api/v1/version", newVersionHandler())
-	r.Mount("/api/v1/", newClusterHandler(svc.Cluster))
-	r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
-		Mount("/api/v1/cluster/{cluster_id}/status", newStatusHandler(svc.Cluster, svc.HealthCheck))
-	r.With(clusterFilter{svc: svc.Cluster}.clusterCtx).
-		Mount("/api/v1/cluster/{cluster_id}/", newTaskHandler(svc.Scheduler, svc.Repair))
+	r.Mount("/api/v1/", newClusterHandler(services.Cluster))
+	r.With(clusterFilter{svc: services.Cluster}.clusterCtx).
+		Mount("/api/v1/cluster/{cluster_id}/status", newStatusHandler(services.Cluster, services.HealthCheck))
+	r.With(clusterFilter{svc: services.Cluster}.clusterCtx).
+		Mount("/api/v1/cluster/{cluster_id}/", newTaskHandler(services))
 
 	// NotFound registered last due to https://github.com/go-chi/chi/issues/297
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {

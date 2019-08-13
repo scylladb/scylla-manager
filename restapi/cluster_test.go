@@ -52,7 +52,7 @@ func TestClusterList(t *testing.T) {
 	m := restapi.NewMockClusterService(ctrl)
 	m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(expected, nil)
 
-	h := restapi.New(&restapi.Services{Cluster: m}, log.Logger{})
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/clusters", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -73,7 +73,7 @@ func TestClusterCreate(t *testing.T) {
 		e.ID = id
 	}).Return(nil)
 
-	h := restapi.New(&restapi.Services{Cluster: m}, log.Logger{})
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/clusters", jsonBody(t, &cluster.Cluster{Name: "name"}))
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

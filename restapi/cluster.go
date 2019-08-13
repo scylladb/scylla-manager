@@ -16,16 +16,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-// ClusterService is the cluster service interface required by the repair REST
-// API handlers.
-type ClusterService interface {
-	ListClusters(ctx context.Context, f *cluster.Filter) ([]*cluster.Cluster, error)
-	GetCluster(ctx context.Context, idOrName string) (*cluster.Cluster, error)
-	PutCluster(ctx context.Context, c *cluster.Cluster) error
-	DeleteCluster(ctx context.Context, id uuid.UUID) error
-	ListNodes(ctx context.Context, id uuid.UUID) ([]cluster.Node, error)
-}
-
 type clusterFilter struct {
 	svc ClusterService
 }

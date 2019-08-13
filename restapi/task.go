@@ -4,7 +4,6 @@ package restapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -19,42 +18,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/timeutc"
-	"github.com/scylladb/mermaid/service/repair"
 	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )
 
-// SchedService is the scheduler service interface required by the scheduler REST API handlers.
-type SchedService interface {
-	GetTask(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType, idOrName string) (*scheduler.Task, error)
-	PutTask(ctx context.Context, t *scheduler.Task) error
-	PutTaskOnce(ctx context.Context, t *scheduler.Task) error
-	DeleteTask(ctx context.Context, t *scheduler.Task) error
-	ListTasks(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType) ([]*scheduler.Task, error)
-	StartTask(ctx context.Context, t *scheduler.Task, opts ...scheduler.Opt) error
-	StopTask(ctx context.Context, t *scheduler.Task) error
-	GetRun(ctx context.Context, t *scheduler.Task, runID uuid.UUID) (*scheduler.Run, error)
-	GetLastRun(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
-}
-
-// RepairService is the repair service interface required by the repair REST API handlers.
-type RepairService interface {
-	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
-	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
-	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (repair.Target, error)
-}
-
 type taskHandler struct {
-	schedSvc  SchedService
-	repairSvc RepairService
+	Services
 }
 
-func newTaskHandler(schedSvc SchedService, repairSvc RepairService) *chi.Mux {
+func newTaskHandler(services Services) *chi.Mux {
 	m := chi.NewMux()
-	h := &taskHandler{
-		schedSvc:  schedSvc,
-		repairSvc: repairSvc,
-	}
+	h := &taskHandler{services}
 
 	m.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.listTasks)
@@ -93,7 +67,7 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		t, err := h.schedSvc.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
+		t, err := h.Scheduler.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
 		if err != nil {
 			respondError(w, r, err, fmt.Sprintf("failed to load task %q", taskID))
 			return
@@ -141,7 +115,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cID := mustClusterIDFromCtx(r)
-	tasks, err := h.schedSvc.ListTasks(r.Context(), cID, taskType)
+	tasks, err := h.Scheduler.ListTasks(r.Context(), cID, taskType)
 	if err != nil {
 		respondError(w, r, err, fmt.Sprintf("failed to list cluster %q tasks", cID))
 		return
@@ -158,7 +132,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			Status: scheduler.StatusNew,
 		}
 
-		runs, err := h.schedSvc.GetLastRun(r.Context(), t, t.Sched.NumRetries+1)
+		runs, err := h.Scheduler.GetLastRun(r.Context(), t, t.Sched.NumRetries+1)
 		if err != nil {
 			respondError(w, r, err, fmt.Sprintf("failed to load task %q runs", t.ID))
 			return
@@ -221,7 +195,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false)
+	t, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false)
 	if err != nil {
 		respondError(w, r, err, "failed to get target")
 		return
@@ -250,19 +224,19 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		if _, err := h.repairSvc.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
+		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
 			respondError(w, r, err, "failed to create repair target")
 			return
 		}
 	}
 
 	if newTask.Type == scheduler.HealthCheckTask {
-		if err := h.schedSvc.PutTaskOnce(r.Context(), newTask); err != nil {
+		if err := h.Scheduler.PutTaskOnce(r.Context(), newTask); err != nil {
 			respondError(w, r, err, "failed to create task")
 			return
 		}
 	} else {
-		if err := h.schedSvc.PutTask(r.Context(), newTask); err != nil {
+		if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
 			respondError(w, r, err, "failed to create task")
 			return
 		}
@@ -288,7 +262,7 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	newTask.ID = t.ID
 	newTask.Type = t.Type
 
-	if err := h.schedSvc.PutTask(r.Context(), newTask); err != nil {
+	if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
 		respondError(w, r, err, fmt.Sprintf("failed to update task %q", t.ID))
 		return
 	}
@@ -297,7 +271,7 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 
 func (h *taskHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
-	if err := h.schedSvc.DeleteTask(r.Context(), t); err != nil {
+	if err := h.Scheduler.DeleteTask(r.Context(), t); err != nil {
 		respondError(w, r, err, fmt.Sprintf("failed to delete task %q", t.ID))
 		return
 	}
@@ -311,7 +285,7 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 		respondBadRequest(w, r, err)
 	}
 
-	if err := h.schedSvc.StartTask(r.Context(), t, opts...); err != nil {
+	if err := h.Scheduler.StartTask(r.Context(), t, opts...); err != nil {
 		respondError(w, r, err, fmt.Sprintf("failed to start task %q", t.ID))
 		return
 	}
@@ -349,11 +323,11 @@ func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
 	if t.Enabled && disable {
 		t.Enabled = false
 		// current task is canceled on save no need to stop it again
-		if err := h.schedSvc.PutTask(r.Context(), t); err != nil {
+		if err := h.Scheduler.PutTask(r.Context(), t); err != nil {
 			respondError(w, r, err, fmt.Sprintf("failed to update task %q", t.ID))
 			return
 		}
-	} else if err := h.schedSvc.StopTask(r.Context(), t); err != nil {
+	} else if err := h.Scheduler.StopTask(r.Context(), t); err != nil {
 		respondError(w, r, err, fmt.Sprintf("failed to stop task %q", t.ID))
 		return
 	}
@@ -372,7 +346,7 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	runs, err := h.schedSvc.GetLastRun(r.Context(), t, limit)
+	runs, err := h.Scheduler.GetLastRun(r.Context(), t, limit)
 	if err != nil {
 		respondError(w, r, err, fmt.Sprintf("failed to load task %q history", t.ID))
 		return
@@ -395,7 +369,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	var prog taskRunProgress
 
 	if p := chi.URLParam(r, "run_id"); p == "latest" {
-		runs, err := h.schedSvc.GetLastRun(r.Context(), t, 1)
+		runs, err := h.Scheduler.GetLastRun(r.Context(), t, 1)
 		if err != nil {
 			respondBadRequest(w, r, err)
 			return
@@ -417,7 +391,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 			respondBadRequest(w, r, err)
 			return
 		}
-		prog.Run, err = h.schedSvc.GetRun(r.Context(), t, runID)
+		prog.Run, err = h.Scheduler.GetRun(r.Context(), t, runID)
 		if err != nil {
 			respondError(w, r, err, fmt.Sprintf("failed to load task %q runs", t.ID))
 			return
@@ -426,7 +400,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 
 	switch t.Type {
 	case scheduler.RepairTask:
-		rp, err := h.repairSvc.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+		rp, err := h.Repair.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 		// Ignoring ErrNotFound because progress can have task runs without repair progress recorded.
 		// If we can't find any repair progress reference then just return what we have (prog.Run).
 		// prog.Progress is assigned separately to force nil on the returned value instead of an empty object.
