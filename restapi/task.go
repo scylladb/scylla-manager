@@ -215,15 +215,22 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newTask.Type == scheduler.RepairTask {
-		force := false
-		if f := r.FormValue("force"); f != "" {
-			force, err = strconv.ParseBool(r.FormValue("force"))
-			if err != nil {
-				respondBadRequest(w, r, err)
-				return
-			}
+	force := false
+	if f := r.FormValue("force"); f != "" {
+		force, err = strconv.ParseBool(r.FormValue("force"))
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
 		}
+	}
+
+	switch newTask.Type {
+	case scheduler.BackupTask:
+		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
+			respondError(w, r, err, "failed to create backup target")
+			return
+		}
+	case scheduler.RepairTask:
 		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
 			respondError(w, r, err, "failed to create repair target")
 			return
