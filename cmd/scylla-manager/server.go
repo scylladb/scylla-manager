@@ -241,21 +241,21 @@ func (s *server) startHTTPServers(ctx context.Context) {
 	if s.httpsServer != nil {
 		s.logger.Info(ctx, "Starting HTTPS server", "address", s.httpsServer.Addr, "client_ca", s.config.TLSCAFile)
 		go func() {
-			s.errCh <- s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile)
+			s.errCh <- errors.Wrap(s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile), "HTTPS server failed to start")
 		}()
 	}
 
 	if s.prometheusServer != nil {
 		s.logger.Info(ctx, "Starting Prometheus server", "address", s.prometheusServer.Addr)
 		go func() {
-			s.errCh <- s.prometheusServer.ListenAndServe()
+			s.errCh <- errors.Wrap(s.prometheusServer.ListenAndServe(), "Prometheus server failed to start")
 		}()
 	}
 
 	if s.debugServer != nil {
 		s.logger.Info(ctx, "Starting debug server", "address", s.debugServer.Addr)
 		go func() {
-			s.errCh <- s.debugServer.ListenAndServe()
+			s.errCh <- errors.Wrap(s.debugServer.ListenAndServe(), "debug server failed to start")
 		}()
 	}
 }
