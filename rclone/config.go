@@ -30,7 +30,7 @@ func SetDefaultConfig() {
 	// Check for expired async jobs at this interval.
 	fs.Config.RcJobExpireInterval = 1 * time.Minute
 	// How many times to retry low level operations like copy file.
-	fs.Config.LowLevelRetries = 2
+	fs.Config.LowLevelRetries = 5
 	// How many stat groups to keep in memory.
 	fs.Config.MaxStatsGroups = 1000
 }
