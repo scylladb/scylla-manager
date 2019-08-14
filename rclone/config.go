@@ -17,8 +17,15 @@ func SetDefaultConfig() {
 	fs.Config.UseJSONLog = false
 	// Pass all logs, our logger decides which one to print.
 	fs.Config.LogLevel = fs.LogLevelDebug
+	// Don't use readahead buffering in accounting. We enable readahead in
+	// kernel with SEQENTIAL read mode, adding this makes things slower and
+	// consumes more memory.
+	fs.Config.BufferSize = 0
 	// Delete even if there are I/O errors.
 	fs.Config.IgnoreErrors = true
+	// Do not compare hash post upload, prevents from calculating hashes in
+	// rclone versions >= 1.48.
+	fs.Config.IgnoreChecksum = true
 	// Only use size to compare files.
 	fs.Config.SizeOnly = true
 	// Don't update destination mod-time if files identical.
@@ -26,7 +33,7 @@ func SetDefaultConfig() {
 	// Set proper agent for backend clients.
 	fs.Config.UserAgent = fmt.Sprintf("Scylla Manager Agent %s", mermaid.Version())
 	// Expire async jobs after this duration.
-	fs.Config.RcJobExpireDuration = 1 * time.Hour
+	fs.Config.RcJobExpireDuration = 12 * time.Hour
 	// Check for expired async jobs at this interval.
 	fs.Config.RcJobExpireInterval = 1 * time.Minute
 	// How many times to retry low level operations like copy file.
