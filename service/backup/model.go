@@ -58,6 +58,13 @@ type Run struct {
 }
 
 // RunProgress describes backup progress on per file basis.
+//
+// Each RunProgress either has Uploaded or Skipped fields set to respective
+// amount of bytes. Failed shows amount of bytes that is assumed to have
+// failed. Since current implementation doesn't support resume at file level
+// this value will always be the same as Uploaded as file needs to be uploaded
+// again. In summary Failed is supposed to mean, out of uploaded bytes how much
+// bytes have to be uploaded again.
 type RunProgress struct {
 	ClusterID  uuid.UUID
 	TaskID     uuid.UUID
@@ -72,8 +79,12 @@ type RunProgress struct {
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string
-	Size        int64
-	Uploaded    int64
+	Size        int64 // Total file size in bytes.
+	Uploaded    int64 // Amount of total uploaded bytes.
+	Skipped     int64 // Amount of skipped bytes because file was present.
+	// Amount of bytes that have been uploaded but due to error have to be
+	// uploaded again.
+	Failed int64
 }
 
 type jobStatus string
@@ -85,10 +96,122 @@ const (
 	jobSuccess  jobStatus = "success"
 )
 
-// Progress specifies backup progress of a run.
+type progress struct {
+	Size     int64 `json:"size"`
+	Uploaded int64 `json:"uploaded"`
+	Skipped  int64 `json:"skipped"`
+	Failed   int64 `json:"failed"`
+}
+
+// Progress defines uploading progress for all units of the run.
 type Progress struct {
-	Size     int64
-	Uploaded int64
+	progress
+
+	DC        []string           `json:"dcs,omitempty"`
+	Keyspaces []KeyspaceProgress `json:"keyspaces,omitempty"`
+}
+
+// KeyspaceProgress defines progress for the keyspace.
+type KeyspaceProgress struct {
+	progress
+
+	Keyspace   string              `json:"keyspace"`
+	HostTables []HostTableProgress `json:"tables,omitempty"`
+	BackupSize int64               `json:"backup_size,omitempty"`
+}
+
+// HostTableProgress defines progress for the table on the specific host.
+type HostTableProgress struct {
+	progress
+
+	Host  string `json:"host"`
+	Table string `json:"table"`
+	Error string `json:"error,omitempty"`
+}
+
+// runProgress returns total size and uploaded bytes for all files belonging to
+// the run.
+func runProgress(run *Run, prog []*RunProgress) (int64, int64) {
+	var size, uploaded int64
+	if len(run.Units) == 0 {
+		return size, uploaded
+	}
+
+	for i := range prog {
+		size += prog[i].Size
+		uploaded += prog[i].Uploaded
+	}
+
+	return size, uploaded
+}
+
+// aggregateProgress returns progress information classified by keyspace and
+// host tables.
+func aggregateProgress(run *Run, prog []*RunProgress) Progress {
+	p := Progress{
+		DC: run.DC,
+	}
+	if len(run.Units) == 0 || len(prog) == 0 {
+		return p
+	}
+
+	kspMap := make(map[string]*KeyspaceProgress)
+outer:
+	for _, pr := range prog {
+		ksName := run.Units[pr.Unit].Keyspace
+
+		ks, ok := kspMap[ksName]
+		if !ok {
+			ks = &KeyspaceProgress{
+				Keyspace: ksName,
+			}
+			kspMap[ksName] = ks
+		}
+
+		// Don't count metadata in progress.
+		if pr.FileName == manifestFile {
+			continue
+		}
+
+		p.Size += pr.Size
+		p.Uploaded += pr.Uploaded
+		p.Failed += pr.Failed
+		p.Skipped += pr.Skipped
+		ks.Size += pr.Size
+		ks.Uploaded += pr.Uploaded
+		ks.Skipped += pr.Skipped
+		ks.Failed += pr.Failed
+
+		for i, htp := range ks.HostTables {
+			if htp.Host == pr.Host && htp.Table == pr.TableName {
+				ks.HostTables[i].Size += pr.Size
+				ks.HostTables[i].Uploaded += pr.Uploaded
+				ks.HostTables[i].Skipped += pr.Skipped
+				ks.HostTables[i].Failed += pr.Failed
+				if pr.Error != "" {
+					ks.HostTables[i].Error += ", " + pr.Error
+				}
+				continue outer
+			}
+		}
+		ks.HostTables = append(ks.HostTables, HostTableProgress{
+			progress: progress{
+				Size:     pr.Size,
+				Uploaded: pr.Uploaded,
+				Skipped:  pr.Skipped,
+				Failed:   pr.Failed,
+			},
+			Host:  pr.Host,
+			Table: pr.TableName,
+			Error: pr.Error,
+		})
+	}
+
+	for _, u := range run.Units {
+		p.Keyspaces = append(p.Keyspaces, *kspMap[u.Keyspace])
+	}
+
+	return p
 }
 
 // Provider specifies type of remote storage like S3 etc.

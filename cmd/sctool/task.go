@@ -4,11 +4,13 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/mermaidclient"
+	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -300,11 +302,6 @@ var taskProgressCmd = &cobra.Command{
 			return printableError{err}
 		}
 
-		if taskType == "healthcheck" {
-			w.Write([]byte("Use: sctool status -c " + cfgCluster + "\n")) // nolint: errcheck
-			return statusCmd.RunE(statusCmd, nil)
-		}
-
 		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
 			return printableError{err}
@@ -322,36 +319,82 @@ var taskProgressCmd = &cobra.Command{
 			runID = "latest"
 		}
 
-		rp, err := client.RepairProgress(ctx, cfgCluster, t.ID, runID)
-		if err != nil {
-			return printableError{err}
+		switch scheduler.TaskType(taskType) {
+		case scheduler.HealthCheckTask, scheduler.HealthCheckRESTTask:
+			fmt.Fprintf(w, "Use: sctool status -c %s\n", cfgCluster)
+			return statusCmd.RunE(statusCmd, nil)
+		case scheduler.RepairTask:
+			return renderRepairProgress(cmd, w, t, runID)
+		case scheduler.BackupTask:
+			return renderBackupProgress(cmd, w, t, runID)
 		}
 
-		rp.Detailed, err = cmd.Flags().GetBool("details")
-		if err != nil {
-			return printableError{err}
-		}
-
-		hf, err := cmd.Flags().GetStringSlice("host")
-		if err != nil {
-			return printableError{err}
-		}
-		if err := rp.SetHostFilter(hf); err != nil {
-			return printableError{err}
-		}
-
-		kf, err := cmd.Flags().GetStringSlice("keyspace")
-		if err != nil {
-			return printableError{err}
-		}
-		if err := rp.SetKeyspaceFilter(kf); err != nil {
-			return printableError{err}
-		}
-
-		rp.Task = t
-
-		return render(w, rp)
+		return nil
 	},
+}
+
+func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task, runID string) error {
+	rp, err := client.RepairProgress(ctx, cfgCluster, t.ID, runID)
+	if err != nil {
+		return printableError{err}
+	}
+
+	rp.Detailed, err = cmd.Flags().GetBool("details")
+	if err != nil {
+		return printableError{err}
+	}
+
+	hf, err := cmd.Flags().GetStringSlice("host")
+	if err != nil {
+		return printableError{err}
+	}
+	if err := rp.SetHostFilter(hf); err != nil {
+		return printableError{err}
+	}
+
+	kf, err := cmd.Flags().GetStringSlice("keyspace")
+	if err != nil {
+		return printableError{err}
+	}
+	if err := rp.SetKeyspaceFilter(kf); err != nil {
+		return printableError{err}
+	}
+
+	rp.Task = t
+
+	return render(w, rp)
+}
+
+func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task, runID string) error {
+	rp, err := client.BackupProgress(ctx, cfgCluster, t.ID, runID)
+	if err != nil {
+		return printableError{err}
+	}
+
+	rp.Detailed, err = cmd.Flags().GetBool("details")
+	if err != nil {
+		return printableError{err}
+	}
+
+	hf, err := cmd.Flags().GetStringSlice("host")
+	if err != nil {
+		return printableError{err}
+	}
+	if err := rp.SetHostFilter(hf); err != nil {
+		return printableError{err}
+	}
+
+	kf, err := cmd.Flags().GetStringSlice("keyspace")
+	if err != nil {
+		return printableError{err}
+	}
+	if err := rp.SetKeyspaceFilter(kf); err != nil {
+		return printableError{err}
+	}
+
+	rp.Task = t
+
+	return render(w, rp)
 }
 
 func init() {

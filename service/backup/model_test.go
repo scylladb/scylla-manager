@@ -2,7 +2,17 @@
 
 package backup
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"path"
+	"testing"
+	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/scylladb/mermaid/internal/timeutc"
+)
 
 func TestProviderMarshalUnmarshalText(t *testing.T) {
 	for _, k := range []Provider{S3} {
@@ -161,6 +171,197 @@ func TestDCLimitMarshalUnmarshalText(t *testing.T) {
 			}
 			if golden != r {
 				t.Errorf("got %s, expected %s", r, golden)
+			}
+		})
+	}
+}
+
+func TestAggregateProgress(t *testing.T) {
+	host1 := "host1"
+	host2 := "host2"
+	time1 := timeutc.Now().Add(-time.Hour)
+	time2 := time1.Add(time.Minute)
+	time3 := time1.Add(5 * time.Minute)
+	run1 := &Run{
+		Units: []Unit{
+			{
+				Keyspace: "ks",
+				Tables:   []string{"table1", "table2"},
+			},
+		},
+		DC:        []string{"dc1", "dc2"},
+		StartTime: time1,
+	}
+	runNoUnits := &Run{
+		DC:        []string{"dc3"},
+		StartTime: time1,
+	}
+	table := []struct {
+		Name        string
+		Run         *Run
+		RunProgress []*RunProgress
+		Expected    string
+	}{
+		{
+			Name:        "run with no progress",
+			Run:         run1,
+			RunProgress: nil,
+			Expected:    "expected_no_run_progress.json",
+		},
+		{
+			Name: "run with no units",
+			Run:  runNoUnits,
+			RunProgress: []*RunProgress{
+				{},
+			},
+			Expected: "expected_no_units.json",
+		},
+		{
+			Name: "run with success progress",
+			Run:  run1,
+			RunProgress: []*RunProgress{
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file1.f",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "",
+					Size:        10,
+					Skipped:     10,
+				},
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file12.f",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "",
+					Size:        7,
+					Uploaded:    7,
+				},
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table2",
+					FileName:    "file2.f",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "",
+					Size:        10,
+					Uploaded:    5,
+				},
+				{
+					Host:        host2,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file1.f",
+					StartedAt:   &time1,
+					CompletedAt: &time3,
+					Error:       "",
+					Size:        10,
+					Uploaded:    10,
+				},
+				{
+					Host:        host2,
+					Unit:        0,
+					TableName:   "table2",
+					FileName:    "file2.f",
+					StartedAt:   &time1,
+					CompletedAt: &time3,
+					Error:       "",
+					Size:        10,
+					Uploaded:    3,
+				},
+			},
+			Expected: "expected_on_success.json",
+		},
+		{
+			Name: "run with error progress",
+			Run:  run1,
+			RunProgress: []*RunProgress{
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file1.f",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "",
+					Size:        10,
+					Uploaded:    10,
+				},
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table2",
+					FileName:    "file2.f",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "error1",
+					Size:        10,
+					Uploaded:    5,
+					Failed:      5,
+				},
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table2",
+					FileName:    "file21.f",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "error2",
+					Size:        10,
+					Uploaded:    5,
+					Failed:      5,
+				},
+				{
+					Host:        host2,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file1.f",
+					StartedAt:   &time1,
+					CompletedAt: &time3,
+					Error:       "",
+					Size:        10,
+					Uploaded:    10,
+				},
+				{
+					Host:        host2,
+					Unit:        0,
+					TableName:   "table2",
+					FileName:    "file2.f",
+					StartedAt:   &time1,
+					CompletedAt: &time3,
+					Error:       "",
+					Size:        10,
+					Uploaded:    3,
+				},
+			},
+			Expected: "expected_on_error.json",
+		},
+	}
+
+	opts := cmp.Options{
+		cmp.AllowUnexported(Progress{}, KeyspaceProgress{}, HostTableProgress{}),
+		cmpopts.IgnoreUnexported(progress{}),
+	}
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			f, err := os.Open(path.Join("testdata/aggregate_progress", test.Expected))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var expected Progress
+			if err := json.NewDecoder(f).Decode(&expected); err != nil {
+				t.Fatal(err)
+			}
+			f.Close()
+			if diff := cmp.Diff(expected, aggregateProgress(test.Run, test.RunProgress), opts); diff != "" {
+				t.Error(diff)
 			}
 		})
 	}

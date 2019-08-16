@@ -103,6 +103,44 @@ func FormatTime(t strfmt.DateTime) string {
 	return time.Time(t).Local().Format(rfc822WithSec)
 }
 
+// FormatUploadProgress formats size and uploaded bytes to human readable
+// format.
+func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
+	if size == 0 {
+		return "-"
+	}
+	transferred := uploaded + skipped
+	if size == transferred {
+		return fmt.Sprintf("%d%% (%s)",
+			transferred*100/size,
+			ByteCountBinary(size, true),
+		)
+	}
+	return fmt.Sprintf("%d%% (%s/%s)",
+		transferred*100/size,
+		ByteCountBinary(transferred, false),
+		ByteCountBinary(size, true),
+	)
+}
+
+// ByteCountBinary returns string representation of the byte count with proper
+// unit appended if withUnit is true.
+func ByteCountBinary(b int64, withUnit bool) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%dB", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	if withUnit {
+		return fmt.Sprintf("%.1f%ciB", float64(b)/float64(div), "KMGTPE"[exp])
+	}
+	return fmt.Sprintf("%.1f", float64(b)/float64(div))
+}
+
 // FormatDuration creates and formats the duration between
 // the supplied DateTime values.
 func FormatDuration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {

@@ -37,3 +37,4 @@ issues:
   - Error return value of `.+\.Close` is not checked
   - Error return value of `net.SplitHostPort` is not checked
   - Error return value of `strconv.ParseBool` is not checked
+  - .+ lines are duplicate of `cmd/sctool/task.go:.+

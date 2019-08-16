@@ -405,24 +405,30 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var (
+		pr  interface{}
+		err error
+	)
 	switch t.Type {
 	case scheduler.RepairTask:
-		rp, err := h.Repair.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+		pr, err = h.Repair.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+	case scheduler.BackupTask:
+		pr, err = h.Backup.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+	default:
+		respondBadRequest(w, r, errors.Errorf("unsupported task type %s", t.Type))
+		return
+	}
+	if err != nil {
 		// Ignoring ErrNotFound because progress can have task runs without repair progress recorded.
 		// If we can't find any repair progress reference then just return what we have (prog.Run).
 		// prog.Progress is assigned separately to force nil on the returned value instead of an empty object.
 		// This is required for correct JSON representation and detection if Progress is empty.
-		if err != nil {
-			if err != mermaid.ErrNotFound {
-				respondError(w, r, err, fmt.Sprintf("failed to load task %q repair run progress", t.ID))
-				return
-			}
-		} else {
-			prog.Progress = rp
+		if err != mermaid.ErrNotFound {
+			respondError(w, r, err, fmt.Sprintf("failed to load progress for task %q", t.ID))
+			return
 		}
-	default:
-		respondBadRequest(w, r, errors.Errorf("unsupported task type %s", t.Type))
-		return
+	} else {
+		prog.Progress = pr
 	}
 
 	render.Respond(w, r, prog)

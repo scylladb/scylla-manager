@@ -500,14 +500,13 @@ func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshot
 			w.setProgressDates(ctx, p, d, jobID, trs[0].StartedAt, trs[0].CompletedAt)
 			if trs[0].Error != "" {
 				p.Error = trs[0].Error
-				p.Uploaded = trs[0].Bytes
+				p.Failed = trs[0].Bytes
+			}
+			if trs[0].Checked {
+				// File is already uploaded we just checked.
+				p.Skipped = trs[0].Size
 			} else {
-				if trs[0].Checked {
-					// File is already uploaded we just checked.
-					p.Uploaded = trs[0].Size
-				} else {
-					p.Uploaded = trs[0].Bytes
-				}
+				p.Uploaded = trs[0].Bytes
 			}
 			w.onRunProgress(ctx, p)
 		case 2: // File is found and updated on remote (check plus transfer).
@@ -519,6 +518,9 @@ func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshot
 			}
 			if trs[1].Error != "" {
 				p.Error = fmt.Sprintf("%s %s", p.Error, trs[1].Error)
+			}
+			if p.Error != "" {
+				p.Failed = trs[1].Bytes
 			}
 			p.Uploaded = trs[1].Bytes
 			w.onRunProgress(ctx, p)
@@ -580,14 +582,7 @@ func (w *worker) remoteMetaDir(h hostInfo, d snapshotDir) string {
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 	return path.Join(
-		"backup",
-		"cluster",
-		w.clusterID.String(),
-		"node",
-		h.ID,
-		"keyspace",
-		d.Keyspace,
-		"sst",
+		remoteSstDir(w.clusterID.String(), h.ID, d.Keyspace),
 		d.Table,
 		d.Version,
 	)
@@ -597,6 +592,19 @@ const dataDir = "/var/lib/scylla/data"
 
 func keyspaceDir(keyspace string) string {
 	return path.Join(dataDir, keyspace)
+}
+
+func remoteSstDir(clusterID, nodeID, keyspace string) string {
+	return path.Join(
+		"backup",
+		"cluster",
+		clusterID,
+		"node",
+		nodeID,
+		"keyspace",
+		keyspace,
+		"sst",
+	)
 }
 
 func snapshotTag(id uuid.UUID) string {

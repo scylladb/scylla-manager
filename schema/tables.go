@@ -38,6 +38,8 @@ var (
 			"error",
 			"size",
 			"uploaded",
+			"skipped",
+			"failed",
 		},
 		PartKey: []string{"cluster_id", "task_id", "run_id"},
 		SortKey: []string{"host", "unit", "table_name", "file_name"},

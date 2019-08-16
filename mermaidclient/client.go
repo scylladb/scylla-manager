@@ -144,6 +144,23 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID str
 	}, nil
 }
 
+// BackupProgress returns repair progress.
+func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskBackupTaskIDRunID(&operations.GetClusterClusterIDTaskBackupTaskIDRunIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		RunID:     runID,
+	})
+	if err != nil {
+		return BackupProgress{}, err
+	}
+
+	return BackupProgress{
+		TaskRunBackupProgress: resp.Payload,
+	}, nil
+}
+
 // ClusterStatus returns health check progress.
 func (c Client) ClusterStatus(ctx context.Context, clusterID string) (ClusterStatus, error) {
 	resp, err := c.operations.GetClusterClusterIDStatus(&operations.GetClusterClusterIDStatusParams{

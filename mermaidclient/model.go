@@ -311,6 +311,151 @@ func (rp RepairProgress) addRepairUnitDetailedProgress(t *table.Table, u *Repair
 	}
 }
 
+// BackupProgress contains shard progress info.
+type BackupProgress struct {
+	*models.TaskRunBackupProgress
+	Task     *Task
+	Detailed bool
+
+	hostFilter     inexlist.InExList
+	keyspaceFilter inexlist.InExList
+}
+
+// SetHostFilter adds filtering rules used for rendering for host details.
+func (rp *BackupProgress) SetHostFilter(filters []string) (err error) {
+	rp.hostFilter, err = inexlist.ParseInExList(filters)
+	return
+}
+
+// SetKeyspaceFilter adds filtering rules used for rendering for keyspace details.
+func (rp *BackupProgress) SetKeyspaceFilter(filters []string) (err error) {
+	rp.keyspaceFilter, err = inexlist.ParseInExList(filters)
+	return
+}
+
+// Render renders *BackupProgress in a tabular format.
+func (rp BackupProgress) Render(w io.Writer) error {
+	if err := rp.addHeader(w); err != nil {
+		return err
+	}
+
+	if rp.Progress != nil && rp.Progress.Size > 0 {
+		t := table.New()
+		rp.addKeyspaceProgress(t)
+		if _, err := io.WriteString(w, t.String()); err != nil {
+			return err
+		}
+	}
+
+	if rp.Detailed && rp.Progress != nil && rp.Progress.Size > 0 {
+		d := table.New()
+		rp.addTableProgress(d)
+		if _, err := w.Write([]byte(d.String())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rp BackupProgress) addKeyspaceProgress(t *table.Table) {
+	t.AddRow("keyspace", "progress", "backup size")
+	t.AddSeparator()
+	for _, ks := range rp.Progress.Keyspaces {
+		if rp.hideKeyspace(ks.Keyspace) {
+			continue
+		}
+		p := "-"
+		if len(ks.Tables) > 0 {
+			p = FormatUploadProgress(ks.Size, ks.Uploaded, ks.Skipped, ks.Failed)
+		}
+		bs := "-"
+		if ks.BackupSize > 0 {
+			bs = ByteCountBinary(ks.BackupSize, true)
+		}
+		t.AddRow(ks.Keyspace, p, bs)
+	}
+}
+
+func (rp BackupProgress) addTableProgress(t *table.Table) {
+	addSeparator := false
+	for _, ks := range rp.Progress.Keyspaces {
+		if rp.hideKeyspace(ks.Keyspace) {
+			continue
+		}
+		if addSeparator {
+			t.AddSeparator()
+		}
+		addSeparator = true
+		t.AddRow(ks.Keyspace, "table", "progress", "error")
+		t.AddSeparator()
+		rowAdded := false
+		for _, tbl := range ks.Tables {
+			if rp.hideHost(tbl.Host) {
+				continue
+			}
+			t.AddRow(tbl.Host, tbl.Table, FormatUploadProgress(tbl.Size, tbl.Uploaded, tbl.Skipped, tbl.Failed), tbl.Error)
+			rowAdded = true
+		}
+		if !rowAdded {
+			// Separate keyspaces with no table rows
+			t.AddRow("-", "-", "-", "-")
+		}
+	}
+}
+
+func (rp BackupProgress) hideHost(host string) bool {
+	if rp.hostFilter.Size() > 0 {
+		return rp.hostFilter.FirstMatch(host) == -1
+	}
+	return false
+}
+
+func (rp BackupProgress) hideKeyspace(keyspace string) bool {
+	if rp.keyspaceFilter.Size() > 0 {
+		return rp.keyspaceFilter.FirstMatch(keyspace) == -1
+	}
+	return false
+}
+
+var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
+{{ end -}}
+{{ with .Run }}Status:		{{ .Status }}
+{{- if .Cause }}
+Cause:		{{ .Cause }}
+{{- end }}
+{{- if not (isZero .StartTime) }}
+Start time:	{{ FormatTime .StartTime }}
+{{- end -}}
+{{- if not (isZero .EndTime) }}
+End time:	{{ FormatTime .EndTime }}
+{{- end }}
+Duration:	{{ FormatDuration .StartTime .EndTime }}
+{{ end -}}
+{{ with .Progress }}Progress:	{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}
+{{- if .Dcs }}
+Datacenters:	{{ range .Dcs }}
+  - {{ . }}
+{{- end }}
+{{ end -}}
+{{ else }}Progress:	0%
+{{ end }}`
+
+func (rp BackupProgress) addHeader(w io.Writer) error {
+	temp := template.Must(template.New("backup_progress").Funcs(template.FuncMap{
+		"isZero":               isZero,
+		"FormatTime":           FormatTime,
+		"FormatDuration":       FormatDuration,
+		"FormatUploadProgress": FormatUploadProgress,
+		"arguments":            rp.arguments,
+	}).Parse(backupProgressTemplate))
+	return temp.Execute(w, rp)
+}
+
+// arguments return task arguments that task was created with.
+func (rp BackupProgress) arguments() string {
+	return NewCmdRenderer(rp.Task, RenderTypeArgs).String()
+}
+
 const statusDown = "DOWN"
 
 // ClusterStatus contains cluster status info.

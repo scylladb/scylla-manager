@@ -16,16 +16,11 @@ import (
 
 // Services contains REST API services.
 type Services struct {
-	Backup      BackupService
 	Cluster     ClusterService
 	HealthCheck HealthCheckService
 	Repair      RepairService
+	Backup      BackupService
 	Scheduler   SchedService
-}
-
-// BackupService service interface for the REST API handlers.
-type BackupService interface {
-	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (backup.Target, error)
 }
 
 // ClusterService service interface for the REST API handlers.
@@ -47,6 +42,12 @@ type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (repair.Target, error)
+}
+
+// BackupService service interface for the REST API handlers.
+type BackupService interface {
+	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (backup.Target, error)
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
 }
 
 // SchedService service interface for the REST API handlers.

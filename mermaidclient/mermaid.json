@@ -380,6 +380,101 @@
           }
         }
       }
+    },
+    "taskRunBackupProgress": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/taskRun"
+        },
+        "progress": {
+          "$ref": "#/definitions/backupProgress"
+        }
+      }
+    },
+    "backupProgress": {
+      "type": "object",
+      "properties": {
+        "dcs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "keyspaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/keyspaceProgress"
+          }
+        },
+        "size": {
+          "type": "integer"
+        },
+        "uploaded": {
+          "type": "integer"
+        },
+        "skipped": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        }
+      }
+    },
+    "keyspaceProgress": {
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/hostTableProgress"
+          }
+        },
+        "size": {
+          "type": "integer"
+        },
+        "uploaded": {
+          "type": "integer"
+        },
+        "skipped": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        },
+        "backup_size": {
+          "type": "integer"
+        }
+      }
+    },
+    "hostTableProgress": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "uploaded": {
+          "type": "integer"
+        },
+        "skipped": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        }
+      }
     }
   },
   "paths": {
@@ -795,6 +890,38 @@
             "description": "Repair progress",
             "schema": {
               "$ref": "#/definitions/taskRunRepairProgress"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/backup/{task_id}/{run_id}": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "task_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup progress",
+            "schema": {
+              "$ref": "#/definitions/taskRunBackupProgress"
             }
           }
         }

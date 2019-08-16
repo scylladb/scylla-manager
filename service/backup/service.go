@@ -326,7 +326,7 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		if err != nil {
 			return nil, err
 		}
-		size, uploaded := aggregateProgress(r, prog)
+		size, uploaded := runProgress(r, prog)
 		if size > 0 {
 			if size == uploaded {
 				break
@@ -336,20 +336,6 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	}
 
 	return nil, mermaid.ErrNotFound
-}
-
-func aggregateProgress(run *Run, prog []*RunProgress) (int64, int64) {
-	var size, uploaded int64
-	if len(run.Units) == 0 {
-		return size, uploaded
-	}
-
-	for i := range prog {
-		size += prog[i].Size
-		uploaded += prog[i].Uploaded
-	}
-
-	return size, uploaded
 }
 
 func (s *Service) getProgress(run *Run) ([]*RunProgress, error) {
@@ -400,4 +386,112 @@ func (s *Service) putRunProgressLogError(ctx context.Context, p *RunProgress) {
 			"error", err,
 		)
 	}
+}
+
+// GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
+// is returned.
+func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
+
+	stmt, names := schema.BackupRun.Get()
+
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+		"id":         runID,
+	})
+
+	var r Run
+	return &r, q.GetRelease(&r)
+}
+
+// GetProgress aggregates progress for the run of the task and breaks it down
+// by keyspace and table.json
+// If nothing was found mermaid.ErrNotFound is returned.
+func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
+	s.logger.Debug(ctx, "GetProgress",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
+
+	run, err := s.GetRun(ctx, clusterID, taskID, runID)
+	if err != nil {
+		return Progress{}, err
+	}
+	prog, err := s.getProgress(run)
+	if err != nil {
+		return Progress{}, err
+	}
+
+	p := aggregateProgress(run, prog)
+
+	s.aggregateBackupSize(ctx, run, &p)
+
+	return p, nil
+}
+
+func (s *Service) aggregateBackupSize(ctx context.Context, run *Run, prog *Progress) {
+	// Get the cluster client
+	client, err := s.scyllaClient(ctx, run.ClusterID)
+	if err != nil {
+		s.logger.Error(ctx, "Failed to get client",
+			"error", err,
+			"task_id", run.TaskID,
+			"run_id", run.ID,
+		)
+		return
+	}
+
+	// Get host IDs
+	hostIDs, err := client.HostIDs(ctx)
+	if err != nil {
+		s.logger.Error(ctx, "Failed to get client",
+			"error", err,
+			"task_id", run.TaskID,
+			"run_id", run.ID,
+		)
+		return
+	}
+
+outer:
+	for i := range prog.Keyspaces {
+		var size int64
+		hosts := keyspaceProgressHosts(prog.Keyspaces)
+		for _, h := range hosts {
+			path := run.Location[0].RemotePath(remoteSstDir(run.ClusterID.String(), hostIDs[h], prog.Keyspaces[i].Keyspace))
+			items, err := client.RcloneListDir(ctx, h, path, true)
+			if err != nil {
+				s.logger.Error(ctx, "Failed to get backup size",
+					"error", err,
+					"task_id", run.TaskID,
+					"run_id", run.ID,
+					"keyspace", prog.Keyspaces[i].Keyspace,
+				)
+				continue outer
+			}
+			for _, item := range items {
+				size += item.Size
+			}
+		}
+		prog.Keyspaces[i].BackupSize = size
+	}
+}
+
+func keyspaceProgressHosts(keyspaces []KeyspaceProgress) []string {
+	hosts := make(map[string]struct{})
+	for _, ks := range keyspaces {
+		for _, tbl := range ks.HostTables {
+			hosts[tbl.Host] = struct{}{}
+		}
+	}
+	var out []string
+	for host := range hosts {
+		out = append(out, host)
+	}
+	return out
 }

@@ -1,0 +1,9 @@
+{
+  "size": 0,
+  "uploaded": 0,
+  "dcs": [
+    "dc1",
+    "dc2"
+  ],
+  "keyspaces": null
+}

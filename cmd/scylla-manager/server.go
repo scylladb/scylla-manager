@@ -177,6 +177,7 @@ func (s *server) makeHTTPServers() error {
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
 		Repair:      s.repairSvc,
+		Backup:      s.backupSvc,
 		Scheduler:   s.schedSvc,
 	}, s.logger.Named("restapi"))
 

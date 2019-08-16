@@ -31,5 +31,7 @@ CREATE TABLE backup_run_progress (
     error text,
     size bigint,
     uploaded bigint,
+    skipped bigint,
+    failed bigint,
     PRIMARY KEY ((cluster_id, task_id, run_id), host, unit, table_name, file_name)
 );

@@ -137,6 +137,34 @@ func (a *Client) GetClusterClusterIDStatus(params *GetClusterClusterIDStatusPara
 }
 
 /*
+GetClusterClusterIDTaskBackupTaskIDRunID get cluster cluster ID task backup task ID run ID API
+*/
+func (a *Client) GetClusterClusterIDTaskBackupTaskIDRunID(params *GetClusterClusterIDTaskBackupTaskIDRunIDParams) (*GetClusterClusterIDTaskBackupTaskIDRunIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTaskBackupTaskIDRunIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTaskBackupTaskIDRunID",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/task/backup/{task_id}/{run_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTaskBackupTaskIDRunIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterClusterIDTaskBackupTaskIDRunIDOK), nil
+
+}
+
+/*
 GetClusterClusterIDTaskRepairTaskIDRunID get cluster cluster ID task repair task ID run ID API
 */
 func (a *Client) GetClusterClusterIDTaskRepairTaskIDRunID(params *GetClusterClusterIDTaskRepairTaskIDRunIDParams) (*GetClusterClusterIDTaskRepairTaskIDRunIDOK, error) {
