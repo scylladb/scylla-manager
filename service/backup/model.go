@@ -18,12 +18,14 @@ import (
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units     []Unit      `json:"units,omitempty"`
-	DC        []string    `json:"dc,omitempty"`
-	Location  []Location  `json:"location"`
-	Retention int         `json:"retention"`
-	RateLimit []RateLimit `json:"rate_limit"`
-	Continue  bool        `json:"continue"`
+	Units            []Unit     `json:"units,omitempty"`
+	DC               []string   `json:"dc,omitempty"`
+	Location         []Location `json:"location"`
+	Retention        int        `json:"retention"`
+	RateLimit        []DCLimit  `json:"rate_limit"`
+	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit  `json:"upload_parallel"`
+	Continue         bool       `json:"continue"`
 }
 
 // Unit represents keyspace and its tables.
@@ -173,30 +175,30 @@ func (l Location) RemotePath(p string) string {
 	return path.Join(l.RemoteName()+":"+l.Path, p)
 }
 
-// RateLimit specifies a rate limit for a DC.
-type RateLimit struct {
+// DCLimit specifies a rate limit for a DC.
+type DCLimit struct {
 	DC    string `json:"dc"`
 	Limit int    `json:"limit"`
 }
 
-func (r RateLimit) String() string {
-	p := fmt.Sprint(r.Limit)
-	if r.DC != "" {
-		p = r.DC + ":" + p
+func (l DCLimit) String() string {
+	p := fmt.Sprint(l.Limit)
+	if l.DC != "" {
+		p = l.DC + ":" + p
 	}
 	return p
 }
 
-func (r RateLimit) MarshalText() (text []byte, err error) {
-	return []byte(r.String()), nil
+func (l DCLimit) MarshalText() (text []byte, err error) {
+	return []byte(l.String()), nil
 }
 
-func (r *RateLimit) UnmarshalText(text []byte) error {
+func (l *DCLimit) UnmarshalText(text []byte) error {
 	pattern := regexp.MustCompile(`^(([a-z0-9\-\.]+):)?([0-9]+)$`)
 
 	m := pattern.FindSubmatch(text)
 	if m == nil {
-		return errors.Errorf("invalid location format")
+		return errors.Errorf("invalid format")
 	}
 
 	limit, err := strconv.ParseInt(string(m[3]), 10, 64)
@@ -204,20 +206,28 @@ func (r *RateLimit) UnmarshalText(text []byte) error {
 		return errors.Wrap(err, "invalid limit")
 	}
 
-	r.DC = string(m[2])
-	r.Limit = int(limit)
+	l.DC = string(m[2])
+	l.Limit = int(limit)
 
 	return nil
 }
 
+func dcLimitDCAtPos(s []DCLimit) func(int) (string, string) {
+	return func(i int) (string, string) {
+		return s[i].DC, s[i].String()
+	}
+}
+
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace  []string    `json:"keyspace"`
-	DC        []string    `json:"dc"`
-	Location  []Location  `json:"location"`
-	Retention int         `json:"retention"`
-	RateLimit []RateLimit `json:"rate_limit"`
-	Continue  bool        `json:"continue"`
+	Keyspace         []string   `json:"keyspace"`
+	DC               []string   `json:"dc"`
+	Location         []Location `json:"location"`
+	Retention        int        `json:"retention"`
+	RateLimit        []DCLimit  `json:"rate_limit"`
+	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit  `json:"upload_parallel"`
+	Continue         bool       `json:"continue"`
 }
 
 func defaultTaskProperties() taskProperties {

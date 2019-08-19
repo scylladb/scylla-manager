@@ -60,44 +60,6 @@ func TestLocationMarshalUnmarshalText(t *testing.T) {
 	}
 }
 
-func TestRateLimitMarshalUnmarshalText(t *testing.T) {
-	table := []struct {
-		Name      string
-		RateLimit RateLimit
-	}{
-		{
-			Name: "with dc",
-			RateLimit: RateLimit{
-				DC:    "dc",
-				Limit: 100,
-			},
-		},
-		{
-			Name: "without dc",
-			RateLimit: RateLimit{
-				Limit: 100,
-			},
-		},
-	}
-
-	for _, test := range table {
-		t.Run(test.Name, func(t *testing.T) {
-			golden := test.RateLimit
-			b, err := golden.MarshalText()
-			if err != nil {
-				t.Error(golden, err)
-			}
-			var r RateLimit
-			if err := r.UnmarshalText(b); err != nil {
-				t.Error(err)
-			}
-			if golden != r {
-				t.Errorf("got %s, expected %s", r, golden)
-			}
-		})
-	}
-}
-
 func TestInvalidLocationUnmarshalText(t *testing.T) {
 	table := []struct {
 		Name     string
@@ -163,5 +125,43 @@ func TestLocationRemotePath(t *testing.T) {
 		if p := l.RemotePath(test.Path); p != test.RemotePath {
 			t.Error("expected", test.RemotePath, "got", p)
 		}
+	}
+}
+
+func TestDCLimitMarshalUnmarshalText(t *testing.T) {
+	table := []struct {
+		Name    string
+		DCLimit DCLimit
+	}{
+		{
+			Name: "with dc",
+			DCLimit: DCLimit{
+				DC:    "dc",
+				Limit: 100,
+			},
+		},
+		{
+			Name: "without dc",
+			DCLimit: DCLimit{
+				Limit: 100,
+			},
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			golden := test.DCLimit
+			b, err := golden.MarshalText()
+			if err != nil {
+				t.Error(golden, err)
+			}
+			var r DCLimit
+			if err := r.UnmarshalText(b); err != nil {
+				t.Error(err)
+			}
+			if golden != r {
+				t.Errorf("got %s, expected %s", r, golden)
+			}
+		})
 	}
 }

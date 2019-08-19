@@ -119,7 +119,9 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 			rc.writeProp("--dc", "dc")
 			rc.writeProp("-L", "location")
 			rc.writeProp("--retention", "retention")
-			rc.writeProp("--rate-limit", "rate-limit")
+			rc.writeProp("--rate-limit", "rate_limit")
+			rc.writeProp("--snapshot-parallel", "snapshot_parallel")
+			rc.writeProp("--upload-parallel", "upload_parallel")
 		case repairTaskType:
 			rc.writeProp("-K", "keyspace")
 			rc.writeProp("--dc", "dc")

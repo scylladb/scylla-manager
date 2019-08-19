@@ -144,7 +144,21 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			Name: "dc rate limit",
 			JSON: `{"rate_limit": ["1000", "dc1:100"], "location": ["s3:foo"]}`,
 			Target: decorate(func(v *backup.Target) {
-				v.RateLimit = []backup.RateLimit{{Limit: 1000}, {DC: "dc1", Limit: 100}}
+				v.RateLimit = []backup.DCLimit{{Limit: 1000}, {DC: "dc1", Limit: 100}}
+			}),
+		},
+		{
+			Name: "dc snapshot parallel",
+			JSON: `{"snapshot_parallel": ["10", "dc1:20"], "location": ["s3:foo"]}`,
+			Target: decorate(func(v *backup.Target) {
+				v.SnapshotParallel = []backup.DCLimit{{Limit: 10}, {DC: "dc1", Limit: 20}}
+			}),
+		},
+		{
+			Name: "dc upload parallel",
+			JSON: `{"upload_parallel": ["10", "dc1:20"], "location": ["s3:foo"]}`,
+			Target: decorate(func(v *backup.Target) {
+				v.UploadParallel = []backup.DCLimit{{Limit: 10}, {DC: "dc1", Limit: 20}}
 			}),
 		},
 		{
@@ -211,6 +225,16 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 			Name:   "invalid rate limit dc",
 			JSON:   `{"rate_limit": ["foobar:100"], "location": ["s3:foo"]}`,
 			Errror: "invalid rate-limit: no such datacenter",
+		},
+		{
+			Name:   "invalid snapshot parallel dc",
+			JSON:   `{"snapshot_parallel": ["foobar:100"], "location": ["s3:foo"]}`,
+			Errror: "invalid snapshot-parallel: no such datacenter",
+		},
+		{
+			Name:   "invalid upload parallel dc",
+			JSON:   `{"upload_parallel": ["foobar:100"], "location": ["s3:foo"]}`,
+			Errror: "invalid upload-parallel: no such datacenter",
 		},
 	}
 

@@ -15,7 +15,6 @@ import (
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/multierr"
 )
 
 type worker struct {
@@ -32,14 +31,15 @@ type worker struct {
 }
 
 type hostInfo struct {
+	DC        string
 	IP        string
 	ID        string
 	Location  Location
-	RateLimit RateLimit
+	RateLimit DCLimit
 }
 
-func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo) error {
-	return w.inParallel(ctx, hosts, func(h hostInfo) error {
+func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) error {
+	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
 		return w.snapshotHost(ctx, h)
 	})
 }
@@ -67,8 +67,8 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 	return nil
 }
 
-func (w *worker) Upload(ctx context.Context, hosts []hostInfo, progress []*RunProgress) error {
-	return w.inParallel(ctx, hosts, func(h hostInfo) error {
+func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit, progress []*RunProgress) error {
+	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
 		return w.uploadHost(ctx, h, progress)
 	})
 }
@@ -563,26 +563,6 @@ func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 		d.Table,
 		d.Version,
 	)
-}
-
-func (w *worker) inParallel(ctx context.Context, hosts []hostInfo, f func(h hostInfo) error) error {
-	out := make(chan error)
-	for _, h := range hosts {
-		h := h
-		go func() {
-			out <- errors.Wrapf(f(h), "host %s", h)
-		}()
-	}
-
-	var errs error
-	for range hosts {
-		err := <-out
-		if err != nil {
-			w.logger.Error(ctx, "Backup host worker", "error", err)
-		}
-		errs = multierr.Append(errs, err)
-	}
-	return errs
 }
 
 const dataDir = "/var/lib/scylla/data"

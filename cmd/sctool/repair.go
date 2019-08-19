@@ -160,8 +160,8 @@ func init() {
 	register(cmd, rootCmd)
 
 	fs := cmd.Flags()
-	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, e.g. keyspace,!keyspace.table_prefix_*")
-	fs.StringSlice("dc", nil, "comma-separated `list` of data centers glob patterns, e.g. dc1,!otherdc*")
+	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
+	fs.StringSlice("dc", nil, "comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*'")
 	fs.String("host", "", "host to repair, by default all hosts are repaired")
 	fs.StringSlice("with-hosts", nil, "comma-separated `list` of hosts to repair with")
 	fs.Var(&repairTokenRanges, "token-ranges", "`kind` of token-ranges valid values are: pr, npr, all")

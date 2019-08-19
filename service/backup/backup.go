@@ -59,7 +59,7 @@ func checkAllDCsCovered(dcAtPos func(int) string, n int, dcs []string) error {
 	return nil
 }
 
-func hostInfoFromHosts(hosts []string, dcMap map[string][]string, hostIDs map[string]string, locations []Location, rateLimits []RateLimit) ([]hostInfo, error) {
+func hostInfoFromHosts(hosts []string, dcMap map[string][]string, hostIDs map[string]string, locations []Location, rateLimits []DCLimit) ([]hostInfo, error) {
 	// Host to DC index
 	hdc := map[string]string{}
 	for dc, hosts := range dcMap {
@@ -75,7 +75,7 @@ func hostInfoFromHosts(hosts []string, dcMap map[string][]string, hostIDs map[st
 	}
 
 	// DC rate limit index
-	dcr := map[string]RateLimit{}
+	dcr := map[string]DCLimit{}
 	for _, r := range rateLimits {
 		dcr[r.DC] = r
 	}
@@ -86,14 +86,16 @@ func hostInfoFromHosts(hosts []string, dcMap map[string][]string, hostIDs map[st
 	)
 	for i, h := range hosts {
 		var ok bool
+
+		dc, ok := hdc[h]
+		if !ok {
+			errs = multierr.Append(errs, errors.Errorf("%s: unknown datacenter", h))
+		}
+		hi[i].DC = dc
 		hi[i].IP = h
 		hi[i].ID, ok = hostIDs[h]
 		if !ok {
 			errs = multierr.Append(errs, errors.Errorf("%s: unknown ID", h))
-		}
-		dc, ok := hdc[h]
-		if !ok {
-			errs = multierr.Append(errs, errors.Errorf("%s: unknown datacenter", h))
 		}
 		hi[i].Location, ok = dcl[dc]
 		if !ok {

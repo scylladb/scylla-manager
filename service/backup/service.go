@@ -75,8 +75,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy simple properties
 	t.Location = p.Location
-	t.RateLimit = p.RateLimit
 	t.Retention = p.Retention
+	t.RateLimit = p.RateLimit
+	t.SnapshotParallel = p.SnapshotParallel
+	t.UploadParallel = p.UploadParallel
 	t.Continue = p.Continue
 
 	if p.Location == nil {
@@ -108,8 +110,18 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Validate rate limit DCs
-	if err := checkDCs(func(i int) (string, string) { return t.RateLimit[i].DC, t.RateLimit[i].String() }, len(t.RateLimit), dcMap); err != nil {
+	if err := checkDCs(dcLimitDCAtPos(t.RateLimit), len(t.RateLimit), dcMap); err != nil {
 		return t, errors.Wrap(err, "invalid rate-limit")
+	}
+
+	// Validate upload parallel DCs
+	if err := checkDCs(dcLimitDCAtPos(t.SnapshotParallel), len(t.SnapshotParallel), dcMap); err != nil {
+		return t, errors.Wrap(err, "invalid snapshot-parallel")
+	}
+
+	// Validate snapshot parallel DCs
+	if err := checkDCs(dcLimitDCAtPos(t.UploadParallel), len(t.UploadParallel), dcMap); err != nil {
+		return t, errors.Wrap(err, "invalid upload-parallel")
 	}
 
 	// Filter keyspaces
@@ -248,7 +260,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 	}
 
 	if run.PrevID == uuid.Nil {
-		if err := w.Snapshot(ctx, hi); err != nil {
+		if err := w.Snapshot(ctx, hi, target.SnapshotParallel); err != nil {
 			return err
 		}
 	}
@@ -257,7 +269,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		return errors.Wrap(err, "failed to load run progress")
 	}
 
-	return w.Upload(ctx, hi, prog)
+	return w.Upload(ctx, hi, target.UploadParallel, prog)
 }
 
 // decorateWithPrevRun gets task previous run and if it can be continued
