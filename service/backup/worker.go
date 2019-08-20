@@ -38,14 +38,29 @@ type hostInfo struct {
 	RateLimit DCLimit
 }
 
-func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) error {
+func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
+	w.logger.Info(ctx, "Starting snapshot procedure")
+	defer func() {
+		if err != nil {
+			w.logger.Error(ctx, "Snapshot procedure completed with error(s) see exact errors above")
+		} else {
+			w.logger.Info(ctx, "Snapshot procedure completed")
+		}
+	}()
+
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
-		return w.snapshotHost(ctx, h)
+		w.logger.Info(ctx, "Executing snapshot procedure on host", "host", h.IP)
+		err := w.snapshotHost(ctx, h)
+		if err != nil {
+			w.logger.Error(ctx, "Snapshot procedure failed on host", "host", h.IP, "error", err)
+		} else {
+			w.logger.Info(ctx, "Done executing snapshot procedure on host", "host", h.IP)
+		}
+		return err
 	})
 }
 
 func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
-	w.logger.Info(ctx, "Starting snapshot procedure", "host", h.IP)
 	if err := w.checkAvailableDiskSpace(ctx, h); err != nil {
 		return errors.Wrap(err, "disk space check")
 	}
@@ -63,18 +78,32 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 	if err := w.initProgress(ctx, dirs); err != nil {
 		return errors.Wrap(err, "failed to initialize progress")
 	}
-	w.logger.Info(ctx, "Snapshot procedure completed", "host", h.IP)
 	return nil
 }
 
-func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit, progress []*RunProgress) error {
+func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit, progress []*RunProgress) (err error) {
+	w.logger.Info(ctx, "Starting upload procedure")
+	defer func() {
+		if err != nil {
+			w.logger.Error(ctx, "Upload procedure completed with error(s) see exact errors above")
+		} else {
+			w.logger.Info(ctx, "Upload procedure completed")
+		}
+	}()
+
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
-		return w.uploadHost(ctx, h, progress)
+		w.logger.Info(ctx, "Executing upload procedure on host", "host", h.IP)
+		err := w.uploadHost(ctx, h, progress)
+		if err != nil {
+			w.logger.Error(ctx, "Upload procedure failed on host", "host", h.IP, "error", err)
+		} else {
+			w.logger.Info(ctx, "Done executing upload procedure on host", "host", h.IP)
+		}
+		return err
 	})
 }
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo, progress []*RunProgress) error {
-	w.logger.Info(ctx, "Starting upload procedure", "host", h.IP)
 	if err := w.register(ctx, h); err != nil {
 		return errors.Wrap(err, "failed to register remote")
 	}
@@ -96,7 +125,6 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo, progress []*RunProg
 			return errors.Wrap(err, "failed to upload snapshot")
 		}
 	}
-	w.logger.Info(ctx, "Upload procedure completed", "host", h.IP)
 	return nil
 }
 
@@ -176,7 +204,7 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 
 	for _, t := range tags {
 		if claimTag(t) && t != snapshotTag(w.runID) {
-			w.logger.Info(ctx, "Deleting snapshot", "host", h.IP, "tag", t)
+			w.logger.Info(ctx, "Deleting old snapshot", "host", h.IP, "tag", t)
 			if err := w.client.DeleteSnapshot(ctx, h.IP, t); err != nil {
 				return err
 			}
@@ -298,7 +326,7 @@ func (w *worker) setRateLimit(ctx context.Context, h hostInfo) error {
 const manifestFile = "manifest.json"
 
 func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDir, progress []*RunProgress) error {
-	w.logger.Info(ctx, "Uploading",
+	w.logger.Info(ctx, "Uploading table snapshot",
 		"host", h.IP,
 		"keyspace", d.Keyspace,
 		"table", d.Table,
@@ -327,7 +355,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 }
 
 func (w *worker) uploadFile(ctx context.Context, dst, src string, d snapshotDir, progress []*RunProgress) error {
-	w.logger.Info(ctx, "Uploading file", "host", d.Host, "from", src, "to", dst)
+	w.logger.Debug(ctx, "Uploading file", "host", d.Host, "from", src, "to", dst)
 	id, err := w.client.RcloneCopyFile(ctx, d.Host, dst, src)
 	if err != nil {
 		return err
@@ -350,7 +378,7 @@ func (w *worker) getManifestProgress(d snapshotDir, progress []*RunProgress) *Ru
 }
 
 func (w *worker) uploadDir(ctx context.Context, dst, src string, d snapshotDir, progress []*RunProgress) error {
-	w.logger.Info(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst)
+	w.logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst)
 	id, err := w.client.RcloneCopyDir(ctx, d.Host, dst, src, manifestFile)
 	if err != nil {
 		return err
