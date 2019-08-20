@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#
+# Copyright 2019 ScyllaDB
+#
+
+set -eu -o pipefail
+
+echo "==> Creating table"
+go run testing/bigtable/*.go "$@"
