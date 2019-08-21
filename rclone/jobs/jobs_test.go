@@ -232,6 +232,16 @@ func TestExecuteJob(t *testing.T) {
 	}
 }
 
+func TestExecuteJobErrorPropagation(t *testing.T) {
+	defer cleanupJobs()
+	testErr := errors.New("test error")
+	errorFn := func(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+		return nil, testErr
+	}
+	_, _, err := ExecuteJob(context.Background(), errorFn, rc.Params{})
+	assertEqual(t, testErr, err)
+}
+
 func TestRcJobStatus(t *testing.T) {
 	defer cleanupJobs()
 	res, err := StartAsyncJob(longFn, rc.Params{})

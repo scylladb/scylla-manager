@@ -30,6 +30,10 @@ type Job struct {
 	Duration  float64   `json:"duration"`
 	Output    rc.Params `json:"output"`
 	Stop      func()    `json:"-"`
+	// realErr is the Error before printing it as a string, it's used to return
+	// the real error to the upper application layers while still printing the
+	// string error message.
+	realErr error
 }
 
 // Jobs describes a collection of running tasks.
@@ -110,9 +114,11 @@ func (job *Job) finish(out rc.Params, err error) {
 	job.Output = out
 	job.Duration = job.EndTime.Sub(job.StartTime).Seconds()
 	if err != nil {
+		job.realErr = err
 		job.Error = err.Error()
 		job.Success = false
 	} else {
+		job.realErr = nil
 		job.Error = ""
 		job.Success = true
 	}
@@ -209,11 +215,7 @@ func StartAsyncJob(fn rc.Func, in rc.Params) (rc.Params, error) {
 func ExecuteJob(ctx context.Context, fn rc.Func, in rc.Params) (rc.Params, string, error) {
 	job, ctx := running.NewSyncJob(ctx, in)
 	job.run(ctx, fn, in)
-	var err error
-	if !job.Success {
-		err = errors.New(job.Error)
-	}
-	return job.Output, job.ID.String(), err
+	return job.Output, job.ID.String(), job.realErr
 }
 
 func init() {
