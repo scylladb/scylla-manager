@@ -428,3 +428,28 @@ func TestPickNRandomHosts(t *testing.T) {
 		}
 	}
 }
+
+func TestClientSnapshotDetails(t *testing.T) {
+	t.Parallel()
+	c, close := newMockServer(t, "testdata/scylla_api/storage_service_snapshots.json")
+	defer close()
+
+	golden := []Unit{
+		{Keyspace: "system_auth", Tables: []string{"role_members", "roles"}},
+		{Keyspace: "system_distributed", Tables: []string{"view_build_status"}},
+		{Keyspace: "system_traces", Tables: []string{"sessions", "node_slow_log", "events", "node_slow_log_time_idx", "sessions_time_idx"}},
+		{Keyspace: "test_keyspace_dc1_rf2", Tables: []string{"void1"}},
+		{Keyspace: "test_keyspace_dc1_rf3", Tables: []string{"void1"}},
+		{Keyspace: "test_keyspace_dc2_rf2", Tables: []string{"void1"}},
+		{Keyspace: "test_keyspace_dc2_rf3", Tables: []string{"void1"}},
+		{Keyspace: "test_keyspace_rf2", Tables: []string{"void1"}},
+		{Keyspace: "test_keyspace_rf3", Tables: []string{"void1"}},
+	}
+	v, err := c.SnapshotDetails(context.Background(), testHost, "sm_4d043260-c352-11e9-a72e-c85b76f42222")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(v, golden); diff != "" {
+		t.Fatal(diff)
+	}
+}

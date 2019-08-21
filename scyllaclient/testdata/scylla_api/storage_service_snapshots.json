@@ -1,0 +1,382 @@
+[
+  {
+    "value": [
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 4871,
+        "cf": "roles"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 115925,
+        "cf": "peers"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 43885,
+        "cf": "dropped_columns"
+      },
+      {
+        "ks": "test_keyspace_dc2_rf3",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "range_xfers"
+      },
+      {
+        "ks": "test_keyspace_rf2",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 38676,
+        "cf": "views"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 38676,
+        "cf": "types"
+      },
+      {
+        "ks": "test_keyspace_dc2_rf2",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "views_builds_in_progress"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "compactions_in_progress"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "sstable_activity"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 43885,
+        "cf": "indexes"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 136611,
+        "cf": "scylla_tables"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "paxos"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 11873,
+        "cf": "local"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "peer_events"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "scylla_views_builds_in_progress"
+      },
+      {
+        "ks": "system_distributed",
+        "live": 0,
+        "total": 0,
+        "cf": "view_build_status"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 0,
+        "cf": "view_virtual_columns"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 38676,
+        "cf": "functions"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "large_partitions"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "events"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "IndexInfo"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "size_estimates"
+      },
+      {
+        "ks": "test_keyspace_dc1_rf3",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "test_keyspace_dc1_rf2",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "batchlog"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 216276,
+        "cf": "compaction_history"
+      },
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 0,
+        "cf": "role_members"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "hints"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 135782,
+        "cf": "keyspaces"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "sessions_time_idx"
+      },
+      {
+        "ks": "system",
+        "live": 0,
+        "total": 0,
+        "cf": "built_views"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 38676,
+        "cf": "aggregates"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "node_slow_log_time_idx"
+      },
+      {
+        "ks": "test_keyspace_rf3",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "node_slow_log"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "sessions"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 38676,
+        "cf": "triggers"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 154317,
+        "cf": "columns"
+      },
+      {
+        "ks": "system_schema",
+        "live": 0,
+        "total": 149142,
+        "cf": "tables"
+      }
+    ],
+    "key": "1566311471831"
+  },
+  {
+    "value": [
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 4871,
+        "cf": "roles"
+      },
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 0,
+        "cf": "role_members"
+      }
+    ],
+    "key": "1566311486006"
+  },
+  {
+    "value": [
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 0,
+        "cf": "role_members"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "sessions"
+      },
+      {
+        "ks": "test_keyspace_dc1_rf3",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "node_slow_log"
+      },
+      {
+        "ks": "test_keyspace_rf3",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "events"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "node_slow_log_time_idx"
+      },
+      {
+        "ks": "test_keyspace_dc2_rf3",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "test_keyspace_dc1_rf2",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "test_keyspace_rf2",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system_distributed",
+        "live": 0,
+        "total": 0,
+        "cf": "view_build_status"
+      },
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 4871,
+        "cf": "roles"
+      },
+      {
+        "ks": "test_keyspace_dc2_rf2",
+        "live": 0,
+        "total": 0,
+        "cf": "void1"
+      },
+      {
+        "ks": "system_traces",
+        "live": 0,
+        "total": 0,
+        "cf": "sessions_time_idx"
+      }
+    ],
+    "key": "sm_4d043260-c352-11e9-a72e-c85b76f42222"
+  },
+  {
+    "value": [
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 4871,
+        "cf": "roles"
+      },
+      {
+        "ks": "system_auth",
+        "live": 0,
+        "total": 0,
+        "cf": "role_members"
+      }
+    ],
+    "key": "aa"
+  }
+]

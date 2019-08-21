@@ -51,3 +51,9 @@ type TokenRange struct {
 	EndToken   int64
 	Replicas   []string
 }
+
+// Unit describes keyspace and some tables in that keyspace.
+type Unit struct {
+	Keyspace string
+	Tables   []string
+}

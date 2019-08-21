@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -393,7 +394,45 @@ func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 		tags = append(tags, p.Key)
 	}
 
-	return tags, err
+	return tags, nil
+}
+
+// SnapshotDetails returns an index of keyspaces and tables present in the given
+// snapshot.
+func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit, error) {
+	resp, err := c.scyllaOpts.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
+		Context: forceHost(ctx, host),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]Unit)
+	for _, p := range resp.Payload {
+		if p.Key != tag {
+			continue
+		}
+		for _, v := range p.Value {
+			k, ok := m[v.Ks]
+			if !ok {
+				k = Unit{
+					Keyspace: v.Ks,
+				}
+			}
+			k.Tables = append(k.Tables, v.Cf)
+			m[v.Ks] = k
+		}
+	}
+
+	var s []Unit
+	for _, v := range m {
+		s = append(s, v)
+	}
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].Keyspace < s[j].Keyspace
+	})
+
+	return s, nil
 }
 
 // TakeSnapshot takes a snapshot of a keyspace, multiple keyspaces may have
