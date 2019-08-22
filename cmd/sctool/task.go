@@ -393,6 +393,7 @@ func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task
 	}
 
 	rp.Task = t
+	rp.AggregateErrors()
 
 	return render(w, rp)
 }

@@ -1,0 +1,62 @@
+{
+  "size": 47,
+  "uploaded": 25,
+  "skipped": 10,
+  "dcs": [
+    "dc1",
+    "dc2"
+  ],
+  "hosts": [
+    {
+      "host": "host1",
+      "keyspaces": [
+        {
+          "keyspace": "ks",
+          "tables": [
+            {
+              "table": "table1",
+              "size": 17,
+              "uploaded": 7,
+              "skipped": 10
+            },
+            {
+              "table": "table2",
+              "size": 10,
+              "uploaded": 5
+            }
+          ],
+          "size": 27,
+          "uploaded": 12,
+          "skipped": 10
+        }
+      ],
+      "size": 27,
+      "uploaded": 12,
+      "skipped": 10
+    },
+    {
+      "host": "host2",
+      "keyspaces": [
+        {
+          "keyspace": "ks",
+          "tables": [
+            {
+              "table": "table1",
+              "size": 10,
+              "uploaded": 10
+            },
+            {
+              "table": "table2",
+              "size": 10,
+              "uploaded": 3
+            }
+          ],
+          "size": 20,
+          "uploaded": 13
+        }
+      ],
+      "size": 20,
+      "uploaded": 13
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"time"
 
@@ -30,8 +31,9 @@ type Target struct {
 
 // Unit represents keyspace and its tables.
 type Unit struct {
-	Keyspace string   `json:"keyspace" db:"keyspace_name"`
-	Tables   []string `json:"tables,omitempty"`
+	Keyspace  string   `json:"keyspace" db:"keyspace_name"`
+	Tables    []string `json:"tables,omitempty"`
+	AllTables bool
 }
 
 func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
@@ -103,28 +105,35 @@ type progress struct {
 	Failed   int64 `json:"failed"`
 }
 
-// Progress defines uploading progress for all units of the run.
+// Progress groups uploading progress for all backed up hosts.
 type Progress struct {
 	progress
 
-	DC        []string           `json:"dcs,omitempty"`
+	DC    []string       `json:"dcs,omitempty"`
+	Hosts []HostProgress `json:"hosts,omitempty"`
+}
+
+// HostProgress groups uploading progress for keyspaces belonging to this host.
+type HostProgress struct {
+	progress
+
+	Host      string             `json:"host"`
 	Keyspaces []KeyspaceProgress `json:"keyspaces,omitempty"`
 }
 
-// KeyspaceProgress defines progress for the keyspace.
+// KeyspaceProgress groups uploading progress for the tables belonging to this
+// keyspace.
 type KeyspaceProgress struct {
 	progress
 
-	Keyspace   string              `json:"keyspace"`
-	HostTables []HostTableProgress `json:"tables,omitempty"`
-	BackupSize int64               `json:"backup_size,omitempty"`
+	Keyspace string          `json:"keyspace"`
+	Tables   []TableProgress `json:"tables,omitempty"`
 }
 
-// HostTableProgress defines progress for the table on the specific host.
-type HostTableProgress struct {
+// TableProgress defines progress for the table.
+type TableProgress struct {
 	progress
 
-	Host  string `json:"host"`
 	Table string `json:"table"`
 	Error string `json:"error,omitempty"`
 }
@@ -145,8 +154,14 @@ func runProgress(run *Run, prog []*RunProgress) (int64, int64) {
 	return size, uploaded
 }
 
-// aggregateProgress returns progress information classified by keyspace and
-// host tables.
+type tableKey struct {
+	host     string
+	keyspace string
+	table    string
+}
+
+// aggregateProgress returns progress information classified by host, keyspace,
+// and host tables.
 func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 	p := Progress{
 		DC: run.DC,
@@ -155,60 +170,71 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 		return p
 	}
 
-	kspMap := make(map[string]*KeyspaceProgress)
-outer:
+	hostsMap := make(map[string]struct{})
+	tableMap := make(map[tableKey]*TableProgress)
 	for _, pr := range prog {
-		ksName := run.Units[pr.Unit].Keyspace
-
-		ks, ok := kspMap[ksName]
+		tk := tableKey{pr.Host, run.Units[pr.Unit].Keyspace, pr.TableName}
+		table, ok := tableMap[tk]
 		if !ok {
-			ks = &KeyspaceProgress{
-				Keyspace: ksName,
+			table = &TableProgress{
+				Table: pr.TableName,
 			}
-			kspMap[ksName] = ks
+			tableMap[tk] = table
+			hostsMap[pr.Host] = struct{}{}
 		}
 
-		// Don't count metadata in progress.
+		// Don't count metadata as progress.
 		if pr.FileName == manifestFile {
 			continue
 		}
 
-		p.Size += pr.Size
-		p.Uploaded += pr.Uploaded
-		p.Failed += pr.Failed
-		p.Skipped += pr.Skipped
-		ks.Size += pr.Size
-		ks.Uploaded += pr.Uploaded
-		ks.Skipped += pr.Skipped
-		ks.Failed += pr.Failed
-
-		for i, htp := range ks.HostTables {
-			if htp.Host == pr.Host && htp.Table == pr.TableName {
-				ks.HostTables[i].Size += pr.Size
-				ks.HostTables[i].Uploaded += pr.Uploaded
-				ks.HostTables[i].Skipped += pr.Skipped
-				ks.HostTables[i].Failed += pr.Failed
-				if pr.Error != "" {
-					ks.HostTables[i].Error += ", " + pr.Error
-				}
-				continue outer
+		table.Size += pr.Size
+		table.Uploaded += pr.Uploaded
+		table.Skipped += pr.Skipped
+		table.Failed += pr.Failed
+		if pr.Error != "" {
+			if table.Error == "" {
+				table.Error = pr.Error
+			} else {
+				table.Error += ", " + pr.Error
 			}
 		}
-		ks.HostTables = append(ks.HostTables, HostTableProgress{
-			progress: progress{
-				Size:     pr.Size,
-				Uploaded: pr.Uploaded,
-				Skipped:  pr.Skipped,
-				Failed:   pr.Failed,
-			},
-			Host:  pr.Host,
-			Table: pr.TableName,
-			Error: pr.Error,
-		})
 	}
 
-	for _, u := range run.Units {
-		p.Keyspaces = append(p.Keyspaces, *kspMap[u.Keyspace])
+	var hosts []string
+	for h := range hostsMap {
+		hosts = append(hosts, h)
+	}
+	sort.Strings(hosts)
+
+	for _, h := range hosts {
+		host := HostProgress{
+			Host: h,
+		}
+		for _, u := range run.Units {
+			ks := KeyspaceProgress{
+				Keyspace: u.Keyspace,
+			}
+			for _, t := range u.Tables {
+				tp := *tableMap[tableKey{h, u.Keyspace, t}]
+				ks.Tables = append(ks.Tables, tp)
+				ks.Size += tp.Size
+				ks.Uploaded += tp.Uploaded
+				ks.Skipped += tp.Skipped
+				ks.Failed += tp.Failed
+
+			}
+			host.Keyspaces = append(host.Keyspaces, ks)
+			host.Size += ks.Size
+			host.Uploaded += ks.Uploaded
+			host.Skipped += ks.Skipped
+			host.Failed += ks.Failed
+		}
+		p.Hosts = append(p.Hosts, host)
+		p.Size += host.Size
+		p.Uploaded += host.Uploaded
+		p.Skipped += host.Skipped
+		p.Failed += host.Failed
 	}
 
 	return p

@@ -18,9 +18,6 @@ import (
 // swagger:model keyspaceProgress
 type KeyspaceProgress struct {
 
-	// backup size
-	BackupSize int64 `json:"backup_size,omitempty"`
-
 	// failed
 	Failed int64 `json:"failed,omitempty"`
 
@@ -34,7 +31,7 @@ type KeyspaceProgress struct {
 	Skipped int64 `json:"skipped,omitempty"`
 
 	// tables
-	Tables []*HostTableProgress `json:"tables"`
+	Tables []*TableProgress `json:"tables"`
 
 	// uploaded
 	Uploaded int64 `json:"uploaded,omitempty"`

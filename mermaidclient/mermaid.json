@@ -401,6 +401,32 @@
             "type": "string"
           }
         },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/hostProgress"
+          }
+        },
+        "size": {
+          "type": "integer"
+        },
+        "uploaded": {
+          "type": "integer"
+        },
+        "skipped": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        }
+      }
+    },
+    "hostProgress": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
         "keyspaces": {
           "type": "array",
           "items": {
@@ -430,7 +456,7 @@
         "tables": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/hostTableProgress"
+            "$ref": "#/definitions/tableProgress"
           }
         },
         "size": {
@@ -444,18 +470,12 @@
         },
         "failed": {
           "type": "integer"
-        },
-        "backup_size": {
-          "type": "integer"
         }
       }
     },
-    "hostTableProgress": {
+    "tableProgress": {
       "type": "object",
       "properties": {
-        "host": {
-          "type": "string"
-        },
         "table": {
           "type": "string"
         },

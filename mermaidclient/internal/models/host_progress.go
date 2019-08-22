@@ -14,18 +14,18 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// BackupProgress backup progress
-// swagger:model backupProgress
-type BackupProgress struct {
-
-	// dcs
-	Dcs []string `json:"dcs"`
+// HostProgress host progress
+// swagger:model hostProgress
+type HostProgress struct {
 
 	// failed
 	Failed int64 `json:"failed,omitempty"`
 
-	// hosts
-	Hosts []*HostProgress `json:"hosts"`
+	// host
+	Host string `json:"host,omitempty"`
+
+	// keyspaces
+	Keyspaces []*KeyspaceProgress `json:"keyspaces"`
 
 	// size
 	Size int64 `json:"size,omitempty"`
@@ -37,11 +37,11 @@ type BackupProgress struct {
 	Uploaded int64 `json:"uploaded,omitempty"`
 }
 
-// Validate validates this backup progress
-func (m *BackupProgress) Validate(formats strfmt.Registry) error {
+// Validate validates this host progress
+func (m *HostProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateHosts(formats); err != nil {
+	if err := m.validateKeyspaces(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -51,21 +51,21 @@ func (m *BackupProgress) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *BackupProgress) validateHosts(formats strfmt.Registry) error {
+func (m *HostProgress) validateKeyspaces(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Hosts) { // not required
+	if swag.IsZero(m.Keyspaces) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Hosts); i++ {
-		if swag.IsZero(m.Hosts[i]) { // not required
+	for i := 0; i < len(m.Keyspaces); i++ {
+		if swag.IsZero(m.Keyspaces[i]) { // not required
 			continue
 		}
 
-		if m.Hosts[i] != nil {
-			if err := m.Hosts[i].Validate(formats); err != nil {
+		if m.Keyspaces[i] != nil {
+			if err := m.Keyspaces[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("hosts" + "." + strconv.Itoa(i))
+					return ve.ValidateName("keyspaces" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -77,7 +77,7 @@ func (m *BackupProgress) validateHosts(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *BackupProgress) MarshalBinary() ([]byte, error) {
+func (m *HostProgress) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -85,8 +85,8 @@ func (m *BackupProgress) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *BackupProgress) UnmarshalBinary(b []byte) error {
-	var res BackupProgress
+func (m *HostProgress) UnmarshalBinary(b []byte) error {
+	var res HostProgress
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

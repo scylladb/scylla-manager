@@ -206,7 +206,7 @@ func TestAggregateProgress(t *testing.T) {
 			Name:        "run with no progress",
 			Run:         run1,
 			RunProgress: nil,
-			Expected:    "expected_no_run_progress.json",
+			Expected:    "no_run_progress.golden.json",
 		},
 		{
 			Name: "run with no units",
@@ -214,7 +214,7 @@ func TestAggregateProgress(t *testing.T) {
 			RunProgress: []*RunProgress{
 				{},
 			},
-			Expected: "expected_no_units.json",
+			Expected: "no_units.golden.json",
 		},
 		{
 			Name: "run with success progress",
@@ -276,7 +276,7 @@ func TestAggregateProgress(t *testing.T) {
 					Uploaded:    3,
 				},
 			},
-			Expected: "expected_on_success.json",
+			Expected: "on_success.golden.json",
 		},
 		{
 			Name: "run with error progress",
@@ -340,12 +340,12 @@ func TestAggregateProgress(t *testing.T) {
 					Uploaded:    3,
 				},
 			},
-			Expected: "expected_on_error.json",
+			Expected: "on_error.golden.json",
 		},
 	}
 
 	opts := cmp.Options{
-		cmp.AllowUnexported(Progress{}, KeyspaceProgress{}, HostTableProgress{}),
+		cmp.AllowUnexported(Progress{}, HostProgress{}, KeyspaceProgress{}, TableProgress{}),
 		cmpopts.IgnoreUnexported(progress{}),
 	}
 

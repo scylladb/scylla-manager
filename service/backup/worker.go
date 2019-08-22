@@ -189,7 +189,11 @@ func (w *worker) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
 func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 	for _, u := range w.units {
 		w.logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", snapshotTag(w.runID))
-		if err := w.client.TakeSnapshot(ctx, h.IP, snapshotTag(w.runID), u.Keyspace, u.Tables...); err != nil {
+		var tables []string
+		if !u.AllTables {
+			tables = u.Tables
+		}
+		if err := w.client.TakeSnapshot(ctx, h.IP, snapshotTag(w.runID), u.Keyspace, tables...); err != nil {
 			return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
 		}
 	}
@@ -582,7 +586,14 @@ func (w *worker) remoteMetaDir(h hostInfo, d snapshotDir) string {
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 	return path.Join(
-		remoteSstDir(w.clusterID.String(), h.ID, d.Keyspace),
+		"backup",
+		"cluster",
+		w.clusterID.String(),
+		"node",
+		h.ID,
+		"keyspace",
+		d.Keyspace,
+		"sst",
 		d.Table,
 		d.Version,
 	)
@@ -592,19 +603,6 @@ const dataDir = "/var/lib/scylla/data"
 
 func keyspaceDir(keyspace string) string {
 	return path.Join(dataDir, keyspace)
-}
-
-func remoteSstDir(clusterID, nodeID, keyspace string) string {
-	return path.Join(
-		"backup",
-		"cluster",
-		clusterID,
-		"node",
-		nodeID,
-		"keyspace",
-		keyspace,
-		"sst",
-	)
 }
 
 func snapshotTag(id uuid.UUID) string {

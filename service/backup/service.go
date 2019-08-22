@@ -162,11 +162,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Copy units
 	for _, u := range v {
 		uu := Unit{
-			Keyspace: u.Keyspace,
-			Tables:   u.Tables,
-		}
-		if u.AllTables {
-			uu.Tables = nil
+			Keyspace:  u.Keyspace,
+			Tables:    u.Tables,
+			AllTables: u.AllTables,
 		}
 		t.Units = append(t.Units, uu)
 	}
@@ -430,68 +428,5 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 
 	p := aggregateProgress(run, prog)
 
-	s.aggregateBackupSize(ctx, run, &p)
-
 	return p, nil
-}
-
-func (s *Service) aggregateBackupSize(ctx context.Context, run *Run, prog *Progress) {
-	// Get the cluster client
-	client, err := s.scyllaClient(ctx, run.ClusterID)
-	if err != nil {
-		s.logger.Error(ctx, "Failed to get client",
-			"error", err,
-			"task_id", run.TaskID,
-			"run_id", run.ID,
-		)
-		return
-	}
-
-	// Get host IDs
-	hostIDs, err := client.HostIDs(ctx)
-	if err != nil {
-		s.logger.Error(ctx, "Failed to get client",
-			"error", err,
-			"task_id", run.TaskID,
-			"run_id", run.ID,
-		)
-		return
-	}
-
-outer:
-	for i := range prog.Keyspaces {
-		var size int64
-		hosts := keyspaceProgressHosts(prog.Keyspaces)
-		for _, h := range hosts {
-			path := run.Location[0].RemotePath(remoteSstDir(run.ClusterID.String(), hostIDs[h], prog.Keyspaces[i].Keyspace))
-			items, err := client.RcloneListDir(ctx, h, path, true)
-			if err != nil {
-				s.logger.Error(ctx, "Failed to get backup size",
-					"error", err,
-					"task_id", run.TaskID,
-					"run_id", run.ID,
-					"keyspace", prog.Keyspaces[i].Keyspace,
-				)
-				continue outer
-			}
-			for _, item := range items {
-				size += item.Size
-			}
-		}
-		prog.Keyspaces[i].BackupSize = size
-	}
-}
-
-func keyspaceProgressHosts(keyspaces []KeyspaceProgress) []string {
-	hosts := make(map[string]struct{})
-	for _, ks := range keyspaces {
-		for _, tbl := range ks.HostTables {
-			hosts[tbl.Host] = struct{}{}
-		}
-	}
-	var out []string
-	for host := range hosts {
-		out = append(out, host)
-	}
-	return out
 }

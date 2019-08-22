@@ -316,6 +316,7 @@ type BackupProgress struct {
 	*models.TaskRunBackupProgress
 	Task     *Task
 	Detailed bool
+	Errors   []string
 
 	hostFilter     inexlist.InExList
 	keyspaceFilter inexlist.InExList
@@ -333,6 +334,19 @@ func (rp *BackupProgress) SetKeyspaceFilter(filters []string) (err error) {
 	return
 }
 
+// AggregateErrors collects all errors from the table progress.
+func (rp *BackupProgress) AggregateErrors() {
+	for i := range rp.Progress.Hosts {
+		for j := range rp.Progress.Hosts[i].Keyspaces {
+			for _, t := range rp.Progress.Hosts[i].Keyspaces[j].Tables {
+				if t.Error != "" {
+					rp.Errors = append(rp.Errors, t.Error)
+				}
+			}
+		}
+	}
+}
+
 // Render renders *BackupProgress in a tabular format.
 func (rp BackupProgress) Render(w io.Writer) error {
 	if err := rp.addHeader(w); err != nil {
@@ -341,7 +355,7 @@ func (rp BackupProgress) Render(w io.Writer) error {
 
 	if rp.Progress != nil && rp.Progress.Size > 0 {
 		t := table.New()
-		rp.addKeyspaceProgress(t)
+		rp.addHostProgress(t)
 		if _, err := io.WriteString(w, t.String()); err != nil {
 			return err
 		}
@@ -349,7 +363,7 @@ func (rp BackupProgress) Render(w io.Writer) error {
 
 	if rp.Detailed && rp.Progress != nil && rp.Progress.Size > 0 {
 		d := table.New()
-		rp.addTableProgress(d)
+		rp.addKeyspaceProgress(d)
 		if _, err := w.Write([]byte(d.String())); err != nil {
 			return err
 		}
@@ -357,48 +371,46 @@ func (rp BackupProgress) Render(w io.Writer) error {
 	return nil
 }
 
-func (rp BackupProgress) addKeyspaceProgress(t *table.Table) {
-	t.AddRow("keyspace", "progress", "backup size")
+func (rp BackupProgress) addHostProgress(t *table.Table) {
+	t.AddRow("host", "progress")
 	t.AddSeparator()
-	for _, ks := range rp.Progress.Keyspaces {
-		if rp.hideKeyspace(ks.Keyspace) {
+	for _, h := range rp.Progress.Hosts {
+		if rp.hideHost(h.Host) {
 			continue
 		}
 		p := "-"
-		if len(ks.Tables) > 0 {
-			p = FormatUploadProgress(ks.Size, ks.Uploaded, ks.Skipped, ks.Failed)
+		if len(h.Keyspaces) > 0 {
+			p = FormatUploadProgress(h.Size, h.Uploaded, h.Skipped, h.Failed)
 		}
-		bs := "-"
-		if ks.BackupSize > 0 {
-			bs = ByteCountBinary(ks.BackupSize, true)
-		}
-		t.AddRow(ks.Keyspace, p, bs)
+		t.AddRow(h.Host, p)
 	}
 }
 
-func (rp BackupProgress) addTableProgress(t *table.Table) {
+func (rp BackupProgress) addKeyspaceProgress(t *table.Table) {
 	addSeparator := false
-	for _, ks := range rp.Progress.Keyspaces {
-		if rp.hideKeyspace(ks.Keyspace) {
+	for _, h := range rp.Progress.Hosts {
+		if rp.hideHost(h.Host) {
 			continue
 		}
-		if addSeparator {
-			t.AddSeparator()
-		}
-		addSeparator = true
-		t.AddRow(ks.Keyspace, "table", "progress", "error")
-		t.AddSeparator()
-		rowAdded := false
-		for _, tbl := range ks.Tables {
-			if rp.hideHost(tbl.Host) {
-				continue
+		for _, ks := range h.Keyspaces {
+			if rp.hideKeyspace(ks.Keyspace) {
+				break
 			}
-			t.AddRow(tbl.Host, tbl.Table, FormatUploadProgress(tbl.Size, tbl.Uploaded, tbl.Skipped, tbl.Failed), tbl.Error)
-			rowAdded = true
-		}
-		if !rowAdded {
-			// Separate keyspaces with no table rows
-			t.AddRow("-", "-", "-", "-")
+			if addSeparator {
+				t.AddSeparator()
+			}
+			addSeparator = true
+			t.AddRow(h.Host, "table", "progress")
+			t.AddSeparator()
+			rowAdded := false
+			for _, tbl := range ks.Tables {
+				t.AddRow(ks.Keyspace, tbl.Table, FormatUploadProgress(tbl.Size, tbl.Uploaded, tbl.Skipped, tbl.Failed))
+				rowAdded = true
+			}
+			if !rowAdded {
+				// Separate keyspaces with no table rows
+				t.AddRow("-", "-", "-", "-")
+			}
 		}
 	}
 }
@@ -438,7 +450,12 @@ Datacenters:	{{ range .Dcs }}
 {{- end }}
 {{ end -}}
 {{ else }}Progress:	0%
-{{ end }}`
+{{ end }}
+{{- if .Errors -}}
+Errors:	{{ range .Errors }}
+  - {{ . }}
+{{- end }}
+{{ end -}}`
 
 func (rp BackupProgress) addHeader(w io.Writer) error {
 	temp := template.Must(template.New("backup_progress").Funcs(template.FuncMap{

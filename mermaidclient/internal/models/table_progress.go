@@ -11,18 +11,15 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// HostTableProgress host table progress
-// swagger:model hostTableProgress
-type HostTableProgress struct {
+// TableProgress table progress
+// swagger:model tableProgress
+type TableProgress struct {
 
 	// error
 	Error string `json:"error,omitempty"`
 
 	// failed
 	Failed int64 `json:"failed,omitempty"`
-
-	// host
-	Host string `json:"host,omitempty"`
 
 	// size
 	Size int64 `json:"size,omitempty"`
@@ -37,13 +34,13 @@ type HostTableProgress struct {
 	Uploaded int64 `json:"uploaded,omitempty"`
 }
 
-// Validate validates this host table progress
-func (m *HostTableProgress) Validate(formats strfmt.Registry) error {
+// Validate validates this table progress
+func (m *TableProgress) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *HostTableProgress) MarshalBinary() ([]byte, error) {
+func (m *TableProgress) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -51,8 +48,8 @@ func (m *HostTableProgress) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *HostTableProgress) UnmarshalBinary(b []byte) error {
-	var res HostTableProgress
+func (m *TableProgress) UnmarshalBinary(b []byte) error {
+	var res TableProgress
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
