@@ -262,12 +262,8 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 			return err
 		}
 	}
-	prog, err := s.getProgress(run)
-	if err != nil {
-		return errors.Wrap(err, "failed to load run progress")
-	}
 
-	return w.Upload(ctx, hi, target.UploadParallel, prog)
+	return w.Upload(ctx, hi, target.UploadParallel)
 }
 
 // decorateWithPrevRun gets task previous run and if it can be continued

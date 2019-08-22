@@ -28,6 +28,7 @@ type snapshotDir struct {
 	Keyspace string
 	Table    string
 	Version  string
+	Progress []*RunProgress
 }
 
 type worker struct {
@@ -112,7 +113,7 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 	return nil
 }
 
-func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit, progress []*RunProgress) (err error) {
+func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
 	w.logger.Info(ctx, "Starting upload procedure")
 	defer func() {
 		if err != nil {
@@ -124,7 +125,7 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit,
 
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
 		w.logger.Info(ctx, "Executing upload procedure on host", "host", h.IP)
-		err := w.uploadHost(ctx, h, progress)
+		err := w.uploadHost(ctx, h)
 		if err != nil {
 			w.logger.Error(ctx, "Upload procedure failed on host", "host", h.IP, "error", err)
 		} else {
@@ -134,7 +135,7 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit,
 	})
 }
 
-func (w *worker) uploadHost(ctx context.Context, h hostInfo, progress []*RunProgress) error {
+func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	if err := w.register(ctx, h); err != nil {
 		return errors.Wrap(err, "failed to register remote")
 	}
@@ -153,26 +154,26 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo, progress []*RunProg
 
 	for _, d := range dirs {
 		// Check if we should attach to a previous job and wait for it to complete.
-		if err := w.attachToJob(ctx, h, d, progress); err != nil {
+		if err := w.attachToJob(ctx, h, d); err != nil {
 			return errors.Wrap(err, "failed to attach to the agent job")
 		}
 		// Start new upload with new job.
-		if err := w.uploadSnapshotDir(ctx, h, d, progress); err != nil {
+		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
 			return errors.Wrap(err, "failed to upload snapshot")
 		}
 	}
 	return nil
 }
 
-func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir, progress []*RunProgress) error {
-	if jobID := w.snapshotJobID(ctx, d, progress); jobID != uuid.Nil {
+func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) error {
+	if jobID := w.snapshotJobID(ctx, d); jobID != uuid.Nil {
 		w.logger.Info(ctx, "Attaching to the previous agent job",
 			"host", h.IP,
 			"keyspace", d.Keyspace,
 			"tag", snapshotTag(w.runID),
 			"jobid", jobID.String(),
 		)
-		if err := w.waitJob(ctx, jobID, d, progress); err != nil {
+		if err := w.waitJob(ctx, jobID, d); err != nil {
 			return err
 		}
 	}
@@ -182,8 +183,8 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir, pro
 // snapshotJobID returns the id of the job that was last responsible for
 // uploading the snapshot directory.
 // If it's not available it will return uuid.Nil
-func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir, progress []*RunProgress) uuid.UUID {
-	for _, p := range w.getSnapshotDirProgress(d, progress) {
+func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) uuid.UUID {
+	for _, p := range d.Progress {
 		if p.AgentJobID == uuid.Nil || p.Size == p.Uploaded {
 			continue
 		}
@@ -310,8 +311,6 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 				"dir", d.Path,
 			)
 
-			dirs = append(dirs, d)
-
 			for _, f := range files {
 				if f.IsDir {
 					continue
@@ -326,8 +325,11 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 					FileName:  f.Name,
 					Size:      f.Size,
 				}
+				d.Progress = append(d.Progress, p)
 				w.onRunProgress(ctx, p)
 			}
+
+			dirs = append(dirs, d)
 		}
 	}
 
@@ -357,7 +359,7 @@ func (w *worker) setRateLimit(ctx context.Context, h hostInfo) error {
 
 const manifestFile = "manifest.json"
 
-func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDir, progress []*RunProgress) error {
+func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDir) error {
 	w.logger.Info(ctx, "Uploading table snapshot",
 		"host", h.IP,
 		"keyspace", d.Keyspace,
@@ -370,7 +372,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		manifestDst = path.Join(h.Location.RemotePath(w.remoteMetaDir(h, d)), manifestFile)
 		manifestSrc = path.Join(d.Path, manifestFile)
 	)
-	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d, progress); err != nil {
+	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d); err != nil {
 		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, manifestSrc, manifestDst)
 	}
 
@@ -379,29 +381,29 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		dataDst = h.Location.RemotePath(w.remoteSSTableDir(h, d))
 		dataSrc = d.Path
 	)
-	if err := w.uploadDir(ctx, dataDst, dataSrc, d, progress); err != nil {
+	if err := w.uploadDir(ctx, dataDst, dataSrc, d); err != nil {
 		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, dataSrc, dataDst)
 	}
 
 	return nil
 }
 
-func (w *worker) uploadFile(ctx context.Context, dst, src string, d snapshotDir, progress []*RunProgress) error {
+func (w *worker) uploadFile(ctx context.Context, dst, src string, d snapshotDir) error {
 	w.logger.Debug(ctx, "Uploading file", "host", d.Host, "from", src, "to", dst)
 	id, err := w.client.RcloneCopyFile(ctx, d.Host, dst, src)
 	if err != nil {
 		return err
 	}
-	p := w.getManifestProgress(d, progress)
+	p := w.getManifestProgress(d)
 	if p != nil {
 		p.AgentJobID = id
 		w.onRunProgress(ctx, p)
 	}
-	return w.waitJob(ctx, id, d, progress)
+	return w.waitJob(ctx, id, d)
 }
 
-func (w *worker) getManifestProgress(d snapshotDir, progress []*RunProgress) *RunProgress {
-	for _, p := range progress {
+func (w *worker) getManifestProgress(d snapshotDir) *RunProgress {
+	for _, p := range d.Progress {
 		if p.FileName == manifestFile && p.Unit == d.Unit && p.TableName == d.Table && p.Host == d.Host {
 			return p
 		}
@@ -409,31 +411,21 @@ func (w *worker) getManifestProgress(d snapshotDir, progress []*RunProgress) *Ru
 	return nil
 }
 
-func (w *worker) uploadDir(ctx context.Context, dst, src string, d snapshotDir, progress []*RunProgress) error {
+func (w *worker) uploadDir(ctx context.Context, dst, src string, d snapshotDir) error {
 	w.logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst)
 	id, err := w.client.RcloneCopyDir(ctx, d.Host, dst, src, manifestFile)
 	if err != nil {
 		return err
 	}
 
-	for _, p := range w.getSnapshotDirProgress(d, progress) {
+	for _, p := range d.Progress {
 		p.AgentJobID = id
 		w.onRunProgress(ctx, p)
 	}
-	return w.waitJob(ctx, id, d, progress)
+	return w.waitJob(ctx, id, d)
 }
 
-func (w *worker) getSnapshotDirProgress(d snapshotDir, progress []*RunProgress) []*RunProgress {
-	var out []*RunProgress
-	for _, p := range progress {
-		if p.Unit == d.Unit && p.TableName == d.Table && p.Host == d.Host {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
-func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir, progress []*RunProgress) error {
+func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir) error {
 	t := time.NewTicker(w.config.PollInterval)
 	defer t.Stop()
 
@@ -450,7 +442,7 @@ func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir, progr
 					"table", d.Table,
 				)
 			}
-			w.updateProgress(ctx, id, d, progress)
+			w.updateProgress(ctx, id, d)
 			return ctx.Err()
 		case <-t.C:
 			status, err := w.getJobStatus(ctx, id, d)
@@ -460,10 +452,10 @@ func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir, progr
 			case jobNotFound:
 				return errors.Errorf("job not found (%s)", id)
 			case jobSuccess:
-				w.updateProgress(ctx, id, d, progress)
+				w.updateProgress(ctx, id, d)
 				return nil
 			case jobRunning:
-				w.updateProgress(ctx, id, d, progress)
+				w.updateProgress(ctx, id, d)
 			}
 		}
 	}
@@ -494,7 +486,7 @@ func (w *worker) getJobStatus(ctx context.Context, jobID uuid.UUID, d snapshotDi
 	return jobRunning, nil
 }
 
-func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshotDir, progress []*RunProgress) {
+func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshotDir) {
 	transferred, err := w.client.RcloneTransferred(ctx, d.Host, jobID.String())
 	if err != nil {
 		w.logger.Error(ctx, "Failed to get transferred files",
@@ -514,7 +506,7 @@ func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshot
 		return
 	}
 
-	for _, p := range w.getSnapshotDirProgress(d, progress) {
+	for _, p := range d.Progress {
 		if p.AgentJobID != jobID || p.Size == p.Uploaded {
 			continue
 		}
