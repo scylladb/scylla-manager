@@ -24,14 +24,12 @@ type FindConfigMemtableOffheapSpaceInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemtableOffheapSpaceInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemtableOffheapSpaceInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemtableOffheapSpaceInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemtableOffheapSpaceInMbOK struct {
 
 func (o *FindConfigMemtableOffheapSpaceInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_offheap_space_in_mb][%d] findConfigMemtableOffheapSpaceInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemtableOffheapSpaceInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableOffheapSpaceInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemtableOffheapSpaceInMbDefault) Code() int {
 
 func (o *FindConfigMemtableOffheapSpaceInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_offheap_space_in_mb][%d] find_config_memtable_offheap_space_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemtableOffheapSpaceInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableOffheapSpaceInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

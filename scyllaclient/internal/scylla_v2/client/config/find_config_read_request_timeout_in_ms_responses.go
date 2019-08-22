@@ -24,14 +24,12 @@ type FindConfigReadRequestTimeoutInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigReadRequestTimeoutInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigReadRequestTimeoutInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigReadRequestTimeoutInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigReadRequestTimeoutInMsOK struct {
 
 func (o *FindConfigReadRequestTimeoutInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/read_request_timeout_in_ms][%d] findConfigReadRequestTimeoutInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigReadRequestTimeoutInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigReadRequestTimeoutInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigReadRequestTimeoutInMsDefault) Code() int {
 
 func (o *FindConfigReadRequestTimeoutInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/read_request_timeout_in_ms][%d] find_config_read_request_timeout_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigReadRequestTimeoutInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigReadRequestTimeoutInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

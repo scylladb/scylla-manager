@@ -24,14 +24,12 @@ type FindConfigAbortOnLsaBadAllocReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAbortOnLsaBadAllocReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAbortOnLsaBadAllocOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAbortOnLsaBadAllocDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAbortOnLsaBadAllocOK struct {
 
 func (o *FindConfigAbortOnLsaBadAllocOK) Error() string {
 	return fmt.Sprintf("[GET /config/abort_on_lsa_bad_alloc][%d] findConfigAbortOnLsaBadAllocOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAbortOnLsaBadAllocOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigAbortOnLsaBadAllocOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAbortOnLsaBadAllocDefault) Code() int {
 
 func (o *FindConfigAbortOnLsaBadAllocDefault) Error() string {
 	return fmt.Sprintf("[GET /config/abort_on_lsa_bad_alloc][%d] find_config_abort_on_lsa_bad_alloc default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAbortOnLsaBadAllocDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAbortOnLsaBadAllocDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

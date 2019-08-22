@@ -22,7 +22,6 @@ type HintedHandoffMetricsNotStoredHintsByAddrGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *HintedHandoffMetricsNotStoredHintsByAddrGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewHintedHandoffMetricsNotStoredHintsByAddrGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type HintedHandoffMetricsNotStoredHintsByAddrGetOK struct {
 
 func (o *HintedHandoffMetricsNotStoredHintsByAddrGetOK) Error() string {
 	return fmt.Sprintf("[GET /hinted_handoff/metrics/not_stored_hints/{addr}][%d] hintedHandoffMetricsNotStoredHintsByAddrGetOK  %+v", 200, o.Payload)
+}
+
+func (o *HintedHandoffMetricsNotStoredHintsByAddrGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *HintedHandoffMetricsNotStoredHintsByAddrGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

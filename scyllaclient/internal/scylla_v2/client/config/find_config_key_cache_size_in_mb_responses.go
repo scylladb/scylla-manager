@@ -24,14 +24,12 @@ type FindConfigKeyCacheSizeInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigKeyCacheSizeInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigKeyCacheSizeInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigKeyCacheSizeInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigKeyCacheSizeInMbOK struct {
 
 func (o *FindConfigKeyCacheSizeInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/key_cache_size_in_mb][%d] findConfigKeyCacheSizeInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigKeyCacheSizeInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigKeyCacheSizeInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigKeyCacheSizeInMbDefault) Code() int {
 
 func (o *FindConfigKeyCacheSizeInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/key_cache_size_in_mb][%d] find_config_key_cache_size_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigKeyCacheSizeInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigKeyCacheSizeInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

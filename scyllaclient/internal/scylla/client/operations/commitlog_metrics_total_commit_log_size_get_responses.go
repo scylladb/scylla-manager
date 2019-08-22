@@ -22,7 +22,6 @@ type CommitlogMetricsTotalCommitLogSizeGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CommitlogMetricsTotalCommitLogSizeGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCommitlogMetricsTotalCommitLogSizeGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CommitlogMetricsTotalCommitLogSizeGetOK struct {
 
 func (o *CommitlogMetricsTotalCommitLogSizeGetOK) Error() string {
 	return fmt.Sprintf("[GET /commitlog/metrics/total_commit_log_size][%d] commitlogMetricsTotalCommitLogSizeGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CommitlogMetricsTotalCommitLogSizeGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *CommitlogMetricsTotalCommitLogSizeGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigDiskFailurePolicyReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigDiskFailurePolicyReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigDiskFailurePolicyOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigDiskFailurePolicyDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigDiskFailurePolicyOK struct {
 
 func (o *FindConfigDiskFailurePolicyOK) Error() string {
 	return fmt.Sprintf("[GET /config/disk_failure_policy][%d] findConfigDiskFailurePolicyOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigDiskFailurePolicyOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigDiskFailurePolicyOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigDiskFailurePolicyDefault) Code() int {
 
 func (o *FindConfigDiskFailurePolicyDefault) Error() string {
 	return fmt.Sprintf("[GET /config/disk_failure_policy][%d] find_config_disk_failure_policy default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigDiskFailurePolicyDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigDiskFailurePolicyDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

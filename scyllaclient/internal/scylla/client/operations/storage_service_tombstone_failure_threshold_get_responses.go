@@ -22,7 +22,6 @@ type StorageServiceTombstoneFailureThresholdGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceTombstoneFailureThresholdGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceTombstoneFailureThresholdGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceTombstoneFailureThresholdGetOK struct {
 
 func (o *StorageServiceTombstoneFailureThresholdGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/tombstone_failure_threshold][%d] storageServiceTombstoneFailureThresholdGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceTombstoneFailureThresholdGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageServiceTombstoneFailureThresholdGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

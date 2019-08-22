@@ -6,6 +6,8 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
@@ -48,8 +50,14 @@ func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteClusterClusterIDOK), nil
-
+	success, ok := result.(*DeleteClusterClusterIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for DeleteClusterClusterID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -76,8 +84,14 @@ func (a *Client) DeleteClusterClusterIDTaskTaskTypeTaskID(params *DeleteClusterC
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteClusterClusterIDTaskTaskTypeTaskIDOK), nil
-
+	success, ok := result.(*DeleteClusterClusterIDTaskTaskTypeTaskIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for DeleteClusterClusterIDTaskTaskTypeTaskID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -104,8 +118,14 @@ func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDOK), nil
-
+	success, ok := result.(*GetClusterClusterIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusterClusterID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -132,8 +152,14 @@ func (a *Client) GetClusterClusterIDStatus(params *GetClusterClusterIDStatusPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDStatusOK), nil
-
+	success, ok := result.(*GetClusterClusterIDStatusOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusterClusterIDStatus: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -188,8 +214,14 @@ func (a *Client) GetClusterClusterIDTaskRepairTaskIDRunID(params *GetClusterClus
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDTaskRepairTaskIDRunIDOK), nil
-
+	success, ok := result.(*GetClusterClusterIDTaskRepairTaskIDRunIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusterClusterIDTaskRepairTaskIDRunID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -216,8 +248,14 @@ func (a *Client) GetClusterClusterIDTaskTaskTypeTaskID(params *GetClusterCluster
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDTaskTaskTypeTaskIDOK), nil
-
+	success, ok := result.(*GetClusterClusterIDTaskTaskTypeTaskIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusterClusterIDTaskTaskTypeTaskID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -244,8 +282,14 @@ func (a *Client) GetClusterClusterIDTaskTaskTypeTaskIDHistory(params *GetCluster
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK), nil
-
+	success, ok := result.(*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusterClusterIDTaskTaskTypeTaskIDHistory: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -272,8 +316,14 @@ func (a *Client) GetClusterClusterIDTasks(params *GetClusterClusterIDTasksParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterClusterIDTasksOK), nil
-
+	success, ok := result.(*GetClusterClusterIDTasksOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusterClusterIDTasks: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -300,8 +350,14 @@ func (a *Client) GetClusters(params *GetClustersParams) (*GetClustersOK, error) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClustersOK), nil
-
+	success, ok := result.(*GetClustersOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusters: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -328,8 +384,14 @@ func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetVersionOK), nil
-
+	success, ok := result.(*GetVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetVersion: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -356,8 +418,14 @@ func (a *Client) PostClusterClusterIDTasks(params *PostClusterClusterIDTasksPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PostClusterClusterIDTasksCreated), nil
-
+	success, ok := result.(*PostClusterClusterIDTasksCreated)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PostClusterClusterIDTasks: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -384,8 +452,14 @@ func (a *Client) PostClusters(params *PostClustersParams) (*PostClustersCreated,
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PostClustersCreated), nil
-
+	success, ok := result.(*PostClustersCreated)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PostClusters: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -412,8 +486,14 @@ func (a *Client) PutClusterClusterID(params *PutClusterClusterIDParams) (*PutClu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PutClusterClusterIDOK), nil
-
+	success, ok := result.(*PutClusterClusterIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PutClusterClusterID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -440,8 +520,14 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskID(params *PutClusterCluster
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PutClusterClusterIDTaskTaskTypeTaskIDOK), nil
-
+	success, ok := result.(*PutClusterClusterIDTaskTaskTypeTaskIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PutClusterClusterIDTaskTaskTypeTaskID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -468,8 +554,14 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStart(params *PutClusterCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PutClusterClusterIDTaskTaskTypeTaskIDStartOK), nil
-
+	success, ok := result.(*PutClusterClusterIDTaskTaskTypeTaskIDStartOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PutClusterClusterIDTaskTaskTypeTaskIDStart: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -496,8 +588,14 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStop(params *PutClusterClu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PutClusterClusterIDTaskTaskTypeTaskIDStopOK), nil
-
+	success, ok := result.(*PutClusterClusterIDTaskTaskTypeTaskIDStopOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PutClusterClusterIDTaskTaskTypeTaskIDStop: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -524,8 +622,14 @@ func (a *Client) PutClusterClusterIDTasksRepairTarget(params *PutClusterClusterI
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PutClusterClusterIDTasksRepairTargetOK), nil
-
+	success, ok := result.(*PutClusterClusterIDTasksRepairTargetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PutClusterClusterIDTasksRepairTarget: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 // SetTransport changes the transport on the client

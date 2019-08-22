@@ -24,14 +24,12 @@ type FindConfigSkipWaitForGossipToSettleReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigSkipWaitForGossipToSettleReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigSkipWaitForGossipToSettleOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigSkipWaitForGossipToSettleDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigSkipWaitForGossipToSettleOK struct {
 
 func (o *FindConfigSkipWaitForGossipToSettleOK) Error() string {
 	return fmt.Sprintf("[GET /config/skip_wait_for_gossip_to_settle][%d] findConfigSkipWaitForGossipToSettleOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigSkipWaitForGossipToSettleOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigSkipWaitForGossipToSettleOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigSkipWaitForGossipToSettleDefault) Code() int {
 
 func (o *FindConfigSkipWaitForGossipToSettleDefault) Error() string {
 	return fmt.Sprintf("[GET /config/skip_wait_for_gossip_to_settle][%d] find_config_skip_wait_for_gossip_to_settle default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigSkipWaitForGossipToSettleDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigSkipWaitForGossipToSettleDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

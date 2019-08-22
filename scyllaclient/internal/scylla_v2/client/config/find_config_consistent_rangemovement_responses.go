@@ -24,14 +24,12 @@ type FindConfigConsistentRangemovementReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigConsistentRangemovementReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigConsistentRangemovementOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigConsistentRangemovementDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigConsistentRangemovementOK struct {
 
 func (o *FindConfigConsistentRangemovementOK) Error() string {
 	return fmt.Sprintf("[GET /config/consistent_rangemovement][%d] findConfigConsistentRangemovementOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigConsistentRangemovementOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigConsistentRangemovementOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigConsistentRangemovementDefault) Code() int {
 
 func (o *FindConfigConsistentRangemovementDefault) Error() string {
 	return fmt.Sprintf("[GET /config/consistent_rangemovement][%d] find_config_consistent_rangemovement default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigConsistentRangemovementDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigConsistentRangemovementDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

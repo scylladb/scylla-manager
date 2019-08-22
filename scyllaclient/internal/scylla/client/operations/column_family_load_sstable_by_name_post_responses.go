@@ -22,7 +22,6 @@ type ColumnFamilyLoadSstableByNamePostReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyLoadSstableByNamePostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyLoadSstableByNamePostOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyLoadSstableByNamePostOK struct {
 
 func (o *ColumnFamilyLoadSstableByNamePostOK) Error() string {
 	return fmt.Sprintf("[POST /column_family/load/sstable/{name}][%d] columnFamilyLoadSstableByNamePostOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyLoadSstableByNamePostOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *ColumnFamilyLoadSstableByNamePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

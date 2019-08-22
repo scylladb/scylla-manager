@@ -24,14 +24,12 @@ type FindConfigEnableDeprecatedPartitionersReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEnableDeprecatedPartitionersReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEnableDeprecatedPartitionersOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEnableDeprecatedPartitionersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEnableDeprecatedPartitionersOK struct {
 
 func (o *FindConfigEnableDeprecatedPartitionersOK) Error() string {
 	return fmt.Sprintf("[GET /config/enable_deprecated_partitioners][%d] findConfigEnableDeprecatedPartitionersOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEnableDeprecatedPartitionersOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigEnableDeprecatedPartitionersOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEnableDeprecatedPartitionersDefault) Code() int {
 
 func (o *FindConfigEnableDeprecatedPartitionersDefault) Error() string {
 	return fmt.Sprintf("[GET /config/enable_deprecated_partitioners][%d] find_config_enable_deprecated_partitioners default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEnableDeprecatedPartitionersDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEnableDeprecatedPartitionersDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

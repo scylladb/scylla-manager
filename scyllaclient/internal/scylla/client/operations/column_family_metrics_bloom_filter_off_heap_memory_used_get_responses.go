@@ -22,7 +22,6 @@ type ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK struct {
 
 func (o *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/bloom_filter_off_heap_memory_used][%d] columnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

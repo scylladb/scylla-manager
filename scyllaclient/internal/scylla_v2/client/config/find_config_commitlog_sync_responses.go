@@ -24,14 +24,12 @@ type FindConfigCommitlogSyncReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCommitlogSyncReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCommitlogSyncOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCommitlogSyncDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCommitlogSyncOK struct {
 
 func (o *FindConfigCommitlogSyncOK) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_sync][%d] findConfigCommitlogSyncOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCommitlogSyncOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogSyncOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCommitlogSyncDefault) Code() int {
 
 func (o *FindConfigCommitlogSyncDefault) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_sync][%d] find_config_commitlog_sync default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCommitlogSyncDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogSyncDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

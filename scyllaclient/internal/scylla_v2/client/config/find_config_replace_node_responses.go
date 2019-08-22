@@ -24,14 +24,12 @@ type FindConfigReplaceNodeReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigReplaceNodeReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigReplaceNodeOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigReplaceNodeDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigReplaceNodeOK struct {
 
 func (o *FindConfigReplaceNodeOK) Error() string {
 	return fmt.Sprintf("[GET /config/replace_node][%d] findConfigReplaceNodeOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigReplaceNodeOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceNodeOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigReplaceNodeDefault) Code() int {
 
 func (o *FindConfigReplaceNodeDefault) Error() string {
 	return fmt.Sprintf("[GET /config/replace_node][%d] find_config_replace_node default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigReplaceNodeDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceNodeDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

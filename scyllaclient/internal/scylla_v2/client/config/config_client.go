@@ -48,8 +48,13 @@ func (a *Client) FindConfigAbortOnLsaBadAlloc(params *FindConfigAbortOnLsaBadAll
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAbortOnLsaBadAllocOK), nil
-
+	success, ok := result.(*FindConfigAbortOnLsaBadAllocOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAbortOnLsaBadAllocDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -76,8 +81,13 @@ func (a *Client) FindConfigAPIAddress(params *FindConfigAPIAddressParams) (*Find
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAPIAddressOK), nil
-
+	success, ok := result.(*FindConfigAPIAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAPIAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -104,8 +114,13 @@ func (a *Client) FindConfigAPIDocDir(params *FindConfigAPIDocDirParams) (*FindCo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAPIDocDirOK), nil
-
+	success, ok := result.(*FindConfigAPIDocDirOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAPIDocDirDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -132,8 +147,13 @@ func (a *Client) FindConfigAPIPort(params *FindConfigAPIPortParams) (*FindConfig
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAPIPortOK), nil
-
+	success, ok := result.(*FindConfigAPIPortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAPIPortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -160,8 +180,13 @@ func (a *Client) FindConfigAPIUIDir(params *FindConfigAPIUIDirParams) (*FindConf
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAPIUIDirOK), nil
-
+	success, ok := result.(*FindConfigAPIUIDirOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAPIUIDirDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -192,8 +217,13 @@ func (a *Client) FindConfigAuthenticator(params *FindConfigAuthenticatorParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAuthenticatorOK), nil
-
+	success, ok := result.(*FindConfigAuthenticatorOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAuthenticatorDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -224,8 +254,13 @@ func (a *Client) FindConfigAuthorizer(params *FindConfigAuthorizerParams) (*Find
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAuthorizerOK), nil
-
+	success, ok := result.(*FindConfigAuthorizerOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAuthorizerDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -252,8 +287,13 @@ func (a *Client) FindConfigAutoAdjustFlushQuota(params *FindConfigAutoAdjustFlus
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAutoAdjustFlushQuotaOK), nil
-
+	success, ok := result.(*FindConfigAutoAdjustFlushQuotaOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAutoAdjustFlushQuotaDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -281,8 +321,13 @@ func (a *Client) FindConfigAutoBootstrap(params *FindConfigAutoBootstrapParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAutoBootstrapOK), nil
-
+	success, ok := result.(*FindConfigAutoBootstrapOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAutoBootstrapDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -309,8 +354,13 @@ func (a *Client) FindConfigAutoSnapshot(params *FindConfigAutoSnapshotParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigAutoSnapshotOK), nil
-
+	success, ok := result.(*FindConfigAutoSnapshotOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAutoSnapshotDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -337,8 +387,13 @@ func (a *Client) FindConfigBackgroundWriterSchedulingQuota(params *FindConfigBac
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigBackgroundWriterSchedulingQuotaOK), nil
-
+	success, ok := result.(*FindConfigBackgroundWriterSchedulingQuotaOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigBackgroundWriterSchedulingQuotaDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -365,8 +420,13 @@ func (a *Client) FindConfigBatchSizeFailThresholdInKb(params *FindConfigBatchSiz
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigBatchSizeFailThresholdInKbOK), nil
-
+	success, ok := result.(*FindConfigBatchSizeFailThresholdInKbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigBatchSizeFailThresholdInKbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -393,8 +453,13 @@ func (a *Client) FindConfigBatchSizeWarnThresholdInKb(params *FindConfigBatchSiz
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigBatchSizeWarnThresholdInKbOK), nil
-
+	success, ok := result.(*FindConfigBatchSizeWarnThresholdInKbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigBatchSizeWarnThresholdInKbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -421,8 +486,13 @@ func (a *Client) FindConfigBatchlogReplayThrottleInKb(params *FindConfigBatchlog
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigBatchlogReplayThrottleInKbOK), nil
-
+	success, ok := result.(*FindConfigBatchlogReplayThrottleInKbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigBatchlogReplayThrottleInKbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -450,8 +520,13 @@ func (a *Client) FindConfigBroadcastAddress(params *FindConfigBroadcastAddressPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigBroadcastAddressOK), nil
-
+	success, ok := result.(*FindConfigBroadcastAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigBroadcastAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -479,8 +554,13 @@ func (a *Client) FindConfigBroadcastRPCAddress(params *FindConfigBroadcastRPCAdd
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigBroadcastRPCAddressOK), nil
-
+	success, ok := result.(*FindConfigBroadcastRPCAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigBroadcastRPCAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -507,8 +587,13 @@ func (a *Client) FindConfigCacheHitRateReadBalancing(params *FindConfigCacheHitR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCacheHitRateReadBalancingOK), nil
-
+	success, ok := result.(*FindConfigCacheHitRateReadBalancingOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCacheHitRateReadBalancingDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -535,8 +620,13 @@ func (a *Client) FindConfigCasContentionTimeoutInMs(params *FindConfigCasContent
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCasContentionTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigCasContentionTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCasContentionTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -574,8 +664,13 @@ func (a *Client) FindConfigClientEncryptionOptions(params *FindConfigClientEncry
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigClientEncryptionOptionsOK), nil
-
+	success, ok := result.(*FindConfigClientEncryptionOptionsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigClientEncryptionOptionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -602,8 +697,13 @@ func (a *Client) FindConfigClusterName(params *FindConfigClusterNameParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigClusterNameOK), nil
-
+	success, ok := result.(*FindConfigClusterNameOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigClusterNameDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -630,8 +730,13 @@ func (a *Client) FindConfigColumnIndexSizeInKb(params *FindConfigColumnIndexSize
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigColumnIndexSizeInKbOK), nil
-
+	success, ok := result.(*FindConfigColumnIndexSizeInKbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigColumnIndexSizeInKbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -663,8 +768,13 @@ func (a *Client) FindConfigCommitFailurePolicy(params *FindConfigCommitFailurePo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitFailurePolicyOK), nil
-
+	success, ok := result.(*FindConfigCommitFailurePolicyOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitFailurePolicyDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -691,8 +801,13 @@ func (a *Client) FindConfigCommitlogDirectory(params *FindConfigCommitlogDirecto
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogDirectoryOK), nil
-
+	success, ok := result.(*FindConfigCommitlogDirectoryOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogDirectoryDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -720,8 +835,13 @@ func (a *Client) FindConfigCommitlogReuseSegments(params *FindConfigCommitlogReu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogReuseSegmentsOK), nil
-
+	success, ok := result.(*FindConfigCommitlogReuseSegmentsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogReuseSegmentsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -749,8 +869,13 @@ func (a *Client) FindConfigCommitlogSegmentSizeInMb(params *FindConfigCommitlogS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogSegmentSizeInMbOK), nil
-
+	success, ok := result.(*FindConfigCommitlogSegmentSizeInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogSegmentSizeInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -781,8 +906,13 @@ func (a *Client) FindConfigCommitlogSync(params *FindConfigCommitlogSyncParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogSyncOK), nil
-
+	success, ok := result.(*FindConfigCommitlogSyncOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogSyncDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -809,8 +939,13 @@ func (a *Client) FindConfigCommitlogSyncBatchWindowInMs(params *FindConfigCommit
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogSyncBatchWindowInMsOK), nil
-
+	success, ok := result.(*FindConfigCommitlogSyncBatchWindowInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogSyncBatchWindowInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -837,8 +972,13 @@ func (a *Client) FindConfigCommitlogSyncPeriodInMs(params *FindConfigCommitlogSy
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogSyncPeriodInMsOK), nil
-
+	success, ok := result.(*FindConfigCommitlogSyncPeriodInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogSyncPeriodInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -866,18 +1006,23 @@ func (a *Client) FindConfigCommitlogTotalSpaceInMb(params *FindConfigCommitlogTo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogTotalSpaceInMbOK), nil
-
+	success, ok := result.(*FindConfigCommitlogTotalSpaceInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogTotalSpaceInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-FindConfigCommitlogUseODsync Whether or not to use O_DSYNC mode for commitlog segments IO. Can improve commitlog latency on some file systems.
+FindConfigCommitlogUseoDsync Whether or not to use O_DSYNC mode for commitlog segments IO. Can improve commitlog latency on some file systems.
 
 */
-func (a *Client) FindConfigCommitlogUseODsync(params *FindConfigCommitlogUseODsyncParams) (*FindConfigCommitlogUseODsyncOK, error) {
+func (a *Client) FindConfigCommitlogUseoDsync(params *FindConfigCommitlogUseoDsyncParams) (*FindConfigCommitlogUseODsyncOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewFindConfigCommitlogUseODsyncParams()
+		params = NewFindConfigCommitlogUseoDsyncParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
@@ -888,15 +1033,20 @@ func (a *Client) FindConfigCommitlogUseODsync(params *FindConfigCommitlogUseODsy
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &FindConfigCommitlogUseODsyncReader{formats: a.formats},
+		Reader:             &FindConfigCommitlogUseoDsyncReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCommitlogUseODsyncOK), nil
-
+	success, ok := result.(*FindConfigCommitlogUseODsyncOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCommitlogUseoDsyncDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -923,8 +1073,13 @@ func (a *Client) FindConfigCompactionEnforceMinThreshold(params *FindConfigCompa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionEnforceMinThresholdOK), nil
-
+	success, ok := result.(*FindConfigCompactionEnforceMinThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionEnforceMinThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -951,8 +1106,13 @@ func (a *Client) FindConfigCompactionLargeCellWarningThresholdMb(params *FindCon
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionLargeCellWarningThresholdMbOK), nil
-
+	success, ok := result.(*FindConfigCompactionLargeCellWarningThresholdMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionLargeCellWarningThresholdMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -979,8 +1139,13 @@ func (a *Client) FindConfigCompactionLargePartitionWarningThresholdMb(params *Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionLargePartitionWarningThresholdMbOK), nil
-
+	success, ok := result.(*FindConfigCompactionLargePartitionWarningThresholdMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionLargePartitionWarningThresholdMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1007,8 +1172,13 @@ func (a *Client) FindConfigCompactionLargeRowWarningThresholdMb(params *FindConf
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionLargeRowWarningThresholdMbOK), nil
-
+	success, ok := result.(*FindConfigCompactionLargeRowWarningThresholdMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionLargeRowWarningThresholdMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1035,8 +1205,13 @@ func (a *Client) FindConfigCompactionPreheatKeyCache(params *FindConfigCompactio
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionPreheatKeyCacheOK), nil
-
+	success, ok := result.(*FindConfigCompactionPreheatKeyCacheOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionPreheatKeyCacheDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1063,8 +1238,13 @@ func (a *Client) FindConfigCompactionRowsCountWarningThreshold(params *FindConfi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionRowsCountWarningThresholdOK), nil
-
+	success, ok := result.(*FindConfigCompactionRowsCountWarningThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionRowsCountWarningThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1091,8 +1271,13 @@ func (a *Client) FindConfigCompactionStaticShares(params *FindConfigCompactionSt
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionStaticSharesOK), nil
-
+	success, ok := result.(*FindConfigCompactionStaticSharesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionStaticSharesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1120,8 +1305,13 @@ func (a *Client) FindConfigCompactionThroughputMbPerSec(params *FindConfigCompac
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCompactionThroughputMbPerSecOK), nil
-
+	success, ok := result.(*FindConfigCompactionThroughputMbPerSecOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCompactionThroughputMbPerSecDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1148,8 +1338,13 @@ func (a *Client) FindConfigConcurrentCompactors(params *FindConfigConcurrentComp
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigConcurrentCompactorsOK), nil
-
+	success, ok := result.(*FindConfigConcurrentCompactorsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigConcurrentCompactorsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1176,8 +1371,13 @@ func (a *Client) FindConfigConcurrentCounterWrites(params *FindConfigConcurrentC
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigConcurrentCounterWritesOK), nil
-
+	success, ok := result.(*FindConfigConcurrentCounterWritesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigConcurrentCounterWritesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1204,8 +1404,13 @@ func (a *Client) FindConfigConcurrentReads(params *FindConfigConcurrentReadsPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigConcurrentReadsOK), nil
-
+	success, ok := result.(*FindConfigConcurrentReadsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigConcurrentReadsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1232,8 +1437,13 @@ func (a *Client) FindConfigConcurrentWrites(params *FindConfigConcurrentWritesPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigConcurrentWritesOK), nil
-
+	success, ok := result.(*FindConfigConcurrentWritesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigConcurrentWritesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1260,8 +1470,13 @@ func (a *Client) FindConfigConsistentRangemovement(params *FindConfigConsistentR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigConsistentRangemovementOK), nil
-
+	success, ok := result.(*FindConfigConsistentRangemovementOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigConsistentRangemovementDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1288,8 +1503,13 @@ func (a *Client) FindConfigCounterCacheKeysToSave(params *FindConfigCounterCache
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCounterCacheKeysToSaveOK), nil
-
+	success, ok := result.(*FindConfigCounterCacheKeysToSaveOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCounterCacheKeysToSaveDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1316,8 +1536,13 @@ func (a *Client) FindConfigCounterCacheSavePeriod(params *FindConfigCounterCache
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCounterCacheSavePeriodOK), nil
-
+	success, ok := result.(*FindConfigCounterCacheSavePeriodOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCounterCacheSavePeriodDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1344,8 +1569,13 @@ func (a *Client) FindConfigCounterCacheSizeInMb(params *FindConfigCounterCacheSi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCounterCacheSizeInMbOK), nil
-
+	success, ok := result.(*FindConfigCounterCacheSizeInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCounterCacheSizeInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1372,8 +1602,13 @@ func (a *Client) FindConfigCounterWriteRequestTimeoutInMs(params *FindConfigCoun
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCounterWriteRequestTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigCounterWriteRequestTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCounterWriteRequestTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1400,8 +1635,13 @@ func (a *Client) FindConfigCPUScheduler(params *FindConfigCPUSchedulerParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCPUSchedulerOK), nil
-
+	success, ok := result.(*FindConfigCPUSchedulerOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCPUSchedulerDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1430,8 +1670,13 @@ func (a *Client) FindConfigCrossNodeTimeout(params *FindConfigCrossNodeTimeoutPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigCrossNodeTimeoutOK), nil
-
+	success, ok := result.(*FindConfigCrossNodeTimeoutOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigCrossNodeTimeoutDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1458,8 +1703,13 @@ func (a *Client) FindConfigDataFileDirectories(params *FindConfigDataFileDirecto
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDataFileDirectoriesOK), nil
-
+	success, ok := result.(*FindConfigDataFileDirectoriesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDataFileDirectoriesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1486,17 +1736,22 @@ func (a *Client) FindConfigDefaultLogLevel(params *FindConfigDefaultLogLevelPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDefaultLogLevelOK), nil
-
+	success, ok := result.(*FindConfigDefaultLogLevelOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDefaultLogLevelDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-FindConfigDefragmentMemoryOnIDLE When set to true, will defragment memory when the cpu is idle.  This reduces the amount of work Scylla performs when processing client requests.
+FindConfigDefragmentMemoryOnIdle When set to true, will defragment memory when the cpu is idle.  This reduces the amount of work Scylla performs when processing client requests.
 */
-func (a *Client) FindConfigDefragmentMemoryOnIDLE(params *FindConfigDefragmentMemoryOnIDLEParams) (*FindConfigDefragmentMemoryOnIDLEOK, error) {
+func (a *Client) FindConfigDefragmentMemoryOnIdle(params *FindConfigDefragmentMemoryOnIdleParams) (*FindConfigDefragmentMemoryOnIdleOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewFindConfigDefragmentMemoryOnIDLEParams()
+		params = NewFindConfigDefragmentMemoryOnIdleParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
@@ -1507,15 +1762,20 @@ func (a *Client) FindConfigDefragmentMemoryOnIDLE(params *FindConfigDefragmentMe
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &FindConfigDefragmentMemoryOnIDLEReader{formats: a.formats},
+		Reader:             &FindConfigDefragmentMemoryOnIdleReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDefragmentMemoryOnIDLEOK), nil
-
+	success, ok := result.(*FindConfigDefragmentMemoryOnIdleOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDefragmentMemoryOnIdleDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1542,8 +1802,13 @@ func (a *Client) FindConfigDeveloperMode(params *FindConfigDeveloperModeParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDeveloperModeOK), nil
-
+	success, ok := result.(*FindConfigDeveloperModeOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDeveloperModeDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1579,8 +1844,13 @@ func (a *Client) FindConfigDiskFailurePolicy(params *FindConfigDiskFailurePolicy
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDiskFailurePolicyOK), nil
-
+	success, ok := result.(*FindConfigDiskFailurePolicyOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDiskFailurePolicyDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1607,8 +1877,13 @@ func (a *Client) FindConfigDynamicSnitchBadnessThreshold(params *FindConfigDynam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDynamicSnitchBadnessThresholdOK), nil
-
+	success, ok := result.(*FindConfigDynamicSnitchBadnessThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDynamicSnitchBadnessThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1635,8 +1910,13 @@ func (a *Client) FindConfigDynamicSnitchResetIntervalInMs(params *FindConfigDyna
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDynamicSnitchResetIntervalInMsOK), nil
-
+	success, ok := result.(*FindConfigDynamicSnitchResetIntervalInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDynamicSnitchResetIntervalInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1663,8 +1943,13 @@ func (a *Client) FindConfigDynamicSnitchUpdateIntervalInMs(params *FindConfigDyn
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigDynamicSnitchUpdateIntervalInMsOK), nil
-
+	success, ok := result.(*FindConfigDynamicSnitchUpdateIntervalInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigDynamicSnitchUpdateIntervalInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1691,8 +1976,13 @@ func (a *Client) FindConfigEnableCache(params *FindConfigEnableCacheParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableCacheOK), nil
-
+	success, ok := result.(*FindConfigEnableCacheOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableCacheDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1719,8 +2009,13 @@ func (a *Client) FindConfigEnableCommitlog(params *FindConfigEnableCommitlogPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableCommitlogOK), nil
-
+	success, ok := result.(*FindConfigEnableCommitlogOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableCommitlogDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1747,8 +2042,13 @@ func (a *Client) FindConfigEnableDangerousDirectImportOfCassandraCounters(params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableDangerousDirectImportOfCassandraCountersOK), nil
-
+	success, ok := result.(*FindConfigEnableDangerousDirectImportOfCassandraCountersOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableDangerousDirectImportOfCassandraCountersDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1775,8 +2075,13 @@ func (a *Client) FindConfigEnableDeprecatedPartitioners(params *FindConfigEnable
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableDeprecatedPartitionersOK), nil
-
+	success, ok := result.(*FindConfigEnableDeprecatedPartitionersOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableDeprecatedPartitionersDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1803,8 +2108,13 @@ func (a *Client) FindConfigEnableInMemoryDataStore(params *FindConfigEnableInMem
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableInMemoryDataStoreOK), nil
-
+	success, ok := result.(*FindConfigEnableInMemoryDataStoreOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableInMemoryDataStoreDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1831,8 +2141,13 @@ func (a *Client) FindConfigEnableKeyspaceColumnFamilyMetrics(params *FindConfigE
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableKeyspaceColumnFamilyMetricsOK), nil
-
+	success, ok := result.(*FindConfigEnableKeyspaceColumnFamilyMetricsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableKeyspaceColumnFamilyMetricsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1859,8 +2174,13 @@ func (a *Client) FindConfigEnableShardAwareDrivers(params *FindConfigEnableShard
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableShardAwareDriversOK), nil
-
+	success, ok := result.(*FindConfigEnableShardAwareDriversOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableShardAwareDriversDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1887,8 +2207,13 @@ func (a *Client) FindConfigEnableSstableDataIntegrityCheck(params *FindConfigEna
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableSstableDataIntegrityCheckOK), nil
-
+	success, ok := result.(*FindConfigEnableSstableDataIntegrityCheckOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableSstableDataIntegrityCheckDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1915,8 +2240,13 @@ func (a *Client) FindConfigEnableSstablesMcFormat(params *FindConfigEnableSstabl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEnableSstablesMcFormatOK), nil
-
+	success, ok := result.(*FindConfigEnableSstablesMcFormatOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableSstablesMcFormatDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1958,8 +2288,13 @@ func (a *Client) FindConfigEndpointSnitch(params *FindConfigEndpointSnitchParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigEndpointSnitchOK), nil
-
+	success, ok := result.(*FindConfigEndpointSnitchOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEndpointSnitchDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -1986,8 +2321,13 @@ func (a *Client) FindConfigExperimental(params *FindConfigExperimentalParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigExperimentalOK), nil
-
+	success, ok := result.(*FindConfigExperimentalOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigExperimentalDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2014,8 +2354,13 @@ func (a *Client) FindConfigFdInitialValueMs(params *FindConfigFdInitialValueMsPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigFdInitialValueMsOK), nil
-
+	success, ok := result.(*FindConfigFdInitialValueMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigFdInitialValueMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2042,8 +2387,13 @@ func (a *Client) FindConfigFdMaxIntervalMs(params *FindConfigFdMaxIntervalMsPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigFdMaxIntervalMsOK), nil
-
+	success, ok := result.(*FindConfigFdMaxIntervalMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigFdMaxIntervalMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2070,8 +2420,13 @@ func (a *Client) FindConfigFileCacheSizeInMb(params *FindConfigFileCacheSizeInMb
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigFileCacheSizeInMbOK), nil
-
+	success, ok := result.(*FindConfigFileCacheSizeInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigFileCacheSizeInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2098,8 +2453,13 @@ func (a *Client) FindConfigHintedHandoffEnabled(params *FindConfigHintedHandoffE
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigHintedHandoffEnabledOK), nil
-
+	success, ok := result.(*FindConfigHintedHandoffEnabledOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigHintedHandoffEnabledDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2126,8 +2486,13 @@ func (a *Client) FindConfigHintedHandoffThrottleInKb(params *FindConfigHintedHan
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigHintedHandoffThrottleInKbOK), nil
-
+	success, ok := result.(*FindConfigHintedHandoffThrottleInKbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigHintedHandoffThrottleInKbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2154,8 +2519,13 @@ func (a *Client) FindConfigHintsDirectory(params *FindConfigHintsDirectoryParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigHintsDirectoryOK), nil
-
+	success, ok := result.(*FindConfigHintsDirectoryOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigHintsDirectoryDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2182,8 +2552,13 @@ func (a *Client) FindConfigInMemoryCompactionLimitInMb(params *FindConfigInMemor
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInMemoryCompactionLimitInMbOK), nil
-
+	success, ok := result.(*FindConfigInMemoryCompactionLimitInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInMemoryCompactionLimitInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2211,8 +2586,13 @@ func (a *Client) FindConfigIncrementalBackups(params *FindConfigIncrementalBacku
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigIncrementalBackupsOK), nil
-
+	success, ok := result.(*FindConfigIncrementalBackupsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigIncrementalBackupsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2239,8 +2619,13 @@ func (a *Client) FindConfigIndexSummaryCapacityInMb(params *FindConfigIndexSumma
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigIndexSummaryCapacityInMbOK), nil
-
+	success, ok := result.(*FindConfigIndexSummaryCapacityInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigIndexSummaryCapacityInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2267,8 +2652,13 @@ func (a *Client) FindConfigIndexSummaryResizeIntervalInMinutes(params *FindConfi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigIndexSummaryResizeIntervalInMinutesOK), nil
-
+	success, ok := result.(*FindConfigIndexSummaryResizeIntervalInMinutesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigIndexSummaryResizeIntervalInMinutesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2297,8 +2687,13 @@ func (a *Client) FindConfigInitialToken(params *FindConfigInitialTokenParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInitialTokenOK), nil
-
+	success, ok := result.(*FindConfigInitialTokenOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInitialTokenDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2325,8 +2720,13 @@ func (a *Client) FindConfigInterDcStreamThroughputOutboundMegabitsPerSec(params 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK), nil
-
+	success, ok := result.(*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2353,8 +2753,13 @@ func (a *Client) FindConfigInterDcTCPNodelay(params *FindConfigInterDcTCPNodelay
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInterDcTCPNodelayOK), nil
-
+	success, ok := result.(*FindConfigInterDcTCPNodelayOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInterDcTCPNodelayDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2381,8 +2786,13 @@ func (a *Client) FindConfigInternodeAuthenticator(params *FindConfigInternodeAut
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInternodeAuthenticatorOK), nil
-
+	success, ok := result.(*FindConfigInternodeAuthenticatorOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInternodeAuthenticatorDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2413,8 +2823,13 @@ func (a *Client) FindConfigInternodeCompression(params *FindConfigInternodeCompr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInternodeCompressionOK), nil
-
+	success, ok := result.(*FindConfigInternodeCompressionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInternodeCompressionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2441,8 +2856,13 @@ func (a *Client) FindConfigInternodeRecvBuffSizeInBytes(params *FindConfigIntern
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInternodeRecvBuffSizeInBytesOK), nil
-
+	success, ok := result.(*FindConfigInternodeRecvBuffSizeInBytesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInternodeRecvBuffSizeInBytesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2476,8 +2896,13 @@ func (a *Client) FindConfigInternodeSendBuffSizeInBytes(params *FindConfigIntern
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigInternodeSendBuffSizeInBytesOK), nil
-
+	success, ok := result.(*FindConfigInternodeSendBuffSizeInBytesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigInternodeSendBuffSizeInBytesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2504,8 +2929,13 @@ func (a *Client) FindConfigJoinRing(params *FindConfigJoinRingParams) (*FindConf
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigJoinRingOK), nil
-
+	success, ok := result.(*FindConfigJoinRingOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigJoinRingDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2532,8 +2962,13 @@ func (a *Client) FindConfigKeyCacheKeysToSave(params *FindConfigKeyCacheKeysToSa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigKeyCacheKeysToSaveOK), nil
-
+	success, ok := result.(*FindConfigKeyCacheKeysToSaveOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigKeyCacheKeysToSaveDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2560,8 +2995,13 @@ func (a *Client) FindConfigKeyCacheSavePeriod(params *FindConfigKeyCacheSavePeri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigKeyCacheSavePeriodOK), nil
-
+	success, ok := result.(*FindConfigKeyCacheSavePeriodOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigKeyCacheSavePeriodDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2589,8 +3029,13 @@ func (a *Client) FindConfigKeyCacheSizeInMb(params *FindConfigKeyCacheSizeInMbPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigKeyCacheSizeInMbOK), nil
-
+	success, ok := result.(*FindConfigKeyCacheSizeInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigKeyCacheSizeInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2617,8 +3062,13 @@ func (a *Client) FindConfigLargeMemoryAllocationWarningThreshold(params *FindCon
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigLargeMemoryAllocationWarningThresholdOK), nil
-
+	success, ok := result.(*FindConfigLargeMemoryAllocationWarningThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigLargeMemoryAllocationWarningThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2650,8 +3100,13 @@ func (a *Client) FindConfigListenAddress(params *FindConfigListenAddressParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigListenAddressOK), nil
-
+	success, ok := result.(*FindConfigListenAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigListenAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2678,8 +3133,13 @@ func (a *Client) FindConfigListenInterface(params *FindConfigListenInterfacePara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigListenInterfaceOK), nil
-
+	success, ok := result.(*FindConfigListenInterfaceOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigListenInterfaceDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2706,8 +3166,13 @@ func (a *Client) FindConfigListenOnBroadcastAddress(params *FindConfigListenOnBr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigListenOnBroadcastAddressOK), nil
-
+	success, ok := result.(*FindConfigListenOnBroadcastAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigListenOnBroadcastAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2734,8 +3199,13 @@ func (a *Client) FindConfigLoadBalance(params *FindConfigLoadBalanceParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigLoadBalanceOK), nil
-
+	success, ok := result.(*FindConfigLoadBalanceOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigLoadBalanceDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2762,8 +3232,13 @@ func (a *Client) FindConfigLoadRingState(params *FindConfigLoadRingStateParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigLoadRingStateOK), nil
-
+	success, ok := result.(*FindConfigLoadRingStateOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigLoadRingStateDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2790,8 +3265,13 @@ func (a *Client) FindConfigLogToStdout(params *FindConfigLogToStdoutParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigLogToStdoutOK), nil
-
+	success, ok := result.(*FindConfigLogToStdoutOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigLogToStdoutDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2818,8 +3298,13 @@ func (a *Client) FindConfigLogToSyslog(params *FindConfigLogToSyslogParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigLogToSyslogOK), nil
-
+	success, ok := result.(*FindConfigLogToSyslogOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigLogToSyslogDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2846,8 +3331,13 @@ func (a *Client) FindConfigLoggerLogLevel(params *FindConfigLoggerLogLevelParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigLoggerLogLevelOK), nil
-
+	success, ok := result.(*FindConfigLoggerLogLevelOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigLoggerLogLevelDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2874,8 +3364,13 @@ func (a *Client) FindConfigLsaReclamationStep(params *FindConfigLsaReclamationSt
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigLsaReclamationStepOK), nil
-
+	success, ok := result.(*FindConfigLsaReclamationStepOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigLsaReclamationStepDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2903,8 +3398,13 @@ func (a *Client) FindConfigMaxHintWindowInMs(params *FindConfigMaxHintWindowInMs
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMaxHintWindowInMsOK), nil
-
+	success, ok := result.(*FindConfigMaxHintWindowInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMaxHintWindowInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2931,8 +3431,13 @@ func (a *Client) FindConfigMaxHintsDeliveryThreads(params *FindConfigMaxHintsDel
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMaxHintsDeliveryThreadsOK), nil
-
+	success, ok := result.(*FindConfigMaxHintsDeliveryThreadsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMaxHintsDeliveryThreadsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2963,8 +3468,13 @@ func (a *Client) FindConfigMemoryAllocator(params *FindConfigMemoryAllocatorPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemoryAllocatorOK), nil
-
+	success, ok := result.(*FindConfigMemoryAllocatorOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemoryAllocatorDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -2994,8 +3504,13 @@ func (a *Client) FindConfigMemtableAllocationType(params *FindConfigMemtableAllo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableAllocationTypeOK), nil
-
+	success, ok := result.(*FindConfigMemtableAllocationTypeOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableAllocationTypeDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3022,8 +3537,13 @@ func (a *Client) FindConfigMemtableCleanupThreshold(params *FindConfigMemtableCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableCleanupThresholdOK), nil
-
+	success, ok := result.(*FindConfigMemtableCleanupThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableCleanupThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3051,8 +3571,13 @@ func (a *Client) FindConfigMemtableFlushQueueSize(params *FindConfigMemtableFlus
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableFlushQueueSizeOK), nil
-
+	success, ok := result.(*FindConfigMemtableFlushQueueSizeOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableFlushQueueSizeDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3079,8 +3604,13 @@ func (a *Client) FindConfigMemtableFlushStaticShares(params *FindConfigMemtableF
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableFlushStaticSharesOK), nil
-
+	success, ok := result.(*FindConfigMemtableFlushStaticSharesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableFlushStaticSharesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3107,8 +3637,13 @@ func (a *Client) FindConfigMemtableFlushWriters(params *FindConfigMemtableFlushW
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableFlushWritersOK), nil
-
+	success, ok := result.(*FindConfigMemtableFlushWritersOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableFlushWritersDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3135,8 +3670,13 @@ func (a *Client) FindConfigMemtableHeapSpaceInMb(params *FindConfigMemtableHeapS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableHeapSpaceInMbOK), nil
-
+	success, ok := result.(*FindConfigMemtableHeapSpaceInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableHeapSpaceInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3163,8 +3703,13 @@ func (a *Client) FindConfigMemtableOffheapSpaceInMb(params *FindConfigMemtableOf
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableOffheapSpaceInMbOK), nil
-
+	success, ok := result.(*FindConfigMemtableOffheapSpaceInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableOffheapSpaceInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3191,8 +3736,13 @@ func (a *Client) FindConfigMemtableTotalSpaceInMb(params *FindConfigMemtableTota
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMemtableTotalSpaceInMbOK), nil
-
+	success, ok := result.(*FindConfigMemtableTotalSpaceInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMemtableTotalSpaceInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3219,8 +3769,13 @@ func (a *Client) FindConfigMurmur3PartitionerIgnoreMsbBits(params *FindConfigMur
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigMurmur3PartitionerIgnoreMsbBitsOK), nil
-
+	success, ok := result.(*FindConfigMurmur3PartitionerIgnoreMsbBitsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigMurmur3PartitionerIgnoreMsbBitsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3247,8 +3802,13 @@ func (a *Client) FindConfigNativeTransportMaxFrameSizeInMb(params *FindConfigNat
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigNativeTransportMaxFrameSizeInMbOK), nil
-
+	success, ok := result.(*FindConfigNativeTransportMaxFrameSizeInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigNativeTransportMaxFrameSizeInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3279,8 +3839,13 @@ func (a *Client) FindConfigNativeTransportMaxThreads(params *FindConfigNativeTra
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigNativeTransportMaxThreadsOK), nil
-
+	success, ok := result.(*FindConfigNativeTransportMaxThreadsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigNativeTransportMaxThreadsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3307,8 +3872,13 @@ func (a *Client) FindConfigNativeTransportPort(params *FindConfigNativeTransport
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigNativeTransportPortOK), nil
-
+	success, ok := result.(*FindConfigNativeTransportPortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigNativeTransportPortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3335,8 +3905,13 @@ func (a *Client) FindConfigNativeTransportPortSsl(params *FindConfigNativeTransp
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigNativeTransportPortSslOK), nil
-
+	success, ok := result.(*FindConfigNativeTransportPortSslOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigNativeTransportPortSslDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3365,8 +3940,13 @@ func (a *Client) FindConfigNumTokens(params *FindConfigNumTokensParams) (*FindCo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigNumTokensOK), nil
-
+	success, ok := result.(*FindConfigNumTokensOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigNumTokensDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3393,8 +3973,13 @@ func (a *Client) FindConfigOverrideDecommission(params *FindConfigOverrideDecomm
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigOverrideDecommissionOK), nil
-
+	success, ok := result.(*FindConfigOverrideDecommissionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigOverrideDecommissionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3428,8 +4013,13 @@ func (a *Client) FindConfigPartitioner(params *FindConfigPartitionerParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPartitionerOK), nil
-
+	success, ok := result.(*FindConfigPartitionerOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPartitionerDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3456,8 +4046,13 @@ func (a *Client) FindConfigPermissionsCacheMaxEntries(params *FindConfigPermissi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPermissionsCacheMaxEntriesOK), nil
-
+	success, ok := result.(*FindConfigPermissionsCacheMaxEntriesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPermissionsCacheMaxEntriesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3484,8 +4079,13 @@ func (a *Client) FindConfigPermissionsUpdateIntervalInMs(params *FindConfigPermi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPermissionsUpdateIntervalInMsOK), nil
-
+	success, ok := result.(*FindConfigPermissionsUpdateIntervalInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPermissionsUpdateIntervalInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3513,8 +4113,13 @@ func (a *Client) FindConfigPermissionsValidityInMs(params *FindConfigPermissions
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPermissionsValidityInMsOK), nil
-
+	success, ok := result.(*FindConfigPermissionsValidityInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPermissionsValidityInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3542,8 +4147,13 @@ func (a *Client) FindConfigPhiConvictThreshold(params *FindConfigPhiConvictThres
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPhiConvictThresholdOK), nil
-
+	success, ok := result.(*FindConfigPhiConvictThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPhiConvictThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3570,8 +4180,13 @@ func (a *Client) FindConfigPreheatKernelPageCache(params *FindConfigPreheatKerne
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPreheatKernelPageCacheOK), nil
-
+	success, ok := result.(*FindConfigPreheatKernelPageCacheOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPreheatKernelPageCacheDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3598,8 +4213,13 @@ func (a *Client) FindConfigPrometheusAddress(params *FindConfigPrometheusAddress
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPrometheusAddressOK), nil
-
+	success, ok := result.(*FindConfigPrometheusAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPrometheusAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3626,8 +4246,13 @@ func (a *Client) FindConfigPrometheusPort(params *FindConfigPrometheusPortParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPrometheusPortOK), nil
-
+	success, ok := result.(*FindConfigPrometheusPortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPrometheusPortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3654,8 +4279,13 @@ func (a *Client) FindConfigPrometheusPrefix(params *FindConfigPrometheusPrefixPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigPrometheusPrefixOK), nil
-
+	success, ok := result.(*FindConfigPrometheusPrefixOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigPrometheusPrefixDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3682,8 +4312,13 @@ func (a *Client) FindConfigRangeRequestTimeoutInMs(params *FindConfigRangeReques
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRangeRequestTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigRangeRequestTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRangeRequestTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3710,8 +4345,13 @@ func (a *Client) FindConfigReadRequestTimeoutInMs(params *FindConfigReadRequestT
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigReadRequestTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigReadRequestTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigReadRequestTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3738,8 +4378,13 @@ func (a *Client) FindConfigReduceCacheCapacityTo(params *FindConfigReduceCacheCa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigReduceCacheCapacityToOK), nil
-
+	success, ok := result.(*FindConfigReduceCacheCapacityToOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigReduceCacheCapacityToDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3766,8 +4411,13 @@ func (a *Client) FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizes
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigReduceCacheSizesAtOK), nil
-
+	success, ok := result.(*FindConfigReduceCacheSizesAtOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigReduceCacheSizesAtDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3794,8 +4444,13 @@ func (a *Client) FindConfigReplaceAddress(params *FindConfigReplaceAddressParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigReplaceAddressOK), nil
-
+	success, ok := result.(*FindConfigReplaceAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigReplaceAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3822,8 +4477,13 @@ func (a *Client) FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigReplaceAddressFirstBootOK), nil
-
+	success, ok := result.(*FindConfigReplaceAddressFirstBootOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigReplaceAddressFirstBootDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3850,8 +4510,13 @@ func (a *Client) FindConfigReplaceNode(params *FindConfigReplaceNodeParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigReplaceNodeOK), nil
-
+	success, ok := result.(*FindConfigReplaceNodeOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigReplaceNodeDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3878,8 +4543,13 @@ func (a *Client) FindConfigReplaceToken(params *FindConfigReplaceTokenParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigReplaceTokenOK), nil
-
+	success, ok := result.(*FindConfigReplaceTokenOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigReplaceTokenDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3910,8 +4580,13 @@ func (a *Client) FindConfigRequestScheduler(params *FindConfigRequestSchedulerPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRequestSchedulerOK), nil
-
+	success, ok := result.(*FindConfigRequestSchedulerOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRequestSchedulerDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3938,8 +4613,13 @@ func (a *Client) FindConfigRequestSchedulerID(params *FindConfigRequestScheduler
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRequestSchedulerIDOK), nil
-
+	success, ok := result.(*FindConfigRequestSchedulerIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRequestSchedulerIDDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3970,8 +4650,13 @@ func (a *Client) FindConfigRequestSchedulerOptions(params *FindConfigRequestSche
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRequestSchedulerOptionsOK), nil
-
+	success, ok := result.(*FindConfigRequestSchedulerOptionsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRequestSchedulerOptionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -3999,8 +4684,13 @@ func (a *Client) FindConfigRequestTimeoutInMs(params *FindConfigRequestTimeoutIn
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRequestTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigRequestTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRequestTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4027,8 +4717,13 @@ func (a *Client) FindConfigRingDelayMs(params *FindConfigRingDelayMsParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRingDelayMsOK), nil
-
+	success, ok := result.(*FindConfigRingDelayMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRingDelayMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4057,8 +4752,13 @@ func (a *Client) FindConfigRoleManager(params *FindConfigRoleManagerParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRoleManagerOK), nil
-
+	success, ok := result.(*FindConfigRoleManagerOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRoleManagerDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4085,8 +4785,13 @@ func (a *Client) FindConfigRowCacheKeysToSave(params *FindConfigRowCacheKeysToSa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRowCacheKeysToSaveOK), nil
-
+	success, ok := result.(*FindConfigRowCacheKeysToSaveOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRowCacheKeysToSaveDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4113,8 +4818,13 @@ func (a *Client) FindConfigRowCacheSavePeriod(params *FindConfigRowCacheSavePeri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRowCacheSavePeriodOK), nil
-
+	success, ok := result.(*FindConfigRowCacheSavePeriodOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRowCacheSavePeriodDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4141,8 +4851,13 @@ func (a *Client) FindConfigRowCacheSizeInMb(params *FindConfigRowCacheSizeInMbPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRowCacheSizeInMbOK), nil
-
+	success, ok := result.(*FindConfigRowCacheSizeInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRowCacheSizeInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4176,8 +4891,13 @@ func (a *Client) FindConfigRPCAddress(params *FindConfigRPCAddressParams) (*Find
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCAddressOK), nil
-
+	success, ok := result.(*FindConfigRPCAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4204,8 +4924,13 @@ func (a *Client) FindConfigRPCInterface(params *FindConfigRPCInterfaceParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCInterfaceOK), nil
-
+	success, ok := result.(*FindConfigRPCInterfaceOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCInterfaceDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4232,8 +4957,13 @@ func (a *Client) FindConfigRPCKeepalive(params *FindConfigRPCKeepaliveParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCKeepaliveOK), nil
-
+	success, ok := result.(*FindConfigRPCKeepaliveOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCKeepaliveDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4260,8 +4990,13 @@ func (a *Client) FindConfigRPCMaxThreads(params *FindConfigRPCMaxThreadsParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCMaxThreadsOK), nil
-
+	success, ok := result.(*FindConfigRPCMaxThreadsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCMaxThreadsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4288,8 +5023,13 @@ func (a *Client) FindConfigRPCMinThreads(params *FindConfigRPCMinThreadsParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCMinThreadsOK), nil
-
+	success, ok := result.(*FindConfigRPCMinThreadsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCMinThreadsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4316,8 +5056,13 @@ func (a *Client) FindConfigRPCPort(params *FindConfigRPCPortParams) (*FindConfig
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCPortOK), nil
-
+	success, ok := result.(*FindConfigRPCPortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCPortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4344,8 +5089,13 @@ func (a *Client) FindConfigRPCRecvBuffSizeInBytes(params *FindConfigRPCRecvBuffS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCRecvBuffSizeInBytesOK), nil
-
+	success, ok := result.(*FindConfigRPCRecvBuffSizeInBytesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCRecvBuffSizeInBytesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4372,8 +5122,13 @@ func (a *Client) FindConfigRPCSendBuffSizeInBytes(params *FindConfigRPCSendBuffS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCSendBuffSizeInBytesOK), nil
-
+	success, ok := result.(*FindConfigRPCSendBuffSizeInBytesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCSendBuffSizeInBytesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4405,8 +5160,13 @@ func (a *Client) FindConfigRPCServerType(params *FindConfigRPCServerTypeParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigRPCServerTypeOK), nil
-
+	success, ok := result.(*FindConfigRPCServerTypeOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigRPCServerTypeDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4433,8 +5193,13 @@ func (a *Client) FindConfigSavedCachesDirectory(params *FindConfigSavedCachesDir
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigSavedCachesDirectoryOK), nil
-
+	success, ok := result.(*FindConfigSavedCachesDirectoryOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigSavedCachesDirectoryDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4467,8 +5232,13 @@ func (a *Client) FindConfigSeedProvider(params *FindConfigSeedProviderParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigSeedProviderOK), nil
-
+	success, ok := result.(*FindConfigSeedProviderOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigSeedProviderDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4510,8 +5280,13 @@ func (a *Client) FindConfigServerEncryptionOptions(params *FindConfigServerEncry
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigServerEncryptionOptionsOK), nil
-
+	success, ok := result.(*FindConfigServerEncryptionOptionsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigServerEncryptionOptionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4538,8 +5313,13 @@ func (a *Client) FindConfigShadowRoundMs(params *FindConfigShadowRoundMsParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigShadowRoundMsOK), nil
-
+	success, ok := result.(*FindConfigShadowRoundMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigShadowRoundMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4566,8 +5346,13 @@ func (a *Client) FindConfigShutdownAnnounceInMs(params *FindConfigShutdownAnnoun
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigShutdownAnnounceInMsOK), nil
-
+	success, ok := result.(*FindConfigShutdownAnnounceInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigShutdownAnnounceInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4594,8 +5379,13 @@ func (a *Client) FindConfigSkipWaitForGossipToSettle(params *FindConfigSkipWaitF
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigSkipWaitForGossipToSettleOK), nil
-
+	success, ok := result.(*FindConfigSkipWaitForGossipToSettleOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigSkipWaitForGossipToSettleDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4623,8 +5413,13 @@ func (a *Client) FindConfigSnapshotBeforeCompaction(params *FindConfigSnapshotBe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigSnapshotBeforeCompactionOK), nil
-
+	success, ok := result.(*FindConfigSnapshotBeforeCompactionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigSnapshotBeforeCompactionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4651,8 +5446,13 @@ func (a *Client) FindConfigSslStoragePort(params *FindConfigSslStoragePortParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigSslStoragePortOK), nil
-
+	success, ok := result.(*FindConfigSslStoragePortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigSslStoragePortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4679,8 +5479,13 @@ func (a *Client) FindConfigSstablePreemptiveOpenIntervalInMb(params *FindConfigS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigSstablePreemptiveOpenIntervalInMbOK), nil
-
+	success, ok := result.(*FindConfigSstablePreemptiveOpenIntervalInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigSstablePreemptiveOpenIntervalInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4707,8 +5512,13 @@ func (a *Client) FindConfigSstableSummaryRatio(params *FindConfigSstableSummaryR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigSstableSummaryRatioOK), nil
-
+	success, ok := result.(*FindConfigSstableSummaryRatioOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigSstableSummaryRatioDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4735,8 +5545,13 @@ func (a *Client) FindConfigStartNativeTransport(params *FindConfigStartNativeTra
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigStartNativeTransportOK), nil
-
+	success, ok := result.(*FindConfigStartNativeTransportOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigStartNativeTransportDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4763,8 +5578,13 @@ func (a *Client) FindConfigStartRPC(params *FindConfigStartRPCParams) (*FindConf
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigStartRPCOK), nil
-
+	success, ok := result.(*FindConfigStartRPCOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigStartRPCDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4791,8 +5611,13 @@ func (a *Client) FindConfigStoragePort(params *FindConfigStoragePortParams) (*Fi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigStoragePortOK), nil
-
+	success, ok := result.(*FindConfigStoragePortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigStoragePortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4819,8 +5644,13 @@ func (a *Client) FindConfigStreamThroughputOutboundMegabitsPerSec(params *FindCo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigStreamThroughputOutboundMegabitsPerSecOK), nil
-
+	success, ok := result.(*FindConfigStreamThroughputOutboundMegabitsPerSecOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigStreamThroughputOutboundMegabitsPerSecDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4847,8 +5677,13 @@ func (a *Client) FindConfigStreamingSocketTimeoutInMs(params *FindConfigStreamin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigStreamingSocketTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigStreamingSocketTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigStreamingSocketTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4875,8 +5710,13 @@ func (a *Client) FindConfigThriftFramedTransportSizeInMb(params *FindConfigThrif
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigThriftFramedTransportSizeInMbOK), nil
-
+	success, ok := result.(*FindConfigThriftFramedTransportSizeInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigThriftFramedTransportSizeInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4903,8 +5743,13 @@ func (a *Client) FindConfigThriftMaxMessageLengthInMb(params *FindConfigThriftMa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigThriftMaxMessageLengthInMbOK), nil
-
+	success, ok := result.(*FindConfigThriftMaxMessageLengthInMbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigThriftMaxMessageLengthInMbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4931,8 +5776,13 @@ func (a *Client) FindConfigTombstoneFailureThreshold(params *FindConfigTombstone
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigTombstoneFailureThresholdOK), nil
-
+	success, ok := result.(*FindConfigTombstoneFailureThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigTombstoneFailureThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4959,8 +5809,13 @@ func (a *Client) FindConfigTombstoneWarnThreshold(params *FindConfigTombstoneWar
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigTombstoneWarnThresholdOK), nil
-
+	success, ok := result.(*FindConfigTombstoneWarnThresholdOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigTombstoneWarnThresholdDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -4987,8 +5842,13 @@ func (a *Client) FindConfigTrickleFsync(params *FindConfigTrickleFsyncParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigTrickleFsyncOK), nil
-
+	success, ok := result.(*FindConfigTrickleFsyncOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigTrickleFsyncDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -5015,8 +5875,13 @@ func (a *Client) FindConfigTrickleFsyncIntervalInKb(params *FindConfigTrickleFsy
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigTrickleFsyncIntervalInKbOK), nil
-
+	success, ok := result.(*FindConfigTrickleFsyncIntervalInKbOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigTrickleFsyncIntervalInKbDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -5043,8 +5908,13 @@ func (a *Client) FindConfigTruncateRequestTimeoutInMs(params *FindConfigTruncate
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigTruncateRequestTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigTruncateRequestTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigTruncateRequestTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -5071,8 +5941,13 @@ func (a *Client) FindConfigViewBuilding(params *FindConfigViewBuildingParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigViewBuildingOK), nil
-
+	success, ok := result.(*FindConfigViewBuildingOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigViewBuildingDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -5099,8 +5974,13 @@ func (a *Client) FindConfigViewHintsDirectory(params *FindConfigViewHintsDirecto
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigViewHintsDirectoryOK), nil
-
+	success, ok := result.(*FindConfigViewHintsDirectoryOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigViewHintsDirectoryDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -5127,8 +6007,13 @@ func (a *Client) FindConfigVirtualDirtySoftLimit(params *FindConfigVirtualDirtyS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigVirtualDirtySoftLimitOK), nil
-
+	success, ok := result.(*FindConfigVirtualDirtySoftLimitOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigVirtualDirtySoftLimitDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -5155,8 +6040,13 @@ func (a *Client) FindConfigVolatileSystemKeyspaceForTesting(params *FindConfigVo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigVolatileSystemKeyspaceForTestingOK), nil
-
+	success, ok := result.(*FindConfigVolatileSystemKeyspaceForTestingOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigVolatileSystemKeyspaceForTestingDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -5184,8 +6074,13 @@ func (a *Client) FindConfigWriteRequestTimeoutInMs(params *FindConfigWriteReques
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FindConfigWriteRequestTimeoutInMsOK), nil
-
+	success, ok := result.(*FindConfigWriteRequestTimeoutInMsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigWriteRequestTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

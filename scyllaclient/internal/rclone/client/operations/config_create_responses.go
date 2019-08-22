@@ -24,21 +24,18 @@ type ConfigCreateReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ConfigCreateReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewConfigCreateOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewConfigCreateNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewConfigCreateInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -68,6 +65,10 @@ func (o *ConfigCreateOK) Error() string {
 	return fmt.Sprintf("[POST /config/create][%d] configCreateOK  %+v", 200, o.Payload)
 }
 
+func (o *ConfigCreateOK) GetPayload() interface{} {
+	return o.Payload
+}
+
 func (o *ConfigCreateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -93,6 +94,10 @@ type ConfigCreateNotFound struct {
 
 func (o *ConfigCreateNotFound) Error() string {
 	return fmt.Sprintf("[POST /config/create][%d] configCreateNotFound  %+v", 404, o.Payload)
+}
+
+func (o *ConfigCreateNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *ConfigCreateNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -122,6 +127,10 @@ type ConfigCreateInternalServerError struct {
 
 func (o *ConfigCreateInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /config/create][%d] configCreateInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *ConfigCreateInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *ConfigCreateInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

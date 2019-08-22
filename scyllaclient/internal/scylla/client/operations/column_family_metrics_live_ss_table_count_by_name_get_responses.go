@@ -22,7 +22,6 @@ type ColumnFamilyMetricsLiveSsTableCountByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsLiveSsTableCountByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsLiveSsTableCountByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsLiveSsTableCountByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsLiveSsTableCountByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/live_ss_table_count/{name}][%d] columnFamilyMetricsLiveSsTableCountByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsLiveSsTableCountByNameGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsLiveSsTableCountByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

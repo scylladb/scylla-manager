@@ -22,7 +22,6 @@ type StorageServiceClusterNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceClusterNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceClusterNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceClusterNameGetOK struct {
 
 func (o *StorageServiceClusterNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/cluster_name][%d] storageServiceClusterNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceClusterNameGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceClusterNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

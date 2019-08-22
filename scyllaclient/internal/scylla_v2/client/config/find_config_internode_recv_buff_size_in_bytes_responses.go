@@ -24,14 +24,12 @@ type FindConfigInternodeRecvBuffSizeInBytesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigInternodeRecvBuffSizeInBytesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigInternodeRecvBuffSizeInBytesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigInternodeRecvBuffSizeInBytesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigInternodeRecvBuffSizeInBytesOK struct {
 
 func (o *FindConfigInternodeRecvBuffSizeInBytesOK) Error() string {
 	return fmt.Sprintf("[GET /config/internode_recv_buff_size_in_bytes][%d] findConfigInternodeRecvBuffSizeInBytesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigInternodeRecvBuffSizeInBytesOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigInternodeRecvBuffSizeInBytesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) Code() int {
 
 func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/internode_recv_buff_size_in_bytes][%d] find_config_internode_recv_buff_size_in_bytes default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

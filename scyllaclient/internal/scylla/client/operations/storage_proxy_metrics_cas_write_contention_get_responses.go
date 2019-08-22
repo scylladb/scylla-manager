@@ -22,7 +22,6 @@ type StorageProxyMetricsCasWriteContentionGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyMetricsCasWriteContentionGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyMetricsCasWriteContentionGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyMetricsCasWriteContentionGetOK struct {
 
 func (o *StorageProxyMetricsCasWriteContentionGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/metrics/cas_write/contention][%d] storageProxyMetricsCasWriteContentionGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyMetricsCasWriteContentionGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *StorageProxyMetricsCasWriteContentionGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,7 +24,6 @@ type StorageServiceSnapshotsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceSnapshotsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceSnapshotsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServiceSnapshotsGetOK struct {
 
 func (o *StorageServiceSnapshotsGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/snapshots][%d] storageServiceSnapshotsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceSnapshotsGetOK) GetPayload() []*models.Snapshots {
+	return o.Payload
 }
 
 func (o *StorageServiceSnapshotsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

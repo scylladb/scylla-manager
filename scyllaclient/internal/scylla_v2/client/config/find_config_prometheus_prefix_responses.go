@@ -24,14 +24,12 @@ type FindConfigPrometheusPrefixReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigPrometheusPrefixReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigPrometheusPrefixOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigPrometheusPrefixDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigPrometheusPrefixOK struct {
 
 func (o *FindConfigPrometheusPrefixOK) Error() string {
 	return fmt.Sprintf("[GET /config/prometheus_prefix][%d] findConfigPrometheusPrefixOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigPrometheusPrefixOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigPrometheusPrefixOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigPrometheusPrefixDefault) Code() int {
 
 func (o *FindConfigPrometheusPrefixDefault) Error() string {
 	return fmt.Sprintf("[GET /config/prometheus_prefix][%d] find_config_prometheus_prefix default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigPrometheusPrefixDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigPrometheusPrefixDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

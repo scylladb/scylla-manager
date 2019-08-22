@@ -24,14 +24,12 @@ type FindConfigReplaceTokenReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigReplaceTokenReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigReplaceTokenOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigReplaceTokenDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigReplaceTokenOK struct {
 
 func (o *FindConfigReplaceTokenOK) Error() string {
 	return fmt.Sprintf("[GET /config/replace_token][%d] findConfigReplaceTokenOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigReplaceTokenOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceTokenOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigReplaceTokenDefault) Code() int {
 
 func (o *FindConfigReplaceTokenDefault) Error() string {
 	return fmt.Sprintf("[GET /config/replace_token][%d] find_config_replace_token default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigReplaceTokenDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceTokenDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -27,21 +27,18 @@ type OperationsListReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *OperationsListReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewOperationsListOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewOperationsListNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewOperationsListInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -69,6 +66,10 @@ type OperationsListOK struct {
 
 func (o *OperationsListOK) Error() string {
 	return fmt.Sprintf("[POST /operations/list][%d] operationsListOK  %+v", 200, o.Payload)
+}
+
+func (o *OperationsListOK) GetPayload() *OperationsListOKBody {
+	return o.Payload
 }
 
 func (o *OperationsListOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -100,6 +101,10 @@ func (o *OperationsListNotFound) Error() string {
 	return fmt.Sprintf("[POST /operations/list][%d] operationsListNotFound  %+v", 404, o.Payload)
 }
 
+func (o *OperationsListNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *OperationsListNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -127,6 +132,10 @@ type OperationsListInternalServerError struct {
 
 func (o *OperationsListInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /operations/list][%d] operationsListInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *OperationsListInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *OperationsListInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

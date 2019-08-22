@@ -22,7 +22,6 @@ type ColumnFamilyMetricsCasCommitByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsCasCommitByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsCasCommitByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsCasCommitByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsCasCommitByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/cas_commit/{name}][%d] columnFamilyMetricsCasCommitByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsCasCommitByNameGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsCasCommitByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

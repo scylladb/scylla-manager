@@ -22,7 +22,6 @@ type HintedHandoffMetricsCreateHintByAddrGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *HintedHandoffMetricsCreateHintByAddrGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewHintedHandoffMetricsCreateHintByAddrGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type HintedHandoffMetricsCreateHintByAddrGetOK struct {
 
 func (o *HintedHandoffMetricsCreateHintByAddrGetOK) Error() string {
 	return fmt.Sprintf("[GET /hinted_handoff/metrics/create_hint/{addr}][%d] hintedHandoffMetricsCreateHintByAddrGetOK  %+v", 200, o.Payload)
+}
+
+func (o *HintedHandoffMetricsCreateHintByAddrGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *HintedHandoffMetricsCreateHintByAddrGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

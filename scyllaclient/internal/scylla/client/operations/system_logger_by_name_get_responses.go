@@ -22,7 +22,6 @@ type SystemLoggerByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *SystemLoggerByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewSystemLoggerByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type SystemLoggerByNameGetOK struct {
 
 func (o *SystemLoggerByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /system/logger/{name}][%d] systemLoggerByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *SystemLoggerByNameGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *SystemLoggerByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

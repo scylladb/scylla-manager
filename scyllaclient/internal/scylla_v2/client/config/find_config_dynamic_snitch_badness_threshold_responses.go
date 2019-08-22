@@ -24,14 +24,12 @@ type FindConfigDynamicSnitchBadnessThresholdReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigDynamicSnitchBadnessThresholdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigDynamicSnitchBadnessThresholdOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigDynamicSnitchBadnessThresholdDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigDynamicSnitchBadnessThresholdOK struct {
 
 func (o *FindConfigDynamicSnitchBadnessThresholdOK) Error() string {
 	return fmt.Sprintf("[GET /config/dynamic_snitch_badness_threshold][%d] findConfigDynamicSnitchBadnessThresholdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigDynamicSnitchBadnessThresholdOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigDynamicSnitchBadnessThresholdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigDynamicSnitchBadnessThresholdDefault) Code() int {
 
 func (o *FindConfigDynamicSnitchBadnessThresholdDefault) Error() string {
 	return fmt.Sprintf("[GET /config/dynamic_snitch_badness_threshold][%d] find_config_dynamic_snitch_badness_threshold default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigDynamicSnitchBadnessThresholdDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigDynamicSnitchBadnessThresholdDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

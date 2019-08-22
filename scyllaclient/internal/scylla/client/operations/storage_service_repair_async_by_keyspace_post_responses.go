@@ -22,7 +22,6 @@ type StorageServiceRepairAsyncByKeyspacePostReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceRepairAsyncByKeyspacePostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceRepairAsyncByKeyspacePostOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceRepairAsyncByKeyspacePostOK struct {
 
 func (o *StorageServiceRepairAsyncByKeyspacePostOK) Error() string {
 	return fmt.Sprintf("[POST /storage_service/repair_async/{keyspace}][%d] storageServiceRepairAsyncByKeyspacePostOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceRepairAsyncByKeyspacePostOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageServiceRepairAsyncByKeyspacePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

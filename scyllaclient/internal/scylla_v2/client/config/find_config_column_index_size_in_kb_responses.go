@@ -24,14 +24,12 @@ type FindConfigColumnIndexSizeInKbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigColumnIndexSizeInKbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigColumnIndexSizeInKbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigColumnIndexSizeInKbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigColumnIndexSizeInKbOK struct {
 
 func (o *FindConfigColumnIndexSizeInKbOK) Error() string {
 	return fmt.Sprintf("[GET /config/column_index_size_in_kb][%d] findConfigColumnIndexSizeInKbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigColumnIndexSizeInKbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigColumnIndexSizeInKbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigColumnIndexSizeInKbDefault) Code() int {
 
 func (o *FindConfigColumnIndexSizeInKbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/column_index_size_in_kb][%d] find_config_column_index_size_in_kb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigColumnIndexSizeInKbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigColumnIndexSizeInKbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

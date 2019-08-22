@@ -24,7 +24,6 @@ type ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK struct {
 
 func (o *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/write_latency/moving_average_histogram/][%d] columnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK) GetPayload() []*models.RateMovingAverageAndHistogram {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

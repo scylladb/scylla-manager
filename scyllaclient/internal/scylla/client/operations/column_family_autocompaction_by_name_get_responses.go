@@ -22,7 +22,6 @@ type ColumnFamilyAutocompactionByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyAutocompactionByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyAutocompactionByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyAutocompactionByNameGetOK struct {
 
 func (o *ColumnFamilyAutocompactionByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/autocompaction/{name}][%d] columnFamilyAutocompactionByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyAutocompactionByNameGetOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *ColumnFamilyAutocompactionByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

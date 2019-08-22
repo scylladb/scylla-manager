@@ -24,7 +24,6 @@ type MessagingServiceMessagesSentGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *MessagingServiceMessagesSentGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewMessagingServiceMessagesSentGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type MessagingServiceMessagesSentGetOK struct {
 
 func (o *MessagingServiceMessagesSentGetOK) Error() string {
 	return fmt.Sprintf("[GET /messaging_service/messages/sent][%d] messagingServiceMessagesSentGetOK  %+v", 200, o.Payload)
+}
+
+func (o *MessagingServiceMessagesSentGetOK) GetPayload() []*models.MessageCounter {
+	return o.Payload
 }
 
 func (o *MessagingServiceMessagesSentGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

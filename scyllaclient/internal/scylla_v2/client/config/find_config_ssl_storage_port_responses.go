@@ -24,14 +24,12 @@ type FindConfigSslStoragePortReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigSslStoragePortReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigSslStoragePortOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigSslStoragePortDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigSslStoragePortOK struct {
 
 func (o *FindConfigSslStoragePortOK) Error() string {
 	return fmt.Sprintf("[GET /config/ssl_storage_port][%d] findConfigSslStoragePortOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigSslStoragePortOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigSslStoragePortOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigSslStoragePortDefault) Code() int {
 
 func (o *FindConfigSslStoragePortDefault) Error() string {
 	return fmt.Sprintf("[GET /config/ssl_storage_port][%d] find_config_ssl_storage_port default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigSslStoragePortDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigSslStoragePortDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

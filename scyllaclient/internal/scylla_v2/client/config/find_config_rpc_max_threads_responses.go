@@ -24,14 +24,12 @@ type FindConfigRPCMaxThreadsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigRPCMaxThreadsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigRPCMaxThreadsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigRPCMaxThreadsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigRPCMaxThreadsOK struct {
 
 func (o *FindConfigRPCMaxThreadsOK) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_max_threads][%d] findConfigRpcMaxThreadsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigRPCMaxThreadsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigRPCMaxThreadsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigRPCMaxThreadsDefault) Code() int {
 
 func (o *FindConfigRPCMaxThreadsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_max_threads][%d] find_config_rpc_max_threads default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigRPCMaxThreadsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigRPCMaxThreadsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigSstablePreemptiveOpenIntervalInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigSstablePreemptiveOpenIntervalInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigSstablePreemptiveOpenIntervalInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigSstablePreemptiveOpenIntervalInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigSstablePreemptiveOpenIntervalInMbOK struct {
 
 func (o *FindConfigSstablePreemptiveOpenIntervalInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/sstable_preemptive_open_interval_in_mb][%d] findConfigSstablePreemptiveOpenIntervalInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigSstablePreemptiveOpenIntervalInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigSstablePreemptiveOpenIntervalInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) Code() int {
 
 func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/sstable_preemptive_open_interval_in_mb][%d] find_config_sstable_preemptive_open_interval_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

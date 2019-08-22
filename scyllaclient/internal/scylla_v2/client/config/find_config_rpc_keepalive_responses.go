@@ -24,14 +24,12 @@ type FindConfigRPCKeepaliveReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigRPCKeepaliveReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigRPCKeepaliveOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigRPCKeepaliveDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigRPCKeepaliveOK struct {
 
 func (o *FindConfigRPCKeepaliveOK) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_keepalive][%d] findConfigRpcKeepaliveOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigRPCKeepaliveOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigRPCKeepaliveOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigRPCKeepaliveDefault) Code() int {
 
 func (o *FindConfigRPCKeepaliveDefault) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_keepalive][%d] find_config_rpc_keepalive default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigRPCKeepaliveDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigRPCKeepaliveDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

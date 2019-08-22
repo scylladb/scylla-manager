@@ -24,7 +24,6 @@ type FailureDetectorSimpleStatesGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FailureDetectorSimpleStatesGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFailureDetectorSimpleStatesGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type FailureDetectorSimpleStatesGetOK struct {
 
 func (o *FailureDetectorSimpleStatesGetOK) Error() string {
 	return fmt.Sprintf("[GET /failure_detector/simple_states][%d] failureDetectorSimpleStatesGetOK  %+v", 200, o.Payload)
+}
+
+func (o *FailureDetectorSimpleStatesGetOK) GetPayload() []*models.Mapper {
+	return o.Payload
 }
 
 func (o *FailureDetectorSimpleStatesGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

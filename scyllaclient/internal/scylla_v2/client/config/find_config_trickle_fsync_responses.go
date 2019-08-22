@@ -24,14 +24,12 @@ type FindConfigTrickleFsyncReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigTrickleFsyncReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigTrickleFsyncOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigTrickleFsyncDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigTrickleFsyncOK struct {
 
 func (o *FindConfigTrickleFsyncOK) Error() string {
 	return fmt.Sprintf("[GET /config/trickle_fsync][%d] findConfigTrickleFsyncOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigTrickleFsyncOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigTrickleFsyncOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigTrickleFsyncDefault) Code() int {
 
 func (o *FindConfigTrickleFsyncDefault) Error() string {
 	return fmt.Sprintf("[GET /config/trickle_fsync][%d] find_config_trickle_fsync default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigTrickleFsyncDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigTrickleFsyncDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

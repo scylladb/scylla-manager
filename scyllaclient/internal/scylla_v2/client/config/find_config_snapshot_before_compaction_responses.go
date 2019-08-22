@@ -24,14 +24,12 @@ type FindConfigSnapshotBeforeCompactionReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigSnapshotBeforeCompactionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigSnapshotBeforeCompactionOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigSnapshotBeforeCompactionDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigSnapshotBeforeCompactionOK struct {
 
 func (o *FindConfigSnapshotBeforeCompactionOK) Error() string {
 	return fmt.Sprintf("[GET /config/snapshot_before_compaction][%d] findConfigSnapshotBeforeCompactionOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigSnapshotBeforeCompactionOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigSnapshotBeforeCompactionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigSnapshotBeforeCompactionDefault) Code() int {
 
 func (o *FindConfigSnapshotBeforeCompactionDefault) Error() string {
 	return fmt.Sprintf("[GET /config/snapshot_before_compaction][%d] find_config_snapshot_before_compaction default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigSnapshotBeforeCompactionDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigSnapshotBeforeCompactionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

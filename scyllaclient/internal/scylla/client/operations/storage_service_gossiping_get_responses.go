@@ -22,7 +22,6 @@ type StorageServiceGossipingGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceGossipingGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceGossipingGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceGossipingGetOK struct {
 
 func (o *StorageServiceGossipingGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/gossiping][%d] storageServiceGossipingGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceGossipingGetOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *StorageServiceGossipingGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

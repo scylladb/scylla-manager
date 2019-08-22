@@ -24,14 +24,12 @@ type FindConfigHintedHandoffEnabledReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigHintedHandoffEnabledReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigHintedHandoffEnabledOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigHintedHandoffEnabledDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigHintedHandoffEnabledOK struct {
 
 func (o *FindConfigHintedHandoffEnabledOK) Error() string {
 	return fmt.Sprintf("[GET /config/hinted_handoff_enabled][%d] findConfigHintedHandoffEnabledOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigHintedHandoffEnabledOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigHintedHandoffEnabledOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigHintedHandoffEnabledDefault) Code() int {
 
 func (o *FindConfigHintedHandoffEnabledDefault) Error() string {
 	return fmt.Sprintf("[GET /config/hinted_handoff_enabled][%d] find_config_hinted_handoff_enabled default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigHintedHandoffEnabledDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigHintedHandoffEnabledDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

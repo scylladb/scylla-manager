@@ -24,21 +24,18 @@ type CoreStatsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CoreStatsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCoreStatsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewCoreStatsNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewCoreStatsInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type CoreStatsOK struct {
 
 func (o *CoreStatsOK) Error() string {
 	return fmt.Sprintf("[POST /core/stats][%d] coreStatsOK  %+v", 200, o.Payload)
+}
+
+func (o *CoreStatsOK) GetPayload() *models.Stats {
+	return o.Payload
 }
 
 func (o *CoreStatsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *CoreStatsNotFound) Error() string {
 	return fmt.Sprintf("[POST /core/stats][%d] coreStatsNotFound  %+v", 404, o.Payload)
 }
 
+func (o *CoreStatsNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *CoreStatsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type CoreStatsInternalServerError struct {
 
 func (o *CoreStatsInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /core/stats][%d] coreStatsInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *CoreStatsInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *CoreStatsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

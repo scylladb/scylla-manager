@@ -24,7 +24,6 @@ type CacheServiceMetricsCounterRequestsMovingAvrageGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCacheServiceMetricsCounterRequestsMovingAvrageGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type CacheServiceMetricsCounterRequestsMovingAvrageGetOK struct {
 
 func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetOK) Error() string {
 	return fmt.Sprintf("[GET /cache_service/metrics/counter/requests_moving_avrage][%d] cacheServiceMetricsCounterRequestsMovingAvrageGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetOK) GetPayload() *models.RateMovingAverage {
+	return o.Payload
 }
 
 func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

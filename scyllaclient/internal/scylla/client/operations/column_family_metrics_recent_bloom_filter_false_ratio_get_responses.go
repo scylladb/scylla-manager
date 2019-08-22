@@ -22,7 +22,6 @@ type ColumnFamilyMetricsRecentBloomFilterFalseRatioGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsRecentBloomFilterFalseRatioGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK struct {
 
 func (o *ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/recent_bloom_filter_false_ratio][%d] columnFamilyMetricsRecentBloomFilterFalseRatioGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

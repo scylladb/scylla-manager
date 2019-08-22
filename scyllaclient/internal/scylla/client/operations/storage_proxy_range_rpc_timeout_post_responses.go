@@ -21,7 +21,6 @@ type StorageProxyRangeRPCTimeoutPostReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyRangeRPCTimeoutPostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyRangeRPCTimeoutPostOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {

@@ -22,7 +22,6 @@ type CompactionManagerMetricsCompletedTasksGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CompactionManagerMetricsCompletedTasksGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCompactionManagerMetricsCompletedTasksGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CompactionManagerMetricsCompletedTasksGetOK struct {
 
 func (o *CompactionManagerMetricsCompletedTasksGetOK) Error() string {
 	return fmt.Sprintf("[GET /compaction_manager/metrics/completed_tasks][%d] compactionManagerMetricsCompletedTasksGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CompactionManagerMetricsCompletedTasksGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *CompactionManagerMetricsCompletedTasksGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,7 +24,6 @@ type MessagingServiceMessagesRespondPendingGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *MessagingServiceMessagesRespondPendingGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewMessagingServiceMessagesRespondPendingGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type MessagingServiceMessagesRespondPendingGetOK struct {
 
 func (o *MessagingServiceMessagesRespondPendingGetOK) Error() string {
 	return fmt.Sprintf("[GET /messaging_service/messages/respond_pending][%d] messagingServiceMessagesRespondPendingGetOK  %+v", 200, o.Payload)
+}
+
+func (o *MessagingServiceMessagesRespondPendingGetOK) GetPayload() []*models.MessageCounter {
+	return o.Payload
 }
 
 func (o *MessagingServiceMessagesRespondPendingGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

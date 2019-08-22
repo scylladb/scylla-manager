@@ -24,14 +24,12 @@ type FindConfigEnableDangerousDirectImportOfCassandraCountersReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEnableDangerousDirectImportOfCassandraCountersOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEnableDangerousDirectImportOfCassandraCountersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEnableDangerousDirectImportOfCassandraCountersOK struct {
 
 func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersOK) Error() string {
 	return fmt.Sprintf("[GET /config/enable_dangerous_direct_import_of_cassandra_counters][%d] findConfigEnableDangerousDirectImportOfCassandraCountersOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) Code()
 
 func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) Error() string {
 	return fmt.Sprintf("[GET /config/enable_dangerous_direct_import_of_cassandra_counters][%d] find_config_enable_dangerous_direct_import_of_cassandra_counters default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

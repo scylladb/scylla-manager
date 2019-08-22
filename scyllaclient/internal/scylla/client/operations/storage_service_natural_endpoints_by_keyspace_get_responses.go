@@ -22,7 +22,6 @@ type StorageServiceNaturalEndpointsByKeyspaceGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceNaturalEndpointsByKeyspaceGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceNaturalEndpointsByKeyspaceGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceNaturalEndpointsByKeyspaceGetOK struct {
 
 func (o *StorageServiceNaturalEndpointsByKeyspaceGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/natural_endpoints/{keyspace}][%d] storageServiceNaturalEndpointsByKeyspaceGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceNaturalEndpointsByKeyspaceGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *StorageServiceNaturalEndpointsByKeyspaceGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

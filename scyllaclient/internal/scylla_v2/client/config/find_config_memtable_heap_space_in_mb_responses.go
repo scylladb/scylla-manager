@@ -24,14 +24,12 @@ type FindConfigMemtableHeapSpaceInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemtableHeapSpaceInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemtableHeapSpaceInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemtableHeapSpaceInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemtableHeapSpaceInMbOK struct {
 
 func (o *FindConfigMemtableHeapSpaceInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_heap_space_in_mb][%d] findConfigMemtableHeapSpaceInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemtableHeapSpaceInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableHeapSpaceInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemtableHeapSpaceInMbDefault) Code() int {
 
 func (o *FindConfigMemtableHeapSpaceInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_heap_space_in_mb][%d] find_config_memtable_heap_space_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemtableHeapSpaceInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableHeapSpaceInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

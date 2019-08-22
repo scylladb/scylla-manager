@@ -22,7 +22,6 @@ type GossiperEndpointLiveGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GossiperEndpointLiveGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGossiperEndpointLiveGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type GossiperEndpointLiveGetOK struct {
 
 func (o *GossiperEndpointLiveGetOK) Error() string {
 	return fmt.Sprintf("[GET /gossiper/endpoint/live/][%d] gossiperEndpointLiveGetOK  %+v", 200, o.Payload)
+}
+
+func (o *GossiperEndpointLiveGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *GossiperEndpointLiveGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

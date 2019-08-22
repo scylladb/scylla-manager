@@ -24,14 +24,12 @@ type FindConfigWriteRequestTimeoutInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigWriteRequestTimeoutInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigWriteRequestTimeoutInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigWriteRequestTimeoutInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigWriteRequestTimeoutInMsOK struct {
 
 func (o *FindConfigWriteRequestTimeoutInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/write_request_timeout_in_ms][%d] findConfigWriteRequestTimeoutInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigWriteRequestTimeoutInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigWriteRequestTimeoutInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigWriteRequestTimeoutInMsDefault) Code() int {
 
 func (o *FindConfigWriteRequestTimeoutInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/write_request_timeout_in_ms][%d] find_config_write_request_timeout_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigWriteRequestTimeoutInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigWriteRequestTimeoutInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

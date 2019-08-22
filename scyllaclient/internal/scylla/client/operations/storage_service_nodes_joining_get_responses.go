@@ -22,7 +22,6 @@ type StorageServiceNodesJoiningGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceNodesJoiningGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceNodesJoiningGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceNodesJoiningGetOK struct {
 
 func (o *StorageServiceNodesJoiningGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/nodes/joining][%d] storageServiceNodesJoiningGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceNodesJoiningGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *StorageServiceNodesJoiningGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

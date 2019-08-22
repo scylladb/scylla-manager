@@ -22,7 +22,6 @@ type GossiperHeartBeatVersionByAddrGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GossiperHeartBeatVersionByAddrGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGossiperHeartBeatVersionByAddrGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type GossiperHeartBeatVersionByAddrGetOK struct {
 
 func (o *GossiperHeartBeatVersionByAddrGetOK) Error() string {
 	return fmt.Sprintf("[GET /gossiper/heart_beat_version/{addr}][%d] gossiperHeartBeatVersionByAddrGetOK  %+v", 200, o.Payload)
+}
+
+func (o *GossiperHeartBeatVersionByAddrGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *GossiperHeartBeatVersionByAddrGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

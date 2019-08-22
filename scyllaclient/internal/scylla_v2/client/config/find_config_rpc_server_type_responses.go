@@ -24,14 +24,12 @@ type FindConfigRPCServerTypeReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigRPCServerTypeReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigRPCServerTypeOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigRPCServerTypeDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigRPCServerTypeOK struct {
 
 func (o *FindConfigRPCServerTypeOK) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_server_type][%d] findConfigRpcServerTypeOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigRPCServerTypeOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigRPCServerTypeOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigRPCServerTypeDefault) Code() int {
 
 func (o *FindConfigRPCServerTypeDefault) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_server_type][%d] find_config_rpc_server_type default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigRPCServerTypeDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigRPCServerTypeDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

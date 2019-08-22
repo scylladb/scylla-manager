@@ -22,7 +22,6 @@ type SystemLoggerGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *SystemLoggerGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewSystemLoggerGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type SystemLoggerGetOK struct {
 
 func (o *SystemLoggerGetOK) Error() string {
 	return fmt.Sprintf("[GET /system/logger][%d] systemLoggerGetOK  %+v", 200, o.Payload)
+}
+
+func (o *SystemLoggerGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *SystemLoggerGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

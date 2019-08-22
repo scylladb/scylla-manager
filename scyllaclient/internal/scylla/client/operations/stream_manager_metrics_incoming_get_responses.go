@@ -22,7 +22,6 @@ type StreamManagerMetricsIncomingGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StreamManagerMetricsIncomingGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStreamManagerMetricsIncomingGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StreamManagerMetricsIncomingGetOK struct {
 
 func (o *StreamManagerMetricsIncomingGetOK) Error() string {
 	return fmt.Sprintf("[GET /stream_manager/metrics/incoming][%d] streamManagerMetricsIncomingGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StreamManagerMetricsIncomingGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StreamManagerMetricsIncomingGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

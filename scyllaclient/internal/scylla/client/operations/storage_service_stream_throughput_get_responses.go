@@ -22,7 +22,6 @@ type StorageServiceStreamThroughputGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceStreamThroughputGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceStreamThroughputGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceStreamThroughputGetOK struct {
 
 func (o *StorageServiceStreamThroughputGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/stream_throughput][%d] storageServiceStreamThroughputGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceStreamThroughputGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageServiceStreamThroughputGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigMemtableFlushWritersReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemtableFlushWritersReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemtableFlushWritersOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemtableFlushWritersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemtableFlushWritersOK struct {
 
 func (o *FindConfigMemtableFlushWritersOK) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_flush_writers][%d] findConfigMemtableFlushWritersOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemtableFlushWritersOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableFlushWritersOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemtableFlushWritersDefault) Code() int {
 
 func (o *FindConfigMemtableFlushWritersDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_flush_writers][%d] find_config_memtable_flush_writers default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemtableFlushWritersDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableFlushWritersDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

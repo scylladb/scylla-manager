@@ -24,14 +24,12 @@ type FindConfigFdInitialValueMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigFdInitialValueMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigFdInitialValueMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigFdInitialValueMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigFdInitialValueMsOK struct {
 
 func (o *FindConfigFdInitialValueMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/fd_initial_value_ms][%d] findConfigFdInitialValueMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigFdInitialValueMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigFdInitialValueMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigFdInitialValueMsDefault) Code() int {
 
 func (o *FindConfigFdInitialValueMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/fd_initial_value_ms][%d] find_config_fd_initial_value_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigFdInitialValueMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigFdInitialValueMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

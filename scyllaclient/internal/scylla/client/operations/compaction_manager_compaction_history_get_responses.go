@@ -24,7 +24,6 @@ type CompactionManagerCompactionHistoryGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CompactionManagerCompactionHistoryGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCompactionManagerCompactionHistoryGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type CompactionManagerCompactionHistoryGetOK struct {
 
 func (o *CompactionManagerCompactionHistoryGetOK) Error() string {
 	return fmt.Sprintf("[GET /compaction_manager/compaction_history][%d] compactionManagerCompactionHistoryGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CompactionManagerCompactionHistoryGetOK) GetPayload() []*models.History {
+	return o.Payload
 }
 
 func (o *CompactionManagerCompactionHistoryGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

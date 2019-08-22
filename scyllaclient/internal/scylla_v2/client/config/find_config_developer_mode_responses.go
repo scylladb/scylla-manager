@@ -24,14 +24,12 @@ type FindConfigDeveloperModeReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigDeveloperModeReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigDeveloperModeOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigDeveloperModeDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigDeveloperModeOK struct {
 
 func (o *FindConfigDeveloperModeOK) Error() string {
 	return fmt.Sprintf("[GET /config/developer_mode][%d] findConfigDeveloperModeOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigDeveloperModeOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigDeveloperModeOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigDeveloperModeDefault) Code() int {
 
 func (o *FindConfigDeveloperModeDefault) Error() string {
 	return fmt.Sprintf("[GET /config/developer_mode][%d] find_config_developer_mode default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigDeveloperModeDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigDeveloperModeDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

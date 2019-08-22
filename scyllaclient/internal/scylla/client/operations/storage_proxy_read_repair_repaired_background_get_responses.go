@@ -22,7 +22,6 @@ type StorageProxyReadRepairRepairedBackgroundGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyReadRepairRepairedBackgroundGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyReadRepairRepairedBackgroundGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyReadRepairRepairedBackgroundGetOK struct {
 
 func (o *StorageProxyReadRepairRepairedBackgroundGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/read_repair_repaired_background][%d] storageProxyReadRepairRepairedBackgroundGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyReadRepairRepairedBackgroundGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *StorageProxyReadRepairRepairedBackgroundGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

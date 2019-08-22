@@ -22,7 +22,6 @@ type ColumnFamilyMetricsPendingCompactionsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsPendingCompactionsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsPendingCompactionsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsPendingCompactionsGetOK struct {
 
 func (o *ColumnFamilyMetricsPendingCompactionsGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/pending_compactions][%d] columnFamilyMetricsPendingCompactionsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsPendingCompactionsGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsPendingCompactionsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

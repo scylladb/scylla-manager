@@ -24,14 +24,12 @@ type FindConfigAPIAddressReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAPIAddressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAPIAddressOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAPIAddressDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAPIAddressOK struct {
 
 func (o *FindConfigAPIAddressOK) Error() string {
 	return fmt.Sprintf("[GET /config/api_address][%d] findConfigApiAddressOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAPIAddressOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigAPIAddressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAPIAddressDefault) Code() int {
 
 func (o *FindConfigAPIAddressDefault) Error() string {
 	return fmt.Sprintf("[GET /config/api_address][%d] find_config_api_address default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAPIAddressDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAPIAddressDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

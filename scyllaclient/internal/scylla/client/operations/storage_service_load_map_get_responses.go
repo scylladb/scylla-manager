@@ -24,7 +24,6 @@ type StorageServiceLoadMapGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceLoadMapGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceLoadMapGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServiceLoadMapGetOK struct {
 
 func (o *StorageServiceLoadMapGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/load_map][%d] storageServiceLoadMapGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceLoadMapGetOK) GetPayload() []*models.MapStringDouble {
+	return o.Payload
 }
 
 func (o *StorageServiceLoadMapGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

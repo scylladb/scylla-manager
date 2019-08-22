@@ -24,7 +24,6 @@ type MessagingServiceMessagesTimeoutGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *MessagingServiceMessagesTimeoutGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewMessagingServiceMessagesTimeoutGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type MessagingServiceMessagesTimeoutGetOK struct {
 
 func (o *MessagingServiceMessagesTimeoutGetOK) Error() string {
 	return fmt.Sprintf("[GET /messaging_service/messages/timeout][%d] messagingServiceMessagesTimeoutGetOK  %+v", 200, o.Payload)
+}
+
+func (o *MessagingServiceMessagesTimeoutGetOK) GetPayload() []*models.MessageCounter {
+	return o.Payload
 }
 
 func (o *MessagingServiceMessagesTimeoutGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

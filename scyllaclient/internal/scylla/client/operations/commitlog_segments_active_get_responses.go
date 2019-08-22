@@ -22,7 +22,6 @@ type CommitlogSegmentsActiveGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CommitlogSegmentsActiveGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCommitlogSegmentsActiveGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CommitlogSegmentsActiveGetOK struct {
 
 func (o *CommitlogSegmentsActiveGetOK) Error() string {
 	return fmt.Sprintf("[GET /commitlog/segments/active][%d] commitlogSegmentsActiveGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CommitlogSegmentsActiveGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *CommitlogSegmentsActiveGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

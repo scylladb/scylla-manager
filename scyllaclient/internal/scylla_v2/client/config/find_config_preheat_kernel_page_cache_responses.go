@@ -24,14 +24,12 @@ type FindConfigPreheatKernelPageCacheReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigPreheatKernelPageCacheReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigPreheatKernelPageCacheOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigPreheatKernelPageCacheDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigPreheatKernelPageCacheOK struct {
 
 func (o *FindConfigPreheatKernelPageCacheOK) Error() string {
 	return fmt.Sprintf("[GET /config/preheat_kernel_page_cache][%d] findConfigPreheatKernelPageCacheOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigPreheatKernelPageCacheOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigPreheatKernelPageCacheOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigPreheatKernelPageCacheDefault) Code() int {
 
 func (o *FindConfigPreheatKernelPageCacheDefault) Error() string {
 	return fmt.Sprintf("[GET /config/preheat_kernel_page_cache][%d] find_config_preheat_kernel_page_cache default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigPreheatKernelPageCacheDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigPreheatKernelPageCacheDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

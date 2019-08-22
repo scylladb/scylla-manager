@@ -22,7 +22,6 @@ type ColumnFamilyNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyNameGetOK struct {
 
 func (o *ColumnFamilyNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/name][%d] columnFamilyNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyNameGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *ColumnFamilyNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

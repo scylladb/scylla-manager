@@ -24,21 +24,18 @@ type CoreStatsResetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CoreStatsResetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCoreStatsResetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewCoreStatsResetNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewCoreStatsResetInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -68,6 +65,10 @@ func (o *CoreStatsResetOK) Error() string {
 	return fmt.Sprintf("[POST /core/stats-reset][%d] coreStatsResetOK  %+v", 200, o.Payload)
 }
 
+func (o *CoreStatsResetOK) GetPayload() interface{} {
+	return o.Payload
+}
+
 func (o *CoreStatsResetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -93,6 +94,10 @@ type CoreStatsResetNotFound struct {
 
 func (o *CoreStatsResetNotFound) Error() string {
 	return fmt.Sprintf("[POST /core/stats-reset][%d] coreStatsResetNotFound  %+v", 404, o.Payload)
+}
+
+func (o *CoreStatsResetNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *CoreStatsResetNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -122,6 +127,10 @@ type CoreStatsResetInternalServerError struct {
 
 func (o *CoreStatsResetInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /core/stats-reset][%d] coreStatsResetInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *CoreStatsResetInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *CoreStatsResetInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type StorageServicePartitionerNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServicePartitionerNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServicePartitionerNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServicePartitionerNameGetOK struct {
 
 func (o *StorageServicePartitionerNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/partitioner_name][%d] storageServicePartitionerNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServicePartitionerNameGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServicePartitionerNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

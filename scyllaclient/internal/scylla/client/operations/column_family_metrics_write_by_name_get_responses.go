@@ -22,7 +22,6 @@ type ColumnFamilyMetricsWriteByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsWriteByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsWriteByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsWriteByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsWriteByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/write/{name}][%d] columnFamilyMetricsWriteByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsWriteByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsWriteByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

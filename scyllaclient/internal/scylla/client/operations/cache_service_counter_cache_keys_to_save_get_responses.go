@@ -22,7 +22,6 @@ type CacheServiceCounterCacheKeysToSaveGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CacheServiceCounterCacheKeysToSaveGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCacheServiceCounterCacheKeysToSaveGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CacheServiceCounterCacheKeysToSaveGetOK struct {
 
 func (o *CacheServiceCounterCacheKeysToSaveGetOK) Error() string {
 	return fmt.Sprintf("[GET /cache_service/counter_cache_keys_to_save][%d] cacheServiceCounterCacheKeysToSaveGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CacheServiceCounterCacheKeysToSaveGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *CacheServiceCounterCacheKeysToSaveGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

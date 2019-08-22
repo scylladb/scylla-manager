@@ -24,14 +24,12 @@ type FindConfigClusterNameReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigClusterNameReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigClusterNameOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigClusterNameDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigClusterNameOK struct {
 
 func (o *FindConfigClusterNameOK) Error() string {
 	return fmt.Sprintf("[GET /config/cluster_name][%d] findConfigClusterNameOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigClusterNameOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigClusterNameOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigClusterNameDefault) Code() int {
 
 func (o *FindConfigClusterNameDefault) Error() string {
 	return fmt.Sprintf("[GET /config/cluster_name][%d] find_config_cluster_name default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigClusterNameDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigClusterNameDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

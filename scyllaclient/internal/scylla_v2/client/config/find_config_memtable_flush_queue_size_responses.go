@@ -24,14 +24,12 @@ type FindConfigMemtableFlushQueueSizeReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemtableFlushQueueSizeReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemtableFlushQueueSizeOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemtableFlushQueueSizeDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemtableFlushQueueSizeOK struct {
 
 func (o *FindConfigMemtableFlushQueueSizeOK) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_flush_queue_size][%d] findConfigMemtableFlushQueueSizeOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemtableFlushQueueSizeOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableFlushQueueSizeOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemtableFlushQueueSizeDefault) Code() int {
 
 func (o *FindConfigMemtableFlushQueueSizeDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_flush_queue_size][%d] find_config_memtable_flush_queue_size default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemtableFlushQueueSizeDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableFlushQueueSizeDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

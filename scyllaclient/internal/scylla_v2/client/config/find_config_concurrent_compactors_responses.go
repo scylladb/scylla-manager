@@ -24,14 +24,12 @@ type FindConfigConcurrentCompactorsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigConcurrentCompactorsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigConcurrentCompactorsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigConcurrentCompactorsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigConcurrentCompactorsOK struct {
 
 func (o *FindConfigConcurrentCompactorsOK) Error() string {
 	return fmt.Sprintf("[GET /config/concurrent_compactors][%d] findConfigConcurrentCompactorsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigConcurrentCompactorsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigConcurrentCompactorsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigConcurrentCompactorsDefault) Code() int {
 
 func (o *FindConfigConcurrentCompactorsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/concurrent_compactors][%d] find_config_concurrent_compactors default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigConcurrentCompactorsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigConcurrentCompactorsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

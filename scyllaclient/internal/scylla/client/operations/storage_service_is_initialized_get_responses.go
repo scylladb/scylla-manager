@@ -22,7 +22,6 @@ type StorageServiceIsInitializedGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceIsInitializedGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceIsInitializedGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceIsInitializedGetOK struct {
 
 func (o *StorageServiceIsInitializedGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/is_initialized][%d] storageServiceIsInitializedGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceIsInitializedGetOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *StorageServiceIsInitializedGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

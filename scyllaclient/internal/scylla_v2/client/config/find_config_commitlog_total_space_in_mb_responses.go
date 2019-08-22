@@ -24,14 +24,12 @@ type FindConfigCommitlogTotalSpaceInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCommitlogTotalSpaceInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCommitlogTotalSpaceInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCommitlogTotalSpaceInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCommitlogTotalSpaceInMbOK struct {
 
 func (o *FindConfigCommitlogTotalSpaceInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_total_space_in_mb][%d] findConfigCommitlogTotalSpaceInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCommitlogTotalSpaceInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogTotalSpaceInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCommitlogTotalSpaceInMbDefault) Code() int {
 
 func (o *FindConfigCommitlogTotalSpaceInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_total_space_in_mb][%d] find_config_commitlog_total_space_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCommitlogTotalSpaceInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogTotalSpaceInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

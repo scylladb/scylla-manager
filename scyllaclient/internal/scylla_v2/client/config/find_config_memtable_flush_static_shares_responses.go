@@ -24,14 +24,12 @@ type FindConfigMemtableFlushStaticSharesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemtableFlushStaticSharesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemtableFlushStaticSharesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemtableFlushStaticSharesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemtableFlushStaticSharesOK struct {
 
 func (o *FindConfigMemtableFlushStaticSharesOK) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_flush_static_shares][%d] findConfigMemtableFlushStaticSharesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemtableFlushStaticSharesOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableFlushStaticSharesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemtableFlushStaticSharesDefault) Code() int {
 
 func (o *FindConfigMemtableFlushStaticSharesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_flush_static_shares][%d] find_config_memtable_flush_static_shares default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemtableFlushStaticSharesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableFlushStaticSharesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

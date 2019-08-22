@@ -24,14 +24,12 @@ type FindConfigPhiConvictThresholdReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigPhiConvictThresholdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigPhiConvictThresholdOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigPhiConvictThresholdDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigPhiConvictThresholdOK struct {
 
 func (o *FindConfigPhiConvictThresholdOK) Error() string {
 	return fmt.Sprintf("[GET /config/phi_convict_threshold][%d] findConfigPhiConvictThresholdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigPhiConvictThresholdOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigPhiConvictThresholdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigPhiConvictThresholdDefault) Code() int {
 
 func (o *FindConfigPhiConvictThresholdDefault) Error() string {
 	return fmt.Sprintf("[GET /config/phi_convict_threshold][%d] find_config_phi_convict_threshold default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigPhiConvictThresholdDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigPhiConvictThresholdDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

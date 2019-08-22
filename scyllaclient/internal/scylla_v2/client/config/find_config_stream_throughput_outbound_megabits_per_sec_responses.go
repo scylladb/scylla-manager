@@ -24,14 +24,12 @@ type FindConfigStreamThroughputOutboundMegabitsPerSecReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigStreamThroughputOutboundMegabitsPerSecReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigStreamThroughputOutboundMegabitsPerSecOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigStreamThroughputOutboundMegabitsPerSecDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigStreamThroughputOutboundMegabitsPerSecOK struct {
 
 func (o *FindConfigStreamThroughputOutboundMegabitsPerSecOK) Error() string {
 	return fmt.Sprintf("[GET /config/stream_throughput_outbound_megabits_per_sec][%d] findConfigStreamThroughputOutboundMegabitsPerSecOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigStreamThroughputOutboundMegabitsPerSecOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigStreamThroughputOutboundMegabitsPerSecOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) Code() int {
 
 func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) Error() string {
 	return fmt.Sprintf("[GET /config/stream_throughput_outbound_megabits_per_sec][%d] find_config_stream_throughput_outbound_megabits_per_sec default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

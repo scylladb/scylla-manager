@@ -24,14 +24,12 @@ type FindConfigHintsDirectoryReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigHintsDirectoryReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigHintsDirectoryOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigHintsDirectoryDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigHintsDirectoryOK struct {
 
 func (o *FindConfigHintsDirectoryOK) Error() string {
 	return fmt.Sprintf("[GET /config/hints_directory][%d] findConfigHintsDirectoryOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigHintsDirectoryOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigHintsDirectoryOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigHintsDirectoryDefault) Code() int {
 
 func (o *FindConfigHintsDirectoryDefault) Error() string {
 	return fmt.Sprintf("[GET /config/hints_directory][%d] find_config_hints_directory default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigHintsDirectoryDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigHintsDirectoryDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

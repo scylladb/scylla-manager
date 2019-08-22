@@ -22,7 +22,6 @@ type StorageServiceRemovalStatusGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceRemovalStatusGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceRemovalStatusGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceRemovalStatusGetOK struct {
 
 func (o *StorageServiceRemovalStatusGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/removal_status][%d] storageServiceRemovalStatusGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceRemovalStatusGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceRemovalStatusGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

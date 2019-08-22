@@ -24,14 +24,12 @@ type FindConfigInternodeCompressionReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigInternodeCompressionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigInternodeCompressionOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigInternodeCompressionDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigInternodeCompressionOK struct {
 
 func (o *FindConfigInternodeCompressionOK) Error() string {
 	return fmt.Sprintf("[GET /config/internode_compression][%d] findConfigInternodeCompressionOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigInternodeCompressionOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigInternodeCompressionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigInternodeCompressionDefault) Code() int {
 
 func (o *FindConfigInternodeCompressionDefault) Error() string {
 	return fmt.Sprintf("[GET /config/internode_compression][%d] find_config_internode_compression default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigInternodeCompressionDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigInternodeCompressionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

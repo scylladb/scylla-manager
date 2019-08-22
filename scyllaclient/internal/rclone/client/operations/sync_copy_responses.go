@@ -25,21 +25,18 @@ type SyncCopyReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *SyncCopyReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewSyncCopyOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewSyncCopyNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewSyncCopyInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -67,6 +64,10 @@ type SyncCopyOK struct {
 
 func (o *SyncCopyOK) Error() string {
 	return fmt.Sprintf("[POST /sync/copy][%d] syncCopyOK  %+v", 200, o.Payload)
+}
+
+func (o *SyncCopyOK) GetPayload() *models.Jobid {
+	return o.Payload
 }
 
 func (o *SyncCopyOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -98,6 +99,10 @@ func (o *SyncCopyNotFound) Error() string {
 	return fmt.Sprintf("[POST /sync/copy][%d] syncCopyNotFound  %+v", 404, o.Payload)
 }
 
+func (o *SyncCopyNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *SyncCopyNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -125,6 +130,10 @@ type SyncCopyInternalServerError struct {
 
 func (o *SyncCopyInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /sync/copy][%d] syncCopyInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *SyncCopyInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *SyncCopyInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

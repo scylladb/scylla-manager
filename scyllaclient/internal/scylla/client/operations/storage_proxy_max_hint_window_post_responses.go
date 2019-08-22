@@ -21,7 +21,6 @@ type StorageProxyMaxHintWindowPostReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyMaxHintWindowPostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyMaxHintWindowPostOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {

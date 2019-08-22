@@ -22,7 +22,6 @@ type StorageProxyMaxHintsInProgressGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyMaxHintsInProgressGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyMaxHintsInProgressGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyMaxHintsInProgressGetOK struct {
 
 func (o *StorageProxyMaxHintsInProgressGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/max_hints_in_progress][%d] storageProxyMaxHintsInProgressGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyMaxHintsInProgressGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageProxyMaxHintsInProgressGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

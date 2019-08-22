@@ -24,14 +24,12 @@ type FindConfigDataFileDirectoriesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigDataFileDirectoriesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigDataFileDirectoriesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigDataFileDirectoriesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigDataFileDirectoriesOK struct {
 
 func (o *FindConfigDataFileDirectoriesOK) Error() string {
 	return fmt.Sprintf("[GET /config/data_file_directories][%d] findConfigDataFileDirectoriesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigDataFileDirectoriesOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *FindConfigDataFileDirectoriesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigDataFileDirectoriesDefault) Code() int {
 
 func (o *FindConfigDataFileDirectoriesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/data_file_directories][%d] find_config_data_file_directories default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigDataFileDirectoriesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigDataFileDirectoriesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

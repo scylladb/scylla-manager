@@ -24,14 +24,12 @@ type FindConfigSstableSummaryRatioReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigSstableSummaryRatioReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigSstableSummaryRatioOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigSstableSummaryRatioDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigSstableSummaryRatioOK struct {
 
 func (o *FindConfigSstableSummaryRatioOK) Error() string {
 	return fmt.Sprintf("[GET /config/sstable_summary_ratio][%d] findConfigSstableSummaryRatioOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigSstableSummaryRatioOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigSstableSummaryRatioOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigSstableSummaryRatioDefault) Code() int {
 
 func (o *FindConfigSstableSummaryRatioDefault) Error() string {
 	return fmt.Sprintf("[GET /config/sstable_summary_ratio][%d] find_config_sstable_summary_ratio default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigSstableSummaryRatioDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigSstableSummaryRatioDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

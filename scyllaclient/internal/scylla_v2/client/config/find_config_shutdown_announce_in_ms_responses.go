@@ -24,14 +24,12 @@ type FindConfigShutdownAnnounceInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigShutdownAnnounceInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigShutdownAnnounceInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigShutdownAnnounceInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigShutdownAnnounceInMsOK struct {
 
 func (o *FindConfigShutdownAnnounceInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/shutdown_announce_in_ms][%d] findConfigShutdownAnnounceInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigShutdownAnnounceInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigShutdownAnnounceInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigShutdownAnnounceInMsDefault) Code() int {
 
 func (o *FindConfigShutdownAnnounceInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/shutdown_announce_in_ms][%d] find_config_shutdown_announce_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigShutdownAnnounceInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigShutdownAnnounceInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

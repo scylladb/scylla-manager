@@ -24,14 +24,12 @@ type FindConfigCompactionEnforceMinThresholdReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCompactionEnforceMinThresholdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCompactionEnforceMinThresholdOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCompactionEnforceMinThresholdDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCompactionEnforceMinThresholdOK struct {
 
 func (o *FindConfigCompactionEnforceMinThresholdOK) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_enforce_min_threshold][%d] findConfigCompactionEnforceMinThresholdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCompactionEnforceMinThresholdOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionEnforceMinThresholdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCompactionEnforceMinThresholdDefault) Code() int {
 
 func (o *FindConfigCompactionEnforceMinThresholdDefault) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_enforce_min_threshold][%d] find_config_compaction_enforce_min_threshold default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCompactionEnforceMinThresholdDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionEnforceMinThresholdDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

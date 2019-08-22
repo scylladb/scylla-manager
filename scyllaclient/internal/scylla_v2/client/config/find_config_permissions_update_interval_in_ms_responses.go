@@ -24,14 +24,12 @@ type FindConfigPermissionsUpdateIntervalInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigPermissionsUpdateIntervalInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigPermissionsUpdateIntervalInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigPermissionsUpdateIntervalInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigPermissionsUpdateIntervalInMsOK struct {
 
 func (o *FindConfigPermissionsUpdateIntervalInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/permissions_update_interval_in_ms][%d] findConfigPermissionsUpdateIntervalInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigPermissionsUpdateIntervalInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigPermissionsUpdateIntervalInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigPermissionsUpdateIntervalInMsDefault) Code() int {
 
 func (o *FindConfigPermissionsUpdateIntervalInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/permissions_update_interval_in_ms][%d] find_config_permissions_update_interval_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigPermissionsUpdateIntervalInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigPermissionsUpdateIntervalInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

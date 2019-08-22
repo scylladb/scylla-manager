@@ -24,14 +24,12 @@ type FindConfigAPIPortReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAPIPortReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAPIPortOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAPIPortDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAPIPortOK struct {
 
 func (o *FindConfigAPIPortOK) Error() string {
 	return fmt.Sprintf("[GET /config/api_port][%d] findConfigApiPortOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAPIPortOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigAPIPortOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAPIPortDefault) Code() int {
 
 func (o *FindConfigAPIPortDefault) Error() string {
 	return fmt.Sprintf("[GET /config/api_port][%d] find_config_api_port default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAPIPortDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAPIPortDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

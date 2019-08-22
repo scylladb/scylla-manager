@@ -22,7 +22,6 @@ type ColumnFamilyMetricsMinRowSizeGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsMinRowSizeGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsMinRowSizeGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsMinRowSizeGetOK struct {
 
 func (o *ColumnFamilyMetricsMinRowSizeGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/min_row_size][%d] columnFamilyMetricsMinRowSizeGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsMinRowSizeGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsMinRowSizeGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

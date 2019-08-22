@@ -22,7 +22,6 @@ type ColumnFamilyMetricsAllMemtablesLiveDataSizeGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsAllMemtablesLiveDataSizeGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK struct {
 
 func (o *ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/all_memtables_live_data_size][%d] columnFamilyMetricsAllMemtablesLiveDataSizeGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

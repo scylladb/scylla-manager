@@ -24,14 +24,12 @@ type FindConfigMemtableCleanupThresholdReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemtableCleanupThresholdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemtableCleanupThresholdOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemtableCleanupThresholdDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemtableCleanupThresholdOK struct {
 
 func (o *FindConfigMemtableCleanupThresholdOK) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_cleanup_threshold][%d] findConfigMemtableCleanupThresholdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemtableCleanupThresholdOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableCleanupThresholdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemtableCleanupThresholdDefault) Code() int {
 
 func (o *FindConfigMemtableCleanupThresholdDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_cleanup_threshold][%d] find_config_memtable_cleanup_threshold default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemtableCleanupThresholdDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableCleanupThresholdDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

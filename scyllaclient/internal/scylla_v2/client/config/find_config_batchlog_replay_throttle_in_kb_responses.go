@@ -24,14 +24,12 @@ type FindConfigBatchlogReplayThrottleInKbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigBatchlogReplayThrottleInKbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigBatchlogReplayThrottleInKbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigBatchlogReplayThrottleInKbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigBatchlogReplayThrottleInKbOK struct {
 
 func (o *FindConfigBatchlogReplayThrottleInKbOK) Error() string {
 	return fmt.Sprintf("[GET /config/batchlog_replay_throttle_in_kb][%d] findConfigBatchlogReplayThrottleInKbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigBatchlogReplayThrottleInKbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigBatchlogReplayThrottleInKbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigBatchlogReplayThrottleInKbDefault) Code() int {
 
 func (o *FindConfigBatchlogReplayThrottleInKbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/batchlog_replay_throttle_in_kb][%d] find_config_batchlog_replay_throttle_in_kb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigBatchlogReplayThrottleInKbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigBatchlogReplayThrottleInKbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

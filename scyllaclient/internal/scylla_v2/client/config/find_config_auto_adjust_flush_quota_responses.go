@@ -24,14 +24,12 @@ type FindConfigAutoAdjustFlushQuotaReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAutoAdjustFlushQuotaReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAutoAdjustFlushQuotaOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAutoAdjustFlushQuotaDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAutoAdjustFlushQuotaOK struct {
 
 func (o *FindConfigAutoAdjustFlushQuotaOK) Error() string {
 	return fmt.Sprintf("[GET /config/auto_adjust_flush_quota][%d] findConfigAutoAdjustFlushQuotaOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAutoAdjustFlushQuotaOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigAutoAdjustFlushQuotaOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAutoAdjustFlushQuotaDefault) Code() int {
 
 func (o *FindConfigAutoAdjustFlushQuotaDefault) Error() string {
 	return fmt.Sprintf("[GET /config/auto_adjust_flush_quota][%d] find_config_auto_adjust_flush_quota default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAutoAdjustFlushQuotaDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAutoAdjustFlushQuotaDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

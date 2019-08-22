@@ -24,14 +24,12 @@ type FindConfigCounterCacheSizeInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCounterCacheSizeInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCounterCacheSizeInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCounterCacheSizeInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCounterCacheSizeInMbOK struct {
 
 func (o *FindConfigCounterCacheSizeInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/counter_cache_size_in_mb][%d] findConfigCounterCacheSizeInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCounterCacheSizeInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCounterCacheSizeInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCounterCacheSizeInMbDefault) Code() int {
 
 func (o *FindConfigCounterCacheSizeInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/counter_cache_size_in_mb][%d] find_config_counter_cache_size_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCounterCacheSizeInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCounterCacheSizeInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

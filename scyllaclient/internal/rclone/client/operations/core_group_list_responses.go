@@ -24,21 +24,18 @@ type CoreGroupListReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CoreGroupListReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCoreGroupListOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewCoreGroupListNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewCoreGroupListInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type CoreGroupListOK struct {
 
 func (o *CoreGroupListOK) Error() string {
 	return fmt.Sprintf("[POST /core/group-list][%d] coreGroupListOK  %+v", 200, o.Payload)
+}
+
+func (o *CoreGroupListOK) GetPayload() *models.GroupList {
+	return o.Payload
 }
 
 func (o *CoreGroupListOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *CoreGroupListNotFound) Error() string {
 	return fmt.Sprintf("[POST /core/group-list][%d] coreGroupListNotFound  %+v", 404, o.Payload)
 }
 
+func (o *CoreGroupListNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *CoreGroupListNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type CoreGroupListInternalServerError struct {
 
 func (o *CoreGroupListInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /core/group-list][%d] coreGroupListInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *CoreGroupListInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *CoreGroupListInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

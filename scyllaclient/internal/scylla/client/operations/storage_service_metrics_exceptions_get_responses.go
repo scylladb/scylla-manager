@@ -22,7 +22,6 @@ type StorageServiceMetricsExceptionsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceMetricsExceptionsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceMetricsExceptionsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceMetricsExceptionsGetOK struct {
 
 func (o *StorageServiceMetricsExceptionsGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/metrics/exceptions][%d] storageServiceMetricsExceptionsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceMetricsExceptionsGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageServiceMetricsExceptionsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type ColumnFamilyMetricsSstablesPerReadHistogramByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsSstablesPerReadHistogramByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/sstables_per_read_histogram/{name}][%d] columnFamilyMetricsSstablesPerReadHistogramByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

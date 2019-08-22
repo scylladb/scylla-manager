@@ -22,7 +22,6 @@ type ColumnFamilyMajorCompactionByNamePostReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMajorCompactionByNamePostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMajorCompactionByNamePostOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMajorCompactionByNamePostOK struct {
 
 func (o *ColumnFamilyMajorCompactionByNamePostOK) Error() string {
 	return fmt.Sprintf("[POST /column_family/major_compaction/{name}][%d] columnFamilyMajorCompactionByNamePostOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMajorCompactionByNamePostOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMajorCompactionByNamePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

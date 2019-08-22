@@ -24,14 +24,12 @@ type FindConfigCommitlogSegmentSizeInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCommitlogSegmentSizeInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCommitlogSegmentSizeInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCommitlogSegmentSizeInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCommitlogSegmentSizeInMbOK struct {
 
 func (o *FindConfigCommitlogSegmentSizeInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_segment_size_in_mb][%d] findConfigCommitlogSegmentSizeInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCommitlogSegmentSizeInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogSegmentSizeInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCommitlogSegmentSizeInMbDefault) Code() int {
 
 func (o *FindConfigCommitlogSegmentSizeInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_segment_size_in_mb][%d] find_config_commitlog_segment_size_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCommitlogSegmentSizeInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogSegmentSizeInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

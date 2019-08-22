@@ -122,7 +122,7 @@ type ListOptionsOpt struct {
 	ShowHash bool `json:"showHash,omitempty"`
 
 	// If set show the IDs for each item if known
-	ShowOrigIds bool `json:"showOrigIDs,omitempty"`
+	ShowOrigIDs bool `json:"showOrigIDs,omitempty"`
 }
 
 // Validate validates this list options opt

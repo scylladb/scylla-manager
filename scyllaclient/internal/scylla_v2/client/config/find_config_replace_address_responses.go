@@ -24,14 +24,12 @@ type FindConfigReplaceAddressReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigReplaceAddressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigReplaceAddressOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigReplaceAddressDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigReplaceAddressOK struct {
 
 func (o *FindConfigReplaceAddressOK) Error() string {
 	return fmt.Sprintf("[GET /config/replace_address][%d] findConfigReplaceAddressOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigReplaceAddressOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceAddressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigReplaceAddressDefault) Code() int {
 
 func (o *FindConfigReplaceAddressDefault) Error() string {
 	return fmt.Sprintf("[GET /config/replace_address][%d] find_config_replace_address default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigReplaceAddressDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceAddressDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -21,7 +21,6 @@ type ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetReader stru
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {

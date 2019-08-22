@@ -22,7 +22,6 @@ type FailureDetectorPhiGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FailureDetectorPhiGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFailureDetectorPhiGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type FailureDetectorPhiGetOK struct {
 
 func (o *FailureDetectorPhiGetOK) Error() string {
 	return fmt.Sprintf("[GET /failure_detector/phi][%d] failureDetectorPhiGetOK  %+v", 200, o.Payload)
+}
+
+func (o *FailureDetectorPhiGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FailureDetectorPhiGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

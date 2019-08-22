@@ -24,14 +24,12 @@ type FindConfigTrickleFsyncIntervalInKbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigTrickleFsyncIntervalInKbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigTrickleFsyncIntervalInKbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigTrickleFsyncIntervalInKbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigTrickleFsyncIntervalInKbOK struct {
 
 func (o *FindConfigTrickleFsyncIntervalInKbOK) Error() string {
 	return fmt.Sprintf("[GET /config/trickle_fsync_interval_in_kb][%d] findConfigTrickleFsyncIntervalInKbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigTrickleFsyncIntervalInKbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigTrickleFsyncIntervalInKbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigTrickleFsyncIntervalInKbDefault) Code() int {
 
 func (o *FindConfigTrickleFsyncIntervalInKbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/trickle_fsync_interval_in_kb][%d] find_config_trickle_fsync_interval_in_kb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigTrickleFsyncIntervalInKbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigTrickleFsyncIntervalInKbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

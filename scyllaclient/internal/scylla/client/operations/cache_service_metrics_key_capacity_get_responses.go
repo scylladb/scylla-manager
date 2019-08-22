@@ -22,7 +22,6 @@ type CacheServiceMetricsKeyCapacityGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CacheServiceMetricsKeyCapacityGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCacheServiceMetricsKeyCapacityGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CacheServiceMetricsKeyCapacityGetOK struct {
 
 func (o *CacheServiceMetricsKeyCapacityGetOK) Error() string {
 	return fmt.Sprintf("[GET /cache_service/metrics/key/capacity][%d] cacheServiceMetricsKeyCapacityGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CacheServiceMetricsKeyCapacityGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *CacheServiceMetricsKeyCapacityGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigKeyCacheKeysToSaveReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigKeyCacheKeysToSaveReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigKeyCacheKeysToSaveOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigKeyCacheKeysToSaveDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigKeyCacheKeysToSaveOK struct {
 
 func (o *FindConfigKeyCacheKeysToSaveOK) Error() string {
 	return fmt.Sprintf("[GET /config/key_cache_keys_to_save][%d] findConfigKeyCacheKeysToSaveOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigKeyCacheKeysToSaveOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigKeyCacheKeysToSaveOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigKeyCacheKeysToSaveDefault) Code() int {
 
 func (o *FindConfigKeyCacheKeysToSaveDefault) Error() string {
 	return fmt.Sprintf("[GET /config/key_cache_keys_to_save][%d] find_config_key_cache_keys_to_save default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigKeyCacheKeysToSaveDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigKeyCacheKeysToSaveDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

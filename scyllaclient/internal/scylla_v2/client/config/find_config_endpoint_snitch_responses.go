@@ -24,14 +24,12 @@ type FindConfigEndpointSnitchReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEndpointSnitchReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEndpointSnitchOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEndpointSnitchDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEndpointSnitchOK struct {
 
 func (o *FindConfigEndpointSnitchOK) Error() string {
 	return fmt.Sprintf("[GET /config/endpoint_snitch][%d] findConfigEndpointSnitchOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEndpointSnitchOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigEndpointSnitchOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEndpointSnitchDefault) Code() int {
 
 func (o *FindConfigEndpointSnitchDefault) Error() string {
 	return fmt.Sprintf("[GET /config/endpoint_snitch][%d] find_config_endpoint_snitch default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEndpointSnitchDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEndpointSnitchDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

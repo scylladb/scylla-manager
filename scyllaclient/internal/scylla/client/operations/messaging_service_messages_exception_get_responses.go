@@ -24,7 +24,6 @@ type MessagingServiceMessagesExceptionGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *MessagingServiceMessagesExceptionGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewMessagingServiceMessagesExceptionGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type MessagingServiceMessagesExceptionGetOK struct {
 
 func (o *MessagingServiceMessagesExceptionGetOK) Error() string {
 	return fmt.Sprintf("[GET /messaging_service/messages/exception][%d] messagingServiceMessagesExceptionGetOK  %+v", 200, o.Payload)
+}
+
+func (o *MessagingServiceMessagesExceptionGetOK) GetPayload() []*models.MessageCounter {
+	return o.Payload
 }
 
 func (o *MessagingServiceMessagesExceptionGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

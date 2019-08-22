@@ -24,14 +24,12 @@ type FindConfigShadowRoundMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigShadowRoundMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigShadowRoundMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigShadowRoundMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigShadowRoundMsOK struct {
 
 func (o *FindConfigShadowRoundMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/shadow_round_ms][%d] findConfigShadowRoundMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigShadowRoundMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigShadowRoundMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigShadowRoundMsDefault) Code() int {
 
 func (o *FindConfigShadowRoundMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/shadow_round_ms][%d] find_config_shadow_round_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigShadowRoundMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigShadowRoundMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

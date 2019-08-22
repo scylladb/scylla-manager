@@ -22,7 +22,6 @@ type StorageProxyCasContentionTimeoutGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyCasContentionTimeoutGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyCasContentionTimeoutGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyCasContentionTimeoutGetOK struct {
 
 func (o *StorageProxyCasContentionTimeoutGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/cas_contention_timeout][%d] storageProxyCasContentionTimeoutGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyCasContentionTimeoutGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *StorageProxyCasContentionTimeoutGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

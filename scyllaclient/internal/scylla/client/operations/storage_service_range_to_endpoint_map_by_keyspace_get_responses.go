@@ -24,7 +24,6 @@ type StorageServiceRangeToEndpointMapByKeyspaceGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceRangeToEndpointMapByKeyspaceGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceRangeToEndpointMapByKeyspaceGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServiceRangeToEndpointMapByKeyspaceGetOK struct {
 
 func (o *StorageServiceRangeToEndpointMapByKeyspaceGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/range_to_endpoint_map/{keyspace}][%d] storageServiceRangeToEndpointMapByKeyspaceGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceRangeToEndpointMapByKeyspaceGetOK) GetPayload() []*models.MaplistMapper {
+	return o.Payload
 }
 
 func (o *StorageServiceRangeToEndpointMapByKeyspaceGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

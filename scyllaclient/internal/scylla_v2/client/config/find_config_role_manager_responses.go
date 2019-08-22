@@ -24,14 +24,12 @@ type FindConfigRoleManagerReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigRoleManagerReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigRoleManagerOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigRoleManagerDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigRoleManagerOK struct {
 
 func (o *FindConfigRoleManagerOK) Error() string {
 	return fmt.Sprintf("[GET /config/role_manager][%d] findConfigRoleManagerOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigRoleManagerOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigRoleManagerOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigRoleManagerDefault) Code() int {
 
 func (o *FindConfigRoleManagerDefault) Error() string {
 	return fmt.Sprintf("[GET /config/role_manager][%d] find_config_role_manager default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigRoleManagerDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigRoleManagerDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

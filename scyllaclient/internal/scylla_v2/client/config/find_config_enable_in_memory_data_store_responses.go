@@ -24,14 +24,12 @@ type FindConfigEnableInMemoryDataStoreReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEnableInMemoryDataStoreReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEnableInMemoryDataStoreOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEnableInMemoryDataStoreDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEnableInMemoryDataStoreOK struct {
 
 func (o *FindConfigEnableInMemoryDataStoreOK) Error() string {
 	return fmt.Sprintf("[GET /config/enable_in_memory_data_store][%d] findConfigEnableInMemoryDataStoreOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEnableInMemoryDataStoreOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigEnableInMemoryDataStoreOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEnableInMemoryDataStoreDefault) Code() int {
 
 func (o *FindConfigEnableInMemoryDataStoreDefault) Error() string {
 	return fmt.Sprintf("[GET /config/enable_in_memory_data_store][%d] find_config_enable_in_memory_data_store default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEnableInMemoryDataStoreDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEnableInMemoryDataStoreDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

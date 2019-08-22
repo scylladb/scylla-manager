@@ -24,14 +24,12 @@ type FindConfigLargeMemoryAllocationWarningThresholdReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigLargeMemoryAllocationWarningThresholdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigLargeMemoryAllocationWarningThresholdOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigLargeMemoryAllocationWarningThresholdDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigLargeMemoryAllocationWarningThresholdOK struct {
 
 func (o *FindConfigLargeMemoryAllocationWarningThresholdOK) Error() string {
 	return fmt.Sprintf("[GET /config/large_memory_allocation_warning_threshold][%d] findConfigLargeMemoryAllocationWarningThresholdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigLargeMemoryAllocationWarningThresholdOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigLargeMemoryAllocationWarningThresholdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigLargeMemoryAllocationWarningThresholdDefault) Code() int {
 
 func (o *FindConfigLargeMemoryAllocationWarningThresholdDefault) Error() string {
 	return fmt.Sprintf("[GET /config/large_memory_allocation_warning_threshold][%d] find_config_large_memory_allocation_warning_threshold default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigLargeMemoryAllocationWarningThresholdDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigLargeMemoryAllocationWarningThresholdDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

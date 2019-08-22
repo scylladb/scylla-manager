@@ -24,7 +24,6 @@ type CollectdGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CollectdGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCollectdGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type CollectdGetOK struct {
 
 func (o *CollectdGetOK) Error() string {
 	return fmt.Sprintf("[GET /collectd/][%d] collectdGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CollectdGetOK) GetPayload() []*models.CollectdMetricStatus {
+	return o.Payload
 }
 
 func (o *CollectdGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

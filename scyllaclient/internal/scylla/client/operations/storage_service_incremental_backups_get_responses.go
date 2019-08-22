@@ -22,7 +22,6 @@ type StorageServiceIncrementalBackupsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceIncrementalBackupsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceIncrementalBackupsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceIncrementalBackupsGetOK struct {
 
 func (o *StorageServiceIncrementalBackupsGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/incremental_backups][%d] storageServiceIncrementalBackupsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceIncrementalBackupsGetOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *StorageServiceIncrementalBackupsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

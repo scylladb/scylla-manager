@@ -24,14 +24,12 @@ type FindConfigCompactionStaticSharesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCompactionStaticSharesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCompactionStaticSharesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCompactionStaticSharesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCompactionStaticSharesOK struct {
 
 func (o *FindConfigCompactionStaticSharesOK) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_static_shares][%d] findConfigCompactionStaticSharesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCompactionStaticSharesOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionStaticSharesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCompactionStaticSharesDefault) Code() int {
 
 func (o *FindConfigCompactionStaticSharesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_static_shares][%d] find_config_compaction_static_shares default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCompactionStaticSharesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionStaticSharesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,7 +24,6 @@ type StorageServiceLoggingLevelGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceLoggingLevelGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceLoggingLevelGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServiceLoggingLevelGetOK struct {
 
 func (o *StorageServiceLoggingLevelGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/logging_level][%d] storageServiceLoggingLevelGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceLoggingLevelGetOK) GetPayload() []*models.Mapper {
+	return o.Payload
 }
 
 func (o *StorageServiceLoggingLevelGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

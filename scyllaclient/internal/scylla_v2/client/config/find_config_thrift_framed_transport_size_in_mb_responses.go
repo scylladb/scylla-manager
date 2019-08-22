@@ -24,14 +24,12 @@ type FindConfigThriftFramedTransportSizeInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigThriftFramedTransportSizeInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigThriftFramedTransportSizeInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigThriftFramedTransportSizeInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigThriftFramedTransportSizeInMbOK struct {
 
 func (o *FindConfigThriftFramedTransportSizeInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/thrift_framed_transport_size_in_mb][%d] findConfigThriftFramedTransportSizeInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigThriftFramedTransportSizeInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigThriftFramedTransportSizeInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigThriftFramedTransportSizeInMbDefault) Code() int {
 
 func (o *FindConfigThriftFramedTransportSizeInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/thrift_framed_transport_size_in_mb][%d] find_config_thrift_framed_transport_size_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigThriftFramedTransportSizeInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigThriftFramedTransportSizeInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type ColumnFamilyMetricsRowCacheHitOutOfRangeGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsRowCacheHitOutOfRangeGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsRowCacheHitOutOfRangeGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK struct {
 
 func (o *ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/row_cache_hit_out_of_range][%d] columnFamilyMetricsRowCacheHitOutOfRangeGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type StorageServiceBulkLoadAsyncByPathGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceBulkLoadAsyncByPathGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceBulkLoadAsyncByPathGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceBulkLoadAsyncByPathGetOK struct {
 
 func (o *StorageServiceBulkLoadAsyncByPathGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/bulk_load_async/{path}][%d] storageServiceBulkLoadAsyncByPathGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceBulkLoadAsyncByPathGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceBulkLoadAsyncByPathGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

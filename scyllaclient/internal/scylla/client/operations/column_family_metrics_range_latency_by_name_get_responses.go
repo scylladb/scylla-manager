@@ -22,7 +22,6 @@ type ColumnFamilyMetricsRangeLatencyByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsRangeLatencyByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsRangeLatencyByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsRangeLatencyByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsRangeLatencyByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/range_latency/{name}][%d] columnFamilyMetricsRangeLatencyByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsRangeLatencyByNameGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsRangeLatencyByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

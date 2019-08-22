@@ -24,14 +24,12 @@ type FindConfigLoadRingStateReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigLoadRingStateReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigLoadRingStateOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigLoadRingStateDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigLoadRingStateOK struct {
 
 func (o *FindConfigLoadRingStateOK) Error() string {
 	return fmt.Sprintf("[GET /config/load_ring_state][%d] findConfigLoadRingStateOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigLoadRingStateOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigLoadRingStateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigLoadRingStateDefault) Code() int {
 
 func (o *FindConfigLoadRingStateDefault) Error() string {
 	return fmt.Sprintf("[GET /config/load_ring_state][%d] find_config_load_ring_state default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigLoadRingStateDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigLoadRingStateDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

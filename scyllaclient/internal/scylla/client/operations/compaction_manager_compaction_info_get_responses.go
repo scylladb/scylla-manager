@@ -24,7 +24,6 @@ type CompactionManagerCompactionInfoGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CompactionManagerCompactionInfoGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCompactionManagerCompactionInfoGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type CompactionManagerCompactionInfoGetOK struct {
 
 func (o *CompactionManagerCompactionInfoGetOK) Error() string {
 	return fmt.Sprintf("[GET /compaction_manager/compaction_info][%d] compactionManagerCompactionInfoGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CompactionManagerCompactionInfoGetOK) GetPayload() []*models.CompactionInfo {
+	return o.Payload
 }
 
 func (o *CompactionManagerCompactionInfoGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

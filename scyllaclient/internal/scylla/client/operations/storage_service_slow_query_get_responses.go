@@ -24,7 +24,6 @@ type StorageServiceSlowQueryGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceSlowQueryGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceSlowQueryGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServiceSlowQueryGetOK struct {
 
 func (o *StorageServiceSlowQueryGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/slow_query][%d] storageServiceSlowQueryGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceSlowQueryGetOK) GetPayload() *models.SlowQueryInfo {
+	return o.Payload
 }
 
 func (o *StorageServiceSlowQueryGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

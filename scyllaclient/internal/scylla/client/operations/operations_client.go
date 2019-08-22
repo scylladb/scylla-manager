@@ -6,6 +6,8 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
@@ -50,8 +52,14 @@ func (a *Client) CacheServiceCounterCacheCapacityPost(params *CacheServiceCounte
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceCounterCacheCapacityPostOK), nil
-
+	success, ok := result.(*CacheServiceCounterCacheCapacityPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceCounterCacheCapacityPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -80,8 +88,14 @@ func (a *Client) CacheServiceCounterCacheKeysToSaveGet(params *CacheServiceCount
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceCounterCacheKeysToSaveGetOK), nil
-
+	success, ok := result.(*CacheServiceCounterCacheKeysToSaveGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceCounterCacheKeysToSaveGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -110,8 +124,14 @@ func (a *Client) CacheServiceCounterCacheKeysToSavePost(params *CacheServiceCoun
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceCounterCacheKeysToSavePostOK), nil
-
+	success, ok := result.(*CacheServiceCounterCacheKeysToSavePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceCounterCacheKeysToSavePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -140,8 +160,14 @@ func (a *Client) CacheServiceCounterCacheSavePeriodGet(params *CacheServiceCount
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceCounterCacheSavePeriodGetOK), nil
-
+	success, ok := result.(*CacheServiceCounterCacheSavePeriodGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceCounterCacheSavePeriodGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -170,8 +196,14 @@ func (a *Client) CacheServiceCounterCacheSavePeriodPost(params *CacheServiceCoun
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceCounterCacheSavePeriodPostOK), nil
-
+	success, ok := result.(*CacheServiceCounterCacheSavePeriodPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceCounterCacheSavePeriodPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -200,8 +232,14 @@ func (a *Client) CacheServiceInvalidateCounterCachePost(params *CacheServiceInva
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceInvalidateCounterCachePostOK), nil
-
+	success, ok := result.(*CacheServiceInvalidateCounterCachePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceInvalidateCounterCachePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -230,8 +268,14 @@ func (a *Client) CacheServiceInvalidateKeyCachePost(params *CacheServiceInvalida
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceInvalidateKeyCachePostOK), nil
-
+	success, ok := result.(*CacheServiceInvalidateKeyCachePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceInvalidateKeyCachePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -260,8 +304,14 @@ func (a *Client) CacheServiceKeyCacheCapacityPost(params *CacheServiceKeyCacheCa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceKeyCacheCapacityPostOK), nil
-
+	success, ok := result.(*CacheServiceKeyCacheCapacityPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceKeyCacheCapacityPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -290,8 +340,14 @@ func (a *Client) CacheServiceKeyCacheKeysToSaveGet(params *CacheServiceKeyCacheK
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceKeyCacheKeysToSaveGetOK), nil
-
+	success, ok := result.(*CacheServiceKeyCacheKeysToSaveGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceKeyCacheKeysToSaveGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -320,8 +376,14 @@ func (a *Client) CacheServiceKeyCacheKeysToSavePost(params *CacheServiceKeyCache
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceKeyCacheKeysToSavePostOK), nil
-
+	success, ok := result.(*CacheServiceKeyCacheKeysToSavePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceKeyCacheKeysToSavePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -350,8 +412,14 @@ func (a *Client) CacheServiceKeyCacheSavePeriodGet(params *CacheServiceKeyCacheS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceKeyCacheSavePeriodGetOK), nil
-
+	success, ok := result.(*CacheServiceKeyCacheSavePeriodGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceKeyCacheSavePeriodGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -380,8 +448,14 @@ func (a *Client) CacheServiceKeyCacheSavePeriodPost(params *CacheServiceKeyCache
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceKeyCacheSavePeriodPostOK), nil
-
+	success, ok := result.(*CacheServiceKeyCacheSavePeriodPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceKeyCacheSavePeriodPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -410,8 +484,14 @@ func (a *Client) CacheServiceMetricsCounterCapacityGet(params *CacheServiceMetri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterCapacityGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterCapacityGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterCapacityGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -440,8 +520,14 @@ func (a *Client) CacheServiceMetricsCounterEntriesGet(params *CacheServiceMetric
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterEntriesGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterEntriesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterEntriesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -470,8 +556,14 @@ func (a *Client) CacheServiceMetricsCounterHitRateGet(params *CacheServiceMetric
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterHitRateGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterHitRateGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterHitRateGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -500,8 +592,14 @@ func (a *Client) CacheServiceMetricsCounterHitsGet(params *CacheServiceMetricsCo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterHitsGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterHitsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterHitsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -530,8 +628,14 @@ func (a *Client) CacheServiceMetricsCounterHitsMovingAvrageGet(params *CacheServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterHitsMovingAvrageGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterHitsMovingAvrageGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterHitsMovingAvrageGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -560,8 +664,14 @@ func (a *Client) CacheServiceMetricsCounterRequestsGet(params *CacheServiceMetri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterRequestsGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterRequestsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterRequestsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -590,8 +700,14 @@ func (a *Client) CacheServiceMetricsCounterRequestsMovingAvrageGet(params *Cache
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterRequestsMovingAvrageGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterRequestsMovingAvrageGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterRequestsMovingAvrageGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -620,8 +736,14 @@ func (a *Client) CacheServiceMetricsCounterSizeGet(params *CacheServiceMetricsCo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsCounterSizeGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsCounterSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsCounterSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -650,8 +772,14 @@ func (a *Client) CacheServiceMetricsKeyCapacityGet(params *CacheServiceMetricsKe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeyCapacityGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeyCapacityGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeyCapacityGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -680,8 +808,14 @@ func (a *Client) CacheServiceMetricsKeyEntriesGet(params *CacheServiceMetricsKey
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeyEntriesGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeyEntriesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeyEntriesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -710,8 +844,14 @@ func (a *Client) CacheServiceMetricsKeyHitRateGet(params *CacheServiceMetricsKey
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeyHitRateGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeyHitRateGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeyHitRateGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -740,8 +880,14 @@ func (a *Client) CacheServiceMetricsKeyHitsGet(params *CacheServiceMetricsKeyHit
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeyHitsGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeyHitsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeyHitsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -770,8 +916,14 @@ func (a *Client) CacheServiceMetricsKeyHitsMovingAvrageGet(params *CacheServiceM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeyHitsMovingAvrageGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeyHitsMovingAvrageGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeyHitsMovingAvrageGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -800,8 +952,14 @@ func (a *Client) CacheServiceMetricsKeyRequestsGet(params *CacheServiceMetricsKe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeyRequestsGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeyRequestsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeyRequestsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -830,8 +988,14 @@ func (a *Client) CacheServiceMetricsKeyRequestsMovingAvrageGet(params *CacheServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeyRequestsMovingAvrageGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeyRequestsMovingAvrageGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeyRequestsMovingAvrageGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -860,8 +1024,14 @@ func (a *Client) CacheServiceMetricsKeySizeGet(params *CacheServiceMetricsKeySiz
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsKeySizeGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsKeySizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsKeySizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -890,8 +1060,14 @@ func (a *Client) CacheServiceMetricsRowCapacityGet(params *CacheServiceMetricsRo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowCapacityGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowCapacityGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowCapacityGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -920,8 +1096,14 @@ func (a *Client) CacheServiceMetricsRowEntriesGet(params *CacheServiceMetricsRow
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowEntriesGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowEntriesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowEntriesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -950,8 +1132,14 @@ func (a *Client) CacheServiceMetricsRowHitRateGet(params *CacheServiceMetricsRow
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowHitRateGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowHitRateGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowHitRateGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -980,8 +1168,14 @@ func (a *Client) CacheServiceMetricsRowHitsGet(params *CacheServiceMetricsRowHit
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowHitsGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowHitsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowHitsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1010,8 +1204,14 @@ func (a *Client) CacheServiceMetricsRowHitsMovingAvrageGet(params *CacheServiceM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowHitsMovingAvrageGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowHitsMovingAvrageGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowHitsMovingAvrageGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1040,8 +1240,14 @@ func (a *Client) CacheServiceMetricsRowRequestsGet(params *CacheServiceMetricsRo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowRequestsGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowRequestsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowRequestsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1070,8 +1276,14 @@ func (a *Client) CacheServiceMetricsRowRequestsMovingAvrageGet(params *CacheServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowRequestsMovingAvrageGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowRequestsMovingAvrageGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowRequestsMovingAvrageGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1100,8 +1312,14 @@ func (a *Client) CacheServiceMetricsRowSizeGet(params *CacheServiceMetricsRowSiz
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceMetricsRowSizeGetOK), nil
-
+	success, ok := result.(*CacheServiceMetricsRowSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceMetricsRowSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1130,8 +1348,14 @@ func (a *Client) CacheServiceRowCacheCapacityPost(params *CacheServiceRowCacheCa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceRowCacheCapacityPostOK), nil
-
+	success, ok := result.(*CacheServiceRowCacheCapacityPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceRowCacheCapacityPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1160,8 +1384,14 @@ func (a *Client) CacheServiceRowCacheKeysToSaveGet(params *CacheServiceRowCacheK
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceRowCacheKeysToSaveGetOK), nil
-
+	success, ok := result.(*CacheServiceRowCacheKeysToSaveGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceRowCacheKeysToSaveGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1190,8 +1420,14 @@ func (a *Client) CacheServiceRowCacheKeysToSavePost(params *CacheServiceRowCache
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceRowCacheKeysToSavePostOK), nil
-
+	success, ok := result.(*CacheServiceRowCacheKeysToSavePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceRowCacheKeysToSavePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1220,8 +1456,14 @@ func (a *Client) CacheServiceRowCacheSavePeriodGet(params *CacheServiceRowCacheS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceRowCacheSavePeriodGetOK), nil
-
+	success, ok := result.(*CacheServiceRowCacheSavePeriodGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceRowCacheSavePeriodGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1250,8 +1492,14 @@ func (a *Client) CacheServiceRowCacheSavePeriodPost(params *CacheServiceRowCache
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceRowCacheSavePeriodPostOK), nil
-
+	success, ok := result.(*CacheServiceRowCacheSavePeriodPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceRowCacheSavePeriodPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1280,8 +1528,14 @@ func (a *Client) CacheServiceSaveCachesPost(params *CacheServiceSaveCachesPostPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CacheServiceSaveCachesPostOK), nil
-
+	success, ok := result.(*CacheServiceSaveCachesPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CacheServiceSaveCachesPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1310,8 +1564,14 @@ func (a *Client) CollectdByPluginidGet(params *CollectdByPluginidGetParams) (*Co
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CollectdByPluginidGetOK), nil
-
+	success, ok := result.(*CollectdByPluginidGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CollectdByPluginidGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1340,8 +1600,14 @@ func (a *Client) CollectdByPluginidPost(params *CollectdByPluginidPostParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CollectdByPluginidPostOK), nil
-
+	success, ok := result.(*CollectdByPluginidPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CollectdByPluginidPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1370,8 +1636,14 @@ func (a *Client) CollectdGet(params *CollectdGetParams) (*CollectdGetOK, error) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CollectdGetOK), nil
-
+	success, ok := result.(*CollectdGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CollectdGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1400,8 +1672,14 @@ func (a *Client) CollectdPost(params *CollectdPostParams) (*CollectdPostOK, erro
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CollectdPostOK), nil
-
+	success, ok := result.(*CollectdPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CollectdPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1430,8 +1708,14 @@ func (a *Client) ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocom
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyAutocompactionByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyAutocompactionByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyAutocompactionByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1460,8 +1744,14 @@ func (a *Client) ColumnFamilyBuiltIndexesByNameGet(params *ColumnFamilyBuiltInde
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyBuiltIndexesByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyBuiltIndexesByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyBuiltIndexesByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1490,8 +1780,14 @@ func (a *Client) ColumnFamilyCompactionByNamePost(params *ColumnFamilyCompaction
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyCompactionByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyCompactionByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyCompactionByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1520,8 +1816,14 @@ func (a *Client) ColumnFamilyCompactionStrategyByNameGet(params *ColumnFamilyCom
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyCompactionStrategyByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyCompactionStrategyByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyCompactionStrategyByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1550,8 +1852,14 @@ func (a *Client) ColumnFamilyCompactionStrategyByNamePost(params *ColumnFamilyCo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyCompactionStrategyByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyCompactionStrategyByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyCompactionStrategyByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1580,8 +1888,14 @@ func (a *Client) ColumnFamilyCompressionParametersByNameGet(params *ColumnFamily
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyCompressionParametersByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyCompressionParametersByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyCompressionParametersByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1610,8 +1924,14 @@ func (a *Client) ColumnFamilyCompressionParametersByNamePost(params *ColumnFamil
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyCompressionParametersByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyCompressionParametersByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyCompressionParametersByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1640,8 +1960,14 @@ func (a *Client) ColumnFamilyCrcCheckChanceByNamePost(params *ColumnFamilyCrcChe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyCrcCheckChanceByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyCrcCheckChanceByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyCrcCheckChanceByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1670,8 +1996,14 @@ func (a *Client) ColumnFamilyDroppableRatioByNameGet(params *ColumnFamilyDroppab
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyDroppableRatioByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyDroppableRatioByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyDroppableRatioByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1700,8 +2032,14 @@ func (a *Client) ColumnFamilyEstimateKeysByNameGet(params *ColumnFamilyEstimateK
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyEstimateKeysByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyEstimateKeysByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyEstimateKeysByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1730,8 +2068,14 @@ func (a *Client) ColumnFamilyGet(params *ColumnFamilyGetParams) (*ColumnFamilyGe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyGetOK), nil
-
+	success, ok := result.(*ColumnFamilyGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1760,8 +2104,14 @@ func (a *Client) ColumnFamilyLoadSstableByNamePost(params *ColumnFamilyLoadSstab
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyLoadSstableByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyLoadSstableByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyLoadSstableByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1790,8 +2140,14 @@ func (a *Client) ColumnFamilyMajorCompactionByNamePost(params *ColumnFamilyMajor
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMajorCompactionByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyMajorCompactionByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMajorCompactionByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1820,8 +2176,14 @@ func (a *Client) ColumnFamilyMaximumCompactionByNameGet(params *ColumnFamilyMaxi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMaximumCompactionByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMaximumCompactionByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMaximumCompactionByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1850,8 +2212,14 @@ func (a *Client) ColumnFamilyMaximumCompactionByNamePost(params *ColumnFamilyMax
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMaximumCompactionByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyMaximumCompactionByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMaximumCompactionByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1880,8 +2248,14 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet(params *Co
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1910,8 +2284,14 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeGet(params *ColumnFa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsAllMemtablesLiveDataSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1940,8 +2320,14 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet(params *Col
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1970,8 +2356,14 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeGet(params *ColumnFam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsAllMemtablesOffHeapSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2000,8 +2392,14 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet(params *Colu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2030,8 +2428,14 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeGet(params *ColumnFami
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsAllMemtablesOnHeapSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2060,8 +2464,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet(params *Co
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2090,8 +2500,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet(params *ColumnFa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2120,8 +2536,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet(params *C
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2150,8 +2572,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesGet(params *ColumnF
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterFalsePositivesGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalsePositivesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterFalsePositivesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2180,8 +2608,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioByNameGet(params *Colum
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterFalseRatioByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2210,8 +2644,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioGet(params *ColumnFamil
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterFalseRatioGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalseRatioGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterFalseRatioGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2240,8 +2680,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet(params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2270,8 +2716,14 @@ func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet(params *Colu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2300,8 +2752,14 @@ func (a *Client) ColumnFamilyMetricsCasCommitByNameGet(params *ColumnFamilyMetri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasCommitByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasCommitByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasCommitByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2330,8 +2788,14 @@ func (a *Client) ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet(params 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2360,8 +2824,14 @@ func (a *Client) ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet(p
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2390,8 +2860,14 @@ func (a *Client) ColumnFamilyMetricsCasPrepareByNameGet(params *ColumnFamilyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasPrepareByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasPrepareByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasPrepareByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2420,8 +2896,14 @@ func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet(params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2450,8 +2932,14 @@ func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet(
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2480,8 +2968,14 @@ func (a *Client) ColumnFamilyMetricsCasProposeByNameGet(params *ColumnFamilyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasProposeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasProposeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasProposeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2510,8 +3004,14 @@ func (a *Client) ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet(params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2540,8 +3040,14 @@ func (a *Client) ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet(
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2570,8 +3076,14 @@ func (a *Client) ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet(params 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2600,8 +3112,14 @@ func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2630,8 +3148,14 @@ func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet(para
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2660,8 +3184,14 @@ func (a *Client) ColumnFamilyMetricsCompressionRatioByNameGet(params *ColumnFami
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCompressionRatioByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCompressionRatioByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCompressionRatioByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2690,8 +3220,14 @@ func (a *Client) ColumnFamilyMetricsCompressionRatioGet(params *ColumnFamilyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCompressionRatioGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCompressionRatioGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCompressionRatioGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2720,8 +3256,14 @@ func (a *Client) ColumnFamilyMetricsCoordinatorReadGet(params *ColumnFamilyMetri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCoordinatorReadGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCoordinatorReadGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCoordinatorReadGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2750,8 +3292,14 @@ func (a *Client) ColumnFamilyMetricsCoordinatorScanGet(params *ColumnFamilyMetri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsCoordinatorScanGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsCoordinatorScanGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsCoordinatorScanGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2780,8 +3328,14 @@ func (a *Client) ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet(param
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2810,8 +3364,14 @@ func (a *Client) ColumnFamilyMetricsEstimatedRowCountByNameGet(params *ColumnFam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsEstimatedRowCountByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsEstimatedRowCountByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsEstimatedRowCountByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2840,8 +3400,14 @@ func (a *Client) ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet(params *C
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2870,8 +3436,14 @@ func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet(param
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2900,8 +3472,14 @@ func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet(params *Col
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2930,8 +3508,14 @@ func (a *Client) ColumnFamilyMetricsKeyCacheHitRateByNameGet(params *ColumnFamil
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsKeyCacheHitRateByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsKeyCacheHitRateByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsKeyCacheHitRateByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2960,8 +3544,14 @@ func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet(params *ColumnFam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -2990,8 +3580,14 @@ func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedGet(params *ColumnFamilyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsLiveDiskSpaceUsedGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsLiveDiskSpaceUsedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsLiveDiskSpaceUsedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3020,8 +3616,14 @@ func (a *Client) ColumnFamilyMetricsLiveScannedHistogramByNameGet(params *Column
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsLiveScannedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsLiveScannedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsLiveScannedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3050,8 +3652,14 @@ func (a *Client) ColumnFamilyMetricsLiveSsTableCountByNameGet(params *ColumnFami
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsLiveSsTableCountByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsLiveSsTableCountByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsLiveSsTableCountByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3080,8 +3688,14 @@ func (a *Client) ColumnFamilyMetricsLiveSsTableCountGet(params *ColumnFamilyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsLiveSsTableCountGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsLiveSsTableCountGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsLiveSsTableCountGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3110,8 +3724,14 @@ func (a *Client) ColumnFamilyMetricsMaxRowSizeByNameGet(params *ColumnFamilyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMaxRowSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMaxRowSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMaxRowSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3140,8 +3760,14 @@ func (a *Client) ColumnFamilyMetricsMaxRowSizeGet(params *ColumnFamilyMetricsMax
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMaxRowSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMaxRowSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMaxRowSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3170,8 +3796,14 @@ func (a *Client) ColumnFamilyMetricsMeanRowSizeByNameGet(params *ColumnFamilyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMeanRowSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMeanRowSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMeanRowSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3200,8 +3832,14 @@ func (a *Client) ColumnFamilyMetricsMeanRowSizeGet(params *ColumnFamilyMetricsMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMeanRowSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMeanRowSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMeanRowSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3230,8 +3868,14 @@ func (a *Client) ColumnFamilyMetricsMemtableColumnsCountByNameGet(params *Column
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableColumnsCountByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableColumnsCountByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableColumnsCountByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3260,8 +3904,14 @@ func (a *Client) ColumnFamilyMetricsMemtableColumnsCountGet(params *ColumnFamily
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableColumnsCountGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableColumnsCountGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableColumnsCountGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3290,8 +3940,14 @@ func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeByNameGet(params *Column
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableLiveDataSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3320,8 +3976,14 @@ func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeGet(params *ColumnFamily
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableLiveDataSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableLiveDataSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableLiveDataSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3350,8 +4012,14 @@ func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeByNameGet(params *ColumnF
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableOffHeapSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3380,8 +4048,14 @@ func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeGet(params *ColumnFamilyM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableOffHeapSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableOffHeapSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableOffHeapSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3410,8 +4084,14 @@ func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeByNameGet(params *ColumnFa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableOnHeapSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3440,8 +4120,14 @@ func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeGet(params *ColumnFamilyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableOnHeapSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableOnHeapSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableOnHeapSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3470,8 +4156,14 @@ func (a *Client) ColumnFamilyMetricsMemtableSwitchCountByNameGet(params *ColumnF
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableSwitchCountByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableSwitchCountByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableSwitchCountByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3500,8 +4192,14 @@ func (a *Client) ColumnFamilyMetricsMemtableSwitchCountGet(params *ColumnFamilyM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMemtableSwitchCountGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMemtableSwitchCountGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMemtableSwitchCountGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3530,8 +4228,14 @@ func (a *Client) ColumnFamilyMetricsMinRowSizeByNameGet(params *ColumnFamilyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMinRowSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMinRowSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMinRowSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3560,8 +4264,14 @@ func (a *Client) ColumnFamilyMetricsMinRowSizeGet(params *ColumnFamilyMetricsMin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsMinRowSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsMinRowSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsMinRowSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3590,8 +4300,14 @@ func (a *Client) ColumnFamilyMetricsPendingCompactionsByNameGet(params *ColumnFa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsPendingCompactionsByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsPendingCompactionsByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsPendingCompactionsByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3620,8 +4336,14 @@ func (a *Client) ColumnFamilyMetricsPendingCompactionsGet(params *ColumnFamilyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsPendingCompactionsGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsPendingCompactionsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsPendingCompactionsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3650,8 +4372,14 @@ func (a *Client) ColumnFamilyMetricsPendingFlushesByNameGet(params *ColumnFamily
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsPendingFlushesByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsPendingFlushesByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsPendingFlushesByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3680,8 +4408,14 @@ func (a *Client) ColumnFamilyMetricsPendingFlushesGet(params *ColumnFamilyMetric
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsPendingFlushesGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsPendingFlushesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsPendingFlushesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3710,8 +4444,14 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyByNameGet(params *ColumnFamilyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRangeLatencyByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRangeLatencyByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRangeLatencyByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3740,8 +4480,14 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet(para
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3770,8 +4516,14 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3800,8 +4552,14 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyGet(params *ColumnFamilyMetricsR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRangeLatencyGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRangeLatencyGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRangeLatencyGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3830,8 +4588,14 @@ func (a *Client) ColumnFamilyMetricsReadByNameGet(params *ColumnFamilyMetricsRea
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3860,8 +4624,14 @@ func (a *Client) ColumnFamilyMetricsReadGet(params *ColumnFamilyMetricsReadGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3890,8 +4660,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyByNameGet(params *ColumnFamilyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3920,8 +4696,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet(param
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3950,8 +4732,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -3980,8 +4768,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyGet(params *ColumnFamilyMetricsRe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4010,8 +4804,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyHistogramByNameGet(params *Column
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4040,8 +4840,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyHistogramGet(params *ColumnFamily
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyHistogramGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4070,8 +4876,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet(p
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4100,8 +4912,14 @@ func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet(params 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4130,8 +4948,14 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet(par
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4160,8 +4984,14 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet(params *C
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4190,8 +5020,14 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet(params 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4220,8 +5056,14 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioGet(params *Colum
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRecentBloomFilterFalseRatioGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4250,8 +5092,14 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitByNameGet(params *ColumnFamilyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRowCacheHitByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRowCacheHitByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRowCacheHitByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4280,8 +5128,14 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitGet(params *ColumnFamilyMetricsRo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRowCacheHitGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRowCacheHitGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRowCacheHitGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4310,8 +5164,14 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet(params *Colum
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4340,8 +5200,14 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeGet(params *ColumnFamil
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRowCacheHitOutOfRangeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4370,8 +5236,14 @@ func (a *Client) ColumnFamilyMetricsRowCacheMissByNameGet(params *ColumnFamilyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRowCacheMissByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRowCacheMissByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRowCacheMissByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4400,8 +5272,14 @@ func (a *Client) ColumnFamilyMetricsRowCacheMissGet(params *ColumnFamilyMetricsR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsRowCacheMissGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsRowCacheMissGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsRowCacheMissGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4430,8 +5308,14 @@ func (a *Client) ColumnFamilyMetricsSnapshotsSizeByNameGet(params *ColumnFamilyM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsSnapshotsSizeByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsSnapshotsSizeByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsSnapshotsSizeByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4460,8 +5344,14 @@ func (a *Client) ColumnFamilyMetricsSpeculativeRetriesByNameGet(params *ColumnFa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsSpeculativeRetriesByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsSpeculativeRetriesByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsSpeculativeRetriesByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4490,8 +5380,14 @@ func (a *Client) ColumnFamilyMetricsSpeculativeRetriesGet(params *ColumnFamilyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsSpeculativeRetriesGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsSpeculativeRetriesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsSpeculativeRetriesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4520,8 +5416,14 @@ func (a *Client) ColumnFamilyMetricsSstablesPerReadHistogramByNameGet(params *Co
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsSstablesPerReadHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4550,8 +5452,14 @@ func (a *Client) ColumnFamilyMetricsTombstoneScannedHistogramByNameGet(params *C
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsTombstoneScannedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsTombstoneScannedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsTombstoneScannedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4580,8 +5488,14 @@ func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(params *ColumnFa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4610,8 +5524,14 @@ func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedGet(params *ColumnFamilyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsTotalDiskSpaceUsedGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsTotalDiskSpaceUsedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsTotalDiskSpaceUsedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4640,8 +5560,14 @@ func (a *Client) ColumnFamilyMetricsTrueSnapshotsSizeGet(params *ColumnFamilyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsTrueSnapshotsSizeGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsTrueSnapshotsSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsTrueSnapshotsSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4670,8 +5596,14 @@ func (a *Client) ColumnFamilyMetricsWaitingOnFreeMemtableGet(params *ColumnFamil
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWaitingOnFreeMemtableGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWaitingOnFreeMemtableGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWaitingOnFreeMemtableGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4700,8 +5632,14 @@ func (a *Client) ColumnFamilyMetricsWriteByNameGet(params *ColumnFamilyMetricsWr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4730,8 +5668,14 @@ func (a *Client) ColumnFamilyMetricsWriteGet(params *ColumnFamilyMetricsWriteGet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4760,8 +5704,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyByNameGet(params *ColumnFamilyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4790,8 +5740,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet(para
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4820,8 +5776,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4850,8 +5812,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyGet(params *ColumnFamilyMetricsW
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4880,8 +5848,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramByNameGet(params *Colum
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4910,8 +5884,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramGet(params *ColumnFamil
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyHistogramGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4940,8 +5920,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet(
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -4970,8 +5956,14 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet(params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5000,8 +5992,14 @@ func (a *Client) ColumnFamilyMinimumCompactionByNameGet(params *ColumnFamilyMini
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMinimumCompactionByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyMinimumCompactionByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMinimumCompactionByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5030,8 +6028,14 @@ func (a *Client) ColumnFamilyMinimumCompactionByNamePost(params *ColumnFamilyMin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyMinimumCompactionByNamePostOK), nil
-
+	success, ok := result.(*ColumnFamilyMinimumCompactionByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyMinimumCompactionByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5060,8 +6064,14 @@ func (a *Client) ColumnFamilyNameGet(params *ColumnFamilyNameGetParams) (*Column
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilyNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5090,8 +6100,14 @@ func (a *Client) ColumnFamilyNameKeyspaceGet(params *ColumnFamilyNameKeyspaceGet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilyNameKeyspaceGetOK), nil
-
+	success, ok := result.(*ColumnFamilyNameKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilyNameKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5120,8 +6136,14 @@ func (a *Client) ColumnFamilySstablesByKeyByNameGet(params *ColumnFamilySstables
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilySstablesByKeyByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilySstablesByKeyByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilySstablesByKeyByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5150,8 +6172,14 @@ func (a *Client) ColumnFamilySstablesPerLevelByNameGet(params *ColumnFamilySstab
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilySstablesPerLevelByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilySstablesPerLevelByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilySstablesPerLevelByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5180,8 +6208,14 @@ func (a *Client) ColumnFamilySstablesUnleveledByNameGet(params *ColumnFamilySsta
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ColumnFamilySstablesUnleveledByNameGetOK), nil
-
+	success, ok := result.(*ColumnFamilySstablesUnleveledByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ColumnFamilySstablesUnleveledByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5210,8 +6244,14 @@ func (a *Client) CommitLogMetricsWaitingOnCommitGet(params *CommitLogMetricsWait
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitLogMetricsWaitingOnCommitGetOK), nil
-
+	success, ok := result.(*CommitLogMetricsWaitingOnCommitGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitLogMetricsWaitingOnCommitGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5240,8 +6280,14 @@ func (a *Client) CommitLogMetricsWaitingOnSegmentAllocationGet(params *CommitLog
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitLogMetricsWaitingOnSegmentAllocationGetOK), nil
-
+	success, ok := result.(*CommitLogMetricsWaitingOnSegmentAllocationGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitLogMetricsWaitingOnSegmentAllocationGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5270,8 +6316,14 @@ func (a *Client) CommitlogMetricsCompletedTasksGet(params *CommitlogMetricsCompl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitlogMetricsCompletedTasksGetOK), nil
-
+	success, ok := result.(*CommitlogMetricsCompletedTasksGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitlogMetricsCompletedTasksGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5300,8 +6352,14 @@ func (a *Client) CommitlogMetricsPendingTasksGet(params *CommitlogMetricsPending
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitlogMetricsPendingTasksGetOK), nil
-
+	success, ok := result.(*CommitlogMetricsPendingTasksGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitlogMetricsPendingTasksGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5330,8 +6388,14 @@ func (a *Client) CommitlogMetricsTotalCommitLogSizeGet(params *CommitlogMetricsT
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitlogMetricsTotalCommitLogSizeGetOK), nil
-
+	success, ok := result.(*CommitlogMetricsTotalCommitLogSizeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitlogMetricsTotalCommitLogSizeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5360,8 +6424,14 @@ func (a *Client) CommitlogRecoverByPathPost(params *CommitlogRecoverByPathPostPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitlogRecoverByPathPostOK), nil
-
+	success, ok := result.(*CommitlogRecoverByPathPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitlogRecoverByPathPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5390,8 +6460,14 @@ func (a *Client) CommitlogSegmentsActiveGet(params *CommitlogSegmentsActiveGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitlogSegmentsActiveGetOK), nil
-
+	success, ok := result.(*CommitlogSegmentsActiveGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitlogSegmentsActiveGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5420,8 +6496,14 @@ func (a *Client) CommitlogSegmentsArchivingGet(params *CommitlogSegmentsArchivin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CommitlogSegmentsArchivingGetOK), nil
-
+	success, ok := result.(*CommitlogSegmentsArchivingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CommitlogSegmentsArchivingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5450,8 +6532,14 @@ func (a *Client) CompactionManagerCompactionHistoryGet(params *CompactionManager
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerCompactionHistoryGetOK), nil
-
+	success, ok := result.(*CompactionManagerCompactionHistoryGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerCompactionHistoryGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5480,8 +6568,14 @@ func (a *Client) CompactionManagerCompactionInfoGet(params *CompactionManagerCom
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerCompactionInfoGetOK), nil
-
+	success, ok := result.(*CompactionManagerCompactionInfoGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerCompactionInfoGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5510,8 +6604,14 @@ func (a *Client) CompactionManagerCompactionsGet(params *CompactionManagerCompac
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerCompactionsGetOK), nil
-
+	success, ok := result.(*CompactionManagerCompactionsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerCompactionsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5540,8 +6640,14 @@ func (a *Client) CompactionManagerForceUserDefinedCompactionPost(params *Compact
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerForceUserDefinedCompactionPostOK), nil
-
+	success, ok := result.(*CompactionManagerForceUserDefinedCompactionPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerForceUserDefinedCompactionPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5570,8 +6676,14 @@ func (a *Client) CompactionManagerMetricsBytesCompactedGet(params *CompactionMan
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerMetricsBytesCompactedGetOK), nil
-
+	success, ok := result.(*CompactionManagerMetricsBytesCompactedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerMetricsBytesCompactedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5600,8 +6712,14 @@ func (a *Client) CompactionManagerMetricsCompletedTasksGet(params *CompactionMan
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerMetricsCompletedTasksGetOK), nil
-
+	success, ok := result.(*CompactionManagerMetricsCompletedTasksGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerMetricsCompletedTasksGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5630,8 +6748,14 @@ func (a *Client) CompactionManagerMetricsPendingTasksGet(params *CompactionManag
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerMetricsPendingTasksGetOK), nil
-
+	success, ok := result.(*CompactionManagerMetricsPendingTasksGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerMetricsPendingTasksGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5660,8 +6784,14 @@ func (a *Client) CompactionManagerMetricsTotalCompactionsCompletedGet(params *Co
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerMetricsTotalCompactionsCompletedGetOK), nil
-
+	success, ok := result.(*CompactionManagerMetricsTotalCompactionsCompletedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerMetricsTotalCompactionsCompletedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5690,8 +6820,14 @@ func (a *Client) CompactionManagerStopCompactionPost(params *CompactionManagerSt
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CompactionManagerStopCompactionPostOK), nil
-
+	success, ok := result.(*CompactionManagerStopCompactionPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CompactionManagerStopCompactionPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5720,8 +6856,14 @@ func (a *Client) FailureDetectorCountEndpointDownGet(params *FailureDetectorCoun
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorCountEndpointDownGetOK), nil
-
+	success, ok := result.(*FailureDetectorCountEndpointDownGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorCountEndpointDownGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5750,8 +6892,14 @@ func (a *Client) FailureDetectorCountEndpointUpGet(params *FailureDetectorCountE
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorCountEndpointUpGetOK), nil
-
+	success, ok := result.(*FailureDetectorCountEndpointUpGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorCountEndpointUpGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5780,8 +6928,14 @@ func (a *Client) FailureDetectorEndpointPhiValuesGet(params *FailureDetectorEndp
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorEndpointPhiValuesGetOK), nil
-
+	success, ok := result.(*FailureDetectorEndpointPhiValuesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorEndpointPhiValuesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5810,8 +6964,14 @@ func (a *Client) FailureDetectorEndpointsGet(params *FailureDetectorEndpointsGet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorEndpointsGetOK), nil
-
+	success, ok := result.(*FailureDetectorEndpointsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorEndpointsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5840,8 +7000,14 @@ func (a *Client) FailureDetectorEndpointsStatesByAddrGet(params *FailureDetector
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorEndpointsStatesByAddrGetOK), nil
-
+	success, ok := result.(*FailureDetectorEndpointsStatesByAddrGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorEndpointsStatesByAddrGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5870,8 +7036,14 @@ func (a *Client) FailureDetectorPhiGet(params *FailureDetectorPhiGetParams) (*Fa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorPhiGetOK), nil
-
+	success, ok := result.(*FailureDetectorPhiGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorPhiGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5900,8 +7072,14 @@ func (a *Client) FailureDetectorPhiPost(params *FailureDetectorPhiPostParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorPhiPostOK), nil
-
+	success, ok := result.(*FailureDetectorPhiPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorPhiPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5930,8 +7108,14 @@ func (a *Client) FailureDetectorSimpleStatesGet(params *FailureDetectorSimpleSta
 	if err != nil {
 		return nil, err
 	}
-	return result.(*FailureDetectorSimpleStatesGetOK), nil
-
+	success, ok := result.(*FailureDetectorSimpleStatesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for FailureDetectorSimpleStatesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5960,8 +7144,14 @@ func (a *Client) GossiperAssassinateByAddrPost(params *GossiperAssassinateByAddr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GossiperAssassinateByAddrPostOK), nil
-
+	success, ok := result.(*GossiperAssassinateByAddrPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GossiperAssassinateByAddrPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -5990,8 +7180,14 @@ func (a *Client) GossiperDowntimeByAddrGet(params *GossiperDowntimeByAddrGetPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GossiperDowntimeByAddrGetOK), nil
-
+	success, ok := result.(*GossiperDowntimeByAddrGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GossiperDowntimeByAddrGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6020,8 +7216,14 @@ func (a *Client) GossiperEndpointDownGet(params *GossiperEndpointDownGetParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GossiperEndpointDownGetOK), nil
-
+	success, ok := result.(*GossiperEndpointDownGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GossiperEndpointDownGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6050,8 +7252,14 @@ func (a *Client) GossiperEndpointLiveGet(params *GossiperEndpointLiveGetParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GossiperEndpointLiveGetOK), nil
-
+	success, ok := result.(*GossiperEndpointLiveGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GossiperEndpointLiveGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6080,8 +7288,14 @@ func (a *Client) GossiperGenerationNumberByAddrGet(params *GossiperGenerationNum
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GossiperGenerationNumberByAddrGetOK), nil
-
+	success, ok := result.(*GossiperGenerationNumberByAddrGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GossiperGenerationNumberByAddrGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6110,8 +7324,14 @@ func (a *Client) GossiperHeartBeatVersionByAddrGet(params *GossiperHeartBeatVers
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GossiperHeartBeatVersionByAddrGetOK), nil
-
+	success, ok := result.(*GossiperHeartBeatVersionByAddrGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GossiperHeartBeatVersionByAddrGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6140,8 +7360,14 @@ func (a *Client) HintedHandoffHintsDelete(params *HintedHandoffHintsDeleteParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*HintedHandoffHintsDeleteOK), nil
-
+	success, ok := result.(*HintedHandoffHintsDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for HintedHandoffHintsDelete: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6170,8 +7396,14 @@ func (a *Client) HintedHandoffHintsGet(params *HintedHandoffHintsGetParams) (*Hi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*HintedHandoffHintsGetOK), nil
-
+	success, ok := result.(*HintedHandoffHintsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for HintedHandoffHintsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6200,8 +7432,14 @@ func (a *Client) HintedHandoffMetricsCreateHintByAddrGet(params *HintedHandoffMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*HintedHandoffMetricsCreateHintByAddrGetOK), nil
-
+	success, ok := result.(*HintedHandoffMetricsCreateHintByAddrGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for HintedHandoffMetricsCreateHintByAddrGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6230,8 +7468,14 @@ func (a *Client) HintedHandoffMetricsNotStoredHintsByAddrGet(params *HintedHando
 	if err != nil {
 		return nil, err
 	}
-	return result.(*HintedHandoffMetricsNotStoredHintsByAddrGetOK), nil
-
+	success, ok := result.(*HintedHandoffMetricsNotStoredHintsByAddrGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for HintedHandoffMetricsNotStoredHintsByAddrGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6260,8 +7504,14 @@ func (a *Client) HintedHandoffPausePost(params *HintedHandoffPausePostParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*HintedHandoffPausePostOK), nil
-
+	success, ok := result.(*HintedHandoffPausePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for HintedHandoffPausePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6290,8 +7540,14 @@ func (a *Client) HintedHandoffSchedulePost(params *HintedHandoffSchedulePostPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*HintedHandoffSchedulePostOK), nil
-
+	success, ok := result.(*HintedHandoffSchedulePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for HintedHandoffSchedulePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6320,8 +7576,14 @@ func (a *Client) LsaCompactPost(params *LsaCompactPostParams) (*LsaCompactPostOK
 	if err != nil {
 		return nil, err
 	}
-	return result.(*LsaCompactPostOK), nil
-
+	success, ok := result.(*LsaCompactPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for LsaCompactPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6350,8 +7612,14 @@ func (a *Client) MessagingServiceMessagesDroppedByVerGet(params *MessagingServic
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesDroppedByVerGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesDroppedByVerGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesDroppedByVerGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6380,8 +7648,14 @@ func (a *Client) MessagingServiceMessagesDroppedGet(params *MessagingServiceMess
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesDroppedGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesDroppedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesDroppedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6410,8 +7684,14 @@ func (a *Client) MessagingServiceMessagesExceptionGet(params *MessagingServiceMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesExceptionGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesExceptionGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesExceptionGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6440,8 +7720,14 @@ func (a *Client) MessagingServiceMessagesPendingGet(params *MessagingServiceMess
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesPendingGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesPendingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesPendingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6470,8 +7756,14 @@ func (a *Client) MessagingServiceMessagesRepliedGet(params *MessagingServiceMess
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesRepliedGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesRepliedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesRepliedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6500,8 +7792,14 @@ func (a *Client) MessagingServiceMessagesRespondCompletedGet(params *MessagingSe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesRespondCompletedGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesRespondCompletedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesRespondCompletedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6530,8 +7828,14 @@ func (a *Client) MessagingServiceMessagesRespondPendingGet(params *MessagingServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesRespondPendingGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesRespondPendingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesRespondPendingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6560,8 +7864,14 @@ func (a *Client) MessagingServiceMessagesSentGet(params *MessagingServiceMessage
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesSentGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesSentGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesSentGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6590,8 +7900,14 @@ func (a *Client) MessagingServiceMessagesTimeoutGet(params *MessagingServiceMess
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceMessagesTimeoutGetOK), nil
-
+	success, ok := result.(*MessagingServiceMessagesTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceMessagesTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6620,8 +7936,14 @@ func (a *Client) MessagingServiceVersionGet(params *MessagingServiceVersionGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*MessagingServiceVersionGetOK), nil
-
+	success, ok := result.(*MessagingServiceVersionGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for MessagingServiceVersionGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6650,8 +7972,14 @@ func (a *Client) SnitchDatacenterGet(params *SnitchDatacenterGetParams) (*Snitch
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SnitchDatacenterGetOK), nil
-
+	success, ok := result.(*SnitchDatacenterGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SnitchDatacenterGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6680,8 +8008,14 @@ func (a *Client) SnitchNameGet(params *SnitchNameGetParams) (*SnitchNameGetOK, e
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SnitchNameGetOK), nil
-
+	success, ok := result.(*SnitchNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SnitchNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6710,8 +8044,14 @@ func (a *Client) SnitchRackGet(params *SnitchRackGetParams) (*SnitchRackGetOK, e
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SnitchRackGetOK), nil
-
+	success, ok := result.(*SnitchRackGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SnitchRackGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6740,8 +8080,14 @@ func (a *Client) StorageProxyCasContentionTimeoutGet(params *StorageProxyCasCont
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyCasContentionTimeoutGetOK), nil
-
+	success, ok := result.(*StorageProxyCasContentionTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyCasContentionTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6770,8 +8116,14 @@ func (a *Client) StorageProxyCasContentionTimeoutPost(params *StorageProxyCasCon
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyCasContentionTimeoutPostOK), nil
-
+	success, ok := result.(*StorageProxyCasContentionTimeoutPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyCasContentionTimeoutPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6800,8 +8152,14 @@ func (a *Client) StorageProxyCounterWriteRPCTimeoutGet(params *StorageProxyCount
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyCounterWriteRPCTimeoutGetOK), nil
-
+	success, ok := result.(*StorageProxyCounterWriteRPCTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyCounterWriteRpcTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6830,8 +8188,14 @@ func (a *Client) StorageProxyCounterWriteRPCTimeoutPost(params *StorageProxyCoun
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyCounterWriteRPCTimeoutPostOK), nil
-
+	success, ok := result.(*StorageProxyCounterWriteRPCTimeoutPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyCounterWriteRpcTimeoutPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6860,8 +8224,14 @@ func (a *Client) StorageProxyHintedHandoffEnabledByDcGet(params *StorageProxyHin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyHintedHandoffEnabledByDcGetOK), nil
-
+	success, ok := result.(*StorageProxyHintedHandoffEnabledByDcGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyHintedHandoffEnabledByDcGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6890,8 +8260,14 @@ func (a *Client) StorageProxyHintedHandoffEnabledByDcPost(params *StorageProxyHi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyHintedHandoffEnabledByDcPostOK), nil
-
+	success, ok := result.(*StorageProxyHintedHandoffEnabledByDcPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyHintedHandoffEnabledByDcPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6920,8 +8296,14 @@ func (a *Client) StorageProxyHintedHandoffEnabledGet(params *StorageProxyHintedH
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyHintedHandoffEnabledGetOK), nil
-
+	success, ok := result.(*StorageProxyHintedHandoffEnabledGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyHintedHandoffEnabledGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6950,8 +8332,14 @@ func (a *Client) StorageProxyHintedHandoffEnabledPost(params *StorageProxyHinted
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyHintedHandoffEnabledPostOK), nil
-
+	success, ok := result.(*StorageProxyHintedHandoffEnabledPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyHintedHandoffEnabledPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -6980,8 +8368,14 @@ func (a *Client) StorageProxyHintsInProgressGet(params *StorageProxyHintsInProgr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyHintsInProgressGetOK), nil
-
+	success, ok := result.(*StorageProxyHintsInProgressGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyHintsInProgressGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7010,8 +8404,14 @@ func (a *Client) StorageProxyMaxHintWindowGet(params *StorageProxyMaxHintWindowG
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMaxHintWindowGetOK), nil
-
+	success, ok := result.(*StorageProxyMaxHintWindowGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMaxHintWindowGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7040,8 +8440,14 @@ func (a *Client) StorageProxyMaxHintWindowPost(params *StorageProxyMaxHintWindow
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMaxHintWindowPostOK), nil
-
+	success, ok := result.(*StorageProxyMaxHintWindowPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMaxHintWindowPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7070,8 +8476,14 @@ func (a *Client) StorageProxyMaxHintsInProgressGet(params *StorageProxyMaxHintsI
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMaxHintsInProgressGetOK), nil
-
+	success, ok := result.(*StorageProxyMaxHintsInProgressGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMaxHintsInProgressGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7100,8 +8512,14 @@ func (a *Client) StorageProxyMaxHintsInProgressPost(params *StorageProxyMaxHints
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMaxHintsInProgressPostOK), nil
-
+	success, ok := result.(*StorageProxyMaxHintsInProgressPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMaxHintsInProgressPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7130,8 +8548,14 @@ func (a *Client) StorageProxyMetricsCasReadConditionNotMetGet(params *StoragePro
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasReadConditionNotMetGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasReadConditionNotMetGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasReadConditionNotMetGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7160,8 +8584,14 @@ func (a *Client) StorageProxyMetricsCasReadContentionGet(params *StorageProxyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasReadContentionGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasReadContentionGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasReadContentionGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7190,8 +8620,14 @@ func (a *Client) StorageProxyMetricsCasReadTimeoutsGet(params *StorageProxyMetri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasReadTimeoutsGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasReadTimeoutsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasReadTimeoutsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7220,8 +8656,14 @@ func (a *Client) StorageProxyMetricsCasReadUnavailablesGet(params *StorageProxyM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasReadUnavailablesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasReadUnavailablesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasReadUnavailablesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7250,8 +8692,14 @@ func (a *Client) StorageProxyMetricsCasReadUnfinishedCommitGet(params *StoragePr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasReadUnfinishedCommitGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasReadUnfinishedCommitGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasReadUnfinishedCommitGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7280,8 +8728,14 @@ func (a *Client) StorageProxyMetricsCasWriteConditionNotMetGet(params *StoragePr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasWriteConditionNotMetGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasWriteConditionNotMetGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasWriteConditionNotMetGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7310,8 +8764,14 @@ func (a *Client) StorageProxyMetricsCasWriteContentionGet(params *StorageProxyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasWriteContentionGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasWriteContentionGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasWriteContentionGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7340,8 +8800,14 @@ func (a *Client) StorageProxyMetricsCasWriteTimeoutsGet(params *StorageProxyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasWriteTimeoutsGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasWriteTimeoutsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasWriteTimeoutsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7370,8 +8836,14 @@ func (a *Client) StorageProxyMetricsCasWriteUnavailablesGet(params *StorageProxy
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasWriteUnavailablesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasWriteUnavailablesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasWriteUnavailablesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7400,8 +8872,14 @@ func (a *Client) StorageProxyMetricsCasWriteUnfinishedCommitGet(params *StorageP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsCasWriteUnfinishedCommitGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsCasWriteUnfinishedCommitGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsCasWriteUnfinishedCommitGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7430,8 +8908,14 @@ func (a *Client) StorageProxyMetricsRangeEstimatedHistogramGet(params *StoragePr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeEstimatedHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeEstimatedHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeEstimatedHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7460,8 +8944,14 @@ func (a *Client) StorageProxyMetricsRangeGet(params *StorageProxyMetricsRangeGet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7490,8 +8980,14 @@ func (a *Client) StorageProxyMetricsRangeHistogramGet(params *StorageProxyMetric
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7520,8 +9016,14 @@ func (a *Client) StorageProxyMetricsRangeMovingAverageHistogramGet(params *Stora
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeMovingAverageHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeMovingAverageHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeMovingAverageHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7550,8 +9052,14 @@ func (a *Client) StorageProxyMetricsRangeTimeoutsGet(params *StorageProxyMetrics
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeTimeoutsGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeTimeoutsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeTimeoutsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7580,8 +9088,14 @@ func (a *Client) StorageProxyMetricsRangeTimeoutsRatesGet(params *StorageProxyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeTimeoutsRatesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeTimeoutsRatesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeTimeoutsRatesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7610,8 +9124,14 @@ func (a *Client) StorageProxyMetricsRangeUnavailablesGet(params *StorageProxyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeUnavailablesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeUnavailablesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeUnavailablesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7640,8 +9160,14 @@ func (a *Client) StorageProxyMetricsRangeUnavailablesRatesGet(params *StoragePro
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsRangeUnavailablesRatesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsRangeUnavailablesRatesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsRangeUnavailablesRatesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7670,8 +9196,14 @@ func (a *Client) StorageProxyMetricsReadEstimatedHistogramGet(params *StoragePro
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadEstimatedHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadEstimatedHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadEstimatedHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7700,8 +9232,14 @@ func (a *Client) StorageProxyMetricsReadGet(params *StorageProxyMetricsReadGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7730,8 +9268,14 @@ func (a *Client) StorageProxyMetricsReadHistogramGet(params *StorageProxyMetrics
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7760,8 +9304,14 @@ func (a *Client) StorageProxyMetricsReadMovingAverageHistogramGet(params *Storag
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadMovingAverageHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadMovingAverageHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadMovingAverageHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7790,8 +9340,14 @@ func (a *Client) StorageProxyMetricsReadTimeoutsGet(params *StorageProxyMetricsR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadTimeoutsGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadTimeoutsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadTimeoutsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7820,8 +9376,14 @@ func (a *Client) StorageProxyMetricsReadTimeoutsRatesGet(params *StorageProxyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadTimeoutsRatesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadTimeoutsRatesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadTimeoutsRatesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7850,8 +9412,14 @@ func (a *Client) StorageProxyMetricsReadUnavailablesGet(params *StorageProxyMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadUnavailablesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadUnavailablesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadUnavailablesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7880,8 +9448,14 @@ func (a *Client) StorageProxyMetricsReadUnavailablesRatesGet(params *StorageProx
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsReadUnavailablesRatesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsReadUnavailablesRatesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsReadUnavailablesRatesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7910,8 +9484,14 @@ func (a *Client) StorageProxyMetricsWriteEstimatedHistogramGet(params *StoragePr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteEstimatedHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteEstimatedHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteEstimatedHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7940,8 +9520,14 @@ func (a *Client) StorageProxyMetricsWriteGet(params *StorageProxyMetricsWriteGet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -7970,8 +9556,14 @@ func (a *Client) StorageProxyMetricsWriteHistogramGet(params *StorageProxyMetric
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8000,8 +9592,14 @@ func (a *Client) StorageProxyMetricsWriteMovingAverageHistogramGet(params *Stora
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteMovingAverageHistogramGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteMovingAverageHistogramGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteMovingAverageHistogramGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8030,8 +9628,14 @@ func (a *Client) StorageProxyMetricsWriteTimeoutsGet(params *StorageProxyMetrics
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteTimeoutsGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteTimeoutsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteTimeoutsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8060,8 +9664,14 @@ func (a *Client) StorageProxyMetricsWriteTimeoutsRatesGet(params *StorageProxyMe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteTimeoutsRatesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteTimeoutsRatesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteTimeoutsRatesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8090,8 +9700,14 @@ func (a *Client) StorageProxyMetricsWriteUnavailablesGet(params *StorageProxyMet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteUnavailablesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteUnavailablesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteUnavailablesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8120,8 +9736,14 @@ func (a *Client) StorageProxyMetricsWriteUnavailablesRatesGet(params *StoragePro
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyMetricsWriteUnavailablesRatesGetOK), nil
-
+	success, ok := result.(*StorageProxyMetricsWriteUnavailablesRatesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyMetricsWriteUnavailablesRatesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8150,8 +9772,14 @@ func (a *Client) StorageProxyRangeRPCTimeoutGet(params *StorageProxyRangeRPCTime
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyRangeRPCTimeoutGetOK), nil
-
+	success, ok := result.(*StorageProxyRangeRPCTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyRangeRpcTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8180,8 +9808,14 @@ func (a *Client) StorageProxyRangeRPCTimeoutPost(params *StorageProxyRangeRPCTim
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyRangeRPCTimeoutPostOK), nil
-
+	success, ok := result.(*StorageProxyRangeRPCTimeoutPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyRangeRpcTimeoutPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8210,8 +9844,14 @@ func (a *Client) StorageProxyReadRepairAttemptedGet(params *StorageProxyReadRepa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyReadRepairAttemptedGetOK), nil
-
+	success, ok := result.(*StorageProxyReadRepairAttemptedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyReadRepairAttemptedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8240,8 +9880,14 @@ func (a *Client) StorageProxyReadRepairRepairedBackgroundGet(params *StorageProx
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyReadRepairRepairedBackgroundGetOK), nil
-
+	success, ok := result.(*StorageProxyReadRepairRepairedBackgroundGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyReadRepairRepairedBackgroundGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8270,8 +9916,14 @@ func (a *Client) StorageProxyReadRepairRepairedBlockingGet(params *StorageProxyR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyReadRepairRepairedBlockingGetOK), nil
-
+	success, ok := result.(*StorageProxyReadRepairRepairedBlockingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyReadRepairRepairedBlockingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8300,8 +9952,14 @@ func (a *Client) StorageProxyReadRPCTimeoutGet(params *StorageProxyReadRPCTimeou
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyReadRPCTimeoutGetOK), nil
-
+	success, ok := result.(*StorageProxyReadRPCTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyReadRpcTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8330,8 +9988,14 @@ func (a *Client) StorageProxyReadRPCTimeoutPost(params *StorageProxyReadRPCTimeo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyReadRPCTimeoutPostOK), nil
-
+	success, ok := result.(*StorageProxyReadRPCTimeoutPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyReadRpcTimeoutPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8360,8 +10024,14 @@ func (a *Client) StorageProxyReloadTriggerClassesPost(params *StorageProxyReload
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyReloadTriggerClassesPostOK), nil
-
+	success, ok := result.(*StorageProxyReloadTriggerClassesPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyReloadTriggerClassesPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8390,8 +10060,14 @@ func (a *Client) StorageProxyRPCTimeoutGet(params *StorageProxyRPCTimeoutGetPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyRPCTimeoutGetOK), nil
-
+	success, ok := result.(*StorageProxyRPCTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyRpcTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8420,8 +10096,14 @@ func (a *Client) StorageProxyRPCTimeoutPost(params *StorageProxyRPCTimeoutPostPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyRPCTimeoutPostOK), nil
-
+	success, ok := result.(*StorageProxyRPCTimeoutPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyRpcTimeoutPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8450,8 +10132,14 @@ func (a *Client) StorageProxySchemaVersionsGet(params *StorageProxySchemaVersion
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxySchemaVersionsGetOK), nil
-
+	success, ok := result.(*StorageProxySchemaVersionsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxySchemaVersionsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8480,8 +10168,14 @@ func (a *Client) StorageProxyTotalHintsGet(params *StorageProxyTotalHintsGetPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyTotalHintsGetOK), nil
-
+	success, ok := result.(*StorageProxyTotalHintsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyTotalHintsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8510,8 +10204,14 @@ func (a *Client) StorageProxyTruncateRPCTimeoutGet(params *StorageProxyTruncateR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyTruncateRPCTimeoutGetOK), nil
-
+	success, ok := result.(*StorageProxyTruncateRPCTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyTruncateRpcTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8540,8 +10240,14 @@ func (a *Client) StorageProxyTruncateRPCTimeoutPost(params *StorageProxyTruncate
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyTruncateRPCTimeoutPostOK), nil
-
+	success, ok := result.(*StorageProxyTruncateRPCTimeoutPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyTruncateRpcTimeoutPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8570,8 +10276,14 @@ func (a *Client) StorageProxyWriteRPCTimeoutGet(params *StorageProxyWriteRPCTime
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyWriteRPCTimeoutGetOK), nil
-
+	success, ok := result.(*StorageProxyWriteRPCTimeoutGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyWriteRpcTimeoutGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8600,8 +10312,14 @@ func (a *Client) StorageProxyWriteRPCTimeoutPost(params *StorageProxyWriteRPCTim
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageProxyWriteRPCTimeoutPostOK), nil
-
+	success, ok := result.(*StorageProxyWriteRPCTimeoutPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageProxyWriteRpcTimeoutPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8630,8 +10348,14 @@ func (a *Client) StorageServiceActiveRepairGet(params *StorageServiceActiveRepai
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceActiveRepairGetOK), nil
-
+	success, ok := result.(*StorageServiceActiveRepairGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceActiveRepairGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8660,8 +10384,14 @@ func (a *Client) StorageServiceAutoCompactionByKeyspaceDelete(params *StorageSer
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceAutoCompactionByKeyspaceDeleteOK), nil
-
+	success, ok := result.(*StorageServiceAutoCompactionByKeyspaceDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceAutoCompactionByKeyspaceDelete: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8690,8 +10420,14 @@ func (a *Client) StorageServiceAutoCompactionByKeyspacePost(params *StorageServi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceAutoCompactionByKeyspacePostOK), nil
-
+	success, ok := result.(*StorageServiceAutoCompactionByKeyspacePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceAutoCompactionByKeyspacePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8720,8 +10456,14 @@ func (a *Client) StorageServiceBatchSizeFailureThresholdGet(params *StorageServi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceBatchSizeFailureThresholdGetOK), nil
-
+	success, ok := result.(*StorageServiceBatchSizeFailureThresholdGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceBatchSizeFailureThresholdGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8750,8 +10492,14 @@ func (a *Client) StorageServiceBatchSizeFailureThresholdPost(params *StorageServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceBatchSizeFailureThresholdPostOK), nil
-
+	success, ok := result.(*StorageServiceBatchSizeFailureThresholdPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceBatchSizeFailureThresholdPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8780,8 +10528,14 @@ func (a *Client) StorageServiceBulkLoadAsyncByPathGet(params *StorageServiceBulk
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceBulkLoadAsyncByPathGetOK), nil
-
+	success, ok := result.(*StorageServiceBulkLoadAsyncByPathGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceBulkLoadAsyncByPathGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8810,8 +10564,14 @@ func (a *Client) StorageServiceBulkLoadByPathPost(params *StorageServiceBulkLoad
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceBulkLoadByPathPostOK), nil
-
+	success, ok := result.(*StorageServiceBulkLoadByPathPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceBulkLoadByPathPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8840,8 +10600,14 @@ func (a *Client) StorageServiceClusterNameGet(params *StorageServiceClusterNameG
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceClusterNameGetOK), nil
-
+	success, ok := result.(*StorageServiceClusterNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceClusterNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8870,8 +10636,14 @@ func (a *Client) StorageServiceCommitlogGet(params *StorageServiceCommitlogGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceCommitlogGetOK), nil
-
+	success, ok := result.(*StorageServiceCommitlogGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceCommitlogGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8900,8 +10672,14 @@ func (a *Client) StorageServiceCompactionThroughputGet(params *StorageServiceCom
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceCompactionThroughputGetOK), nil
-
+	success, ok := result.(*StorageServiceCompactionThroughputGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceCompactionThroughputGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8930,8 +10708,14 @@ func (a *Client) StorageServiceCompactionThroughputPost(params *StorageServiceCo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceCompactionThroughputPostOK), nil
-
+	success, ok := result.(*StorageServiceCompactionThroughputPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceCompactionThroughputPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8960,8 +10744,14 @@ func (a *Client) StorageServiceDataFileLocationsGet(params *StorageServiceDataFi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceDataFileLocationsGetOK), nil
-
+	success, ok := result.(*StorageServiceDataFileLocationsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceDataFileLocationsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -8990,8 +10780,14 @@ func (a *Client) StorageServiceDecommissionPost(params *StorageServiceDecommissi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceDecommissionPostOK), nil
-
+	success, ok := result.(*StorageServiceDecommissionPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceDecommissionPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9018,8 +10814,14 @@ func (a *Client) StorageServiceDeliverHintsPost(params *StorageServiceDeliverHin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceDeliverHintsPostOK), nil
-
+	success, ok := result.(*StorageServiceDeliverHintsPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceDeliverHintsPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9048,8 +10850,14 @@ func (a *Client) StorageServiceDescribeRingByKeyspaceGet(params *StorageServiceD
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceDescribeRingByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServiceDescribeRingByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceDescribeRingByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9078,8 +10886,14 @@ func (a *Client) StorageServiceDescribeRingGet(params *StorageServiceDescribeRin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceDescribeRingGetOK), nil
-
+	success, ok := result.(*StorageServiceDescribeRingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceDescribeRingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9108,8 +10922,14 @@ func (a *Client) StorageServiceDrainGet(params *StorageServiceDrainGetParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceDrainGetOK), nil
-
+	success, ok := result.(*StorageServiceDrainGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceDrainGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9138,8 +10958,14 @@ func (a *Client) StorageServiceDrainPost(params *StorageServiceDrainPostParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceDrainPostOK), nil
-
+	success, ok := result.(*StorageServiceDrainPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceDrainPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9168,8 +10994,14 @@ func (a *Client) StorageServiceForceRemoveCompletionPost(params *StorageServiceF
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceForceRemoveCompletionPostOK), nil
-
+	success, ok := result.(*StorageServiceForceRemoveCompletionPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceForceRemoveCompletionPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9198,8 +11030,14 @@ func (a *Client) StorageServiceForceTerminatePost(params *StorageServiceForceTer
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceForceTerminatePostOK), nil
-
+	success, ok := result.(*StorageServiceForceTerminatePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceForceTerminatePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9228,8 +11066,14 @@ func (a *Client) StorageServiceForceTerminateRepairPost(params *StorageServiceFo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceForceTerminateRepairPostOK), nil
-
+	success, ok := result.(*StorageServiceForceTerminateRepairPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceForceTerminateRepairPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9258,8 +11102,14 @@ func (a *Client) StorageServiceGenerationNumberGet(params *StorageServiceGenerat
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceGenerationNumberGetOK), nil
-
+	success, ok := result.(*StorageServiceGenerationNumberGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceGenerationNumberGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9288,8 +11138,14 @@ func (a *Client) StorageServiceGossipingDelete(params *StorageServiceGossipingDe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceGossipingDeleteOK), nil
-
+	success, ok := result.(*StorageServiceGossipingDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceGossipingDelete: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9318,8 +11174,14 @@ func (a *Client) StorageServiceGossipingGet(params *StorageServiceGossipingGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceGossipingGetOK), nil
-
+	success, ok := result.(*StorageServiceGossipingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceGossipingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9348,8 +11210,14 @@ func (a *Client) StorageServiceGossipingPost(params *StorageServiceGossipingPost
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceGossipingPostOK), nil
-
+	success, ok := result.(*StorageServiceGossipingPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceGossipingPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9378,8 +11246,14 @@ func (a *Client) StorageServiceHintedHandoffPost(params *StorageServiceHintedHan
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceHintedHandoffPostOK), nil
-
+	success, ok := result.(*StorageServiceHintedHandoffPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceHintedHandoffPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9408,8 +11282,14 @@ func (a *Client) StorageServiceHostIDGet(params *StorageServiceHostIDGetParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceHostIDGetOK), nil
-
+	success, ok := result.(*StorageServiceHostIDGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceHostIdGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9438,8 +11318,14 @@ func (a *Client) StorageServiceHostidLocalGet(params *StorageServiceHostidLocalG
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceHostidLocalGetOK), nil
-
+	success, ok := result.(*StorageServiceHostidLocalGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceHostidLocalGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9468,8 +11354,14 @@ func (a *Client) StorageServiceIncrementalBackupsGet(params *StorageServiceIncre
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceIncrementalBackupsGetOK), nil
-
+	success, ok := result.(*StorageServiceIncrementalBackupsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceIncrementalBackupsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9496,8 +11388,14 @@ func (a *Client) StorageServiceIncrementalBackupsPost(params *StorageServiceIncr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceIncrementalBackupsPostOK), nil
-
+	success, ok := result.(*StorageServiceIncrementalBackupsPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceIncrementalBackupsPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9526,8 +11424,14 @@ func (a *Client) StorageServiceIsInitializedGet(params *StorageServiceIsInitiali
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceIsInitializedGetOK), nil
-
+	success, ok := result.(*StorageServiceIsInitializedGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceIsInitializedGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9556,8 +11460,14 @@ func (a *Client) StorageServiceIsStartingGet(params *StorageServiceIsStartingGet
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceIsStartingGetOK), nil
-
+	success, ok := result.(*StorageServiceIsStartingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceIsStartingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9584,8 +11494,14 @@ func (a *Client) StorageServiceJoinRingGet(params *StorageServiceJoinRingGetPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceJoinRingGetOK), nil
-
+	success, ok := result.(*StorageServiceJoinRingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceJoinRingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9614,8 +11530,14 @@ func (a *Client) StorageServiceJoinRingPost(params *StorageServiceJoinRingPostPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceJoinRingPostOK), nil
-
+	success, ok := result.(*StorageServiceJoinRingPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceJoinRingPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9644,8 +11566,14 @@ func (a *Client) StorageServiceKeyspaceCleanupByKeyspacePost(params *StorageServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceKeyspaceCleanupByKeyspacePostOK), nil
-
+	success, ok := result.(*StorageServiceKeyspaceCleanupByKeyspacePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceKeyspaceCleanupByKeyspacePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9674,8 +11602,14 @@ func (a *Client) StorageServiceKeyspaceCompactionByKeyspacePost(params *StorageS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceKeyspaceCompactionByKeyspacePostOK), nil
-
+	success, ok := result.(*StorageServiceKeyspaceCompactionByKeyspacePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceKeyspaceCompactionByKeyspacePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9704,8 +11638,14 @@ func (a *Client) StorageServiceKeyspaceFlushByKeyspacePost(params *StorageServic
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceKeyspaceFlushByKeyspacePostOK), nil
-
+	success, ok := result.(*StorageServiceKeyspaceFlushByKeyspacePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceKeyspaceFlushByKeyspacePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9734,8 +11674,14 @@ func (a *Client) StorageServiceKeyspaceScrubByKeyspaceGet(params *StorageService
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceKeyspaceScrubByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServiceKeyspaceScrubByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceKeyspaceScrubByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9764,8 +11710,14 @@ func (a *Client) StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet(params *Stor
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9794,8 +11746,14 @@ func (a *Client) StorageServiceKeyspacesGet(params *StorageServiceKeyspacesGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceKeyspacesGetOK), nil
-
+	success, ok := result.(*StorageServiceKeyspacesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceKeyspacesGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9824,8 +11782,14 @@ func (a *Client) StorageServiceLoadGet(params *StorageServiceLoadGetParams) (*St
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceLoadGetOK), nil
-
+	success, ok := result.(*StorageServiceLoadGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceLoadGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9854,8 +11818,14 @@ func (a *Client) StorageServiceLoadMapGet(params *StorageServiceLoadMapGetParams
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceLoadMapGetOK), nil
-
+	success, ok := result.(*StorageServiceLoadMapGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceLoadMapGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9884,8 +11854,14 @@ func (a *Client) StorageServiceLoggingLevelGet(params *StorageServiceLoggingLeve
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceLoggingLevelGetOK), nil
-
+	success, ok := result.(*StorageServiceLoggingLevelGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceLoggingLevelGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9914,8 +11890,14 @@ func (a *Client) StorageServiceLoggingLevelPost(params *StorageServiceLoggingLev
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceLoggingLevelPostOK), nil
-
+	success, ok := result.(*StorageServiceLoggingLevelPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceLoggingLevelPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9944,8 +11926,14 @@ func (a *Client) StorageServiceMetricsExceptionsGet(params *StorageServiceMetric
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceMetricsExceptionsGetOK), nil
-
+	success, ok := result.(*StorageServiceMetricsExceptionsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceMetricsExceptionsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -9974,8 +11962,14 @@ func (a *Client) StorageServiceMetricsHintsInProgressGet(params *StorageServiceM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceMetricsHintsInProgressGetOK), nil
-
+	success, ok := result.(*StorageServiceMetricsHintsInProgressGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceMetricsHintsInProgressGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10004,8 +11998,14 @@ func (a *Client) StorageServiceMetricsLoadGet(params *StorageServiceMetricsLoadG
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceMetricsLoadGetOK), nil
-
+	success, ok := result.(*StorageServiceMetricsLoadGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceMetricsLoadGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10034,8 +12034,14 @@ func (a *Client) StorageServiceMetricsTotalHintsGet(params *StorageServiceMetric
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceMetricsTotalHintsGetOK), nil
-
+	success, ok := result.(*StorageServiceMetricsTotalHintsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceMetricsTotalHintsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10064,8 +12070,14 @@ func (a *Client) StorageServiceMovePost(params *StorageServiceMovePostParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceMovePostOK), nil
-
+	success, ok := result.(*StorageServiceMovePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceMovePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10094,8 +12106,14 @@ func (a *Client) StorageServiceNativeTransportDelete(params *StorageServiceNativ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceNativeTransportDeleteOK), nil
-
+	success, ok := result.(*StorageServiceNativeTransportDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceNativeTransportDelete: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10124,8 +12142,14 @@ func (a *Client) StorageServiceNativeTransportGet(params *StorageServiceNativeTr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceNativeTransportGetOK), nil
-
+	success, ok := result.(*StorageServiceNativeTransportGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceNativeTransportGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10154,8 +12178,14 @@ func (a *Client) StorageServiceNativeTransportPost(params *StorageServiceNativeT
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceNativeTransportPostOK), nil
-
+	success, ok := result.(*StorageServiceNativeTransportPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceNativeTransportPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10184,8 +12214,14 @@ func (a *Client) StorageServiceNaturalEndpointsByKeyspaceGet(params *StorageServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceNaturalEndpointsByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServiceNaturalEndpointsByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceNaturalEndpointsByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10214,8 +12250,14 @@ func (a *Client) StorageServiceNodesJoiningGet(params *StorageServiceNodesJoinin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceNodesJoiningGetOK), nil
-
+	success, ok := result.(*StorageServiceNodesJoiningGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceNodesJoiningGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10244,8 +12286,14 @@ func (a *Client) StorageServiceNodesLeavingGet(params *StorageServiceNodesLeavin
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceNodesLeavingGetOK), nil
-
+	success, ok := result.(*StorageServiceNodesLeavingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceNodesLeavingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10274,8 +12322,14 @@ func (a *Client) StorageServiceNodesMovingGet(params *StorageServiceNodesMovingG
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceNodesMovingGetOK), nil
-
+	success, ok := result.(*StorageServiceNodesMovingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceNodesMovingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10304,8 +12358,14 @@ func (a *Client) StorageServiceOperationModeGet(params *StorageServiceOperationM
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceOperationModeGetOK), nil
-
+	success, ok := result.(*StorageServiceOperationModeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceOperationModeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10334,8 +12394,14 @@ func (a *Client) StorageServiceOwnershipByKeyspaceGet(params *StorageServiceOwne
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceOwnershipByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServiceOwnershipByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceOwnershipByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10364,8 +12430,14 @@ func (a *Client) StorageServiceOwnershipGet(params *StorageServiceOwnershipGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceOwnershipGetOK), nil
-
+	success, ok := result.(*StorageServiceOwnershipGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceOwnershipGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10394,8 +12466,14 @@ func (a *Client) StorageServicePartitionerNameGet(params *StorageServicePartitio
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServicePartitionerNameGetOK), nil
-
+	success, ok := result.(*StorageServicePartitionerNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServicePartitionerNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10424,8 +12502,14 @@ func (a *Client) StorageServicePendingRangeByKeyspaceGet(params *StorageServiceP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServicePendingRangeByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServicePendingRangeByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServicePendingRangeByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10454,8 +12538,14 @@ func (a *Client) StorageServiceRangeToEndpointMapByKeyspaceGet(params *StorageSe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRangeToEndpointMapByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServiceRangeToEndpointMapByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRangeToEndpointMapByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10484,8 +12574,14 @@ func (a *Client) StorageServiceRebuildPost(params *StorageServiceRebuildPostPara
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRebuildPostOK), nil
-
+	success, ok := result.(*StorageServiceRebuildPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRebuildPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10514,8 +12610,14 @@ func (a *Client) StorageServiceReleaseVersionGet(params *StorageServiceReleaseVe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceReleaseVersionGetOK), nil
-
+	success, ok := result.(*StorageServiceReleaseVersionGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceReleaseVersionGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10544,8 +12646,14 @@ func (a *Client) StorageServiceRelocalSchemaPost(params *StorageServiceRelocalSc
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRelocalSchemaPostOK), nil
-
+	success, ok := result.(*StorageServiceRelocalSchemaPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRelocalSchemaPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10574,8 +12682,14 @@ func (a *Client) StorageServiceRemovalStatusGet(params *StorageServiceRemovalSta
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRemovalStatusGetOK), nil
-
+	success, ok := result.(*StorageServiceRemovalStatusGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRemovalStatusGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10604,8 +12718,14 @@ func (a *Client) StorageServiceRemoveNodePost(params *StorageServiceRemoveNodePo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRemoveNodePostOK), nil
-
+	success, ok := result.(*StorageServiceRemoveNodePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRemoveNodePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10634,8 +12754,14 @@ func (a *Client) StorageServiceRepairAsyncByKeyspaceGet(params *StorageServiceRe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRepairAsyncByKeyspaceGetOK), nil
-
+	success, ok := result.(*StorageServiceRepairAsyncByKeyspaceGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRepairAsyncByKeyspaceGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10664,8 +12790,14 @@ func (a *Client) StorageServiceRepairAsyncByKeyspacePost(params *StorageServiceR
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRepairAsyncByKeyspacePostOK), nil
-
+	success, ok := result.(*StorageServiceRepairAsyncByKeyspacePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRepairAsyncByKeyspacePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10694,8 +12826,14 @@ func (a *Client) StorageServiceRescheduleFailedDeletionsPost(params *StorageServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRescheduleFailedDeletionsPostOK), nil
-
+	success, ok := result.(*StorageServiceRescheduleFailedDeletionsPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRescheduleFailedDeletionsPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10724,8 +12862,14 @@ func (a *Client) StorageServiceRPCServerDelete(params *StorageServiceRPCServerDe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRPCServerDeleteOK), nil
-
+	success, ok := result.(*StorageServiceRPCServerDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRpcServerDelete: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10754,8 +12898,14 @@ func (a *Client) StorageServiceRPCServerGet(params *StorageServiceRPCServerGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRPCServerGetOK), nil
-
+	success, ok := result.(*StorageServiceRPCServerGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRpcServerGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10784,8 +12934,14 @@ func (a *Client) StorageServiceRPCServerPost(params *StorageServiceRPCServerPost
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceRPCServerPostOK), nil
-
+	success, ok := result.(*StorageServiceRPCServerPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceRpcServerPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10814,8 +12970,14 @@ func (a *Client) StorageServiceSampleKeyRangeGet(params *StorageServiceSampleKey
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSampleKeyRangeGetOK), nil
-
+	success, ok := result.(*StorageServiceSampleKeyRangeGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSampleKeyRangeGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10844,8 +13006,14 @@ func (a *Client) StorageServiceSavedCachesLocationGet(params *StorageServiceSave
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSavedCachesLocationGetOK), nil
-
+	success, ok := result.(*StorageServiceSavedCachesLocationGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSavedCachesLocationGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10874,8 +13042,14 @@ func (a *Client) StorageServiceSchemaVersionGet(params *StorageServiceSchemaVers
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSchemaVersionGetOK), nil
-
+	success, ok := result.(*StorageServiceSchemaVersionGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSchemaVersionGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10904,8 +13078,14 @@ func (a *Client) StorageServiceScyllaReleaseVersionGet(params *StorageServiceScy
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceScyllaReleaseVersionGetOK), nil
-
+	success, ok := result.(*StorageServiceScyllaReleaseVersionGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceScyllaReleaseVersionGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10934,8 +13114,14 @@ func (a *Client) StorageServiceSlowQueryGet(params *StorageServiceSlowQueryGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSlowQueryGetOK), nil
-
+	success, ok := result.(*StorageServiceSlowQueryGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSlowQueryGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10964,8 +13150,14 @@ func (a *Client) StorageServiceSlowQueryPost(params *StorageServiceSlowQueryPost
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSlowQueryPostOK), nil
-
+	success, ok := result.(*StorageServiceSlowQueryPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSlowQueryPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -10994,8 +13186,14 @@ func (a *Client) StorageServiceSnapshotsDelete(params *StorageServiceSnapshotsDe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSnapshotsDeleteOK), nil
-
+	success, ok := result.(*StorageServiceSnapshotsDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSnapshotsDelete: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11024,8 +13222,14 @@ func (a *Client) StorageServiceSnapshotsGet(params *StorageServiceSnapshotsGetPa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSnapshotsGetOK), nil
-
+	success, ok := result.(*StorageServiceSnapshotsGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSnapshotsGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11054,8 +13258,14 @@ func (a *Client) StorageServiceSnapshotsPost(params *StorageServiceSnapshotsPost
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSnapshotsPostOK), nil
-
+	success, ok := result.(*StorageServiceSnapshotsPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSnapshotsPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11084,8 +13294,14 @@ func (a *Client) StorageServiceSnapshotsSizeTrueGet(params *StorageServiceSnapsh
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSnapshotsSizeTrueGetOK), nil
-
+	success, ok := result.(*StorageServiceSnapshotsSizeTrueGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSnapshotsSizeTrueGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11114,8 +13330,14 @@ func (a *Client) StorageServiceSstablesByKeyspacePost(params *StorageServiceSsta
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceSstablesByKeyspacePostOK), nil
-
+	success, ok := result.(*StorageServiceSstablesByKeyspacePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceSstablesByKeyspacePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11144,8 +13366,14 @@ func (a *Client) StorageServiceStopDaemonPost(params *StorageServiceStopDaemonPo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceStopDaemonPostOK), nil
-
+	success, ok := result.(*StorageServiceStopDaemonPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceStopDaemonPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11174,8 +13402,14 @@ func (a *Client) StorageServiceStreamThroughputGet(params *StorageServiceStreamT
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceStreamThroughputGetOK), nil
-
+	success, ok := result.(*StorageServiceStreamThroughputGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceStreamThroughputGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11204,8 +13438,14 @@ func (a *Client) StorageServiceStreamThroughputPost(params *StorageServiceStream
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceStreamThroughputPostOK), nil
-
+	success, ok := result.(*StorageServiceStreamThroughputPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceStreamThroughputPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11234,8 +13474,14 @@ func (a *Client) StorageServiceTokensByEndpointGet(params *StorageServiceTokensB
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTokensByEndpointGetOK), nil
-
+	success, ok := result.(*StorageServiceTokensByEndpointGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTokensByEndpointGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11264,8 +13510,14 @@ func (a *Client) StorageServiceTokensEndpointGet(params *StorageServiceTokensEnd
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTokensEndpointGetOK), nil
-
+	success, ok := result.(*StorageServiceTokensEndpointGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTokensEndpointGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11294,8 +13546,14 @@ func (a *Client) StorageServiceTokensGet(params *StorageServiceTokensGetParams) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTokensGetOK), nil
-
+	success, ok := result.(*StorageServiceTokensGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTokensGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11322,8 +13580,14 @@ func (a *Client) StorageServiceTombstoneFailureThresholdGet(params *StorageServi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTombstoneFailureThresholdGetOK), nil
-
+	success, ok := result.(*StorageServiceTombstoneFailureThresholdGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTombstoneFailureThresholdGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11350,8 +13614,14 @@ func (a *Client) StorageServiceTombstoneFailureThresholdPost(params *StorageServ
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTombstoneFailureThresholdPostOK), nil
-
+	success, ok := result.(*StorageServiceTombstoneFailureThresholdPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTombstoneFailureThresholdPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11380,8 +13650,14 @@ func (a *Client) StorageServiceTombstoneWarnThresholdGet(params *StorageServiceT
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTombstoneWarnThresholdGetOK), nil
-
+	success, ok := result.(*StorageServiceTombstoneWarnThresholdGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTombstoneWarnThresholdGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11410,8 +13686,14 @@ func (a *Client) StorageServiceTombstoneWarnThresholdPost(params *StorageService
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTombstoneWarnThresholdPostOK), nil
-
+	success, ok := result.(*StorageServiceTombstoneWarnThresholdPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTombstoneWarnThresholdPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11440,8 +13722,14 @@ func (a *Client) StorageServiceTraceProbabilityGet(params *StorageServiceTracePr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTraceProbabilityGetOK), nil
-
+	success, ok := result.(*StorageServiceTraceProbabilityGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTraceProbabilityGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11470,8 +13758,14 @@ func (a *Client) StorageServiceTraceProbabilityPost(params *StorageServiceTraceP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTraceProbabilityPostOK), nil
-
+	success, ok := result.(*StorageServiceTraceProbabilityPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTraceProbabilityPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11500,8 +13794,14 @@ func (a *Client) StorageServiceTruncateByKeyspacePost(params *StorageServiceTrun
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceTruncateByKeyspacePostOK), nil
-
+	success, ok := result.(*StorageServiceTruncateByKeyspacePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceTruncateByKeyspacePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11530,8 +13830,14 @@ func (a *Client) StorageServiceUpdateSnitchPost(params *StorageServiceUpdateSnit
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceUpdateSnitchPostOK), nil
-
+	success, ok := result.(*StorageServiceUpdateSnitchPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceUpdateSnitchPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11560,8 +13866,14 @@ func (a *Client) StorageServiceViewBuildStatusesByKeyspaceAndViewGet(params *Sto
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK), nil
-
+	success, ok := result.(*StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StorageServiceViewBuildStatusesByKeyspaceAndViewGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11590,8 +13902,14 @@ func (a *Client) StreamManagerGet(params *StreamManagerGetParams) (*StreamManage
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StreamManagerGetOK), nil
-
+	success, ok := result.(*StreamManagerGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StreamManagerGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11620,8 +13938,14 @@ func (a *Client) StreamManagerMetricsIncomingByPeerGet(params *StreamManagerMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StreamManagerMetricsIncomingByPeerGetOK), nil
-
+	success, ok := result.(*StreamManagerMetricsIncomingByPeerGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StreamManagerMetricsIncomingByPeerGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11650,8 +13974,14 @@ func (a *Client) StreamManagerMetricsIncomingGet(params *StreamManagerMetricsInc
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StreamManagerMetricsIncomingGetOK), nil
-
+	success, ok := result.(*StreamManagerMetricsIncomingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StreamManagerMetricsIncomingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11680,8 +14010,14 @@ func (a *Client) StreamManagerMetricsOutboundGet(params *StreamManagerMetricsOut
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StreamManagerMetricsOutboundGetOK), nil
-
+	success, ok := result.(*StreamManagerMetricsOutboundGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StreamManagerMetricsOutboundGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11710,8 +14046,14 @@ func (a *Client) StreamManagerMetricsOutgoingByPeerGet(params *StreamManagerMetr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StreamManagerMetricsOutgoingByPeerGetOK), nil
-
+	success, ok := result.(*StreamManagerMetricsOutgoingByPeerGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StreamManagerMetricsOutgoingByPeerGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11740,8 +14082,14 @@ func (a *Client) StreamManagerMetricsOutgoingGet(params *StreamManagerMetricsOut
 	if err != nil {
 		return nil, err
 	}
-	return result.(*StreamManagerMetricsOutgoingGetOK), nil
-
+	success, ok := result.(*StreamManagerMetricsOutgoingGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for StreamManagerMetricsOutgoingGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11770,8 +14118,14 @@ func (a *Client) SystemLoggerByNameGet(params *SystemLoggerByNameGetParams) (*Sy
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SystemLoggerByNameGetOK), nil
-
+	success, ok := result.(*SystemLoggerByNameGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SystemLoggerByNameGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11800,8 +14154,14 @@ func (a *Client) SystemLoggerByNamePost(params *SystemLoggerByNamePostParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SystemLoggerByNamePostOK), nil
-
+	success, ok := result.(*SystemLoggerByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SystemLoggerByNamePost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11830,8 +14190,14 @@ func (a *Client) SystemLoggerGet(params *SystemLoggerGetParams) (*SystemLoggerGe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SystemLoggerGetOK), nil
-
+	success, ok := result.(*SystemLoggerGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SystemLoggerGet: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -11860,8 +14226,14 @@ func (a *Client) SystemLoggerPost(params *SystemLoggerPostParams) (*SystemLogger
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SystemLoggerPostOK), nil
-
+	success, ok := result.(*SystemLoggerPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SystemLoggerPost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 // SetTransport changes the transport on the client

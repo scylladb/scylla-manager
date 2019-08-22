@@ -24,14 +24,12 @@ type FindConfigIndexSummaryCapacityInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigIndexSummaryCapacityInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigIndexSummaryCapacityInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigIndexSummaryCapacityInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigIndexSummaryCapacityInMbOK struct {
 
 func (o *FindConfigIndexSummaryCapacityInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/index_summary_capacity_in_mb][%d] findConfigIndexSummaryCapacityInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigIndexSummaryCapacityInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigIndexSummaryCapacityInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigIndexSummaryCapacityInMbDefault) Code() int {
 
 func (o *FindConfigIndexSummaryCapacityInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/index_summary_capacity_in_mb][%d] find_config_index_summary_capacity_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigIndexSummaryCapacityInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigIndexSummaryCapacityInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

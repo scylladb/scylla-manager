@@ -22,7 +22,6 @@ type ColumnFamilyMetricsMemtableColumnsCountByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsMemtableColumnsCountByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsMemtableColumnsCountByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsMemtableColumnsCountByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsMemtableColumnsCountByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/memtable_columns_count/{name}][%d] columnFamilyMetricsMemtableColumnsCountByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsMemtableColumnsCountByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsMemtableColumnsCountByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

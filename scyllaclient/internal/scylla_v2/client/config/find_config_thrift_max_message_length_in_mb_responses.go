@@ -24,14 +24,12 @@ type FindConfigThriftMaxMessageLengthInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigThriftMaxMessageLengthInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigThriftMaxMessageLengthInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigThriftMaxMessageLengthInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigThriftMaxMessageLengthInMbOK struct {
 
 func (o *FindConfigThriftMaxMessageLengthInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/thrift_max_message_length_in_mb][%d] findConfigThriftMaxMessageLengthInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigThriftMaxMessageLengthInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigThriftMaxMessageLengthInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigThriftMaxMessageLengthInMbDefault) Code() int {
 
 func (o *FindConfigThriftMaxMessageLengthInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/thrift_max_message_length_in_mb][%d] find_config_thrift_max_message_length_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigThriftMaxMessageLengthInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigThriftMaxMessageLengthInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

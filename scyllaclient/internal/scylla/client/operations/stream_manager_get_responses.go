@@ -24,7 +24,6 @@ type StreamManagerGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StreamManagerGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStreamManagerGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StreamManagerGetOK struct {
 
 func (o *StreamManagerGetOK) Error() string {
 	return fmt.Sprintf("[GET /stream_manager/][%d] streamManagerGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StreamManagerGetOK) GetPayload() []*models.StreamState {
+	return o.Payload
 }
 
 func (o *StreamManagerGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

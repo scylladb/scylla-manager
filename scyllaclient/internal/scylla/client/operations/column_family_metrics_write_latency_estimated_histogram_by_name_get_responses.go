@@ -21,7 +21,6 @@ type ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {

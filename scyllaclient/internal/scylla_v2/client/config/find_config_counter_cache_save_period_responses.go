@@ -24,14 +24,12 @@ type FindConfigCounterCacheSavePeriodReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCounterCacheSavePeriodReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCounterCacheSavePeriodOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCounterCacheSavePeriodDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCounterCacheSavePeriodOK struct {
 
 func (o *FindConfigCounterCacheSavePeriodOK) Error() string {
 	return fmt.Sprintf("[GET /config/counter_cache_save_period][%d] findConfigCounterCacheSavePeriodOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCounterCacheSavePeriodOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCounterCacheSavePeriodOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCounterCacheSavePeriodDefault) Code() int {
 
 func (o *FindConfigCounterCacheSavePeriodDefault) Error() string {
 	return fmt.Sprintf("[GET /config/counter_cache_save_period][%d] find_config_counter_cache_save_period default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCounterCacheSavePeriodDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCounterCacheSavePeriodDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

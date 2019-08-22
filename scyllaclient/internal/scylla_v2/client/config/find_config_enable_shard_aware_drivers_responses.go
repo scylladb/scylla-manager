@@ -24,14 +24,12 @@ type FindConfigEnableShardAwareDriversReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEnableShardAwareDriversReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEnableShardAwareDriversOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEnableShardAwareDriversDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEnableShardAwareDriversOK struct {
 
 func (o *FindConfigEnableShardAwareDriversOK) Error() string {
 	return fmt.Sprintf("[GET /config/enable_shard_aware_drivers][%d] findConfigEnableShardAwareDriversOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEnableShardAwareDriversOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigEnableShardAwareDriversOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEnableShardAwareDriversDefault) Code() int {
 
 func (o *FindConfigEnableShardAwareDriversDefault) Error() string {
 	return fmt.Sprintf("[GET /config/enable_shard_aware_drivers][%d] find_config_enable_shard_aware_drivers default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEnableShardAwareDriversDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEnableShardAwareDriversDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

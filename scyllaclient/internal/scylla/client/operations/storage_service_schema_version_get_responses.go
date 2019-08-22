@@ -22,7 +22,6 @@ type StorageServiceSchemaVersionGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceSchemaVersionGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceSchemaVersionGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceSchemaVersionGetOK struct {
 
 func (o *StorageServiceSchemaVersionGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/schema_version][%d] storageServiceSchemaVersionGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceSchemaVersionGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceSchemaVersionGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

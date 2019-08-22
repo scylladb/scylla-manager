@@ -22,7 +22,6 @@ type ColumnFamilyMetricsPendingFlushesGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsPendingFlushesGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsPendingFlushesGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsPendingFlushesGetOK struct {
 
 func (o *ColumnFamilyMetricsPendingFlushesGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/pending_flushes][%d] columnFamilyMetricsPendingFlushesGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsPendingFlushesGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsPendingFlushesGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

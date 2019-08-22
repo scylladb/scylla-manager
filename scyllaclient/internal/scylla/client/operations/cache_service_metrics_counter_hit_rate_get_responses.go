@@ -22,7 +22,6 @@ type CacheServiceMetricsCounterHitRateGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CacheServiceMetricsCounterHitRateGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCacheServiceMetricsCounterHitRateGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CacheServiceMetricsCounterHitRateGetOK struct {
 
 func (o *CacheServiceMetricsCounterHitRateGetOK) Error() string {
 	return fmt.Sprintf("[GET /cache_service/metrics/counter/hit_rate][%d] cacheServiceMetricsCounterHitRateGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CacheServiceMetricsCounterHitRateGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *CacheServiceMetricsCounterHitRateGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

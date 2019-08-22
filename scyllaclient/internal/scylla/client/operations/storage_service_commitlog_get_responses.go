@@ -22,7 +22,6 @@ type StorageServiceCommitlogGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceCommitlogGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceCommitlogGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceCommitlogGetOK struct {
 
 func (o *StorageServiceCommitlogGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/commitlog][%d] storageServiceCommitlogGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceCommitlogGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceCommitlogGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

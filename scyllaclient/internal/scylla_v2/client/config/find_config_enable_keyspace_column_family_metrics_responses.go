@@ -24,14 +24,12 @@ type FindConfigEnableKeyspaceColumnFamilyMetricsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEnableKeyspaceColumnFamilyMetricsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEnableKeyspaceColumnFamilyMetricsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEnableKeyspaceColumnFamilyMetricsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEnableKeyspaceColumnFamilyMetricsOK struct {
 
 func (o *FindConfigEnableKeyspaceColumnFamilyMetricsOK) Error() string {
 	return fmt.Sprintf("[GET /config/enable_keyspace_column_family_metrics][%d] findConfigEnableKeyspaceColumnFamilyMetricsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEnableKeyspaceColumnFamilyMetricsOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigEnableKeyspaceColumnFamilyMetricsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEnableKeyspaceColumnFamilyMetricsDefault) Code() int {
 
 func (o *FindConfigEnableKeyspaceColumnFamilyMetricsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/enable_keyspace_column_family_metrics][%d] find_config_enable_keyspace_column_family_metrics default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEnableKeyspaceColumnFamilyMetricsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEnableKeyspaceColumnFamilyMetricsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

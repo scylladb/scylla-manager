@@ -24,14 +24,12 @@ type FindConfigAutoSnapshotReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAutoSnapshotReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAutoSnapshotOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAutoSnapshotDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAutoSnapshotOK struct {
 
 func (o *FindConfigAutoSnapshotOK) Error() string {
 	return fmt.Sprintf("[GET /config/auto_snapshot][%d] findConfigAutoSnapshotOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAutoSnapshotOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigAutoSnapshotOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAutoSnapshotDefault) Code() int {
 
 func (o *FindConfigAutoSnapshotDefault) Error() string {
 	return fmt.Sprintf("[GET /config/auto_snapshot][%d] find_config_auto_snapshot default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAutoSnapshotDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAutoSnapshotDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

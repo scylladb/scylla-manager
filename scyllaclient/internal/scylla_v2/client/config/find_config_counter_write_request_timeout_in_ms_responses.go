@@ -24,14 +24,12 @@ type FindConfigCounterWriteRequestTimeoutInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCounterWriteRequestTimeoutInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCounterWriteRequestTimeoutInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCounterWriteRequestTimeoutInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCounterWriteRequestTimeoutInMsOK struct {
 
 func (o *FindConfigCounterWriteRequestTimeoutInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/counter_write_request_timeout_in_ms][%d] findConfigCounterWriteRequestTimeoutInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCounterWriteRequestTimeoutInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCounterWriteRequestTimeoutInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCounterWriteRequestTimeoutInMsDefault) Code() int {
 
 func (o *FindConfigCounterWriteRequestTimeoutInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/counter_write_request_timeout_in_ms][%d] find_config_counter_write_request_timeout_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCounterWriteRequestTimeoutInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCounterWriteRequestTimeoutInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

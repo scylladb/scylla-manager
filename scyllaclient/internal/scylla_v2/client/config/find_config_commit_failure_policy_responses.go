@@ -24,14 +24,12 @@ type FindConfigCommitFailurePolicyReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCommitFailurePolicyReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCommitFailurePolicyOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCommitFailurePolicyDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCommitFailurePolicyOK struct {
 
 func (o *FindConfigCommitFailurePolicyOK) Error() string {
 	return fmt.Sprintf("[GET /config/commit_failure_policy][%d] findConfigCommitFailurePolicyOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCommitFailurePolicyOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigCommitFailurePolicyOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCommitFailurePolicyDefault) Code() int {
 
 func (o *FindConfigCommitFailurePolicyDefault) Error() string {
 	return fmt.Sprintf("[GET /config/commit_failure_policy][%d] find_config_commit_failure_policy default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCommitFailurePolicyDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCommitFailurePolicyDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

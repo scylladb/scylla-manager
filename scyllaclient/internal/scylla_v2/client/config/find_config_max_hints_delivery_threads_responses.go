@@ -24,14 +24,12 @@ type FindConfigMaxHintsDeliveryThreadsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMaxHintsDeliveryThreadsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMaxHintsDeliveryThreadsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMaxHintsDeliveryThreadsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMaxHintsDeliveryThreadsOK struct {
 
 func (o *FindConfigMaxHintsDeliveryThreadsOK) Error() string {
 	return fmt.Sprintf("[GET /config/max_hints_delivery_threads][%d] findConfigMaxHintsDeliveryThreadsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMaxHintsDeliveryThreadsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigMaxHintsDeliveryThreadsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMaxHintsDeliveryThreadsDefault) Code() int {
 
 func (o *FindConfigMaxHintsDeliveryThreadsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/max_hints_delivery_threads][%d] find_config_max_hints_delivery_threads default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMaxHintsDeliveryThreadsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMaxHintsDeliveryThreadsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

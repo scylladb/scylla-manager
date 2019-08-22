@@ -22,7 +22,6 @@ type ColumnFamilyMetricsRowCacheMissGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsRowCacheMissGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsRowCacheMissGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsRowCacheMissGetOK struct {
 
 func (o *ColumnFamilyMetricsRowCacheMissGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/row_cache_miss][%d] columnFamilyMetricsRowCacheMissGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsRowCacheMissGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsRowCacheMissGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

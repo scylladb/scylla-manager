@@ -24,14 +24,12 @@ type FindConfigMemoryAllocatorReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemoryAllocatorReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemoryAllocatorOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemoryAllocatorDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemoryAllocatorOK struct {
 
 func (o *FindConfigMemoryAllocatorOK) Error() string {
 	return fmt.Sprintf("[GET /config/memory_allocator][%d] findConfigMemoryAllocatorOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemoryAllocatorOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigMemoryAllocatorOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemoryAllocatorDefault) Code() int {
 
 func (o *FindConfigMemoryAllocatorDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memory_allocator][%d] find_config_memory_allocator default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemoryAllocatorDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemoryAllocatorDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

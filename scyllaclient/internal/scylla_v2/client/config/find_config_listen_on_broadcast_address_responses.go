@@ -24,14 +24,12 @@ type FindConfigListenOnBroadcastAddressReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigListenOnBroadcastAddressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigListenOnBroadcastAddressOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigListenOnBroadcastAddressDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigListenOnBroadcastAddressOK struct {
 
 func (o *FindConfigListenOnBroadcastAddressOK) Error() string {
 	return fmt.Sprintf("[GET /config/listen_on_broadcast_address][%d] findConfigListenOnBroadcastAddressOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigListenOnBroadcastAddressOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigListenOnBroadcastAddressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigListenOnBroadcastAddressDefault) Code() int {
 
 func (o *FindConfigListenOnBroadcastAddressDefault) Error() string {
 	return fmt.Sprintf("[GET /config/listen_on_broadcast_address][%d] find_config_listen_on_broadcast_address default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigListenOnBroadcastAddressDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigListenOnBroadcastAddressDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

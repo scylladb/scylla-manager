@@ -22,7 +22,6 @@ type CacheServiceRowCacheSavePeriodGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CacheServiceRowCacheSavePeriodGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCacheServiceRowCacheSavePeriodGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CacheServiceRowCacheSavePeriodGetOK struct {
 
 func (o *CacheServiceRowCacheSavePeriodGetOK) Error() string {
 	return fmt.Sprintf("[GET /cache_service/row_cache_save_period][%d] cacheServiceRowCacheSavePeriodGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CacheServiceRowCacheSavePeriodGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *CacheServiceRowCacheSavePeriodGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

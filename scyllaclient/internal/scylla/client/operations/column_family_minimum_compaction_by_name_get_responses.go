@@ -22,7 +22,6 @@ type ColumnFamilyMinimumCompactionByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMinimumCompactionByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMinimumCompactionByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMinimumCompactionByNameGetOK struct {
 
 func (o *ColumnFamilyMinimumCompactionByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/minimum_compaction/{name}][%d] columnFamilyMinimumCompactionByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMinimumCompactionByNameGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMinimumCompactionByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

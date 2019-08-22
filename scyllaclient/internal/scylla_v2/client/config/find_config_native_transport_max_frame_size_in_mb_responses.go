@@ -24,14 +24,12 @@ type FindConfigNativeTransportMaxFrameSizeInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigNativeTransportMaxFrameSizeInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigNativeTransportMaxFrameSizeInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigNativeTransportMaxFrameSizeInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigNativeTransportMaxFrameSizeInMbOK struct {
 
 func (o *FindConfigNativeTransportMaxFrameSizeInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/native_transport_max_frame_size_in_mb][%d] findConfigNativeTransportMaxFrameSizeInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigNativeTransportMaxFrameSizeInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigNativeTransportMaxFrameSizeInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) Code() int {
 
 func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/native_transport_max_frame_size_in_mb][%d] find_config_native_transport_max_frame_size_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

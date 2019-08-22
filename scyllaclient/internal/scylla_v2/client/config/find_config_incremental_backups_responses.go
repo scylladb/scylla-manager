@@ -24,14 +24,12 @@ type FindConfigIncrementalBackupsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigIncrementalBackupsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigIncrementalBackupsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigIncrementalBackupsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigIncrementalBackupsOK struct {
 
 func (o *FindConfigIncrementalBackupsOK) Error() string {
 	return fmt.Sprintf("[GET /config/incremental_backups][%d] findConfigIncrementalBackupsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigIncrementalBackupsOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigIncrementalBackupsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigIncrementalBackupsDefault) Code() int {
 
 func (o *FindConfigIncrementalBackupsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/incremental_backups][%d] find_config_incremental_backups default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigIncrementalBackupsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigIncrementalBackupsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

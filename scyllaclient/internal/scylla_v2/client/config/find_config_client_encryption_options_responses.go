@@ -24,14 +24,12 @@ type FindConfigClientEncryptionOptionsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigClientEncryptionOptionsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigClientEncryptionOptionsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigClientEncryptionOptionsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigClientEncryptionOptionsOK struct {
 
 func (o *FindConfigClientEncryptionOptionsOK) Error() string {
 	return fmt.Sprintf("[GET /config/client_encryption_options][%d] findConfigClientEncryptionOptionsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigClientEncryptionOptionsOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *FindConfigClientEncryptionOptionsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigClientEncryptionOptionsDefault) Code() int {
 
 func (o *FindConfigClientEncryptionOptionsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/client_encryption_options][%d] find_config_client_encryption_options default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigClientEncryptionOptionsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigClientEncryptionOptionsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

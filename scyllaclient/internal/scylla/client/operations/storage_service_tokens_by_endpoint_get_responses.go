@@ -22,7 +22,6 @@ type StorageServiceTokensByEndpointGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceTokensByEndpointGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceTokensByEndpointGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceTokensByEndpointGetOK struct {
 
 func (o *StorageServiceTokensByEndpointGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/tokens/{endpoint}][%d] storageServiceTokensByEndpointGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceTokensByEndpointGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *StorageServiceTokensByEndpointGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

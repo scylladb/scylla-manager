@@ -24,14 +24,12 @@ type FindConfigEnableCacheReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEnableCacheReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEnableCacheOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEnableCacheDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEnableCacheOK struct {
 
 func (o *FindConfigEnableCacheOK) Error() string {
 	return fmt.Sprintf("[GET /config/enable_cache][%d] findConfigEnableCacheOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEnableCacheOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigEnableCacheOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEnableCacheDefault) Code() int {
 
 func (o *FindConfigEnableCacheDefault) Error() string {
 	return fmt.Sprintf("[GET /config/enable_cache][%d] find_config_enable_cache default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEnableCacheDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEnableCacheDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

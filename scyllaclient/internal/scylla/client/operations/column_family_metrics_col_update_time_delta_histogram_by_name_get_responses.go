@@ -22,7 +22,6 @@ type ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/col_update_time_delta_histogram/{name}][%d] columnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

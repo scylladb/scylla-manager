@@ -24,7 +24,6 @@ type MessagingServiceMessagesDroppedByVerGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *MessagingServiceMessagesDroppedByVerGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewMessagingServiceMessagesDroppedByVerGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type MessagingServiceMessagesDroppedByVerGetOK struct {
 
 func (o *MessagingServiceMessagesDroppedByVerGetOK) Error() string {
 	return fmt.Sprintf("[GET /messaging_service/messages/dropped_by_ver][%d] messagingServiceMessagesDroppedByVerGetOK  %+v", 200, o.Payload)
+}
+
+func (o *MessagingServiceMessagesDroppedByVerGetOK) GetPayload() []*models.VerbCounter {
+	return o.Payload
 }
 
 func (o *MessagingServiceMessagesDroppedByVerGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

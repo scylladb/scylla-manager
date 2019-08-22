@@ -24,14 +24,12 @@ type FindConfigExperimentalReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigExperimentalReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigExperimentalOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigExperimentalDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigExperimentalOK struct {
 
 func (o *FindConfigExperimentalOK) Error() string {
 	return fmt.Sprintf("[GET /config/experimental][%d] findConfigExperimentalOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigExperimentalOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigExperimentalOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigExperimentalDefault) Code() int {
 
 func (o *FindConfigExperimentalDefault) Error() string {
 	return fmt.Sprintf("[GET /config/experimental][%d] find_config_experimental default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigExperimentalDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigExperimentalDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

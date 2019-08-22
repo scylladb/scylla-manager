@@ -24,14 +24,12 @@ type FindConfigVolatileSystemKeyspaceForTestingReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigVolatileSystemKeyspaceForTestingReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigVolatileSystemKeyspaceForTestingOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigVolatileSystemKeyspaceForTestingDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigVolatileSystemKeyspaceForTestingOK struct {
 
 func (o *FindConfigVolatileSystemKeyspaceForTestingOK) Error() string {
 	return fmt.Sprintf("[GET /config/volatile_system_keyspace_for_testing][%d] findConfigVolatileSystemKeyspaceForTestingOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigVolatileSystemKeyspaceForTestingOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigVolatileSystemKeyspaceForTestingOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) Code() int {
 
 func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) Error() string {
 	return fmt.Sprintf("[GET /config/volatile_system_keyspace_for_testing][%d] find_config_volatile_system_keyspace_for_testing default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigAuthenticatorReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAuthenticatorReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAuthenticatorOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAuthenticatorDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAuthenticatorOK struct {
 
 func (o *FindConfigAuthenticatorOK) Error() string {
 	return fmt.Sprintf("[GET /config/authenticator][%d] findConfigAuthenticatorOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAuthenticatorOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigAuthenticatorOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAuthenticatorDefault) Code() int {
 
 func (o *FindConfigAuthenticatorDefault) Error() string {
 	return fmt.Sprintf("[GET /config/authenticator][%d] find_config_authenticator default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAuthenticatorDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAuthenticatorDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

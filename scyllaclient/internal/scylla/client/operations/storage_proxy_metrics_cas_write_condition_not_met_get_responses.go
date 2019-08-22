@@ -22,7 +22,6 @@ type StorageProxyMetricsCasWriteConditionNotMetGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyMetricsCasWriteConditionNotMetGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyMetricsCasWriteConditionNotMetGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyMetricsCasWriteConditionNotMetGetOK struct {
 
 func (o *StorageProxyMetricsCasWriteConditionNotMetGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/metrics/cas_write/condition_not_met][%d] storageProxyMetricsCasWriteConditionNotMetGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyMetricsCasWriteConditionNotMetGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageProxyMetricsCasWriteConditionNotMetGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

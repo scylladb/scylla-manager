@@ -24,7 +24,6 @@ type CollectdByPluginidGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CollectdByPluginidGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCollectdByPluginidGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type CollectdByPluginidGetOK struct {
 
 func (o *CollectdByPluginidGetOK) Error() string {
 	return fmt.Sprintf("[GET /collectd/{pluginid}][%d] collectdByPluginidGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CollectdByPluginidGetOK) GetPayload() []*models.CollectdValue {
+	return o.Payload
 }
 
 func (o *CollectdByPluginidGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

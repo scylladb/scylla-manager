@@ -22,7 +22,6 @@ type StorageProxyMetricsReadUnavailablesGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyMetricsReadUnavailablesGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyMetricsReadUnavailablesGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyMetricsReadUnavailablesGetOK struct {
 
 func (o *StorageProxyMetricsReadUnavailablesGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/metrics/read/unavailables][%d] storageProxyMetricsReadUnavailablesGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyMetricsReadUnavailablesGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageProxyMetricsReadUnavailablesGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

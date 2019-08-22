@@ -22,7 +22,6 @@ type StorageServiceNodesLeavingGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceNodesLeavingGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceNodesLeavingGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceNodesLeavingGetOK struct {
 
 func (o *StorageServiceNodesLeavingGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/nodes/leaving][%d] storageServiceNodesLeavingGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceNodesLeavingGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *StorageServiceNodesLeavingGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

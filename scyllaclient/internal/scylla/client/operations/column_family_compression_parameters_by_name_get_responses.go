@@ -24,7 +24,6 @@ type ColumnFamilyCompressionParametersByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyCompressionParametersByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyCompressionParametersByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type ColumnFamilyCompressionParametersByNameGetOK struct {
 
 func (o *ColumnFamilyCompressionParametersByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/compression_parameters/{name}][%d] columnFamilyCompressionParametersByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyCompressionParametersByNameGetOK) GetPayload() []*models.Mapper {
+	return o.Payload
 }
 
 func (o *ColumnFamilyCompressionParametersByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetReader stru
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/compression_metadata_off_heap_memory_used/{name}][%d] columnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

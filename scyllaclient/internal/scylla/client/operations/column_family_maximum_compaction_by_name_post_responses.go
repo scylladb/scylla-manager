@@ -22,7 +22,6 @@ type ColumnFamilyMaximumCompactionByNamePostReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMaximumCompactionByNamePostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMaximumCompactionByNamePostOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMaximumCompactionByNamePostOK struct {
 
 func (o *ColumnFamilyMaximumCompactionByNamePostOK) Error() string {
 	return fmt.Sprintf("[POST /column_family/maximum_compaction/{name}][%d] columnFamilyMaximumCompactionByNamePostOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMaximumCompactionByNamePostOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMaximumCompactionByNamePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

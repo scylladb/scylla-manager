@@ -24,14 +24,12 @@ type FindConfigSeedProviderReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigSeedProviderReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigSeedProviderOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigSeedProviderDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigSeedProviderOK struct {
 
 func (o *FindConfigSeedProviderOK) Error() string {
 	return fmt.Sprintf("[GET /config/seed_provider][%d] findConfigSeedProviderOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigSeedProviderOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *FindConfigSeedProviderOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigSeedProviderDefault) Code() int {
 
 func (o *FindConfigSeedProviderDefault) Error() string {
 	return fmt.Sprintf("[GET /config/seed_provider][%d] find_config_seed_provider default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigSeedProviderDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigSeedProviderDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

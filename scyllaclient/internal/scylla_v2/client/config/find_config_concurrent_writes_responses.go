@@ -24,14 +24,12 @@ type FindConfigConcurrentWritesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigConcurrentWritesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigConcurrentWritesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigConcurrentWritesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigConcurrentWritesOK struct {
 
 func (o *FindConfigConcurrentWritesOK) Error() string {
 	return fmt.Sprintf("[GET /config/concurrent_writes][%d] findConfigConcurrentWritesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigConcurrentWritesOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigConcurrentWritesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigConcurrentWritesDefault) Code() int {
 
 func (o *FindConfigConcurrentWritesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/concurrent_writes][%d] find_config_concurrent_writes default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigConcurrentWritesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigConcurrentWritesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

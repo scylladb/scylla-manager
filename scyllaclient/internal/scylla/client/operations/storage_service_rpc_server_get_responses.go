@@ -22,7 +22,6 @@ type StorageServiceRPCServerGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceRPCServerGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceRPCServerGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceRPCServerGetOK struct {
 
 func (o *StorageServiceRPCServerGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/rpc_server][%d] storageServiceRpcServerGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceRPCServerGetOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *StorageServiceRPCServerGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

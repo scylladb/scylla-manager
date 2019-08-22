@@ -24,14 +24,12 @@ type FindConfigPrometheusAddressReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigPrometheusAddressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigPrometheusAddressOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigPrometheusAddressDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigPrometheusAddressOK struct {
 
 func (o *FindConfigPrometheusAddressOK) Error() string {
 	return fmt.Sprintf("[GET /config/prometheus_address][%d] findConfigPrometheusAddressOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigPrometheusAddressOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigPrometheusAddressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigPrometheusAddressDefault) Code() int {
 
 func (o *FindConfigPrometheusAddressDefault) Error() string {
 	return fmt.Sprintf("[GET /config/prometheus_address][%d] find_config_prometheus_address default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigPrometheusAddressDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigPrometheusAddressDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

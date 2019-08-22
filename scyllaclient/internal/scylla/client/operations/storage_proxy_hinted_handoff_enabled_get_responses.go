@@ -22,7 +22,6 @@ type StorageProxyHintedHandoffEnabledGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyHintedHandoffEnabledGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyHintedHandoffEnabledGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyHintedHandoffEnabledGetOK struct {
 
 func (o *StorageProxyHintedHandoffEnabledGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/hinted_handoff_enabled][%d] storageProxyHintedHandoffEnabledGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyHintedHandoffEnabledGetOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *StorageProxyHintedHandoffEnabledGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

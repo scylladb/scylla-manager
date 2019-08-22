@@ -24,14 +24,12 @@ type FindConfigHintedHandoffThrottleInKbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigHintedHandoffThrottleInKbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigHintedHandoffThrottleInKbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigHintedHandoffThrottleInKbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigHintedHandoffThrottleInKbOK struct {
 
 func (o *FindConfigHintedHandoffThrottleInKbOK) Error() string {
 	return fmt.Sprintf("[GET /config/hinted_handoff_throttle_in_kb][%d] findConfigHintedHandoffThrottleInKbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigHintedHandoffThrottleInKbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigHintedHandoffThrottleInKbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigHintedHandoffThrottleInKbDefault) Code() int {
 
 func (o *FindConfigHintedHandoffThrottleInKbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/hinted_handoff_throttle_in_kb][%d] find_config_hinted_handoff_throttle_in_kb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigHintedHandoffThrottleInKbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigHintedHandoffThrottleInKbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type FailureDetectorEndpointPhiValuesGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FailureDetectorEndpointPhiValuesGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFailureDetectorEndpointPhiValuesGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type FailureDetectorEndpointPhiValuesGetOK struct {
 
 func (o *FailureDetectorEndpointPhiValuesGetOK) Error() string {
 	return fmt.Sprintf("[GET /failure_detector/endpoint_phi_values][%d] failureDetectorEndpointPhiValuesGetOK  %+v", 200, o.Payload)
+}
+
+func (o *FailureDetectorEndpointPhiValuesGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *FailureDetectorEndpointPhiValuesGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

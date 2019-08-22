@@ -24,21 +24,18 @@ type JobStatusReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *JobStatusReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewJobStatusOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewJobStatusNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewJobStatusInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type JobStatusOK struct {
 
 func (o *JobStatusOK) Error() string {
 	return fmt.Sprintf("[POST /job/status][%d] jobStatusOK  %+v", 200, o.Payload)
+}
+
+func (o *JobStatusOK) GetPayload() *models.Job {
+	return o.Payload
 }
 
 func (o *JobStatusOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *JobStatusNotFound) Error() string {
 	return fmt.Sprintf("[POST /job/status][%d] jobStatusNotFound  %+v", 404, o.Payload)
 }
 
+func (o *JobStatusNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *JobStatusNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type JobStatusInternalServerError struct {
 
 func (o *JobStatusInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /job/status][%d] jobStatusInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *JobStatusInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *JobStatusInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

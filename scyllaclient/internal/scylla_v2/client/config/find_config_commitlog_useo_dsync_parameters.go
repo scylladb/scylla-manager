@@ -17,89 +17,89 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewFindConfigCommitlogUseODsyncParams creates a new FindConfigCommitlogUseODsyncParams object
+// NewFindConfigCommitlogUseoDsyncParams creates a new FindConfigCommitlogUseoDsyncParams object
 // with the default values initialized.
-func NewFindConfigCommitlogUseODsyncParams() *FindConfigCommitlogUseODsyncParams {
+func NewFindConfigCommitlogUseoDsyncParams() *FindConfigCommitlogUseoDsyncParams {
 
-	return &FindConfigCommitlogUseODsyncParams{
+	return &FindConfigCommitlogUseoDsyncParams{
 
 		timeout: cr.DefaultTimeout,
 	}
 }
 
-// NewFindConfigCommitlogUseODsyncParamsWithTimeout creates a new FindConfigCommitlogUseODsyncParams object
+// NewFindConfigCommitlogUseoDsyncParamsWithTimeout creates a new FindConfigCommitlogUseoDsyncParams object
 // with the default values initialized, and the ability to set a timeout on a request
-func NewFindConfigCommitlogUseODsyncParamsWithTimeout(timeout time.Duration) *FindConfigCommitlogUseODsyncParams {
+func NewFindConfigCommitlogUseoDsyncParamsWithTimeout(timeout time.Duration) *FindConfigCommitlogUseoDsyncParams {
 
-	return &FindConfigCommitlogUseODsyncParams{
+	return &FindConfigCommitlogUseoDsyncParams{
 
 		timeout: timeout,
 	}
 }
 
-// NewFindConfigCommitlogUseODsyncParamsWithContext creates a new FindConfigCommitlogUseODsyncParams object
+// NewFindConfigCommitlogUseoDsyncParamsWithContext creates a new FindConfigCommitlogUseoDsyncParams object
 // with the default values initialized, and the ability to set a context for a request
-func NewFindConfigCommitlogUseODsyncParamsWithContext(ctx context.Context) *FindConfigCommitlogUseODsyncParams {
+func NewFindConfigCommitlogUseoDsyncParamsWithContext(ctx context.Context) *FindConfigCommitlogUseoDsyncParams {
 
-	return &FindConfigCommitlogUseODsyncParams{
+	return &FindConfigCommitlogUseoDsyncParams{
 
 		Context: ctx,
 	}
 }
 
-// NewFindConfigCommitlogUseODsyncParamsWithHTTPClient creates a new FindConfigCommitlogUseODsyncParams object
+// NewFindConfigCommitlogUseoDsyncParamsWithHTTPClient creates a new FindConfigCommitlogUseoDsyncParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
-func NewFindConfigCommitlogUseODsyncParamsWithHTTPClient(client *http.Client) *FindConfigCommitlogUseODsyncParams {
+func NewFindConfigCommitlogUseoDsyncParamsWithHTTPClient(client *http.Client) *FindConfigCommitlogUseoDsyncParams {
 
-	return &FindConfigCommitlogUseODsyncParams{
+	return &FindConfigCommitlogUseoDsyncParams{
 		HTTPClient: client,
 	}
 }
 
-/*FindConfigCommitlogUseODsyncParams contains all the parameters to send to the API endpoint
+/*FindConfigCommitlogUseoDsyncParams contains all the parameters to send to the API endpoint
 for the find config commitlog use o dsync operation typically these are written to a http.Request
 */
-type FindConfigCommitlogUseODsyncParams struct {
+type FindConfigCommitlogUseoDsyncParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
 }
 
 // WithTimeout adds the timeout to the find config commitlog use o dsync params
-func (o *FindConfigCommitlogUseODsyncParams) WithTimeout(timeout time.Duration) *FindConfigCommitlogUseODsyncParams {
+func (o *FindConfigCommitlogUseoDsyncParams) WithTimeout(timeout time.Duration) *FindConfigCommitlogUseoDsyncParams {
 	o.SetTimeout(timeout)
 	return o
 }
 
 // SetTimeout adds the timeout to the find config commitlog use o dsync params
-func (o *FindConfigCommitlogUseODsyncParams) SetTimeout(timeout time.Duration) {
+func (o *FindConfigCommitlogUseoDsyncParams) SetTimeout(timeout time.Duration) {
 	o.timeout = timeout
 }
 
 // WithContext adds the context to the find config commitlog use o dsync params
-func (o *FindConfigCommitlogUseODsyncParams) WithContext(ctx context.Context) *FindConfigCommitlogUseODsyncParams {
+func (o *FindConfigCommitlogUseoDsyncParams) WithContext(ctx context.Context) *FindConfigCommitlogUseoDsyncParams {
 	o.SetContext(ctx)
 	return o
 }
 
 // SetContext adds the context to the find config commitlog use o dsync params
-func (o *FindConfigCommitlogUseODsyncParams) SetContext(ctx context.Context) {
+func (o *FindConfigCommitlogUseoDsyncParams) SetContext(ctx context.Context) {
 	o.Context = ctx
 }
 
 // WithHTTPClient adds the HTTPClient to the find config commitlog use o dsync params
-func (o *FindConfigCommitlogUseODsyncParams) WithHTTPClient(client *http.Client) *FindConfigCommitlogUseODsyncParams {
+func (o *FindConfigCommitlogUseoDsyncParams) WithHTTPClient(client *http.Client) *FindConfigCommitlogUseoDsyncParams {
 	o.SetHTTPClient(client)
 	return o
 }
 
 // SetHTTPClient adds the HTTPClient to the find config commitlog use o dsync params
-func (o *FindConfigCommitlogUseODsyncParams) SetHTTPClient(client *http.Client) {
+func (o *FindConfigCommitlogUseoDsyncParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
 // WriteToRequest writes these params to a swagger request
-func (o *FindConfigCommitlogUseODsyncParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
+func (o *FindConfigCommitlogUseoDsyncParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
 	if err := r.SetTimeout(o.timeout); err != nil {
 		return err

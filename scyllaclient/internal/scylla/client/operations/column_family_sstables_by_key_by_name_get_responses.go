@@ -22,7 +22,6 @@ type ColumnFamilySstablesByKeyByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilySstablesByKeyByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilySstablesByKeyByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilySstablesByKeyByNameGetOK struct {
 
 func (o *ColumnFamilySstablesByKeyByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/sstables/by_key/{name}][%d] columnFamilySstablesByKeyByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilySstablesByKeyByNameGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *ColumnFamilySstablesByKeyByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

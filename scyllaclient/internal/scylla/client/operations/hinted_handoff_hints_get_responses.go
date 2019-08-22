@@ -22,7 +22,6 @@ type HintedHandoffHintsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *HintedHandoffHintsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewHintedHandoffHintsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type HintedHandoffHintsGetOK struct {
 
 func (o *HintedHandoffHintsGetOK) Error() string {
 	return fmt.Sprintf("[GET /hinted_handoff/hints][%d] hintedHandoffHintsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *HintedHandoffHintsGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *HintedHandoffHintsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

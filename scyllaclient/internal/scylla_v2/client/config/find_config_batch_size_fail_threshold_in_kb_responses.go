@@ -24,14 +24,12 @@ type FindConfigBatchSizeFailThresholdInKbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigBatchSizeFailThresholdInKbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigBatchSizeFailThresholdInKbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigBatchSizeFailThresholdInKbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigBatchSizeFailThresholdInKbOK struct {
 
 func (o *FindConfigBatchSizeFailThresholdInKbOK) Error() string {
 	return fmt.Sprintf("[GET /config/batch_size_fail_threshold_in_kb][%d] findConfigBatchSizeFailThresholdInKbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigBatchSizeFailThresholdInKbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigBatchSizeFailThresholdInKbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigBatchSizeFailThresholdInKbDefault) Code() int {
 
 func (o *FindConfigBatchSizeFailThresholdInKbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/batch_size_fail_threshold_in_kb][%d] find_config_batch_size_fail_threshold_in_kb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigBatchSizeFailThresholdInKbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigBatchSizeFailThresholdInKbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type ColumnFamilyMetricsSpeculativeRetriesByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsSpeculativeRetriesByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsSpeculativeRetriesByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsSpeculativeRetriesByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsSpeculativeRetriesByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/speculative_retries/{name}][%d] columnFamilyMetricsSpeculativeRetriesByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsSpeculativeRetriesByNameGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsSpeculativeRetriesByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

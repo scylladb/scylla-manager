@@ -22,7 +22,6 @@ type SnitchDatacenterGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *SnitchDatacenterGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewSnitchDatacenterGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type SnitchDatacenterGetOK struct {
 
 func (o *SnitchDatacenterGetOK) Error() string {
 	return fmt.Sprintf("[GET /snitch/datacenter][%d] snitchDatacenterGetOK  %+v", 200, o.Payload)
+}
+
+func (o *SnitchDatacenterGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *SnitchDatacenterGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

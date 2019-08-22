@@ -24,14 +24,12 @@ type FindConfigEnableSstablesMcFormatReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigEnableSstablesMcFormatReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigEnableSstablesMcFormatOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigEnableSstablesMcFormatDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigEnableSstablesMcFormatOK struct {
 
 func (o *FindConfigEnableSstablesMcFormatOK) Error() string {
 	return fmt.Sprintf("[GET /config/enable_sstables_mc_format][%d] findConfigEnableSstablesMcFormatOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigEnableSstablesMcFormatOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigEnableSstablesMcFormatOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigEnableSstablesMcFormatDefault) Code() int {
 
 func (o *FindConfigEnableSstablesMcFormatDefault) Error() string {
 	return fmt.Sprintf("[GET /config/enable_sstables_mc_format][%d] find_config_enable_sstables_mc_format default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigEnableSstablesMcFormatDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigEnableSstablesMcFormatDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

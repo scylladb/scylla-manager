@@ -6,6 +6,8 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
@@ -50,8 +52,14 @@ func (a *Client) ConfigCreate(params *ConfigCreateParams) (*ConfigCreateOK, erro
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ConfigCreateOK), nil
-
+	success, ok := result.(*ConfigCreateOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ConfigCreate: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -80,8 +88,14 @@ func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CoreBwlimitOK), nil
-
+	success, ok := result.(*CoreBwlimitOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CoreBwlimit: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -110,8 +124,14 @@ func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, e
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CoreGroupListOK), nil
-
+	success, ok := result.(*CoreGroupListOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CoreGroupList: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -140,8 +160,14 @@ func (a *Client) CoreStats(params *CoreStatsParams) (*CoreStatsOK, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CoreStatsOK), nil
-
+	success, ok := result.(*CoreStatsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CoreStats: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -170,8 +196,14 @@ func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CoreStatsResetOK), nil
-
+	success, ok := result.(*CoreStatsResetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CoreStatsReset: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -200,8 +232,14 @@ func (a *Client) CoreTransferred(params *CoreTransferredParams) (*CoreTransferre
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CoreTransferredOK), nil
-
+	success, ok := result.(*CoreTransferredOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for CoreTransferred: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -230,8 +268,14 @@ func (a *Client) JobStatus(params *JobStatusParams) (*JobStatusOK, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobStatusOK), nil
-
+	success, ok := result.(*JobStatusOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for JobStatus: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -260,8 +304,14 @@ func (a *Client) JobStop(params *JobStopParams) (*JobStopOK, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobStopOK), nil
-
+	success, ok := result.(*JobStopOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for JobStop: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -290,8 +340,14 @@ func (a *Client) OperationsAbout(params *OperationsAboutParams) (*OperationsAbou
 	if err != nil {
 		return nil, err
 	}
-	return result.(*OperationsAboutOK), nil
-
+	success, ok := result.(*OperationsAboutOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for OperationsAbout: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -320,8 +376,14 @@ func (a *Client) OperationsCopyfile(params *OperationsCopyfileParams) (*Operatio
 	if err != nil {
 		return nil, err
 	}
-	return result.(*OperationsCopyfileOK), nil
-
+	success, ok := result.(*OperationsCopyfileOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for OperationsCopyfile: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -350,8 +412,14 @@ func (a *Client) OperationsDeletefile(params *OperationsDeletefileParams) (*Oper
 	if err != nil {
 		return nil, err
 	}
-	return result.(*OperationsDeletefileOK), nil
-
+	success, ok := result.(*OperationsDeletefileOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for OperationsDeletefile: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -380,8 +448,14 @@ func (a *Client) OperationsList(params *OperationsListParams) (*OperationsListOK
 	if err != nil {
 		return nil, err
 	}
-	return result.(*OperationsListOK), nil
-
+	success, ok := result.(*OperationsListOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for OperationsList: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -410,8 +484,14 @@ func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurg
 	if err != nil {
 		return nil, err
 	}
-	return result.(*OperationsPurgeOK), nil
-
+	success, ok := result.(*OperationsPurgeOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for OperationsPurge: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -440,8 +520,14 @@ func (a *Client) SyncCopy(params *SyncCopyParams) (*SyncCopyOK, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result.(*SyncCopyOK), nil
-
+	success, ok := result.(*SyncCopyOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for SyncCopy: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 // SetTransport changes the transport on the client

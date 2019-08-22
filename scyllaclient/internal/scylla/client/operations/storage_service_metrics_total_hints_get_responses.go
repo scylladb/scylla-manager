@@ -22,7 +22,6 @@ type StorageServiceMetricsTotalHintsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceMetricsTotalHintsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceMetricsTotalHintsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceMetricsTotalHintsGetOK struct {
 
 func (o *StorageServiceMetricsTotalHintsGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/metrics/total_hints][%d] storageServiceMetricsTotalHintsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceMetricsTotalHintsGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageServiceMetricsTotalHintsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

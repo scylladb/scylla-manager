@@ -24,21 +24,18 @@ type JobStopReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *JobStopReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewJobStopOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewJobStopNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewJobStopInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -68,6 +65,10 @@ func (o *JobStopOK) Error() string {
 	return fmt.Sprintf("[POST /job/stop][%d] jobStopOK  %+v", 200, o.Payload)
 }
 
+func (o *JobStopOK) GetPayload() interface{} {
+	return o.Payload
+}
+
 func (o *JobStopOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -93,6 +94,10 @@ type JobStopNotFound struct {
 
 func (o *JobStopNotFound) Error() string {
 	return fmt.Sprintf("[POST /job/stop][%d] jobStopNotFound  %+v", 404, o.Payload)
+}
+
+func (o *JobStopNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *JobStopNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -122,6 +127,10 @@ type JobStopInternalServerError struct {
 
 func (o *JobStopInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /job/stop][%d] jobStopInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *JobStopInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *JobStopInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -22,7 +22,6 @@ type ColumnFamilyMetricsMaxRowSizeGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsMaxRowSizeGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsMaxRowSizeGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsMaxRowSizeGetOK struct {
 
 func (o *ColumnFamilyMetricsMaxRowSizeGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/max_row_size][%d] columnFamilyMetricsMaxRowSizeGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsMaxRowSizeGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsMaxRowSizeGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

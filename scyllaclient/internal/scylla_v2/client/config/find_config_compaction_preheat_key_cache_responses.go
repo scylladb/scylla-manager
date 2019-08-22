@@ -24,14 +24,12 @@ type FindConfigCompactionPreheatKeyCacheReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCompactionPreheatKeyCacheReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCompactionPreheatKeyCacheOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCompactionPreheatKeyCacheDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCompactionPreheatKeyCacheOK struct {
 
 func (o *FindConfigCompactionPreheatKeyCacheOK) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_preheat_key_cache][%d] findConfigCompactionPreheatKeyCacheOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCompactionPreheatKeyCacheOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionPreheatKeyCacheOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCompactionPreheatKeyCacheDefault) Code() int {
 
 func (o *FindConfigCompactionPreheatKeyCacheDefault) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_preheat_key_cache][%d] find_config_compaction_preheat_key_cache default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCompactionPreheatKeyCacheDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionPreheatKeyCacheDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

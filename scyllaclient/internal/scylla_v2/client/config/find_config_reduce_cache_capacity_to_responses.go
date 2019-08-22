@@ -24,14 +24,12 @@ type FindConfigReduceCacheCapacityToReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigReduceCacheCapacityToReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigReduceCacheCapacityToOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigReduceCacheCapacityToDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigReduceCacheCapacityToOK struct {
 
 func (o *FindConfigReduceCacheCapacityToOK) Error() string {
 	return fmt.Sprintf("[GET /config/reduce_cache_capacity_to][%d] findConfigReduceCacheCapacityToOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigReduceCacheCapacityToOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigReduceCacheCapacityToOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigReduceCacheCapacityToDefault) Code() int {
 
 func (o *FindConfigReduceCacheCapacityToDefault) Error() string {
 	return fmt.Sprintf("[GET /config/reduce_cache_capacity_to][%d] find_config_reduce_cache_capacity_to default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigReduceCacheCapacityToDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigReduceCacheCapacityToDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

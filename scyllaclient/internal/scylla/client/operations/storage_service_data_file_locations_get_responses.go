@@ -22,7 +22,6 @@ type StorageServiceDataFileLocationsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceDataFileLocationsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceDataFileLocationsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceDataFileLocationsGetOK struct {
 
 func (o *StorageServiceDataFileLocationsGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/data_file/locations][%d] storageServiceDataFileLocationsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceDataFileLocationsGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *StorageServiceDataFileLocationsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

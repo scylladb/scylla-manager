@@ -22,7 +22,6 @@ type ColumnFamilyMetricsMemtableOnHeapSizeByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsMemtableOnHeapSizeByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/memtable_on_heap_size/{name}][%d] columnFamilyMetricsMemtableOnHeapSizeByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigKeyCacheSavePeriodReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigKeyCacheSavePeriodReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigKeyCacheSavePeriodOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigKeyCacheSavePeriodDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigKeyCacheSavePeriodOK struct {
 
 func (o *FindConfigKeyCacheSavePeriodOK) Error() string {
 	return fmt.Sprintf("[GET /config/key_cache_save_period][%d] findConfigKeyCacheSavePeriodOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigKeyCacheSavePeriodOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigKeyCacheSavePeriodOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigKeyCacheSavePeriodDefault) Code() int {
 
 func (o *FindConfigKeyCacheSavePeriodDefault) Error() string {
 	return fmt.Sprintf("[GET /config/key_cache_save_period][%d] find_config_key_cache_save_period default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigKeyCacheSavePeriodDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigKeyCacheSavePeriodDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

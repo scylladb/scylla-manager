@@ -24,14 +24,12 @@ type FindConfigAuthorizerReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAuthorizerReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAuthorizerOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAuthorizerDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAuthorizerOK struct {
 
 func (o *FindConfigAuthorizerOK) Error() string {
 	return fmt.Sprintf("[GET /config/authorizer][%d] findConfigAuthorizerOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAuthorizerOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigAuthorizerOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAuthorizerDefault) Code() int {
 
 func (o *FindConfigAuthorizerDefault) Error() string {
 	return fmt.Sprintf("[GET /config/authorizer][%d] find_config_authorizer default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAuthorizerDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAuthorizerDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

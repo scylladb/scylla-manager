@@ -24,14 +24,12 @@ type FindConfigRPCRecvBuffSizeInBytesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigRPCRecvBuffSizeInBytesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigRPCRecvBuffSizeInBytesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigRPCRecvBuffSizeInBytesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigRPCRecvBuffSizeInBytesOK struct {
 
 func (o *FindConfigRPCRecvBuffSizeInBytesOK) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_recv_buff_size_in_bytes][%d] findConfigRpcRecvBuffSizeInBytesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigRPCRecvBuffSizeInBytesOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigRPCRecvBuffSizeInBytesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigRPCRecvBuffSizeInBytesDefault) Code() int {
 
 func (o *FindConfigRPCRecvBuffSizeInBytesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_recv_buff_size_in_bytes][%d] find_config_rpc_recv_buff_size_in_bytes default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigRPCRecvBuffSizeInBytesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigRPCRecvBuffSizeInBytesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

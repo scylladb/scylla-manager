@@ -24,14 +24,12 @@ type FindConfigLoggerLogLevelReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigLoggerLogLevelReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigLoggerLogLevelOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigLoggerLogLevelDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigLoggerLogLevelOK struct {
 
 func (o *FindConfigLoggerLogLevelOK) Error() string {
 	return fmt.Sprintf("[GET /config/logger_log_level][%d] findConfigLoggerLogLevelOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigLoggerLogLevelOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *FindConfigLoggerLogLevelOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigLoggerLogLevelDefault) Code() int {
 
 func (o *FindConfigLoggerLogLevelDefault) Error() string {
 	return fmt.Sprintf("[GET /config/logger_log_level][%d] find_config_logger_log_level default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigLoggerLogLevelDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigLoggerLogLevelDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

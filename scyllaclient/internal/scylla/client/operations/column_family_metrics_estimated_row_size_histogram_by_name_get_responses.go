@@ -22,7 +22,6 @@ type ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/estimated_row_size_histogram/{name}][%d] columnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

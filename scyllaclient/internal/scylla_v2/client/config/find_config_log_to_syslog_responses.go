@@ -24,14 +24,12 @@ type FindConfigLogToSyslogReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigLogToSyslogReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigLogToSyslogOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigLogToSyslogDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigLogToSyslogOK struct {
 
 func (o *FindConfigLogToSyslogOK) Error() string {
 	return fmt.Sprintf("[GET /config/log_to_syslog][%d] findConfigLogToSyslogOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigLogToSyslogOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigLogToSyslogOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigLogToSyslogDefault) Code() int {
 
 func (o *FindConfigLogToSyslogDefault) Error() string {
 	return fmt.Sprintf("[GET /config/log_to_syslog][%d] find_config_log_to_syslog default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigLogToSyslogDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigLogToSyslogDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,21 +24,18 @@ type OperationsPurgeReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *OperationsPurgeReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewOperationsPurgeOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewOperationsPurgeNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewOperationsPurgeInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type OperationsPurgeOK struct {
 
 func (o *OperationsPurgeOK) Error() string {
 	return fmt.Sprintf("[POST /operations/purge][%d] operationsPurgeOK  %+v", 200, o.Payload)
+}
+
+func (o *OperationsPurgeOK) GetPayload() *models.Jobid {
+	return o.Payload
 }
 
 func (o *OperationsPurgeOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *OperationsPurgeNotFound) Error() string {
 	return fmt.Sprintf("[POST /operations/purge][%d] operationsPurgeNotFound  %+v", 404, o.Payload)
 }
 
+func (o *OperationsPurgeNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *OperationsPurgeNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type OperationsPurgeInternalServerError struct {
 
 func (o *OperationsPurgeInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /operations/purge][%d] operationsPurgeInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *OperationsPurgeInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *OperationsPurgeInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

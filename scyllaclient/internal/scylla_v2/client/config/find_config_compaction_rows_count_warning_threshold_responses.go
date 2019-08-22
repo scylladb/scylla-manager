@@ -24,14 +24,12 @@ type FindConfigCompactionRowsCountWarningThresholdReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCompactionRowsCountWarningThresholdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCompactionRowsCountWarningThresholdOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCompactionRowsCountWarningThresholdDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCompactionRowsCountWarningThresholdOK struct {
 
 func (o *FindConfigCompactionRowsCountWarningThresholdOK) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_rows_count_warning_threshold][%d] findConfigCompactionRowsCountWarningThresholdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCompactionRowsCountWarningThresholdOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionRowsCountWarningThresholdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCompactionRowsCountWarningThresholdDefault) Code() int {
 
 func (o *FindConfigCompactionRowsCountWarningThresholdDefault) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_rows_count_warning_threshold][%d] find_config_compaction_rows_count_warning_threshold default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCompactionRowsCountWarningThresholdDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionRowsCountWarningThresholdDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

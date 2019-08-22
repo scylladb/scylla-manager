@@ -24,7 +24,6 @@ type StorageServiceOwnershipByKeyspaceGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceOwnershipByKeyspaceGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceOwnershipByKeyspaceGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServiceOwnershipByKeyspaceGetOK struct {
 
 func (o *StorageServiceOwnershipByKeyspaceGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/ownership/{keyspace}][%d] storageServiceOwnershipByKeyspaceGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceOwnershipByKeyspaceGetOK) GetPayload() []*models.Mapper {
+	return o.Payload
 }
 
 func (o *StorageServiceOwnershipByKeyspaceGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

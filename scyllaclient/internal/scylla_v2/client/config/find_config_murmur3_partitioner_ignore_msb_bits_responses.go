@@ -24,14 +24,12 @@ type FindConfigMurmur3PartitionerIgnoreMsbBitsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMurmur3PartitionerIgnoreMsbBitsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMurmur3PartitionerIgnoreMsbBitsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMurmur3PartitionerIgnoreMsbBitsOK struct {
 
 func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsOK) Error() string {
 	return fmt.Sprintf("[GET /config/murmur3_partitioner_ignore_msb_bits][%d] findConfigMurmur3PartitionerIgnoreMsbBitsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) Code() int {
 
 func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/murmur3_partitioner_ignore_msb_bits][%d] find_config_murmur3_partitioner_ignore_msb_bits default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

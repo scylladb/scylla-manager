@@ -22,7 +22,6 @@ type StorageServiceSavedCachesLocationGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceSavedCachesLocationGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceSavedCachesLocationGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceSavedCachesLocationGetOK struct {
 
 func (o *StorageServiceSavedCachesLocationGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/saved_caches/location][%d] storageServiceSavedCachesLocationGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceSavedCachesLocationGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceSavedCachesLocationGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

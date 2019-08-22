@@ -24,14 +24,12 @@ type FindConfigTombstoneFailureThresholdReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigTombstoneFailureThresholdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigTombstoneFailureThresholdOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigTombstoneFailureThresholdDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigTombstoneFailureThresholdOK struct {
 
 func (o *FindConfigTombstoneFailureThresholdOK) Error() string {
 	return fmt.Sprintf("[GET /config/tombstone_failure_threshold][%d] findConfigTombstoneFailureThresholdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigTombstoneFailureThresholdOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigTombstoneFailureThresholdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigTombstoneFailureThresholdDefault) Code() int {
 
 func (o *FindConfigTombstoneFailureThresholdDefault) Error() string {
 	return fmt.Sprintf("[GET /config/tombstone_failure_threshold][%d] find_config_tombstone_failure_threshold default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigTombstoneFailureThresholdDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigTombstoneFailureThresholdDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

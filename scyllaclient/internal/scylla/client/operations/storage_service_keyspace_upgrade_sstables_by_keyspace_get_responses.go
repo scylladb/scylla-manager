@@ -22,7 +22,6 @@ type StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK struct {
 
 func (o *StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/keyspace_upgrade_sstables/{keyspace}][%d] storageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

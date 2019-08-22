@@ -22,7 +22,6 @@ type StorageProxyMetricsCasReadTimeoutsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyMetricsCasReadTimeoutsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyMetricsCasReadTimeoutsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyMetricsCasReadTimeoutsGetOK struct {
 
 func (o *StorageProxyMetricsCasReadTimeoutsGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/metrics/cas_read/timeouts][%d] storageProxyMetricsCasReadTimeoutsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyMetricsCasReadTimeoutsGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *StorageProxyMetricsCasReadTimeoutsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,7 +24,6 @@ type StorageServicePendingRangeByKeyspaceGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServicePendingRangeByKeyspaceGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServicePendingRangeByKeyspaceGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServicePendingRangeByKeyspaceGetOK struct {
 
 func (o *StorageServicePendingRangeByKeyspaceGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/pending_range/{keyspace}][%d] storageServicePendingRangeByKeyspaceGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServicePendingRangeByKeyspaceGetOK) GetPayload() []*models.MaplistMapper {
+	return o.Payload
 }
 
 func (o *StorageServicePendingRangeByKeyspaceGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigFdMaxIntervalMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigFdMaxIntervalMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigFdMaxIntervalMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigFdMaxIntervalMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigFdMaxIntervalMsOK struct {
 
 func (o *FindConfigFdMaxIntervalMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/fd_max_interval_ms][%d] findConfigFdMaxIntervalMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigFdMaxIntervalMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigFdMaxIntervalMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigFdMaxIntervalMsDefault) Code() int {
 
 func (o *FindConfigFdMaxIntervalMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/fd_max_interval_ms][%d] find_config_fd_max_interval_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigFdMaxIntervalMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigFdMaxIntervalMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

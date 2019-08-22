@@ -16,24 +16,22 @@ import (
 	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla_v2/models"
 )
 
-// FindConfigCommitlogUseODsyncReader is a Reader for the FindConfigCommitlogUseODsync structure.
-type FindConfigCommitlogUseODsyncReader struct {
+// FindConfigCommitlogUseoDsyncReader is a Reader for the FindConfigCommitlogUseoDsync structure.
+type FindConfigCommitlogUseoDsyncReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *FindConfigCommitlogUseODsyncReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *FindConfigCommitlogUseoDsyncReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCommitlogUseODsyncOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		result := NewFindConfigCommitlogUseODsyncDefault(response.Code())
+		result := NewFindConfigCommitlogUseoDsyncDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -61,6 +59,10 @@ func (o *FindConfigCommitlogUseODsyncOK) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_use_o_dsync][%d] findConfigCommitlogUseODsyncOK  %+v", 200, o.Payload)
 }
 
+func (o *FindConfigCommitlogUseODsyncOK) GetPayload() bool {
+	return o.Payload
+}
+
 func (o *FindConfigCommitlogUseODsyncOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -71,33 +73,37 @@ func (o *FindConfigCommitlogUseODsyncOK) readResponse(response runtime.ClientRes
 	return nil
 }
 
-// NewFindConfigCommitlogUseODsyncDefault creates a FindConfigCommitlogUseODsyncDefault with default headers values
-func NewFindConfigCommitlogUseODsyncDefault(code int) *FindConfigCommitlogUseODsyncDefault {
-	return &FindConfigCommitlogUseODsyncDefault{
+// NewFindConfigCommitlogUseoDsyncDefault creates a FindConfigCommitlogUseoDsyncDefault with default headers values
+func NewFindConfigCommitlogUseoDsyncDefault(code int) *FindConfigCommitlogUseoDsyncDefault {
+	return &FindConfigCommitlogUseoDsyncDefault{
 		_statusCode: code,
 	}
 }
 
-/*FindConfigCommitlogUseODsyncDefault handles this case with default header values.
+/*FindConfigCommitlogUseoDsyncDefault handles this case with default header values.
 
 unexpected error
 */
-type FindConfigCommitlogUseODsyncDefault struct {
+type FindConfigCommitlogUseoDsyncDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorModel
 }
 
 // Code gets the status code for the find config commitlog use o dsync default response
-func (o *FindConfigCommitlogUseODsyncDefault) Code() int {
+func (o *FindConfigCommitlogUseoDsyncDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitlogUseODsyncDefault) Error() string {
+func (o *FindConfigCommitlogUseoDsyncDefault) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_use_o_dsync][%d] find_config_commitlog_use_o_dsync default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *FindConfigCommitlogUseODsyncDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *FindConfigCommitlogUseoDsyncDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *FindConfigCommitlogUseoDsyncDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorModel)
 

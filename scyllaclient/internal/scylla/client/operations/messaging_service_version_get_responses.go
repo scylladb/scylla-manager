@@ -22,7 +22,6 @@ type MessagingServiceVersionGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *MessagingServiceVersionGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewMessagingServiceVersionGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type MessagingServiceVersionGetOK struct {
 
 func (o *MessagingServiceVersionGetOK) Error() string {
 	return fmt.Sprintf("[GET /messaging_service/version][%d] messagingServiceVersionGetOK  %+v", 200, o.Payload)
+}
+
+func (o *MessagingServiceVersionGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *MessagingServiceVersionGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

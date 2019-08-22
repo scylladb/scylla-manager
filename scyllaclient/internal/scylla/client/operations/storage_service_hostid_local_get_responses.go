@@ -22,7 +22,6 @@ type StorageServiceHostidLocalGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceHostidLocalGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceHostidLocalGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceHostidLocalGetOK struct {
 
 func (o *StorageServiceHostidLocalGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/hostid/local][%d] storageServiceHostidLocalGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceHostidLocalGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceHostidLocalGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

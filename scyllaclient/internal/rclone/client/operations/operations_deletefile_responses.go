@@ -24,21 +24,18 @@ type OperationsDeletefileReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *OperationsDeletefileReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewOperationsDeletefileOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewOperationsDeletefileNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewOperationsDeletefileInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type OperationsDeletefileOK struct {
 
 func (o *OperationsDeletefileOK) Error() string {
 	return fmt.Sprintf("[POST /operations/deletefile][%d] operationsDeletefileOK  %+v", 200, o.Payload)
+}
+
+func (o *OperationsDeletefileOK) GetPayload() *models.Jobid {
+	return o.Payload
 }
 
 func (o *OperationsDeletefileOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *OperationsDeletefileNotFound) Error() string {
 	return fmt.Sprintf("[POST /operations/deletefile][%d] operationsDeletefileNotFound  %+v", 404, o.Payload)
 }
 
+func (o *OperationsDeletefileNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *OperationsDeletefileNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type OperationsDeletefileInternalServerError struct {
 
 func (o *OperationsDeletefileInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /operations/deletefile][%d] operationsDeletefileInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *OperationsDeletefileInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *OperationsDeletefileInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

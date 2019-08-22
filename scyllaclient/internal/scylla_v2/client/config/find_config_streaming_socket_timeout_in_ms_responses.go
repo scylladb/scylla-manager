@@ -24,14 +24,12 @@ type FindConfigStreamingSocketTimeoutInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigStreamingSocketTimeoutInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigStreamingSocketTimeoutInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigStreamingSocketTimeoutInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigStreamingSocketTimeoutInMsOK struct {
 
 func (o *FindConfigStreamingSocketTimeoutInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/streaming_socket_timeout_in_ms][%d] findConfigStreamingSocketTimeoutInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigStreamingSocketTimeoutInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigStreamingSocketTimeoutInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigStreamingSocketTimeoutInMsDefault) Code() int {
 
 func (o *FindConfigStreamingSocketTimeoutInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/streaming_socket_timeout_in_ms][%d] find_config_streaming_socket_timeout_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigStreamingSocketTimeoutInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigStreamingSocketTimeoutInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

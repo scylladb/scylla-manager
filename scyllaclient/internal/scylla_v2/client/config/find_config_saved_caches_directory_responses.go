@@ -24,14 +24,12 @@ type FindConfigSavedCachesDirectoryReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigSavedCachesDirectoryReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigSavedCachesDirectoryOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigSavedCachesDirectoryDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigSavedCachesDirectoryOK struct {
 
 func (o *FindConfigSavedCachesDirectoryOK) Error() string {
 	return fmt.Sprintf("[GET /config/saved_caches_directory][%d] findConfigSavedCachesDirectoryOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigSavedCachesDirectoryOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigSavedCachesDirectoryOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigSavedCachesDirectoryDefault) Code() int {
 
 func (o *FindConfigSavedCachesDirectoryDefault) Error() string {
 	return fmt.Sprintf("[GET /config/saved_caches_directory][%d] find_config_saved_caches_directory default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigSavedCachesDirectoryDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigSavedCachesDirectoryDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigStartNativeTransportReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigStartNativeTransportReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigStartNativeTransportOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigStartNativeTransportDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigStartNativeTransportOK struct {
 
 func (o *FindConfigStartNativeTransportOK) Error() string {
 	return fmt.Sprintf("[GET /config/start_native_transport][%d] findConfigStartNativeTransportOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigStartNativeTransportOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigStartNativeTransportOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigStartNativeTransportDefault) Code() int {
 
 func (o *FindConfigStartNativeTransportDefault) Error() string {
 	return fmt.Sprintf("[GET /config/start_native_transport][%d] find_config_start_native_transport default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigStartNativeTransportDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigStartNativeTransportDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

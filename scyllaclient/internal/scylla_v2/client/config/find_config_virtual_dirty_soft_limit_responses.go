@@ -24,14 +24,12 @@ type FindConfigVirtualDirtySoftLimitReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigVirtualDirtySoftLimitReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigVirtualDirtySoftLimitOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigVirtualDirtySoftLimitDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigVirtualDirtySoftLimitOK struct {
 
 func (o *FindConfigVirtualDirtySoftLimitOK) Error() string {
 	return fmt.Sprintf("[GET /config/virtual_dirty_soft_limit][%d] findConfigVirtualDirtySoftLimitOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigVirtualDirtySoftLimitOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigVirtualDirtySoftLimitOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigVirtualDirtySoftLimitDefault) Code() int {
 
 func (o *FindConfigVirtualDirtySoftLimitDefault) Error() string {
 	return fmt.Sprintf("[GET /config/virtual_dirty_soft_limit][%d] find_config_virtual_dirty_soft_limit default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigVirtualDirtySoftLimitDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigVirtualDirtySoftLimitDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

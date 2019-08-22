@@ -22,7 +22,6 @@ type ColumnFamilyMetricsCompressionRatioByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsCompressionRatioByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsCompressionRatioByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsCompressionRatioByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsCompressionRatioByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/compression_ratio/{name}][%d] columnFamilyMetricsCompressionRatioByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsCompressionRatioByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsCompressionRatioByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

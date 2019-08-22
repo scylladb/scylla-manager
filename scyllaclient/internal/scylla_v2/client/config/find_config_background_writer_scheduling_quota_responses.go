@@ -24,14 +24,12 @@ type FindConfigBackgroundWriterSchedulingQuotaReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigBackgroundWriterSchedulingQuotaReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigBackgroundWriterSchedulingQuotaOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigBackgroundWriterSchedulingQuotaDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigBackgroundWriterSchedulingQuotaOK struct {
 
 func (o *FindConfigBackgroundWriterSchedulingQuotaOK) Error() string {
 	return fmt.Sprintf("[GET /config/background_writer_scheduling_quota][%d] findConfigBackgroundWriterSchedulingQuotaOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigBackgroundWriterSchedulingQuotaOK) GetPayload() float64 {
+	return o.Payload
 }
 
 func (o *FindConfigBackgroundWriterSchedulingQuotaOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) Code() int {
 
 func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) Error() string {
 	return fmt.Sprintf("[GET /config/background_writer_scheduling_quota][%d] find_config_background_writer_scheduling_quota default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

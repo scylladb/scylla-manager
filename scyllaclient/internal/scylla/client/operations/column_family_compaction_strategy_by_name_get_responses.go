@@ -22,7 +22,6 @@ type ColumnFamilyCompactionStrategyByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyCompactionStrategyByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyCompactionStrategyByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyCompactionStrategyByNameGetOK struct {
 
 func (o *ColumnFamilyCompactionStrategyByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/compaction_strategy/{name}][%d] columnFamilyCompactionStrategyByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyCompactionStrategyByNameGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *ColumnFamilyCompactionStrategyByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigLoadBalanceReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigLoadBalanceReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigLoadBalanceOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigLoadBalanceDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigLoadBalanceOK struct {
 
 func (o *FindConfigLoadBalanceOK) Error() string {
 	return fmt.Sprintf("[GET /config/load_balance][%d] findConfigLoadBalanceOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigLoadBalanceOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigLoadBalanceOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigLoadBalanceDefault) Code() int {
 
 func (o *FindConfigLoadBalanceDefault) Error() string {
 	return fmt.Sprintf("[GET /config/load_balance][%d] find_config_load_balance default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigLoadBalanceDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigLoadBalanceDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

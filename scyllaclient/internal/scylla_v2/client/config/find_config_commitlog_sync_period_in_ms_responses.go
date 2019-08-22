@@ -24,14 +24,12 @@ type FindConfigCommitlogSyncPeriodInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCommitlogSyncPeriodInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCommitlogSyncPeriodInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCommitlogSyncPeriodInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCommitlogSyncPeriodInMsOK struct {
 
 func (o *FindConfigCommitlogSyncPeriodInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_sync_period_in_ms][%d] findConfigCommitlogSyncPeriodInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCommitlogSyncPeriodInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogSyncPeriodInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCommitlogSyncPeriodInMsDefault) Code() int {
 
 func (o *FindConfigCommitlogSyncPeriodInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/commitlog_sync_period_in_ms][%d] find_config_commitlog_sync_period_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCommitlogSyncPeriodInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCommitlogSyncPeriodInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

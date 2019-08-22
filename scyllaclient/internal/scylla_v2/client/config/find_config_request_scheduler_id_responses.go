@@ -24,14 +24,12 @@ type FindConfigRequestSchedulerIDReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigRequestSchedulerIDReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigRequestSchedulerIDOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigRequestSchedulerIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigRequestSchedulerIDOK struct {
 
 func (o *FindConfigRequestSchedulerIDOK) Error() string {
 	return fmt.Sprintf("[GET /config/request_scheduler_id][%d] findConfigRequestSchedulerIdOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigRequestSchedulerIDOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigRequestSchedulerIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigRequestSchedulerIDDefault) Code() int {
 
 func (o *FindConfigRequestSchedulerIDDefault) Error() string {
 	return fmt.Sprintf("[GET /config/request_scheduler_id][%d] find_config_request_scheduler_id default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigRequestSchedulerIDDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigRequestSchedulerIDDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

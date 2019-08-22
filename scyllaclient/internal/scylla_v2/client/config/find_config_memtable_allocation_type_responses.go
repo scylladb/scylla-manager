@@ -24,14 +24,12 @@ type FindConfigMemtableAllocationTypeReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigMemtableAllocationTypeReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigMemtableAllocationTypeOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigMemtableAllocationTypeDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigMemtableAllocationTypeOK struct {
 
 func (o *FindConfigMemtableAllocationTypeOK) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_allocation_type][%d] findConfigMemtableAllocationTypeOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigMemtableAllocationTypeOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableAllocationTypeOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigMemtableAllocationTypeDefault) Code() int {
 
 func (o *FindConfigMemtableAllocationTypeDefault) Error() string {
 	return fmt.Sprintf("[GET /config/memtable_allocation_type][%d] find_config_memtable_allocation_type default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigMemtableAllocationTypeDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigMemtableAllocationTypeDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

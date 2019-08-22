@@ -22,7 +22,6 @@ type StorageServiceTraceProbabilityGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceTraceProbabilityGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceTraceProbabilityGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceTraceProbabilityGetOK struct {
 
 func (o *StorageServiceTraceProbabilityGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/trace_probability][%d] storageServiceTraceProbabilityGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceTraceProbabilityGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *StorageServiceTraceProbabilityGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

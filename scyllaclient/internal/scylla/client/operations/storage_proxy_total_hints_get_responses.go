@@ -22,7 +22,6 @@ type StorageProxyTotalHintsGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyTotalHintsGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyTotalHintsGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyTotalHintsGetOK struct {
 
 func (o *StorageProxyTotalHintsGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/total_hints][%d] storageProxyTotalHintsGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyTotalHintsGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *StorageProxyTotalHintsGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

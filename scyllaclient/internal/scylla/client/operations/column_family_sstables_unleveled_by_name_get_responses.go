@@ -22,7 +22,6 @@ type ColumnFamilySstablesUnleveledByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilySstablesUnleveledByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilySstablesUnleveledByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilySstablesUnleveledByNameGetOK struct {
 
 func (o *ColumnFamilySstablesUnleveledByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/sstables/unleveled/{name}][%d] columnFamilySstablesUnleveledByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilySstablesUnleveledByNameGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *ColumnFamilySstablesUnleveledByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

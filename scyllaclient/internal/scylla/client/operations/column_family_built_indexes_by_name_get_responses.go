@@ -22,7 +22,6 @@ type ColumnFamilyBuiltIndexesByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyBuiltIndexesByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyBuiltIndexesByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyBuiltIndexesByNameGetOK struct {
 
 func (o *ColumnFamilyBuiltIndexesByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/built_indexes/{name}][%d] columnFamilyBuiltIndexesByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyBuiltIndexesByNameGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *ColumnFamilyBuiltIndexesByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

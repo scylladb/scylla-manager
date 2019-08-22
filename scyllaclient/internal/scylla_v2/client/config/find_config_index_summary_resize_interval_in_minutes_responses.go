@@ -24,14 +24,12 @@ type FindConfigIndexSummaryResizeIntervalInMinutesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigIndexSummaryResizeIntervalInMinutesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigIndexSummaryResizeIntervalInMinutesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigIndexSummaryResizeIntervalInMinutesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigIndexSummaryResizeIntervalInMinutesOK struct {
 
 func (o *FindConfigIndexSummaryResizeIntervalInMinutesOK) Error() string {
 	return fmt.Sprintf("[GET /config/index_summary_resize_interval_in_minutes][%d] findConfigIndexSummaryResizeIntervalInMinutesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigIndexSummaryResizeIntervalInMinutesOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigIndexSummaryResizeIntervalInMinutesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) Code() int {
 
 func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/index_summary_resize_interval_in_minutes][%d] find_config_index_summary_resize_interval_in_minutes default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

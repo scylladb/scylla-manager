@@ -22,7 +22,6 @@ type ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/index_summary_off_heap_memory_used/{name}][%d] columnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

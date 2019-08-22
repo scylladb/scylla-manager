@@ -22,7 +22,6 @@ type GossiperDowntimeByAddrGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GossiperDowntimeByAddrGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGossiperDowntimeByAddrGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type GossiperDowntimeByAddrGetOK struct {
 
 func (o *GossiperDowntimeByAddrGetOK) Error() string {
 	return fmt.Sprintf("[GET /gossiper/downtime/{addr}][%d] gossiperDowntimeByAddrGetOK  %+v", 200, o.Payload)
+}
+
+func (o *GossiperDowntimeByAddrGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *GossiperDowntimeByAddrGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

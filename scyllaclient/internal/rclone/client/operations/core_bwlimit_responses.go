@@ -24,21 +24,18 @@ type CoreBwlimitReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CoreBwlimitReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCoreBwlimitOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewCoreBwlimitNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewCoreBwlimitInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type CoreBwlimitOK struct {
 
 func (o *CoreBwlimitOK) Error() string {
 	return fmt.Sprintf("[POST /core/bwlimit][%d] coreBwlimitOK  %+v", 200, o.Payload)
+}
+
+func (o *CoreBwlimitOK) GetPayload() *models.Bandwidth {
+	return o.Payload
 }
 
 func (o *CoreBwlimitOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *CoreBwlimitNotFound) Error() string {
 	return fmt.Sprintf("[POST /core/bwlimit][%d] coreBwlimitNotFound  %+v", 404, o.Payload)
 }
 
+func (o *CoreBwlimitNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *CoreBwlimitNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type CoreBwlimitInternalServerError struct {
 
 func (o *CoreBwlimitInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /core/bwlimit][%d] coreBwlimitInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *CoreBwlimitInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *CoreBwlimitInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

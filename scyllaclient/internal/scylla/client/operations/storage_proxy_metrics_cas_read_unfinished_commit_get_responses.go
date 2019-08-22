@@ -22,7 +22,6 @@ type StorageProxyMetricsCasReadUnfinishedCommitGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyMetricsCasReadUnfinishedCommitGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyMetricsCasReadUnfinishedCommitGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyMetricsCasReadUnfinishedCommitGetOK struct {
 
 func (o *StorageProxyMetricsCasReadUnfinishedCommitGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/metrics/cas_read/unfinished_commit][%d] storageProxyMetricsCasReadUnfinishedCommitGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyMetricsCasReadUnfinishedCommitGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *StorageProxyMetricsCasReadUnfinishedCommitGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

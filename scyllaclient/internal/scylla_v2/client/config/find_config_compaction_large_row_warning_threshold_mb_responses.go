@@ -24,14 +24,12 @@ type FindConfigCompactionLargeRowWarningThresholdMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCompactionLargeRowWarningThresholdMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCompactionLargeRowWarningThresholdMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCompactionLargeRowWarningThresholdMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCompactionLargeRowWarningThresholdMbOK struct {
 
 func (o *FindConfigCompactionLargeRowWarningThresholdMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_large_row_warning_threshold_mb][%d] findConfigCompactionLargeRowWarningThresholdMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCompactionLargeRowWarningThresholdMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionLargeRowWarningThresholdMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) Code() int {
 
 func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/compaction_large_row_warning_threshold_mb][%d] find_config_compaction_large_row_warning_threshold_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

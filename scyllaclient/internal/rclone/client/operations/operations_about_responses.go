@@ -24,21 +24,18 @@ type OperationsAboutReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *OperationsAboutReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewOperationsAboutOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewOperationsAboutNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewOperationsAboutInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type OperationsAboutOK struct {
 
 func (o *OperationsAboutOK) Error() string {
 	return fmt.Sprintf("[POST /operations/about][%d] operationsAboutOK  %+v", 200, o.Payload)
+}
+
+func (o *OperationsAboutOK) GetPayload() *models.FileSystemDetails {
+	return o.Payload
 }
 
 func (o *OperationsAboutOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *OperationsAboutNotFound) Error() string {
 	return fmt.Sprintf("[POST /operations/about][%d] operationsAboutNotFound  %+v", 404, o.Payload)
 }
 
+func (o *OperationsAboutNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *OperationsAboutNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type OperationsAboutInternalServerError struct {
 
 func (o *OperationsAboutInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /operations/about][%d] operationsAboutInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *OperationsAboutInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *OperationsAboutInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

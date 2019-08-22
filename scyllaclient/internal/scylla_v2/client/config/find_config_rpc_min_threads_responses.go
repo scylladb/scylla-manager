@@ -24,14 +24,12 @@ type FindConfigRPCMinThreadsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigRPCMinThreadsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigRPCMinThreadsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigRPCMinThreadsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigRPCMinThreadsOK struct {
 
 func (o *FindConfigRPCMinThreadsOK) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_min_threads][%d] findConfigRpcMinThreadsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigRPCMinThreadsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigRPCMinThreadsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigRPCMinThreadsDefault) Code() int {
 
 func (o *FindConfigRPCMinThreadsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/rpc_min_threads][%d] find_config_rpc_min_threads default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigRPCMinThreadsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigRPCMinThreadsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

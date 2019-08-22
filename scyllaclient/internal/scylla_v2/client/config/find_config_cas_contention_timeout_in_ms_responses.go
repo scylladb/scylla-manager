@@ -24,14 +24,12 @@ type FindConfigCasContentionTimeoutInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCasContentionTimeoutInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCasContentionTimeoutInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCasContentionTimeoutInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCasContentionTimeoutInMsOK struct {
 
 func (o *FindConfigCasContentionTimeoutInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/cas_contention_timeout_in_ms][%d] findConfigCasContentionTimeoutInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCasContentionTimeoutInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigCasContentionTimeoutInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCasContentionTimeoutInMsDefault) Code() int {
 
 func (o *FindConfigCasContentionTimeoutInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/cas_contention_timeout_in_ms][%d] find_config_cas_contention_timeout_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCasContentionTimeoutInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCasContentionTimeoutInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

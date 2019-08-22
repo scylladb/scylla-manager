@@ -24,14 +24,12 @@ type FindConfigLsaReclamationStepReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigLsaReclamationStepReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigLsaReclamationStepOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigLsaReclamationStepDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigLsaReclamationStepOK struct {
 
 func (o *FindConfigLsaReclamationStepOK) Error() string {
 	return fmt.Sprintf("[GET /config/lsa_reclamation_step][%d] findConfigLsaReclamationStepOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigLsaReclamationStepOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigLsaReclamationStepOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigLsaReclamationStepDefault) Code() int {
 
 func (o *FindConfigLsaReclamationStepDefault) Error() string {
 	return fmt.Sprintf("[GET /config/lsa_reclamation_step][%d] find_config_lsa_reclamation_step default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigLsaReclamationStepDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigLsaReclamationStepDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

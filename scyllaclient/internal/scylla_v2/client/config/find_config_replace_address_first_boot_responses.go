@@ -24,14 +24,12 @@ type FindConfigReplaceAddressFirstBootReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigReplaceAddressFirstBootReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigReplaceAddressFirstBootOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigReplaceAddressFirstBootDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigReplaceAddressFirstBootOK struct {
 
 func (o *FindConfigReplaceAddressFirstBootOK) Error() string {
 	return fmt.Sprintf("[GET /config/replace_address_first_boot][%d] findConfigReplaceAddressFirstBootOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigReplaceAddressFirstBootOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceAddressFirstBootOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigReplaceAddressFirstBootDefault) Code() int {
 
 func (o *FindConfigReplaceAddressFirstBootDefault) Error() string {
 	return fmt.Sprintf("[GET /config/replace_address_first_boot][%d] find_config_replace_address_first_boot default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigReplaceAddressFirstBootDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigReplaceAddressFirstBootDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

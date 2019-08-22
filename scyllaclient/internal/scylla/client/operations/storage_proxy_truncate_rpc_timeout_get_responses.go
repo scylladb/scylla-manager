@@ -22,7 +22,6 @@ type StorageProxyTruncateRPCTimeoutGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageProxyTruncateRPCTimeoutGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageProxyTruncateRPCTimeoutGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageProxyTruncateRPCTimeoutGetOK struct {
 
 func (o *StorageProxyTruncateRPCTimeoutGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_proxy/truncate_rpc_timeout][%d] storageProxyTruncateRpcTimeoutGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageProxyTruncateRPCTimeoutGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *StorageProxyTruncateRPCTimeoutGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

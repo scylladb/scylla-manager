@@ -21,7 +21,6 @@ type CommitLogMetricsWaitingOnSegmentAllocationGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CommitLogMetricsWaitingOnSegmentAllocationGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCommitLogMetricsWaitingOnSegmentAllocationGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {

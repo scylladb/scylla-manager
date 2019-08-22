@@ -24,14 +24,12 @@ type FindConfigPartitionerReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigPartitionerReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigPartitionerOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigPartitionerDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigPartitionerOK struct {
 
 func (o *FindConfigPartitionerOK) Error() string {
 	return fmt.Sprintf("[GET /config/partitioner][%d] findConfigPartitionerOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigPartitionerOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigPartitionerOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigPartitionerDefault) Code() int {
 
 func (o *FindConfigPartitionerDefault) Error() string {
 	return fmt.Sprintf("[GET /config/partitioner][%d] find_config_partitioner default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigPartitionerDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigPartitionerDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

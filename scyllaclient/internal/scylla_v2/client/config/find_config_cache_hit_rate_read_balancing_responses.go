@@ -24,14 +24,12 @@ type FindConfigCacheHitRateReadBalancingReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCacheHitRateReadBalancingReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCacheHitRateReadBalancingOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCacheHitRateReadBalancingDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCacheHitRateReadBalancingOK struct {
 
 func (o *FindConfigCacheHitRateReadBalancingOK) Error() string {
 	return fmt.Sprintf("[GET /config/cache_hit_rate_read_balancing][%d] findConfigCacheHitRateReadBalancingOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCacheHitRateReadBalancingOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigCacheHitRateReadBalancingOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCacheHitRateReadBalancingDefault) Code() int {
 
 func (o *FindConfigCacheHitRateReadBalancingDefault) Error() string {
 	return fmt.Sprintf("[GET /config/cache_hit_rate_read_balancing][%d] find_config_cache_hit_rate_read_balancing default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCacheHitRateReadBalancingDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCacheHitRateReadBalancingDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

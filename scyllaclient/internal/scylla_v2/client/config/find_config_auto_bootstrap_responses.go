@@ -24,14 +24,12 @@ type FindConfigAutoBootstrapReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAutoBootstrapReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAutoBootstrapOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAutoBootstrapDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAutoBootstrapOK struct {
 
 func (o *FindConfigAutoBootstrapOK) Error() string {
 	return fmt.Sprintf("[GET /config/auto_bootstrap][%d] findConfigAutoBootstrapOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAutoBootstrapOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigAutoBootstrapOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAutoBootstrapDefault) Code() int {
 
 func (o *FindConfigAutoBootstrapDefault) Error() string {
 	return fmt.Sprintf("[GET /config/auto_bootstrap][%d] find_config_auto_bootstrap default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAutoBootstrapDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAutoBootstrapDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

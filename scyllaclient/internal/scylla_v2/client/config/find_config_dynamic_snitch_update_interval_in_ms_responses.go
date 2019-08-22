@@ -24,14 +24,12 @@ type FindConfigDynamicSnitchUpdateIntervalInMsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigDynamicSnitchUpdateIntervalInMsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigDynamicSnitchUpdateIntervalInMsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigDynamicSnitchUpdateIntervalInMsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigDynamicSnitchUpdateIntervalInMsOK struct {
 
 func (o *FindConfigDynamicSnitchUpdateIntervalInMsOK) Error() string {
 	return fmt.Sprintf("[GET /config/dynamic_snitch_update_interval_in_ms][%d] findConfigDynamicSnitchUpdateIntervalInMsOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigDynamicSnitchUpdateIntervalInMsOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigDynamicSnitchUpdateIntervalInMsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigDynamicSnitchUpdateIntervalInMsDefault) Code() int {
 
 func (o *FindConfigDynamicSnitchUpdateIntervalInMsDefault) Error() string {
 	return fmt.Sprintf("[GET /config/dynamic_snitch_update_interval_in_ms][%d] find_config_dynamic_snitch_update_interval_in_ms default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigDynamicSnitchUpdateIntervalInMsDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigDynamicSnitchUpdateIntervalInMsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

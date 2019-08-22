@@ -22,7 +22,6 @@ type StorageServiceSampleKeyRangeGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceSampleKeyRangeGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceSampleKeyRangeGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceSampleKeyRangeGetOK struct {
 
 func (o *StorageServiceSampleKeyRangeGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/sample_key_range][%d] storageServiceSampleKeyRangeGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceSampleKeyRangeGetOK) GetPayload() []string {
+	return o.Payload
 }
 
 func (o *StorageServiceSampleKeyRangeGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

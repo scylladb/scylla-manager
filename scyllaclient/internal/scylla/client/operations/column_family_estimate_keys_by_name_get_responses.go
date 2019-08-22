@@ -22,7 +22,6 @@ type ColumnFamilyEstimateKeysByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyEstimateKeysByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyEstimateKeysByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyEstimateKeysByNameGetOK struct {
 
 func (o *ColumnFamilyEstimateKeysByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/estimate_keys/{name}][%d] columnFamilyEstimateKeysByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyEstimateKeysByNameGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ColumnFamilyEstimateKeysByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,14 +24,12 @@ type FindConfigCrossNodeTimeoutReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigCrossNodeTimeoutReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigCrossNodeTimeoutOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigCrossNodeTimeoutDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigCrossNodeTimeoutOK struct {
 
 func (o *FindConfigCrossNodeTimeoutOK) Error() string {
 	return fmt.Sprintf("[GET /config/cross_node_timeout][%d] findConfigCrossNodeTimeoutOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigCrossNodeTimeoutOK) GetPayload() bool {
+	return o.Payload
 }
 
 func (o *FindConfigCrossNodeTimeoutOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigCrossNodeTimeoutDefault) Code() int {
 
 func (o *FindConfigCrossNodeTimeoutDefault) Error() string {
 	return fmt.Sprintf("[GET /config/cross_node_timeout][%d] find_config_cross_node_timeout default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigCrossNodeTimeoutDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigCrossNodeTimeoutDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

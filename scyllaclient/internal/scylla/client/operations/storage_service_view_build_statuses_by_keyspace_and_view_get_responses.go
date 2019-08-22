@@ -24,7 +24,6 @@ type StorageServiceViewBuildStatusesByKeyspaceAndViewGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceViewBuildStatusesByKeyspaceAndViewGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceViewBuildStatusesByKeyspaceAndViewGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK struct {
 
 func (o *StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/view_build_statuses/{keyspace}/{view}][%d] storageServiceViewBuildStatusesByKeyspaceAndViewGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK) GetPayload() []*models.Mapper {
+	return o.Payload
 }
 
 func (o *StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

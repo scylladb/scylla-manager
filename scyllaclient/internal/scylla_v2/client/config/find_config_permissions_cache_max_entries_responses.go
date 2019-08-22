@@ -24,14 +24,12 @@ type FindConfigPermissionsCacheMaxEntriesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigPermissionsCacheMaxEntriesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigPermissionsCacheMaxEntriesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigPermissionsCacheMaxEntriesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigPermissionsCacheMaxEntriesOK struct {
 
 func (o *FindConfigPermissionsCacheMaxEntriesOK) Error() string {
 	return fmt.Sprintf("[GET /config/permissions_cache_max_entries][%d] findConfigPermissionsCacheMaxEntriesOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigPermissionsCacheMaxEntriesOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigPermissionsCacheMaxEntriesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigPermissionsCacheMaxEntriesDefault) Code() int {
 
 func (o *FindConfigPermissionsCacheMaxEntriesDefault) Error() string {
 	return fmt.Sprintf("[GET /config/permissions_cache_max_entries][%d] find_config_permissions_cache_max_entries default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigPermissionsCacheMaxEntriesDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigPermissionsCacheMaxEntriesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

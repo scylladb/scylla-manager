@@ -22,7 +22,6 @@ type StorageServiceReleaseVersionGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *StorageServiceReleaseVersionGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewStorageServiceReleaseVersionGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type StorageServiceReleaseVersionGetOK struct {
 
 func (o *StorageServiceReleaseVersionGetOK) Error() string {
 	return fmt.Sprintf("[GET /storage_service/release_version][%d] storageServiceReleaseVersionGetOK  %+v", 200, o.Payload)
+}
+
+func (o *StorageServiceReleaseVersionGetOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *StorageServiceReleaseVersionGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

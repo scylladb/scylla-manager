@@ -22,7 +22,6 @@ type ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK struct {
 
 func (o *ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/live_disk_space_used/{name}][%d] columnFamilyMetricsLiveDiskSpaceUsedByNameGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

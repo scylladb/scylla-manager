@@ -24,7 +24,6 @@ type ColumnFamilyMetricsReadLatencyHistogramGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ColumnFamilyMetricsReadLatencyHistogramGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewColumnFamilyMetricsReadLatencyHistogramGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -52,6 +51,10 @@ type ColumnFamilyMetricsReadLatencyHistogramGetOK struct {
 
 func (o *ColumnFamilyMetricsReadLatencyHistogramGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/read_latency/histogram/][%d] columnFamilyMetricsReadLatencyHistogramGetOK  %+v", 200, o.Payload)
+}
+
+func (o *ColumnFamilyMetricsReadLatencyHistogramGetOK) GetPayload() []*models.Histogram {
+	return o.Payload
 }
 
 func (o *ColumnFamilyMetricsReadLatencyHistogramGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

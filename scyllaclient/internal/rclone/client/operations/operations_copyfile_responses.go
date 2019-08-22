@@ -24,21 +24,18 @@ type OperationsCopyfileReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *OperationsCopyfileReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewOperationsCopyfileOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 404:
 		result := NewOperationsCopyfileNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewOperationsCopyfileInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +63,10 @@ type OperationsCopyfileOK struct {
 
 func (o *OperationsCopyfileOK) Error() string {
 	return fmt.Sprintf("[POST /operations/copyfile][%d] operationsCopyfileOK  %+v", 200, o.Payload)
+}
+
+func (o *OperationsCopyfileOK) GetPayload() *models.Jobid {
+	return o.Payload
 }
 
 func (o *OperationsCopyfileOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +98,10 @@ func (o *OperationsCopyfileNotFound) Error() string {
 	return fmt.Sprintf("[POST /operations/copyfile][%d] operationsCopyfileNotFound  %+v", 404, o.Payload)
 }
 
+func (o *OperationsCopyfileNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *OperationsCopyfileNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -124,6 +129,10 @@ type OperationsCopyfileInternalServerError struct {
 
 func (o *OperationsCopyfileInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /operations/copyfile][%d] operationsCopyfileInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *OperationsCopyfileInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *OperationsCopyfileInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

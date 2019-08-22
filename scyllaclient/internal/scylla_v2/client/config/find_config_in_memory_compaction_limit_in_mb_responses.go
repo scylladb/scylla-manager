@@ -24,14 +24,12 @@ type FindConfigInMemoryCompactionLimitInMbReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigInMemoryCompactionLimitInMbReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigInMemoryCompactionLimitInMbOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigInMemoryCompactionLimitInMbDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigInMemoryCompactionLimitInMbOK struct {
 
 func (o *FindConfigInMemoryCompactionLimitInMbOK) Error() string {
 	return fmt.Sprintf("[GET /config/in_memory_compaction_limit_in_mb][%d] findConfigInMemoryCompactionLimitInMbOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigInMemoryCompactionLimitInMbOK) GetPayload() int64 {
+	return o.Payload
 }
 
 func (o *FindConfigInMemoryCompactionLimitInMbOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigInMemoryCompactionLimitInMbDefault) Code() int {
 
 func (o *FindConfigInMemoryCompactionLimitInMbDefault) Error() string {
 	return fmt.Sprintf("[GET /config/in_memory_compaction_limit_in_mb][%d] find_config_in_memory_compaction_limit_in_mb default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigInMemoryCompactionLimitInMbDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigInMemoryCompactionLimitInMbDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

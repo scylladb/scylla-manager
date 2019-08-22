@@ -22,7 +22,6 @@ type CommitlogMetricsCompletedTasksGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CommitlogMetricsCompletedTasksGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCommitlogMetricsCompletedTasksGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CommitlogMetricsCompletedTasksGetOK struct {
 
 func (o *CommitlogMetricsCompletedTasksGetOK) Error() string {
 	return fmt.Sprintf("[GET /commitlog/metrics/completed_tasks][%d] commitlogMetricsCompletedTasksGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CommitlogMetricsCompletedTasksGetOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *CommitlogMetricsCompletedTasksGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

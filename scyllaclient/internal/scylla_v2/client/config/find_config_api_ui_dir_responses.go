@@ -24,14 +24,12 @@ type FindConfigAPIUIDirReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *FindConfigAPIUIDirReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewFindConfigAPIUIDirOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewFindConfigAPIUIDirDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type FindConfigAPIUIDirOK struct {
 
 func (o *FindConfigAPIUIDirOK) Error() string {
 	return fmt.Sprintf("[GET /config/api_ui_dir][%d] findConfigApiUiDirOK  %+v", 200, o.Payload)
+}
+
+func (o *FindConfigAPIUIDirOK) GetPayload() string {
+	return o.Payload
 }
 
 func (o *FindConfigAPIUIDirOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *FindConfigAPIUIDirDefault) Code() int {
 
 func (o *FindConfigAPIUIDirDefault) Error() string {
 	return fmt.Sprintf("[GET /config/api_ui_dir][%d] find_config_api_ui_dir default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *FindConfigAPIUIDirDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
 }
 
 func (o *FindConfigAPIUIDirDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

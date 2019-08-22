@@ -22,7 +22,6 @@ type CompactionManagerMetricsBytesCompactedGetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CompactionManagerMetricsBytesCompactedGetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCompactionManagerMetricsBytesCompactedGetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -50,6 +49,10 @@ type CompactionManagerMetricsBytesCompactedGetOK struct {
 
 func (o *CompactionManagerMetricsBytesCompactedGetOK) Error() string {
 	return fmt.Sprintf("[GET /compaction_manager/metrics/bytes_compacted][%d] compactionManagerMetricsBytesCompactedGetOK  %+v", 200, o.Payload)
+}
+
+func (o *CompactionManagerMetricsBytesCompactedGetOK) GetPayload() int32 {
+	return o.Payload
 }
 
 func (o *CompactionManagerMetricsBytesCompactedGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
