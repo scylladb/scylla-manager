@@ -5,17 +5,30 @@ package backup
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
 )
+
+// snapshotDir represents a remote directory containing a table snapshot.
+type snapshotDir struct {
+	Host     string
+	Unit     int64
+	Path     string
+	Keyspace string
+	Table    string
+	Version  string
+}
 
 type worker struct {
 	clusterID uuid.UUID
@@ -28,6 +41,26 @@ type worker struct {
 	logger log.Logger
 
 	OnRunProgress func(ctx context.Context, p *RunProgress)
+
+	// Cache for host snapshotDirs
+	dirs   map[string][]snapshotDir
+	dirsMu sync.Mutex
+}
+
+func (w *worker) hostSnapshotDirs(h hostInfo) []snapshotDir {
+	w.dirsMu.Lock()
+	defer w.dirsMu.Unlock()
+	return w.dirs[h.IP]
+}
+
+func (w *worker) setHostSnapshotDirs(h hostInfo, dirs []snapshotDir) {
+	w.dirsMu.Lock()
+	defer w.dirsMu.Unlock()
+	if w.dirs == nil {
+		w.dirs = make(map[string][]snapshotDir)
+	}
+
+	w.dirs[h.IP] = dirs
 }
 
 type hostInfo struct {
@@ -71,12 +104,10 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 		// Not a fatal error we can continue, just log the error
 		w.logger.Error(ctx, "Failed to delete old snapshots", "error", err)
 	}
-	dirs, err := w.findSnapshotDirs(ctx, h)
-	if err != nil {
+	if dirs, err := w.findSnapshotDirs(ctx, h); err != nil {
 		return errors.Wrap(err, "failed to list snapshot dirs")
-	}
-	if err := w.initProgress(ctx, dirs); err != nil {
-		return errors.Wrap(err, "failed to initialize progress")
+	} else {
+		w.setHostSnapshotDirs(h, dirs)
 	}
 	return nil
 }
@@ -111,10 +142,15 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo, progress []*RunProg
 		return errors.Wrap(err, "failed to set rate limit")
 	}
 
-	dirs, err := w.findSnapshotDirs(ctx, h)
-	if err != nil {
-		return errors.Wrap(err, "failed to list snapshot dirs")
+	dirs := w.hostSnapshotDirs(h)
+	if len(dirs) == 0 {
+		var err error
+		dirs, err = w.findSnapshotDirs(ctx, h)
+		if err != nil {
+			return errors.Wrap(err, "failed to list snapshot dirs")
+		}
 	}
+
 	for _, d := range dirs {
 		// Check if we should attach to a previous job and wait for it to complete.
 		if err := w.attachToJob(ctx, h, d, progress); err != nil {
@@ -218,92 +254,84 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	return nil
 }
 
-// snapshotDir represents a remote directory containing a table snapshot.
-type snapshotDir struct {
-	Host     string
-	Unit     int64
-	Path     string
-	Keyspace string
-	Table    string
-	Version  string
-	Size     int64
-}
-
 func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDir, error) {
 	var dirs []snapshotDir
 
-	r := regexp.MustCompile("^([A-Za-z0-9_]+)-([a-f0-9]{32})/snapshots/" + snapshotTag(w.runID) + "$")
+	r := regexp.MustCompile("^([A-Za-z0-9_]+)-([a-f0-9]{32})$")
 
 	for i, u := range w.units {
-		w.logger.Debug(ctx, "Inspecting snapshot",
+		w.logger.Debug(ctx, "Finding table snapshot directories",
 			"host", h.IP,
-			"keyspace", u.Keyspace,
 			"tag", snapshotTag(w.runID),
-			"dir", keyspaceDir(u.Keyspace),
+			"keyspace", u.Keyspace,
 		)
 
-		list, err := w.client.RcloneListDir(ctx, h.IP, keyspaceDir(u.Keyspace), true)
+		baseDir := keyspaceDir(u.Keyspace)
+
+		tables, err := w.client.RcloneListDir(ctx, h.IP, baseDir, false)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to list keyspace")
 		}
-		curPath := "/"
-		for _, f := range list {
-			// Accumulate size of all files in a snapshot directory
-			if !f.IsDir && strings.HasPrefix(f.Path, curPath) {
-				dirs[len(dirs)-1].Size += f.Size
-				continue
-			}
-			// Match snapshot directories
-			m := r.FindStringSubmatch(f.Path)
+
+		filter := strset.New(u.Tables...)
+
+		for _, t := range tables {
+			m := r.FindStringSubmatch(t.Path)
 			if m == nil {
 				continue
 			}
-			dirs = append(dirs, snapshotDir{
+
+			d := snapshotDir{
 				Host:     h.IP,
 				Unit:     int64(i),
-				Path:     f.Path,
+				Path:     path.Join(baseDir, t.Path, "snapshots", snapshotTag(w.runID)),
 				Keyspace: u.Keyspace,
 				Table:    m[1],
 				Version:  m[2],
-			})
-			curPath = f.Path
+			}
+
+			if !filter.IsEmpty() && !filter.Has(d.Table) {
+				continue
+			}
+
+			files, err := w.client.RcloneListDir(ctx, h.IP, d.Path, false)
+			if err != nil {
+				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+					continue
+				}
+				return nil, errors.Wrap(err, "failed to list table")
+			}
+
+			w.logger.Debug(ctx, "Found snapshot table directory",
+				"host", h.IP,
+				"tag", snapshotTag(w.runID),
+				"keyspace", d.Keyspace,
+				"table", d.Table,
+				"dir", d.Path,
+			)
+
+			dirs = append(dirs, d)
+
+			for _, f := range files {
+				if f.IsDir {
+					continue
+				}
+				p := &RunProgress{
+					ClusterID: w.clusterID,
+					TaskID:    w.taskID,
+					RunID:     w.runID,
+					Host:      d.Host,
+					Unit:      d.Unit,
+					TableName: d.Table,
+					FileName:  f.Name,
+					Size:      f.Size,
+				}
+				w.onRunProgress(ctx, p)
+			}
 		}
 	}
 
 	return dirs, nil
-}
-
-func (w *worker) initProgress(ctx context.Context, dirs []snapshotDir) error {
-	for _, d := range dirs {
-		dirPath := path.Join(keyspaceDir(d.Keyspace), d.Path)
-		w.logger.Debug(ctx, "Initializing progress",
-			"host", d.Host,
-			"keyspace", d.Keyspace,
-			"tag", snapshotTag(w.runID),
-			"dir", dirPath,
-		)
-		list, err := w.client.RcloneListDir(ctx, d.Host, dirPath, false)
-		if err != nil {
-			return err
-		}
-		for _, l := range list {
-			if l.IsDir {
-				continue
-			}
-			p := &RunProgress{
-				ClusterID: w.clusterID,
-				TaskID:    w.taskID,
-				RunID:     w.runID,
-				Host:      d.Host,
-				Unit:      d.Unit,
-				TableName: d.Table,
-				FileName:  l.Name,
-				Size:      l.Size,
-			}
-			w.onRunProgress(ctx, p)
-		}
-	}
-	return nil
 }
 
 func (w *worker) register(ctx context.Context, h hostInfo) error {
@@ -340,7 +368,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 	// Upload manifest
 	var (
 		manifestDst = path.Join(h.Location.RemotePath(w.remoteMetaDir(h, d)), manifestFile)
-		manifestSrc = path.Join(dataDir, d.Keyspace, d.Path, manifestFile)
+		manifestSrc = path.Join(d.Path, manifestFile)
 	)
 	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d, progress); err != nil {
 		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, manifestSrc, manifestDst)
@@ -349,7 +377,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 	// Upload sstables
 	var (
 		dataDst = h.Location.RemotePath(w.remoteSSTableDir(h, d))
-		dataSrc = path.Join(dataDir, d.Keyspace, d.Path)
+		dataSrc = d.Path
 	)
 	if err := w.uploadDir(ctx, dataDst, dataSrc, d, progress); err != nil {
 		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, dataSrc, dataDst)

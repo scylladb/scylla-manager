@@ -93,6 +93,18 @@ func TestRcloneListDirIntegration(t *testing.T) {
 	}
 }
 
+func TestRcloneListDirNotFoundIntegration(t *testing.T) {
+	client, close := newMockRcloneServer(t)
+	defer close()
+
+	ctx := context.Background()
+
+	_, err := client.RcloneListDir(ctx, testHost, "testdata/rclone/not-found", true)
+	if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
+		t.Fatal("expected not found")
+	}
+}
+
 func TestRcloneDiskUsageIntegration(t *testing.T) {
 	client, close := newMockRcloneServer(t)
 	defer close()
@@ -108,6 +120,7 @@ func TestRcloneDiskUsageIntegration(t *testing.T) {
 		t.Errorf("Expected usage bigger than zero, got: %+v", got)
 	}
 }
+
 func TestRcloneCopyDirIntegration(t *testing.T) {
 	client, close := newMockRcloneServer(t)
 	defer close()
