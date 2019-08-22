@@ -72,6 +72,10 @@ type hostInfo struct {
 	RateLimit DCLimit
 }
 
+func (h hostInfo) String() string {
+	return  h.IP
+}
+
 func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
 	w.logger.Info(ctx, "Starting snapshot procedure")
 	defer func() {
@@ -373,7 +377,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		manifestSrc = path.Join(d.Path, manifestFile)
 	)
 	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d); err != nil {
-		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, manifestSrc, manifestDst)
+		return errors.Wrapf(err, "failed to copy %q to %q", manifestSrc, manifestDst)
 	}
 
 	// Upload sstables
@@ -382,7 +386,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		dataSrc = d.Path
 	)
 	if err := w.uploadDir(ctx, dataDst, dataSrc, d); err != nil {
-		return errors.Wrapf(err, "host %s: failed to copy %s to %s", h, dataSrc, dataDst)
+		return errors.Wrapf(err, "failed to copy %q to %q", dataSrc, dataDst)
 	}
 
 	return nil
