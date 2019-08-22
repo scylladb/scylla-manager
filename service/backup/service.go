@@ -245,15 +245,13 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 
 	// Create a worker
 	w := worker{
-		clusterID: clusterID,
-		taskID:    taskID,
-		runID:     runID,
-
-		config: s.config,
-		units:  run.Units,
-		client: client,
-		logger: s.logger.Named("worker"),
-
+		ClusterID:     clusterID,
+		TaskID:        taskID,
+		RunID:         runID,
+		Config:        s.config,
+		Units:         run.Units,
+		Client:        client,
+		Logger:        s.logger.Named("worker"),
 		OnRunProgress: s.putRunProgressLogError,
 	}
 
