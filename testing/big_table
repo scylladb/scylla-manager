@@ -6,4 +6,4 @@
 set -eu -o pipefail
 
 echo "==> Creating table"
-go run testing/bigtable/*.go "$@"
+go run $(dirname "$0")/bigtable/bigtable.go "$@"

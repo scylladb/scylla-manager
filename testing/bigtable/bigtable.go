@@ -18,13 +18,13 @@ import (
 )
 
 var (
-	flagCluster      = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
+	flagCluster      = flag.String("cluster", "192.168.100.11", "a comma-separated list of host:port tuples")
 	flagProto        = flag.Int("proto", 0, "protcol version")
 	flagCQL          = flag.String("cql", "3.0.0", "CQL version")
-	flagKeyspace     = flag.String("keyspace", "", "name of the keyspace to create table in")
-	flagDropKeyspace = flag.Bool("drop", false, "drop keyspace if it already exists")
-	flagTable        = flag.String("table", "", "name of the table to create")
-	flagTableSize    = flag.Int64("size", 0, "size of the table to create in MB")
+	flagKeyspace     = flag.String("keyspace", "dev_keyspace", "name of the keyspace to create table in")
+	flagDropKeyspace = flag.Bool("drop", true, "drop keyspace if it already exists")
+	flagTable        = flag.String("table", "dev_table", "name of the table to create")
+	flagTableSize    = flag.Int64("size", 100, "size of the table to create in MB")
 	flagRF           = flag.Int("rf", 1, "replication factor for test keyspace")
 	flagRetry        = flag.Int("retries", 5, "number of times to retry queries")
 	flagCompressTest = flag.String("compressor", "", "compressor to use")
@@ -124,5 +124,5 @@ func ExecStmt(s *gocql.Session, stmt string) error {
 func main() {
 	cluster := createCluster()
 	createTable(cluster, *flagKeyspace, *flagTable)
-	fmt.Printf("Created table with %d MiB of data\n", *flagTableSize)
+	fmt.Printf("Created table %s.%s with %d MiB of data\n", *flagKeyspace, *flagTable, *flagTableSize)
 }
