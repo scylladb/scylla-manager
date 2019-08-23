@@ -362,9 +362,7 @@ func (rp BackupProgress) Render(w io.Writer) error {
 	}
 
 	if rp.Detailed && rp.Progress != nil && rp.Progress.Size > 0 {
-		d := table.New()
-		rp.addKeyspaceProgress(d)
-		if _, err := w.Write([]byte(d.String())); err != nil {
+		if err := rp.addKeyspaceProgress(w); err != nil {
 			return err
 		}
 	}
@@ -372,7 +370,7 @@ func (rp BackupProgress) Render(w io.Writer) error {
 }
 
 func (rp BackupProgress) addHostProgress(t *table.Table) {
-	t.AddRow("host", "progress", "started at", "completed at")
+	t.AddRow("host", "progress", "size", "uploaded", "skipped", "failed")
 	t.AddSeparator()
 	for _, h := range rp.Progress.Hosts {
 		if rp.hideHost(h.Host) {
@@ -380,18 +378,26 @@ func (rp BackupProgress) addHostProgress(t *table.Table) {
 		}
 		p := "-"
 		if len(h.Keyspaces) > 0 {
-			p = FormatUploadProgress(h.Size, h.Uploaded, h.Skipped, h.Failed)
+			p = FormatUploadProgress(h.Size, h.Uploaded, h.Skipped)
 		}
-		t.AddRow(h.Host, p, h.StartedAt, h.CompletedAt)
+		t.AddRow(h.Host, p,
+			ByteCountBinary(h.Size),
+			ByteCountBinary(h.Uploaded),
+			ByteCountBinary(h.Skipped),
+			ByteCountBinary(h.Failed),
+		)
 	}
 }
 
-func (rp BackupProgress) addKeyspaceProgress(t *table.Table) {
-	addSeparator := false
+func (rp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 	for _, h := range rp.Progress.Hosts {
 		if rp.hideHost(h.Host) {
 			continue
 		}
+		fmt.Fprintf(w, "Host:		%s\n", h.Host)
+		fmt.Fprintf(w, "Started At:	%s\nCompleted At:	%s\n", h.StartedAt, h.CompletedAt)
+		t := table.New()
+		addSeparator := false
 		for _, ks := range h.Keyspaces {
 			if rp.hideKeyspace(ks.Keyspace) {
 				break
@@ -400,19 +406,36 @@ func (rp BackupProgress) addKeyspaceProgress(t *table.Table) {
 				t.AddSeparator()
 			}
 			addSeparator = true
-			t.AddRow(h.Host, "table", "progress", "started at", "completed at")
+
+			t.AddRow("keyspace", "table", "progress", "size", "uploaded", "skipped", "failed", "started at", "completed at")
 			t.AddSeparator()
 			rowAdded := false
 			for _, tbl := range ks.Tables {
-				t.AddRow(ks.Keyspace, tbl.Table, FormatUploadProgress(tbl.Size, tbl.Uploaded, tbl.Skipped, tbl.Failed), tbl.StartedAt, tbl.CompletedAt)
+				t.AddRow(
+					ks.Keyspace,
+					tbl.Table,
+					FormatUploadProgress(tbl.Size,
+						tbl.Uploaded,
+						tbl.Skipped),
+					ByteCountBinary(tbl.Size),
+					ByteCountBinary(tbl.Uploaded),
+					ByteCountBinary(tbl.Skipped),
+					ByteCountBinary(tbl.Failed),
+					tbl.StartedAt,
+					tbl.CompletedAt,
+				)
 				rowAdded = true
 			}
 			if !rowAdded {
 				// Separate keyspaces with no table rows
-				t.AddRow("-", "-", "-", "-", "-")
+				t.AddRow("-", "-", "-", "-", "-", "-", "-", "-", "-")
 			}
 		}
+		if _, err := w.Write([]byte(t.String())); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (rp BackupProgress) hideHost(host string) bool {
@@ -443,7 +466,7 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}
+{{ with .Progress }}Progress:	{{ FormatUploadProgress .Size .Uploaded .Skipped }}
 {{- if .Dcs }}
 Datacenters:	{{ range .Dcs }}
   - {{ . }}

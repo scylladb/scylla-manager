@@ -504,7 +504,7 @@ func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshot
 			w.setProgressDates(ctx, p, d, jobID, trs[0].StartedAt, trs[0].CompletedAt)
 			if trs[0].Error != "" {
 				p.Error = trs[0].Error
-				p.Failed = trs[0].Bytes
+				p.Failed = trs[0].Size - trs[0].Bytes
 			}
 			if trs[0].Checked {
 				// File is already uploaded we just checked.
@@ -524,7 +524,7 @@ func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshot
 				p.Error = fmt.Sprintf("%s %s", p.Error, trs[1].Error)
 			}
 			if p.Error != "" {
-				p.Failed = trs[1].Bytes
+				p.Failed = trs[1].Size - trs[1].Bytes
 			}
 			p.Uploaded = trs[1].Bytes
 			w.onRunProgress(ctx, p)
