@@ -170,12 +170,12 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 }
 
 func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) error {
-	if jobID := w.snapshotJobID(ctx, d); jobID != uuid.Nil {
+	if jobID := w.snapshotJobID(ctx, d); jobID != 0 {
 		w.Logger.Info(ctx, "Attaching to the previous agent job",
 			"host", h.IP,
 			"keyspace", d.Keyspace,
 			"tag", snapshotTag(w.RunID),
-			"jobid", jobID.String(),
+			"jobid", jobID,
 		)
 		if err := w.waitJob(ctx, jobID, d); err != nil {
 			return err
@@ -187,24 +187,25 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) err
 // snapshotJobID returns the id of the job that was last responsible for
 // uploading the snapshot directory.
 // If it's not available it will return uuid.Nil
-func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) uuid.UUID {
+func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 	for _, p := range d.Progress {
-		if p.AgentJobID == uuid.Nil || p.Size == p.Uploaded {
+		if p.AgentJobID == 0 || p.Size == p.Uploaded {
 			continue
 		}
 		status, _ := w.getJobStatus(ctx, p.AgentJobID, d) //nolint:errcheck
 		switch status {
 		case jobError:
-			return uuid.Nil
+			return 0
 		case jobNotFound:
-			return uuid.Nil
+			return 0
 		case jobSuccess:
 			return p.AgentJobID
 		case jobRunning:
 			return p.AgentJobID
 		}
 	}
-	return uuid.Nil
+
+	return 0
 }
 
 func (w *worker) checkAvailableDiskSpace(ctx context.Context, h hostInfo) error {
@@ -429,7 +430,7 @@ func (w *worker) uploadDir(ctx context.Context, dst, src string, d snapshotDir) 
 	return w.waitJob(ctx, id, d)
 }
 
-func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir) error {
+func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) error {
 	t := time.NewTicker(w.Config.PollInterval)
 	defer t.Stop()
 
@@ -454,7 +455,7 @@ func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir) error
 			case jobError:
 				return err
 			case jobNotFound:
-				return errors.Errorf("job not found (%s)", id)
+				return errors.Errorf("job not found (%d)", id)
 			case jobSuccess:
 				w.updateProgress(ctx, id, d)
 				return nil
@@ -465,14 +466,14 @@ func (w *worker) waitJob(ctx context.Context, id uuid.UUID, d snapshotDir) error
 	}
 }
 
-func (w *worker) getJobStatus(ctx context.Context, jobID uuid.UUID, d snapshotDir) (jobStatus, error) {
+func (w *worker) getJobStatus(ctx context.Context, jobID int64, d snapshotDir) (jobStatus, error) {
 	s, err := w.Client.RcloneJobStatus(ctx, d.Host, jobID)
 	if err != nil {
 		w.Logger.Error(ctx, "Failed to fetch job status",
 			"error", err,
 			"host", d.Host,
 			"unit", d.Unit,
-			"jobid", jobID.String(),
+			"jobid", jobID,
 			"table", d.Table,
 		)
 		if strings.Contains(err.Error(), "job not found") {
@@ -490,8 +491,10 @@ func (w *worker) getJobStatus(ctx context.Context, jobID uuid.UUID, d snapshotDi
 	return jobRunning, nil
 }
 
-func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshotDir) {
-	transferred, err := w.Client.RcloneTransferred(ctx, d.Host, jobID.String())
+func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir) {
+	group := scyllaclient.RcloneDefaultGroup(jobID)
+
+	transferred, err := w.Client.RcloneTransferred(ctx, d.Host, group)
 	if err != nil {
 		w.Logger.Error(ctx, "Failed to get transferred files",
 			"error", err,
@@ -500,7 +503,7 @@ func (w *worker) updateProgress(ctx context.Context, jobID uuid.UUID, d snapshot
 		)
 		return
 	}
-	stats, err := w.Client.RcloneStats(ctx, d.Host, jobID.String())
+	stats, err := w.Client.RcloneStats(ctx, d.Host, group)
 	if err != nil {
 		w.Logger.Error(ctx, "Failed to get transfer stats",
 			"error", err,
@@ -562,7 +565,7 @@ func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
 	}
 }
 
-func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapshotDir, jobID uuid.UUID, start, end string) {
+func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapshotDir, jobID int64, start, end string) {
 	startedAt, err := timeutc.Parse(time.RFC3339, start)
 	if err != nil {
 		w.Logger.Error(ctx, "Failed to parse start time",

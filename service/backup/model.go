@@ -70,7 +70,7 @@ type RunProgress struct {
 	ClusterID  uuid.UUID
 	TaskID     uuid.UUID
 	RunID      uuid.UUID
-	AgentJobID uuid.UUID
+	AgentJobID int64
 
 	Host      string
 	Unit      int64

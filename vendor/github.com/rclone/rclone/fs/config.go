@@ -4,6 +4,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Global
@@ -17,12 +19,12 @@ var (
 	// implementation from the fs
 	ConfigFileGet = func(section, key string) (string, bool) { return "", false }
 
-	// Set a value into the config file
+	// Set a value into the config file and persist it
 	//
 	// This is a function pointer to decouple the config
 	// implementation from the fs
-	ConfigFileSet = func(section, key, value string) {
-		Errorf(nil, "No config handler to set %q = %q in section %q of the config file", key, value, section)
+	ConfigFileSet = func(section, key, value string) (err error) {
+		return errors.New("no config file set handler")
 	}
 
 	// CountError counts an error.  If any errors have been
@@ -100,8 +102,7 @@ type ConfigInfo struct {
 	ClientKey              string // Client Side Key
 	MultiThreadCutoff      SizeSuffix
 	MultiThreadStreams     int
-	RcJobExpireDuration    time.Duration
-	RcJobExpireInterval    time.Duration
+	MultiThreadSet         bool // whether MultiThreadStreams was set (set in fs/config/configflags)
 }
 
 // NewConfig creates a new config with everything set to the default
@@ -136,8 +137,6 @@ func NewConfig() *ConfigInfo {
 	//	c.StatsOneLineDateFormat = "2006/01/02 15:04:05 - "
 	c.MultiThreadCutoff = SizeSuffix(250 * 1024 * 1024)
 	c.MultiThreadStreams = 4
-	c.RcJobExpireDuration = 60 * time.Second
-	c.RcJobExpireInterval = 10 * time.Second
 
 	return c
 }

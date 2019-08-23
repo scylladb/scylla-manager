@@ -4,7 +4,6 @@ package rclone
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/mermaid"
@@ -32,10 +31,6 @@ func SetDefaultConfig() {
 	fs.Config.NoUpdateModTime = true
 	// Set proper agent for backend clients.
 	fs.Config.UserAgent = fmt.Sprintf("Scylla Manager Agent %s", mermaid.Version())
-	// Expire async jobs after this duration.
-	fs.Config.RcJobExpireDuration = 12 * time.Hour
-	// Check for expired async jobs at this interval.
-	fs.Config.RcJobExpireInterval = 1 * time.Minute
 	// How many times to retry low level operations like copy file.
 	fs.Config.LowLevelRetries = 5
 	// How many stat groups to keep in memory.

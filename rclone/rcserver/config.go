@@ -36,9 +36,13 @@ func registerInMemoryConf() {
 		if err != nil {
 			return nil, err
 		}
-		c.Set(name, "type", remoteType)
+		if err := c.Set(name, "type", remoteType); err != nil {
+			return nil, err
+		}
 		for k, v := range parameters {
-			c.Set(name, k, fmt.Sprintf("%v", v))
+			if err := c.Set(name, k, fmt.Sprintf("%v", v)); err != nil {
+				return nil, err
+			}
 		}
 		return nil, nil
 	}
@@ -87,7 +91,7 @@ func (c *inMemoryConf) Get(section, key string) (string, bool) {
 
 // Set the key in section to value.
 // It doesn't save the config file.
-func (c *inMemoryConf) Set(section, key, value string) {
+func (c *inMemoryConf) Set(section, key, value string) (err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.sections == nil {
@@ -99,8 +103,9 @@ func (c *inMemoryConf) Set(section, key, value string) {
 	}
 	if value == "" {
 		delete(c.sections[section], value)
-		return
+	} else {
+		s[key] = value
+		c.sections[section] = s
 	}
-	s[key] = value
-	c.sections[section] = s
+	return
 }

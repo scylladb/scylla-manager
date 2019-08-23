@@ -69,6 +69,7 @@ var (
 	ErrorImmutableModified           = errors.New("immutable file modified")
 	ErrorPermissionDenied            = errors.New("permission denied")
 	ErrorCantShareDirectories        = errors.New("this backend can't share directories with link")
+	ErrorNotImplemented              = errors.New("optional feature not implemented")
 )
 
 // RegInfo provides information about a filesystem
@@ -469,9 +470,11 @@ type Features struct {
 	WriteMimeType           bool // can set the mime type of objects
 	CanHaveEmptyDirectories bool // can have empty directories
 	BucketBased             bool // is bucket based (like s3, swift etc)
+	BucketBasedRootOK       bool // is bucket based and can use from root
 	SetTier                 bool // allows set tier functionality on objects
 	GetTier                 bool // allows to retrieve storage tier of objects
 	ServerSideAcrossConfigs bool // can server side copy between different remotes of the same type
+	IsLocal                 bool // is the local backend
 
 	// Purge all files in the root and the root directory
 	//
@@ -588,6 +591,12 @@ type Features struct {
 	//
 	// It truncates any existing object
 	OpenWriterAt func(ctx context.Context, remote string, size int64) (WriterAtCloser, error)
+
+	// UserInfo returns info about the connected user
+	UserInfo func(ctx context.Context) (map[string]string, error)
+
+	// Disconnect the current user
+	Disconnect func(ctx context.Context) error
 }
 
 // Disable nil's out the named feature.  If it isn't found then it
@@ -703,6 +712,12 @@ func (ft *Features) Fill(f Fs) *Features {
 	if do, ok := f.(OpenWriterAter); ok {
 		ft.OpenWriterAt = do.OpenWriterAt
 	}
+	if do, ok := f.(UserInfoer); ok {
+		ft.UserInfo = do.UserInfo
+	}
+	if do, ok := f.(Disconnecter); ok {
+		ft.Disconnect = do.Disconnect
+	}
 	return ft.DisableList(Config.DisableFeatures)
 }
 
@@ -720,6 +735,7 @@ func (ft *Features) Mask(f Fs) *Features {
 	ft.WriteMimeType = ft.WriteMimeType && mask.WriteMimeType
 	ft.CanHaveEmptyDirectories = ft.CanHaveEmptyDirectories && mask.CanHaveEmptyDirectories
 	ft.BucketBased = ft.BucketBased && mask.BucketBased
+	ft.BucketBasedRootOK = ft.BucketBasedRootOK && mask.BucketBasedRootOK
 	ft.SetTier = ft.SetTier && mask.SetTier
 	ft.GetTier = ft.GetTier && mask.GetTier
 
@@ -770,6 +786,12 @@ func (ft *Features) Mask(f Fs) *Features {
 	}
 	if mask.OpenWriterAt == nil {
 		ft.OpenWriterAt = nil
+	}
+	if mask.UserInfo == nil {
+		ft.UserInfo = nil
+	}
+	if mask.Disconnect == nil {
+		ft.Disconnect = nil
 	}
 	return ft.DisableList(Config.DisableFeatures)
 }
@@ -980,6 +1002,18 @@ type OpenWriterAter interface {
 	OpenWriterAt(ctx context.Context, remote string, size int64) (WriterAtCloser, error)
 }
 
+// UserInfoer is an optional interface for Fs
+type UserInfoer interface {
+	// UserInfo returns info about the connected user
+	UserInfo(ctx context.Context) (map[string]string, error)
+}
+
+// Disconnecter is an optional interface for Fs
+type Disconnecter interface {
+	// Disconnect the current user
+	Disconnect(ctx context.Context) error
+}
+
 // ObjectsChan is a channel of Objects
 type ObjectsChan chan Object
 
@@ -990,6 +1024,38 @@ type Objects []Object
 // operation.
 type ObjectPair struct {
 	Src, Dst Object
+}
+
+// UnWrapFs unwraps f as much as possible and returns the base Fs
+func UnWrapFs(f Fs) Fs {
+	for {
+		unwrap := f.Features().UnWrap
+		if unwrap == nil {
+			break // not a wrapped Fs, use current
+		}
+		next := unwrap()
+		if next == nil {
+			break // no base Fs found, use current
+		}
+		f = next
+	}
+	return f
+}
+
+// UnWrapObject unwraps o as much as possible and returns the base object
+func UnWrapObject(o Object) Object {
+	for {
+		u, ok := o.(ObjectUnWrapper)
+		if !ok {
+			break // not a wrapped object, use current
+		}
+		next := u.UnWrap()
+		if next == nil {
+			break // no base object found, use current
+		}
+		o = next
+	}
+	return o
 }
 
 // Find looks for an RegInfo object for the name passed in.  The name
@@ -1086,7 +1152,10 @@ type setConfigFile string
 // Set a config item into the config file
 func (section setConfigFile) Set(key, value string) {
 	Debugf(nil, "Saving config %q = %q in section %q of the config file", key, value, section)
-	ConfigFileSet(string(section), key, value)
+	err := ConfigFileSet(string(section), key, value)
+	if err != nil {
+		Errorf(nil, "Failed saving config %q = %q in section %q of the config file: %v", key, value, section, err)
+	}
 }
 
 // A configmap.Getter to read from the config file

@@ -35,6 +35,7 @@ import (
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/fspath"
 	"github.com/rclone/rclone/fs/rc"
+	"github.com/rclone/rclone/lib/random"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/text/unicode/norm"
 )
@@ -93,7 +94,7 @@ var (
 func init() {
 	// Set the function pointers up in fs
 	fs.ConfigFileGet = FileGetFlag
-	fs.ConfigFileSet = FileSet
+	fs.ConfigFileSet = SetValueAndSave
 }
 
 func getConfigData() *goconfig.ConfigFile {
@@ -860,16 +861,10 @@ func ChooseOption(o *fs.Option, name string) string {
 			for {
 				fmt.Printf("Password strength in bits.\n64 is just about memorable\n128 is secure\n1024 is the maximum\n")
 				bits := ChooseNumber("Bits", 64, 1024)
-				bytes := bits / 8
-				if bits%8 != 0 {
-					bytes++
+				password, err := random.Password(bits)
+				if err != nil {
+					log.Fatalf("Failed to make password: %v", err)
 				}
-				var pw = make([]byte, bytes)
-				n, _ := rand.Read(pw)
-				if n != bytes {
-					log.Fatalf("password short read: %d", n)
-				}
-				password = base64.RawURLEncoding.EncodeToString(pw)
 				fmt.Printf("Your password is: %s\n", password)
 				fmt.Printf("Use this password? Please note that an obscured version of this \npassword (and not the " +
 					"password itself) will be stored under your \nconfiguration file, so keep this generated password " +
@@ -1072,12 +1067,13 @@ func editOptions(ri *fs.RegInfo, name string, isNew bool) {
 			}
 		}
 		for _, option := range ri.Options {
-			hasAdvanced = hasAdvanced || option.Advanced
+			isVisible := option.Hide&fs.OptionHideConfigurator == 0
+			hasAdvanced = hasAdvanced || (option.Advanced && isVisible)
 			if option.Advanced != advanced {
 				continue
 			}
 			subProvider := getConfigData().MustValue(name, fs.ConfigProvider, "")
-			if matchProvider(option.Provider, subProvider) {
+			if matchProvider(option.Provider, subProvider) && isVisible {
 				if !isNew {
 					fmt.Printf("Value %q = %q\n", option.Name, FileGet(name, option.Name))
 					fmt.Printf("Edit? (y/n)>\n")
@@ -1085,9 +1081,7 @@ func editOptions(ri *fs.RegInfo, name string, isNew bool) {
 						continue
 					}
 				}
-				if option.Hide&fs.OptionHideConfigurator == 0 {
-					FileSet(name, option.Name, ChooseOption(&option, name))
-				}
+				FileSet(name, option.Name, ChooseOption(&option, name))
 			}
 		}
 	}

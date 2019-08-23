@@ -6,11 +6,13 @@ package rcserver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
@@ -18,7 +20,8 @@ import (
 	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/rc"
-	"github.com/scylladb/mermaid/rclone/jobs"
+	"github.com/rclone/rclone/fs/rc/jobs"
+	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 var initOnce sync.Once
@@ -47,6 +50,13 @@ func New() *Server {
 		accounting.StartTokenTicker()
 		// Start the transactions per second limiter
 		fshttp.StartHTTPTokenBucket()
+		// Set jobs options
+		opts := rc.DefaultOpt
+		opts.JobExpireDuration = 12 * time.Hour
+		opts.JobExpireInterval = 1 * time.Minute
+		jobs.SetOpt(&opts)
+		// Rewind job ID to new values
+		jobs.SetInitialJobID(timeutc.Now().Unix())
 	})
 
 	return &Server{
@@ -183,9 +193,9 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 	if isAsync {
 		out, err = jobs.StartAsyncJob(fn, in)
 	} else {
-		var jobID string
+		var jobID int64
 		out, jobID, err = jobs.ExecuteJob(r.Context(), fn, in)
-		w.Header().Add("x-rclone-jobid", jobID)
+		w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 	}
 	if err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)

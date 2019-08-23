@@ -73,7 +73,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	res, err := client.RcloneTransferred(ctx, testHost, id.String())
+	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	res, err = client.RcloneTransferred(ctx, testHost, id.String())
+	res, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := client.RcloneTransferred(ctx, testHost, id.String())
+	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	res, err = client.RcloneTransferred(ctx, testHost, id.String())
+	res, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
 	if err != nil {
 		t.Fatal(err)
 	}

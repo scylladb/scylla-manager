@@ -51,30 +51,48 @@ func CheckHashes(ctx context.Context, src fs.ObjectInfo, dst fs.Object) (equal b
 	if common.Count() == 0 {
 		return true, hash.None, nil
 	}
-	ht = common.GetOne()
-	srcHash, err := src.Hash(ctx, ht)
+	equal, ht, _, _, err = checkHashes(ctx, src, dst, common.GetOne())
+	return equal, ht, err
+}
+
+// checkHashes does the work of CheckHashes but takes a hash.Type and
+// returns the effective hash type used.
+func checkHashes(ctx context.Context, src fs.ObjectInfo, dst fs.Object, ht hash.Type) (equal bool, htOut hash.Type, srcHash, dstHash string, err error) {
+	// Calculate hashes in parallel
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() (err error) {
+		srcHash, err = src.Hash(ctx, ht)
+		if err != nil {
+			fs.CountError(err)
+			fs.Errorf(src, "Failed to calculate src hash: %v", err)
+		}
+		return err
+	})
+	g.Go(func() (err error) {
+		dstHash, err = dst.Hash(ctx, ht)
+		if err != nil {
+			fs.CountError(err)
+			fs.Errorf(dst, "Failed to calculate dst hash: %v", err)
+		}
+		return err
+	})
+	err = g.Wait()
 	if err != nil {
-		fs.CountError(err)
-		fs.Errorf(src, "Failed to calculate src hash: %v", err)
-		return false, ht, err
+		return false, ht, srcHash, dstHash, err
 	}
 	if srcHash == "" {
-		return true, hash.None, nil
-	}
-	dstHash, err := dst.Hash(ctx, ht)
-	if err != nil {
-		fs.CountError(err)
-		fs.Errorf(dst, "Failed to calculate dst hash: %v", err)
-		return false, ht, err
+		return true, hash.None, srcHash, dstHash, nil
 	}
 	if dstHash == "" {
-		return true, hash.None, nil
+		return true, hash.None, srcHash, dstHash, nil
 	}
 	if srcHash != dstHash {
 		fs.Debugf(src, "%v = %s (%v)", ht, srcHash, src.Fs())
 		fs.Debugf(dst, "%v = %s (%v)", ht, dstHash, dst.Fs())
+	} else {
+		fs.Debugf(src, "%v = %s OK", ht, srcHash)
 	}
-	return srcHash == dstHash, ht, nil
+	return srcHash == dstHash, ht, srcHash, dstHash, nil
 }
 
 // Equal checks to see if the src and dst objects are equal by looking at
@@ -266,7 +284,7 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 	// work out which hash to use - limit to 1 hash in common
 	var common hash.Set
 	hashType := hash.None
-	if !fs.Config.SizeOnly {
+	if !fs.Config.IgnoreChecksum {
 		common = src.Fs().Hashes().Overlap(f.Hashes())
 		if common.Count() > 0 {
 			hashType = common.GetOne()
@@ -294,7 +312,7 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 		}
 		// If can't server side copy, do it manually
 		if err == fs.ErrorCantCopy {
-			if doOpenWriterAt := f.Features().OpenWriterAt; doOpenWriterAt != nil && src.Size() >= int64(fs.Config.MultiThreadCutoff) && fs.Config.MultiThreadStreams > 1 {
+			if doMultiThreadCopy(f, src) {
 				// Number of streams proportional to size
 				streams := src.Size() / int64(fs.Config.MultiThreadCutoff)
 				// With maximum
@@ -376,25 +394,15 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 	}
 
 	// Verify hashes are the same after transfer - ignoring blank hashes
-	if !fs.Config.IgnoreChecksum && hashType != hash.None {
-		var srcSum string
-		srcSum, err = src.Hash(ctx, hashType)
-		if err != nil {
+	if hashType != hash.None {
+		// checkHashes has logged and counted errors
+		equal, _, srcSum, dstSum, _ := checkHashes(ctx, src, dst, hashType)
+		if !equal {
+			err = errors.Errorf("corrupted on transfer: %v hash differ %q vs %q", hashType, srcSum, dstSum)
+			fs.Errorf(dst, "%v", err)
 			fs.CountError(err)
-			fs.Errorf(src, "Failed to read src hash: %v", err)
-		} else if srcSum != "" {
-			var dstSum string
-			dstSum, err = dst.Hash(ctx, hashType)
-			if err != nil {
-				fs.CountError(err)
-				fs.Errorf(dst, "Failed to read hash: %v", err)
-			} else if !hash.Equals(srcSum, dstSum) {
-				err = errors.Errorf("corrupted on transfer: %v hash differ %q vs %q", hashType, srcSum, dstSum)
-				fs.Errorf(dst, "%v", err)
-				fs.CountError(err)
-				removeFailedCopy(ctx, dst)
-				return newDst, err
-			}
+			removeFailedCopy(ctx, dst)
+			return newDst, err
 		}
 	}
 

@@ -16,7 +16,7 @@ import (
 type Jobid struct {
 
 	// ID of the job
-	Jobid string `json:"jobid,omitempty"`
+	Jobid int64 `json:"jobid,omitempty"`
 }
 
 // Validate validates this jobid

@@ -21,7 +21,7 @@ CREATE TABLE backup_run_progress (
     cluster_id uuid,
     task_id uuid,
     run_id uuid,
-    agent_job_id uuid,
+    agent_job_id bigint,
     host text,
     unit int,
     table_name text,

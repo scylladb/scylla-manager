@@ -137,7 +137,7 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	res, err := client.RcloneTransferred(ctx, testHost, id.String())
+	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +210,7 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	res, err := client.RcloneTransferred(ctx, testHost, id.String())
+	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
 	if err != nil {
 		t.Fatal(err)
 	}

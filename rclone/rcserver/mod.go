@@ -8,5 +8,6 @@ import (
 	_ "github.com/rclone/rclone/backend/s3"
 	_ "github.com/rclone/rclone/fs/accounting"
 	_ "github.com/rclone/rclone/fs/operations"
+	_ "github.com/rclone/rclone/fs/rc/jobs"
 	_ "github.com/rclone/rclone/fs/sync"
 )
