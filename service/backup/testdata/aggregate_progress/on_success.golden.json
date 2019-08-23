@@ -1,7 +1,8 @@
 {
-  "size": 47,
-  "uploaded": 25,
+  "size": 57,
+  "uploaded": 35,
   "skipped": 10,
+  "started_at": "2018-12-31T23:00:00Z",
   "dcs": [
     "dc1",
     "dc2"
@@ -17,22 +18,27 @@
               "table": "table1",
               "size": 17,
               "uploaded": 7,
-              "skipped": 10
+              "skipped": 10,
+              "started_at": "2018-12-31T23:00:00Z",
+              "completed_at": "2018-12-31T23:02:00Z"
             },
             {
               "table": "table2",
               "size": 10,
-              "uploaded": 5
+              "uploaded": 5,
+              "started_at": "2018-12-31T23:00:00Z"
             }
           ],
           "size": 27,
           "uploaded": 12,
-          "skipped": 10
+          "skipped": 10,
+          "started_at": "2018-12-31T23:00:00Z"
         }
       ],
       "size": 27,
       "uploaded": 12,
-      "skipped": 10
+      "skipped": 10,
+      "started_at": "2018-12-31T23:00:00Z"
     },
     {
       "host": "host2",
@@ -43,20 +49,25 @@
             {
               "table": "table1",
               "size": 10,
-              "uploaded": 10
+              "uploaded": 10,
+              "started_at": "2018-12-31T23:00:00Z",
+              "completed_at": "2018-12-31T23:05:00Z"
             },
             {
               "table": "table2",
-              "size": 10,
-              "uploaded": 3
+              "size": 20,
+              "uploaded": 13,
+              "started_at": "2018-12-31T23:00:00Z"
             }
           ],
-          "size": 20,
-          "uploaded": 13
+          "size": 30,
+          "uploaded": 23,
+          "started_at": "2018-12-31T23:00:00Z"
         }
       ],
-      "size": 20,
-      "uploaded": 13
+      "size": 30,
+      "uploaded": 23,
+      "started_at": "2018-12-31T23:00:00Z"
     }
   ]
 }

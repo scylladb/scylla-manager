@@ -418,6 +418,12 @@
         },
         "failed": {
           "type": "integer"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string"
         }
       }
     },
@@ -444,6 +450,12 @@
         },
         "failed": {
           "type": "integer"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string"
         }
       }
     },
@@ -470,6 +482,12 @@
         },
         "failed": {
           "type": "integer"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string"
         }
       }
     },
@@ -493,6 +511,12 @@
         },
         "failed": {
           "type": "integer"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string"
         }
       }
     }

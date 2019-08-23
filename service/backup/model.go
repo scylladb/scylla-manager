@@ -7,7 +7,6 @@ import (
 	"path"
 	"reflect"
 	"regexp"
-	"sort"
 	"strconv"
 	"time"
 
@@ -99,10 +98,12 @@ const (
 )
 
 type progress struct {
-	Size     int64 `json:"size"`
-	Uploaded int64 `json:"uploaded"`
-	Skipped  int64 `json:"skipped"`
-	Failed   int64 `json:"failed"`
+	Size        int64      `json:"size"`
+	Uploaded    int64      `json:"uploaded"`
+	Skipped     int64      `json:"skipped"`
+	Failed      int64      `json:"failed"`
+	StartedAt   *time.Time `json:"started_at"`
+	CompletedAt *time.Time `json:"completed_at"`
 }
 
 // Progress groups uploading progress for all backed up hosts.
@@ -136,108 +137,6 @@ type TableProgress struct {
 
 	Table string `json:"table"`
 	Error string `json:"error,omitempty"`
-}
-
-// runProgress returns total size and uploaded bytes for all files belonging to
-// the run.
-func runProgress(run *Run, prog []*RunProgress) (int64, int64) {
-	var size, uploaded int64
-	if len(run.Units) == 0 {
-		return size, uploaded
-	}
-
-	for i := range prog {
-		size += prog[i].Size
-		uploaded += prog[i].Uploaded
-	}
-
-	return size, uploaded
-}
-
-type tableKey struct {
-	host     string
-	keyspace string
-	table    string
-}
-
-// aggregateProgress returns progress information classified by host, keyspace,
-// and host tables.
-func aggregateProgress(run *Run, prog []*RunProgress) Progress {
-	p := Progress{
-		DC: run.DC,
-	}
-	if len(run.Units) == 0 || len(prog) == 0 {
-		return p
-	}
-
-	hostsMap := make(map[string]struct{})
-	tableMap := make(map[tableKey]*TableProgress)
-	for _, pr := range prog {
-		tk := tableKey{pr.Host, run.Units[pr.Unit].Keyspace, pr.TableName}
-		table, ok := tableMap[tk]
-		if !ok {
-			table = &TableProgress{
-				Table: pr.TableName,
-			}
-			tableMap[tk] = table
-			hostsMap[pr.Host] = struct{}{}
-		}
-
-		// Don't count metadata as progress.
-		if pr.FileName == manifestFile {
-			continue
-		}
-
-		table.Size += pr.Size
-		table.Uploaded += pr.Uploaded
-		table.Skipped += pr.Skipped
-		table.Failed += pr.Failed
-		if pr.Error != "" {
-			if table.Error == "" {
-				table.Error = pr.Error
-			} else {
-				table.Error += ", " + pr.Error
-			}
-		}
-	}
-
-	var hosts []string
-	for h := range hostsMap {
-		hosts = append(hosts, h)
-	}
-	sort.Strings(hosts)
-
-	for _, h := range hosts {
-		host := HostProgress{
-			Host: h,
-		}
-		for _, u := range run.Units {
-			ks := KeyspaceProgress{
-				Keyspace: u.Keyspace,
-			}
-			for _, t := range u.Tables {
-				tp := *tableMap[tableKey{h, u.Keyspace, t}]
-				ks.Tables = append(ks.Tables, tp)
-				ks.Size += tp.Size
-				ks.Uploaded += tp.Uploaded
-				ks.Skipped += tp.Skipped
-				ks.Failed += tp.Failed
-
-			}
-			host.Keyspaces = append(host.Keyspaces, ks)
-			host.Size += ks.Size
-			host.Uploaded += ks.Uploaded
-			host.Skipped += ks.Skipped
-			host.Failed += ks.Failed
-		}
-		p.Hosts = append(p.Hosts, host)
-		p.Size += host.Size
-		p.Uploaded += host.Uploaded
-		p.Skipped += host.Skipped
-		p.Failed += host.Failed
-	}
-
-	return p
 }
 
 // Provider specifies type of remote storage like S3 etc.

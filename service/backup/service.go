@@ -336,6 +336,22 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	return nil, mermaid.ErrNotFound
 }
 
+// runProgress returns total size and uploaded bytes for all files belonging to
+// the run.
+func runProgress(run *Run, prog []*RunProgress) (int64, int64) {
+	var size, uploaded int64
+	if len(run.Units) == 0 {
+		return size, uploaded
+	}
+
+	for i := range prog {
+		size += prog[i].Size
+		uploaded += prog[i].Uploaded
+	}
+
+	return size, uploaded
+}
+
 func (s *Service) getProgress(run *Run) ([]*RunProgress, error) {
 	stmt, names := schema.BackupRunProgress.Select()
 

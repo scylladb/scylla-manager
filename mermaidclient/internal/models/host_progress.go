@@ -18,6 +18,9 @@ import (
 // swagger:model hostProgress
 type HostProgress struct {
 
+	// completed at
+	CompletedAt string `json:"completed_at,omitempty"`
+
 	// failed
 	Failed int64 `json:"failed,omitempty"`
 
@@ -32,6 +35,9 @@ type HostProgress struct {
 
 	// skipped
 	Skipped int64 `json:"skipped,omitempty"`
+
+	// started at
+	StartedAt string `json:"started_at,omitempty"`
 
 	// uploaded
 	Uploaded int64 `json:"uploaded,omitempty"`

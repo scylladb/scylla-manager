@@ -18,6 +18,9 @@ import (
 // swagger:model backupProgress
 type BackupProgress struct {
 
+	// completed at
+	CompletedAt string `json:"completed_at,omitempty"`
+
 	// dcs
 	Dcs []string `json:"dcs"`
 
@@ -32,6 +35,9 @@ type BackupProgress struct {
 
 	// skipped
 	Skipped int64 `json:"skipped,omitempty"`
+
+	// started at
+	StartedAt string `json:"started_at,omitempty"`
 
 	// uploaded
 	Uploaded int64 `json:"uploaded,omitempty"`

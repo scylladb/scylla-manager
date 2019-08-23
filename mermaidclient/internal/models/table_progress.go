@@ -15,6 +15,9 @@ import (
 // swagger:model tableProgress
 type TableProgress struct {
 
+	// completed at
+	CompletedAt string `json:"completed_at,omitempty"`
+
 	// error
 	Error string `json:"error,omitempty"`
 
@@ -26,6 +29,9 @@ type TableProgress struct {
 
 	// skipped
 	Skipped int64 `json:"skipped,omitempty"`
+
+	// started at
+	StartedAt string `json:"started_at,omitempty"`
 
 	// table
 	Table string `json:"table,omitempty"`
