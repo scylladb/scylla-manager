@@ -125,9 +125,10 @@ func mwLogger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 					} else {
 						f = append(f, "dump", string(b))
 					}
+					logger.Info(req.Context(), "HTTP", f...)
+				} else {
+					logger.Debug(req.Context(), "HTTP", f...)
 				}
-
-				logger.Debug(req.Context(), "HTTP", f...)
 			}
 		}()
 		return next.RoundTrip(req)
