@@ -32,7 +32,7 @@ type Target struct {
 type Unit struct {
 	Keyspace  string   `json:"keyspace" db:"keyspace_name"`
 	Tables    []string `json:"tables,omitempty"`
-	AllTables bool
+	AllTables bool     `json:"all_tables"`
 }
 
 func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {

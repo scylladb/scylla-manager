@@ -5,10 +5,12 @@
 package backup_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
@@ -91,98 +93,88 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 }
 
 func TestServiceGetTargetIntegration(t *testing.T) {
-	golden := backup.Target{
-		Units: []backup.Unit{
-			{Keyspace: "system_auth"},
-			{Keyspace: "system_distributed"},
-			{Keyspace: "system_traces"},
-		},
-		DC:        []string{"dc1", "dc2"},
-		Location:  []backup.Location{{Provider: "s3", Path: "foo"}},
-		Retention: 3,
-		Continue:  true,
-	}
-
-	decorate := func(f func(*backup.Target)) backup.Target {
-		v := golden
-		f(&v)
-		return v
-	}
+	// Clear keyspaces
+	CreateManagedClusterSession(t)
 
 	table := []struct {
 		Name   string
-		JSON   string
-		Target backup.Target
+		Input  string
+		Golden string
 	}{
 		{
 			Name:   "everything",
-			JSON:   `{"location": ["s3:foo"]}`,
-			Target: decorate(func(v *backup.Target) {}),
+			Input:  "testdata/get_target/everything.input.json",
+			Golden: "testdata/get_target/everything.golden.json",
 		},
 		{
-			Name: "filter keyspaces",
-			JSON: `{"keyspace": ["system_auth.*"], "location": ["s3:foo"]}`,
-			Target: decorate(func(v *backup.Target) {
-				v.Units = []backup.Unit{{Keyspace: "system_auth"}}
-			}),
+			Name:   "filter keyspaces",
+			Input:  "testdata/get_target/filter_keyspaces.input.json",
+			Golden: "testdata/get_target/filter_keyspaces.golden.json",
 		},
 		{
-			Name: "filter dc",
-			JSON: `{"dc": ["dc1"], "location": ["s3:foo"]}`,
-			Target: decorate(func(v *backup.Target) {
-				v.DC = []string{"dc1"}
-			}),
+			Name:   "filter dc",
+			Input:  "testdata/get_target/filter_dc.input.json",
+			Golden: "testdata/get_target/filter_dc.golden.json",
 		},
 		{
-			Name: "dc locations",
-			JSON: `{"location": ["s3:foo", "dc1:s3:bar"]}`,
-			Target: decorate(func(v *backup.Target) {
-				v.Location = []backup.Location{{Provider: "s3", Path: "foo"}, {DC: "dc1", Provider: "s3", Path: "bar"}}
-			}),
+			Name:   "dc locations",
+			Input:  "testdata/get_target/dc_locations.input.json",
+			Golden: "testdata/get_target/dc_locations.golden.json",
 		},
 		{
-			Name: "dc rate limit",
-			JSON: `{"rate_limit": ["1000", "dc1:100"], "location": ["s3:foo"]}`,
-			Target: decorate(func(v *backup.Target) {
-				v.RateLimit = []backup.DCLimit{{Limit: 1000}, {DC: "dc1", Limit: 100}}
-			}),
+			Name:   "dc rate limit",
+			Input:  "testdata/get_target/dc_rate_limit.input.json",
+			Golden: "testdata/get_target/dc_rate_limit.golden.json",
 		},
 		{
-			Name: "dc snapshot parallel",
-			JSON: `{"snapshot_parallel": ["10", "dc1:20"], "location": ["s3:foo"]}`,
-			Target: decorate(func(v *backup.Target) {
-				v.SnapshotParallel = []backup.DCLimit{{Limit: 10}, {DC: "dc1", Limit: 20}}
-			}),
+			Name:   "dc snapshot parallel",
+			Input:  "testdata/get_target/dc_snapshot_parallel.input.json",
+			Golden: "testdata/get_target/dc_snapshot_parallel.golden.json",
 		},
 		{
-			Name: "dc upload parallel",
-			JSON: `{"upload_parallel": ["10", "dc1:20"], "location": ["s3:foo"]}`,
-			Target: decorate(func(v *backup.Target) {
-				v.UploadParallel = []backup.DCLimit{{Limit: 10}, {DC: "dc1", Limit: 20}}
-			}),
+			Name:   "dc upload parallel",
+			Input:  "testdata/get_target/dc_upload_parallel.input.json",
+			Golden: "testdata/get_target/dc_upload_parallel.golden.json",
 		},
 		{
-			Name: "continue setting",
-			JSON: `{"continue": false, "location": ["s3:foo"]}`,
-			Target: decorate(func(v *backup.Target) {
-				v.Continue = false
-			}),
+			Name:   "continue",
+			Input:  "testdata/get_target/continue.input.json",
+			Golden: "testdata/get_target/continue.golden.json",
 		},
 	}
 
 	var (
-		session = CreateSession(t)
+		session = CreateSessionWithoutMigration(t)
 		h       = newBackupTestHelper(t, session, backup.DefaultConfig())
 		ctx     = context.Background()
 	)
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			golden := test.Target
-			v, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage(test.JSON), false)
+			b, err := ioutil.ReadFile(test.Input)
 			if err != nil {
 				t.Fatal(err)
 			}
+			v, err := h.service.GetTarget(ctx, h.clusterID, b, false)
+
+			if UpdateGoldenFiles() {
+				b, _ := json.Marshal(v)
+				var buf bytes.Buffer
+				json.Indent(&buf, b, "", "  ")
+				if err := ioutil.WriteFile(test.Golden, buf.Bytes(), 0666); err != nil {
+					t.Error(err)
+				}
+			}
+
+			b, err = ioutil.ReadFile(test.Golden)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var golden backup.Target
+			if err := json.Unmarshal(b, &golden); err != nil {
+				t.Error(err)
+			}
+
 			if diff := cmp.Diff(v, golden); diff != "" {
 				t.Fatal(diff)
 			}
@@ -191,6 +183,9 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 }
 
 func TestServiceGetTargetErrorIntegration(t *testing.T) {
+	// Clear keyspaces
+	CreateManagedClusterSession(t)
+
 	table := []struct {
 		Name   string
 		JSON   string
@@ -239,7 +234,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 	}
 
 	var (
-		session = CreateSession(t)
+		session = CreateSessionWithoutMigration(t)
 		h       = newBackupTestHelper(t, session, backup.DefaultConfig())
 		ctx     = context.Background()
 	)

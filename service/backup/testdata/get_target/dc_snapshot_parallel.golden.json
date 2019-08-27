@@ -1,0 +1,8 @@
+{
+  "location": null,
+  "retention": 0,
+  "rate_limit": null,
+  "snapshot_parallel": null,
+  "upload_parallel": null,
+  "continue": false
+}

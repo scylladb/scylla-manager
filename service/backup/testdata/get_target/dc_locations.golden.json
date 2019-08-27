@@ -1,0 +1,43 @@
+{
+  "units": [
+    {
+      "keyspace": "system_auth",
+      "tables": [
+        "role_members",
+        "roles"
+      ],
+      "all_tables": true
+    },
+    {
+      "keyspace": "system_distributed",
+      "tables": [
+        "view_build_status"
+      ],
+      "all_tables": true
+    },
+    {
+      "keyspace": "system_traces",
+      "tables": [
+        "node_slow_log",
+        "sessions",
+        "node_slow_log_time_idx",
+        "sessions_time_idx",
+        "events"
+      ],
+      "all_tables": true
+    }
+  ],
+  "dc": [
+    "dc1",
+    "dc2"
+  ],
+  "location": [
+    "s3:foo",
+    "dc1:s3:bar"
+  ],
+  "retention": 3,
+  "rate_limit": null,
+  "snapshot_parallel": null,
+  "upload_parallel": null,
+  "continue": true
+}
