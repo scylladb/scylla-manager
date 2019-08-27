@@ -150,6 +150,7 @@ BuildRequires: systemd
 %files agent
 %defattr(-,root,root)
 %{_bindir}/%{name}-agent
+%{_sbindir}/scyllamgr_auth_token_gen
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}-agent/%{name}-agent.yaml
 %{_unitdir}/%{name}-agent.service

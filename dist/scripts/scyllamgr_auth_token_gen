@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
+
+set -eu -o pipefail
+
+tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 128 | head -n 1
