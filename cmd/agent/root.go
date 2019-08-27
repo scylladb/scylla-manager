@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 		}
 		var c config
 		if err := yaml.Unmarshal(b, &c); err != nil {
-			return errors.Wrapf(err, "failed to parse config file %s", rootArgs.configFile)
+			return errors.Wrapf(err, "invalid config file %s", rootArgs.configFile)
 		}
 
 		// Get a base context

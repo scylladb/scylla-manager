@@ -1,2 +1,3 @@
+auth_token: token
 debug: 1002
 scylla_config_file: ./testdata/config/scylla.input.yaml

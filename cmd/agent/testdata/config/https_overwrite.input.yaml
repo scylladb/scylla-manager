@@ -1,2 +1,3 @@
+auth_token: token
 https: foobar
 scylla_config_file: ./testdata/config/scylla.input.yaml

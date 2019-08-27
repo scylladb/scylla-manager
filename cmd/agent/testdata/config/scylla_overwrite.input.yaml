@@ -1,3 +1,4 @@
+auth_token: token
 scylla_config_file: ./testdata/config/scylla.input.yaml
 scylla:
   broadcast_address: foobar
