@@ -8,7 +8,6 @@ This product includes software from github.com/go-chi/render licensed under MIT 
 This product includes software from github.com/gocql/gocql licensed under BSD-3-Clause license.
 This product includes software from github.com/golang/protobuf licensed under BSD-3-Clause license.
 This product includes software from github.com/golang/snappy licensed under BSD-3-Clause license.
-This product includes software from github.com/google/gops licensed under BSD-3-Clause license.
 This product includes software from github.com/go-openapi/analysis licensed under Apache-2.0 license.
 This product includes software from github.com/go-openapi/errors licensed under Apache-2.0 license.
 This product includes software from github.com/go-openapi/jsonpointer licensed under Apache-2.0 license.
@@ -21,7 +20,6 @@ This product includes software from github.com/go-openapi/swag licensed under Ap
 This product includes software from github.com/go-openapi/validate licensed under Apache-2.0 license.
 This product includes software from github.com/hailocab/go-hostpool licensed under MIT license.
 This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0-no-copyleft-exception license.
-This product includes software from github.com/kardianos/osext licensed under BSD-3-Clause license.
 This product includes software from github.com/mailru/easyjson licensed under MIT license.
 This product includes software from github.com/matttproud/golang_protobuf_extensions licensed under Apache-2.0 license.
 This product includes software from github.com/mitchellh/mapstructure licensed under MIT license.
