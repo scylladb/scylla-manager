@@ -14,15 +14,24 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	httputilx "github.com/scylladb/mermaid/internal/httputil"
 	"github.com/scylladb/mermaid/internal/retryablehttp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
+// The RoundTripperFunc type is an adapter to allow the use of ordinary
+// functions as RoundTrippers. If f is a function with the appropriate
+// signature, RountTripperFunc(f) is a RoundTripper that calls f.
+type RoundTripperFunc func(req *http.Request) (*http.Response, error)
+
+// RoundTrip implements the RoundTripper interface.
+func (rt RoundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return rt(r)
+}
+
 // FixContentType adjusts Scylla REST API response so that it can be consumed
 // by Open API.
 func FixContentType(next http.RoundTripper) http.RoundTripper {
-	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		defer func() {
 			if resp != nil {
 				// Force JSON, Scylla returns "text/plain" that misleads the
@@ -45,7 +54,7 @@ func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTr
 	poolRetry.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration { return 0 }
 	poolRetry.RetryMax = poolSize
 
-	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		if _, ok := req.Context().Value(ctxNoRetry).(bool); ok {
 			return next.RoundTrip(req)
 		}
@@ -60,7 +69,7 @@ func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTr
 
 // HostPool sets request host from a pool.
 func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
-	return httputilx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	return RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		ctx := req.Context()
 
 		var (
@@ -105,7 +114,7 @@ func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 
 // Logger logs requests and responses.
 func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
-	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		start := timeutc.Now()
 		defer func() {
 			if resp != nil {
@@ -148,7 +157,7 @@ func (b body) Close() error {
 
 // Timeout sets request context timeout for individual requests.
 func Timeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
-	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
 		defer func() {
 			if resp != nil {

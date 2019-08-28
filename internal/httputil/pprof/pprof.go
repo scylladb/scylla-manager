@@ -1,14 +1,14 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httputil
+package pprof
 
 import (
 	"net/http"
 	"net/http/pprof"
 )
 
-// PprofHandler returns http.Handler serving pprof endpoints.
-func PprofHandler() http.Handler {
+// Handler returns http.Handler serving pprof endpoints.
+func Handler() http.Handler {
 	m := http.NewServeMux()
 	m.HandleFunc("/debug/pprof/", pprof.Index)
 	m.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)

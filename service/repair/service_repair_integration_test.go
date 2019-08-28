@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/httputil"
+	"github.com/scylladb/mermaid/internal/httputil/middleware"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/service/repair"
@@ -252,7 +252,7 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 var commandCounter int32
 
 func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
-	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	return middleware.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
 			return nil, nil
 		}
@@ -280,7 +280,7 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 }
 
 func dialErrorInterceptor() http.RoundTripper {
-	return httputil.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	return middleware.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		return nil, errors.New("mock dial error")
 	})
 }
@@ -921,7 +921,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			mu sync.Mutex
 			ic = repairInterceptor(scyllaclient.CommandFailed)
 		)
-		h.hrt.SetInterceptor(httputil.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		h.hrt.SetInterceptor(middleware.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 			if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
 				return nil, nil
 			}
