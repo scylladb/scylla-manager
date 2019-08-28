@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package scyllaclient
+package middleware
 
 import (
 	"context"
@@ -19,9 +19,9 @@ import (
 	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
-// mwOpenAPIFix adjusts Scylla REST API response so that it can be consumed
+// FixContentType adjusts Scylla REST API response so that it can be consumed
 // by Open API.
-func mwOpenAPIFix(next http.RoundTripper) http.RoundTripper {
+func FixContentType(next http.RoundTripper) http.RoundTripper {
 	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		defer func() {
 			if resp != nil {
@@ -34,8 +34,8 @@ func mwOpenAPIFix(next http.RoundTripper) http.RoundTripper {
 	})
 }
 
-// mwRetry retries request if needed.
-func mwRetry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTripper {
+// Retry retries request if needed.
+func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTripper {
 	// Retry policy while using a specified host.
 	hostRetry := retryablehttp.NewTransport(next, logger)
 
@@ -58,8 +58,8 @@ func mwRetry(next http.RoundTripper, poolSize int, logger log.Logger) http.Round
 	})
 }
 
-// mwHostPool sets request host from a pool.
-func mwHostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
+// HostPool sets request host from a pool.
+func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
 	return httputilx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		ctx := req.Context()
 
@@ -103,8 +103,8 @@ func mwHostPool(next http.RoundTripper, pool hostpool.HostPool, port string) htt
 	})
 }
 
-// mwLogger logs requests and responses.
-func mwLogger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
+// Logger logs requests and responses.
+func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		start := timeutc.Now()
 		defer func() {
@@ -146,8 +146,8 @@ func (b body) Close() error {
 	return b.ReadCloser.Close()
 }
 
-// mwTimeout sets request context timeout for individual requests.
-func mwTimeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
+// Timeout sets request context timeout for individual requests.
+func Timeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
 	return httputilx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
 		defer func() {

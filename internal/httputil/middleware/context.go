@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package scyllaclient
+package middleware
 
 import "context"
 
@@ -13,10 +13,13 @@ const (
 	ctxNoRetry
 )
 
-func forceHost(ctx context.Context, host string) context.Context {
+// ForceHost makes HostPool middleware use the given host instead of selecting
+// one.
+func ForceHost(ctx context.Context, host string) context.Context {
 	return context.WithValue(ctx, ctxHost, host)
 }
 
-func noRetry(ctx context.Context) context.Context {
+// NoRetry disables Retry middleware.
+func NoRetry(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxNoRetry, true)
 }

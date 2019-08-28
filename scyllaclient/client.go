@@ -18,11 +18,12 @@ import (
 	"time"
 
 	api "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/runtime/middleware"
+	apiMiddleware "github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/httputil/middleware"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	rcloneClient "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client"
 	rcloneOperations "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client/operations"
@@ -80,7 +81,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		api.DefaultTimeout = 0
 		// Disable debug output to stderr, it could have been enabled by setting
 		// SWAGGER_DEBUG or DEBUG env variables.
-		middleware.Debug = false
+		apiMiddleware.Debug = false
 	})
 
 	// Copy hosts
@@ -93,11 +94,11 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		config.Transport = DefaultTransport()
 	}
 	transport := config.Transport
-	transport = mwTimeout(transport, config.RequestTimeout)
-	transport = mwLogger(transport, logger)
-	transport = mwHostPool(transport, pool, config.AgentPort)
-	transport = mwRetry(transport, len(config.Hosts), logger)
-	transport = mwOpenAPIFix(transport)
+	transport = middleware.Timeout(transport, config.RequestTimeout)
+	transport = middleware.Logger(transport, logger)
+	transport = middleware.HostPool(transport, pool, config.AgentPort)
+	transport = middleware.Retry(transport, len(config.Hosts), logger)
+	transport = middleware.FixContentType(transport)
 
 	c := &http.Client{
 		Timeout:   config.Timeout,
@@ -248,7 +249,7 @@ func (c *Client) PingN(ctx context.Context, host string, n int) (time.Duration, 
 
 // Ping checks if host is available using HTTP ping.
 func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
-	ctx, cancel := context.WithTimeout(noRetry(ctx), c.config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(middleware.NoRetry(ctx), c.config.RequestTimeout)
 	defer cancel()
 
 	u := url.URL{
@@ -260,7 +261,7 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	r = r.WithContext(forceHost(ctx, host))
+	r = r.WithContext(middleware.ForceHost(ctx, host))
 
 	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)

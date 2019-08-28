@@ -17,6 +17,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/mermaid/internal/httputil/middleware"
 	"github.com/scylladb/mermaid/scyllaclient/internal/scylla/client/operations"
 	"go.uber.org/multierr"
 )
@@ -188,7 +189,7 @@ func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error
 	if err != nil {
 		return nil, err
 	}
-	r = r.WithContext(forceHost(ctx, host))
+	r = r.WithContext(middleware.ForceHost(ctx, host))
 
 	resp, err := c.transport.RoundTrip(r)
 	if err != nil {
@@ -270,7 +271,7 @@ type RepairConfig struct {
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
-		Context:  forceHost(ctx, host),
+		Context:  middleware.ForceHost(ctx, host),
 		Keyspace: config.Keyspace,
 		Ranges:   &config.Ranges,
 	}
@@ -299,7 +300,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
 	resp, err := c.scyllaOpts.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
-		Context:  forceHost(ctx, host),
+		Context:  middleware.ForceHost(ctx, host),
 		Keyspace: keyspace,
 		ID:       id,
 	})
@@ -351,7 +352,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 	const wait = 50 * time.Millisecond
 	for i := 0; i < 10; i++ {
 		resp, err := c.scyllaOpts.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
-			Context: forceHost(ctx, host),
+			Context: middleware.ForceHost(ctx, host),
 		})
 		if err != nil {
 			return false, err
@@ -375,7 +376,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 // operation is not retried to avoid side effects of a deferred kill.
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	_, err := c.scyllaOpts.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
-		Context: noRetry(forceHost(ctx, host)),
+		Context: middleware.NoRetry(middleware.ForceHost(ctx, host)),
 	})
 	return err
 }
@@ -383,7 +384,7 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 // Snapshots lists available snapshots.
 func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 	resp, err := c.scyllaOpts.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
-		Context: forceHost(ctx, host),
+		Context: middleware.ForceHost(ctx, host),
 	})
 	if err != nil {
 		return nil, err
@@ -401,7 +402,7 @@ func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 // snapshot.
 func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit, error) {
 	resp, err := c.scyllaOpts.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
-		Context: forceHost(ctx, host),
+		Context: middleware.ForceHost(ctx, host),
 	})
 	if err != nil {
 		return nil, err
@@ -439,7 +440,7 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 // the same tag.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
 	params := &operations.StorageServiceSnapshotsPostParams{
-		Context: forceHost(ctx, host),
+		Context: middleware.ForceHost(ctx, host),
 		Tag:     &tag,
 		Kn:      &keyspace,
 	}
@@ -455,7 +456,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 // DeleteSnapshot removes a snapshot with a given tag.
 func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
 	_, err := c.scyllaOpts.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
-		Context: forceHost(ctx, host),
+		Context: middleware.ForceHost(ctx, host),
 		Tag:     &tag,
 	})
 	return err
