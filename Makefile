@@ -64,8 +64,11 @@ unit-test: ## Run unit tests
 	@echo "==> Running tests (race)..."
 	@go test -cover -race ./...
 
-S3_ARGS               := -s3-data-dir $(PWD)/testing/minio/data -s3-endpoint http://192.168.100.99:9000 -s3-access-key-id minio -s3-secret-access-key minio123
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -managed-cluster 192.168.100.11 $(S3_ARGS)
+DB_ARGS    := -cluster 192.168.100.100 -managed-cluster 192.168.100.11
+AGENT_ARGS := -agent-auth-token token
+S3_ARGS    := -s3-data-dir $(PWD)/testing/minio/data -s3-endpoint http://192.168.100.99:9000 -s3-access-key-id minio -s3-secret-access-key minio123
+
+INTEGRATION_TEST_ARGS := $(DB_ARGS) $(AGENT_ARGS) $(S3_ARGS)
 
 .PHONY: integration-test
 integration-test: ## Run integration tests

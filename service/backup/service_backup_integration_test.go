@@ -65,7 +65,7 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 func newTestClient(t *testing.T, logger log.Logger) *scyllaclient.Client {
 	t.Helper()
 
-	c, err := scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), logger.Named("scylla"))
+	c, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), logger.Named("scylla"))
 	if err != nil {
 		t.Fatal(err)
 	}

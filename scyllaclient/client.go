@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	apiRuntime "github.com/go-openapi/runtime"
 	api "github.com/go-openapi/runtime/client"
 	apiMiddleware "github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -98,6 +99,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	transport = middleware.Logger(transport, logger)
 	transport = middleware.HostPool(transport, pool, config.AgentPort)
 	transport = middleware.Retry(transport, len(config.Hosts), logger)
+	transport = middleware.AuthToken(transport, config.AuthToken)
 	transport = middleware.FixContentType(transport)
 
 	c := &http.Client{
@@ -265,11 +267,17 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 
 	t := timeutc.Now()
 	resp, err := c.transport.RoundTrip(r)
+	d := timeutc.Since(t)
 	if resp != nil {
 		io.Copy(ioutil.Discard, io.LimitReader(resp.Body, 1024)) // nolint: errcheck
 		resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+			err = apiRuntime.NewAPIError("unknown error", nil, resp.StatusCode)
+		}
 	}
-	return timeutc.Since(t), err
+
+	return d, err
 }
 
 // Close closes all the idle connections.

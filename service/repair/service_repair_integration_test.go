@@ -219,8 +219,7 @@ func (h *repairTestHelper) progress(unit, node, shard int) int {
 func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
 	t.Helper()
 
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = ManagedClusterHosts
+	config := scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken())
 	config.Transport = hrt
 	c, err := scyllaclient.NewClient(config, logger.Named("scylla"))
 	if err != nil {
@@ -999,9 +998,9 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 
 	Print("Given: repair is running on a host")
 	go func() {
-		stdout, stderr, err := ExecOnHost(ManagedClusterHosts[0], "nodetool repair -pr")
-		if err != nil {
-			t.Log(err, stdout, stderr)
+		_, _, err := ExecOnHost(ManagedClusterHosts[0], "nodetool repair -pr")
+		if err == nil {
+			t.Fatal("expected failure due to killing all repairs")
 		}
 	}()
 	defer func() {

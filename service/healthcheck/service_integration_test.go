@@ -30,7 +30,7 @@ func TestGetStatusIntegration(t *testing.T) {
 			return "test_cluster", nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), logger.Named("scylla"))
+			return scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), logger.Named("scylla"))
 		},
 		kv.NopStore{},
 		kv.NopStore{},

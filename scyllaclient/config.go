@@ -15,6 +15,8 @@ type Config struct {
 	// Hosts specifies all the cluster hosts that for a pool of hosts for the
 	// client.
 	Hosts []string
+	// AuthToken specifies the authentication token.
+	AuthToken string
 	// Transport scheme HTTP or HTTPS.
 	Scheme string
 	// Transport allows for setting a custom round tripper to send HTTP requests
@@ -46,11 +48,12 @@ func DefaultConfig() Config {
 	}
 }
 
-// DefaultConfigWithHosts is a convenience function equal to calling
-// DefaultConfig and setting hosts on it manually.
-func DefaultConfigWithHosts(hosts []string) Config {
+// TestConfig is a convenience function equal to calling DefaultConfig and
+// setting hosts and token manually.
+func TestConfig(hosts []string, token string) Config {
 	config := DefaultConfig()
 	config.Hosts = hosts
+	config.AuthToken = token
 	return config
 }
 

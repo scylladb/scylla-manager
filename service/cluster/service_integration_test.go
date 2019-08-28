@@ -80,9 +80,10 @@ func TestServiceStorageIntegration(t *testing.T) {
 		expected := make([]*cluster.Cluster, 3)
 		for i := range expected {
 			c := &cluster.Cluster{
-				ID:   uuid.NewTime(),
-				Name: "name" + strconv.Itoa(i),
-				Host: mermaidtest.ManagedClusterHosts[0],
+				ID:        uuid.NewTime(),
+				Name:      "name" + strconv.Itoa(i),
+				Host:      ManagedClusterHosts[0],
+				AuthToken: AgentAuthToken(),
 			}
 			if err := s.PutCluster(ctx, c); err != nil {
 				t.Fatal(err)
@@ -253,9 +254,10 @@ func TestServiceStorageIntegration(t *testing.T) {
 		setup(t)
 
 		c := &cluster.Cluster{
-			ID:   uuid.NewTime(),
-			Name: "clust1",
-			Host: mermaidtest.ManagedClusterHosts[0],
+			ID:        uuid.NewTime(),
+			Name:      "clust1",
+			Host:      ManagedClusterHosts[0],
+			AuthToken: AgentAuthToken(),
 		}
 		if err := s.PutCluster(ctx, c); err != nil {
 			t.Fatal(err)
@@ -316,8 +318,9 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 func validCluster() *cluster.Cluster {
 	return &cluster.Cluster{
-		ID:   uuid.MustRandom(),
-		Name: "name_" + uuid.MustRandom().String(),
-		Host: mermaidtest.ManagedClusterHosts[0],
+		ID:        uuid.MustRandom(),
+		Name:      "name_" + uuid.MustRandom().String(),
+		Host:      ManagedClusterHosts[0],
+		AuthToken: AgentAuthToken(),
 	}
 }

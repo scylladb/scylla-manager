@@ -7,6 +7,7 @@ package scyllaclient_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -16,8 +17,23 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
+func TestPingAuthIntegration(t *testing.T) {
+	config := scyllaclient.TestConfig(ManagedClusterHosts, "wrong")
+
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	_, err = client.Ping(ctx, ManagedClusterHosts[0])
+	if scyllaclient.StatusCodeOf(err) != http.StatusUnauthorized {
+		t.Error("expected 401 got", err)
+	}
+}
+
 func TestClientClosestDCIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +53,7 @@ func TestClientClosestDCIntegration(t *testing.T) {
 }
 
 func TestClientActiveRepairsIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,9 +93,7 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 }
 
 func TestClientSnapshotIntegration(t *testing.T) {
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = ManagedClusterHosts
-
+	config := scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken())
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)

@@ -57,7 +57,7 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 }
 
 func getHosts() ([]string, error) {
-	client, err := scyllaclient.NewClient(scyllaclient.DefaultConfigWithHosts(ManagedClusterHosts), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		return nil, err
 	}
@@ -88,19 +88,16 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 		return nil
 	}
 
-	config := scyllaclient.DefaultConfig()
+	triedHosts := make(map[string]int)
+	config := scyllaclient.TestConfig(hosts, AgentAuthToken())
+	config.Transport = hostRecorder(scyllaclient.DefaultTransport(), triedHosts)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*config.RequestTimeout)
 	defer cancel()
 	defer unblock(context.Background())
-
 	if err := block(ctx, hosts[0:n]); err != nil {
 		return err
 	}
-
-	config.Hosts = hosts
-	triedHosts := make(map[string]int)
-	config.Transport = hostRecorder(scyllaclient.DefaultTransport(), triedHosts)
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {

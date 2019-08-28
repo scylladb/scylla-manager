@@ -28,6 +28,15 @@ func (rt RoundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return rt(r)
 }
 
+// AuthToken sets authorization header.
+func AuthToken(next http.RoundTripper, token string) http.RoundTripper {
+	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		r := cloneRequest(req)
+		r.Header.Set("Authorization", "Bearer "+token)
+		return next.RoundTrip(r)
+	})
+}
+
 // FixContentType adjusts Scylla REST API response so that it can be consumed
 // by Open API.
 func FixContentType(next http.RoundTripper) http.RoundTripper {
@@ -121,15 +130,21 @@ func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 
 		start := timeutc.Now()
 		defer func() {
+			d := timeutc.Since(start) / 1000000
+			f := []interface{}{
+				"host", req.Host,
+				"method", req.Method,
+				"uri", req.URL.RequestURI(),
+				"duration", fmt.Sprintf("%dms", d),
+			}
+
+			log := logger.Debug
+
 			if resp != nil {
-				f := []interface{}{
-					"host", req.Host,
-					"method", req.Method,
-					"uri", req.URL.RequestURI(),
+				f = append(f,
 					"status", resp.StatusCode,
 					"bytes", resp.ContentLength,
-					"duration", fmt.Sprintf("%dms", timeutc.Since(start)/1000000),
-				}
+				)
 
 				// Dump body of failed requests
 				if resp.StatusCode >= 400 {
@@ -138,11 +153,11 @@ func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 					} else {
 						f = append(f, "dump", string(b))
 					}
-					logger.Info(req.Context(), "HTTP", f...)
-				} else {
-					logger.Debug(req.Context(), "HTTP", f...)
+					log = logger.Info
 				}
 			}
+
+			log(req.Context(), "HTTP", f...)
 		}()
 		return next.RoundTrip(req)
 	})
