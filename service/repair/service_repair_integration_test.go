@@ -907,30 +907,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertDone(shortWait)
 	})
 
-	t.Run("repair error nodetool repair running", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		Print("Given: repair is running on a host")
-		go func() {
-			stdout, stderr, err := ExecOnHost(ManagedClusterHosts[0], "nodetool repair -pr")
-			if err != nil {
-				t.Log(err, stdout, stderr)
-			}
-		}()
-		defer func() {
-			if err := h.client.KillAllRepairs(context.Background(), ManagedClusterHosts[0]); err != nil {
-				t.Fatal(err)
-			}
-		}()
-		Print("When: repair starts")
-		h.runRepair(ctx, singleUnit())
-
-		Print("Then: repair fails")
-		h.assertErrorContains("active repair on hosts", shortWait)
-	})
-
 	t.Run("repair error fail fast", func(t *testing.T) {
 		c := defaultConfig()
 		h := newRepairTestHelper(t, session, c)
@@ -1006,4 +982,36 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair fails")
 		h.assertError(shortWait)
 	})
+}
+
+func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
+	clusterSession := CreateManagedClusterSession(t)
+
+	createKeyspace(t, clusterSession, "test_repair")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair")
+
+	session := CreateSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	Print("Given: repair is running on a host")
+	go func() {
+		stdout, stderr, err := ExecOnHost(ManagedClusterHosts[0], "nodetool repair -pr")
+		if err != nil {
+			t.Log(err, stdout, stderr)
+		}
+	}()
+	defer func() {
+		if err := h.client.KillAllRepairs(context.Background(), ManagedClusterHosts[0]); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	Print("When: repair starts")
+	h.runRepair(ctx, singleUnit())
+
+	Print("Then: repair fails")
+	h.assertErrorContains("active repair on hosts", shortWait)
 }
