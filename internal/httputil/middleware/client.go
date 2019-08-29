@@ -55,7 +55,7 @@ func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTr
 	poolRetry.RetryMax = poolSize
 
 	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
-		if _, ok := req.Context().Value(ctxNoRetry).(bool); ok {
+		if _, ok := req.Context().Value(ctxDontRetry).(bool); ok {
 			return next.RoundTrip(req)
 		}
 
