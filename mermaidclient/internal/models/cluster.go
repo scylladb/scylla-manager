@@ -16,6 +16,9 @@ import (
 // swagger:model cluster
 type Cluster struct {
 
+	// auth token
+	AuthToken string `json:"auth_token,omitempty"`
+
 	// host
 	Host string `json:"host,omitempty"`
 

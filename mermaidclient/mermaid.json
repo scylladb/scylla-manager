@@ -32,6 +32,9 @@
         "host": {
           "type": "string"
         },
+        "auth_token": {
+          "type": "string"
+        },
         "ssl_user_cert_file": {
           "type": "string",
           "format": "byte"
