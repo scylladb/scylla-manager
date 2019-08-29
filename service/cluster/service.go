@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // ChangeType specifies type on Change.
@@ -87,13 +88,13 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 
 	client, err := s.createClient(c)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create client")
 	}
 	defer client.Close()
 
 	hosts, err := s.discoverHosts(ctx, client)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to discover hosts")
 	}
 	if err := s.setKnownHosts(c, hosts); err != nil {
 		return nil, errors.Wrap(err, "failed to update cluster")
@@ -266,6 +267,8 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 			return errors.Wrap(err, "couldn't generate random UUID for Cluster")
 		}
 		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
+	} else {
+		s.logger.Info(ctx, "Updating cluster", "cluster_id", c.ID)
 	}
 
 	// Validate cluster model.
@@ -342,20 +345,33 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 
 	client, err := s.createClient(c)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create client")
 	}
 	defer client.Close()
 
-	// To validate connectivity try refreshing host pool, this is the same
-	// sanity check we do in client function before returning client to
-	// the system.
-	hosts, err := s.discoverHosts(ctx, client)
+	hosts, err := client.Hosts(ctx)
 	if err != nil {
-		s.logger.Info(ctx, "Host connectivity check failed",
-			"cluster_id", c.ID,
-			"error", err,
-		)
-		return mermaid.ErrValidate(err, "host connectivity check failed")
+		return errors.Wrap(err, "failed to discover hosts")
+	}
+
+	// For every reachable host check that there are not HTTP errors
+	var (
+		errs  error
+		alive int
+	)
+	for i, err := range client.CheckHostsConnectivity(ctx, hosts) {
+		if scyllaclient.StatusCodeOf(err) > 0 {
+			errs = multierr.Append(errs, errors.Wrap(err, hosts[i]))
+		}
+		if err == nil {
+			alive++
+		}
+	}
+	if errs != nil {
+		return mermaid.ErrValidate(errs, "host connectivity check failed")
+	}
+	if alive == 0 {
+		return mermaid.ErrValidate(errors.New("failed to connect to any host"), "host connectivity check failed")
 	}
 
 	// Update known hosts.
