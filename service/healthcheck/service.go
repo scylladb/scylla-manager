@@ -233,7 +233,7 @@ func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string
 		return 0, errors.Wrapf(err, "failed to get client for cluster with id %s", clusterID)
 	}
 
-	return client.PingN(ctx, host, pingLaps)
+	return client.PingN(ctx, host, pingLaps, 0)
 }
 
 func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Config, error) {

@@ -400,10 +400,6 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 	// Prepare host workers for unit
 	unitWorker := make([]*hostWorker, len(hosts))
 	for i, host := range hosts {
-		// ping host
-		if _, err := client.Ping(ctx, host); err != nil {
-			return errors.Wrapf(err, "host %s not available", host)
-		}
 		unitWorker[i] = &hostWorker{
 			Config:   &s.config,
 			Run:      run,

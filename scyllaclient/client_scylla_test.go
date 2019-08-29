@@ -4,64 +4,12 @@ package scyllaclient
 
 import (
 	"context"
-	"io"
-	"net"
 	"net/http"
-	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/go-log"
 )
-
-// Matcher defines a function used to determine the file to return from a given newMockServer call.
-type Matcher func(req *http.Request) string
-
-// FileMatcher is a simple matcher created for backwards compatibility.
-func FileMatcher(file string) Matcher {
-	return func(req *http.Request) string {
-		return file
-	}
-}
-
-func newMockServer(t *testing.T, file string) (*Client, func()) {
-	return newMockServerMatching(t, FileMatcher(file))
-}
-
-func newMockServerMatching(t *testing.T, m Matcher) (*Client, func()) {
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-
-		// Emulate ScyllaDB bug
-		r.Header.Set("Content-Type", "text/plain")
-
-		file := m(r)
-
-		f, err := os.Open(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		io.Copy(w, f)
-	}))
-
-	config := DefaultConfig()
-	host, port, _ := net.SplitHostPort(s.Listener.Addr().String())
-	config.Hosts = []string{host}
-	config.Scheme = "http"
-	config.AgentPort = port
-
-	c, err := NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return c, s.Close
-}
-
-const testHost = "127.0.0.1"
 
 func TestClientClusterName(t *testing.T) {
 	t.Parallel()
@@ -374,58 +322,6 @@ func TestClientKillAllRepairs(t *testing.T) {
 	err := c.KillAllRepairs(context.Background(), testHost)
 	if err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestClientPing(t *testing.T) {
-	t.Parallel()
-
-	c, close := newMockServer(t, "/dev/null")
-	defer close()
-
-	if _, err := c.Ping(context.Background(), testHost); err != nil {
-		t.Fatal(err)
-	}
-
-	_, err := c.Ping(context.Background(), "localhost:0")
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-func TestPickNRandomHosts(t *testing.T) {
-	table := []struct {
-		H []string
-		N int
-		E int
-	}{
-		{
-			H: []string{"a"},
-			N: 1,
-			E: 1,
-		},
-		{
-			H: []string{"a"},
-			N: 4,
-			E: 1,
-		},
-		{
-			H: []string{"a", "a"},
-			N: 2,
-			E: 2,
-		},
-		{
-			H: []string{"a", "b", "c"},
-			N: 2,
-			E: 2,
-		},
-	}
-
-	for i, test := range table {
-		picked := pickNRandomHosts(test.N, test.H)
-		if len(picked) != test.E {
-			t.Errorf("picked %d hosts, expected %d in test %d", len(picked), test.E, i)
-		}
 	}
 }
 

@@ -131,11 +131,6 @@ func (w *hostWorker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Pa
 func (w *hostWorker) exec(ctx context.Context) error {
 	w.Logger.Info(ctx, "Repairing")
 
-	// Check if host is available
-	if _, err := w.Client.Ping(ctx, w.Host); err != nil {
-		return errors.Wrap(err, "ping failed")
-	}
-
 	// Check if no other repairs are running
 	if active, err := w.Client.ActiveRepairs(ctx, w.Run.Units[w.Unit].hosts); err != nil {
 		w.Logger.Error(ctx, "Active repair check failed", "error", err)
