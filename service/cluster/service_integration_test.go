@@ -16,13 +16,13 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/kv"
-	"github.com/scylladb/mermaid/mermaidtest"
+	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
-	session := mermaidtest.CreateSession(t)
+	session := CreateSession(t)
 
 	dir, err := ioutil.TempDir("", "mermaid.cluster.TestServiceStorageIntegration")
 	if err != nil {
@@ -57,7 +57,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	diffOpts := []cmp.Option{
-		mermaidtest.UUIDComparer(),
+		UUIDComparer(),
 		cmpopts.IgnoreFields(cluster.Cluster{}, "Host"),
 		cmpopts.IgnoreFields(cluster.Cluster{}, "KnownHosts"),
 	}
@@ -163,6 +163,8 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		if err := s.PutCluster(ctx, nil); err == nil {
 			t.Fatal("expected validation error")
+		} else {
+			t.Log(err)
 		}
 	})
 
@@ -180,6 +182,21 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		if err := s.PutCluster(ctx, c0); err == nil {
 			t.Fatal("expected validation error")
+		} else {
+			t.Log(err)
+		}
+	})
+
+	t.Run("put cluster with wrong auth token", func(t *testing.T) {
+		setup(t)
+
+		c := validCluster()
+		c.AuthToken = "foobar"
+
+		if err := s.PutCluster(ctx, c); err == nil {
+			t.Fatal("expected validation error")
+		} else {
+			t.Log(err)
 		}
 	})
 

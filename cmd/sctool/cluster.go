@@ -23,6 +23,7 @@ func init() {
 var (
 	cfgClusterName            string
 	cfgClusterHost            string
+	cfgClusterAuthToken       string
 	cfgClusterSSLUserCertFile string
 	cfgClusterSSLUserKeyFile  string
 )
@@ -30,6 +31,7 @@ var (
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "`alias` you can give to your cluster")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
+	cmd.Flags().StringVar(&cfgClusterAuthToken, "auth-token", "", "authentication token set on the cluster nodes in agent config file")
 	cmd.Flags().StringVar(&cfgClusterSSLUserCertFile, "ssl-user-cert-file", "", "`path` to client certificate when using client/server encryption with require_client_auth enabled")
 	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
 }
@@ -40,8 +42,9 @@ var clusterAddCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := &mermaidclient.Cluster{
-			Name: cfgClusterName,
-			Host: cfgClusterHost,
+			Name:      cfgClusterName,
+			Host:      cfgClusterHost,
+			AuthToken: cfgClusterAuthToken,
 		}
 
 		if cfgClusterSSLUserCertFile != "" && cfgClusterSSLUserKeyFile == "" {
@@ -93,6 +96,7 @@ func init() {
 
 	clusterInitCommonFlags(cmd)
 	requireFlags(cmd, "host")
+	requireFlags(cmd, "auth-token")
 }
 
 var clusterUpdateCmd = &cobra.Command{
@@ -112,6 +116,10 @@ var clusterUpdateCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("host") {
 			cluster.Host = cfgClusterHost
+			ok = true
+		}
+		if cmd.Flags().Changed("auth-token") {
+			cluster.AuthToken = cfgClusterAuthToken
 			ok = true
 		}
 		if cmd.Flags().Changed("ssl-user-cert-file") {

@@ -51,6 +51,7 @@ var (
 			"id",
 			"name",
 			"known_hosts",
+			"auth_token",
 		},
 		PartKey: []string{"id"},
 	})

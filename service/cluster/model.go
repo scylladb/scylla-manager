@@ -17,6 +17,7 @@ type Cluster struct {
 	Name            string    `json:"name"`
 	Host            string    `json:"host" db:"-"`
 	KnownHosts      []string  `json:"-"`
+	AuthToken       string    `json:"auth_token"`
 	SSLUserCertFile []byte    `json:"ssl_user_cert_file,omitempty" db:"-"`
 	SSLUserKeyFile  []byte    `json:"ssl_user_key_file,omitempty" db:"-"`
 }
@@ -41,6 +42,9 @@ func (c *Cluster) Validate() error {
 	var errs error
 	if _, err := uuid.Parse(c.Name); err == nil {
 		errs = multierr.Append(errs, errors.New("name cannot be an UUID"))
+	}
+	if c.AuthToken == "" {
+		errs = multierr.Append(errs, errors.New("missing auth token"))
 	}
 	if len(c.SSLUserCertFile) != 0 && len(c.SSLUserKeyFile) == 0 {
 		errs = multierr.Append(errs, errors.New("missing SSL user key"))
