@@ -115,6 +115,10 @@ func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 // Logger logs requests and responses.
 func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		if _, ok := req.Context().Value(ctxDontLog).(bool); ok {
+			return next.RoundTrip(req)
+		}
+
 		start := timeutc.Now()
 		defer func() {
 			if resp != nil {
