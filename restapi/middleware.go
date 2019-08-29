@@ -39,9 +39,9 @@ func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {
 		httpErr, _ := v.(*httpError)
 		if httpErr == nil {
 			httpErr = &httpError{
-				Cause:      err.Error(),
 				StatusCode: http.StatusInternalServerError,
 				Message:    "unexpected error, consult logs",
+				Cause:      err.Error(),
 				TraceID:    log.TraceID(r.Context()),
 			}
 		}

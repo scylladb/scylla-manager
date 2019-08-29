@@ -24,7 +24,7 @@ type httpError struct {
 func (e *httpError) Error() string {
 	var out string
 	if e.Cause != "" {
-		out = fmt.Sprintf("%s: %s", e.Cause, e.Message)
+		out = fmt.Sprintf("%s: %s", e.Message, e.Cause)
 	} else {
 		out = e.Message
 	}
@@ -57,9 +57,9 @@ func respondError(w http.ResponseWriter, r *http.Request, err error, msg string)
 		})
 	default:
 		render.Respond(w, r, &httpError{
-			Cause:      cause.Error(),
 			StatusCode: http.StatusInternalServerError,
 			Message:    msg,
+			Cause:      err.Error(),
 			TraceID:    log.TraceID(r.Context()),
 		})
 	}

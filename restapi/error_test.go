@@ -48,7 +48,7 @@ func TestRespondError(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		respondError(response, request, err, "specific_msg")
-		expected := `{"cause":"unknown problem","message":"specific_msg","trace_id":""}` + "\n"
+		expected := `{"cause":"wrapped: unknown problem","message":"specific_msg","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}
