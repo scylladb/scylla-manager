@@ -72,6 +72,7 @@ install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
 install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
+ln -sf %{_prefix}/lib/%{name}/scyllamgr_auth_token_gen %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
 install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-server/LICENSE
 install -m644 license/LICENSE.3RD_PARTY.%{name}-server %{buildroot}%{_docdir}/%{name}-server/LICENSE.3RD_PARTY
@@ -152,6 +153,8 @@ BuildRequires: systemd
 %files agent
 %defattr(-,root,root)
 %{_bindir}/%{name}-agent
+%{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
+%{_prefix}/lib/%{name}/scyllamgr_auth_token_gen
 %{_sbindir}/scyllamgr_auth_token_gen
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}-agent/%{name}-agent.yaml
