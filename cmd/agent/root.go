@@ -5,7 +5,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 )
 
 var rootArgs = struct {
@@ -41,13 +39,9 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Parse config
-		b, err := ioutil.ReadFile(rootArgs.configFile)
+		c, err := parseConfig(rootArgs.configFile)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read config file %s", rootArgs.configFile)
-		}
-		var c config
-		if err := yaml.Unmarshal(b, &c); err != nil {
-			return errors.Wrapf(err, "invalid config file %s", rootArgs.configFile)
+			return err
 		}
 
 		// Get a base context

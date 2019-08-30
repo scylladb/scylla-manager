@@ -44,6 +44,23 @@ type config struct {
 	Logger           logConfig    `yaml:"logger"`
 }
 
+func parseConfig(file string) (config, error) {
+	c := defaultConfig()
+
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return c, errors.Wrapf(err, "failed to read config file %s", file)
+	}
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return c, errors.Wrapf(err, "failed to parse config file %s", file)
+	}
+	if err := c.validate(); err != nil {
+		return c, errors.Wrapf(err, "invalid config file %s", file)
+	}
+
+	return c, nil
+}
+
 func defaultConfig() config {
 	return config{
 		TLSCertFile:      "/var/lib/scylla-manager/scylla_manager.crt",
@@ -65,8 +82,6 @@ func defaultConfig() config {
 }
 
 func (c *config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	*c = defaultConfig()
-
 	// Update Scylla config file if changed
 	aux := struct {
 		ScyllaConfigFile string `yaml:"scylla_config_file"`
@@ -101,7 +116,7 @@ func (c *config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		c.HTTPS = addr + ":" + defaultHTTPSPort
 	}
 
-	return c.validate()
+	return nil
 }
 
 func (c config) validate() (errs error) {

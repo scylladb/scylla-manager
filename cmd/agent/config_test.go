@@ -44,12 +44,8 @@ func TestConfigParse(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			b, err := ioutil.ReadFile(test.Input)
+			c, err := parseConfig(test.Input)
 			if err != nil {
-				t.Fatal(err)
-			}
-			var c config
-			if err := yaml.Unmarshal(b, &c); err != nil {
 				t.Fatal(err)
 			}
 			buf := bytes.Buffer{}
