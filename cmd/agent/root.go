@@ -66,7 +66,7 @@ var rootCmd = &cobra.Command{
 			}
 			logger.Sync() // nolint
 		}()
-		logger.Info(ctx, "Using config", "config", c)
+		logger.Info(ctx, "Using config", "config", c, "config_file", rootArgs.configFile)
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
