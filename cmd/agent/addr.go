@@ -4,8 +4,10 @@ package main
 
 import (
 	"net"
+	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/internal/netutil"
 )
 
 func httpsListenAddr(c scyllaConfig) (string, error) {
@@ -24,7 +26,12 @@ func httpsListenAddr(c scyllaConfig) (string, error) {
 		return addrs[0], nil
 	}
 
-	return "", errors.Errorf("cannot guess Scylla broadcast/listen address please set https property in configuration file %s available IP addresses are %s", rootArgs.configFile, addrs) //nolint: lll
+	for i := range addrs {
+		addrs[i] += ":" + defaultHTTPSPort
+	}
+
+	return "", errors.Errorf("cannot guess Scylla broadcast address, "+
+		"please set https config option to one of: %s", strings.Join(addrs, ", "))
 }
 
 func guessAddr() []string {
@@ -45,7 +52,7 @@ func guessAddr() []string {
 		}
 		for _, addr := range addrs {
 			ip, ok := addr.(*net.IPNet)
-			if !ok {
+			if !ok || !netutil.IsIPv4(ip.IP) {
 				continue // should never happen
 			}
 			addrTable = append(addrTable, ip.IP.String())
