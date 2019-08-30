@@ -27,10 +27,12 @@ Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla
 mkdir -p ./_build/src/github.com/scylladb
 ln -s $(pwd) ./_build/src/%{import_path}
 
-GO="$(pwd)/../go/bin/go"
-GOPATH=$(pwd)/_build
+GOROOT="$(pwd)/../go/"
+GOPATH="$(pwd)/_build"
 GOGCFLAGS="all=-trimpath=${GOPATH}"
 GOLDFLAGS="-w -extldflags '-static' -X %{import_path}.version=%{version}-%{release}"
+
+GO="${GOROOT}/bin/go"
 
 CGO_ENABLED=0 ${GO} build -a -mod vendor \
 -gcflags "${GOGCFLAGS}" -ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \

@@ -3,14 +3,17 @@
 import_path := github.com/scylladb/mermaid
 builddir    := /tmp/mermaid_deb
 
-GO          := /tmp/go/bin/go
-GO_VERSION  := 1.12.9
-GO_HASH     := ac2a6efcc1f5ec8bdc0db0a988bb1d301d64b6d61b7e8d9e42f662fbb75a2b9b
-GO_URL      := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
-GO_BUNDLE   := /tmp/go$(GO_VERSION).linux-amd64.tar.gz
-GOPATH      := $(builddir)/_build
-GOGCFLAGS   := all=-trimpath=$(GOPATH)
-GOLDFLAGS   := -w -extldflags '-static' -X $(import_path).version=$(shell dpkg-parsechangelog --show-field Version)
+GO_VERSION := 1.12.9
+GO_HASH    := ac2a6efcc1f5ec8bdc0db0a988bb1d301d64b6d61b7e8d9e42f662fbb75a2b9b
+GO_URL     := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
+GO_BUNDLE  := /tmp/go$(GO_VERSION).linux-amd64.tar.gz
+
+GOROOT     := /tmp/go
+GOPATH     := $(builddir)/_build
+GOGCFLAGS  := all=-trimpath=$(GOPATH)
+GOLDFLAGS  := -w -extldflags '-static' -X $(import_path).version=$(shell dpkg-parsechangelog --show-field Version)
+
+GO := $(GOROOT)/bin/go
 
 %:
 	dh $@ --with=systemd
