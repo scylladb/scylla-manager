@@ -6,6 +6,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -64,6 +65,42 @@ func registerRemote(t *testing.T, c *scyllaclient.Client, host string) {
 
 func remotePath(path string) string {
 	return testRemote + ":" + testBucket + path
+}
+
+func TestRcloneCatIntegration(t *testing.T) {
+	client, close := newMockRcloneServer(t)
+	defer close()
+
+	expected, err := ioutil.ReadFile("testdata/rclone/cat/file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+
+	for _, test := range []struct {
+		Name string
+		Path string
+	}{
+		{
+			Name: "file",
+			Path: "testdata/rclone/cat/file.txt",
+		},
+		{
+			Name: "dir",
+			Path: "testdata/rclone/cat",
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			got, err := client.RcloneCat(ctx, testHost, test.Path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(got, expected); diff != "" {
+				t.Fatal(got, diff)
+			}
+		})
+	}
 }
 
 func TestRcloneListDirIntegration(t *testing.T) {

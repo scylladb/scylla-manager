@@ -229,6 +229,23 @@ func (c *Client) RcloneDiskUsage(ctx context.Context, host string, remotePath st
 	return resp.Payload, nil
 }
 
+// RcloneCat returns a content of a remote path.
+// Only use that for small files, it loads the whole file to memory on a remote
+// node and only then returns it. This is caused by rclone design.
+func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) ([]byte, error) {
+	p := operations.OperationsCatParams{
+		Context: middleware.ForceHost(ctx, host),
+		Cat: &models.RemotePath{
+			Fs: remotePath,
+		},
+	}
+	resp, err := c.rcloneOpts.OperationsCat(&p)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Payload.Content, nil
+}
+
 // RcloneListDir lists contents of a directory specified by the path.
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.

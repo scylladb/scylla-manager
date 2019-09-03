@@ -262,6 +262,48 @@
         "security": []
       }
     },
+    "/operations/cat": {
+      "post": {
+        "description": "Concatenate any files and send them in response",
+        "summary": "Cat remote",
+        "operationId": "OperationsCat",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "cat",
+            "description": "cat",
+            "schema": {
+              "$ref": "#/definitions/RemotePath"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File system details",
+            "schema": {
+              "$ref": "#/definitions/Content"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/operations/list": {
       "post": {
         "description": "List the given remote and path",
@@ -783,60 +825,70 @@
         }
       }
     },
-    "ListOptions": {
-      "type": "object",
-      "required": ["fs", "remote"],
-      "properties": {
-        "fs": {
-          "description": "A remote name string eg. drive:",
-          "type": "string"
-        },
-        "remote": {
-          "description": "A path within that remote eg. dir",
-          "type": "string"
-        },
-        "opt": {
-          "description": "A path within that remote eg. dir",
-          "type": "object",
-          "properties": {
-            "recurse": {
-              "description": "If set recurse directories",
-              "type": "boolean"
-            },
-            "noModTime": {
-              "description": "If set return modification time",
-              "type": "boolean"
-            },
-            "showEncrypted": {
-              "description": "If set show decrypted names",
-              "type": "boolean"
-            },
-            "showOrigIDs": {
-              "description": "If set show the IDs for each item if known",
-              "type": "boolean"
-            },
-            "showHash": {
+    "FileSystemDetails": {
+    "type": "object",
+    "properties": {
+      "free": {
+        "description": "Free space in bytes",
+        "type": "integer"
+      },
+      "total": {
+        "description": "Available space in bytes",
+        "type": "integer"
+      },
+      "used": {
+        "description": "Used space in bytes",
+        "type": "integer"
+      }
+    }
+  },
+  "Content": {
+    "type": "object",
+    "properties": {
+      "Content": {
+        "description": "File content",
+        "type": "string",
+        "format": "byte"
+      }
+    }
+  },
+  "ListOptions": {
+    "type": "object",
+    "required": ["fs", "remote"],
+    "properties": {
+      "fs": {
+        "description": "A remote name string eg. drive:",
+        "type": "string"
+      },
+      "remote": {
+        "description": "A path within that remote eg. dir",
+        "type": "string"
+      },
+      "opt": {
+        "description": "A path within that remote eg. dir",
+        "type": "object",
+        "properties": {
+          "recurse": {
+            "description": "If set recurse directories",
+            "type": "boolean"
+          },
+          "noModTime": {
+            "description": "If set return modification time",
+            "type": "boolean"
+          },
+          "showEncrypted": {
+            "description": "If set show decrypted names",
+            "type": "boolean"
+          },
+          "showOrigIDs": {
+            "description": "If set show the IDs for each item if known",
+            "type": "boolean"
+          },
+          "showHash": {
               "description": "If set return a dictionary of hashes",
               "type": "boolean"
             }
           }
-        }
-      }
-    },
-    "FileSystemDetails": {
-      "type": "object",
-      "properties": {
-        "free": {
-          "description": "Free space in bytes",
-          "type": "integer"
-        },
-        "total": {
-          "description": "Available space in bytes",
-          "type": "integer"
-        },
-        "used": {
-          "description": "Used space in bytes",
-          "type": "integer"
         }
       }
     },
