@@ -252,57 +252,6 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 	}
 }
 
-func TestBackupIntegration(t *testing.T) {
-	const bucket = "backuptest"
-
-	S3InitBucket(t, bucket)
-
-	config := backup.DefaultConfig()
-	config.TestS3Endpoint = S3TestEndpoint()
-
-	var (
-		session = CreateSession(t)
-		h       = newBackupTestHelper(t, session, config)
-		ctx     = context.Background()
-	)
-
-	defer func() {
-		for _, ip := range ManagedClusterHosts {
-			if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
-				t.Error("Couldn't reset stats", ip, err)
-			}
-		}
-	}()
-
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: "system_auth",
-			},
-		},
-		DC: []string{"dc1"},
-		Location: []backup.Location{
-			{
-				Provider: backup.S3,
-				Path:     bucket,
-			},
-		},
-	}
-
-	Print("When: run backup")
-	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
-		t.Fatal(err)
-	}
-	Print("Then: data is uploaded")
-	d, err := h.client.RcloneListDir(ctx, ManagedClusterHosts[0], target.Location[0].RemotePath(""), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(d) < 9 {
-		t.Fatal("expected data")
-	}
-}
-
 func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	const bucket = "get_last_resumable"
 
@@ -431,6 +380,57 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			t.Fatal(diff)
 		}
 	})
+}
+
+func TestBackupIntegration(t *testing.T) {
+	const bucket = "backuptest"
+
+	S3InitBucket(t, bucket)
+
+	config := backup.DefaultConfig()
+	config.TestS3Endpoint = S3TestEndpoint()
+
+	var (
+		session = CreateSession(t)
+		h       = newBackupTestHelper(t, session, config)
+		ctx     = context.Background()
+	)
+
+	defer func() {
+		for _, ip := range ManagedClusterHosts {
+			if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
+				t.Error("Couldn't reset stats", ip, err)
+			}
+		}
+	}()
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: "system_auth",
+			},
+		},
+		DC: []string{"dc1"},
+		Location: []backup.Location{
+			{
+				Provider: backup.S3,
+				Path:     bucket,
+			},
+		},
+	}
+
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+	Print("Then: data is uploaded")
+	d, err := h.client.RcloneListDir(ctx, ManagedClusterHosts[0], target.Location[0].RemotePath(""), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d) < 9 {
+		t.Fatal("expected data")
+	}
 }
 
 var runnerTimeout = 10 * time.Second
