@@ -7,10 +7,10 @@ package backup_test
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -382,10 +382,87 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	})
 }
 
-func TestBackupIntegration(t *testing.T) {
-	const bucket = "backuptest"
+func writeAndFlushData(t *testing.T, session *gocql.Session, keyspace string, size int) {
+	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.big_table (id int PRIMARY KEY, data blob)", keyspace))
 
-	S3InitBucket(t, bucket)
+	cql := fmt.Sprintf("INSERT INTO %s.big_table (id, data) VALUES (?, ?)", keyspace)
+	data := make([]byte, size)
+	rand.Read(data)
+	err := session.Query(cql, 1, data).Exec()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	flushData(t)
+}
+
+func restartAgents(t *testing.T) {
+	execOnAllHosts(t, "supervisorctl restart scylla-manager-agent")
+}
+
+func flushData(t *testing.T) {
+	execOnAllHosts(t, "nodetool flush")
+}
+
+func execOnAllHosts(t *testing.T, cmd string) {
+	for _, host := range ManagedClusterHosts {
+		stdout, stderr, err := ExecOnHost(host, cmd)
+		if err != nil {
+			t.Log("stdout", stdout)
+			t.Log("stderr", stderr)
+			t.Fatal("Command failed on host", host, err)
+		}
+	}
+}
+
+// Check that any transfer have started to confirm backup actually
+// got to the uploading.
+func waitForTransfersToStart(t *testing.T, h *backupTestHelper) {
+	t.Helper()
+	WaitCond(t, func() bool {
+		for _, host := range ManagedClusterHosts {
+			s, err := h.client.RcloneStats(context.Background(), host, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, tr := range s.Transferring {
+				if tr.Name != "manifest.json" {
+					Print("And: upload is underway")
+					return true
+				}
+			}
+		}
+		return false
+	}, 100*time.Millisecond, runnerTimeout)
+}
+
+// Returns true if no transfers are running on the hosts.
+func nothingIsRunning(t *testing.T, h *backupTestHelper) bool {
+	res := false
+	for i := 0; i < 5; i++ {
+		count := 0
+		for _, host := range ManagedClusterHosts {
+			s, err := h.client.RcloneStats(context.Background(), host, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(s.Transferring) == 0 {
+				count++
+			}
+		}
+		if count == len(ManagedClusterHosts) {
+			res = true
+			break
+		}
+	}
+	return res
+}
+
+func TestBackupSmokeIntegration(t *testing.T) {
+	const testBucket = "backuptest-smoke"
+
+	S3InitBucket(t, testBucket)
 
 	config := backup.DefaultConfig()
 	config.TestS3Endpoint = S3TestEndpoint()
@@ -414,7 +491,7 @@ func TestBackupIntegration(t *testing.T) {
 		Location: []backup.Location{
 			{
 				Provider: backup.S3,
-				Path:     bucket,
+				Path:     testBucket,
 			},
 		},
 	}
@@ -435,12 +512,14 @@ func TestBackupIntegration(t *testing.T) {
 
 var runnerTimeout = 10 * time.Second
 
-// Tests resuming stopped backup.
-func TestRunnerResumeIntegration(t *testing.T) {
-	const bucket = "runnertest"
-	const ks_name = "backup_runner"
+// Tests resuming a stopped backup.
+func TestBackupResumeIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-resume"
+		testKeyspace = "backuptest_resume"
+	)
 
-	S3InitBucket(t, bucket)
+	S3InitBucket(t, testBucket)
 
 	config := backup.DefaultConfig()
 	config.TestS3Endpoint = S3TestEndpoint()
@@ -449,10 +528,9 @@ func TestRunnerResumeIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
-		dropKeyspace   = createBigTable(t, clusterSession, ks_name, 3*1024*1024)
 	)
 
-	defer dropKeyspace()
+	writeAndFlushData(t, clusterSession, testKeyspace, 3*1024*1024)
 
 	properties := json.RawMessage(fmt.Sprintf(`{
 		"keyspace": [
@@ -463,7 +541,7 @@ func TestRunnerResumeIntegration(t *testing.T) {
 		"retention": 1,
 		"rate_limit": ["dc1:1"],
 		"continue": true
-	}`, ks_name, backup.S3, bucket))
+	}`, testKeyspace, backup.S3, testBucket))
 
 	t.Run("resume after stop", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config)
@@ -515,7 +593,7 @@ func TestRunnerResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, bucket), true)
+		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, testBucket), true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -561,7 +639,7 @@ func TestRunnerResumeIntegration(t *testing.T) {
 		waitForTransfersToStart(t, h)
 
 		Print("And: we restart the agents")
-		restartAllAgents(t)
+		restartAgents(t)
 
 		select {
 		case <-time.After(runnerTimeout * 3):
@@ -583,7 +661,7 @@ func TestRunnerResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, bucket), true)
+		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, testBucket), true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -625,7 +703,7 @@ func TestRunnerResumeIntegration(t *testing.T) {
 			"retention": 1,
 			"rate_limit": ["dc1:1"],
 			"continue": false
-		}`, ks_name, backup.S3, bucket))
+		}`, testKeyspace, backup.S3, testBucket))
 
 		go func() {
 			defer close(done)
@@ -666,7 +744,7 @@ func TestRunnerResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, bucket), true)
+		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, testBucket), true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -692,92 +770,109 @@ func TestRunnerResumeIntegration(t *testing.T) {
 	})
 }
 
-// Check that any transfer have started to confirm backup actually
-// got to the uploading.
-func waitForTransfersToStart(t *testing.T, h *backupTestHelper) {
-	t.Helper()
-	WaitCond(t, func() bool {
-		for _, host := range ManagedClusterHosts {
-			s, err := h.client.RcloneStats(context.Background(), host, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, tr := range s.Transferring {
-				if tr.Name != "manifest.json" {
-					Print("And: upload is underway")
-					return true
-				}
-			}
-		}
-		return false
-	}, 100*time.Millisecond, runnerTimeout)
-}
+func TestPurgeIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-purge"
+		testKeyspace = "backuptest_purge"
+	)
 
-// Returns true if no transfers are running on the hosts.
-func nothingIsRunning(t *testing.T, h *backupTestHelper) bool {
-	res := false
-	for i := 0; i < 5; i++ {
-		count := 0
-		for _, host := range ManagedClusterHosts {
-			s, err := h.client.RcloneStats(context.Background(), host, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(s.Transferring) == 0 {
-				count++
+	S3InitBucket(t, testBucket)
+
+	config := backup.DefaultConfig()
+	config.TestS3Endpoint = S3TestEndpoint()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+
+		h   = newBackupTestHelper(t, session, config)
+		ctx = context.Background()
+	)
+
+	defer func() {
+		for _, ip := range ManagedClusterHosts {
+			if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
+				t.Error("Couldn't reset stats", ip, err)
 			}
 		}
-		if count == len(ManagedClusterHosts) {
-			res = true
-			break
+	}()
+
+	Print("Given: retention policy 1")
+
+	location := backup.Location{
+		Provider: backup.S3,
+		Path:     testBucket,
+	}
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 1,
+	}
+
+	Print("When: run backup 3 times")
+	var runID uuid.UUID
+	for i := 0; i < 3; i++ {
+		writeAndFlushData(t, clusterSession, testKeyspace, 3*1024*1024)
+		runID = uuid.NewTime()
+		if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
+			t.Fatal(err)
 		}
 	}
-	return res
-}
 
-func restartAllAgents(t *testing.T) {
-	t.Helper()
-	res := make(chan error)
-	for _, host := range ManagedClusterHosts {
-		go func(host string) {
-			_, _, err := ExecOnHost(host, `supervisorctl restart scylla-manager-agent`)
-			res <- err
-		}(host)
-	}
-	for i := 0; i < len(ManagedClusterHosts); i++ {
-		select {
-		case <-time.After(5 * time.Second):
-			t.Error("Expected agent to be restarted in 5s")
-			return
-		case err := <-res:
-			if err != nil {
-				t.Error(err)
-			}
-		}
-	}
-}
-
-func createBigTable(t *testing.T, session *gocql.Session, ks string, size int) func() {
-	createKeyspace(t, session, ks)
-	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE %s.big_table (id int PRIMARY KEY, data blob)", ks))
-
-	query := fmt.Sprintf("INSERT INTO %s.big_table (id, data) VALUES (?, ?)", ks)
-	data := make([]byte, size)
-	rand.Read(data)
-	err := session.Query(query, 1, data).Exec()
+	Print("Then: only the last task run is preserved")
+	files, err := h.client.RcloneListDir(ctx, ManagedClusterHosts[0], location.RemotePath(""), true)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	return func() {
-		dropKeyspace(t, session, ks)
+	var manifests []string
+	for _, f := range files {
+		if f.Name == "manifest.json" {
+			if !strings.Contains(f.Path, h.taskID.String()) || !strings.Contains(f.Path, runID.String()) {
+				t.Errorf("Manifest %s does not belong to task %s or run %s", f.Path, h.taskID, runID)
+			}
+			manifests = append(manifests, f.Path)
+		}
 	}
-}
+	if len(manifests) != 3 {
+		t.Fatalf("Expected 3 manifests got %d", len(manifests))
+	}
 
-func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
-	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
-}
+	Print("And: old sstable files are removed")
+	var sstPfx []string
+	for _, m := range manifests {
+		b, err := h.client.RcloneCat(ctx, ManagedClusterHosts[0], location.RemotePath(m))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var v struct {
+			Files []string `json:"files"`
+		}
+		if err := json.Unmarshal(b, &v); err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range v.Files {
+			sstPfx = append(sstPfx, strings.TrimSuffix(f, "-Data.db"))
+		}
+	}
 
-func dropKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
-	ExecStmt(t, session, "DROP KEYSPACE "+keyspace)
+	for _, f := range files {
+		if !f.IsDir && f.Name != "manifest.json" {
+			ok := false
+			for _, pfx := range sstPfx {
+				if strings.HasPrefix(f.Name, pfx) {
+					ok = true
+					break
+				}
+			}
+			if !ok {
+				t.Errorf("Unexpected file %s", f.Path)
+			}
+		}
+	}
 }

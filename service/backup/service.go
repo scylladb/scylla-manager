@@ -261,7 +261,11 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		}
 	}
 
-	return w.Upload(ctx, hi, target.UploadParallel)
+	if err := w.Upload(ctx, hi, target.UploadParallel, target.Retention); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // decorateWithPrevRun gets task previous run and if it can be continued

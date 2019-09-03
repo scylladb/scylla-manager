@@ -45,7 +45,7 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 		}
 
 		// Don't count metadata as progress.
-		if pr.FileName == manifestFile {
+		if pr.FileName == manifest {
 			continue
 		}
 
