@@ -399,21 +399,7 @@ func (w *worker) uploadFile(ctx context.Context, dst, src string, d snapshotDir)
 	if err != nil {
 		return err
 	}
-	p := w.getManifestProgress(d)
-	if p != nil {
-		p.AgentJobID = id
-		w.onRunProgress(ctx, p)
-	}
 	return w.waitJob(ctx, id, d)
-}
-
-func (w *worker) getManifestProgress(d snapshotDir) *RunProgress {
-	for _, p := range d.Progress {
-		if p.FileName == manifestFile && p.Unit == d.Unit && p.TableName == d.Table && p.Host == d.Host {
-			return p
-		}
-	}
-	return nil
 }
 
 func (w *worker) uploadDir(ctx context.Context, dst, src string, d snapshotDir) error {
