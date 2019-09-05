@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-#
-# Copyright 2019 ScyllaDB
-#
-
-set -eu -o pipefail
-
-echo "==> Creating table"
-go run $(dirname "$0")/bigtable/bigtable.go "$@"
