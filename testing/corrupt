@@ -5,7 +5,7 @@
 
 set -eu -o pipefail
 
-COMPOSE=./docker-compose
+COMPOSE=docker-compose
 
 NODE=
 KEYSPACE="test_keyspace_rf3"
