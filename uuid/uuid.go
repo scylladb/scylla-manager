@@ -84,6 +84,11 @@ func (u UUID) Bytes() []byte {
 	return b
 }
 
+// Bytes16 returns the raw byte array for this UUID.
+func (u UUID) Bytes16() [16]byte {
+	return u.uuid
+}
+
 // MarshalCQL implements gocql.Marshaler.
 func (u UUID) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
 	if u == Nil {
