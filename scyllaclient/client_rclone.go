@@ -177,39 +177,33 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, 
 // from the remote.
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.
-func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath string) (int64, error) {
+func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath string) error {
 	p := operations.OperationsPurgeParams{
 		Context: middleware.ForceHost(ctx, host),
 		Purge: &models.RemotePath{
 			Fs:     filepath.Dir(remotePath),
 			Remote: filepath.Base(remotePath),
 		},
-		Async: true,
+		Async: false,
 	}
-	resp, err := c.rcloneOpts.OperationsPurge(&p)
-	if err != nil {
-		return 0, err
-	}
-	return resp.Payload.Jobid, nil
+	_, err := c.rcloneOpts.OperationsPurge(&p) // nolint: errcheck
+	return err
 }
 
 // RcloneDeleteFile removes the single file pointed to by remotePath
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.
-func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath string) (int64, error) {
+func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath string) error {
 	p := operations.OperationsDeletefileParams{
 		Context: middleware.ForceHost(ctx, host),
 		Deletefile: &models.RemotePath{
 			Fs:     filepath.Dir(remotePath),
 			Remote: filepath.Base(remotePath),
 		},
-		Async: true,
+		Async: false,
 	}
-	resp, err := c.rcloneOpts.OperationsDeletefile(&p)
-	if err != nil {
-		return 0, err
-	}
-	return resp.Payload.Jobid, nil
+	_, err := c.rcloneOpts.OperationsDeletefile(&p) // nolint: errcheck
+	return err
 }
 
 // RcloneDiskUsage get disk space usage.

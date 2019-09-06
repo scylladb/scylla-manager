@@ -77,21 +77,8 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 		t.Errorf("Expected bucket have 3 items, got: len(files)=%d", len(d))
 	}
 
-	id, err = client.RcloneDeleteDir(ctx, testHost, remotePath("/copy"))
-	if err != nil {
+	if err = client.RcloneDeleteDir(ctx, testHost, remotePath("/copy")); err != nil {
 		t.Fatal(err)
-	}
-
-	time.Sleep(50 * time.Millisecond)
-
-	status, err = client.RcloneJobStatus(ctx, testHost, id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !status.Finished || !status.Success {
-		t.Log(status)
-		t.Errorf("Expected purge job to finish successfully")
 	}
 
 	d, err = client.RcloneListDir(ctx, testHost, remotePath("/copy"), true)
@@ -150,21 +137,8 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 		t.Errorf("Expected bucket have 1 item, got: len(files)=%d", len(d))
 	}
 
-	id, err = client.RcloneDeleteFile(ctx, testHost, remotePath("/file2.txt"))
-	if err != nil {
+	if err := client.RcloneDeleteFile(ctx, testHost, remotePath("/file2.txt")); err != nil {
 		t.Fatal(err)
-	}
-
-	time.Sleep(50 * time.Millisecond)
-
-	status, err = client.RcloneJobStatus(ctx, testHost, id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !status.Finished || !status.Success {
-		t.Log(status)
-		t.Errorf("Expected purge job to finish successfully")
 	}
 
 	d, err = client.RcloneListDir(ctx, testHost, remotePath(""), true)
