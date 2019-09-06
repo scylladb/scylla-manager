@@ -199,8 +199,6 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 }
 
 func (c *Client) ping(ctx context.Context, host string) error {
-	ctx = middleware.DontLog(ctx)
-
 	u := url.URL{
 		Scheme: c.config.Scheme,
 		Host:   host,

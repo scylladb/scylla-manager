@@ -11,7 +11,6 @@ type ctxt byte
 const (
 	ctxHost ctxt = iota
 	ctxDontRetry
-	ctxDontLog
 )
 
 // ForceHost makes HostPool middleware use the given host instead of selecting
@@ -23,9 +22,4 @@ func ForceHost(ctx context.Context, host string) context.Context {
 // DontRetry disables Retry middleware.
 func DontRetry(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxDontRetry, true)
-}
-
-// DontLog disables Logger middleware.
-func DontLog(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ctxDontLog, true)
 }
