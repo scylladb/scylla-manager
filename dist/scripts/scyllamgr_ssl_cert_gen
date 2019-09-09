@@ -23,7 +23,7 @@ die() {
 }
 
 crt_file=${CRT_FILE}
-key_file=${CRT_FILE}
+key_file=${KEY_FILE}
 subject=${SUBJECT}
 
 while [[ $# > 0 ]]; do
