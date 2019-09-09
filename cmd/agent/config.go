@@ -3,11 +3,13 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/scyllaclient"
 	"go.uber.org/multierr"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
@@ -23,25 +25,25 @@ type logConfig struct {
 
 // scyllaConfig contains selected elements of Scylla configuration.
 type scyllaConfig struct {
-	ListenAddress     string `yaml:"listen_address"`
-	BroadcastAddress  string `yaml:"broadcast_address"`
-	APIAddress        string `yaml:"api_address"`
-	APIPort           string `yaml:"api_port"`
-	PrometheusAddress string `yaml:"prometheus_address"`
-	PrometheusPort    string `yaml:"prometheus_port"`
+	APIAddress string `yaml:"api_address"`
+	APIPort    string `yaml:"api_port"`
+
+	ListenAddress     string
+	BroadcastAddress  string
+	PrometheusAddress string
+	PrometheusPort    string
 }
 
 // config specifies the agent and scylla configuration.
 type config struct {
-	AuthToken        string       `yaml:"auth_token"`
-	HTTPS            string       `yaml:"https"`
-	TLSCertFile      string       `yaml:"tls_cert_file"`
-	TLSKeyFile       string       `yaml:"tls_key_file"`
-	Debug            string       `yaml:"debug"`
-	CPU              int          `yaml:"cpu"`
-	Logger           logConfig    `yaml:"logger"`
-	ScyllaConfigFile string       `yaml:"scylla_config_file"`
-	Scylla           scyllaConfig `yaml:"scylla"`
+	AuthToken   string       `yaml:"auth_token"`
+	HTTPS       string       `yaml:"https"`
+	TLSCertFile string       `yaml:"tls_cert_file"`
+	TLSKeyFile  string       `yaml:"tls_key_file"`
+	Debug       string       `yaml:"debug"`
+	CPU         int          `yaml:"cpu"`
+	Logger      logConfig    `yaml:"logger"`
+	Scylla      scyllaConfig `yaml:"scylla"`
 }
 
 func parseConfig(file string) (config, error) {
@@ -57,21 +59,23 @@ func parseConfig(file string) (config, error) {
 	if err := c.validate(); err != nil {
 		return c, errors.Wrapf(err, "invalid config file %s", file)
 	}
+	if err := enrichScyllaConfigFromAPI(&c.Scylla); err != nil {
+		return c, errors.Wrapf(err, "failed to get configuration from Scylla API "+
+			"make sure that Scylla server is running and api_address and api_port are set correctly in %s", file)
+	}
+	updateHTTPSConfigFromScyllaConfig(&c)
 
 	return c, nil
 }
 
 func defaultConfig() config {
 	return config{
-		TLSCertFile:      "/var/lib/scylla-manager/scylla_manager.crt",
-		TLSKeyFile:       "/var/lib/scylla-manager/scylla_manager.key",
-		CPU:              -1,
-		ScyllaConfigFile: "/etc/scylla/scylla.yaml",
+		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
+		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
+		CPU:         -1,
 		Scylla: scyllaConfig{
-			APIAddress:        "127.0.0.1",
-			APIPort:           "10000",
-			PrometheusAddress: "0.0.0.0",
-			PrometheusPort:    "9180",
+			APIAddress: "0.0.0.0",
+			APIPort:    "10000",
 		},
 		Logger: logConfig{
 			Mode:        log.StderrMode,
@@ -79,44 +83,6 @@ func defaultConfig() config {
 			Development: false,
 		},
 	}
-}
-
-func (c *config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	// Update Scylla config file if changed
-	aux := struct {
-		ScyllaConfigFile string `yaml:"scylla_config_file"`
-	}{}
-	if err := unmarshal(&aux); err != nil {
-		return err
-	}
-	if aux.ScyllaConfigFile != "" {
-		c.ScyllaConfigFile = aux.ScyllaConfigFile
-	}
-
-	// Read Scylla config file and update Scylla defaults
-	d, err := ioutil.ReadFile(c.ScyllaConfigFile)
-	if err != nil {
-		return errors.Wrapf(err, "invalid scylla_config_file %s", aux.ScyllaConfigFile)
-	}
-	if err := yaml.Unmarshal(d, &c.Scylla); err != nil {
-		return errors.Wrapf(err, "invalid scylla_config_file %s", aux.ScyllaConfigFile)
-	}
-
-	type plain config
-	if err := unmarshal((*plain)(c)); err != nil {
-		return err
-	}
-
-	// Set HTTPS based on Scylla broadcast address if not set
-	if c.HTTPS == "" {
-		addr, err := httpsListenAddr(c.Scylla)
-		if err != nil {
-			return err
-		}
-		c.HTTPS = addr + ":" + defaultHTTPSPort
-	}
-
-	return nil
 }
 
 func (c config) validate() (errs error) {
@@ -145,20 +111,47 @@ func (c config) validate() (errs error) {
 }
 
 func (c scyllaConfig) validate() (errs error) {
-	if c.ListenAddress == "" && c.BroadcastAddress == "" {
-		errs = multierr.Append(errs, errors.New("missing listen_address and broadcast_address"))
-	}
 	if c.APIAddress == "" {
 		errs = multierr.Append(errs, errors.New("missing api_address"))
 	}
 	if c.APIPort == "" {
 		errs = multierr.Append(errs, errors.New("missing api_port"))
 	}
-	if c.PrometheusAddress == "" {
-		errs = multierr.Append(errs, errors.New("missing prometheus_address"))
-	}
-	if c.PrometheusPort == "" {
-		errs = multierr.Append(errs, errors.New("missing prometheus_port"))
-	}
 	return
+}
+
+func enrichScyllaConfigFromAPI(c *scyllaConfig) error {
+	client := scyllaclient.NewConfigClient(c.APIAddress + ":" + c.APIPort)
+
+	var (
+		ctx = context.Background()
+		err error
+	)
+	if c.ListenAddress, err = client.ListenAddress(ctx); err != nil {
+		return err
+	}
+	if c.BroadcastAddress, err = client.BroadcastAddress(ctx); err != nil {
+		return err
+	}
+	if c.PrometheusAddress, err = client.PrometheusAddress(ctx); err != nil {
+		return err
+	}
+	if c.PrometheusPort, err = client.PrometheusPort(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateHTTPSConfigFromScyllaConfig(c *config) {
+	if c.HTTPS != "" {
+		return
+	}
+	var addr string
+	if c.Scylla.BroadcastAddress != "" {
+		addr = c.Scylla.BroadcastAddress
+	} else {
+		addr = c.Scylla.ListenAddress
+	}
+	c.HTTPS = addr + ":" + defaultHTTPSPort
 }

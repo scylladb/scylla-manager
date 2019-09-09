@@ -8,11 +8,10 @@ logger:
   mode: stderr
   level: info
   development: false
-scylla_config_file: ./testdata/config/scylla.input.yaml
 scylla:
-  listen_address: la
-  broadcast_address: ba
-  api_address: aa
-  api_port: "1001"
-  prometheus_address: pa
-  prometheus_port: "1002"
+  api_address: 0.0.0.0
+  api_port: "10000"
+  listenaddress: 192.168.100.11
+  broadcastaddress: 192.168.100.11
+  prometheusaddress: 192.168.100.11
+  prometheusport: "9180"

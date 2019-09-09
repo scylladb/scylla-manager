@@ -5,8 +5,8 @@
 auth_token:
 
 # Bind REST API to the specified TCP address using HTTPS protocol. By default
-# Scylla Manager Agent uses Scylla broadcast address that is read from the
-# scylla configuration file.
+# Scylla Manager Agent uses Scylla listen/broadcast address that is read from
+# the Scylla API (see scylla section).
 #https: 0.0.0.0:10001
 
 # TLS certificate and key files to use with HTTPS. To regenerate the files use
@@ -20,8 +20,7 @@ auth_token:
 
 # CPU to run Scylla Manager Agent on. By default the agent would read Scylla
 # configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by
-# Scylla. If that's not possible user must specify a core that the agent would
-# cohabit with a Scylla shard.
+# Scylla. If that's not possible user can specify a core to run agent on.
 #cpu: 0
 
 # Logging configuration.
@@ -29,15 +28,8 @@ auth_token:
 # Available log levels are error, info and debug.
 #  level: info
 
-# Scylla configuration file.
-#scylla_config_file: /etc/scylla/scylla.yaml
-
-# Override Scylla configuration options, default values are read from the Scylla
-# configuration file but one can overwrite a subset of configuration options
-# directly here.
+# Copy api_address and api_port values from /etc/scylla/scylla.yaml. All the
+# needed Scylla configuration options are read from the API.
 #scylla:
-#  broadcast_address:
-#  api_address:
-#  api_port:
-#  prometheus_address:
-#  prometheus_port:
+#  api_address: 0.0.0.0
+#  api_port: 10000

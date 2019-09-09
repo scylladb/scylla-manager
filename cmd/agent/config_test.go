@@ -5,7 +5,12 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -41,6 +46,24 @@ func TestConfigParse(t *testing.T) {
 			Golden: "./testdata/config/debug_overwrite.golden.yaml",
 		},
 	}
+
+	s := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "prometheus_port") {
+			fmt.Fprint(w, 9180)
+		} else {
+			fmt.Fprint(w, `"192.168.100.11"`)
+		}
+	}))
+
+	l, err := net.Listen("tcp", "127.0.0.1:10000")
+	if err != nil {
+		t.Skip("Failed to start test server at port 10000", err)
+	}
+
+	s.Listener = l
+	s.Start()
+	defer s.Close()
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
