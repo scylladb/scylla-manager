@@ -36,7 +36,6 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
-	github.com/stretchr/testify v1.3.1-0.20190311161405-34c6fa2dc709
 	go.uber.org/atomic v1.3.2
 	go.uber.org/multierr v1.1.0
 	go.uber.org/zap v1.9.1
