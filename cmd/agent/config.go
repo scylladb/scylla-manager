@@ -39,9 +39,9 @@ type config struct {
 	TLSKeyFile       string       `yaml:"tls_key_file"`
 	Debug            string       `yaml:"debug"`
 	CPU              int          `yaml:"cpu"`
+	Logger           logConfig    `yaml:"logger"`
 	ScyllaConfigFile string       `yaml:"scylla_config_file"`
 	Scylla           scyllaConfig `yaml:"scylla"`
-	Logger           logConfig    `yaml:"logger"`
 }
 
 func parseConfig(file string) (config, error) {

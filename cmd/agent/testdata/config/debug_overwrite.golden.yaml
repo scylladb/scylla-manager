@@ -4,6 +4,10 @@ tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
 tls_key_file: /var/lib/scylla-manager/scylla_manager.key
 debug: "1002"
 cpu: -1
+logger:
+  mode: stderr
+  level: info
+  development: false
 scylla_config_file: ./testdata/config/scylla.input.yaml
 scylla:
   listen_address: la
@@ -12,7 +16,3 @@ scylla:
   api_port: "1001"
   prometheus_address: pa
   prometheus_port: "1002"
-logger:
-  mode: stderr
-  level: info
-  development: false
