@@ -85,6 +85,11 @@ https: 127.0.0.1:56443
 
 # Repair service configuration.
 #repair:
+# Number of segments repaired by Scylla in a single repair command. Increase
+# this value to make repairs faster, note that this may result in increased load
+# on the cluster.
+#  segments_per_repair: 1
+#
 # Maximal number of tokens in a segment.
 #  segment_tokens_max: 0
 #
