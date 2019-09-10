@@ -7,16 +7,24 @@
   },
   "host": "mermaid.magic.host",
   "basePath": "/rclone",
-  "schemes": ["http"],
-  "consumes": ["application/json"],
-  "produces": ["application/json"],
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
   "paths": {
     "/core/bwlimit": {
       "post": {
         "description": "This sets the bandwidth limit to that passed in",
         "summary": "Set the bandwidth limit",
         "operationId": "CoreBwlimit",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -58,7 +66,9 @@
         "description": "Returns stats about current transfers",
         "summary": "Stats about transfers",
         "operationId": "CoreStats",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -100,7 +110,9 @@
         "description": "Resets stats",
         "summary": "Resets all or specific stats group",
         "operationId": "CoreStatsReset",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -142,7 +154,9 @@
         "description": "Returns stats about completed transfers",
         "summary": "Completed transfers",
         "operationId": "CoreTransferred",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -192,7 +206,9 @@
         "description": "Returns list of group names",
         "summary": "Group names",
         "operationId": "CoreGroupList",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -225,7 +241,9 @@
         "description": "Get usage information from the remote",
         "summary": "About remote",
         "operationId": "OperationsAbout",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -267,7 +285,9 @@
         "description": "Concatenate any files and send them in response",
         "summary": "Cat remote",
         "operationId": "OperationsCat",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -309,7 +329,9 @@
         "description": "List the given remote and path",
         "summary": "List remote",
         "operationId": "OperationsList",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -359,7 +381,9 @@
         "description": "Copy a file from source remote to destination remote",
         "summary": "Copy a file",
         "operationId": "OperationsCopyfile",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -416,7 +440,9 @@
         "description": "Copy a directory from source remote to destination remote",
         "summary": "Copy directory",
         "operationId": "SyncCopy",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -490,7 +516,9 @@
         "description": "Remove a directory or container and all of its contents",
         "summary": "Purge container",
         "operationId": "OperationsPurge",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -547,7 +575,9 @@
         "description": "Remove the single file pointed to",
         "summary": "Delete file",
         "operationId": "OperationsDeletefile",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -604,7 +634,9 @@
         "description": "Reads the status of the job ID",
         "summary": "Job status",
         "operationId": "JobStatus",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -647,7 +679,9 @@
         "description": "Stops job with provided ID",
         "summary": "Stop async job",
         "operationId": "JobStop",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -690,7 +724,9 @@
         "description": "Create configuration entry for the remote",
         "summary": "Create new remote",
         "operationId": "ConfigCreate",
-        "produces": ["application/json"],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
             "in": "body",
@@ -826,65 +862,68 @@
       }
     },
     "FileSystemDetails": {
-    "type": "object",
-    "properties": {
-      "free": {
-        "description": "Free space in bytes",
-        "type": "integer"
-      },
-      "total": {
-        "description": "Available space in bytes",
-        "type": "integer"
-      },
-      "used": {
-        "description": "Used space in bytes",
-        "type": "integer"
+      "type": "object",
+      "properties": {
+        "free": {
+          "description": "Free space in bytes",
+          "type": "integer"
+        },
+        "total": {
+          "description": "Available space in bytes",
+          "type": "integer"
+        },
+        "used": {
+          "description": "Used space in bytes",
+          "type": "integer"
+        }
       }
-    }
-  },
-  "Content": {
-    "type": "object",
-    "properties": {
-      "Content": {
-        "description": "File content",
-        "type": "string",
-        "format": "byte"
+    },
+    "Content": {
+      "type": "object",
+      "properties": {
+        "Content": {
+          "description": "File content",
+          "type": "string",
+          "format": "byte"
+        }
       }
-    }
-  },
-  "ListOptions": {
-    "type": "object",
-    "required": ["fs", "remote"],
-    "properties": {
-      "fs": {
-        "description": "A remote name string eg. drive:",
-        "type": "string"
-      },
-      "remote": {
-        "description": "A path within that remote eg. dir",
-        "type": "string"
-      },
-      "opt": {
-        "description": "A path within that remote eg. dir",
-        "type": "object",
-        "properties": {
-          "recurse": {
-            "description": "If set recurse directories",
-            "type": "boolean"
-          },
-          "noModTime": {
-            "description": "If set return modification time",
-            "type": "boolean"
-          },
-          "showEncrypted": {
-            "description": "If set show decrypted names",
-            "type": "boolean"
-          },
-          "showOrigIDs": {
-            "description": "If set show the IDs for each item if known",
-            "type": "boolean"
-          },
-          "showHash": {
+    },
+    "ListOptions": {
+      "type": "object",
+      "required": [
+        "fs",
+        "remote"
+      ],
+      "properties": {
+        "fs": {
+          "description": "A remote name string eg. drive:",
+          "type": "string"
+        },
+        "remote": {
+          "description": "A path within that remote eg. dir",
+          "type": "string"
+        },
+        "opt": {
+          "description": "A path within that remote eg. dir",
+          "type": "object",
+          "properties": {
+            "recurse": {
+              "description": "If set recurse directories",
+              "type": "boolean"
+            },
+            "noModTime": {
+              "description": "If set return modification time",
+              "type": "boolean"
+            },
+            "showEncrypted": {
+              "description": "If set show decrypted names",
+              "type": "boolean"
+            },
+            "showOrigIDs": {
+              "description": "If set show the IDs for each item if known",
+              "type": "boolean"
+            },
+            "showHash": {
               "description": "If set return a dictionary of hashes",
               "type": "boolean"
             }
