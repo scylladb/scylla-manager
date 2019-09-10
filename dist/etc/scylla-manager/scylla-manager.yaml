@@ -90,10 +90,14 @@ https: 127.0.0.1:56443
 # on the cluster.
 #  segments_per_repair: 1
 #
-# Maximal number of tokens in a segment.
+# Maximal number of tokens in a segment. By default there is no limit and
+# segments are created from token ranges (see nodetool describering) by
+# splitting each token range to shards. On shard level you may decide to further
+# split segments based on size.
 #  segment_tokens_max: 0
 #
-# Maximal number of shards on a host repaired at the same time.
+# Maximal number of shards on a host repaired at the same time. By default all
+# shards are repaired in parallel.
 #  shard_parallel_max: 0
 #
 # Maximal allowed number of failed segments per shard. In case of a failure
