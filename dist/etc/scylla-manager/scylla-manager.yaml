@@ -79,6 +79,7 @@ https: 127.0.0.1:56443
 #backup:
 # Minimal amount of free disk space required to take a snapshot.
 #  disk_space_free_min_percent: 10
+#
 # Frequency Scylla Manager poll Scylla node for backup upload status.
 #  poll_interval: 1s
 #  max_age: 12h
