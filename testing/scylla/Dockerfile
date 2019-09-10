@@ -22,15 +22,9 @@ COPY etc/ssh/sshd_config /etc/ssh/sshd_config
 # Add supervisord configuration for sshd
 ADD etc/supervisord.conf.d/sshd.conf /etc/supervisord.conf.d/sshd.conf
 
-# Add scylla configuration
-COPY etc/scylla/scylla.yaml /etc/scylla/scylla.yaml
-
 # Install SSL certificate
 ADD db.crt db.key /etc/scylla/
 RUN chown scylla:scylla /etc/scylla/db.*
 
 # Add supervisord configuration for agent
 ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scylla-manager-agent.conf
-
-# Add agent configuration
-COPY etc/scylla-manager-agent/scylla-manager-agent.yaml /etc/scylla-manager-agent/scylla-manager-agent.yaml
