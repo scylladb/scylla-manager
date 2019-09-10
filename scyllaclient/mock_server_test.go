@@ -13,6 +13,8 @@ import (
 	"github.com/scylladb/go-log"
 )
 
+const testHost = "127.0.0.1"
+
 // Matcher defines a function used to determine the file to return from a given newMockServer call.
 type Matcher func(req *http.Request) string
 
@@ -58,4 +60,22 @@ func newMockServerMatching(t *testing.T, m Matcher) (*Client, func()) {
 	return c, s.Close
 }
 
-const testHost = "127.0.0.1"
+func newMockConfigServer(t *testing.T, file string) (*ConfigClient, func()) {
+	return newMockConfigServerMatching(t, FileMatcher(file))
+}
+
+func newMockConfigServerMatching(t *testing.T, m Matcher) (*ConfigClient, func()) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		file := m(r)
+		w.Header().Set("Content-Type", "application/json")
+
+		f, err := os.Open(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		io.Copy(w, f)
+	}))
+
+	return NewConfigClient(s.Listener.Addr().String()), s.Close
+}
