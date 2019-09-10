@@ -37,7 +37,7 @@ func (c *Client) RcloneRegisterS3Remote(ctx context.Context, host, name string, 
 			Parameters: params,
 		},
 	}
-	_, err := c.rcloneOpts.ConfigCreate(&p) //nolint:errcheck
+	_, err := c.rcloneOps.ConfigCreate(&p) //nolint:errcheck
 	return err
 }
 
@@ -50,7 +50,7 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 		Context:       middleware.ForceHost(ctx, host),
 		BandwidthRate: &models.Bandwidth{Rate: fmt.Sprintf("%dM", limit)},
 	}
-	_, err := c.rcloneOpts.CoreBwlimit(&p) //nolint:errcheck
+	_, err := c.rcloneOps.CoreBwlimit(&p) //nolint:errcheck
 	return err
 }
 
@@ -60,7 +60,7 @@ func (c *Client) RcloneJobStatus(ctx context.Context, host string, id int64) (*m
 		Context: middleware.ForceHost(ctx, host),
 		Jobid:   &models.Jobid{Jobid: id},
 	}
-	resp, err := c.rcloneOpts.JobStatus(&p)
+	resp, err := c.rcloneOps.JobStatus(&p)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (c *Client) RcloneJobStop(ctx context.Context, host string, id int64) error
 		Context: middleware.ForceHost(ctx, host),
 		Jobid:   &models.Jobid{Jobid: id},
 	}
-	_, err := c.rcloneOpts.JobStop(&p) //nolint:errcheck
+	_, err := c.rcloneOps.JobStop(&p) //nolint:errcheck
 	return err
 }
 
@@ -85,7 +85,7 @@ func (c *Client) RcloneTransferred(ctx context.Context, host string, group strin
 			Group: group,
 		},
 	}
-	resp, err := c.rcloneOpts.CoreTransferred(&p)
+	resp, err := c.rcloneOps.CoreTransferred(&p)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (c *Client) RcloneStats(ctx context.Context, host string, group string) (*m
 			Group: group,
 		},
 	}
-	resp, err := c.rcloneOpts.CoreStats(&p)
+	resp, err := c.rcloneOps.CoreStats(&p)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string
 			Group: group,
 		},
 	}
-	_, err := c.rcloneOpts.CoreStatsReset(&p) //nolint:errcheck
+	_, err := c.rcloneOps.CoreStatsReset(&p) //nolint:errcheck
 	return err
 }
 
@@ -141,7 +141,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 		},
 		Async: true,
 	}
-	resp, err := c.rcloneOpts.OperationsCopyfile(&p)
+	resp, err := c.rcloneOps.OperationsCopyfile(&p)
 	if err != nil {
 		return 0, err
 	}
@@ -166,7 +166,7 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, 
 		},
 		Async: true,
 	}
-	resp, err := c.rcloneOpts.SyncCopy(&p)
+	resp, err := c.rcloneOps.SyncCopy(&p)
 	if err != nil {
 		return 0, err
 	}
@@ -186,7 +186,7 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath st
 		},
 		Async: false,
 	}
-	_, err := c.rcloneOpts.OperationsPurge(&p) // nolint: errcheck
+	_, err := c.rcloneOps.OperationsPurge(&p) // nolint: errcheck
 	return err
 }
 
@@ -202,7 +202,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath s
 		},
 		Async: false,
 	}
-	_, err := c.rcloneOpts.OperationsDeletefile(&p) // nolint: errcheck
+	_, err := c.rcloneOps.OperationsDeletefile(&p) // nolint: errcheck
 	return err
 }
 
@@ -216,7 +216,7 @@ func (c *Client) RcloneDiskUsage(ctx context.Context, host string, remotePath st
 			Fs: remotePath,
 		},
 	}
-	resp, err := c.rcloneOpts.OperationsAbout(&p)
+	resp, err := c.rcloneOps.OperationsAbout(&p)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) 
 			Fs: remotePath,
 		},
 	}
-	resp, err := c.rcloneOpts.OperationsCat(&p)
+	resp, err := c.rcloneOps.OperationsCat(&p)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, rec
 			},
 		},
 	}
-	resp, err := c.rcloneOpts.OperationsList(&p)
+	resp, err := c.rcloneOps.OperationsList(&p)
 	if err != nil {
 		return nil, err
 	}

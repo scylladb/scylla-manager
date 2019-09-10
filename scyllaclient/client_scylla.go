@@ -24,7 +24,7 @@ import (
 
 // ClusterName returns cluster name.
 func (c *Client) ClusterName(ctx context.Context) (string, error) {
-	resp, err := c.scyllaOpts.StorageServiceClusterNameGet(&operations.StorageServiceClusterNameGetParams{Context: ctx})
+	resp, err := c.scyllaOps.StorageServiceClusterNameGet(&operations.StorageServiceClusterNameGetParams{Context: ctx})
 	if err != nil {
 		return "", err
 	}
@@ -34,7 +34,7 @@ func (c *Client) ClusterName(ctx context.Context) (string, error) {
 
 // Datacenters returns the available datacenters in this cluster.
 func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
-	resp, err := c.scyllaOpts.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
+	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 
 // HostDatacenter looks up the datacenter that the given host belongs to.
 func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error) {
-	resp, err := c.scyllaOpts.SnitchDatacenterGet(&operations.SnitchDatacenterGetParams{
+	resp, err := c.scyllaOps.SnitchDatacenterGet(&operations.SnitchDatacenterGetParams{
 		Context: ctx,
 		Host:    &host,
 	})
@@ -68,7 +68,7 @@ func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error
 
 // Hosts returns a list of all hosts in a cluster.
 func (c *Client) Hosts(ctx context.Context) ([]string, error) {
-	resp, err := c.scyllaOpts.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
+	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (c *Client) Hosts(ctx context.Context) ([]string, error) {
 
 // HostIDs returns a mapping from host IP to UUID.
 func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
-	resp, err := c.scyllaOpts.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
+	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
 
 // Keyspaces return a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
-	resp, err := c.scyllaOpts.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{Context: ctx})
+	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 
 // Tables returns a slice of table names in a given keyspace.
 func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
-	resp, err := c.scyllaOpts.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})
+	resp, err := c.scyllaOps.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) 
 
 // Tokens returns list of tokens in a cluster.
 func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
-	resp, err := c.scyllaOpts.StorageServiceTokensEndpointGet(&operations.StorageServiceTokensEndpointGetParams{Context: ctx})
+	resp, err := c.scyllaOps.StorageServiceTokensEndpointGet(&operations.StorageServiceTokensEndpointGetParams{Context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
 
 // Partitioner returns cluster partitioner name.
 func (c *Client) Partitioner(ctx context.Context) (string, error) {
-	resp, err := c.scyllaOpts.StorageServicePartitionerNameGet(&operations.StorageServicePartitionerNameGetParams{Context: ctx})
+	resp, err := c.scyllaOps.StorageServicePartitionerNameGet(&operations.StorageServicePartitionerNameGetParams{Context: ctx})
 	if err != nil {
 		return "", err
 	}
@@ -201,7 +201,7 @@ func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error
 
 // DescribeRing returns a description of token range of a given keyspace.
 func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error) {
-	resp, err := c.scyllaOpts.StorageServiceDescribeRingByKeyspaceGet(&operations.StorageServiceDescribeRingByKeyspaceGetParams{
+	resp, err := c.scyllaOps.StorageServiceDescribeRingByKeyspaceGet(&operations.StorageServiceDescribeRingByKeyspaceGetParams{
 		Context:  ctx,
 		Keyspace: keyspace,
 	})
@@ -289,7 +289,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 		p.Hosts = &hosts
 	}
 
-	resp, err := c.scyllaOpts.StorageServiceRepairAsyncByKeyspacePost(&p)
+	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspacePost(&p)
 	if err != nil {
 		return 0, err
 	}
@@ -299,7 +299,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
-	resp, err := c.scyllaOpts.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
+	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
 		Context:  middleware.ForceHost(ctx, host),
 		Keyspace: keyspace,
 		ID:       id,
@@ -351,7 +351,7 @@ func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]string, e
 func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error) {
 	const wait = 50 * time.Millisecond
 	for i := 0; i < 10; i++ {
-		resp, err := c.scyllaOpts.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
+		resp, err := c.scyllaOps.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
 			Context: middleware.ForceHost(ctx, host),
 		})
 		if err != nil {
@@ -377,7 +377,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	ctx = middleware.DontRetry(ctx)
 
-	_, err := c.scyllaOpts.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
+	_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
 		Context: middleware.ForceHost(ctx, host),
 	})
 	return err
@@ -385,7 +385,7 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 
 // Snapshots lists available snapshots.
 func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
-	resp, err := c.scyllaOpts.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
+	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
 		Context: middleware.ForceHost(ctx, host),
 	})
 	if err != nil {
@@ -403,7 +403,7 @@ func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 // SnapshotDetails returns an index of keyspaces and tables present in the given
 // snapshot.
 func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit, error) {
-	resp, err := c.scyllaOpts.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
+	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
 		Context: middleware.ForceHost(ctx, host),
 	})
 	if err != nil {
@@ -451,13 +451,13 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 		params.Cf = &cf
 	}
 
-	_, err := c.scyllaOpts.StorageServiceSnapshotsPost(params) // nolint: errcheck
+	_, err := c.scyllaOps.StorageServiceSnapshotsPost(params) // nolint: errcheck
 	return err
 }
 
 // DeleteSnapshot removes a snapshot with a given tag.
 func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
-	_, err := c.scyllaOpts.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
+	_, err := c.scyllaOps.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
 		Context: middleware.ForceHost(ctx, host),
 		Tag:     &tag,
 	})

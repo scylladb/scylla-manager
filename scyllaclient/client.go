@@ -55,9 +55,9 @@ type Client struct {
 	config Config
 	logger log.Logger
 
-	scyllaOpts *scyllaOperations.Client
-	rcloneOpts *rcloneOperations.Client
-	transport  http.RoundTripper
+	scyllaOps *scyllaOperations.Client
+	rcloneOps *rcloneOperations.Client
+	transport http.RoundTripper
 }
 
 // NewClient creates new scylla HTTP client.
@@ -109,11 +109,11 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	rcloneRuntime.Debug = false
 
 	return &Client{
-		config:     config,
-		logger:     logger,
-		scyllaOpts: scyllaOperations.New(scyllaRuntime, strfmt.Default),
-		rcloneOpts: rcloneOperations.New(rcloneRuntime, strfmt.Default),
-		transport:  transport,
+		config:    config,
+		logger:    logger,
+		scyllaOps: scyllaOperations.New(scyllaRuntime, strfmt.Default),
+		rcloneOps: rcloneOperations.New(rcloneRuntime, strfmt.Default),
+		transport: transport,
 	}, nil
 }
 
