@@ -38,9 +38,11 @@ func (m remoteManifest) extractFilesGroupingKeys() []string {
 	return s
 }
 
+// used to get groupingKey
+var tableVersionFileNamePattern = regexp.MustCompile("^[a-f0-9]{32}/[a-z]{2}-[0-9]+-big")
+
 func groupingKey(file string) (string, error) {
-	r := regexp.MustCompile("^[a-f0-9]{32}/[a-z]{2}-[0-9]+-big")
-	m := r.FindStringSubmatch(file)
+	m := tableVersionFileNamePattern.FindStringSubmatch(file)
 	if m == nil {
 		return "", errors.New("file path does not match a pattern")
 	}
