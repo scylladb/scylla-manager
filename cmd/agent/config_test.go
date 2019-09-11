@@ -36,6 +36,11 @@ func TestConfigParse(t *testing.T) {
 			Golden: "./testdata/config/scylla_overwrite.golden.yaml",
 		},
 		{
+			Name:   "auth token overwrite",
+			Input:  "./testdata/config/auth_token_overwrite.input.yaml",
+			Golden: "./testdata/config/auth_token_overwrite.golden.yaml",
+		},
+		{
 			Name:   "https overwrite",
 			Input:  "./testdata/config/https_overwrite.input.yaml",
 			Golden: "./testdata/config/https_overwrite.golden.yaml",

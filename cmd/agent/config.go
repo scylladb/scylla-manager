@@ -89,13 +89,6 @@ func defaultConfig() config {
 }
 
 func (c config) validate() (errs error) {
-	// Check the auth token
-	if c.AuthToken == "" {
-		return errors.New("you must specify auth_token, " +
-			"the auth_token needs to be the same for all the nodes in a cluster, " +
-			"use scyllamgr_auth_token_gen to generate the auth_token value")
-	}
-
 	// Validate TLS config
 	if c.TLSCertFile == "" {
 		errs = multierr.Append(errs, errors.New("missing tls_cert_file"))

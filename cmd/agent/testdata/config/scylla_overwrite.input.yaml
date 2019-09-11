@@ -1,3 +1,2 @@
-auth_token: token
 scylla:
   api_address: 127.0.0.1

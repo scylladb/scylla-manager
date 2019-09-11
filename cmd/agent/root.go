@@ -5,7 +5,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -48,7 +50,7 @@ var rootCmd = &cobra.Command{
 		ctx := log.WithNewTraceID(context.Background())
 
 		// Create logger
-		logger, err := logger(&c)
+		logger, err := logger(c)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -60,10 +62,20 @@ var rootCmd = &cobra.Command{
 			}
 			logger.Sync() // nolint
 		}()
-		logger.Info(ctx, "Using config", "config", c, "config_file", rootArgs.configFile)
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
+
+		// Log config
+		logger.Info(ctx, "Using config", "config", obfuscateSecrets(c), "config_file", rootArgs.configFile)
+
+		// Instruct users to set auth token
+		if c.AuthToken == "" {
+			ip, _, _ := net.SplitHostPort(c.HTTPS)
+			logger.Info(ctx, "WARNING! Scylla data will be exposed on IP "+ip+", "+
+				"protect it by specifying auth_token in config file", "config_file", rootArgs.configFile,
+			)
+		}
 
 		// Get CPU
 		var cpu = c.CPU
@@ -117,7 +129,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func logger(c *config) (log.Logger, error) {
+func logger(c config) (log.Logger, error) {
 	if c.Logger.Development {
 		return log.NewDevelopmentWithLevel(c.Logger.Level), nil
 	}
@@ -126,6 +138,12 @@ func logger(c *config) (log.Logger, error) {
 		Mode:  c.Logger.Mode,
 		Level: c.Logger.Level,
 	})
+}
+
+func obfuscateSecrets(c config) config {
+	cfg := c
+	cfg.AuthToken = strings.Repeat("*", len(cfg.AuthToken))
+	return cfg
 }
 
 func init() {
