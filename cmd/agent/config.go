@@ -15,7 +15,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const defaultHTTPSPort = "10001"
+const (
+	defaultHTTPSPort = "10001"
+	noCPU            = -1
+)
 
 type logConfig struct {
 	Mode        log.Mode      `yaml:"mode"`
@@ -72,7 +75,7 @@ func defaultConfig() config {
 	return config{
 		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
-		CPU:         -1,
+		CPU:         noCPU,
 		Scylla: scyllaConfig{
 			APIAddress: "0.0.0.0",
 			APIPort:    "10000",

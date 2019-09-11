@@ -65,12 +65,23 @@ var rootCmd = &cobra.Command{
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
 
+		// Get CPU
+		var cpu = c.CPU
+		if cpu == noCPU {
+			logger.Info(ctx, "Looking for a free CPU to run on")
+			if c, err := findFreeCPU(); err != nil {
+				logger.Info(ctx, "Could not get a free CPU", "error", err.Error())
+			} else {
+				cpu = c
+			}
+		}
 		// Pin to CPU if possible
-		cpus, err := pinToCPU(c.CPU)
-		if err != nil {
-			logger.Info(ctx, "Running on all CPUs", "error", err.Error())
-		} else {
-			logger.Info(ctx, "Pinned to CPUs", "cpus", cpus)
+		if cpu != noCPU {
+			if err := pinToCPU(cpu); err != nil {
+				logger.Error(ctx, "Failed to pin to CPU", "cpu", cpu, "error", err)
+			} else {
+				logger.Info(ctx, "Pinned to CPU", "cpu", cpu)
+			}
 		}
 
 		// Init rclone config options

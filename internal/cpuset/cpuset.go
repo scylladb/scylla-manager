@@ -53,7 +53,7 @@ func parseConfigFile(name string) ([]int, error) {
 		return nil, err
 	}
 	if groups == nil {
-		return nil, errors.New("did not find any CPUSET configuration")
+		return nil, errors.New("no CPUSET configuration")
 	}
 
 	idx := 0

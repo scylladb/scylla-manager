@@ -114,7 +114,7 @@ func TestParseConfigFile(t *testing.T) {
 		{
 			Name: "Default",
 			File: "testdata/cpuset_default.conf",
-			Err:  "did not find any CPUSET configuration",
+			Err:  "no CPUSET configuration",
 		},
 		{
 			Name: "SMP only",

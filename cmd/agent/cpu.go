@@ -13,27 +13,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func pinToCPU(cpu int) ([]int, error) {
-	// Get CPUs to run on
-	var cpus []int
-	if cpu != -1 {
-		cpus = []int{cpu}
-	} else {
-		busy, err := cpuset.ParseScyllaConfigFile()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse Scylla cpuset configuration run scylla_cpuset_setup or set cpu field in the Scylla Manager Agent configuration file")
-		}
-		cpus, err = cpuset.AvailableCPUs(busy, 1)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to pin to CPU")
-		}
+func findFreeCPU() (int, error) {
+	busy, err := cpuset.ParseScyllaConfigFile()
+	if err != nil {
+		return noCPU, errors.Wrapf(err, "failed to parse Scylla cpuset configuration, "+
+			"run scylla_cpuset_setup or set cpu field in the Scylla Manager Agent configuration file")
 	}
-
-	if err := cpuset.SchedSetAffinity(cpus); err != nil {
-		return nil, errors.Wrapf(err, "failed to pin to CPUs %d", cpus)
+	cpus, err := cpuset.AvailableCPUs(busy, 1)
+	if err != nil {
+		return noCPU, err
 	}
+	return cpus[0], nil
+}
 
-	return cpus, nil
+func pinToCPU(cpu int) error {
+	return cpuset.SchedSetAffinity([]int{cpu})
 }
 
 var cpuTestArgs = struct {
@@ -52,11 +46,15 @@ var cpuTestCmd = &cobra.Command{
 	Hidden:        true,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cpus, err := pinToCPU(cpuTestArgs.cpu)
-		if err != nil {
-			return errors.Wrap(err, "failed to pin to CPU")
+		var cpu = cpuTestArgs.cpu
+		if cpu >= 0 {
+			if err := pinToCPU(cpu); err != nil {
+				return errors.Wrapf(err, "failed to pin to CPU %d", cpu)
+			}
+			fmt.Println("Pinned to CPU", cpuTestArgs.cpu, "pid", os.Getpid())
+		} else {
+			fmt.Println("Running on all CPUs", "pid", os.Getpid())
 		}
-		fmt.Println("Pinned to CPUs", cpus, "pid", os.Getpid())
 
 		for i := 0; i < cpuTestArgs.parallel; i++ {
 			go func(i int) {
