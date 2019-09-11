@@ -5,6 +5,13 @@ package backup
 import (
 	"sort"
 	"time"
+
+	"github.com/scylladb/go-set/strset"
+)
+
+var (
+	zeroTime time.Time
+	maxTime  = time.Unix(1<<62-1, 0).UTC()
 )
 
 type tableKey struct {
@@ -16,17 +23,55 @@ type tableKey struct {
 // aggregateProgress returns progress information classified by host, keyspace,
 // and host tables.
 func aggregateProgress(run *Run, prog []*RunProgress) Progress {
+	if len(run.Units) == 0 || len(prog) == 0 {
+		return Progress{
+			DC: run.DC,
+		}
+	}
+
+	tableMap, hosts := aggregateTableProgress(run, prog)
+
 	p := Progress{
 		DC: run.DC,
 	}
-	if len(run.Units) == 0 || len(prog) == 0 {
-		return p
+	for _, h := range hosts {
+		host := HostProgress{
+			Host: h,
+			progress: progress{
+				StartedAt:   &maxTime,
+				CompletedAt: &zeroTime,
+			},
+		}
+		for _, u := range run.Units {
+			ks := KeyspaceProgress{
+				Keyspace: u.Keyspace,
+				progress: progress{
+					StartedAt:   &maxTime,
+					CompletedAt: &zeroTime,
+				},
+			}
+			for _, t := range u.Tables {
+				tp := tableMap[tableKey{h, u.Keyspace, t}]
+				tp.progress = extremeToNil(tp.progress)
+				ks.Tables = append(ks.Tables, *tp)
+				ks.progress = calcParentProgress(ks.progress, tp.progress)
+			}
+			host.Keyspaces = append(host.Keyspaces, ks)
+			ks.progress = extremeToNil(ks.progress)
+			host.progress = calcParentProgress(host.progress, ks.progress)
+		}
+		p.Hosts = append(p.Hosts, host)
+		host.progress = extremeToNil(host.progress)
+		p.progress = calcParentProgress(p.progress, host.progress)
 	}
 
-	zeroTime := &time.Time{}
-	t := time.Unix(1<<62-1, 0).UTC()
-	maxTime := &t
-	hostsMap := make(map[string]struct{})
+	return p
+}
+
+// aggregateTableProgress aggregates provided run progress per host table and
+// returns it along with list of all aggregated hosts.
+func aggregateTableProgress(run *Run, prog []*RunProgress) (map[tableKey]*TableProgress, []string) {
+	hosts := strset.New()
 	tableMap := make(map[tableKey]*TableProgress)
 	for _, pr := range prog {
 		tk := tableKey{pr.Host, run.Units[pr.Unit].Keyspace, pr.TableName}
@@ -36,12 +81,12 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 				Table: pr.TableName,
 				// To distinguish between set and not set dates.
 				progress: progress{
-					StartedAt:   maxTime,
-					CompletedAt: zeroTime,
+					StartedAt:   &maxTime,
+					CompletedAt: &zeroTime,
 				},
 			}
 			tableMap[tk] = table
-			hostsMap[pr.Host] = struct{}{}
+			hosts.Add(pr.Host)
 		}
 
 		// Don't count metadata as progress.
@@ -72,51 +117,17 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 		}
 	}
 
-	var hosts []string
-	for h := range hostsMap {
-		hosts = append(hosts, h)
-	}
-	sort.Strings(hosts)
+	hs := hosts.List()
+	sort.Strings(hs)
 
-	for _, h := range hosts {
-		host := HostProgress{
-			Host: h,
-			progress: progress{
-				StartedAt:   maxTime,
-				CompletedAt: zeroTime,
-			},
-		}
-		for _, u := range run.Units {
-			ks := KeyspaceProgress{
-				Keyspace: u.Keyspace,
-				progress: progress{
-					StartedAt:   maxTime,
-					CompletedAt: zeroTime,
-				},
-			}
-			for _, t := range u.Tables {
-				tp := tableMap[tableKey{h, u.Keyspace, t}]
-				tp.progress = extremeToNil(tp.progress, zeroTime, maxTime)
-				ks.Tables = append(ks.Tables, *tp)
-				ks.progress = calcParentProgress(ks.progress, tp.progress)
-			}
-			host.Keyspaces = append(host.Keyspaces, ks)
-			ks.progress = extremeToNil(ks.progress, zeroTime, maxTime)
-			host.progress = calcParentProgress(host.progress, ks.progress)
-		}
-		p.Hosts = append(p.Hosts, host)
-		host.progress = extremeToNil(host.progress, zeroTime, maxTime)
-		p.progress = calcParentProgress(p.progress, host.progress)
-	}
-
-	return p
+	return tableMap, hs
 }
 
-func extremeToNil(prog progress, zero, max *time.Time) progress {
-	if prog.StartedAt == max {
+func extremeToNil(prog progress) progress {
+	if prog.StartedAt == &maxTime {
 		prog.StartedAt = nil
 	}
-	if prog.CompletedAt == zero {
+	if prog.CompletedAt == &zeroTime {
 		prog.CompletedAt = nil
 	}
 	return prog
