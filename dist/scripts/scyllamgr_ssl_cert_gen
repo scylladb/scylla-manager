@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2018 ScyllaDB
+# Copyright (C) 2017 ScyllaDB
 #
 
 set -eu -o pipefail
