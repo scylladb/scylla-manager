@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
+
+set -eu -o pipefail
+
+for name in `docker ps -f name=mermaid_dc --format {{.Names}}`; do
+    host=`docker inspect -f '{{with index .NetworkSettings.Networks "mermaid_public"}}{{.IPAddress}}{{end}}' ${name}`
+    echo "> ${host}"
+    docker exec ${name} $@
+done

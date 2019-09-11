@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# Copyright 2018 ScyllaDB
+#
+
+set -eu -o pipefail
+
+declare -r SRC_PATH=$1
+declare -r DEST_PATH=$2
+
+for name in `docker ps -f name=mermaid_dc --format {{.Names}}`; do
+    docker cp ${SRC_PATH} ${name}:${DEST_PATH}
+done
