@@ -32,6 +32,10 @@ down: ## Stop docker containers
 status: ## Cluster nodetool status
 	@$(COMPOSE) exec dc1_node_1 nodetool status
 
+.PHONY: logs
+logs: ## Show logs
+	@$(COMPOSE) logs --tail 10 -f $(SRV)
+
 .PHONY: cqlsh
 cqlsh: ## CQL shell to manager node
 	@$(CQLSH) 192.168.100.100
