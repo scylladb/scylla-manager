@@ -5,8 +5,20 @@
 
 set -eu -o pipefail
 
+SILENT=0
+
+case "$1" in
+    "--silent")
+        SILENT=1
+        shift 1
+        ;;
+esac
+
 for name in `docker ps -f name=mermaid_dc --format {{.Names}}`; do
-    host=`docker inspect -f '{{with index .NetworkSettings.Networks "mermaid_public"}}{{.IPAddress}}{{end}}' ${name}`
-    echo "> ${host}"
-    docker exec ${name} $@
+    if [[ ${SILENT} == 1 ]]; then
+        docker exec ${name} $@ > /dev/null
+    else
+        echo "> ${name}"
+        docker exec ${name} $@
+    fi
 done

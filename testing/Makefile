@@ -43,6 +43,8 @@ cqlsh: ## CQL shell to manager node
 .PHONY: deploy-agent
 deploy-agent: ## Update agent to the latest build on all nodes
 	@./nodes_cp ../agent.dev /usr/bin/scylla-manager-agent
+	@./nodes_exec --silent mkdir -p /etc/scylla-manager-agent
+	@./nodes_cp ./scylla-manager-agent/scylla-manager-agent.yaml /etc/scylla-manager-agent/scylla-manager-agent.yaml
 
 .PHONY: restart-agent
 restart-agent: ## Restart agent on all nodes

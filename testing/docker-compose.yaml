@@ -15,9 +15,6 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla-manager-agent/scylla-manager-agent.yaml
-        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     networks:
       public:
         ipv4_address: 192.168.100.11
@@ -36,9 +33,6 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla-manager-agent/scylla-manager-agent.yaml
-        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     networks:
       public:
         ipv4_address: 192.168.100.12
@@ -57,9 +51,6 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla-manager-agent/scylla-manager-agent.yaml
-        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     networks:
       public:
         ipv4_address: 192.168.100.13
@@ -78,9 +69,6 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla-manager-agent/scylla-manager-agent.yaml
-        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     networks:
       public:
         ipv4_address: 192.168.100.21
@@ -99,9 +87,6 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla-manager-agent/scylla-manager-agent.yaml
-        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     networks:
       public:
         ipv4_address: 192.168.100.22
@@ -120,9 +105,6 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla-manager-agent/scylla-manager-agent.yaml
-        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     networks:
       public:
         ipv4_address: 192.168.100.23
