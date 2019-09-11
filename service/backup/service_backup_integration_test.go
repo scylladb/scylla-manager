@@ -32,7 +32,6 @@ type backupTestHelper struct {
 	session *gocql.Session
 	client  *scyllaclient.Client
 	service *backup.Service
-	runner  backup.Runner
 
 	clusterID uuid.UUID
 	taskID    uuid.UUID
@@ -52,7 +51,6 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 		session: session,
 		client:  client,
 		service: service,
-		runner:  service.Runner(),
 
 		clusterID: uuid.MustRandom(),
 		taskID:    uuid.MustRandom(),
@@ -532,16 +530,25 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	writeAndFlushData(t, clusterSession, testKeyspace, 3*1024*1024)
 
-	properties := json.RawMessage(fmt.Sprintf(`{
-		"keyspace": [
-			"%s"
-		],
-		"dc": ["dc1"],
-		"location": ["%s:%s"],
-		"retention": 1,
-		"rate_limit": ["dc1:1"],
-		"continue": true
-	}`, testKeyspace, backup.S3, testBucket))
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC: []string{"dc1"},
+		Location: []backup.Location{
+			{
+				Provider: backup.S3,
+				Path:     testBucket,
+			},
+		},
+		Retention: 1,
+		RateLimit: []backup.DCLimit{
+			{"dc1", 1},
+		},
+		Continue: true,
+	}
 
 	t.Run("resume after stop", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config)
@@ -557,7 +564,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		go func() {
 			defer close(done)
 			Print("When: runner is running")
-			err := h.runner.Run(ctx, h.clusterID, h.taskID, h.runID, properties)
+			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
 			if err == nil {
 				t.Error("Expected error on run but got nil")
 			} else {
@@ -587,7 +594,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("When: runner is resumed with new RunID")
 		resumeID := uuid.NewTime()
-		err := h.runner.Run(context.Background(), h.clusterID, h.taskID, resumeID, properties)
+		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, resumeID, target)
 		if err != nil {
 			t.Error("Didn't expect error", err)
 		}
@@ -629,7 +636,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		done := make(chan struct{})
 		go func() {
 			Print("When: runner is running")
-			err := h.runner.Run(ctx, h.clusterID, h.taskID, h.runID, properties)
+			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
 			if err == nil {
 				t.Error("Expected error on run but got nil")
 			}
@@ -655,7 +662,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("When: runner is resumed with new RunID")
 		resumeID := uuid.NewTime()
-		err := h.runner.Run(context.Background(), h.clusterID, h.taskID, resumeID, properties)
+		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, resumeID, target)
 		if err != nil {
 			t.Error("Didn't expect error", err)
 		}
@@ -694,21 +701,13 @@ func TestBackupResumeIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 
-		properties := json.RawMessage(fmt.Sprintf(`{
-			"keyspace": [
-				"%s"
-			],
-			"dc": ["dc1"],
-			"location": ["%s:%s"],
-			"retention": 1,
-			"rate_limit": ["dc1:1"],
-			"continue": false
-		}`, testKeyspace, backup.S3, testBucket))
+		target := target
+		target.Continue = false
 
 		go func() {
 			defer close(done)
 			Print("When: runner is running")
-			err := h.runner.Run(ctx, h.clusterID, h.taskID, h.runID, properties)
+			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
 			if err == nil {
 				t.Error("Expected error on run but got nil")
 			} else {
@@ -738,7 +737,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("When: runner is resumed with new RunID")
 		resumeID := uuid.NewTime()
-		err := h.runner.Run(context.Background(), h.clusterID, h.taskID, resumeID, properties)
+		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, resumeID, target)
 		if err != nil {
 			t.Error("Didn't expect error", err)
 		}
