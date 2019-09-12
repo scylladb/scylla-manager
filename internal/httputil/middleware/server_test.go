@@ -46,14 +46,24 @@ func TestParseBearerAuth(t *testing.T) {
 	}
 }
 
-func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
+func TestValidateAuthTokenMiddlewareNoToken(t *testing.T) {
 	h := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
+	w := httptest.NewRecorder()
 
+	ValidateAuthToken(h, "", 0).ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Error("expected status 200 got", w)
+	}
+}
+
+func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
 	const token = "token"
+	h := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 	r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 	r.Header.Set("Authorization", "Bearer "+token)
-
 	w := httptest.NewRecorder()
+
 	ValidateAuthToken(h, token, 0).ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Error("expected status 200 got", w)
@@ -95,4 +105,26 @@ func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
 			t.Fatal("expected penalty")
 		}
 	})
+}
+
+func TestCrossCheckAuthTokenMiddleware(t *testing.T) {
+	const token = "token"
+
+	var h http.Handler
+	h = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	h = ValidateAuthToken(h, token, 0)
+
+	var rt http.RoundTripper
+	rt = RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w.Result(), nil
+	})
+	rt = AuthToken(rt, token)
+
+	req := httptest.NewRequest(http.MethodGet, "/foobar", nil)
+	resp, _ := rt.RoundTrip(req)
+	if resp.StatusCode != http.StatusOK {
+		t.Error("expected status 200 got", resp.StatusCode)
+	}
 }

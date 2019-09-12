@@ -28,8 +28,13 @@ func (rt RoundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return rt(r)
 }
 
-// AuthToken sets authorization header.
+// AuthToken sets authorization header. If token is empty it immediately returns
+// the next handler.
 func AuthToken(next http.RoundTripper, token string) http.RoundTripper {
+	if token == "" {
+		return next
+	}
+
 	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		r := cloneRequest(req)
 		r.Header.Set("Authorization", "Bearer "+token)
