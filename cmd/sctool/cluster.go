@@ -85,6 +85,11 @@ var clusterAddCmd = &cobra.Command{
 			fmt.Fprintf(w, clipper, id, mermaidclient.FormatTime(s.StartDate), s.Interval, id)
 		}
 
+		if cfgClusterAuthToken == "" {
+			fmt.Fprintln(w, "WARNING! Scylla data is exposed, "+
+				"protect it by specifying auth_token in Scylla Manager Agent config file on Scylla nodes\n")
+		}
+
 		return nil
 	},
 }
@@ -96,7 +101,6 @@ func init() {
 
 	clusterInitCommonFlags(cmd)
 	requireFlags(cmd, "host")
-	requireFlags(cmd, "auth-token")
 }
 
 var clusterUpdateCmd = &cobra.Command{

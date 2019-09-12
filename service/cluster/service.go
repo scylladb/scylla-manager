@@ -328,7 +328,19 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		return err
 	}
 
-	if t == Update {
+	if c.AuthToken == "" {
+		s.logger.Info(ctx, "WARNING! Scylla data is exposed on hosts, "+
+			"protect it by specifying auth_token in Scylla Manager Agent config file on Scylla nodes",
+			"cluster_id", c.ID,
+			"hosts", c.KnownHosts,
+		)
+	}
+
+	switch t {
+	case Create:
+		s.logger.Info(ctx, "Cluster added", "cluster_id", c.ID)
+	case Update:
+		s.logger.Info(ctx, "Cluster updated", "cluster_id", c.ID)
 		s.clientCache.Invalidate(c.ID)
 	}
 
