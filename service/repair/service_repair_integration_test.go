@@ -998,10 +998,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 
 	Print("Given: repair is running on a host")
 	go func() {
-		_, _, err := ExecOnHost(ManagedClusterHosts[0], "nodetool repair -pr")
-		if err == nil {
-			t.Fatal("expected failure due to killing all repairs")
-		}
+		ExecOnHost(ManagedClusterHosts[0], "nodetool repair -pr")
 	}()
 	defer func() {
 		if err := h.client.KillAllRepairs(context.Background(), ManagedClusterHosts[0]); err != nil {
