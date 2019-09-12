@@ -13,7 +13,7 @@ import (
 )
 
 // Cluster cluster
-// swagger:model cluster
+// swagger:model Cluster
 type Cluster struct {
 
 	// auth token

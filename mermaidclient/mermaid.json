@@ -12,7 +12,7 @@
     "application/json"
   ],
   "definitions": {
-    "version": {
+    "Version": {
       "type": "object",
       "properties": {
         "version": {
@@ -20,7 +20,7 @@
         }
       }
     },
-    "cluster": {
+    "Cluster": {
       "type": "object",
       "properties": {
         "id": {
@@ -45,7 +45,7 @@
         }
       }
     },
-    "repairUnit": {
+    "RepairUnit": {
       "type": "object",
       "properties": {
         "keyspace": {
@@ -62,7 +62,7 @@
         }
       }
     },
-    "clusterStatus": {
+    "ClusterStatus": {
       "type": "array",
       "items": {
         "properties": {
@@ -92,7 +92,7 @@
         }
       }
     },
-    "repairProgress": {
+    "RepairProgress": {
       "type": "object",
       "properties": {
         "percent_complete": {
@@ -117,7 +117,7 @@
                 "format": "float"
               },
               "unit": {
-                "$ref": "#/definitions/repairUnit"
+                "$ref": "#/definitions/RepairUnit"
               },
               "nodes": {
                 "type": "array",
@@ -180,7 +180,7 @@
         }
       }
     },
-    "schedule": {
+    "Schedule": {
       "type": "object",
       "properties": {
         "start_date": {
@@ -196,7 +196,7 @@
         }
       }
     },
-    "task": {
+    "Task": {
       "type": "object",
       "properties": {
         "cluster_id": {
@@ -221,7 +221,7 @@
           "type": "boolean"
         },
         "schedule": {
-          "$ref": "#/definitions/schedule"
+          "$ref": "#/definitions/Schedule"
         },
         "properties": {
           "type": "object",
@@ -229,7 +229,7 @@
         }
       }
     },
-    "extendedTask": {
+    "ExtendedTask": {
       "type": "object",
       "properties": {
         "cluster_id": {
@@ -254,7 +254,7 @@
           "type": "boolean"
         },
         "schedule": {
-          "$ref": "#/definitions/schedule"
+          "$ref": "#/definitions/Schedule"
         },
         "properties": {
           "type": "object",
@@ -283,7 +283,7 @@
         }
       }
     },
-    "taskUpdate": {
+    "TaskUpdate": {
       "type": "object",
       "properties": {
         "name": {
@@ -302,7 +302,7 @@
           "type": "boolean"
         },
         "schedule": {
-          "$ref": "#/definitions/schedule"
+          "$ref": "#/definitions/Schedule"
         },
         "properties": {
           "type": "object",
@@ -310,7 +310,7 @@
         }
       }
     },
-    "taskRun": {
+    "TaskRun": {
       "type": "object",
       "properties": {
         "cluster_id": {
@@ -341,18 +341,18 @@
         }
       }
     },
-    "taskRunRepairProgress": {
+    "TaskRunRepairProgress": {
       "type": "object",
       "properties": {
         "run": {
-          "$ref": "#/definitions/taskRun"
+          "$ref": "#/definitions/TaskRun"
         },
         "progress": {
-          "$ref": "#/definitions/repairProgress"
+          "$ref": "#/definitions/RepairProgress"
         }
       }
     },
-    "repairTarget": {
+    "RepairTarget": {
       "type": "object",
       "properties": {
         "cluster_id": {
@@ -379,23 +379,23 @@
         "units": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/repairUnit"
+            "$ref": "#/definitions/RepairUnit"
           }
         }
       }
     },
-    "taskRunBackupProgress": {
+    "TaskRunBackupProgress": {
       "type": "object",
       "properties": {
         "run": {
-          "$ref": "#/definitions/taskRun"
+          "$ref": "#/definitions/TaskRun"
         },
         "progress": {
-          "$ref": "#/definitions/backupProgress"
+          "$ref": "#/definitions/BackupProgress"
         }
       }
     },
-    "backupProgress": {
+    "BackupProgress": {
       "type": "object",
       "properties": {
         "dcs": {
@@ -407,7 +407,7 @@
         "hosts": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/hostProgress"
+            "$ref": "#/definitions/HostProgress"
           }
         },
         "size": {
@@ -430,7 +430,7 @@
         }
       }
     },
-    "hostProgress": {
+    "HostProgress": {
       "type": "object",
       "properties": {
         "host": {
@@ -439,7 +439,7 @@
         "keyspaces": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/keyspaceProgress"
+            "$ref": "#/definitions/KeyspaceProgress"
           }
         },
         "size": {
@@ -462,7 +462,7 @@
         }
       }
     },
-    "keyspaceProgress": {
+    "KeyspaceProgress": {
       "type": "object",
       "properties": {
         "keyspace": {
@@ -471,7 +471,7 @@
         "tables": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/tableProgress"
+            "$ref": "#/definitions/TableProgress"
           }
         },
         "size": {
@@ -494,7 +494,7 @@
         }
       }
     },
-    "tableProgress": {
+    "TableProgress": {
       "type": "object",
       "properties": {
         "table": {
@@ -531,7 +531,7 @@
           "200": {
             "description": "Server version",
             "schema": {
-              "$ref": "#/definitions/version"
+              "$ref": "#/definitions/Version"
             }
           }
         }
@@ -545,7 +545,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/cluster"
+                "$ref": "#/definitions/Cluster"
               }
             }
           }
@@ -557,7 +557,7 @@
             "name": "cluster",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/cluster"
+              "$ref": "#/definitions/Cluster"
             }
           }
         ],
@@ -587,7 +587,7 @@
           "200": {
             "description": "Cluster info",
             "schema": {
-              "$ref": "#/definitions/cluster"
+              "$ref": "#/definitions/Cluster"
             }
           }
         }
@@ -598,7 +598,7 @@
             "name": "cluster",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/cluster"
+              "$ref": "#/definitions/Cluster"
             }
           }
         ],
@@ -606,7 +606,7 @@
           "200": {
             "description": "Updated cluster info",
             "schema": {
-              "$ref": "#/definitions/cluster"
+              "$ref": "#/definitions/Cluster"
             }
           }
         }
@@ -633,7 +633,7 @@
           "200": {
             "description": "Cluster hosts and their statuses",
             "schema": {
-              "$ref": "#/definitions/clusterStatus"
+              "$ref": "#/definitions/ClusterStatus"
             }
           }
         }
@@ -675,7 +675,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/extendedTask"
+                "$ref": "#/definitions/ExtendedTask"
               }
             }
           }
@@ -687,7 +687,7 @@
             "name": "taskFields",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/taskUpdate"
+              "$ref": "#/definitions/TaskUpdate"
             }
           },
           {
@@ -724,7 +724,7 @@
             "name": "taskFields",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/taskUpdate"
+              "$ref": "#/definitions/TaskUpdate"
             }
           }
         ],
@@ -732,7 +732,7 @@
           "200": {
             "description": "Repair target",
             "schema": {
-              "$ref": "#/definitions/repairTarget"
+              "$ref": "#/definitions/RepairTarget"
             }
           }
         }
@@ -764,7 +764,7 @@
           "200": {
             "description": "Task info",
             "schema": {
-              "$ref": "#/definitions/task"
+              "$ref": "#/definitions/Task"
             }
           }
         }
@@ -775,7 +775,7 @@
             "name": "taskFields",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/taskUpdate"
+              "$ref": "#/definitions/TaskUpdate"
             }
           }
         ],
@@ -783,7 +783,7 @@
           "200": {
             "description": "Updated task info",
             "schema": {
-              "$ref": "#/definitions/task"
+              "$ref": "#/definitions/Task"
             }
           }
         }
@@ -903,7 +903,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/taskRun"
+                "$ref": "#/definitions/TaskRun"
               }
             }
           }
@@ -936,7 +936,7 @@
           "200": {
             "description": "Repair progress",
             "schema": {
-              "$ref": "#/definitions/taskRunRepairProgress"
+              "$ref": "#/definitions/TaskRunRepairProgress"
             }
           }
         }
@@ -968,7 +968,7 @@
           "200": {
             "description": "Backup progress",
             "schema": {
-              "$ref": "#/definitions/taskRunBackupProgress"
+              "$ref": "#/definitions/TaskRunBackupProgress"
             }
           }
         }

@@ -13,7 +13,7 @@ import (
 )
 
 // TaskRunBackupProgress task run backup progress
-// swagger:model taskRunBackupProgress
+// swagger:model TaskRunBackupProgress
 type TaskRunBackupProgress struct {
 
 	// progress

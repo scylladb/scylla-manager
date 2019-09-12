@@ -12,7 +12,7 @@ import (
 )
 
 // TableProgress table progress
-// swagger:model tableProgress
+// swagger:model TableProgress
 type TableProgress struct {
 
 	// completed at

@@ -15,7 +15,7 @@ import (
 )
 
 // RepairTarget repair target
-// swagger:model repairTarget
+// swagger:model RepairTarget
 type RepairTarget struct {
 
 	// cluster id

@@ -14,7 +14,7 @@ import (
 )
 
 // TaskRun task run
-// swagger:model taskRun
+// swagger:model TaskRun
 type TaskRun struct {
 
 	// cause

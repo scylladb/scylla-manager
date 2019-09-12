@@ -15,7 +15,7 @@ import (
 )
 
 // RepairProgress repair progress
-// swagger:model repairProgress
+// swagger:model RepairProgress
 type RepairProgress struct {
 
 	// dcs

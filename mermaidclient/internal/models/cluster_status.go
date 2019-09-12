@@ -15,7 +15,7 @@ import (
 )
 
 // ClusterStatus cluster status
-// swagger:model clusterStatus
+// swagger:model ClusterStatus
 type ClusterStatus []*ClusterStatusItems0
 
 // Validate validates this cluster status

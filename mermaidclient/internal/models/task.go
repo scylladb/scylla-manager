@@ -13,7 +13,7 @@ import (
 )
 
 // Task task
-// swagger:model task
+// swagger:model Task
 type Task struct {
 
 	// cluster id

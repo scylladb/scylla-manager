@@ -15,7 +15,7 @@ import (
 )
 
 // KeyspaceProgress keyspace progress
-// swagger:model keyspaceProgress
+// swagger:model KeyspaceProgress
 type KeyspaceProgress struct {
 
 	// completed at

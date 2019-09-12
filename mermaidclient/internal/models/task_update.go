@@ -13,7 +13,7 @@ import (
 )
 
 // TaskUpdate task update
-// swagger:model taskUpdate
+// swagger:model TaskUpdate
 type TaskUpdate struct {
 
 	// enabled

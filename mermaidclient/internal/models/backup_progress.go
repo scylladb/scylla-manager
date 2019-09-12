@@ -15,7 +15,7 @@ import (
 )
 
 // BackupProgress backup progress
-// swagger:model backupProgress
+// swagger:model BackupProgress
 type BackupProgress struct {
 
 	// completed at

@@ -12,7 +12,7 @@ import (
 )
 
 // Version version
-// swagger:model version
+// swagger:model Version
 type Version struct {
 
 	// version

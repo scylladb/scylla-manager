@@ -15,7 +15,7 @@ import (
 )
 
 // HostProgress host progress
-// swagger:model hostProgress
+// swagger:model HostProgress
 type HostProgress struct {
 
 	// completed at

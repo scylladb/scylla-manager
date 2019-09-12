@@ -14,7 +14,7 @@ import (
 )
 
 // ExtendedTask extended task
-// swagger:model extendedTask
+// swagger:model ExtendedTask
 type ExtendedTask struct {
 
 	// cause

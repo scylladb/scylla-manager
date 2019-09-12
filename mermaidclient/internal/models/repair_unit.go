@@ -12,7 +12,7 @@ import (
 )
 
 // RepairUnit repair unit
-// swagger:model repairUnit
+// swagger:model RepairUnit
 type RepairUnit struct {
 
 	// all tables
