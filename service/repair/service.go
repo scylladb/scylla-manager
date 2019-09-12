@@ -76,7 +76,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties), "")
+		return Target{}, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties))
 	}
 
 	t := Target{
@@ -103,7 +103,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		hosts = append(hosts, t.Host)
 	}
 	if err := validateHostsBelongToCluster(dcMap, hosts...); err != nil {
-		return t, mermaid.ErrValidate(err, "")
+		return t, mermaid.ErrValidate(err)
 	}
 
 	// Filter DCs

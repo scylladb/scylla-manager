@@ -272,7 +272,7 @@ func (t *Task) Validate() error {
 		errs = multierr.Append(errs, errors.New("missing start date"))
 	}
 
-	return mermaid.ErrValidate(errs, "invalid task")
+	return mermaid.ErrValidate(errors.Wrap(errs, "invalid task"))
 }
 
 func (t *Task) newCancelableTrigger() *cancelableTrigger {

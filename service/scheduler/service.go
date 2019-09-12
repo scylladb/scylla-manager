@@ -596,7 +596,7 @@ func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
 		}
 	}
 
-	return mermaid.ErrValidate(errors.Errorf("a task of type %s exists for cluster %s", t.Type, t.ClusterID), "")
+	return mermaid.ErrValidate(errors.Errorf("a task of type %s exists for cluster %s", t.Type, t.ClusterID))
 }
 
 // PutTask upserts a task, the task instance must pass Validate() checks.
@@ -618,7 +618,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 
 	if create {
 		if t.Sched.StartDate.Before(timeutc.Now()) {
-			return mermaid.ErrValidate(errors.New("start date in the past"), "invalid schedule")
+			return mermaid.ErrValidate(errors.New("start date in the past"))
 		}
 	}
 
@@ -726,7 +726,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 		return nil, err
 	}
 	if limit <= 0 {
-		return nil, mermaid.ErrValidate(errors.New("limit must be > 0"), "")
+		return nil, mermaid.ErrValidate(errors.New("limit must be > 0"))
 	}
 
 	b := qb.Select(schema.SchedRun.Name()).Where(

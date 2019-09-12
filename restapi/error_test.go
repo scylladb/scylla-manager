@@ -30,7 +30,7 @@ func TestRespondError(t *testing.T) {
 	})
 
 	t.Run("validation", func(t *testing.T) {
-		err := mermaid.ErrValidate(errors.New("some problem"), "val_err")
+		err := mermaid.ErrValidate(errors.New("some problem"))
 		response := httptest.NewRecorder()
 
 		respondError(response, request, err, "specific_msg")

@@ -284,7 +284,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 				return err
 			}
 			if conflict.ID != c.ID {
-				return mermaid.ErrValidate(errors.Errorf("name %q is already taken", c.Name), "invalid name")
+				return mermaid.ErrValidate(errors.Errorf("name %q is already taken", c.Name))
 			}
 		}
 	}
@@ -380,10 +380,10 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 		}
 	}
 	if errs != nil {
-		return mermaid.ErrValidate(errs, "host connectivity check failed")
+		return mermaid.ErrValidate(errors.Wrap(errs, "host connectivity check failed"))
 	}
 	if alive == 0 {
-		return mermaid.ErrValidate(errors.New("failed to connect to any host"), "host connectivity check failed")
+		return mermaid.ErrValidate(errors.New("host connectivity check failed cannot connect to any host"))
 	}
 
 	// Update known hosts.

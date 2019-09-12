@@ -70,7 +70,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	t := Target{}
 
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return t, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties), "")
+		return t, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties))
 	}
 
 	// Copy simple properties

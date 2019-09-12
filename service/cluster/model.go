@@ -54,7 +54,7 @@ func (c *Cluster) Validate() error {
 		errs = multierr.Append(errs, errors.Wrap(err, "invalid SSL user key pair"))
 	}
 
-	return mermaid.ErrValidate(errs, "invalid cluster")
+	return mermaid.ErrValidate(errors.Wrap(errs, "invalid cluster"))
 }
 
 // Filter filters Clusters.

@@ -3,8 +3,6 @@
 package mermaid
 
 import (
-	"fmt"
-
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 )
@@ -15,15 +13,17 @@ var (
 	ErrNilPtr   = errors.New("nil")
 )
 
+// errValidate is a validation error caused by inner error.
+type errValidate struct {
+	err error
+}
+
 // ErrValidate marks error as a validation error, if err is not nil.
-func ErrValidate(err error, msg string) error {
+func ErrValidate(err error) error {
 	if err == nil {
 		return nil
 	}
-	return errValidate{
-		msg: msg,
-		err: err,
-	}
+	return errValidate{err: err}
 }
 
 // IsErrValidate checks if given error is a validation error.
@@ -32,17 +32,7 @@ func IsErrValidate(err error) bool {
 	return ok
 }
 
-// errValidate is a validation error caused by inner error.
-type errValidate struct {
-	msg string
-	err error
-}
-
 // Error implements error.
 func (e errValidate) Error() string {
-	if e.msg == "" {
-		return e.err.Error()
-	}
-
-	return fmt.Sprintf("%s: %s", e.msg, e.err)
+	return e.err.Error()
 }

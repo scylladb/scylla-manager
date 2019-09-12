@@ -56,7 +56,7 @@ func ParseInExList(patterns []string) (InExList, error) {
 		p = strings.TrimLeft(p, "!")
 		g, err := glob.Compile(p)
 		if err != nil {
-			return InExList{}, mermaid.ErrValidate(errors.Errorf("invalid glob p on position %d: %s", i, p), "")
+			return InExList{}, mermaid.ErrValidate(errors.Errorf("invalid glob p on position %d: %s", i, p))
 		}
 		parsed = append(parsed, signedPattern{Sign: sign(s), Pattern: p, g: g})
 	}
