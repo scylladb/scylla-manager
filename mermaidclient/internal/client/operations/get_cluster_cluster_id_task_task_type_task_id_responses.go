@@ -6,7 +6,6 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -33,16 +32,36 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDReader) ReadResponse(response runt
 		}
 		return result, nil
 
-	default:
-		body := response.Body()
-		defer body.Close()
-
-		var m json.RawMessage
-		if err := json.NewDecoder(body).Decode(&m); err != nil {
+	case 400:
+		result := NewGetClusterClusterIDTaskTaskTypeTaskIDBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
+		return nil, result
 
-		return nil, runtime.NewAPIError("API error", m, response.Code())
+	case 404:
+		result := NewGetClusterClusterIDTaskTaskTypeTaskIDNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	case 500:
+		result := NewGetClusterClusterIDTaskTaskTypeTaskIDInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	default:
+		result := NewGetClusterClusterIDTaskTaskTypeTaskIDDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -66,6 +85,131 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDOK) Error() string {
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Task)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterClusterIDTaskTaskTypeTaskIDBadRequest creates a GetClusterClusterIDTaskTaskTypeTaskIDBadRequest with default headers values
+func NewGetClusterClusterIDTaskTaskTypeTaskIDBadRequest() *GetClusterClusterIDTaskTaskTypeTaskIDBadRequest {
+	return &GetClusterClusterIDTaskTaskTypeTaskIDBadRequest{}
+}
+
+/*GetClusterClusterIDTaskTaskTypeTaskIDBadRequest handles this case with default header values.
+
+Bad Request
+*/
+type GetClusterClusterIDTaskTaskTypeTaskIDBadRequest struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDBadRequest) Error() string {
+	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] getClusterClusterIdTaskTaskTypeTaskIdBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterClusterIDTaskTaskTypeTaskIDNotFound creates a GetClusterClusterIDTaskTaskTypeTaskIDNotFound with default headers values
+func NewGetClusterClusterIDTaskTaskTypeTaskIDNotFound() *GetClusterClusterIDTaskTaskTypeTaskIDNotFound {
+	return &GetClusterClusterIDTaskTaskTypeTaskIDNotFound{}
+}
+
+/*GetClusterClusterIDTaskTaskTypeTaskIDNotFound handles this case with default header values.
+
+Not found
+*/
+type GetClusterClusterIDTaskTaskTypeTaskIDNotFound struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDNotFound) Error() string {
+	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] getClusterClusterIdTaskTaskTypeTaskIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterClusterIDTaskTaskTypeTaskIDInternalServerError creates a GetClusterClusterIDTaskTaskTypeTaskIDInternalServerError with default headers values
+func NewGetClusterClusterIDTaskTaskTypeTaskIDInternalServerError() *GetClusterClusterIDTaskTaskTypeTaskIDInternalServerError {
+	return &GetClusterClusterIDTaskTaskTypeTaskIDInternalServerError{}
+}
+
+/*GetClusterClusterIDTaskTaskTypeTaskIDInternalServerError handles this case with default header values.
+
+Server error
+*/
+type GetClusterClusterIDTaskTaskTypeTaskIDInternalServerError struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] getClusterClusterIdTaskTaskTypeTaskIdInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterClusterIDTaskTaskTypeTaskIDDefault creates a GetClusterClusterIDTaskTaskTypeTaskIDDefault with default headers values
+func NewGetClusterClusterIDTaskTaskTypeTaskIDDefault(code int) *GetClusterClusterIDTaskTaskTypeTaskIDDefault {
+	return &GetClusterClusterIDTaskTaskTypeTaskIDDefault{
+		_statusCode: code,
+	}
+}
+
+/*GetClusterClusterIDTaskTaskTypeTaskIDDefault handles this case with default header values.
+
+Unexpected error
+*/
+type GetClusterClusterIDTaskTaskTypeTaskIDDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorResponse
+}
+
+// Code gets the status code for the get cluster cluster ID task task type task ID default response
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDDefault) Error() string {
+	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] GetClusterClusterIDTaskTaskTypeTaskID default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

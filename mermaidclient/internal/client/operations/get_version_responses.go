@@ -6,7 +6,6 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -33,16 +32,36 @@ func (o *GetVersionReader) ReadResponse(response runtime.ClientResponse, consume
 		}
 		return result, nil
 
-	default:
-		body := response.Body()
-		defer body.Close()
-
-		var m json.RawMessage
-		if err := json.NewDecoder(body).Decode(&m); err != nil {
+	case 400:
+		result := NewGetVersionBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
+		return nil, result
 
-		return nil, runtime.NewAPIError("API error", m, response.Code())
+	case 404:
+		result := NewGetVersionNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	case 500:
+		result := NewGetVersionInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	default:
+		result := NewGetVersionDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -66,6 +85,131 @@ func (o *GetVersionOK) Error() string {
 func (o *GetVersionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Version)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetVersionBadRequest creates a GetVersionBadRequest with default headers values
+func NewGetVersionBadRequest() *GetVersionBadRequest {
+	return &GetVersionBadRequest{}
+}
+
+/*GetVersionBadRequest handles this case with default header values.
+
+Bad Request
+*/
+type GetVersionBadRequest struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *GetVersionBadRequest) Error() string {
+	return fmt.Sprintf("[GET /version][%d] getVersionBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetVersionBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetVersionNotFound creates a GetVersionNotFound with default headers values
+func NewGetVersionNotFound() *GetVersionNotFound {
+	return &GetVersionNotFound{}
+}
+
+/*GetVersionNotFound handles this case with default header values.
+
+Not found
+*/
+type GetVersionNotFound struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *GetVersionNotFound) Error() string {
+	return fmt.Sprintf("[GET /version][%d] getVersionNotFound  %+v", 404, o.Payload)
+}
+
+func (o *GetVersionNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetVersionInternalServerError creates a GetVersionInternalServerError with default headers values
+func NewGetVersionInternalServerError() *GetVersionInternalServerError {
+	return &GetVersionInternalServerError{}
+}
+
+/*GetVersionInternalServerError handles this case with default header values.
+
+Server error
+*/
+type GetVersionInternalServerError struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *GetVersionInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /version][%d] getVersionInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetVersionInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetVersionDefault creates a GetVersionDefault with default headers values
+func NewGetVersionDefault(code int) *GetVersionDefault {
+	return &GetVersionDefault{
+		_statusCode: code,
+	}
+}
+
+/*GetVersionDefault handles this case with default header values.
+
+Unexpected error
+*/
+type GetVersionDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorResponse
+}
+
+// Code gets the status code for the get version default response
+func (o *GetVersionDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *GetVersionDefault) Error() string {
+	return fmt.Sprintf("[GET /version][%d] GetVersion default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -6,12 +6,14 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/mermaidclient/internal/models"
 )
 
 // PostClusterClusterIDTasksReader is a Reader for the PostClusterClusterIDTasks structure.
@@ -30,16 +32,36 @@ func (o *PostClusterClusterIDTasksReader) ReadResponse(response runtime.ClientRe
 		}
 		return result, nil
 
-	default:
-		body := response.Body()
-		defer body.Close()
-
-		var m json.RawMessage
-		if err := json.NewDecoder(body).Decode(&m); err != nil {
+	case 400:
+		result := NewPostClusterClusterIDTasksBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
+		return nil, result
 
-		return nil, runtime.NewAPIError("API error", m, response.Code())
+	case 404:
+		result := NewPostClusterClusterIDTasksNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	case 500:
+		result := NewPostClusterClusterIDTasksInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	default:
+		result := NewPostClusterClusterIDTasksDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -64,6 +86,131 @@ func (o *PostClusterClusterIDTasksCreated) readResponse(response runtime.ClientR
 
 	// response header Location
 	o.Location = response.GetHeader("Location")
+
+	return nil
+}
+
+// NewPostClusterClusterIDTasksBadRequest creates a PostClusterClusterIDTasksBadRequest with default headers values
+func NewPostClusterClusterIDTasksBadRequest() *PostClusterClusterIDTasksBadRequest {
+	return &PostClusterClusterIDTasksBadRequest{}
+}
+
+/*PostClusterClusterIDTasksBadRequest handles this case with default header values.
+
+Bad Request
+*/
+type PostClusterClusterIDTasksBadRequest struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *PostClusterClusterIDTasksBadRequest) Error() string {
+	return fmt.Sprintf("[POST /cluster/{cluster_id}/tasks][%d] postClusterClusterIdTasksBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *PostClusterClusterIDTasksBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostClusterClusterIDTasksNotFound creates a PostClusterClusterIDTasksNotFound with default headers values
+func NewPostClusterClusterIDTasksNotFound() *PostClusterClusterIDTasksNotFound {
+	return &PostClusterClusterIDTasksNotFound{}
+}
+
+/*PostClusterClusterIDTasksNotFound handles this case with default header values.
+
+Not found
+*/
+type PostClusterClusterIDTasksNotFound struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *PostClusterClusterIDTasksNotFound) Error() string {
+	return fmt.Sprintf("[POST /cluster/{cluster_id}/tasks][%d] postClusterClusterIdTasksNotFound  %+v", 404, o.Payload)
+}
+
+func (o *PostClusterClusterIDTasksNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostClusterClusterIDTasksInternalServerError creates a PostClusterClusterIDTasksInternalServerError with default headers values
+func NewPostClusterClusterIDTasksInternalServerError() *PostClusterClusterIDTasksInternalServerError {
+	return &PostClusterClusterIDTasksInternalServerError{}
+}
+
+/*PostClusterClusterIDTasksInternalServerError handles this case with default header values.
+
+Server error
+*/
+type PostClusterClusterIDTasksInternalServerError struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *PostClusterClusterIDTasksInternalServerError) Error() string {
+	return fmt.Sprintf("[POST /cluster/{cluster_id}/tasks][%d] postClusterClusterIdTasksInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *PostClusterClusterIDTasksInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostClusterClusterIDTasksDefault creates a PostClusterClusterIDTasksDefault with default headers values
+func NewPostClusterClusterIDTasksDefault(code int) *PostClusterClusterIDTasksDefault {
+	return &PostClusterClusterIDTasksDefault{
+		_statusCode: code,
+	}
+}
+
+/*PostClusterClusterIDTasksDefault handles this case with default header values.
+
+Unexpected error
+*/
+type PostClusterClusterIDTasksDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorResponse
+}
+
+// Code gets the status code for the post cluster cluster ID tasks default response
+func (o *PostClusterClusterIDTasksDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *PostClusterClusterIDTasksDefault) Error() string {
+	return fmt.Sprintf("[POST /cluster/{cluster_id}/tasks][%d] PostClusterClusterIDTasks default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *PostClusterClusterIDTasksDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

@@ -6,7 +6,6 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -33,16 +32,36 @@ func (o *PutClusterClusterIDTasksRepairTargetReader) ReadResponse(response runti
 		}
 		return result, nil
 
-	default:
-		body := response.Body()
-		defer body.Close()
-
-		var m json.RawMessage
-		if err := json.NewDecoder(body).Decode(&m); err != nil {
+	case 400:
+		result := NewPutClusterClusterIDTasksRepairTargetBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
+		return nil, result
 
-		return nil, runtime.NewAPIError("API error", m, response.Code())
+	case 404:
+		result := NewPutClusterClusterIDTasksRepairTargetNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	case 500:
+		result := NewPutClusterClusterIDTasksRepairTargetInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	default:
+		result := NewPutClusterClusterIDTasksRepairTargetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -66,6 +85,131 @@ func (o *PutClusterClusterIDTasksRepairTargetOK) Error() string {
 func (o *PutClusterClusterIDTasksRepairTargetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.RepairTarget)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutClusterClusterIDTasksRepairTargetBadRequest creates a PutClusterClusterIDTasksRepairTargetBadRequest with default headers values
+func NewPutClusterClusterIDTasksRepairTargetBadRequest() *PutClusterClusterIDTasksRepairTargetBadRequest {
+	return &PutClusterClusterIDTasksRepairTargetBadRequest{}
+}
+
+/*PutClusterClusterIDTasksRepairTargetBadRequest handles this case with default header values.
+
+Bad Request
+*/
+type PutClusterClusterIDTasksRepairTargetBadRequest struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetBadRequest) Error() string {
+	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] putClusterClusterIdTasksRepairTargetBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutClusterClusterIDTasksRepairTargetNotFound creates a PutClusterClusterIDTasksRepairTargetNotFound with default headers values
+func NewPutClusterClusterIDTasksRepairTargetNotFound() *PutClusterClusterIDTasksRepairTargetNotFound {
+	return &PutClusterClusterIDTasksRepairTargetNotFound{}
+}
+
+/*PutClusterClusterIDTasksRepairTargetNotFound handles this case with default header values.
+
+Not found
+*/
+type PutClusterClusterIDTasksRepairTargetNotFound struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetNotFound) Error() string {
+	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] putClusterClusterIdTasksRepairTargetNotFound  %+v", 404, o.Payload)
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutClusterClusterIDTasksRepairTargetInternalServerError creates a PutClusterClusterIDTasksRepairTargetInternalServerError with default headers values
+func NewPutClusterClusterIDTasksRepairTargetInternalServerError() *PutClusterClusterIDTasksRepairTargetInternalServerError {
+	return &PutClusterClusterIDTasksRepairTargetInternalServerError{}
+}
+
+/*PutClusterClusterIDTasksRepairTargetInternalServerError handles this case with default header values.
+
+Server error
+*/
+type PutClusterClusterIDTasksRepairTargetInternalServerError struct {
+	Payload *models.ErrorResponse
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetInternalServerError) Error() string {
+	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] putClusterClusterIdTasksRepairTargetInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutClusterClusterIDTasksRepairTargetDefault creates a PutClusterClusterIDTasksRepairTargetDefault with default headers values
+func NewPutClusterClusterIDTasksRepairTargetDefault(code int) *PutClusterClusterIDTasksRepairTargetDefault {
+	return &PutClusterClusterIDTasksRepairTargetDefault{
+		_statusCode: code,
+	}
+}
+
+/*PutClusterClusterIDTasksRepairTargetDefault handles this case with default header values.
+
+Unexpected error
+*/
+type PutClusterClusterIDTasksRepairTargetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorResponse
+}
+
+// Code gets the status code for the put cluster cluster ID tasks repair target default response
+func (o *PutClusterClusterIDTasksRepairTargetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetDefault) Error() string {
+	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] PutClusterClusterIDTasksRepairTarget default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
