@@ -48,28 +48,28 @@ var clusterAddCmd = &cobra.Command{
 		}
 
 		if cfgClusterSSLUserCertFile != "" && cfgClusterSSLUserKeyFile == "" {
-			return printableError{errors.New("missing flag \"ssl-user-key-file\"")}
+			return errors.New("missing flag \"ssl-user-key-file\"")
 		}
 		if cfgClusterSSLUserKeyFile != "" && cfgClusterSSLUserCertFile == "" {
-			return printableError{errors.New("missing flag \"ssl-user-cert-file\"")}
+			return errors.New("missing flag \"ssl-user-cert-file\"")
 		}
 		if cfgClusterSSLUserCertFile != "" {
 			b0, err := readFile(cfgClusterSSLUserCertFile)
 			if err != nil {
-				return printableError{inner: err}
+				return err
 			}
 			c.SslUserCertFile = b0
 
 			b1, err := readFile(cfgClusterSSLUserKeyFile)
 			if err != nil {
-				return printableError{inner: err}
+				return err
 			}
 			c.SslUserKeyFile = b1
 		}
 
 		id, err := client.CreateCluster(ctx, c)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		w := cmd.OutOrStdout()
@@ -77,7 +77,7 @@ var clusterAddCmd = &cobra.Command{
 
 		tasks, err := client.ListTasks(ctx, id, "repair", false, "")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		if len(tasks.ExtendedTaskSlice) > 0 {
 			s := tasks.ExtendedTaskSlice[0].Schedule
@@ -110,7 +110,7 @@ var clusterUpdateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cluster, err := client.GetCluster(ctx, cfgCluster)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		ok := false
@@ -128,22 +128,22 @@ var clusterUpdateCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("ssl-user-cert-file") {
 			if cfgClusterSSLUserKeyFile == "" {
-				return printableError{errors.New("missing flag \"ssl-user-key-file\"")}
+				return errors.New("missing flag \"ssl-user-key-file\"")
 			}
 			b, err := readFile(cfgClusterSSLUserCertFile)
 			if err != nil {
-				return printableError{inner: err}
+				return err
 			}
 			cluster.SslUserCertFile = b
 			ok = true
 		}
 		if cmd.Flags().Changed("ssl-user-key-file") {
 			if cfgClusterSSLUserCertFile == "" {
-				return printableError{errors.New("missing flag \"ssl-user-cert-file\"")}
+				return errors.New("missing flag \"ssl-user-cert-file\"")
 			}
 			b, err := readFile(cfgClusterSSLUserKeyFile)
 			if err != nil {
-				return printableError{inner: err}
+				return err
 			}
 			cluster.SslUserKeyFile = b
 			ok = true
@@ -153,7 +153,7 @@ var clusterUpdateCmd = &cobra.Command{
 		}
 
 		if err := client.UpdateCluster(ctx, cluster); err != nil {
-			return printableError{err}
+			return err
 		}
 
 		return nil
@@ -174,7 +174,7 @@ var clusterDeleteCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := client.DeleteCluster(ctx, cfgCluster); err != nil {
-			return printableError{err}
+			return err
 		}
 
 		return nil
@@ -194,7 +194,7 @@ var clusterListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusters, err := client.ListClusters(ctx)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		return render(cmd.OutOrStdout(), clusters)
 	},

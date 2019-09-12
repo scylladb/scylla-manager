@@ -17,7 +17,7 @@ var versionCmd = &cobra.Command{
 
 		sv, err := client.Version(ctx)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout(), fmt.Sprintf("Server version: %v", sv.Version))

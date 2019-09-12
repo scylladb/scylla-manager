@@ -39,22 +39,22 @@ var taskListCmd = &cobra.Command{
 		fs := cmd.Flags()
 		all, err := fs.GetBool("all")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		status, err := fs.GetString("status")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		taskType, err := fs.GetString("type")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		var clusters []*mermaidclient.Cluster
 		if cfgCluster == "" {
 			clusters, err = client.ListClusters(ctx)
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 		} else {
 			clusters = []*mermaidclient.Cluster{{ID: cfgCluster}}
@@ -73,11 +73,11 @@ var taskListCmd = &cobra.Command{
 			}
 			tasks, err := client.ListTasks(ctx, c.ID, taskType, all, status)
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 
 			if err := render(w, tasks); err != nil {
-				return printableError{err}
+				return err
 			}
 		}
 
@@ -104,16 +104,16 @@ var taskStartCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		cont, err := cmd.Flags().GetBool("continue")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		if err := client.StartTask(ctx, cfgCluster, taskType, taskID, cont); err != nil {
-			return printableError{err}
+			return err
 		}
 		return nil
 	},
@@ -136,16 +136,16 @@ var taskStopCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		disable, err := cmd.Flags().GetBool("disable")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		if err := client.StopTask(ctx, cfgCluster, taskType, taskID, disable); err != nil {
-			return printableError{err}
+			return err
 		}
 		return nil
 	},
@@ -168,17 +168,17 @@ var taskHistoryCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		limit, err := cmd.Flags().GetInt64("limit")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		runs, err := client.GetTaskHistory(ctx, cfgCluster, taskType, taskID, limit)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		return render(cmd.OutOrStdout(), runs)
@@ -201,26 +201,26 @@ var taskUpdateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		changed := false
 		if f := cmd.Flag("enabled"); f.Changed {
 			t.Enabled, err = strconv.ParseBool(f.Value.String())
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			changed = true
 		}
 		if f := cmd.Flag("start-date"); f.Changed {
 			startDate, err := mermaidclient.ParseStartDate(f.Value.String())
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			t.Schedule.StartDate = startDate
 			changed = true
@@ -228,10 +228,10 @@ var taskUpdateCmd = &cobra.Command{
 		if f := cmd.Flag("interval"); f.Changed {
 			i, err := cmd.Flags().GetString("interval")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			if _, err := duration.ParseDuration(i); err != nil {
-				return printableError{err}
+				return err
 			}
 			t.Schedule.Interval = i
 			changed = true
@@ -239,7 +239,7 @@ var taskUpdateCmd = &cobra.Command{
 		if f := cmd.Flag("num-retries"); f.Changed {
 			t.Schedule.NumRetries, err = cmd.Flags().GetInt64("num-retries")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			changed = true
 		}
@@ -248,7 +248,7 @@ var taskUpdateCmd = &cobra.Command{
 		}
 
 		if err := client.UpdateTask(ctx, cfgCluster, taskType, taskID, t); err != nil {
-			return printableError{err}
+			return err
 		}
 
 		return nil
@@ -273,11 +273,11 @@ var taskDeleteCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		if err := client.DeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
-			return printableError{err}
+			return err
 		}
 		return nil
 	},
@@ -299,21 +299,21 @@ var taskProgressCmd = &cobra.Command{
 
 		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		runID, err := cmd.Flags().GetString("run")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		if runID != "" {
 			if _, err = uuid.Parse(runID); err != nil {
-				return printableError{err}
+				return err
 			}
 		} else {
 			runID = "latest"
@@ -336,28 +336,28 @@ var taskProgressCmd = &cobra.Command{
 func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task, runID string) error {
 	rp, err := client.RepairProgress(ctx, cfgCluster, t.ID, runID)
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 
 	rp.Detailed, err = cmd.Flags().GetBool("details")
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 
 	hf, err := cmd.Flags().GetStringSlice("host")
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 	if err := rp.SetHostFilter(hf); err != nil {
-		return printableError{err}
+		return err
 	}
 
 	kf, err := cmd.Flags().GetStringSlice("keyspace")
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 	if err := rp.SetKeyspaceFilter(kf); err != nil {
-		return printableError{err}
+		return err
 	}
 
 	rp.Task = t
@@ -368,28 +368,28 @@ func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task
 func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task, runID string) error {
 	rp, err := client.BackupProgress(ctx, cfgCluster, t.ID, runID)
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 
 	rp.Detailed, err = cmd.Flags().GetBool("details")
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 
 	hf, err := cmd.Flags().GetStringSlice("host")
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 	if err := rp.SetHostFilter(hf); err != nil {
-		return printableError{err}
+		return err
 	}
 
 	kf, err := cmd.Flags().GetStringSlice("keyspace")
 	if err != nil {
-		return printableError{err}
+		return err
 	}
 	if err := rp.SetKeyspaceFilter(kf); err != nil {
-		return printableError{err}
+		return err
 	}
 
 	rp.Task = t

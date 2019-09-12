@@ -17,10 +17,14 @@ func render(w io.Writer, d mermaidclient.TableRenderer) error {
 }
 
 func register(cmd *cobra.Command, parent *cobra.Command) {
-	// fix defaults
+	// By default do not accept any arguments
 	if cmd.Args == nil {
 		cmd.Args = cobra.NoArgs
 	}
+	// Do not print errors, error printing is handled in main
+	cmd.SilenceErrors = true
+	cmd.SilenceUsage = true
+
 	parent.AddCommand(cmd)
 }
 

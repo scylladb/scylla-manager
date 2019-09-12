@@ -13,7 +13,7 @@ var statusCmd = &cobra.Command{
 
 		status, err := client.ClusterStatus(ctx, cfgCluster)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		return render(w, status)

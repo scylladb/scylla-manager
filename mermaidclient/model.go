@@ -12,6 +12,9 @@ import (
 	"github.com/scylladb/mermaid/mermaidclient/table"
 )
 
+// ErrorResponse is returned in case of an error.
+type ErrorResponse = models.ErrorResponse
+
 // TableRenderer is the interface that components need to implement
 // if they can render themselves as tables.
 type TableRenderer interface {

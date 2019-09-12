@@ -29,28 +29,28 @@ var backupCmd = &cobra.Command{
 		f := cmd.Flag("start-date")
 		startDate, err := mermaidclient.ParseStartDate(f.Value.String())
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		t.Schedule.StartDate = startDate
 
 		i, err := cmd.Flags().GetString("interval")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		if _, err := duration.ParseDuration(i); err != nil {
-			return printableError{err}
+			return err
 		}
 		t.Schedule.Interval = i
 
 		t.Schedule.NumRetries, err = cmd.Flags().GetInt64("num-retries")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		if f = cmd.Flag("keyspace"); f.Changed {
 			keyspace, err := cmd.Flags().GetStringSlice("keyspace")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			props["keyspace"] = unescapeFilters(keyspace)
 		}
@@ -58,24 +58,24 @@ var backupCmd = &cobra.Command{
 		if f = cmd.Flag("dc"); f.Changed {
 			dc, err := cmd.Flags().GetStringSlice("dc")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			props["dc"] = unescapeFilters(dc)
 		}
 
 		locations, err := cmd.Flags().GetStringSlice("location")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		if err := validateLocations(locations); err != nil {
-			return printableError{err}
+			return err
 		}
 		props["location"] = locations
 
 		if f = cmd.Flag("retention"); f.Changed {
 			retention, err := cmd.Flags().GetInt("retention")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			props["retention"] = retention
 		}
@@ -84,10 +84,10 @@ var backupCmd = &cobra.Command{
 			if f = cmd.Flag(name); f.Changed {
 				v, err := cmd.Flags().GetStringSlice(name)
 				if err != nil {
-					return printableError{err}
+					return err
 				}
 				if err := validateDCLimits(v); err != nil {
-					return printableError{err}
+					return err
 				}
 				props[strings.Replace(name, "-", "_", 1)] = v
 			}
@@ -95,12 +95,12 @@ var backupCmd = &cobra.Command{
 
 		force, err := cmd.Flags().GetBool("force")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		id, err := client.CreateTask(ctx, cfgCluster, t, force)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout(), mermaidclient.TaskJoin("backup", id))
@@ -128,7 +128,7 @@ func validateDCLimits(rateLimits []string) error {
 
 	for _, r := range rateLimits {
 		if !rateLimitPattern.MatchString(r) {
-			return printableError{errors.Errorf("invalid rate-limit %s", r)}
+			return errors.Errorf("invalid rate-limit %s", r)
 		}
 	}
 	return nil

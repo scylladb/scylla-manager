@@ -36,15 +36,15 @@ var rootCmd = &cobra.Command{
 
 		// Load TLS certificate if provided
 		if cfgAPICertFile != "" && cfgAPIKeyFile == "" {
-			return printableError{errors.New("missing flag \"api-key-file\"")}
+			return errors.New("missing flag \"api-key-file\"")
 		}
 		if cfgAPIKeyFile != "" && cfgAPICertFile == "" {
-			return printableError{errors.New("missing flag \"api-cert-file\"")}
+			return errors.New("missing flag \"api-cert-file\"")
 		}
 		if cfgAPICertFile != "" {
 			cert, err := tls.LoadX509KeyPair(cfgAPICertFile, cfgAPIKeyFile)
 			if err != nil {
-				return printableError{inner: errors.Wrap(err, "failed to load client certificate")}
+				return errors.Wrap(err, "failed to load client certificate")
 			}
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}

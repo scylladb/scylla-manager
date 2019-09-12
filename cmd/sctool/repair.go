@@ -59,28 +59,28 @@ var repairCmd = &cobra.Command{
 		f := cmd.Flag("start-date")
 		startDate, err := mermaidclient.ParseStartDate(f.Value.String())
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		t.Schedule.StartDate = startDate
 
 		i, err := cmd.Flags().GetString("interval")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		if _, err := duration.ParseDuration(i); err != nil {
-			return printableError{err}
+			return err
 		}
 		t.Schedule.Interval = i
 
 		t.Schedule.NumRetries, err = cmd.Flags().GetInt64("num-retries")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		if f = cmd.Flag("keyspace"); f.Changed {
 			keyspace, err := cmd.Flags().GetStringSlice("keyspace")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			props["keyspace"] = unescapeFilters(keyspace)
 		}
@@ -88,7 +88,7 @@ var repairCmd = &cobra.Command{
 		if f = cmd.Flag("dc"); f.Changed {
 			dc, err := cmd.Flags().GetStringSlice("dc")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			props["dc"] = unescapeFilters(dc)
 		}
@@ -96,7 +96,7 @@ var repairCmd = &cobra.Command{
 		if f = cmd.Flag("host"); f.Changed {
 			host, err := cmd.Flags().GetString("host")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			props["host"] = host
 		}
@@ -104,21 +104,21 @@ var repairCmd = &cobra.Command{
 		if f = cmd.Flag("with-hosts"); f.Changed {
 			hosts, err := cmd.Flags().GetStringSlice("with-hosts")
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			props["with_hosts"] = hosts
 		}
 
 		if f = cmd.Flag("token-ranges"); f.Changed {
 			if !cmd.Flag("host").Changed && !cmd.Flag("with-hosts").Changed {
-				return printableError{errors.New("token-ranges is only available with \"host\" and \"with-hosts\" flags")}
+				return errors.New("token-ranges is only available with \"host\" and \"with-hosts\" flags")
 			}
 			props["token_ranges"] = repairTokenRanges.String()
 		}
 
 		failFast, err := cmd.Flags().GetBool("fail-fast")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		if failFast {
 			t.Schedule.NumRetries = 0
@@ -127,25 +127,25 @@ var repairCmd = &cobra.Command{
 
 		force, err := cmd.Flags().GetBool("force")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		dryRun, err := cmd.Flags().GetBool("dry-run")
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 		if dryRun {
 			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, repair is not scheduled\n\n")
 			res, err := client.GetTarget(ctx, cfgCluster, t)
 			if err != nil {
-				return printableError{err}
+				return err
 			}
 			return res.Render(cmd.OutOrStdout())
 		}
 
 		id, err := client.CreateTask(ctx, cfgCluster, t, force)
 		if err != nil {
-			return printableError{err}
+			return err
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout(), mermaidclient.TaskJoin("repair", id))
