@@ -40,6 +40,10 @@ logs: ## Show logs
 cqlsh: ## CQL shell to manager node
 	@$(CQLSH) 192.168.100.100
 
+.PHONY: drop-keysapce
+drop-keysapce: ## Drop Scylla Manager keyspace
+	@$(CQLSH) 192.168.100.100 -e "DROP KEYSPACE scylla_manager"
+
 .PHONY: deploy-agent
 deploy-agent: ## Update agent to the latest build on all nodes
 	@./nodes_cp ../agent.dev /usr/bin/scylla-manager-agent
