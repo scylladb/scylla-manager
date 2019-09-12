@@ -94,7 +94,7 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 
 	hosts, err := s.discoverHosts(ctx, client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to discover hosts")
+		return nil, errors.Wrap(err, "failed to discover cluster topology")
 	}
 	if err := s.setKnownHosts(c, hosts); err != nil {
 		return nil, errors.Wrap(err, "failed to update cluster")
@@ -363,7 +363,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 
 	hosts, err := client.Hosts(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to discover hosts")
+		return errors.Wrap(err, "failed to discover cluster topology")
 	}
 
 	// For every reachable host check that there are not HTTP errors
