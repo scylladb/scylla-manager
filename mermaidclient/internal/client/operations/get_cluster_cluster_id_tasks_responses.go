@@ -24,35 +24,30 @@ type GetClusterClusterIDTasksReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetClusterClusterIDTasksReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetClusterClusterIDTasksOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewGetClusterClusterIDTasksBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewGetClusterClusterIDTasksNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewGetClusterClusterIDTasksInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewGetClusterClusterIDTasksDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -82,6 +77,10 @@ func (o *GetClusterClusterIDTasksOK) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks][%d] getClusterClusterIdTasksOK  %+v", 200, o.Payload)
 }
 
+func (o *GetClusterClusterIDTasksOK) GetPayload() []*models.ExtendedTask {
+	return o.Payload
+}
+
 func (o *GetClusterClusterIDTasksOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -107,6 +106,10 @@ type GetClusterClusterIDTasksBadRequest struct {
 
 func (o *GetClusterClusterIDTasksBadRequest) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks][%d] getClusterClusterIdTasksBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetClusterClusterIDTasksBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDTasksBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -138,6 +141,10 @@ func (o *GetClusterClusterIDTasksNotFound) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks][%d] getClusterClusterIdTasksNotFound  %+v", 404, o.Payload)
 }
 
+func (o *GetClusterClusterIDTasksNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *GetClusterClusterIDTasksNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -165,6 +172,10 @@ type GetClusterClusterIDTasksInternalServerError struct {
 
 func (o *GetClusterClusterIDTasksInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks][%d] getClusterClusterIdTasksInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetClusterClusterIDTasksInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDTasksInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -203,6 +214,10 @@ func (o *GetClusterClusterIDTasksDefault) Code() int {
 
 func (o *GetClusterClusterIDTasksDefault) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks][%d] GetClusterClusterIDTasks default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetClusterClusterIDTasksDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDTasksDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

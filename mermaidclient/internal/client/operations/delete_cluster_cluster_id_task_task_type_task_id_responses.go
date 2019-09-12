@@ -24,35 +24,30 @@ type DeleteClusterClusterIDTaskTaskTypeTaskIDReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -103,6 +98,10 @@ func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] deleteClusterClusterIdTaskTaskTypeTaskIdBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -132,6 +131,10 @@ func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] deleteClusterClusterIdTaskTaskTypeTaskIdNotFound  %+v", 404, o.Payload)
 }
 
+func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -159,6 +162,10 @@ type DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError struct {
 
 func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] deleteClusterClusterIdTaskTaskTypeTaskIdInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -197,6 +204,10 @@ func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDDefault) Code() int {
 
 func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDDefault) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] DeleteClusterClusterIDTaskTaskTypeTaskID default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

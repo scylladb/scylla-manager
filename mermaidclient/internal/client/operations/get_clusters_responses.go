@@ -24,35 +24,30 @@ type GetClustersReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetClustersReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetClustersOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewGetClustersBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewGetClustersNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewGetClustersInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewGetClustersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -82,6 +77,10 @@ func (o *GetClustersOK) Error() string {
 	return fmt.Sprintf("[GET /clusters][%d] getClustersOK  %+v", 200, o.Payload)
 }
 
+func (o *GetClustersOK) GetPayload() []*models.Cluster {
+	return o.Payload
+}
+
 func (o *GetClustersOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -107,6 +106,10 @@ type GetClustersBadRequest struct {
 
 func (o *GetClustersBadRequest) Error() string {
 	return fmt.Sprintf("[GET /clusters][%d] getClustersBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetClustersBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClustersBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -138,6 +141,10 @@ func (o *GetClustersNotFound) Error() string {
 	return fmt.Sprintf("[GET /clusters][%d] getClustersNotFound  %+v", 404, o.Payload)
 }
 
+func (o *GetClustersNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *GetClustersNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -165,6 +172,10 @@ type GetClustersInternalServerError struct {
 
 func (o *GetClustersInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /clusters][%d] getClustersInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetClustersInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClustersInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -203,6 +214,10 @@ func (o *GetClustersDefault) Code() int {
 
 func (o *GetClustersDefault) Error() string {
 	return fmt.Sprintf("[GET /clusters][%d] GetClusters default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetClustersDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClustersDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

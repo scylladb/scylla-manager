@@ -24,35 +24,30 @@ type GetClusterClusterIDStatusReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetClusterClusterIDStatusReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetClusterClusterIDStatusOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewGetClusterClusterIDStatusBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewGetClusterClusterIDStatusNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewGetClusterClusterIDStatusInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewGetClusterClusterIDStatusDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -82,6 +77,10 @@ func (o *GetClusterClusterIDStatusOK) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] getClusterClusterIdStatusOK  %+v", 200, o.Payload)
 }
 
+func (o *GetClusterClusterIDStatusOK) GetPayload() models.ClusterStatus {
+	return o.Payload
+}
+
 func (o *GetClusterClusterIDStatusOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -107,6 +106,10 @@ type GetClusterClusterIDStatusBadRequest struct {
 
 func (o *GetClusterClusterIDStatusBadRequest) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] getClusterClusterIdStatusBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetClusterClusterIDStatusBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDStatusBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -138,6 +141,10 @@ func (o *GetClusterClusterIDStatusNotFound) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] getClusterClusterIdStatusNotFound  %+v", 404, o.Payload)
 }
 
+func (o *GetClusterClusterIDStatusNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *GetClusterClusterIDStatusNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -165,6 +172,10 @@ type GetClusterClusterIDStatusInternalServerError struct {
 
 func (o *GetClusterClusterIDStatusInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] getClusterClusterIdStatusInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetClusterClusterIDStatusInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDStatusInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -203,6 +214,10 @@ func (o *GetClusterClusterIDStatusDefault) Code() int {
 
 func (o *GetClusterClusterIDStatusDefault) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] GetClusterClusterIDStatus default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetClusterClusterIDStatusDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDStatusDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -24,35 +24,30 @@ type PostClustersReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PostClustersReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 201:
 		result := NewPostClustersCreated()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewPostClustersBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewPostClustersNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewPostClustersInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewPostClustersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -107,6 +102,10 @@ func (o *PostClustersBadRequest) Error() string {
 	return fmt.Sprintf("[POST /clusters][%d] postClustersBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *PostClustersBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PostClustersBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -136,6 +135,10 @@ func (o *PostClustersNotFound) Error() string {
 	return fmt.Sprintf("[POST /clusters][%d] postClustersNotFound  %+v", 404, o.Payload)
 }
 
+func (o *PostClustersNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PostClustersNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -163,6 +166,10 @@ type PostClustersInternalServerError struct {
 
 func (o *PostClustersInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /clusters][%d] postClustersInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *PostClustersInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PostClustersInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -201,6 +208,10 @@ func (o *PostClustersDefault) Code() int {
 
 func (o *PostClustersDefault) Error() string {
 	return fmt.Sprintf("[POST /clusters][%d] PostClusters default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *PostClustersDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PostClustersDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

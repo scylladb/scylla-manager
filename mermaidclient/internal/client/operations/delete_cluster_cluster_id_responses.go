@@ -24,35 +24,30 @@ type DeleteClusterClusterIDReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteClusterClusterIDReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewDeleteClusterClusterIDOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewDeleteClusterClusterIDBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewDeleteClusterClusterIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewDeleteClusterClusterIDInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewDeleteClusterClusterIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -103,6 +98,10 @@ func (o *DeleteClusterClusterIDBadRequest) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}][%d] deleteClusterClusterIdBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *DeleteClusterClusterIDBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *DeleteClusterClusterIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -132,6 +131,10 @@ func (o *DeleteClusterClusterIDNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}][%d] deleteClusterClusterIdNotFound  %+v", 404, o.Payload)
 }
 
+func (o *DeleteClusterClusterIDNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *DeleteClusterClusterIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -159,6 +162,10 @@ type DeleteClusterClusterIDInternalServerError struct {
 
 func (o *DeleteClusterClusterIDInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}][%d] deleteClusterClusterIdInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *DeleteClusterClusterIDInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *DeleteClusterClusterIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -197,6 +204,10 @@ func (o *DeleteClusterClusterIDDefault) Code() int {
 
 func (o *DeleteClusterClusterIDDefault) Error() string {
 	return fmt.Sprintf("[DELETE /cluster/{cluster_id}][%d] DeleteClusterClusterID default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *DeleteClusterClusterIDDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *DeleteClusterClusterIDDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

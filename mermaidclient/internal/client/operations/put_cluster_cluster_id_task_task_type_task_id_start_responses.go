@@ -24,35 +24,30 @@ type PutClusterClusterIDTaskTaskTypeTaskIDStartReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStartOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStartBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStartNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStartInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStartDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -103,6 +98,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartBadRequest) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/start][%d] putClusterClusterIdTaskTaskTypeTaskIdStartBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -132,6 +131,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartNotFound) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/start][%d] putClusterClusterIdTaskTaskTypeTaskIdStartNotFound  %+v", 404, o.Payload)
 }
 
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -159,6 +162,10 @@ type PutClusterClusterIDTaskTaskTypeTaskIDStartInternalServerError struct {
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/start][%d] putClusterClusterIdTaskTaskTypeTaskIdStartInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -197,6 +204,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartDefault) Code() int {
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartDefault) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/start][%d] PutClusterClusterIDTaskTaskTypeTaskIDStart default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

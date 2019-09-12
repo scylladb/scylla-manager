@@ -24,35 +24,30 @@ type GetVersionReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetVersionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetVersionOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewGetVersionBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewGetVersionNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewGetVersionInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewGetVersionDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -80,6 +75,10 @@ type GetVersionOK struct {
 
 func (o *GetVersionOK) Error() string {
 	return fmt.Sprintf("[GET /version][%d] getVersionOK  %+v", 200, o.Payload)
+}
+
+func (o *GetVersionOK) GetPayload() *models.Version {
+	return o.Payload
 }
 
 func (o *GetVersionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +110,10 @@ func (o *GetVersionBadRequest) Error() string {
 	return fmt.Sprintf("[GET /version][%d] getVersionBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *GetVersionBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *GetVersionBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -140,6 +143,10 @@ func (o *GetVersionNotFound) Error() string {
 	return fmt.Sprintf("[GET /version][%d] getVersionNotFound  %+v", 404, o.Payload)
 }
 
+func (o *GetVersionNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *GetVersionNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -167,6 +174,10 @@ type GetVersionInternalServerError struct {
 
 func (o *GetVersionInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /version][%d] getVersionInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetVersionInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetVersionInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -205,6 +216,10 @@ func (o *GetVersionDefault) Code() int {
 
 func (o *GetVersionDefault) Error() string {
 	return fmt.Sprintf("[GET /version][%d] GetVersion default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetVersionDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

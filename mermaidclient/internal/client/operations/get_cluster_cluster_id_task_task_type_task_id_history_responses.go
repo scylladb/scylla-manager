@@ -24,35 +24,30 @@ type GetClusterClusterIDTaskTaskTypeTaskIDHistoryReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -82,6 +77,10 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] getClusterClusterIdTaskTaskTypeTaskIdHistoryOK  %+v", 200, o.Payload)
 }
 
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK) GetPayload() []*models.TaskRun {
+	return o.Payload
+}
+
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
@@ -107,6 +106,10 @@ type GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest struct {
 
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] getClusterClusterIdTaskTaskTypeTaskIdHistoryBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -138,6 +141,10 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] getClusterClusterIdTaskTaskTypeTaskIdHistoryNotFound  %+v", 404, o.Payload)
 }
 
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -165,6 +172,10 @@ type GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError struct {
 
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] getClusterClusterIdTaskTaskTypeTaskIdHistoryInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -203,6 +214,10 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault) Code() int {
 
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] GetClusterClusterIDTaskTaskTypeTaskIDHistory default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

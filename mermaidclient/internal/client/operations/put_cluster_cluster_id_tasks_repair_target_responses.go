@@ -24,35 +24,30 @@ type PutClusterClusterIDTasksRepairTargetReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PutClusterClusterIDTasksRepairTargetReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewPutClusterClusterIDTasksRepairTargetOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewPutClusterClusterIDTasksRepairTargetBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewPutClusterClusterIDTasksRepairTargetNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewPutClusterClusterIDTasksRepairTargetInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewPutClusterClusterIDTasksRepairTargetDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -80,6 +75,10 @@ type PutClusterClusterIDTasksRepairTargetOK struct {
 
 func (o *PutClusterClusterIDTasksRepairTargetOK) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] putClusterClusterIdTasksRepairTargetOK  %+v", 200, o.Payload)
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetOK) GetPayload() *models.RepairTarget {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTasksRepairTargetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +110,10 @@ func (o *PutClusterClusterIDTasksRepairTargetBadRequest) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] putClusterClusterIdTasksRepairTargetBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *PutClusterClusterIDTasksRepairTargetBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTasksRepairTargetBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -140,6 +143,10 @@ func (o *PutClusterClusterIDTasksRepairTargetNotFound) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] putClusterClusterIdTasksRepairTargetNotFound  %+v", 404, o.Payload)
 }
 
+func (o *PutClusterClusterIDTasksRepairTargetNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTasksRepairTargetNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -167,6 +174,10 @@ type PutClusterClusterIDTasksRepairTargetInternalServerError struct {
 
 func (o *PutClusterClusterIDTasksRepairTargetInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] putClusterClusterIdTasksRepairTargetInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTasksRepairTargetInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -205,6 +216,10 @@ func (o *PutClusterClusterIDTasksRepairTargetDefault) Code() int {
 
 func (o *PutClusterClusterIDTasksRepairTargetDefault) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/tasks/repair/target][%d] PutClusterClusterIDTasksRepairTarget default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *PutClusterClusterIDTasksRepairTargetDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTasksRepairTargetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

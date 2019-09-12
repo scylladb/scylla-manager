@@ -24,35 +24,30 @@ type PutClusterClusterIDTaskTaskTypeTaskIDReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -80,6 +75,10 @@ type PutClusterClusterIDTaskTaskTypeTaskIDOK struct {
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDOK) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] putClusterClusterIdTaskTaskTypeTaskIdOK  %+v", 200, o.Payload)
+}
+
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDOK) GetPayload() *models.Task {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +110,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDBadRequest) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] putClusterClusterIdTaskTaskTypeTaskIdBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -140,6 +143,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDNotFound) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] putClusterClusterIdTaskTaskTypeTaskIdNotFound  %+v", 404, o.Payload)
 }
 
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -167,6 +174,10 @@ type PutClusterClusterIDTaskTaskTypeTaskIDInternalServerError struct {
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] putClusterClusterIdTaskTaskTypeTaskIdInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -205,6 +216,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDDefault) Code() int {
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDDefault) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] PutClusterClusterIDTaskTaskTypeTaskID default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

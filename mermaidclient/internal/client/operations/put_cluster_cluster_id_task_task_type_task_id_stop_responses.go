@@ -24,35 +24,30 @@ type PutClusterClusterIDTaskTaskTypeTaskIDStopReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	case 400:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 404:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	case 500:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -103,6 +98,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/stop][%d] putClusterClusterIdTaskTaskTypeTaskIdStopBadRequest  %+v", 400, o.Payload)
 }
 
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -132,6 +131,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/stop][%d] putClusterClusterIdTaskTaskTypeTaskIdStopNotFound  %+v", 404, o.Payload)
 }
 
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound) GetPayload() *models.ErrorResponse {
+	return o.Payload
+}
+
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
@@ -159,6 +162,10 @@ type PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError struct {
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/stop][%d] putClusterClusterIdTaskTaskTypeTaskIdStopInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -197,6 +204,10 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopDefault) Code() int {
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopDefault) Error() string {
 	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/stop][%d] PutClusterClusterIDTaskTaskTypeTaskIDStop default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopDefault) GetPayload() *models.ErrorResponse {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
