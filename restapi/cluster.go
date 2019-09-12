@@ -4,7 +4,6 @@ package restapi
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -35,7 +34,7 @@ func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
 
 		c, err := h.svc.GetCluster(r.Context(), clusterID)
 		if err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to load cluster %q", clusterID))
+			respondError(w, r, errors.Wrapf(err, "failed to load cluster %q", clusterID))
 			return
 		}
 
@@ -74,7 +73,7 @@ func newClusterHandler(svc ClusterService) *chi.Mux {
 func (h *clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 	ids, err := h.svc.ListClusters(r.Context(), &cluster.Filter{})
 	if err != nil {
-		respondError(w, r, err, "failed to list clusters")
+		respondError(w, r, errors.Wrap(err, "failed to list clusters"))
 		return
 	}
 
@@ -105,7 +104,7 @@ func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
-		respondError(w, r, err, "failed to create cluster")
+		respondError(w, r, errors.Wrap(err, "failed to create cluster"))
 		return
 	}
 
@@ -132,7 +131,7 @@ func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 	newCluster.ID = c.ID
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to update cluster %q", c.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to update cluster %q", c.ID))
 		return
 	}
 	render.Respond(w, r, newCluster)
@@ -142,7 +141,7 @@ func (h *clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 
 	if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to delete cluster %q", c.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to delete cluster %q", c.ID))
 		return
 	}
 }

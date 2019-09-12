@@ -3,11 +3,11 @@
 package restapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/pkg/errors"
 )
 
 type statusHandler struct {
@@ -20,7 +20,7 @@ func (h *statusHandler) getStatus(w http.ResponseWriter, r *http.Request) {
 
 	status, err := h.service.GetStatus(r.Context(), c.ID)
 	if err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to check cluster %q status", c.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to check cluster %q status", c.ID))
 		return
 	}
 	render.Respond(w, r, status)

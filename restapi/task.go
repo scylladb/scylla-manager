@@ -69,7 +69,7 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 
 		t, err := h.Scheduler.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
 		if err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to load task %q", taskID))
+			respondError(w, r, errors.Wrapf(err, "failed to load task %q", taskID))
 			return
 		}
 
@@ -117,7 +117,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	cID := mustClusterIDFromCtx(r)
 	tasks, err := h.Scheduler.ListTasks(r.Context(), cID, taskType)
 	if err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to list cluster %q tasks", cID))
+		respondError(w, r, errors.Wrapf(err, "failed to list cluster %q tasks", cID))
 		return
 	}
 
@@ -134,7 +134,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 
 		runs, err := h.Scheduler.GetLastRun(r.Context(), t, t.Sched.NumRetries+1)
 		if err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to load task %q runs", t.ID))
+			respondError(w, r, errors.Wrap(err, fmt.Sprintf("failed to load task %q runs", t.ID)))
 			return
 		}
 		if len(runs) > 0 {
@@ -197,7 +197,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 
 	t, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false)
 	if err != nil {
-		respondError(w, r, err, "failed to get target")
+		respondError(w, r, errors.Wrap(err, "failed to get target"))
 		return
 	}
 
@@ -227,24 +227,24 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	switch newTask.Type {
 	case scheduler.BackupTask:
 		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
-			respondError(w, r, err, "failed to create backup target")
+			respondError(w, r, errors.Wrap(err, "failed to create backup target"))
 			return
 		}
 	case scheduler.RepairTask:
 		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
-			respondError(w, r, err, "failed to create repair target")
+			respondError(w, r, errors.Wrap(err, "failed to create repair target"))
 			return
 		}
 	}
 
 	if newTask.Type == scheduler.HealthCheckTask {
 		if err := h.Scheduler.PutTaskOnce(r.Context(), newTask); err != nil {
-			respondError(w, r, err, "failed to create task")
+			respondError(w, r, errors.Wrap(err, "failed to create task"))
 			return
 		}
 	} else {
 		if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
-			respondError(w, r, err, "failed to create task")
+			respondError(w, r, errors.Wrap(err, "failed to create task"))
 			return
 		}
 	}
@@ -270,7 +270,7 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	newTask.Type = t.Type
 
 	if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to update task %q", t.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to update task %q", t.ID))
 		return
 	}
 	render.Respond(w, r, newTask)
@@ -279,7 +279,7 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 func (h *taskHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 	if err := h.Scheduler.DeleteTask(r.Context(), t); err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to delete task %q", t.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to delete task %q", t.ID))
 		return
 	}
 }
@@ -293,7 +293,7 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Scheduler.StartTask(r.Context(), t, opts...); err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to start task %q", t.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to start task %q", t.ID))
 		return
 	}
 }
@@ -331,11 +331,11 @@ func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
 		t.Enabled = false
 		// current task is canceled on save no need to stop it again
 		if err := h.Scheduler.PutTask(r.Context(), t); err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to update task %q", t.ID))
+			respondError(w, r, errors.Wrapf(err, "failed to update task %q", t.ID))
 			return
 		}
 	} else if err := h.Scheduler.StopTask(r.Context(), t); err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to stop task %q", t.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to stop task %q", t.ID))
 		return
 	}
 }
@@ -355,7 +355,7 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 
 	runs, err := h.Scheduler.GetLastRun(r.Context(), t, limit)
 	if err != nil {
-		respondError(w, r, err, fmt.Sprintf("failed to load task %q history", t.ID))
+		respondError(w, r, errors.Wrapf(err, "failed to load task %q history", t.ID))
 		return
 	}
 	if len(runs) == 0 {
@@ -400,7 +400,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 		}
 		prog.Run, err = h.Scheduler.GetRun(r.Context(), t, runID)
 		if err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to load task %q runs", t.ID))
+			respondError(w, r, errors.Wrapf(err, "failed to load task %q runs", t.ID))
 			return
 		}
 	}
@@ -424,7 +424,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 		// prog.Progress is assigned separately to force nil on the returned value instead of an empty object.
 		// This is required for correct JSON representation and detection if Progress is empty.
 		if err != mermaid.ErrNotFound {
-			respondError(w, r, err, fmt.Sprintf("failed to load progress for task %q", t.ID))
+			respondError(w, r, errors.Wrapf(err, "failed to load progress for task %q", t.ID))
 			return
 		}
 	} else {

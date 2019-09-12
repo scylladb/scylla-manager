@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	render.Respond = httpErrorRender
+	render.Respond = responder
 }
 
 // New returns an http.Handler implementing mermaid v1 REST API.
@@ -37,7 +37,7 @@ func New(services Services, logger log.Logger) http.Handler {
 
 	// NotFound registered last due to https://github.com/go-chi/chi/issues/297
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		respondError(w, r, mermaid.ErrNotFound, "")
+		respondError(w, r, mermaid.ErrNotFound)
 	})
 
 	return r

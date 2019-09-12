@@ -9,12 +9,11 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"github.com/scylladb/go-log"
 )
 
 func heartbeatMiddleware(endpoint string) func(http.Handler) http.Handler {
-	f := func(h http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == "GET" && strings.EqualFold(r.URL.Path, endpoint) {
 				w.WriteHeader(http.StatusNoContent)
@@ -24,7 +23,6 @@ func heartbeatMiddleware(endpoint string) func(http.Handler) http.Handler {
 		}
 		return http.HandlerFunc(fn)
 	}
-	return f
 }
 
 func traceIDMiddleware(next http.Handler) http.Handler {
@@ -32,30 +30,6 @@ func traceIDMiddleware(next http.Handler) http.Handler {
 		r = r.WithContext(log.WithTraceID(r.Context()))
 		next.ServeHTTP(w, r)
 	})
-}
-
-func httpErrorRender(w http.ResponseWriter, r *http.Request, v interface{}) {
-	if err, ok := v.(error); ok {
-		httpErr, _ := v.(*httpError)
-		if httpErr == nil {
-			httpErr = &httpError{
-				StatusCode: http.StatusInternalServerError,
-				Message:    "unexpected error, consult logs",
-				Cause:      err.Error(),
-				TraceID:    log.TraceID(r.Context()),
-			}
-		}
-
-		if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
-			le.AddError(err)
-		}
-
-		render.Status(r, httpErr.StatusCode)
-		render.DefaultResponder(w, r, httpErr)
-		return
-	}
-
-	render.DefaultResponder(w, r, v)
 }
 
 // httpLogger implements a middleware.logFormatter for use with middleware.RequestLogger.

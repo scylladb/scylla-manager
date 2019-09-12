@@ -19,8 +19,8 @@ func TestRespondError(t *testing.T) {
 		err := errors.Wrap(gocql.ErrNotFound, "wrapped")
 		response := httptest.NewRecorder()
 
-		respondError(response, request, err, "specific_msg")
-		expected := `{"message":"resource not found: specific_msg","trace_id":""}` + "\n"
+		respondError(response, request, errors.Wrap(err, "specific_msg"))
+		expected := `{"message":"resource not found: specific_msg: wrapped: not found","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}
@@ -33,8 +33,8 @@ func TestRespondError(t *testing.T) {
 		err := mermaid.ErrValidate(errors.New("some problem"))
 		response := httptest.NewRecorder()
 
-		respondError(response, request, err, "specific_msg")
-		expected := `{"message":"val_err: some problem","trace_id":""}` + "\n"
+		respondError(response, request, errors.Wrap(err, "specific_msg"))
+		expected := `{"message":"specific_msg: some problem","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}
@@ -47,8 +47,8 @@ func TestRespondError(t *testing.T) {
 		err := errors.Wrap(errors.New("unknown problem"), "wrapped")
 		response := httptest.NewRecorder()
 
-		respondError(response, request, err, "specific_msg")
-		expected := `{"cause":"wrapped: unknown problem","message":"specific_msg","trace_id":""}` + "\n"
+		respondError(response, request, errors.Wrap(err, "specific_msg"))
+		expected := `{"message":"specific_msg: wrapped: unknown problem","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}

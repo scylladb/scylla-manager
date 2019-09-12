@@ -3,12 +3,12 @@
 package restapi
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -42,7 +42,7 @@ type consulHandler struct {
 func (h *consulHandler) listServices(w http.ResponseWriter, r *http.Request) {
 	clusters, err := h.svc.ListClusters(r.Context(), &cluster.Filter{})
 	if err != nil {
-		respondError(w, r, err, "failed to list clusters")
+		respondError(w, r, errors.Wrap(err, "failed to list clusters"))
 		return
 	}
 	tags := make([]string, 0, len(clusters))
@@ -88,14 +88,14 @@ type consulNode struct {
 func (h *consulHandler) getNodes(w http.ResponseWriter, r *http.Request) {
 	clusters, err := h.svc.ListClusters(r.Context(), &cluster.Filter{})
 	if err != nil {
-		respondError(w, r, err, "failed to list clusters")
+		respondError(w, r, errors.Wrap(err, "failed to list clusters"))
 		return
 	}
 	result := []consulNode{}
 	for _, c := range clusters {
 		nodes, err := h.svc.ListNodes(r.Context(), c.ID)
 		if err != nil {
-			respondError(w, r, err, fmt.Sprintf("failed to list nodes for cluster %q", c.ID))
+			respondError(w, r, errors.Wrapf(err, "failed to list nodes for cluster %q", c.ID))
 			return
 		}
 		for _, n := range nodes {
