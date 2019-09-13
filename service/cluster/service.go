@@ -370,20 +370,22 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	var (
 		errs  error
 		alive int
+		abort bool
 	)
 	for i, err := range client.CheckHostsConnectivity(ctx, hosts) {
+		errs = multierr.Append(errs, errors.Wrap(err, hosts[i]))
 		if scyllaclient.StatusCodeOf(err) > 0 {
-			errs = multierr.Append(errs, errors.Wrap(err, hosts[i]))
+			abort = true
 		}
 		if err == nil {
 			alive++
 		}
 	}
-	if errs != nil {
-		return mermaid.ErrValidate(errors.Wrap(errs, "host connectivity check failed"))
-	}
 	if alive == 0 {
-		return mermaid.ErrValidate(errors.New("host connectivity check failed cannot connect to any host"))
+		abort = true
+	}
+	if abort {
+		return mermaid.ErrValidate(errors.Wrap(errs, "connectivity check failed"))
 	}
 
 	// Update known hosts.
