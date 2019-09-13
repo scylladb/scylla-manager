@@ -3,6 +3,7 @@
 package mermaidclient
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"strings"
 	"testing"
 	"time"
@@ -133,5 +134,21 @@ func TestFormatTimeNonZero(t *testing.T) {
 
 	if s := FormatTime(strfmt.DateTime(timeutc.Now())); !strings.Contains(s, tz) {
 		t.Error(s)
+	}
+}
+
+func TestFormatMultiHostError(t *testing.T) {
+	msg := `Error: failed to create cluster: connectivity check failed: 192.168.100.13: unknown network bla; 192.168.100.22: unknown network bla; 192.168.100.12: unknown network bla; 192.168.100.23: unknown network bla; 192.168.100.11: unknown network bla; 192.168.100.21: unknown network bla`
+
+	golden := `Error: failed to create cluster: connectivity check failed
+ 192.168.100.13: unknown network bla
+ 192.168.100.22: unknown network bla
+ 192.168.100.12: unknown network bla
+ 192.168.100.23: unknown network bla
+ 192.168.100.11: unknown network bla
+ 192.168.100.21: unknown network bla`
+
+	if diff := cmp.Diff(FormatMultiHostError(msg, " "), golden); diff != "" {
+		t.Fatal(diff)
 	}
 }

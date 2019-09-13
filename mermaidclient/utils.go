@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -148,4 +149,11 @@ func FormatDuration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
 
 func isZero(t strfmt.DateTime) bool {
 	return time.Time(t).IsZero()
+}
+
+// FormatMultiHostError formats messages created by using multierror with
+// errors wrapped with host IP so that each host error is in it's own line.
+func FormatMultiHostError(msg, prefix string) string {
+	r := regexp.MustCompile(`[:;] (([0-9]{1,3}\.){3}[0-9]{1,3}): `)
+	return r.ReplaceAllString(msg, "\n"+prefix+"${1}: ")
 }
