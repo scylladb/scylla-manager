@@ -6,6 +6,8 @@ package config
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"net/url"
+
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
@@ -46,6 +48,9 @@ func (a *Client) FindConfigAbortOnLsaBadAlloc(params *FindConfigAbortOnLsaBadAll
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAbortOnLsaBadAllocOK)
@@ -79,6 +84,9 @@ func (a *Client) FindConfigAPIAddress(params *FindConfigAPIAddressParams) (*Find
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAPIAddressOK)
@@ -112,6 +120,9 @@ func (a *Client) FindConfigAPIDocDir(params *FindConfigAPIDocDirParams) (*FindCo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAPIDocDirOK)
@@ -145,6 +156,9 @@ func (a *Client) FindConfigAPIPort(params *FindConfigAPIPortParams) (*FindConfig
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAPIPortOK)
@@ -178,6 +192,9 @@ func (a *Client) FindConfigAPIUIDir(params *FindConfigAPIUIDirParams) (*FindConf
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAPIUIDirOK)
@@ -215,6 +232,9 @@ func (a *Client) FindConfigAuthenticator(params *FindConfigAuthenticatorParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAuthenticatorOK)
@@ -252,6 +272,9 @@ func (a *Client) FindConfigAuthorizer(params *FindConfigAuthorizerParams) (*Find
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAuthorizerOK)
@@ -285,6 +308,9 @@ func (a *Client) FindConfigAutoAdjustFlushQuota(params *FindConfigAutoAdjustFlus
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAutoAdjustFlushQuotaOK)
@@ -319,6 +345,9 @@ func (a *Client) FindConfigAutoBootstrap(params *FindConfigAutoBootstrapParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAutoBootstrapOK)
@@ -352,6 +381,9 @@ func (a *Client) FindConfigAutoSnapshot(params *FindConfigAutoSnapshotParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigAutoSnapshotOK)
@@ -385,6 +417,9 @@ func (a *Client) FindConfigBackgroundWriterSchedulingQuota(params *FindConfigBac
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigBackgroundWriterSchedulingQuotaOK)
@@ -418,6 +453,9 @@ func (a *Client) FindConfigBatchSizeFailThresholdInKb(params *FindConfigBatchSiz
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigBatchSizeFailThresholdInKbOK)
@@ -451,6 +489,9 @@ func (a *Client) FindConfigBatchSizeWarnThresholdInKb(params *FindConfigBatchSiz
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigBatchSizeWarnThresholdInKbOK)
@@ -484,6 +525,9 @@ func (a *Client) FindConfigBatchlogReplayThrottleInKb(params *FindConfigBatchlog
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigBatchlogReplayThrottleInKbOK)
@@ -518,6 +562,9 @@ func (a *Client) FindConfigBroadcastAddress(params *FindConfigBroadcastAddressPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigBroadcastAddressOK)
@@ -552,6 +599,9 @@ func (a *Client) FindConfigBroadcastRPCAddress(params *FindConfigBroadcastRPCAdd
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigBroadcastRPCAddressOK)
@@ -585,6 +635,9 @@ func (a *Client) FindConfigCacheHitRateReadBalancing(params *FindConfigCacheHitR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCacheHitRateReadBalancingOK)
@@ -618,6 +671,9 @@ func (a *Client) FindConfigCasContentionTimeoutInMs(params *FindConfigCasContent
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCasContentionTimeoutInMsOK)
@@ -662,6 +718,9 @@ func (a *Client) FindConfigClientEncryptionOptions(params *FindConfigClientEncry
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigClientEncryptionOptionsOK)
@@ -695,6 +754,9 @@ func (a *Client) FindConfigClusterName(params *FindConfigClusterNameParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigClusterNameOK)
@@ -728,6 +790,9 @@ func (a *Client) FindConfigColumnIndexSizeInKb(params *FindConfigColumnIndexSize
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigColumnIndexSizeInKbOK)
@@ -766,6 +831,9 @@ func (a *Client) FindConfigCommitFailurePolicy(params *FindConfigCommitFailurePo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitFailurePolicyOK)
@@ -799,6 +867,9 @@ func (a *Client) FindConfigCommitlogDirectory(params *FindConfigCommitlogDirecto
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogDirectoryOK)
@@ -833,6 +904,9 @@ func (a *Client) FindConfigCommitlogReuseSegments(params *FindConfigCommitlogReu
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogReuseSegmentsOK)
@@ -867,6 +941,9 @@ func (a *Client) FindConfigCommitlogSegmentSizeInMb(params *FindConfigCommitlogS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogSegmentSizeInMbOK)
@@ -904,6 +981,9 @@ func (a *Client) FindConfigCommitlogSync(params *FindConfigCommitlogSyncParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogSyncOK)
@@ -937,6 +1017,9 @@ func (a *Client) FindConfigCommitlogSyncBatchWindowInMs(params *FindConfigCommit
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogSyncBatchWindowInMsOK)
@@ -970,6 +1053,9 @@ func (a *Client) FindConfigCommitlogSyncPeriodInMs(params *FindConfigCommitlogSy
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogSyncPeriodInMsOK)
@@ -1004,6 +1090,9 @@ func (a *Client) FindConfigCommitlogTotalSpaceInMb(params *FindConfigCommitlogTo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogTotalSpaceInMbOK)
@@ -1038,6 +1127,9 @@ func (a *Client) FindConfigCommitlogUseoDsync(params *FindConfigCommitlogUseoDsy
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCommitlogUseODsyncOK)
@@ -1071,6 +1163,9 @@ func (a *Client) FindConfigCompactionEnforceMinThreshold(params *FindConfigCompa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionEnforceMinThresholdOK)
@@ -1104,6 +1199,9 @@ func (a *Client) FindConfigCompactionLargeCellWarningThresholdMb(params *FindCon
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionLargeCellWarningThresholdMbOK)
@@ -1137,6 +1235,9 @@ func (a *Client) FindConfigCompactionLargePartitionWarningThresholdMb(params *Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionLargePartitionWarningThresholdMbOK)
@@ -1170,6 +1271,9 @@ func (a *Client) FindConfigCompactionLargeRowWarningThresholdMb(params *FindConf
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionLargeRowWarningThresholdMbOK)
@@ -1203,6 +1307,9 @@ func (a *Client) FindConfigCompactionPreheatKeyCache(params *FindConfigCompactio
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionPreheatKeyCacheOK)
@@ -1236,6 +1343,9 @@ func (a *Client) FindConfigCompactionRowsCountWarningThreshold(params *FindConfi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionRowsCountWarningThresholdOK)
@@ -1269,6 +1379,9 @@ func (a *Client) FindConfigCompactionStaticShares(params *FindConfigCompactionSt
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionStaticSharesOK)
@@ -1303,6 +1416,9 @@ func (a *Client) FindConfigCompactionThroughputMbPerSec(params *FindConfigCompac
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCompactionThroughputMbPerSecOK)
@@ -1336,6 +1452,9 @@ func (a *Client) FindConfigConcurrentCompactors(params *FindConfigConcurrentComp
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigConcurrentCompactorsOK)
@@ -1369,6 +1488,9 @@ func (a *Client) FindConfigConcurrentCounterWrites(params *FindConfigConcurrentC
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigConcurrentCounterWritesOK)
@@ -1402,6 +1524,9 @@ func (a *Client) FindConfigConcurrentReads(params *FindConfigConcurrentReadsPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigConcurrentReadsOK)
@@ -1435,6 +1560,9 @@ func (a *Client) FindConfigConcurrentWrites(params *FindConfigConcurrentWritesPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigConcurrentWritesOK)
@@ -1468,6 +1596,9 @@ func (a *Client) FindConfigConsistentRangemovement(params *FindConfigConsistentR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigConsistentRangemovementOK)
@@ -1501,6 +1632,9 @@ func (a *Client) FindConfigCounterCacheKeysToSave(params *FindConfigCounterCache
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCounterCacheKeysToSaveOK)
@@ -1534,6 +1668,9 @@ func (a *Client) FindConfigCounterCacheSavePeriod(params *FindConfigCounterCache
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCounterCacheSavePeriodOK)
@@ -1567,6 +1704,9 @@ func (a *Client) FindConfigCounterCacheSizeInMb(params *FindConfigCounterCacheSi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCounterCacheSizeInMbOK)
@@ -1600,6 +1740,9 @@ func (a *Client) FindConfigCounterWriteRequestTimeoutInMs(params *FindConfigCoun
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCounterWriteRequestTimeoutInMsOK)
@@ -1633,6 +1776,9 @@ func (a *Client) FindConfigCPUScheduler(params *FindConfigCPUSchedulerParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCPUSchedulerOK)
@@ -1668,6 +1814,9 @@ func (a *Client) FindConfigCrossNodeTimeout(params *FindConfigCrossNodeTimeoutPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigCrossNodeTimeoutOK)
@@ -1701,6 +1850,9 @@ func (a *Client) FindConfigDataFileDirectories(params *FindConfigDataFileDirecto
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDataFileDirectoriesOK)
@@ -1734,6 +1886,9 @@ func (a *Client) FindConfigDefaultLogLevel(params *FindConfigDefaultLogLevelPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDefaultLogLevelOK)
@@ -1767,6 +1922,9 @@ func (a *Client) FindConfigDefragmentMemoryOnIdle(params *FindConfigDefragmentMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDefragmentMemoryOnIdleOK)
@@ -1800,6 +1958,9 @@ func (a *Client) FindConfigDeveloperMode(params *FindConfigDeveloperModeParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDeveloperModeOK)
@@ -1842,6 +2003,9 @@ func (a *Client) FindConfigDiskFailurePolicy(params *FindConfigDiskFailurePolicy
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDiskFailurePolicyOK)
@@ -1875,6 +2039,9 @@ func (a *Client) FindConfigDynamicSnitchBadnessThreshold(params *FindConfigDynam
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDynamicSnitchBadnessThresholdOK)
@@ -1908,6 +2075,9 @@ func (a *Client) FindConfigDynamicSnitchResetIntervalInMs(params *FindConfigDyna
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDynamicSnitchResetIntervalInMsOK)
@@ -1941,6 +2111,9 @@ func (a *Client) FindConfigDynamicSnitchUpdateIntervalInMs(params *FindConfigDyn
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigDynamicSnitchUpdateIntervalInMsOK)
@@ -1974,6 +2147,9 @@ func (a *Client) FindConfigEnableCache(params *FindConfigEnableCacheParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableCacheOK)
@@ -2007,6 +2183,9 @@ func (a *Client) FindConfigEnableCommitlog(params *FindConfigEnableCommitlogPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableCommitlogOK)
@@ -2040,6 +2219,9 @@ func (a *Client) FindConfigEnableDangerousDirectImportOfCassandraCounters(params
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableDangerousDirectImportOfCassandraCountersOK)
@@ -2073,6 +2255,9 @@ func (a *Client) FindConfigEnableDeprecatedPartitioners(params *FindConfigEnable
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableDeprecatedPartitionersOK)
@@ -2106,6 +2291,9 @@ func (a *Client) FindConfigEnableInMemoryDataStore(params *FindConfigEnableInMem
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableInMemoryDataStoreOK)
@@ -2139,6 +2327,9 @@ func (a *Client) FindConfigEnableKeyspaceColumnFamilyMetrics(params *FindConfigE
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableKeyspaceColumnFamilyMetricsOK)
@@ -2172,6 +2363,9 @@ func (a *Client) FindConfigEnableShardAwareDrivers(params *FindConfigEnableShard
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableShardAwareDriversOK)
@@ -2205,6 +2399,9 @@ func (a *Client) FindConfigEnableSstableDataIntegrityCheck(params *FindConfigEna
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableSstableDataIntegrityCheckOK)
@@ -2238,6 +2435,9 @@ func (a *Client) FindConfigEnableSstablesMcFormat(params *FindConfigEnableSstabl
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEnableSstablesMcFormatOK)
@@ -2286,6 +2486,9 @@ func (a *Client) FindConfigEndpointSnitch(params *FindConfigEndpointSnitchParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigEndpointSnitchOK)
@@ -2319,6 +2522,9 @@ func (a *Client) FindConfigExperimental(params *FindConfigExperimentalParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigExperimentalOK)
@@ -2352,6 +2558,9 @@ func (a *Client) FindConfigFdInitialValueMs(params *FindConfigFdInitialValueMsPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigFdInitialValueMsOK)
@@ -2385,6 +2594,9 @@ func (a *Client) FindConfigFdMaxIntervalMs(params *FindConfigFdMaxIntervalMsPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigFdMaxIntervalMsOK)
@@ -2418,6 +2630,9 @@ func (a *Client) FindConfigFileCacheSizeInMb(params *FindConfigFileCacheSizeInMb
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigFileCacheSizeInMbOK)
@@ -2451,6 +2666,9 @@ func (a *Client) FindConfigHintedHandoffEnabled(params *FindConfigHintedHandoffE
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigHintedHandoffEnabledOK)
@@ -2484,6 +2702,9 @@ func (a *Client) FindConfigHintedHandoffThrottleInKb(params *FindConfigHintedHan
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigHintedHandoffThrottleInKbOK)
@@ -2517,6 +2738,9 @@ func (a *Client) FindConfigHintsDirectory(params *FindConfigHintsDirectoryParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigHintsDirectoryOK)
@@ -2550,6 +2774,9 @@ func (a *Client) FindConfigInMemoryCompactionLimitInMb(params *FindConfigInMemor
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInMemoryCompactionLimitInMbOK)
@@ -2584,6 +2811,9 @@ func (a *Client) FindConfigIncrementalBackups(params *FindConfigIncrementalBacku
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigIncrementalBackupsOK)
@@ -2617,6 +2847,9 @@ func (a *Client) FindConfigIndexSummaryCapacityInMb(params *FindConfigIndexSumma
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigIndexSummaryCapacityInMbOK)
@@ -2650,6 +2883,9 @@ func (a *Client) FindConfigIndexSummaryResizeIntervalInMinutes(params *FindConfi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigIndexSummaryResizeIntervalInMinutesOK)
@@ -2685,6 +2921,9 @@ func (a *Client) FindConfigInitialToken(params *FindConfigInitialTokenParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInitialTokenOK)
@@ -2718,6 +2957,9 @@ func (a *Client) FindConfigInterDcStreamThroughputOutboundMegabitsPerSec(params 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK)
@@ -2751,6 +2993,9 @@ func (a *Client) FindConfigInterDcTCPNodelay(params *FindConfigInterDcTCPNodelay
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInterDcTCPNodelayOK)
@@ -2784,6 +3029,9 @@ func (a *Client) FindConfigInternodeAuthenticator(params *FindConfigInternodeAut
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInternodeAuthenticatorOK)
@@ -2821,6 +3069,9 @@ func (a *Client) FindConfigInternodeCompression(params *FindConfigInternodeCompr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInternodeCompressionOK)
@@ -2854,6 +3105,9 @@ func (a *Client) FindConfigInternodeRecvBuffSizeInBytes(params *FindConfigIntern
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInternodeRecvBuffSizeInBytesOK)
@@ -2894,6 +3148,9 @@ func (a *Client) FindConfigInternodeSendBuffSizeInBytes(params *FindConfigIntern
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigInternodeSendBuffSizeInBytesOK)
@@ -2927,6 +3184,9 @@ func (a *Client) FindConfigJoinRing(params *FindConfigJoinRingParams) (*FindConf
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigJoinRingOK)
@@ -2960,6 +3220,9 @@ func (a *Client) FindConfigKeyCacheKeysToSave(params *FindConfigKeyCacheKeysToSa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigKeyCacheKeysToSaveOK)
@@ -2993,6 +3256,9 @@ func (a *Client) FindConfigKeyCacheSavePeriod(params *FindConfigKeyCacheSavePeri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigKeyCacheSavePeriodOK)
@@ -3027,6 +3293,9 @@ func (a *Client) FindConfigKeyCacheSizeInMb(params *FindConfigKeyCacheSizeInMbPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigKeyCacheSizeInMbOK)
@@ -3060,6 +3329,9 @@ func (a *Client) FindConfigLargeMemoryAllocationWarningThreshold(params *FindCon
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigLargeMemoryAllocationWarningThresholdOK)
@@ -3098,6 +3370,9 @@ func (a *Client) FindConfigListenAddress(params *FindConfigListenAddressParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigListenAddressOK)
@@ -3131,6 +3406,9 @@ func (a *Client) FindConfigListenInterface(params *FindConfigListenInterfacePara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigListenInterfaceOK)
@@ -3164,6 +3442,9 @@ func (a *Client) FindConfigListenOnBroadcastAddress(params *FindConfigListenOnBr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigListenOnBroadcastAddressOK)
@@ -3197,6 +3478,9 @@ func (a *Client) FindConfigLoadBalance(params *FindConfigLoadBalanceParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigLoadBalanceOK)
@@ -3230,6 +3514,9 @@ func (a *Client) FindConfigLoadRingState(params *FindConfigLoadRingStateParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigLoadRingStateOK)
@@ -3263,6 +3550,9 @@ func (a *Client) FindConfigLogToStdout(params *FindConfigLogToStdoutParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigLogToStdoutOK)
@@ -3296,6 +3586,9 @@ func (a *Client) FindConfigLogToSyslog(params *FindConfigLogToSyslogParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigLogToSyslogOK)
@@ -3329,6 +3622,9 @@ func (a *Client) FindConfigLoggerLogLevel(params *FindConfigLoggerLogLevelParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigLoggerLogLevelOK)
@@ -3362,6 +3658,9 @@ func (a *Client) FindConfigLsaReclamationStep(params *FindConfigLsaReclamationSt
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigLsaReclamationStepOK)
@@ -3396,6 +3695,9 @@ func (a *Client) FindConfigMaxHintWindowInMs(params *FindConfigMaxHintWindowInMs
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMaxHintWindowInMsOK)
@@ -3429,6 +3731,9 @@ func (a *Client) FindConfigMaxHintsDeliveryThreads(params *FindConfigMaxHintsDel
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMaxHintsDeliveryThreadsOK)
@@ -3466,6 +3771,9 @@ func (a *Client) FindConfigMemoryAllocator(params *FindConfigMemoryAllocatorPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemoryAllocatorOK)
@@ -3502,6 +3810,9 @@ func (a *Client) FindConfigMemtableAllocationType(params *FindConfigMemtableAllo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableAllocationTypeOK)
@@ -3535,6 +3846,9 @@ func (a *Client) FindConfigMemtableCleanupThreshold(params *FindConfigMemtableCl
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableCleanupThresholdOK)
@@ -3569,6 +3883,9 @@ func (a *Client) FindConfigMemtableFlushQueueSize(params *FindConfigMemtableFlus
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableFlushQueueSizeOK)
@@ -3602,6 +3919,9 @@ func (a *Client) FindConfigMemtableFlushStaticShares(params *FindConfigMemtableF
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableFlushStaticSharesOK)
@@ -3635,6 +3955,9 @@ func (a *Client) FindConfigMemtableFlushWriters(params *FindConfigMemtableFlushW
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableFlushWritersOK)
@@ -3668,6 +3991,9 @@ func (a *Client) FindConfigMemtableHeapSpaceInMb(params *FindConfigMemtableHeapS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableHeapSpaceInMbOK)
@@ -3701,6 +4027,9 @@ func (a *Client) FindConfigMemtableOffheapSpaceInMb(params *FindConfigMemtableOf
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableOffheapSpaceInMbOK)
@@ -3734,6 +4063,9 @@ func (a *Client) FindConfigMemtableTotalSpaceInMb(params *FindConfigMemtableTota
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMemtableTotalSpaceInMbOK)
@@ -3767,6 +4099,9 @@ func (a *Client) FindConfigMurmur3PartitionerIgnoreMsbBits(params *FindConfigMur
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigMurmur3PartitionerIgnoreMsbBitsOK)
@@ -3800,6 +4135,9 @@ func (a *Client) FindConfigNativeTransportMaxFrameSizeInMb(params *FindConfigNat
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigNativeTransportMaxFrameSizeInMbOK)
@@ -3837,6 +4175,9 @@ func (a *Client) FindConfigNativeTransportMaxThreads(params *FindConfigNativeTra
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigNativeTransportMaxThreadsOK)
@@ -3870,6 +4211,9 @@ func (a *Client) FindConfigNativeTransportPort(params *FindConfigNativeTransport
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigNativeTransportPortOK)
@@ -3903,6 +4247,9 @@ func (a *Client) FindConfigNativeTransportPortSsl(params *FindConfigNativeTransp
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigNativeTransportPortSslOK)
@@ -3938,6 +4285,9 @@ func (a *Client) FindConfigNumTokens(params *FindConfigNumTokensParams) (*FindCo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigNumTokensOK)
@@ -3971,6 +4321,9 @@ func (a *Client) FindConfigOverrideDecommission(params *FindConfigOverrideDecomm
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigOverrideDecommissionOK)
@@ -4011,6 +4364,9 @@ func (a *Client) FindConfigPartitioner(params *FindConfigPartitionerParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPartitionerOK)
@@ -4044,6 +4400,9 @@ func (a *Client) FindConfigPermissionsCacheMaxEntries(params *FindConfigPermissi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPermissionsCacheMaxEntriesOK)
@@ -4077,6 +4436,9 @@ func (a *Client) FindConfigPermissionsUpdateIntervalInMs(params *FindConfigPermi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPermissionsUpdateIntervalInMsOK)
@@ -4111,6 +4473,9 @@ func (a *Client) FindConfigPermissionsValidityInMs(params *FindConfigPermissions
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPermissionsValidityInMsOK)
@@ -4145,6 +4510,9 @@ func (a *Client) FindConfigPhiConvictThreshold(params *FindConfigPhiConvictThres
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPhiConvictThresholdOK)
@@ -4178,6 +4546,9 @@ func (a *Client) FindConfigPreheatKernelPageCache(params *FindConfigPreheatKerne
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPreheatKernelPageCacheOK)
@@ -4211,6 +4582,9 @@ func (a *Client) FindConfigPrometheusAddress(params *FindConfigPrometheusAddress
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPrometheusAddressOK)
@@ -4244,6 +4618,9 @@ func (a *Client) FindConfigPrometheusPort(params *FindConfigPrometheusPortParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPrometheusPortOK)
@@ -4277,6 +4654,9 @@ func (a *Client) FindConfigPrometheusPrefix(params *FindConfigPrometheusPrefixPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigPrometheusPrefixOK)
@@ -4310,6 +4690,9 @@ func (a *Client) FindConfigRangeRequestTimeoutInMs(params *FindConfigRangeReques
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRangeRequestTimeoutInMsOK)
@@ -4343,6 +4726,9 @@ func (a *Client) FindConfigReadRequestTimeoutInMs(params *FindConfigReadRequestT
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigReadRequestTimeoutInMsOK)
@@ -4376,6 +4762,9 @@ func (a *Client) FindConfigReduceCacheCapacityTo(params *FindConfigReduceCacheCa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigReduceCacheCapacityToOK)
@@ -4409,6 +4798,9 @@ func (a *Client) FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizes
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigReduceCacheSizesAtOK)
@@ -4442,6 +4834,9 @@ func (a *Client) FindConfigReplaceAddress(params *FindConfigReplaceAddressParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigReplaceAddressOK)
@@ -4475,6 +4870,9 @@ func (a *Client) FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigReplaceAddressFirstBootOK)
@@ -4508,6 +4906,9 @@ func (a *Client) FindConfigReplaceNode(params *FindConfigReplaceNodeParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigReplaceNodeOK)
@@ -4541,6 +4942,9 @@ func (a *Client) FindConfigReplaceToken(params *FindConfigReplaceTokenParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigReplaceTokenOK)
@@ -4578,6 +4982,9 @@ func (a *Client) FindConfigRequestScheduler(params *FindConfigRequestSchedulerPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRequestSchedulerOK)
@@ -4611,6 +5018,9 @@ func (a *Client) FindConfigRequestSchedulerID(params *FindConfigRequestScheduler
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRequestSchedulerIDOK)
@@ -4648,6 +5058,9 @@ func (a *Client) FindConfigRequestSchedulerOptions(params *FindConfigRequestSche
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRequestSchedulerOptionsOK)
@@ -4682,6 +5095,9 @@ func (a *Client) FindConfigRequestTimeoutInMs(params *FindConfigRequestTimeoutIn
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRequestTimeoutInMsOK)
@@ -4715,6 +5131,9 @@ func (a *Client) FindConfigRingDelayMs(params *FindConfigRingDelayMsParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRingDelayMsOK)
@@ -4750,6 +5169,9 @@ func (a *Client) FindConfigRoleManager(params *FindConfigRoleManagerParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRoleManagerOK)
@@ -4783,6 +5205,9 @@ func (a *Client) FindConfigRowCacheKeysToSave(params *FindConfigRowCacheKeysToSa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRowCacheKeysToSaveOK)
@@ -4816,6 +5241,9 @@ func (a *Client) FindConfigRowCacheSavePeriod(params *FindConfigRowCacheSavePeri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRowCacheSavePeriodOK)
@@ -4849,6 +5277,9 @@ func (a *Client) FindConfigRowCacheSizeInMb(params *FindConfigRowCacheSizeInMbPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRowCacheSizeInMbOK)
@@ -4889,6 +5320,9 @@ func (a *Client) FindConfigRPCAddress(params *FindConfigRPCAddressParams) (*Find
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCAddressOK)
@@ -4922,6 +5356,9 @@ func (a *Client) FindConfigRPCInterface(params *FindConfigRPCInterfaceParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCInterfaceOK)
@@ -4955,6 +5392,9 @@ func (a *Client) FindConfigRPCKeepalive(params *FindConfigRPCKeepaliveParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCKeepaliveOK)
@@ -4988,6 +5428,9 @@ func (a *Client) FindConfigRPCMaxThreads(params *FindConfigRPCMaxThreadsParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCMaxThreadsOK)
@@ -5021,6 +5464,9 @@ func (a *Client) FindConfigRPCMinThreads(params *FindConfigRPCMinThreadsParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCMinThreadsOK)
@@ -5054,6 +5500,9 @@ func (a *Client) FindConfigRPCPort(params *FindConfigRPCPortParams) (*FindConfig
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCPortOK)
@@ -5087,6 +5536,9 @@ func (a *Client) FindConfigRPCRecvBuffSizeInBytes(params *FindConfigRPCRecvBuffS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCRecvBuffSizeInBytesOK)
@@ -5120,6 +5572,9 @@ func (a *Client) FindConfigRPCSendBuffSizeInBytes(params *FindConfigRPCSendBuffS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCSendBuffSizeInBytesOK)
@@ -5158,6 +5613,9 @@ func (a *Client) FindConfigRPCServerType(params *FindConfigRPCServerTypeParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigRPCServerTypeOK)
@@ -5191,6 +5649,9 @@ func (a *Client) FindConfigSavedCachesDirectory(params *FindConfigSavedCachesDir
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigSavedCachesDirectoryOK)
@@ -5230,6 +5691,9 @@ func (a *Client) FindConfigSeedProvider(params *FindConfigSeedProviderParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigSeedProviderOK)
@@ -5278,6 +5742,9 @@ func (a *Client) FindConfigServerEncryptionOptions(params *FindConfigServerEncry
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigServerEncryptionOptionsOK)
@@ -5311,6 +5778,9 @@ func (a *Client) FindConfigShadowRoundMs(params *FindConfigShadowRoundMsParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigShadowRoundMsOK)
@@ -5344,6 +5814,9 @@ func (a *Client) FindConfigShutdownAnnounceInMs(params *FindConfigShutdownAnnoun
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigShutdownAnnounceInMsOK)
@@ -5377,6 +5850,9 @@ func (a *Client) FindConfigSkipWaitForGossipToSettle(params *FindConfigSkipWaitF
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigSkipWaitForGossipToSettleOK)
@@ -5411,6 +5887,9 @@ func (a *Client) FindConfigSnapshotBeforeCompaction(params *FindConfigSnapshotBe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigSnapshotBeforeCompactionOK)
@@ -5444,6 +5923,9 @@ func (a *Client) FindConfigSslStoragePort(params *FindConfigSslStoragePortParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigSslStoragePortOK)
@@ -5477,6 +5959,9 @@ func (a *Client) FindConfigSstablePreemptiveOpenIntervalInMb(params *FindConfigS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigSstablePreemptiveOpenIntervalInMbOK)
@@ -5510,6 +5995,9 @@ func (a *Client) FindConfigSstableSummaryRatio(params *FindConfigSstableSummaryR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigSstableSummaryRatioOK)
@@ -5543,6 +6031,9 @@ func (a *Client) FindConfigStartNativeTransport(params *FindConfigStartNativeTra
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigStartNativeTransportOK)
@@ -5576,6 +6067,9 @@ func (a *Client) FindConfigStartRPC(params *FindConfigStartRPCParams) (*FindConf
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigStartRPCOK)
@@ -5609,6 +6103,9 @@ func (a *Client) FindConfigStoragePort(params *FindConfigStoragePortParams) (*Fi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigStoragePortOK)
@@ -5642,6 +6139,9 @@ func (a *Client) FindConfigStreamThroughputOutboundMegabitsPerSec(params *FindCo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigStreamThroughputOutboundMegabitsPerSecOK)
@@ -5675,6 +6175,9 @@ func (a *Client) FindConfigStreamingSocketTimeoutInMs(params *FindConfigStreamin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigStreamingSocketTimeoutInMsOK)
@@ -5708,6 +6211,9 @@ func (a *Client) FindConfigThriftFramedTransportSizeInMb(params *FindConfigThrif
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigThriftFramedTransportSizeInMbOK)
@@ -5741,6 +6247,9 @@ func (a *Client) FindConfigThriftMaxMessageLengthInMb(params *FindConfigThriftMa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigThriftMaxMessageLengthInMbOK)
@@ -5774,6 +6283,9 @@ func (a *Client) FindConfigTombstoneFailureThreshold(params *FindConfigTombstone
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigTombstoneFailureThresholdOK)
@@ -5807,6 +6319,9 @@ func (a *Client) FindConfigTombstoneWarnThreshold(params *FindConfigTombstoneWar
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigTombstoneWarnThresholdOK)
@@ -5840,6 +6355,9 @@ func (a *Client) FindConfigTrickleFsync(params *FindConfigTrickleFsyncParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigTrickleFsyncOK)
@@ -5873,6 +6391,9 @@ func (a *Client) FindConfigTrickleFsyncIntervalInKb(params *FindConfigTrickleFsy
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigTrickleFsyncIntervalInKbOK)
@@ -5906,6 +6427,9 @@ func (a *Client) FindConfigTruncateRequestTimeoutInMs(params *FindConfigTruncate
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigTruncateRequestTimeoutInMsOK)
@@ -5939,6 +6463,9 @@ func (a *Client) FindConfigViewBuilding(params *FindConfigViewBuildingParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigViewBuildingOK)
@@ -5972,6 +6499,9 @@ func (a *Client) FindConfigViewHintsDirectory(params *FindConfigViewHintsDirecto
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigViewHintsDirectoryOK)
@@ -6005,6 +6535,9 @@ func (a *Client) FindConfigVirtualDirtySoftLimit(params *FindConfigVirtualDirtyS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigVirtualDirtySoftLimitOK)
@@ -6038,6 +6571,9 @@ func (a *Client) FindConfigVolatileSystemKeyspaceForTesting(params *FindConfigVo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigVolatileSystemKeyspaceForTestingOK)
@@ -6072,6 +6608,9 @@ func (a *Client) FindConfigWriteRequestTimeoutInMs(params *FindConfigWriteReques
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FindConfigWriteRequestTimeoutInMsOK)

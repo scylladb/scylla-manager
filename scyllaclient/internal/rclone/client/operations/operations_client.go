@@ -7,6 +7,7 @@ package operations
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/go-openapi/runtime"
 
@@ -50,6 +51,9 @@ func (a *Client) ConfigCreate(params *ConfigCreateParams) (*ConfigCreateOK, erro
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ConfigCreateOK)
@@ -86,6 +90,9 @@ func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CoreBwlimitOK)
@@ -122,6 +129,9 @@ func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, e
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CoreGroupListOK)
@@ -158,6 +168,9 @@ func (a *Client) CoreStats(params *CoreStatsParams) (*CoreStatsOK, error) {
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CoreStatsOK)
@@ -194,6 +207,9 @@ func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CoreStatsResetOK)
@@ -230,6 +246,9 @@ func (a *Client) CoreTransferred(params *CoreTransferredParams) (*CoreTransferre
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CoreTransferredOK)
@@ -266,6 +285,9 @@ func (a *Client) JobStatus(params *JobStatusParams) (*JobStatusOK, error) {
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*JobStatusOK)
@@ -302,6 +324,9 @@ func (a *Client) JobStop(params *JobStopParams) (*JobStopOK, error) {
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*JobStopOK)
@@ -338,6 +363,9 @@ func (a *Client) OperationsAbout(params *OperationsAboutParams) (*OperationsAbou
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*OperationsAboutOK)
@@ -374,6 +402,9 @@ func (a *Client) OperationsCat(params *OperationsCatParams) (*OperationsCatOK, e
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*OperationsCatOK)
@@ -410,6 +441,9 @@ func (a *Client) OperationsCopyfile(params *OperationsCopyfileParams) (*Operatio
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*OperationsCopyfileOK)
@@ -446,6 +480,9 @@ func (a *Client) OperationsDeletefile(params *OperationsDeletefileParams) (*Oper
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*OperationsDeletefileOK)
@@ -482,6 +519,9 @@ func (a *Client) OperationsList(params *OperationsListParams) (*OperationsListOK
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*OperationsListOK)
@@ -518,6 +558,9 @@ func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurg
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*OperationsPurgeOK)
@@ -554,6 +597,9 @@ func (a *Client) SyncCopy(params *SyncCopyParams) (*SyncCopyOK, error) {
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SyncCopyOK)

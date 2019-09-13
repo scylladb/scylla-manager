@@ -7,6 +7,7 @@ package operations
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/go-openapi/runtime"
 
@@ -50,6 +51,9 @@ func (a *Client) CacheServiceCounterCacheCapacityPost(params *CacheServiceCounte
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceCounterCacheCapacityPostOK)
@@ -86,6 +90,9 @@ func (a *Client) CacheServiceCounterCacheKeysToSaveGet(params *CacheServiceCount
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceCounterCacheKeysToSaveGetOK)
@@ -122,6 +129,9 @@ func (a *Client) CacheServiceCounterCacheKeysToSavePost(params *CacheServiceCoun
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceCounterCacheKeysToSavePostOK)
@@ -158,6 +168,9 @@ func (a *Client) CacheServiceCounterCacheSavePeriodGet(params *CacheServiceCount
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceCounterCacheSavePeriodGetOK)
@@ -194,6 +207,9 @@ func (a *Client) CacheServiceCounterCacheSavePeriodPost(params *CacheServiceCoun
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceCounterCacheSavePeriodPostOK)
@@ -230,6 +246,9 @@ func (a *Client) CacheServiceInvalidateCounterCachePost(params *CacheServiceInva
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceInvalidateCounterCachePostOK)
@@ -266,6 +285,9 @@ func (a *Client) CacheServiceInvalidateKeyCachePost(params *CacheServiceInvalida
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceInvalidateKeyCachePostOK)
@@ -302,6 +324,9 @@ func (a *Client) CacheServiceKeyCacheCapacityPost(params *CacheServiceKeyCacheCa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceKeyCacheCapacityPostOK)
@@ -338,6 +363,9 @@ func (a *Client) CacheServiceKeyCacheKeysToSaveGet(params *CacheServiceKeyCacheK
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceKeyCacheKeysToSaveGetOK)
@@ -374,6 +402,9 @@ func (a *Client) CacheServiceKeyCacheKeysToSavePost(params *CacheServiceKeyCache
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceKeyCacheKeysToSavePostOK)
@@ -410,6 +441,9 @@ func (a *Client) CacheServiceKeyCacheSavePeriodGet(params *CacheServiceKeyCacheS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceKeyCacheSavePeriodGetOK)
@@ -446,6 +480,9 @@ func (a *Client) CacheServiceKeyCacheSavePeriodPost(params *CacheServiceKeyCache
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceKeyCacheSavePeriodPostOK)
@@ -482,6 +519,9 @@ func (a *Client) CacheServiceMetricsCounterCapacityGet(params *CacheServiceMetri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterCapacityGetOK)
@@ -518,6 +558,9 @@ func (a *Client) CacheServiceMetricsCounterEntriesGet(params *CacheServiceMetric
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterEntriesGetOK)
@@ -554,6 +597,9 @@ func (a *Client) CacheServiceMetricsCounterHitRateGet(params *CacheServiceMetric
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterHitRateGetOK)
@@ -590,6 +636,9 @@ func (a *Client) CacheServiceMetricsCounterHitsGet(params *CacheServiceMetricsCo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterHitsGetOK)
@@ -626,6 +675,9 @@ func (a *Client) CacheServiceMetricsCounterHitsMovingAvrageGet(params *CacheServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterHitsMovingAvrageGetOK)
@@ -662,6 +714,9 @@ func (a *Client) CacheServiceMetricsCounterRequestsGet(params *CacheServiceMetri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterRequestsGetOK)
@@ -698,6 +753,9 @@ func (a *Client) CacheServiceMetricsCounterRequestsMovingAvrageGet(params *Cache
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterRequestsMovingAvrageGetOK)
@@ -734,6 +792,9 @@ func (a *Client) CacheServiceMetricsCounterSizeGet(params *CacheServiceMetricsCo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsCounterSizeGetOK)
@@ -770,6 +831,9 @@ func (a *Client) CacheServiceMetricsKeyCapacityGet(params *CacheServiceMetricsKe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeyCapacityGetOK)
@@ -806,6 +870,9 @@ func (a *Client) CacheServiceMetricsKeyEntriesGet(params *CacheServiceMetricsKey
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeyEntriesGetOK)
@@ -842,6 +909,9 @@ func (a *Client) CacheServiceMetricsKeyHitRateGet(params *CacheServiceMetricsKey
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeyHitRateGetOK)
@@ -878,6 +948,9 @@ func (a *Client) CacheServiceMetricsKeyHitsGet(params *CacheServiceMetricsKeyHit
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeyHitsGetOK)
@@ -914,6 +987,9 @@ func (a *Client) CacheServiceMetricsKeyHitsMovingAvrageGet(params *CacheServiceM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeyHitsMovingAvrageGetOK)
@@ -950,6 +1026,9 @@ func (a *Client) CacheServiceMetricsKeyRequestsGet(params *CacheServiceMetricsKe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeyRequestsGetOK)
@@ -986,6 +1065,9 @@ func (a *Client) CacheServiceMetricsKeyRequestsMovingAvrageGet(params *CacheServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeyRequestsMovingAvrageGetOK)
@@ -1022,6 +1104,9 @@ func (a *Client) CacheServiceMetricsKeySizeGet(params *CacheServiceMetricsKeySiz
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsKeySizeGetOK)
@@ -1058,6 +1143,9 @@ func (a *Client) CacheServiceMetricsRowCapacityGet(params *CacheServiceMetricsRo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowCapacityGetOK)
@@ -1094,6 +1182,9 @@ func (a *Client) CacheServiceMetricsRowEntriesGet(params *CacheServiceMetricsRow
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowEntriesGetOK)
@@ -1130,6 +1221,9 @@ func (a *Client) CacheServiceMetricsRowHitRateGet(params *CacheServiceMetricsRow
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowHitRateGetOK)
@@ -1166,6 +1260,9 @@ func (a *Client) CacheServiceMetricsRowHitsGet(params *CacheServiceMetricsRowHit
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowHitsGetOK)
@@ -1202,6 +1299,9 @@ func (a *Client) CacheServiceMetricsRowHitsMovingAvrageGet(params *CacheServiceM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowHitsMovingAvrageGetOK)
@@ -1238,6 +1338,9 @@ func (a *Client) CacheServiceMetricsRowRequestsGet(params *CacheServiceMetricsRo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowRequestsGetOK)
@@ -1274,6 +1377,9 @@ func (a *Client) CacheServiceMetricsRowRequestsMovingAvrageGet(params *CacheServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowRequestsMovingAvrageGetOK)
@@ -1310,6 +1416,9 @@ func (a *Client) CacheServiceMetricsRowSizeGet(params *CacheServiceMetricsRowSiz
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceMetricsRowSizeGetOK)
@@ -1346,6 +1455,9 @@ func (a *Client) CacheServiceRowCacheCapacityPost(params *CacheServiceRowCacheCa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceRowCacheCapacityPostOK)
@@ -1382,6 +1494,9 @@ func (a *Client) CacheServiceRowCacheKeysToSaveGet(params *CacheServiceRowCacheK
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceRowCacheKeysToSaveGetOK)
@@ -1418,6 +1533,9 @@ func (a *Client) CacheServiceRowCacheKeysToSavePost(params *CacheServiceRowCache
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceRowCacheKeysToSavePostOK)
@@ -1454,6 +1572,9 @@ func (a *Client) CacheServiceRowCacheSavePeriodGet(params *CacheServiceRowCacheS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceRowCacheSavePeriodGetOK)
@@ -1490,6 +1611,9 @@ func (a *Client) CacheServiceRowCacheSavePeriodPost(params *CacheServiceRowCache
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceRowCacheSavePeriodPostOK)
@@ -1526,6 +1650,9 @@ func (a *Client) CacheServiceSaveCachesPost(params *CacheServiceSaveCachesPostPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CacheServiceSaveCachesPostOK)
@@ -1562,6 +1689,9 @@ func (a *Client) CollectdByPluginidGet(params *CollectdByPluginidGetParams) (*Co
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CollectdByPluginidGetOK)
@@ -1598,6 +1728,9 @@ func (a *Client) CollectdByPluginidPost(params *CollectdByPluginidPostParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CollectdByPluginidPostOK)
@@ -1634,6 +1767,9 @@ func (a *Client) CollectdGet(params *CollectdGetParams) (*CollectdGetOK, error) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CollectdGetOK)
@@ -1670,6 +1806,9 @@ func (a *Client) CollectdPost(params *CollectdPostParams) (*CollectdPostOK, erro
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CollectdPostOK)
@@ -1706,6 +1845,9 @@ func (a *Client) ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocom
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyAutocompactionByNameGetOK)
@@ -1742,6 +1884,9 @@ func (a *Client) ColumnFamilyBuiltIndexesByNameGet(params *ColumnFamilyBuiltInde
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyBuiltIndexesByNameGetOK)
@@ -1778,6 +1923,9 @@ func (a *Client) ColumnFamilyCompactionByNamePost(params *ColumnFamilyCompaction
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyCompactionByNamePostOK)
@@ -1814,6 +1962,9 @@ func (a *Client) ColumnFamilyCompactionStrategyByNameGet(params *ColumnFamilyCom
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyCompactionStrategyByNameGetOK)
@@ -1850,6 +2001,9 @@ func (a *Client) ColumnFamilyCompactionStrategyByNamePost(params *ColumnFamilyCo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyCompactionStrategyByNamePostOK)
@@ -1886,6 +2040,9 @@ func (a *Client) ColumnFamilyCompressionParametersByNameGet(params *ColumnFamily
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyCompressionParametersByNameGetOK)
@@ -1922,6 +2079,9 @@ func (a *Client) ColumnFamilyCompressionParametersByNamePost(params *ColumnFamil
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyCompressionParametersByNamePostOK)
@@ -1958,6 +2118,9 @@ func (a *Client) ColumnFamilyCrcCheckChanceByNamePost(params *ColumnFamilyCrcChe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyCrcCheckChanceByNamePostOK)
@@ -1994,6 +2157,9 @@ func (a *Client) ColumnFamilyDroppableRatioByNameGet(params *ColumnFamilyDroppab
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyDroppableRatioByNameGetOK)
@@ -2030,6 +2196,9 @@ func (a *Client) ColumnFamilyEstimateKeysByNameGet(params *ColumnFamilyEstimateK
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyEstimateKeysByNameGetOK)
@@ -2066,6 +2235,9 @@ func (a *Client) ColumnFamilyGet(params *ColumnFamilyGetParams) (*ColumnFamilyGe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyGetOK)
@@ -2102,6 +2274,9 @@ func (a *Client) ColumnFamilyLoadSstableByNamePost(params *ColumnFamilyLoadSstab
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyLoadSstableByNamePostOK)
@@ -2138,6 +2313,9 @@ func (a *Client) ColumnFamilyMajorCompactionByNamePost(params *ColumnFamilyMajor
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMajorCompactionByNamePostOK)
@@ -2174,6 +2352,9 @@ func (a *Client) ColumnFamilyMaximumCompactionByNameGet(params *ColumnFamilyMaxi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMaximumCompactionByNameGetOK)
@@ -2210,6 +2391,9 @@ func (a *Client) ColumnFamilyMaximumCompactionByNamePost(params *ColumnFamilyMax
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMaximumCompactionByNamePostOK)
@@ -2246,6 +2430,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet(params *Co
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetOK)
@@ -2282,6 +2469,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeGet(params *ColumnFa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK)
@@ -2318,6 +2508,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet(params *Col
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetOK)
@@ -2354,6 +2547,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeGet(params *ColumnFam
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOffHeapSizeGetOK)
@@ -2390,6 +2586,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet(params *Colu
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK)
@@ -2426,6 +2625,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeGet(params *ColumnFami
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsAllMemtablesOnHeapSizeGetOK)
@@ -2462,6 +2664,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet(params *Co
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetOK)
@@ -2498,6 +2703,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet(params *ColumnFa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK)
@@ -2534,6 +2742,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet(params *C
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetOK)
@@ -2570,6 +2781,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesGet(params *ColumnF
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalsePositivesGetOK)
@@ -2606,6 +2820,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioByNameGet(params *Colum
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK)
@@ -2642,6 +2859,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioGet(params *ColumnFamil
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterFalseRatioGetOK)
@@ -2678,6 +2898,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet(params
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK)
@@ -2714,6 +2937,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet(params *Colu
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK)
@@ -2750,6 +2976,9 @@ func (a *Client) ColumnFamilyMetricsCasCommitByNameGet(params *ColumnFamilyMetri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasCommitByNameGetOK)
@@ -2786,6 +3015,9 @@ func (a *Client) ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet(params 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetOK)
@@ -2822,6 +3054,9 @@ func (a *Client) ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet(p
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetOK)
@@ -2858,6 +3093,9 @@ func (a *Client) ColumnFamilyMetricsCasPrepareByNameGet(params *ColumnFamilyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasPrepareByNameGetOK)
@@ -2894,6 +3132,9 @@ func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet(params
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK)
@@ -2930,6 +3171,9 @@ func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet(
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetOK)
@@ -2966,6 +3210,9 @@ func (a *Client) ColumnFamilyMetricsCasProposeByNameGet(params *ColumnFamilyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasProposeByNameGetOK)
@@ -3002,6 +3249,9 @@ func (a *Client) ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet(params
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK)
@@ -3038,6 +3288,9 @@ func (a *Client) ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet(
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetOK)
@@ -3074,6 +3327,9 @@ func (a *Client) ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet(params 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK)
@@ -3110,6 +3366,9 @@ func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK)
@@ -3146,6 +3405,9 @@ func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet(para
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetOK)
@@ -3182,6 +3444,9 @@ func (a *Client) ColumnFamilyMetricsCompressionRatioByNameGet(params *ColumnFami
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCompressionRatioByNameGetOK)
@@ -3218,6 +3483,9 @@ func (a *Client) ColumnFamilyMetricsCompressionRatioGet(params *ColumnFamilyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCompressionRatioGetOK)
@@ -3254,6 +3522,9 @@ func (a *Client) ColumnFamilyMetricsCoordinatorReadGet(params *ColumnFamilyMetri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCoordinatorReadGetOK)
@@ -3290,6 +3561,9 @@ func (a *Client) ColumnFamilyMetricsCoordinatorScanGet(params *ColumnFamilyMetri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsCoordinatorScanGetOK)
@@ -3326,6 +3600,9 @@ func (a *Client) ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet(param
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetOK)
@@ -3362,6 +3639,9 @@ func (a *Client) ColumnFamilyMetricsEstimatedRowCountByNameGet(params *ColumnFam
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsEstimatedRowCountByNameGetOK)
@@ -3398,6 +3678,9 @@ func (a *Client) ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet(params *C
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK)
@@ -3434,6 +3717,9 @@ func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet(param
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK)
@@ -3470,6 +3756,9 @@ func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet(params *Col
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetOK)
@@ -3506,6 +3795,9 @@ func (a *Client) ColumnFamilyMetricsKeyCacheHitRateByNameGet(params *ColumnFamil
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsKeyCacheHitRateByNameGetOK)
@@ -3542,6 +3834,9 @@ func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet(params *ColumnFam
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK)
@@ -3578,6 +3873,9 @@ func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedGet(params *ColumnFamilyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsLiveDiskSpaceUsedGetOK)
@@ -3614,6 +3912,9 @@ func (a *Client) ColumnFamilyMetricsLiveScannedHistogramByNameGet(params *Column
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsLiveScannedHistogramByNameGetOK)
@@ -3650,6 +3951,9 @@ func (a *Client) ColumnFamilyMetricsLiveSsTableCountByNameGet(params *ColumnFami
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsLiveSsTableCountByNameGetOK)
@@ -3686,6 +3990,9 @@ func (a *Client) ColumnFamilyMetricsLiveSsTableCountGet(params *ColumnFamilyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsLiveSsTableCountGetOK)
@@ -3722,6 +4029,9 @@ func (a *Client) ColumnFamilyMetricsMaxRowSizeByNameGet(params *ColumnFamilyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMaxRowSizeByNameGetOK)
@@ -3758,6 +4068,9 @@ func (a *Client) ColumnFamilyMetricsMaxRowSizeGet(params *ColumnFamilyMetricsMax
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMaxRowSizeGetOK)
@@ -3794,6 +4107,9 @@ func (a *Client) ColumnFamilyMetricsMeanRowSizeByNameGet(params *ColumnFamilyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMeanRowSizeByNameGetOK)
@@ -3830,6 +4146,9 @@ func (a *Client) ColumnFamilyMetricsMeanRowSizeGet(params *ColumnFamilyMetricsMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMeanRowSizeGetOK)
@@ -3866,6 +4185,9 @@ func (a *Client) ColumnFamilyMetricsMemtableColumnsCountByNameGet(params *Column
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableColumnsCountByNameGetOK)
@@ -3902,6 +4224,9 @@ func (a *Client) ColumnFamilyMetricsMemtableColumnsCountGet(params *ColumnFamily
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableColumnsCountGetOK)
@@ -3938,6 +4263,9 @@ func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeByNameGet(params *Column
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK)
@@ -3974,6 +4302,9 @@ func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeGet(params *ColumnFamily
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableLiveDataSizeGetOK)
@@ -4010,6 +4341,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeByNameGet(params *ColumnF
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK)
@@ -4046,6 +4380,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeGet(params *ColumnFamilyM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableOffHeapSizeGetOK)
@@ -4082,6 +4419,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeByNameGet(params *ColumnFa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK)
@@ -4118,6 +4458,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeGet(params *ColumnFamilyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableOnHeapSizeGetOK)
@@ -4154,6 +4497,9 @@ func (a *Client) ColumnFamilyMetricsMemtableSwitchCountByNameGet(params *ColumnF
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableSwitchCountByNameGetOK)
@@ -4190,6 +4536,9 @@ func (a *Client) ColumnFamilyMetricsMemtableSwitchCountGet(params *ColumnFamilyM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMemtableSwitchCountGetOK)
@@ -4226,6 +4575,9 @@ func (a *Client) ColumnFamilyMetricsMinRowSizeByNameGet(params *ColumnFamilyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMinRowSizeByNameGetOK)
@@ -4262,6 +4614,9 @@ func (a *Client) ColumnFamilyMetricsMinRowSizeGet(params *ColumnFamilyMetricsMin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsMinRowSizeGetOK)
@@ -4298,6 +4653,9 @@ func (a *Client) ColumnFamilyMetricsPendingCompactionsByNameGet(params *ColumnFa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsPendingCompactionsByNameGetOK)
@@ -4334,6 +4692,9 @@ func (a *Client) ColumnFamilyMetricsPendingCompactionsGet(params *ColumnFamilyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsPendingCompactionsGetOK)
@@ -4370,6 +4731,9 @@ func (a *Client) ColumnFamilyMetricsPendingFlushesByNameGet(params *ColumnFamily
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsPendingFlushesByNameGetOK)
@@ -4406,6 +4770,9 @@ func (a *Client) ColumnFamilyMetricsPendingFlushesGet(params *ColumnFamilyMetric
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsPendingFlushesGetOK)
@@ -4442,6 +4809,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyByNameGet(params *ColumnFamilyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRangeLatencyByNameGetOK)
@@ -4478,6 +4848,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet(para
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetOK)
@@ -4514,6 +4887,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetOK)
@@ -4550,6 +4926,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyGet(params *ColumnFamilyMetricsR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRangeLatencyGetOK)
@@ -4586,6 +4965,9 @@ func (a *Client) ColumnFamilyMetricsReadByNameGet(params *ColumnFamilyMetricsRea
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadByNameGetOK)
@@ -4622,6 +5004,9 @@ func (a *Client) ColumnFamilyMetricsReadGet(params *ColumnFamilyMetricsReadGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadGetOK)
@@ -4658,6 +5043,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyByNameGet(params *ColumnFamilyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyByNameGetOK)
@@ -4694,6 +5082,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet(param
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetOK)
@@ -4730,6 +5121,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetOK)
@@ -4766,6 +5160,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyGet(params *ColumnFamilyMetricsRe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyGetOK)
@@ -4802,6 +5199,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyHistogramByNameGet(params *Column
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyHistogramByNameGetOK)
@@ -4838,6 +5238,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyHistogramGet(params *ColumnFamily
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyHistogramGetOK)
@@ -4874,6 +5277,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet(p
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetOK)
@@ -4910,6 +5316,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet(params 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetOK)
@@ -4946,6 +5355,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet(par
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetOK)
@@ -4982,6 +5394,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet(params *C
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetOK)
@@ -5018,6 +5433,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet(params 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetOK)
@@ -5054,6 +5472,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioGet(params *Colum
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK)
@@ -5090,6 +5511,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitByNameGet(params *ColumnFamilyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRowCacheHitByNameGetOK)
@@ -5126,6 +5550,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitGet(params *ColumnFamilyMetricsRo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRowCacheHitGetOK)
@@ -5162,6 +5589,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet(params *Colum
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetOK)
@@ -5198,6 +5628,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeGet(params *ColumnFamil
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK)
@@ -5234,6 +5667,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheMissByNameGet(params *ColumnFamilyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRowCacheMissByNameGetOK)
@@ -5270,6 +5706,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheMissGet(params *ColumnFamilyMetricsR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsRowCacheMissGetOK)
@@ -5306,6 +5745,9 @@ func (a *Client) ColumnFamilyMetricsSnapshotsSizeByNameGet(params *ColumnFamilyM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsSnapshotsSizeByNameGetOK)
@@ -5342,6 +5784,9 @@ func (a *Client) ColumnFamilyMetricsSpeculativeRetriesByNameGet(params *ColumnFa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsSpeculativeRetriesByNameGetOK)
@@ -5378,6 +5823,9 @@ func (a *Client) ColumnFamilyMetricsSpeculativeRetriesGet(params *ColumnFamilyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsSpeculativeRetriesGetOK)
@@ -5414,6 +5862,9 @@ func (a *Client) ColumnFamilyMetricsSstablesPerReadHistogramByNameGet(params *Co
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK)
@@ -5450,6 +5901,9 @@ func (a *Client) ColumnFamilyMetricsTombstoneScannedHistogramByNameGet(params *C
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsTombstoneScannedHistogramByNameGetOK)
@@ -5486,6 +5940,9 @@ func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(params *ColumnFa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK)
@@ -5522,6 +5979,9 @@ func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedGet(params *ColumnFamilyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsTotalDiskSpaceUsedGetOK)
@@ -5558,6 +6018,9 @@ func (a *Client) ColumnFamilyMetricsTrueSnapshotsSizeGet(params *ColumnFamilyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsTrueSnapshotsSizeGetOK)
@@ -5594,6 +6057,9 @@ func (a *Client) ColumnFamilyMetricsWaitingOnFreeMemtableGet(params *ColumnFamil
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWaitingOnFreeMemtableGetOK)
@@ -5630,6 +6096,9 @@ func (a *Client) ColumnFamilyMetricsWriteByNameGet(params *ColumnFamilyMetricsWr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteByNameGetOK)
@@ -5666,6 +6135,9 @@ func (a *Client) ColumnFamilyMetricsWriteGet(params *ColumnFamilyMetricsWriteGet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteGetOK)
@@ -5702,6 +6174,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyByNameGet(params *ColumnFamilyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyByNameGetOK)
@@ -5738,6 +6213,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet(para
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK)
@@ -5774,6 +6252,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetOK)
@@ -5810,6 +6291,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyGet(params *ColumnFamilyMetricsW
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyGetOK)
@@ -5846,6 +6330,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramByNameGet(params *Colum
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyHistogramByNameGetOK)
@@ -5882,6 +6369,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramGet(params *ColumnFamil
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyHistogramGetOK)
@@ -5918,6 +6408,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet(
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetOK)
@@ -5954,6 +6447,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet(params
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK)
@@ -5990,6 +6486,9 @@ func (a *Client) ColumnFamilyMinimumCompactionByNameGet(params *ColumnFamilyMini
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMinimumCompactionByNameGetOK)
@@ -6026,6 +6525,9 @@ func (a *Client) ColumnFamilyMinimumCompactionByNamePost(params *ColumnFamilyMin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyMinimumCompactionByNamePostOK)
@@ -6062,6 +6564,9 @@ func (a *Client) ColumnFamilyNameGet(params *ColumnFamilyNameGetParams) (*Column
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyNameGetOK)
@@ -6098,6 +6603,9 @@ func (a *Client) ColumnFamilyNameKeyspaceGet(params *ColumnFamilyNameKeyspaceGet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilyNameKeyspaceGetOK)
@@ -6134,6 +6642,9 @@ func (a *Client) ColumnFamilySstablesByKeyByNameGet(params *ColumnFamilySstables
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilySstablesByKeyByNameGetOK)
@@ -6170,6 +6681,9 @@ func (a *Client) ColumnFamilySstablesPerLevelByNameGet(params *ColumnFamilySstab
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilySstablesPerLevelByNameGetOK)
@@ -6206,6 +6720,9 @@ func (a *Client) ColumnFamilySstablesUnleveledByNameGet(params *ColumnFamilySsta
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*ColumnFamilySstablesUnleveledByNameGetOK)
@@ -6242,6 +6759,9 @@ func (a *Client) CommitLogMetricsWaitingOnCommitGet(params *CommitLogMetricsWait
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitLogMetricsWaitingOnCommitGetOK)
@@ -6278,6 +6798,9 @@ func (a *Client) CommitLogMetricsWaitingOnSegmentAllocationGet(params *CommitLog
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitLogMetricsWaitingOnSegmentAllocationGetOK)
@@ -6314,6 +6837,9 @@ func (a *Client) CommitlogMetricsCompletedTasksGet(params *CommitlogMetricsCompl
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitlogMetricsCompletedTasksGetOK)
@@ -6350,6 +6876,9 @@ func (a *Client) CommitlogMetricsPendingTasksGet(params *CommitlogMetricsPending
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitlogMetricsPendingTasksGetOK)
@@ -6386,6 +6915,9 @@ func (a *Client) CommitlogMetricsTotalCommitLogSizeGet(params *CommitlogMetricsT
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitlogMetricsTotalCommitLogSizeGetOK)
@@ -6422,6 +6954,9 @@ func (a *Client) CommitlogRecoverByPathPost(params *CommitlogRecoverByPathPostPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitlogRecoverByPathPostOK)
@@ -6458,6 +6993,9 @@ func (a *Client) CommitlogSegmentsActiveGet(params *CommitlogSegmentsActiveGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitlogSegmentsActiveGetOK)
@@ -6494,6 +7032,9 @@ func (a *Client) CommitlogSegmentsArchivingGet(params *CommitlogSegmentsArchivin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CommitlogSegmentsArchivingGetOK)
@@ -6530,6 +7071,9 @@ func (a *Client) CompactionManagerCompactionHistoryGet(params *CompactionManager
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerCompactionHistoryGetOK)
@@ -6566,6 +7110,9 @@ func (a *Client) CompactionManagerCompactionInfoGet(params *CompactionManagerCom
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerCompactionInfoGetOK)
@@ -6602,6 +7149,9 @@ func (a *Client) CompactionManagerCompactionsGet(params *CompactionManagerCompac
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerCompactionsGetOK)
@@ -6638,6 +7188,9 @@ func (a *Client) CompactionManagerForceUserDefinedCompactionPost(params *Compact
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerForceUserDefinedCompactionPostOK)
@@ -6674,6 +7227,9 @@ func (a *Client) CompactionManagerMetricsBytesCompactedGet(params *CompactionMan
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerMetricsBytesCompactedGetOK)
@@ -6710,6 +7266,9 @@ func (a *Client) CompactionManagerMetricsCompletedTasksGet(params *CompactionMan
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerMetricsCompletedTasksGetOK)
@@ -6746,6 +7305,9 @@ func (a *Client) CompactionManagerMetricsPendingTasksGet(params *CompactionManag
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerMetricsPendingTasksGetOK)
@@ -6782,6 +7344,9 @@ func (a *Client) CompactionManagerMetricsTotalCompactionsCompletedGet(params *Co
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerMetricsTotalCompactionsCompletedGetOK)
@@ -6818,6 +7383,9 @@ func (a *Client) CompactionManagerStopCompactionPost(params *CompactionManagerSt
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*CompactionManagerStopCompactionPostOK)
@@ -6854,6 +7422,9 @@ func (a *Client) FailureDetectorCountEndpointDownGet(params *FailureDetectorCoun
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorCountEndpointDownGetOK)
@@ -6890,6 +7461,9 @@ func (a *Client) FailureDetectorCountEndpointUpGet(params *FailureDetectorCountE
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorCountEndpointUpGetOK)
@@ -6926,6 +7500,9 @@ func (a *Client) FailureDetectorEndpointPhiValuesGet(params *FailureDetectorEndp
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorEndpointPhiValuesGetOK)
@@ -6962,6 +7539,9 @@ func (a *Client) FailureDetectorEndpointsGet(params *FailureDetectorEndpointsGet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorEndpointsGetOK)
@@ -6998,6 +7578,9 @@ func (a *Client) FailureDetectorEndpointsStatesByAddrGet(params *FailureDetector
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorEndpointsStatesByAddrGetOK)
@@ -7034,6 +7617,9 @@ func (a *Client) FailureDetectorPhiGet(params *FailureDetectorPhiGetParams) (*Fa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorPhiGetOK)
@@ -7070,6 +7656,9 @@ func (a *Client) FailureDetectorPhiPost(params *FailureDetectorPhiPostParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorPhiPostOK)
@@ -7106,6 +7695,9 @@ func (a *Client) FailureDetectorSimpleStatesGet(params *FailureDetectorSimpleSta
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*FailureDetectorSimpleStatesGetOK)
@@ -7142,6 +7734,9 @@ func (a *Client) GossiperAssassinateByAddrPost(params *GossiperAssassinateByAddr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*GossiperAssassinateByAddrPostOK)
@@ -7178,6 +7773,9 @@ func (a *Client) GossiperDowntimeByAddrGet(params *GossiperDowntimeByAddrGetPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*GossiperDowntimeByAddrGetOK)
@@ -7214,6 +7812,9 @@ func (a *Client) GossiperEndpointDownGet(params *GossiperEndpointDownGetParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*GossiperEndpointDownGetOK)
@@ -7250,6 +7851,9 @@ func (a *Client) GossiperEndpointLiveGet(params *GossiperEndpointLiveGetParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*GossiperEndpointLiveGetOK)
@@ -7286,6 +7890,9 @@ func (a *Client) GossiperGenerationNumberByAddrGet(params *GossiperGenerationNum
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*GossiperGenerationNumberByAddrGetOK)
@@ -7322,6 +7929,9 @@ func (a *Client) GossiperHeartBeatVersionByAddrGet(params *GossiperHeartBeatVers
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*GossiperHeartBeatVersionByAddrGetOK)
@@ -7358,6 +7968,9 @@ func (a *Client) HintedHandoffHintsDelete(params *HintedHandoffHintsDeleteParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*HintedHandoffHintsDeleteOK)
@@ -7394,6 +8007,9 @@ func (a *Client) HintedHandoffHintsGet(params *HintedHandoffHintsGetParams) (*Hi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*HintedHandoffHintsGetOK)
@@ -7430,6 +8046,9 @@ func (a *Client) HintedHandoffMetricsCreateHintByAddrGet(params *HintedHandoffMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*HintedHandoffMetricsCreateHintByAddrGetOK)
@@ -7466,6 +8085,9 @@ func (a *Client) HintedHandoffMetricsNotStoredHintsByAddrGet(params *HintedHando
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*HintedHandoffMetricsNotStoredHintsByAddrGetOK)
@@ -7502,6 +8124,9 @@ func (a *Client) HintedHandoffPausePost(params *HintedHandoffPausePostParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*HintedHandoffPausePostOK)
@@ -7538,6 +8163,9 @@ func (a *Client) HintedHandoffSchedulePost(params *HintedHandoffSchedulePostPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*HintedHandoffSchedulePostOK)
@@ -7574,6 +8202,9 @@ func (a *Client) LsaCompactPost(params *LsaCompactPostParams) (*LsaCompactPostOK
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*LsaCompactPostOK)
@@ -7610,6 +8241,9 @@ func (a *Client) MessagingServiceMessagesDroppedByVerGet(params *MessagingServic
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesDroppedByVerGetOK)
@@ -7646,6 +8280,9 @@ func (a *Client) MessagingServiceMessagesDroppedGet(params *MessagingServiceMess
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesDroppedGetOK)
@@ -7682,6 +8319,9 @@ func (a *Client) MessagingServiceMessagesExceptionGet(params *MessagingServiceMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesExceptionGetOK)
@@ -7718,6 +8358,9 @@ func (a *Client) MessagingServiceMessagesPendingGet(params *MessagingServiceMess
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesPendingGetOK)
@@ -7754,6 +8397,9 @@ func (a *Client) MessagingServiceMessagesRepliedGet(params *MessagingServiceMess
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesRepliedGetOK)
@@ -7790,6 +8436,9 @@ func (a *Client) MessagingServiceMessagesRespondCompletedGet(params *MessagingSe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesRespondCompletedGetOK)
@@ -7826,6 +8475,9 @@ func (a *Client) MessagingServiceMessagesRespondPendingGet(params *MessagingServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesRespondPendingGetOK)
@@ -7862,6 +8514,9 @@ func (a *Client) MessagingServiceMessagesSentGet(params *MessagingServiceMessage
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesSentGetOK)
@@ -7898,6 +8553,9 @@ func (a *Client) MessagingServiceMessagesTimeoutGet(params *MessagingServiceMess
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceMessagesTimeoutGetOK)
@@ -7934,6 +8592,9 @@ func (a *Client) MessagingServiceVersionGet(params *MessagingServiceVersionGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*MessagingServiceVersionGetOK)
@@ -7970,6 +8631,9 @@ func (a *Client) SnitchDatacenterGet(params *SnitchDatacenterGetParams) (*Snitch
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SnitchDatacenterGetOK)
@@ -8006,6 +8670,9 @@ func (a *Client) SnitchNameGet(params *SnitchNameGetParams) (*SnitchNameGetOK, e
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SnitchNameGetOK)
@@ -8042,6 +8709,9 @@ func (a *Client) SnitchRackGet(params *SnitchRackGetParams) (*SnitchRackGetOK, e
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SnitchRackGetOK)
@@ -8078,6 +8748,9 @@ func (a *Client) StorageProxyCasContentionTimeoutGet(params *StorageProxyCasCont
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyCasContentionTimeoutGetOK)
@@ -8114,6 +8787,9 @@ func (a *Client) StorageProxyCasContentionTimeoutPost(params *StorageProxyCasCon
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyCasContentionTimeoutPostOK)
@@ -8150,6 +8826,9 @@ func (a *Client) StorageProxyCounterWriteRPCTimeoutGet(params *StorageProxyCount
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyCounterWriteRPCTimeoutGetOK)
@@ -8186,6 +8865,9 @@ func (a *Client) StorageProxyCounterWriteRPCTimeoutPost(params *StorageProxyCoun
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyCounterWriteRPCTimeoutPostOK)
@@ -8222,6 +8904,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledByDcGet(params *StorageProxyHin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyHintedHandoffEnabledByDcGetOK)
@@ -8258,6 +8943,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledByDcPost(params *StorageProxyHi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyHintedHandoffEnabledByDcPostOK)
@@ -8294,6 +8982,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledGet(params *StorageProxyHintedH
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyHintedHandoffEnabledGetOK)
@@ -8330,6 +9021,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledPost(params *StorageProxyHinted
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyHintedHandoffEnabledPostOK)
@@ -8366,6 +9060,9 @@ func (a *Client) StorageProxyHintsInProgressGet(params *StorageProxyHintsInProgr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyHintsInProgressGetOK)
@@ -8402,6 +9099,9 @@ func (a *Client) StorageProxyMaxHintWindowGet(params *StorageProxyMaxHintWindowG
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMaxHintWindowGetOK)
@@ -8438,6 +9138,9 @@ func (a *Client) StorageProxyMaxHintWindowPost(params *StorageProxyMaxHintWindow
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMaxHintWindowPostOK)
@@ -8474,6 +9177,9 @@ func (a *Client) StorageProxyMaxHintsInProgressGet(params *StorageProxyMaxHintsI
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMaxHintsInProgressGetOK)
@@ -8510,6 +9216,9 @@ func (a *Client) StorageProxyMaxHintsInProgressPost(params *StorageProxyMaxHints
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMaxHintsInProgressPostOK)
@@ -8546,6 +9255,9 @@ func (a *Client) StorageProxyMetricsCasReadConditionNotMetGet(params *StoragePro
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasReadConditionNotMetGetOK)
@@ -8582,6 +9294,9 @@ func (a *Client) StorageProxyMetricsCasReadContentionGet(params *StorageProxyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasReadContentionGetOK)
@@ -8618,6 +9333,9 @@ func (a *Client) StorageProxyMetricsCasReadTimeoutsGet(params *StorageProxyMetri
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasReadTimeoutsGetOK)
@@ -8654,6 +9372,9 @@ func (a *Client) StorageProxyMetricsCasReadUnavailablesGet(params *StorageProxyM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasReadUnavailablesGetOK)
@@ -8690,6 +9411,9 @@ func (a *Client) StorageProxyMetricsCasReadUnfinishedCommitGet(params *StoragePr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasReadUnfinishedCommitGetOK)
@@ -8726,6 +9450,9 @@ func (a *Client) StorageProxyMetricsCasWriteConditionNotMetGet(params *StoragePr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasWriteConditionNotMetGetOK)
@@ -8762,6 +9489,9 @@ func (a *Client) StorageProxyMetricsCasWriteContentionGet(params *StorageProxyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasWriteContentionGetOK)
@@ -8798,6 +9528,9 @@ func (a *Client) StorageProxyMetricsCasWriteTimeoutsGet(params *StorageProxyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasWriteTimeoutsGetOK)
@@ -8834,6 +9567,9 @@ func (a *Client) StorageProxyMetricsCasWriteUnavailablesGet(params *StorageProxy
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasWriteUnavailablesGetOK)
@@ -8870,6 +9606,9 @@ func (a *Client) StorageProxyMetricsCasWriteUnfinishedCommitGet(params *StorageP
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsCasWriteUnfinishedCommitGetOK)
@@ -8906,6 +9645,9 @@ func (a *Client) StorageProxyMetricsRangeEstimatedHistogramGet(params *StoragePr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeEstimatedHistogramGetOK)
@@ -8942,6 +9684,9 @@ func (a *Client) StorageProxyMetricsRangeGet(params *StorageProxyMetricsRangeGet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeGetOK)
@@ -8978,6 +9723,9 @@ func (a *Client) StorageProxyMetricsRangeHistogramGet(params *StorageProxyMetric
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeHistogramGetOK)
@@ -9014,6 +9762,9 @@ func (a *Client) StorageProxyMetricsRangeMovingAverageHistogramGet(params *Stora
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeMovingAverageHistogramGetOK)
@@ -9050,6 +9801,9 @@ func (a *Client) StorageProxyMetricsRangeTimeoutsGet(params *StorageProxyMetrics
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeTimeoutsGetOK)
@@ -9086,6 +9840,9 @@ func (a *Client) StorageProxyMetricsRangeTimeoutsRatesGet(params *StorageProxyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeTimeoutsRatesGetOK)
@@ -9122,6 +9879,9 @@ func (a *Client) StorageProxyMetricsRangeUnavailablesGet(params *StorageProxyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeUnavailablesGetOK)
@@ -9158,6 +9918,9 @@ func (a *Client) StorageProxyMetricsRangeUnavailablesRatesGet(params *StoragePro
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsRangeUnavailablesRatesGetOK)
@@ -9194,6 +9957,9 @@ func (a *Client) StorageProxyMetricsReadEstimatedHistogramGet(params *StoragePro
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadEstimatedHistogramGetOK)
@@ -9230,6 +9996,9 @@ func (a *Client) StorageProxyMetricsReadGet(params *StorageProxyMetricsReadGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadGetOK)
@@ -9266,6 +10035,9 @@ func (a *Client) StorageProxyMetricsReadHistogramGet(params *StorageProxyMetrics
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadHistogramGetOK)
@@ -9302,6 +10074,9 @@ func (a *Client) StorageProxyMetricsReadMovingAverageHistogramGet(params *Storag
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadMovingAverageHistogramGetOK)
@@ -9338,6 +10113,9 @@ func (a *Client) StorageProxyMetricsReadTimeoutsGet(params *StorageProxyMetricsR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadTimeoutsGetOK)
@@ -9374,6 +10152,9 @@ func (a *Client) StorageProxyMetricsReadTimeoutsRatesGet(params *StorageProxyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadTimeoutsRatesGetOK)
@@ -9410,6 +10191,9 @@ func (a *Client) StorageProxyMetricsReadUnavailablesGet(params *StorageProxyMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadUnavailablesGetOK)
@@ -9446,6 +10230,9 @@ func (a *Client) StorageProxyMetricsReadUnavailablesRatesGet(params *StorageProx
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsReadUnavailablesRatesGetOK)
@@ -9482,6 +10269,9 @@ func (a *Client) StorageProxyMetricsWriteEstimatedHistogramGet(params *StoragePr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteEstimatedHistogramGetOK)
@@ -9518,6 +10308,9 @@ func (a *Client) StorageProxyMetricsWriteGet(params *StorageProxyMetricsWriteGet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteGetOK)
@@ -9554,6 +10347,9 @@ func (a *Client) StorageProxyMetricsWriteHistogramGet(params *StorageProxyMetric
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteHistogramGetOK)
@@ -9590,6 +10386,9 @@ func (a *Client) StorageProxyMetricsWriteMovingAverageHistogramGet(params *Stora
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteMovingAverageHistogramGetOK)
@@ -9626,6 +10425,9 @@ func (a *Client) StorageProxyMetricsWriteTimeoutsGet(params *StorageProxyMetrics
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteTimeoutsGetOK)
@@ -9662,6 +10464,9 @@ func (a *Client) StorageProxyMetricsWriteTimeoutsRatesGet(params *StorageProxyMe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteTimeoutsRatesGetOK)
@@ -9698,6 +10503,9 @@ func (a *Client) StorageProxyMetricsWriteUnavailablesGet(params *StorageProxyMet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteUnavailablesGetOK)
@@ -9734,6 +10542,9 @@ func (a *Client) StorageProxyMetricsWriteUnavailablesRatesGet(params *StoragePro
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyMetricsWriteUnavailablesRatesGetOK)
@@ -9770,6 +10581,9 @@ func (a *Client) StorageProxyRangeRPCTimeoutGet(params *StorageProxyRangeRPCTime
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyRangeRPCTimeoutGetOK)
@@ -9806,6 +10620,9 @@ func (a *Client) StorageProxyRangeRPCTimeoutPost(params *StorageProxyRangeRPCTim
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyRangeRPCTimeoutPostOK)
@@ -9842,6 +10659,9 @@ func (a *Client) StorageProxyReadRepairAttemptedGet(params *StorageProxyReadRepa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyReadRepairAttemptedGetOK)
@@ -9878,6 +10698,9 @@ func (a *Client) StorageProxyReadRepairRepairedBackgroundGet(params *StorageProx
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyReadRepairRepairedBackgroundGetOK)
@@ -9914,6 +10737,9 @@ func (a *Client) StorageProxyReadRepairRepairedBlockingGet(params *StorageProxyR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyReadRepairRepairedBlockingGetOK)
@@ -9950,6 +10776,9 @@ func (a *Client) StorageProxyReadRPCTimeoutGet(params *StorageProxyReadRPCTimeou
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyReadRPCTimeoutGetOK)
@@ -9986,6 +10815,9 @@ func (a *Client) StorageProxyReadRPCTimeoutPost(params *StorageProxyReadRPCTimeo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyReadRPCTimeoutPostOK)
@@ -10022,6 +10854,9 @@ func (a *Client) StorageProxyReloadTriggerClassesPost(params *StorageProxyReload
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyReloadTriggerClassesPostOK)
@@ -10058,6 +10893,9 @@ func (a *Client) StorageProxyRPCTimeoutGet(params *StorageProxyRPCTimeoutGetPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyRPCTimeoutGetOK)
@@ -10094,6 +10932,9 @@ func (a *Client) StorageProxyRPCTimeoutPost(params *StorageProxyRPCTimeoutPostPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyRPCTimeoutPostOK)
@@ -10130,6 +10971,9 @@ func (a *Client) StorageProxySchemaVersionsGet(params *StorageProxySchemaVersion
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxySchemaVersionsGetOK)
@@ -10166,6 +11010,9 @@ func (a *Client) StorageProxyTotalHintsGet(params *StorageProxyTotalHintsGetPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyTotalHintsGetOK)
@@ -10202,6 +11049,9 @@ func (a *Client) StorageProxyTruncateRPCTimeoutGet(params *StorageProxyTruncateR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyTruncateRPCTimeoutGetOK)
@@ -10238,6 +11088,9 @@ func (a *Client) StorageProxyTruncateRPCTimeoutPost(params *StorageProxyTruncate
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyTruncateRPCTimeoutPostOK)
@@ -10274,6 +11127,9 @@ func (a *Client) StorageProxyWriteRPCTimeoutGet(params *StorageProxyWriteRPCTime
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyWriteRPCTimeoutGetOK)
@@ -10310,6 +11166,9 @@ func (a *Client) StorageProxyWriteRPCTimeoutPost(params *StorageProxyWriteRPCTim
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageProxyWriteRPCTimeoutPostOK)
@@ -10346,6 +11205,9 @@ func (a *Client) StorageServiceActiveRepairGet(params *StorageServiceActiveRepai
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceActiveRepairGetOK)
@@ -10382,6 +11244,9 @@ func (a *Client) StorageServiceAutoCompactionByKeyspaceDelete(params *StorageSer
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceAutoCompactionByKeyspaceDeleteOK)
@@ -10418,6 +11283,9 @@ func (a *Client) StorageServiceAutoCompactionByKeyspacePost(params *StorageServi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceAutoCompactionByKeyspacePostOK)
@@ -10454,6 +11322,9 @@ func (a *Client) StorageServiceBatchSizeFailureThresholdGet(params *StorageServi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceBatchSizeFailureThresholdGetOK)
@@ -10490,6 +11361,9 @@ func (a *Client) StorageServiceBatchSizeFailureThresholdPost(params *StorageServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceBatchSizeFailureThresholdPostOK)
@@ -10526,6 +11400,9 @@ func (a *Client) StorageServiceBulkLoadAsyncByPathGet(params *StorageServiceBulk
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceBulkLoadAsyncByPathGetOK)
@@ -10562,6 +11439,9 @@ func (a *Client) StorageServiceBulkLoadByPathPost(params *StorageServiceBulkLoad
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceBulkLoadByPathPostOK)
@@ -10598,6 +11478,9 @@ func (a *Client) StorageServiceClusterNameGet(params *StorageServiceClusterNameG
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceClusterNameGetOK)
@@ -10634,6 +11517,9 @@ func (a *Client) StorageServiceCommitlogGet(params *StorageServiceCommitlogGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceCommitlogGetOK)
@@ -10670,6 +11556,9 @@ func (a *Client) StorageServiceCompactionThroughputGet(params *StorageServiceCom
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceCompactionThroughputGetOK)
@@ -10706,6 +11595,9 @@ func (a *Client) StorageServiceCompactionThroughputPost(params *StorageServiceCo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceCompactionThroughputPostOK)
@@ -10742,6 +11634,9 @@ func (a *Client) StorageServiceDataFileLocationsGet(params *StorageServiceDataFi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceDataFileLocationsGetOK)
@@ -10778,6 +11673,9 @@ func (a *Client) StorageServiceDecommissionPost(params *StorageServiceDecommissi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceDecommissionPostOK)
@@ -10812,6 +11710,9 @@ func (a *Client) StorageServiceDeliverHintsPost(params *StorageServiceDeliverHin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceDeliverHintsPostOK)
@@ -10848,6 +11749,9 @@ func (a *Client) StorageServiceDescribeRingByKeyspaceGet(params *StorageServiceD
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceDescribeRingByKeyspaceGetOK)
@@ -10884,6 +11788,9 @@ func (a *Client) StorageServiceDescribeRingGet(params *StorageServiceDescribeRin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceDescribeRingGetOK)
@@ -10920,6 +11827,9 @@ func (a *Client) StorageServiceDrainGet(params *StorageServiceDrainGetParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceDrainGetOK)
@@ -10956,6 +11866,9 @@ func (a *Client) StorageServiceDrainPost(params *StorageServiceDrainPostParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceDrainPostOK)
@@ -10992,6 +11905,9 @@ func (a *Client) StorageServiceForceRemoveCompletionPost(params *StorageServiceF
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceForceRemoveCompletionPostOK)
@@ -11028,6 +11944,9 @@ func (a *Client) StorageServiceForceTerminatePost(params *StorageServiceForceTer
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceForceTerminatePostOK)
@@ -11064,6 +11983,9 @@ func (a *Client) StorageServiceForceTerminateRepairPost(params *StorageServiceFo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceForceTerminateRepairPostOK)
@@ -11100,6 +12022,9 @@ func (a *Client) StorageServiceGenerationNumberGet(params *StorageServiceGenerat
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceGenerationNumberGetOK)
@@ -11136,6 +12061,9 @@ func (a *Client) StorageServiceGossipingDelete(params *StorageServiceGossipingDe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceGossipingDeleteOK)
@@ -11172,6 +12100,9 @@ func (a *Client) StorageServiceGossipingGet(params *StorageServiceGossipingGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceGossipingGetOK)
@@ -11208,6 +12139,9 @@ func (a *Client) StorageServiceGossipingPost(params *StorageServiceGossipingPost
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceGossipingPostOK)
@@ -11244,6 +12178,9 @@ func (a *Client) StorageServiceHintedHandoffPost(params *StorageServiceHintedHan
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceHintedHandoffPostOK)
@@ -11280,6 +12217,9 @@ func (a *Client) StorageServiceHostIDGet(params *StorageServiceHostIDGetParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceHostIDGetOK)
@@ -11316,6 +12256,9 @@ func (a *Client) StorageServiceHostidLocalGet(params *StorageServiceHostidLocalG
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceHostidLocalGetOK)
@@ -11352,6 +12295,9 @@ func (a *Client) StorageServiceIncrementalBackupsGet(params *StorageServiceIncre
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceIncrementalBackupsGetOK)
@@ -11386,6 +12332,9 @@ func (a *Client) StorageServiceIncrementalBackupsPost(params *StorageServiceIncr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceIncrementalBackupsPostOK)
@@ -11422,6 +12371,9 @@ func (a *Client) StorageServiceIsInitializedGet(params *StorageServiceIsInitiali
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceIsInitializedGetOK)
@@ -11458,6 +12410,9 @@ func (a *Client) StorageServiceIsStartingGet(params *StorageServiceIsStartingGet
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceIsStartingGetOK)
@@ -11492,6 +12447,9 @@ func (a *Client) StorageServiceJoinRingGet(params *StorageServiceJoinRingGetPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceJoinRingGetOK)
@@ -11528,6 +12486,9 @@ func (a *Client) StorageServiceJoinRingPost(params *StorageServiceJoinRingPostPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceJoinRingPostOK)
@@ -11564,6 +12525,9 @@ func (a *Client) StorageServiceKeyspaceCleanupByKeyspacePost(params *StorageServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceKeyspaceCleanupByKeyspacePostOK)
@@ -11600,6 +12564,9 @@ func (a *Client) StorageServiceKeyspaceCompactionByKeyspacePost(params *StorageS
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceKeyspaceCompactionByKeyspacePostOK)
@@ -11636,6 +12603,9 @@ func (a *Client) StorageServiceKeyspaceFlushByKeyspacePost(params *StorageServic
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceKeyspaceFlushByKeyspacePostOK)
@@ -11672,6 +12642,9 @@ func (a *Client) StorageServiceKeyspaceScrubByKeyspaceGet(params *StorageService
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceKeyspaceScrubByKeyspaceGetOK)
@@ -11708,6 +12681,9 @@ func (a *Client) StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet(params *Stor
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK)
@@ -11744,6 +12720,9 @@ func (a *Client) StorageServiceKeyspacesGet(params *StorageServiceKeyspacesGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceKeyspacesGetOK)
@@ -11780,6 +12759,9 @@ func (a *Client) StorageServiceLoadGet(params *StorageServiceLoadGetParams) (*St
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceLoadGetOK)
@@ -11816,6 +12798,9 @@ func (a *Client) StorageServiceLoadMapGet(params *StorageServiceLoadMapGetParams
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceLoadMapGetOK)
@@ -11852,6 +12837,9 @@ func (a *Client) StorageServiceLoggingLevelGet(params *StorageServiceLoggingLeve
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceLoggingLevelGetOK)
@@ -11888,6 +12876,9 @@ func (a *Client) StorageServiceLoggingLevelPost(params *StorageServiceLoggingLev
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceLoggingLevelPostOK)
@@ -11924,6 +12915,9 @@ func (a *Client) StorageServiceMetricsExceptionsGet(params *StorageServiceMetric
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceMetricsExceptionsGetOK)
@@ -11960,6 +12954,9 @@ func (a *Client) StorageServiceMetricsHintsInProgressGet(params *StorageServiceM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceMetricsHintsInProgressGetOK)
@@ -11996,6 +12993,9 @@ func (a *Client) StorageServiceMetricsLoadGet(params *StorageServiceMetricsLoadG
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceMetricsLoadGetOK)
@@ -12032,6 +13032,9 @@ func (a *Client) StorageServiceMetricsTotalHintsGet(params *StorageServiceMetric
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceMetricsTotalHintsGetOK)
@@ -12068,6 +13071,9 @@ func (a *Client) StorageServiceMovePost(params *StorageServiceMovePostParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceMovePostOK)
@@ -12104,6 +13110,9 @@ func (a *Client) StorageServiceNativeTransportDelete(params *StorageServiceNativ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceNativeTransportDeleteOK)
@@ -12140,6 +13149,9 @@ func (a *Client) StorageServiceNativeTransportGet(params *StorageServiceNativeTr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceNativeTransportGetOK)
@@ -12176,6 +13188,9 @@ func (a *Client) StorageServiceNativeTransportPost(params *StorageServiceNativeT
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceNativeTransportPostOK)
@@ -12212,6 +13227,9 @@ func (a *Client) StorageServiceNaturalEndpointsByKeyspaceGet(params *StorageServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceNaturalEndpointsByKeyspaceGetOK)
@@ -12248,6 +13266,9 @@ func (a *Client) StorageServiceNodesJoiningGet(params *StorageServiceNodesJoinin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceNodesJoiningGetOK)
@@ -12284,6 +13305,9 @@ func (a *Client) StorageServiceNodesLeavingGet(params *StorageServiceNodesLeavin
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceNodesLeavingGetOK)
@@ -12320,6 +13344,9 @@ func (a *Client) StorageServiceNodesMovingGet(params *StorageServiceNodesMovingG
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceNodesMovingGetOK)
@@ -12356,6 +13383,9 @@ func (a *Client) StorageServiceOperationModeGet(params *StorageServiceOperationM
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceOperationModeGetOK)
@@ -12392,6 +13422,9 @@ func (a *Client) StorageServiceOwnershipByKeyspaceGet(params *StorageServiceOwne
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceOwnershipByKeyspaceGetOK)
@@ -12428,6 +13461,9 @@ func (a *Client) StorageServiceOwnershipGet(params *StorageServiceOwnershipGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceOwnershipGetOK)
@@ -12464,6 +13500,9 @@ func (a *Client) StorageServicePartitionerNameGet(params *StorageServicePartitio
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServicePartitionerNameGetOK)
@@ -12500,6 +13539,9 @@ func (a *Client) StorageServicePendingRangeByKeyspaceGet(params *StorageServiceP
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServicePendingRangeByKeyspaceGetOK)
@@ -12536,6 +13578,9 @@ func (a *Client) StorageServiceRangeToEndpointMapByKeyspaceGet(params *StorageSe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRangeToEndpointMapByKeyspaceGetOK)
@@ -12572,6 +13617,9 @@ func (a *Client) StorageServiceRebuildPost(params *StorageServiceRebuildPostPara
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRebuildPostOK)
@@ -12608,6 +13656,9 @@ func (a *Client) StorageServiceReleaseVersionGet(params *StorageServiceReleaseVe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceReleaseVersionGetOK)
@@ -12644,6 +13695,9 @@ func (a *Client) StorageServiceRelocalSchemaPost(params *StorageServiceRelocalSc
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRelocalSchemaPostOK)
@@ -12680,6 +13734,9 @@ func (a *Client) StorageServiceRemovalStatusGet(params *StorageServiceRemovalSta
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRemovalStatusGetOK)
@@ -12716,6 +13773,9 @@ func (a *Client) StorageServiceRemoveNodePost(params *StorageServiceRemoveNodePo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRemoveNodePostOK)
@@ -12752,6 +13812,9 @@ func (a *Client) StorageServiceRepairAsyncByKeyspaceGet(params *StorageServiceRe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRepairAsyncByKeyspaceGetOK)
@@ -12788,6 +13851,9 @@ func (a *Client) StorageServiceRepairAsyncByKeyspacePost(params *StorageServiceR
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRepairAsyncByKeyspacePostOK)
@@ -12824,6 +13890,9 @@ func (a *Client) StorageServiceRescheduleFailedDeletionsPost(params *StorageServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRescheduleFailedDeletionsPostOK)
@@ -12860,6 +13929,9 @@ func (a *Client) StorageServiceRPCServerDelete(params *StorageServiceRPCServerDe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRPCServerDeleteOK)
@@ -12896,6 +13968,9 @@ func (a *Client) StorageServiceRPCServerGet(params *StorageServiceRPCServerGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRPCServerGetOK)
@@ -12932,6 +14007,9 @@ func (a *Client) StorageServiceRPCServerPost(params *StorageServiceRPCServerPost
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceRPCServerPostOK)
@@ -12968,6 +14046,9 @@ func (a *Client) StorageServiceSampleKeyRangeGet(params *StorageServiceSampleKey
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSampleKeyRangeGetOK)
@@ -13004,6 +14085,9 @@ func (a *Client) StorageServiceSavedCachesLocationGet(params *StorageServiceSave
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSavedCachesLocationGetOK)
@@ -13040,6 +14124,9 @@ func (a *Client) StorageServiceSchemaVersionGet(params *StorageServiceSchemaVers
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSchemaVersionGetOK)
@@ -13076,6 +14163,9 @@ func (a *Client) StorageServiceScyllaReleaseVersionGet(params *StorageServiceScy
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceScyllaReleaseVersionGetOK)
@@ -13112,6 +14202,9 @@ func (a *Client) StorageServiceSlowQueryGet(params *StorageServiceSlowQueryGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSlowQueryGetOK)
@@ -13148,6 +14241,9 @@ func (a *Client) StorageServiceSlowQueryPost(params *StorageServiceSlowQueryPost
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSlowQueryPostOK)
@@ -13184,6 +14280,9 @@ func (a *Client) StorageServiceSnapshotsDelete(params *StorageServiceSnapshotsDe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSnapshotsDeleteOK)
@@ -13220,6 +14319,9 @@ func (a *Client) StorageServiceSnapshotsGet(params *StorageServiceSnapshotsGetPa
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSnapshotsGetOK)
@@ -13256,6 +14358,9 @@ func (a *Client) StorageServiceSnapshotsPost(params *StorageServiceSnapshotsPost
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSnapshotsPostOK)
@@ -13292,6 +14397,9 @@ func (a *Client) StorageServiceSnapshotsSizeTrueGet(params *StorageServiceSnapsh
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSnapshotsSizeTrueGetOK)
@@ -13328,6 +14436,9 @@ func (a *Client) StorageServiceSstablesByKeyspacePost(params *StorageServiceSsta
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceSstablesByKeyspacePostOK)
@@ -13364,6 +14475,9 @@ func (a *Client) StorageServiceStopDaemonPost(params *StorageServiceStopDaemonPo
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceStopDaemonPostOK)
@@ -13400,6 +14514,9 @@ func (a *Client) StorageServiceStreamThroughputGet(params *StorageServiceStreamT
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceStreamThroughputGetOK)
@@ -13436,6 +14553,9 @@ func (a *Client) StorageServiceStreamThroughputPost(params *StorageServiceStream
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceStreamThroughputPostOK)
@@ -13472,6 +14592,9 @@ func (a *Client) StorageServiceTokensByEndpointGet(params *StorageServiceTokensB
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTokensByEndpointGetOK)
@@ -13508,6 +14631,9 @@ func (a *Client) StorageServiceTokensEndpointGet(params *StorageServiceTokensEnd
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTokensEndpointGetOK)
@@ -13544,6 +14670,9 @@ func (a *Client) StorageServiceTokensGet(params *StorageServiceTokensGetParams) 
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTokensGetOK)
@@ -13578,6 +14707,9 @@ func (a *Client) StorageServiceTombstoneFailureThresholdGet(params *StorageServi
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTombstoneFailureThresholdGetOK)
@@ -13612,6 +14744,9 @@ func (a *Client) StorageServiceTombstoneFailureThresholdPost(params *StorageServ
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTombstoneFailureThresholdPostOK)
@@ -13648,6 +14783,9 @@ func (a *Client) StorageServiceTombstoneWarnThresholdGet(params *StorageServiceT
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTombstoneWarnThresholdGetOK)
@@ -13684,6 +14822,9 @@ func (a *Client) StorageServiceTombstoneWarnThresholdPost(params *StorageService
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTombstoneWarnThresholdPostOK)
@@ -13720,6 +14861,9 @@ func (a *Client) StorageServiceTraceProbabilityGet(params *StorageServiceTracePr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTraceProbabilityGetOK)
@@ -13756,6 +14900,9 @@ func (a *Client) StorageServiceTraceProbabilityPost(params *StorageServiceTraceP
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTraceProbabilityPostOK)
@@ -13792,6 +14939,9 @@ func (a *Client) StorageServiceTruncateByKeyspacePost(params *StorageServiceTrun
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceTruncateByKeyspacePostOK)
@@ -13828,6 +14978,9 @@ func (a *Client) StorageServiceUpdateSnitchPost(params *StorageServiceUpdateSnit
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceUpdateSnitchPostOK)
@@ -13864,6 +15017,9 @@ func (a *Client) StorageServiceViewBuildStatusesByKeyspaceAndViewGet(params *Sto
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK)
@@ -13900,6 +15056,9 @@ func (a *Client) StreamManagerGet(params *StreamManagerGetParams) (*StreamManage
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StreamManagerGetOK)
@@ -13936,6 +15095,9 @@ func (a *Client) StreamManagerMetricsIncomingByPeerGet(params *StreamManagerMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StreamManagerMetricsIncomingByPeerGetOK)
@@ -13972,6 +15134,9 @@ func (a *Client) StreamManagerMetricsIncomingGet(params *StreamManagerMetricsInc
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StreamManagerMetricsIncomingGetOK)
@@ -14008,6 +15173,9 @@ func (a *Client) StreamManagerMetricsOutboundGet(params *StreamManagerMetricsOut
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StreamManagerMetricsOutboundGetOK)
@@ -14044,6 +15212,9 @@ func (a *Client) StreamManagerMetricsOutgoingByPeerGet(params *StreamManagerMetr
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StreamManagerMetricsOutgoingByPeerGetOK)
@@ -14080,6 +15251,9 @@ func (a *Client) StreamManagerMetricsOutgoingGet(params *StreamManagerMetricsOut
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*StreamManagerMetricsOutgoingGetOK)
@@ -14116,6 +15290,9 @@ func (a *Client) SystemLoggerByNameGet(params *SystemLoggerByNameGetParams) (*Sy
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SystemLoggerByNameGetOK)
@@ -14152,6 +15329,9 @@ func (a *Client) SystemLoggerByNamePost(params *SystemLoggerByNamePostParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SystemLoggerByNamePostOK)
@@ -14188,6 +15368,9 @@ func (a *Client) SystemLoggerGet(params *SystemLoggerGetParams) (*SystemLoggerGe
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SystemLoggerGetOK)
@@ -14224,6 +15407,9 @@ func (a *Client) SystemLoggerPost(params *SystemLoggerPostParams) (*SystemLogger
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
 		return nil, err
 	}
 	success, ok := result.(*SystemLoggerPostOK)
