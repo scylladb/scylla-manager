@@ -258,8 +258,7 @@ loop:
 	if resp != nil {
 		resp.Body.Close()
 	}
-	return nil, fmt.Errorf("%s %s giving up after %d attempts",
-		req.Method, req.URL, t.RetryMax+1)
+	return nil, fmt.Errorf("giving up after %d attempts: %s", t.RetryMax+1, err)
 }
 
 // Try to read the response body so we can reuse this connection.
