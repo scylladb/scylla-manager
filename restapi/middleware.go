@@ -52,11 +52,7 @@ type httpLogEntry struct {
 
 func (e *httpLogEntry) Write(status, bytes int, elapsed time.Duration) {
 	f := e.l.Debug
-
-	switch {
-	case status >= 500:
-		f = e.l.Error
-	case status >= 400:
+	if status >= 400 {
 		f = e.l.Info
 	}
 
