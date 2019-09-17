@@ -109,8 +109,9 @@ func (h *consulHandler) getNodes(w http.ResponseWriter, r *http.Request) {
 				ServicePort:    9180,
 				ServiceTags:    []string{c.String()},
 				ServiceMeta: map[string]string{
-					"shard_num": strconv.Itoa(int(n.ShardNum)),
-					"dc":        n.Datacenter,
+					"shard_num":    strconv.Itoa(int(n.ShardNum)),
+					"dc":           n.Datacenter,
+					"cluster_name": c.String(),
 				},
 			}
 			result = append(result, cn)

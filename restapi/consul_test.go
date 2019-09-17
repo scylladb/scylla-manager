@@ -88,8 +88,9 @@ func TestConsulAPI(t *testing.T) {
 				ServicePort:    9180,
 				ServiceTags:    []string{"cluster1"},
 				ServiceMeta: map[string]string{
-					"shard_num": "2",
-					"dc":        "dc1",
+					"shard_num":    "2",
+					"dc":           "dc1",
+					"cluster_name": "cluster1",
 				},
 			},
 			{
@@ -102,8 +103,9 @@ func TestConsulAPI(t *testing.T) {
 				ServicePort:    9180,
 				ServiceTags:    []string{"cluster1"},
 				ServiceMeta: map[string]string{
-					"shard_num": "3",
-					"dc":        "dc2",
+					"shard_num":    "3",
+					"dc":           "dc2",
+					"cluster_name": "cluster1",
 				},
 			},
 		}
