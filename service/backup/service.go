@@ -12,12 +12,14 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/httputil/middleware"
 	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
 	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
+	"go.uber.org/multierr"
 )
 
 // ClusterNameFunc returns name for a given ID.
@@ -65,6 +67,8 @@ func (s *Service) Runner() Runner {
 }
 
 // GetTarget converts runner properties into repair Target.
+// It also ensures configuration for the backup providers is registered on the
+// targeted hosts.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (Target, error) {
 	p := defaultTaskProperties()
 	t := Target{}
@@ -107,6 +111,16 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 	if err := checkAllDCsCovered(func(i int) string { return t.Location[i].DC }, len(t.Location), t.DC); err != nil {
 		return t, errors.Wrap(err, "invalid location")
+	}
+
+	// Register providers with hosts
+	if err := s.registerProviders(ctx, client, t.DC, dcMap); err != nil {
+		return t, errors.Wrap(err, "failed to register backup providers")
+	}
+
+	// Validate that locations are accessible from the nodes
+	if err := s.checkRemoteLocations(ctx, client, t.Location, t.DC, dcMap); err != nil {
+		return t, errors.Wrap(err, "location not accessible")
 	}
 
 	// Validate rate limit DCs
@@ -172,6 +186,95 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	return t, nil
 }
 
+// checkRemoteLocations checks if each node has access to the remote location.
+func (s *Service) checkRemoteLocations(ctx context.Context, client *scyllaclient.Client, locations []Location, dcs []string, dcMap map[string][]string) error {
+	s.logger.Info(ctx, "Checking accessibility of remote locations")
+	// Get hosts of the target DCs
+	hosts := dcHosts(dcMap, dcs)
+	if len(hosts) == 0 {
+		return errors.New("no matching hosts found")
+	}
+
+	var (
+		errs error
+		res  = make(chan error)
+	)
+
+	for _, l := range locations {
+		if l.DC != "" && !sliceContains(l.DC, dcs) {
+			continue
+		}
+		lh := hosts
+		if l.DC != "" {
+			lh = dcHosts(dcMap, []string{l.DC})
+			if len(lh) == 0 {
+				s.logger.Error(ctx, "No matching hosts found for %s", l)
+				continue
+			}
+		}
+
+		for _, h := range lh {
+			go func(h string, l Location) {
+				res <- s.checkHostAccessibility(ctx, client, h, l)
+			}(h, l)
+		}
+
+		for range lh {
+			errs = multierr.Append(errs, <-res)
+		}
+	}
+
+	return mermaid.ErrValidate(errs)
+}
+
+func (s *Service) checkHostAccessibility(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
+	_, err := client.RcloneListDir(middleware.DontRetry(ctx), h, l.RemotePath(""), false)
+	if err != nil {
+		s.logger.Error(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
+		var e error
+		if scyllaclient.StatusCodeOf(err) == 404 {
+			e = errors.Errorf("%s: failed to access %s make sure that it's correct and credentials are set", h, l)
+		} else {
+			e = errors.Wrapf(err, "%s: failed to access %s", h, l)
+		}
+		return e
+	}
+	s.logger.Info(ctx, "Host location check OK", "host", h, "location", l)
+	return nil
+}
+
+func sliceContains(str string, items []string) bool {
+	for _, i := range items {
+		if i == str {
+			return true
+		}
+	}
+	return false
+}
+
+// registerProviders ensures that configuration for supported backup providers
+// is set on the provided hosts.
+func (s *Service) registerProviders(ctx context.Context, client *scyllaclient.Client, dcs []string, dcMap map[string][]string) error {
+	// Get hosts of the target DCs
+	hosts := dcHosts(dcMap, dcs)
+	if len(hosts) == 0 {
+		return errors.New("no matching hosts found")
+	}
+
+	var errs error
+
+	for _, pr := range SupportedProviders {
+		for _, h := range hosts {
+			s.logger.Info(ctx, "Registering backup provider", "host", h, "provider", pr)
+			if err := registerProvider(ctx, client, pr, h, s.config); err != nil {
+				errs = multierr.Append(errs, errors.Wrap(err, h))
+			}
+		}
+	}
+
+	return mermaid.ErrValidate(errs)
+}
+
 // Backup executes a backup on a given target.
 func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.UUID, runID uuid.UUID, target Target) error {
 	s.logger.Debug(ctx, "Backup",
@@ -218,7 +321,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 	// Get hosts in the given DCs
 	hosts := dcHosts(dcMap, run.DC)
 	if len(hosts) == 0 {
-		return errors.Wrap(err, "no matching hosts found")
+		return errors.New("no matching hosts found")
 	}
 
 	// Get host IDs

@@ -1,1 +1,1 @@
-{"rate_limit": ["1000", "dc1:100"], "location": ["s3:foo"]}
+{"rate_limit": ["1000", "dc1:100"], "location": ["s3:test-get-target"]}

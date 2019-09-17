@@ -442,7 +442,7 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 		for _, h := range hosts {
 			sh, err := client.ShardCount(ctx, h)
 			if err != nil {
-				s.logger.Error(ctx, "Can't get number of shards", "error", err)
+				s.logger.Error(ctx, "Failed to get number of shards", "error", err)
 			}
 			nodes = append(nodes, Node{
 				Datacenter: dc,

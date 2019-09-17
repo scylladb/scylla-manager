@@ -146,6 +146,9 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		h       = newBackupTestHelper(t, session, backup.DefaultConfig())
 		ctx     = context.Background()
 	)
+	const testBucket = "test-get-target"
+	S3InitBucket(t, testBucket)
+	registerRemotes(t, h)
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
@@ -154,6 +157,9 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			v, err := h.service.GetTarget(ctx, h.clusterID, b, false)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			if UpdateGoldenFiles() {
 				b, _ := json.Marshal(v)
@@ -173,10 +179,18 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				t.Error(err)
 			}
 
-			if diff := cmp.Diff(v, golden); diff != "" {
+			if diff := cmp.Diff(golden, v); diff != "" {
 				t.Fatal(diff)
 			}
 		})
+	}
+}
+
+func registerRemotes(t *testing.T, h *backupTestHelper) {
+	for _, host := range ManagedClusterHosts {
+		if err := h.client.RcloneRegisterS3Remote(context.Background(), host, "s3", NewS3ParamsEnvAuth()); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -185,49 +199,54 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 	CreateManagedClusterSession(t)
 
 	table := []struct {
-		Name   string
-		JSON   string
-		Errror string
+		Name  string
+		JSON  string
+		Error string
 	}{
 		{
-			Name:   "empty",
-			JSON:   `{}`,
-			Errror: "missing location",
+			Name:  "empty",
+			JSON:  `{}`,
+			Error: "missing location",
 		},
 		{
-			Name:   "invalid keyspace filter",
-			JSON:   `{"keyspace": ["foobar"], "location": ["s3:foo"]}`,
-			Errror: "no matching keyspaces found",
+			Name:  "invalid keyspace filter",
+			JSON:  `{"keyspace": ["foobar"], "location": ["s3:test-get-target"]}`,
+			Error: "no matching keyspaces found",
 		},
 		{
-			Name:   "invalid dc filter",
-			JSON:   `{"dc": ["foobar"], "location": ["s3:foo"]}`,
-			Errror: "no matching DCs found",
+			Name:  "invalid dc filter",
+			JSON:  `{"dc": ["foobar"], "location": ["s3:test-get-target"]}`,
+			Error: "no matching DCs found",
 		},
 		{
-			Name:   "invalid location dc",
-			JSON:   `{"location": ["foobar:s3:foo"]}`,
-			Errror: "invalid location: no such datacenter",
+			Name:  "invalid location dc",
+			JSON:  `{"location": ["foobar:s3:test-get-target"]}`,
+			Error: "invalid location: no such datacenter",
 		},
 		{
-			Name:   "no location for dc",
-			JSON:   `{"location": ["dc1:s3:foo"]}`,
-			Errror: "invalid location: missing configurations for datacenters",
+			Name:  "no location for dc",
+			JSON:  `{"location": ["dc1:s3:test-get-target"]}`,
+			Error: "invalid location: missing configurations for datacenters",
 		},
 		{
-			Name:   "invalid rate limit dc",
-			JSON:   `{"rate_limit": ["foobar:100"], "location": ["s3:foo"]}`,
-			Errror: "invalid rate-limit: no such datacenter",
+			Name:  "inaccessible location",
+			JSON:  `{"location": ["s3:foo", "dc1:s3:bar"]}`,
+			Error: "location not accessible",
 		},
 		{
-			Name:   "invalid snapshot parallel dc",
-			JSON:   `{"snapshot_parallel": ["foobar:100"], "location": ["s3:foo"]}`,
-			Errror: "invalid snapshot-parallel: no such datacenter",
+			Name:  "invalid rate limit dc",
+			JSON:  `{"rate_limit": ["foobar:100"], "location": ["s3:test-get-target"]}`,
+			Error: "invalid rate-limit: no such datacenter",
 		},
 		{
-			Name:   "invalid upload parallel dc",
-			JSON:   `{"upload_parallel": ["foobar:100"], "location": ["s3:foo"]}`,
-			Errror: "invalid upload-parallel: no such datacenter",
+			Name:  "invalid snapshot parallel dc",
+			JSON:  `{"snapshot_parallel": ["foobar:100"], "location": ["s3:test-get-target"]}`,
+			Error: "invalid snapshot-parallel: no such datacenter",
+		},
+		{
+			Name:  "invalid upload parallel dc",
+			JSON:  `{"upload_parallel": ["foobar:100"], "location": ["s3:test-get-target"]}`,
+			Error: "invalid upload-parallel: no such datacenter",
 		},
 	}
 
@@ -237,14 +256,18 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
+	const testBucket = "test-get-target"
+	S3InitBucket(t, testBucket)
+	registerRemotes(t, h)
+
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
 			_, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage(test.JSON), false)
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			if !strings.Contains(err.Error(), test.Errror) {
-				t.Fatalf("expected %s got %s", test.Errror, err)
+			if !strings.Contains(err.Error(), test.Error) {
+				t.Fatalf("expected %s got %s", test.Error, err)
 			}
 		})
 	}

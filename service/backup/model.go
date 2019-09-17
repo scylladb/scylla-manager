@@ -167,6 +167,14 @@ func (p *Provider) UnmarshalText(text []byte) error {
 	return nil
 }
 
+var (
+	// SupportedProviders contains list of supported backup providers.
+	// Currently only S3 is supported.
+	SupportedProviders = []Provider{
+		S3,
+	}
+)
+
 // Location specifies storage provider and container/resource for a DC.
 type Location struct {
 	DC       string   `json:"dc"`

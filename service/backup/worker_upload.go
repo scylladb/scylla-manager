@@ -117,13 +117,7 @@ func (w *worker) register(ctx context.Context, h hostInfo) error {
 		return errors.Errorf("unsupported provider %s", h.Location.Provider)
 	}
 
-	p := scyllaclient.S3Params{
-		EnvAuth:         true,
-		DisableChecksum: true,
-
-		Endpoint: w.Config.TestS3Endpoint,
-	}
-	return w.Client.RcloneRegisterS3Remote(ctx, h.IP, h.Location.RemoteName(), p)
+	return registerProvider(ctx, w.Client, h.Location.Provider, h.IP, w.Config)
 }
 
 func (w *worker) setRateLimit(ctx context.Context, h hostInfo) error {

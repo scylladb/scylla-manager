@@ -32,7 +32,7 @@
     "dc2"
   ],
   "location": [
-    "s3:foo"
+    "s3:test-get-target"
   ],
   "retention": 3,
   "rate_limit": null,

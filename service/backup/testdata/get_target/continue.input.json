@@ -1,1 +1,1 @@
-{"location": ["s3:foo"], "continue": false}
+{"location": ["s3:test-get-target"], "continue": false}
