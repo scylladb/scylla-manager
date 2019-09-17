@@ -226,7 +226,7 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 
 	switch newTask.Type {
 	case scheduler.BackupTask:
-		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
+		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
 			respondError(w, r, errors.Wrap(err, "failed to create backup target"))
 			return
 		}
