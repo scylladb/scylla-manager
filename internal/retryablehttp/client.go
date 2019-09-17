@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"time"
 
@@ -101,6 +102,18 @@ func DefaultRetryPolicy(req *http.Request, resp *http.Response, err error) (bool
 	}
 
 	if err != nil {
+		// RoundTripper can't handle connection resets so we are testing for
+		// such errors
+		switch t := err.(type) {
+		case *net.OpError:
+			if t.Op == "read" {
+				return false, err
+			}
+		default:
+			if err == io.EOF {
+				return false, err
+			}
+		}
 		return true, err
 	}
 	// Check the response code. We retry on 500-range responses to allow

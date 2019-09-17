@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -246,6 +247,254 @@ func TestClient_CheckRetryStop(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("Expected no error, got:%v", err)
+	}
+}
+
+type response struct {
+	resp *http.Response
+	err  error
+}
+
+const (
+	testURL  = "http://127.0.0.1:28934/v1/foo"
+	testAddr = "127.0.0.1:28934"
+)
+
+var (
+	testTimeout = 3 * time.Second
+	testBytes   = []byte("{}")
+)
+
+func TestRetryAfterNoConnection(t *testing.T) {
+	results := make(chan response)
+	retries := make(chan struct{})
+	requests := make(chan struct{})
+	body := ioutil.NopCloser(bytes.NewReader(testBytes))
+
+	ts := http.Server{
+		Addr: testAddr,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests <- struct{}{}
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Fprint(w, "{}")
+		}),
+	}
+	defer ts.Close()
+
+	// Create the client. Use short retry windows.
+	client, transport := NewClient()
+	transport.RetryWaitMin = 10 * time.Millisecond
+	transport.RetryWaitMax = 50 * time.Millisecond
+	transport.RetryMax = 20
+	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
+		retry, err := DefaultRetryPolicy(req, resp, err)
+		if retry {
+			select {
+			case retries <- struct{}{}:
+			default:
+			}
+		}
+		return retry, err
+	}
+	sendRequest := func() {
+		var (
+			resp *http.Response
+			err  error
+		)
+		resp, err = client.Post(testURL, "application/json", body)
+		results <- response{
+			resp: resp,
+			err:  err,
+		}
+	}
+
+	// Request to server that isn't running.
+	go sendRequest()
+
+	select {
+	case res := <-results:
+		if res.err == nil {
+			t.Fatal("first request should fail")
+		}
+	case <-time.After(testTimeout):
+		t.Fatal("time out after first request")
+	}
+
+	// Request to server that we are going to start after first retry.
+	go sendRequest()
+
+	select {
+	case <-retries:
+		// Wait for first retry and then start the server.
+		go ts.ListenAndServe()
+	case <-time.After(testTimeout):
+		t.Fatal("time out waiting for retry")
+	}
+
+	select {
+	case <-requests:
+		// Request should be registered on the server.
+	case <-time.After(testTimeout):
+		t.Fatal("time out receiving request")
+	}
+
+	select {
+	case res := <-results:
+		// Response should have no error.
+		if res.err != nil {
+			t.Fatalf("Request failed %+v", res.err)
+		}
+	case <-time.After(testTimeout):
+		t.Fatal("time out after second request")
+	}
+}
+
+func TestRetryAfterInternalServerError(t *testing.T) {
+	results := make(chan response)
+	retries := make(chan struct{})
+	requests := make(chan struct{})
+	var fail int64
+	body := ioutil.NopCloser(bytes.NewReader(testBytes))
+
+	ts := http.Server{
+		Addr: testAddr,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if atomic.LoadInt64(&fail) == 0 {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			select {
+			case requests <- struct{}{}:
+			default:
+			}
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Fprint(w, "{}")
+		}),
+	}
+	go ts.ListenAndServe()
+	defer ts.Close()
+
+	// Create the client. Use short retry windows.
+	client, transport := NewClient()
+	transport.RetryWaitMin = 10 * time.Millisecond
+	transport.RetryWaitMax = 50 * time.Millisecond
+	transport.RetryMax = 20
+	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
+		retry, err := DefaultRetryPolicy(req, resp, err)
+		if retry {
+			select {
+			case retries <- struct{}{}:
+			default:
+			}
+		}
+		return retry, err
+	}
+	sendRequest := func() {
+		var (
+			resp *http.Response
+			err  error
+		)
+		resp, err = client.Post(testURL, "application/json", body)
+		results <- response{
+			resp: resp,
+			err:  err,
+		}
+	}
+
+	go sendRequest()
+
+	select {
+	case <-retries:
+		// Retries started stop failing.
+		atomic.AddInt64(&fail, 1)
+	case <-time.After(testTimeout):
+		t.Fatal("time out waiting for retry")
+	}
+
+	select {
+	case <-requests:
+		// Request should be registered on the server.
+	case <-time.After(testTimeout):
+		t.Fatal("time out receiving request")
+	}
+
+	select {
+	case res := <-results:
+		// Response should have no error.
+		if res.err != nil {
+			t.Fatalf("Request failed %+v", res.err)
+		}
+	case <-time.After(testTimeout):
+		t.Fatal("time out getting request after retries")
+	}
+}
+
+func TestRetryAfterConnectionReset(t *testing.T) {
+	results := make(chan response)
+	retries := make(chan struct{})
+	requests := make(chan struct{})
+	body := ioutil.NopCloser(bytes.NewReader(testBytes))
+
+	ts := http.Server{
+		Addr: testAddr,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case requests <- struct{}{}:
+			default:
+			}
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Fprint(w, "{}")
+		}),
+	}
+	go ts.ListenAndServe()
+
+	// Create the client. Use short retry windows.
+	client, transport := NewClient()
+	transport.RetryWaitMin = 10 * time.Millisecond
+	transport.RetryWaitMax = 50 * time.Millisecond
+	transport.RetryMax = 50
+	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
+		retry, err := DefaultRetryPolicy(req, resp, err)
+		retries <- struct{}{}
+		return retry, err
+	}
+	sendRequest := func() {
+		var (
+			resp *http.Response
+			err  error
+		)
+		resp, err = client.Post(testURL, "application/json", body)
+		results <- response{
+			resp: resp,
+			err:  err,
+		}
+	}
+
+	go sendRequest()
+
+	select {
+	case <-requests:
+		// Bring down server in the middle of a request.
+		ts.Close()
+		time.Sleep(100 * time.Millisecond)
+	case <-time.After(testTimeout):
+		t.Fatal("time out receiving first request")
+	}
+
+	select {
+	case <-retries:
+	case <-time.After(testTimeout):
+		t.Fatal("time out waiting for retry check")
+	}
+
+	select {
+	case res := <-results:
+		// Response should fail because of network error.
+		if res.err == nil {
+			t.Fatalf("Request failed %+v", res.err)
+		}
+	case <-time.After(testTimeout):
+		t.Fatal("time out getting request after retries")
 	}
 }
 
