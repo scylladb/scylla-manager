@@ -405,7 +405,7 @@ func init() {
 
 	fs := cmd.Flags()
 	fs.Bool("details", false, "show detailed progress")
-	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace glob patterns to filter progress details by")
-	fs.StringSlice("host", nil, "comma-separated `list` of host glob patterns to filter progress details by")
+	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
+	fs.StringSlice("host", nil, "a comma-separated list of host glob patterns, e.g. '1.1.1.*,!1.2.*.4")
 	fs.String("run", "", "show progress of a particular run, see sctool task history")
 }

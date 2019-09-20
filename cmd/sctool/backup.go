@@ -140,13 +140,13 @@ func init() {
 	register(cmd, rootCmd)
 
 	fs := cmd.Flags()
-	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	fs.StringSlice("dc", nil, "comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*'")
-	fs.StringSliceP("location", "L", nil, "comma-separated `list` of backup locations in the format <dc>:<provider>:<path>, the dc part is optional and only needed when different datacenters upload data to different locations, the supported providers are: s3") //nolint: lll
+	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
+	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*'")
+	fs.StringSliceP("location", "L", nil, "a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>, the dc part is optional and only needed when different datacenters upload data to different locations, the supported providers are: s3") //nolint: lll
 	fs.Int("retention", 3, "data retention, how many backups shall be kept")
-	fs.StringSlice("rate-limit", nil, "comma-separated `list` of rate limit as megabytes (MiB) per second in the format <dc>:<limit>, the dc part is optional and only needed when different datacenters need different upload limits")                                                                                                                             //nolint: lll
-	fs.StringSlice("snapshot-parallel", nil, "comma-separated `list` of snapshot parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ") //nolint: lll
-	fs.StringSlice("upload-parallel", nil, "comma-separated `list` of upload parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ")     //nolint: lll
+	fs.StringSlice("rate-limit", nil, "a comma-separated `list` of rate limit as megabytes (MiB) per second in the format <dc>:<limit>, the dc part is optional and only needed when different datacenters need different upload limits")                                                                                                                             //nolint: lll
+	fs.StringSlice("snapshot-parallel", nil, "a comma-separated `list` of snapshot parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ") //nolint: lll
+	fs.StringSlice("upload-parallel", nil, "a comma-separated `list` of upload parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ")     //nolint: lll
 	fs.Bool("force", false, "force backup to skip database validation and schedule even if there are no matching keyspaces/tables")
 
 	taskInitCommonFlags(fs)
