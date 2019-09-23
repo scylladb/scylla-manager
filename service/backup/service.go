@@ -78,11 +78,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Copy simple properties
-	t.Location = p.Location
 	t.Retention = p.Retention
-	t.RateLimit = p.RateLimit
-	t.SnapshotParallel = p.SnapshotParallel
-	t.UploadParallel = p.UploadParallel
 	t.Continue = p.Continue
 
 	if p.Location == nil {
@@ -106,9 +102,19 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Validate location DCs
-	if err := checkDCs(func(i int) (string, string) { return t.Location[i].DC, t.Location[i].String() }, len(t.Location), dcMap); err != nil {
+	if err := checkDCs(func(i int) (string, string) { return p.Location[i].DC, p.Location[i].String() }, len(p.Location), dcMap); err != nil {
 		return t, errors.Wrap(err, "invalid location")
 	}
+
+	// Filter out definitions with missing dc.
+	t.Location = filterDCLocations(p.Location, t.DC)
+	if t.Location == nil {
+		return t, errors.Errorf("failed to match locations to dcs")
+	}
+	t.RateLimit = filterDCLimits(p.RateLimit, t.DC)
+	t.SnapshotParallel = filterDCLimits(p.SnapshotParallel, t.DC)
+	t.UploadParallel = filterDCLimits(p.UploadParallel, t.DC)
+
 	if err := checkAllDCsCovered(func(i int) string { return t.Location[i].DC }, len(t.Location), t.DC); err != nil {
 		return t, errors.Wrap(err, "invalid location")
 	}
@@ -124,17 +130,17 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Validate rate limit DCs
-	if err := checkDCs(dcLimitDCAtPos(t.RateLimit), len(t.RateLimit), dcMap); err != nil {
+	if err := checkDCs(dcLimitDCAtPos(p.RateLimit), len(p.RateLimit), dcMap); err != nil {
 		return t, errors.Wrap(err, "invalid rate-limit")
 	}
 
 	// Validate upload parallel DCs
-	if err := checkDCs(dcLimitDCAtPos(t.SnapshotParallel), len(t.SnapshotParallel), dcMap); err != nil {
+	if err := checkDCs(dcLimitDCAtPos(p.SnapshotParallel), len(p.SnapshotParallel), dcMap); err != nil {
 		return t, errors.Wrap(err, "invalid snapshot-parallel")
 	}
 
 	// Validate snapshot parallel DCs
-	if err := checkDCs(dcLimitDCAtPos(t.UploadParallel), len(t.UploadParallel), dcMap); err != nil {
+	if err := checkDCs(dcLimitDCAtPos(p.UploadParallel), len(p.UploadParallel), dcMap); err != nil {
 		return t, errors.Wrap(err, "invalid upload-parallel")
 	}
 
@@ -184,6 +190,66 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	return t, nil
+}
+
+type diskSize struct {
+	Size  int64
+	Error error
+}
+
+// GetTargetSize calculates total size of the backup for the provided target.
+func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target Target) (int64, error) {
+	s.logger.Info(ctx, "Calculating target size")
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to get client")
+	}
+	// Get hosts in all DCs
+	dcMap, err := client.Datacenters(ctx)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to read datacenters")
+	}
+	// Get hosts in the given DCs
+	hosts := dcHosts(dcMap, target.DC)
+	if len(hosts) == 0 {
+		return 0, errors.New("no matching hosts found")
+	}
+
+	results := make(chan diskSize)
+
+	for _, h := range hosts {
+		go func(h string) {
+			for _, u := range target.Units {
+				for _, t := range u.Tables {
+					size, err := client.TableDiskSize(ctx, h, u.Keyspace, t)
+					if err != nil {
+						err = errors.Wrapf(err, "failed to get size of %s.%s on %s", u.Keyspace, t, h)
+					}
+					results <- diskSize{size, err}
+				}
+			}
+		}(h)
+	}
+
+	var total int64
+	var errs error
+
+	for range hosts {
+		for _, u := range target.Units {
+			for range u.Tables {
+				result := <-results
+				if result.Error != nil {
+					errs = multierr.Append(errs, err)
+				}
+				total += result.Size
+			}
+		}
+	}
+	if errs != nil {
+		total = 0
+	}
+
+	return total, errs
 }
 
 // checkRemoteLocations checks if each node has access to the remote location.
@@ -241,15 +307,6 @@ func (s *Service) checkHostAccessibility(ctx context.Context, client *scyllaclie
 	}
 	s.logger.Info(ctx, "Host location check OK", "host", h, "location", l)
 	return nil
-}
-
-func sliceContains(str string, items []string) bool {
-	for _, i := range items {
-		if i == str {
-			return true
-		}
-	}
-	return false
 }
 
 // registerProviders ensures that configuration for supported backup providers

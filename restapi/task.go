@@ -35,7 +35,7 @@ func newTaskHandler(services Services) *chi.Mux {
 	m.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.listTasks)
 		r.Post("/", h.createTask)
-		r.Put("/repair/target", h.getTarget)
+		r.Put("/{task_type}/target", h.getTarget)
 	})
 
 	m.Route("/task/{task_type}/{task_id}", func(r chi.Router) {
@@ -186,6 +186,11 @@ func (h *taskHandler) parseTask(r *http.Request) (*scheduler.Task, error) {
 	return &t, nil
 }
 
+type backupTarget struct {
+	backup.Target
+	Size int64 // Target size in bytes.
+}
+
 func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 	newTask, err := h.parseTask(r)
 	if err != nil {
@@ -197,14 +202,31 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newTask.Type != scheduler.RepairTask {
-		respondBadRequest(w, r, errors.Errorf("invalid type %q", newTask.Type))
-		return
-	}
+	var t interface{}
 
-	t, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false)
-	if err != nil {
-		respondError(w, r, errors.Wrap(err, "failed to get target"))
+	switch newTask.Type {
+	case scheduler.BackupTask:
+		bt, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false)
+		if err != nil {
+			respondError(w, r, errors.Wrap(err, "failed to get backup target"))
+			return
+		}
+		size, err := h.Backup.GetTargetSize(r.Context(), newTask.ClusterID, bt)
+		if err != nil {
+			respondError(w, r, errors.Wrap(err, "failed to get backup target size"))
+			return
+		}
+		t = backupTarget{
+			Target: bt,
+			Size:   size,
+		}
+	case scheduler.RepairTask:
+		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false); err != nil {
+			respondError(w, r, errors.Wrap(err, "failed to get repair target"))
+			return
+		}
+	default:
+		respondBadRequest(w, r, errors.Errorf("invalid task type %q", newTask.Type))
 		return
 	}
 

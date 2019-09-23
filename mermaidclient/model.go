@@ -54,12 +54,12 @@ func makeTaskUpdate(t *Task) *models.TaskUpdate {
 	}
 }
 
-// Target is a representing results of dry running repair task.
-type Target struct {
+// RepairTarget is a representing results of dry running repair task.
+type RepairTarget struct {
 	models.RepairTarget
 }
 
-const targetTemplate = `{{ if ne .TokenRanges "dcpr" -}}
+const repairTargetTemplate = `{{ if ne .TokenRanges "dcpr" -}}
 Token Ranges: {{ .TokenRanges }}
 {{ end -}}
 {{ if .Host -}}
@@ -85,8 +85,67 @@ Data Centers:
 {{ end }}`
 
 // Render implements Renderer interface.
-func (t Target) Render(w io.Writer) error {
-	temp := template.Must(template.New("target").Parse(targetTemplate))
+func (t RepairTarget) Render(w io.Writer) error {
+	temp := template.Must(template.New("target").Parse(repairTargetTemplate))
+	return temp.Execute(w, t)
+}
+
+// BackupTarget is a representing results of dry running backup task.
+type BackupTarget struct {
+	models.BackupTarget
+}
+
+const backupTargetTemplate = `Data Centers:
+{{ range .Dc }}  - {{ . }}
+{{ end -}}
+
+{{ range .Units }}Keyspace: {{ .Keyspace }}
+{{- if .AllTables }}
+  (all tables)
+{{ else -}}
+{{ range .Tables }}
+  - {{ . }}
+{{ end -}}
+{{- end -}}
+{{ end }}
+Locations:
+{{- range .Location }}
+  - {{ . }}
+{{- end }}
+Bandwidth Limits:
+{{- if .RateLimit -}}
+{{ range .RateLimit }}
+  - {{ . }} MiB/s
+{{- end }}
+{{- else }}
+  - Unlimited
+{{- end }}
+Snapshot Parallel Limits:
+{{- if .SnapshotParallel -}}
+{{- range .SnapshotParallel }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+  - All hosts in parallel
+{{- end }}
+Upload Parallel Limits:
+{{- if .UploadParallel -}}
+{{- range .UploadParallel }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+  - All hosts in parallel
+{{- end }}
+
+Estimated Size: {{ ByteCountBinary .Size }}
+Retention: Last {{ .Retention }} backups
+`
+
+// Render implements Renderer interface.
+func (t BackupTarget) Render(w io.Writer) error {
+	temp := template.Must(template.New("target").Funcs(template.FuncMap{
+		"ByteCountBinary": ByteCountBinary,
+	}).Parse(backupTargetTemplate))
 	return temp.Execute(w, t)
 }
 

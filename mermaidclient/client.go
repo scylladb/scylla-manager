@@ -144,7 +144,7 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID str
 	}, nil
 }
 
-// BackupProgress returns repair progress.
+// BackupProgress returns backup progress.
 func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
 	resp, err := c.operations.GetClusterClusterIDTaskBackupTaskIDRunID(&operations.GetClusterClusterIDTaskBackupTaskIDRunIDParams{
 		Context:   ctx,
@@ -186,8 +186,8 @@ func (c Client) Version(ctx context.Context) (*models.Version, error) {
 	return resp.Payload, nil
 }
 
-// GetTarget fetches information about repair target.
-func (c *Client) GetTarget(ctx context.Context, clusterID string, t *Task) (*Target, error) {
+// GetRepairTarget fetches information about repair target.
+func (c *Client) GetRepairTarget(ctx context.Context, clusterID string, t *Task) (*RepairTarget, error) {
 	resp, err := c.operations.PutClusterClusterIDTasksRepairTarget(&operations.PutClusterClusterIDTasksRepairTargetParams{
 		Context:    ctx,
 		ClusterID:  clusterID,
@@ -197,7 +197,21 @@ func (c *Client) GetTarget(ctx context.Context, clusterID string, t *Task) (*Tar
 		return nil, err
 	}
 
-	return &Target{*resp.Payload}, nil
+	return &RepairTarget{*resp.Payload}, nil
+}
+
+// GetBackupTarget fetches information about repair target.
+func (c *Client) GetBackupTarget(ctx context.Context, clusterID string, t *Task) (*BackupTarget, error) {
+	resp, err := c.operations.PutClusterClusterIDTasksBackupTarget(&operations.PutClusterClusterIDTasksBackupTargetParams{
+		Context:    ctx,
+		ClusterID:  clusterID,
+		TaskFields: makeTaskUpdate(t),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &BackupTarget{*resp.Payload}, nil
 }
 
 // CreateTask creates a new task.

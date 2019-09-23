@@ -463,3 +463,15 @@ func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
 	})
 	return err
 }
+
+// TableDiskSize returns total on disk size of the table in bytes.
+func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string) (int64, error) {
+	resp, err := c.scyllaOps.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(&operations.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetParams{
+		Context: middleware.ForceHost(ctx, host),
+		Name:    keyspace + ":" + table,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return int64(resp.Payload), nil
+}

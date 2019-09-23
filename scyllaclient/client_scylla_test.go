@@ -349,3 +349,18 @@ func TestClientSnapshotDetails(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestClientTableDiskSize(t *testing.T) {
+	t.Parallel()
+	c, cl := newMockServer(t, "testdata/scylla_api/column_family_total_disk_space_used.json")
+	defer cl()
+
+	size, err := c.TableDiskSize(context.Background(), testHost, "system_schema", "tables")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const expected = 149140
+	if size != expected {
+		t.Fatalf("Expected size %d, got %d", expected, size)
+	}
+}

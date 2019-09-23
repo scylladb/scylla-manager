@@ -47,6 +47,7 @@ type RepairService interface {
 // BackupService service interface for the REST API handlers.
 type BackupService interface {
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (backup.Target, error)
+	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
 }
 

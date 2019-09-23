@@ -112,3 +112,39 @@ func hostInfoFromHosts(hosts []string, dcMap map[string][]string, hostIDs map[st
 
 	return hi, errs
 }
+
+// sliceContains returns true if str can be found in provided items.
+func sliceContains(str string, items []string) bool {
+	for _, i := range items {
+		if i == str {
+			return true
+		}
+	}
+	return false
+}
+
+// filterDCLocations takes list of locations and returns only locations that
+// belong the provided list of data centers.
+func filterDCLocations(locations []Location, dcs []string) []Location {
+	var filtered []Location
+	for _, l := range locations {
+		if l.DC == "" || sliceContains(l.DC, dcs) {
+			filtered = append(filtered, l)
+			continue
+		}
+	}
+	return filtered
+}
+
+// filterDCLimits takes list of DCLimits and returns only locations that belong
+// the provided list of data centers.
+func filterDCLimits(limits []DCLimit, dcs []string) []DCLimit {
+	var filtered []DCLimit
+	for _, l := range limits {
+		if l.DC == "" || sliceContains(l.DC, dcs) {
+			filtered = append(filtered, l)
+			continue
+		}
+	}
+	return filtered
+}

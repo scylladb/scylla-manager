@@ -136,7 +136,7 @@ var repairCmd = &cobra.Command{
 		}
 		if dryRun {
 			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, repair is not scheduled\n\n")
-			res, err := client.GetTarget(ctx, cfgCluster, t)
+			res, err := client.GetRepairTarget(ctx, cfgCluster, t)
 			if err != nil {
 				return err
 			}

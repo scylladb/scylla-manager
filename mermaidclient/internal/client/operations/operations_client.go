@@ -586,6 +586,39 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStop(params *PutClusterClu
 }
 
 /*
+PutClusterClusterIDTasksBackupTarget put cluster cluster ID tasks backup target API
+*/
+func (a *Client) PutClusterClusterIDTasksBackupTarget(params *PutClusterClusterIDTasksBackupTargetParams) (*PutClusterClusterIDTasksBackupTargetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDTasksBackupTargetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDTasksBackupTarget",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/tasks/backup/target",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDTasksBackupTargetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PutClusterClusterIDTasksBackupTargetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PutClusterClusterIDTasksBackupTargetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 PutClusterClusterIDTasksRepairTarget put cluster cluster ID tasks repair target API
 */
 func (a *Client) PutClusterClusterIDTasksRepairTarget(params *PutClusterClusterIDTasksRepairTargetParams) (*PutClusterClusterIDTasksRepairTargetOK, error) {

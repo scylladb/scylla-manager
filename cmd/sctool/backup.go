@@ -98,6 +98,19 @@ var backupCmd = &cobra.Command{
 			return err
 		}
 
+		dryRun, err := cmd.Flags().GetBool("dry-run")
+		if err != nil {
+			return err
+		}
+		if dryRun {
+			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, backup is not scheduled\n\n")
+			res, err := client.GetBackupTarget(ctx, cfgCluster, t)
+			if err != nil {
+				return err
+			}
+			return res.Render(cmd.OutOrStdout())
+		}
+
 		id, err := client.CreateTask(ctx, cfgCluster, t, force)
 		if err != nil {
 			return err
@@ -148,6 +161,7 @@ func init() {
 	fs.StringSlice("snapshot-parallel", nil, "a comma-separated `list` of snapshot parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ") //nolint: lll
 	fs.StringSlice("upload-parallel", nil, "a comma-separated `list` of upload parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ")     //nolint: lll
 	fs.Bool("force", false, "force backup to skip database validation and schedule even if there are no matching keyspaces/tables")
+	fs.Bool("dry-run", false, "validate and print backup information without scheduling a backup")
 
 	taskInitCommonFlags(fs)
 	requireFlags(cmd, "location")

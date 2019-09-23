@@ -404,6 +404,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		h       = newBackupTestHelper(t, session, config, s3Location(testBucket))
 		ctx     = context.Background()
 	)
+	registerRemotes(t, h)
 
 	putRun := func(t *testing.T, r *backup.Run) {
 		t.Helper()
