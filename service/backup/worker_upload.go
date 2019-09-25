@@ -133,21 +133,6 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		"location", h.Location,
 	)
 
-	// Upload manifest
-	manifestPath := w.remoteManifestFile(h, d)
-	w.Logger.Info(ctx, "Uploading manifest",
-		"host", h.IP,
-		"location", h.Location,
-		"path", manifestPath,
-	)
-	var (
-		manifestDst = h.Location.RemotePath(manifestPath)
-		manifestSrc = path.Join(d.Path, manifest)
-	)
-	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d); err != nil {
-		return errors.Wrapf(err, "failed to copy %q to %q", manifestSrc, manifestDst)
-	}
-
 	// Upload sstables
 	sstablesPath := w.remoteSSTableDir(h, d)
 	w.Logger.Info(ctx, "Uploading sstables",
@@ -161,6 +146,21 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 	)
 	if err := w.uploadDir(ctx, dataDst, dataSrc, d, manifest); err != nil {
 		return errors.Wrapf(err, "failed to copy %q to %q", dataSrc, dataDst)
+	}
+
+	// Upload manifest
+	manifestPath := w.remoteManifestFile(h, d)
+	w.Logger.Info(ctx, "Uploading manifest",
+		"host", h.IP,
+		"location", h.Location,
+		"path", manifestPath,
+	)
+	var (
+		manifestDst = h.Location.RemotePath(manifestPath)
+		manifestSrc = path.Join(d.Path, manifest)
+	)
+	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d); err != nil {
+		return errors.Wrapf(err, "failed to copy %q to %q", manifestSrc, manifestDst)
 	}
 
 	return nil
