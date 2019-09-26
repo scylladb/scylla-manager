@@ -124,7 +124,7 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 // listTaskRuns returns a sorted list of run IDs for the task being purged.
 // The old runs are at the beginning of the returned slice.
 func (p *purger) listTaskRuns(ctx context.Context, h hostInfo) ([]uuid.UUID, error) {
-	baseDir := remoteRunsDir(p.ClusterID, p.TaskID, h.ID, p.Keyspace, p.Table)
+	baseDir := remoteRunsDir(p.ClusterID, p.TaskID, h.DC, h.ID, p.Keyspace, p.Table)
 
 	p.Logger.Debug(ctx, "Listing runs",
 		"host", h.IP,
@@ -171,7 +171,7 @@ func (p *purger) listTaskRuns(ctx context.Context, h hostInfo) ([]uuid.UUID, err
 // loadAllManifests returns manifests for all the tasks and runs for the given
 // kayspace and table.
 func (p *purger) loadAllManifests(ctx context.Context, h hostInfo) ([]remoteManifest, error) {
-	baseDir := remoteTasksDir(p.ClusterID, h.ID, p.Keyspace, p.Table)
+	baseDir := remoteTasksDir(p.ClusterID, h.DC, h.ID, p.Keyspace, p.Table)
 
 	p.Logger.Debug(ctx, "Loading all manifests",
 		"host", h.IP,
@@ -270,7 +270,7 @@ func (p *purger) loadManifest(ctx context.Context, h hostInfo, path string) ([]s
 }
 
 func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key string) bool) error {
-	baseDir := remoteSSTableDir(p.ClusterID, h.ID, p.Keyspace, p.Table)
+	baseDir := remoteSSTableDir(p.ClusterID, h.DC, h.ID, p.Keyspace, p.Table)
 
 	p.Logger.Debug(ctx, "Listing sstables",
 		"host", h.IP,
@@ -322,7 +322,7 @@ func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key
 func (p *purger) deleteRuns(ctx context.Context, h hostInfo, runs []uuid.UUID) error {
 	var errs error
 	for _, run := range runs {
-		dir := remoteRunDir(p.ClusterID, p.TaskID, run, h.ID, p.Keyspace, p.Table)
+		dir := remoteRunDir(p.ClusterID, p.TaskID, run, h.DC, h.ID, p.Keyspace, p.Table)
 		p.Logger.Info(ctx, "Deleting run directory",
 			"host", h.IP,
 			"location", h.Location,

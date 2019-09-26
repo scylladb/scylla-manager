@@ -355,11 +355,11 @@ func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapsho
 }
 
 func (w *worker) remoteManifestFile(h hostInfo, d snapshotDir) string {
-	return remoteManifestFile(w.ClusterID, w.TaskID, w.RunID, h.ID, d.Keyspace, d.Table, d.Version)
+	return remoteManifestFile(w.ClusterID, w.TaskID, w.RunID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
 }
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
-	return remoteSSTableVersionDir(w.ClusterID, h.ID, d.Keyspace, d.Table, d.Version)
+	return remoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
 }
 
 func (w *worker) deleteRemoteStaleSnapshots(ctx context.Context, h hostInfo, d snapshotDir, policy int) error {

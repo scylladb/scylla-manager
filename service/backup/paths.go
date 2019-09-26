@@ -16,9 +16,9 @@ func keyspaceDir(keyspace string) string {
 
 const manifest = "manifest.json"
 
-func remoteManifestFile(clusterID, taskID, runID uuid.UUID, nodeID, keyspace, table, version string) string {
+func remoteManifestFile(clusterID, taskID, runID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, nodeID, keyspace, table),
+		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
 		"run",
@@ -28,9 +28,9 @@ func remoteManifestFile(clusterID, taskID, runID uuid.UUID, nodeID, keyspace, ta
 	)
 }
 
-func remoteRunDir(clusterID, taskID, runID uuid.UUID, nodeID, keyspace, table string) string {
+func remoteRunDir(clusterID, taskID, runID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, nodeID, keyspace, table),
+		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
 		"run",
@@ -38,42 +38,44 @@ func remoteRunDir(clusterID, taskID, runID uuid.UUID, nodeID, keyspace, table st
 	)
 }
 
-func remoteRunsDir(clusterID, taskID uuid.UUID, nodeID, keyspace, table string) string {
+func remoteRunsDir(clusterID, taskID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, nodeID, keyspace, table),
+		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
 		"run",
 	)
 }
 
-func remoteTasksDir(clusterID uuid.UUID, nodeID, keyspace, table string) string {
+func remoteTasksDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, nodeID, keyspace, table),
+		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"task",
 	)
 }
 
-func remoteSSTableVersionDir(clusterID uuid.UUID, nodeID, keyspace, table, version string) string {
+func remoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, nodeID, keyspace, table),
+		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"sst",
 		version,
 	)
 }
 
-func remoteSSTableDir(clusterID uuid.UUID, nodeID, keyspace, table string) string {
+func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, nodeID, keyspace, table),
+		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"sst",
 	)
 }
 
-func remoteBaseDir(clusterID uuid.UUID, nodeID, keyspace, table string) string {
+func remoteBaseDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
 		"backup",
 		"cluster",
 		clusterID.String(),
+		"dc",
+		dc,
 		"node",
 		nodeID,
 		"keyspace",
