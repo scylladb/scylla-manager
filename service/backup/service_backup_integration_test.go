@@ -114,6 +114,95 @@ func (h *backupTestHelper) listFiles() (manifests, files []string) {
 	return
 }
 
+func writeAndFlushData(t *testing.T, session *gocql.Session, keyspace string, size int) {
+	t.Helper()
+
+	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.big_table (id int PRIMARY KEY, data blob)", keyspace))
+
+	cql := fmt.Sprintf("INSERT INTO %s.big_table (id, data) VALUES (?, ?)", keyspace)
+	data := make([]byte, size)
+	rand.Read(data)
+	err := session.Query(cql, 1, data).Exec()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	flushData(t)
+}
+
+func flushData(t *testing.T) {
+	execOnAllHosts(t, "nodetool flush")
+}
+
+func restartAgents(t *testing.T) {
+	execOnAllHosts(t, "supervisorctl restart scylla-manager-agent")
+}
+
+func execOnAllHosts(t *testing.T, cmd string) {
+	t.Helper()
+	for _, host := range ManagedClusterHosts {
+		stdout, stderr, err := ExecOnHost(host, cmd)
+		if err != nil {
+			t.Log("stdout", stdout)
+			t.Log("stderr", stderr)
+			t.Fatal("Command failed on host", host, err)
+		}
+	}
+}
+
+const (
+	maxWaitCond       = 5 * time.Second
+	condCheckInterval = 100 * time.Millisecond
+)
+
+func (h *backupTestHelper) waitCond(f func() bool) {
+	WaitCond(h.t, f, condCheckInterval, maxWaitCond)
+}
+
+func (h *backupTestHelper) waitTransfersStarted() {
+	h.waitCond(func() bool {
+		h.t.Helper()
+		for _, host := range ManagedClusterHosts {
+			s, err := h.client.RcloneStats(context.Background(), host, "")
+			if err != nil {
+				h.t.Fatal(err)
+			}
+			for _, tr := range s.Transferring {
+				if tr.Name != "manifest.json" {
+					Print("And: upload is underway")
+					return true
+				}
+			}
+		}
+		return false
+	})
+}
+
+func (h *backupTestHelper) waitManifestUploaded() {
+	h.waitCond(func() bool {
+		h.t.Helper()
+		m, _ := h.listFiles()
+		return len(m) > 0
+	})
+}
+
+func (h *backupTestHelper) waitNoTransfers() {
+	h.waitCond(func() bool {
+		h.t.Helper()
+		for _, host := range ManagedClusterHosts {
+			s, err := h.client.RcloneStats(context.Background(), host, "")
+			if err != nil {
+				h.t.Fatal(err)
+			}
+			if len(s.Transferring) > 0 {
+				return false
+			}
+		}
+		return true
+	})
+}
+
 func s3Location(bucket string) backup.Location {
 	return backup.Location{
 		Provider: backup.S3,
@@ -431,83 +520,6 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	})
 }
 
-func writeAndFlushData(t *testing.T, session *gocql.Session, keyspace string, size int) {
-	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
-	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.big_table (id int PRIMARY KEY, data blob)", keyspace))
-
-	cql := fmt.Sprintf("INSERT INTO %s.big_table (id, data) VALUES (?, ?)", keyspace)
-	data := make([]byte, size)
-	rand.Read(data)
-	err := session.Query(cql, 1, data).Exec()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	flushData(t)
-}
-
-func restartAgents(t *testing.T) {
-	execOnAllHosts(t, "supervisorctl restart scylla-manager-agent")
-}
-
-func flushData(t *testing.T) {
-	execOnAllHosts(t, "nodetool flush")
-}
-
-func execOnAllHosts(t *testing.T, cmd string) {
-	for _, host := range ManagedClusterHosts {
-		stdout, stderr, err := ExecOnHost(host, cmd)
-		if err != nil {
-			t.Log("stdout", stdout)
-			t.Log("stderr", stderr)
-			t.Fatal("Command failed on host", host, err)
-		}
-	}
-}
-
-// Check that any transfer have started to confirm backup actually
-// got to the uploading.
-func waitForTransfersToStart(t *testing.T, h *backupTestHelper) {
-	WaitCond(t, func() bool {
-		for _, host := range ManagedClusterHosts {
-			s, err := h.client.RcloneStats(context.Background(), host, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, tr := range s.Transferring {
-				if tr.Name != "manifest.json" {
-					Print("And: upload is underway")
-					return true
-				}
-			}
-		}
-		return false
-	}, 100*time.Millisecond, runnerTimeout)
-}
-
-// Returns true if no transfers are running on the hosts.
-func nothingIsRunning(t *testing.T, h *backupTestHelper) bool {
-	t.Helper()
-	res := false
-	for i := 0; i < 5; i++ {
-		count := 0
-		for _, host := range ManagedClusterHosts {
-			s, err := h.client.RcloneStats(context.Background(), host, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(s.Transferring) == 0 {
-				count++
-			}
-		}
-		if count == len(ManagedClusterHosts) {
-			res = true
-			break
-		}
-	}
-	return res
-}
-
 func TestBackupSmokeIntegration(t *testing.T) {
 	const testBucket = "backuptest-smoke"
 
@@ -545,8 +557,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 	Print("Then: data is uploaded")
 	manifests, _ := h.listFiles()
-	if len(manifests) != 5 {
-		t.Fatalf("Expected 5 manifests got %s", manifests)
+	if len(manifests) == 0 {
+		t.Fatalf("Expected manifests to be uploaded")
 	}
 }
 
@@ -610,7 +622,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 			}
 		}()
 
-		waitForTransfersToStart(t, h)
+		h.waitTransfersStarted()
 
 		Print("And: context is canceled")
 		cancel()
@@ -623,16 +635,13 @@ func TestBackupResumeIntegration(t *testing.T) {
 			Print("Then: runner completed execution")
 		}
 
-		Print("and: nothing is transferring")
-		if !nothingIsRunning(t, h) {
-			t.Fatal("There are still transfers underway on the hosts")
-		}
+		Print("And: nothing is transferring")
+		h.waitNoTransfers()
 
 		Print("When: runner is resumed with new RunID")
-		resumeID := uuid.NewTime()
-		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, resumeID, target)
+		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
-			t.Error("Didn't expect error", err)
+			t.Error("Unexpected error", err)
 		}
 
 		Print("Then: data is uploaded")
@@ -645,9 +654,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("And: nothing is transferring")
-		if !nothingIsRunning(t, h) {
-			t.Fatal("There are still transfers on the hosts")
-		}
+		h.waitNoTransfers()
 	})
 
 	t.Run("resume after agent restart", func(t *testing.T) {
@@ -672,7 +679,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 			close(done)
 		}()
 
-		waitForTransfersToStart(t, h)
+		h.waitTransfersStarted()
 
 		Print("And: we restart the agents")
 		restartAgents(t)
@@ -684,16 +691,13 @@ func TestBackupResumeIntegration(t *testing.T) {
 			Print("Then: runner completed execution")
 		}
 
-		Print("and: nothing is transferring")
-		if !nothingIsRunning(t, h) {
-			t.Fatal("There are still transfers underway on the hosts")
-		}
+		Print("And: nothing is transferring")
+		h.waitNoTransfers()
 
 		Print("When: runner is resumed with new RunID")
-		resumeID := uuid.NewTime()
-		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, resumeID, target)
+		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
-			t.Error("Didn't expect error", err)
+			t.Error("Unexpected error", err)
 		}
 
 		Print("Then: data is uploaded")
@@ -706,9 +710,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("And: nothing is transferring")
-		if !nothingIsRunning(t, h) {
-			t.Fatal("There are still transfers on the hosts")
-		}
+		h.waitNoTransfers()
 	})
 
 	t.Run("continue false", func(t *testing.T) {
@@ -725,6 +727,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		target := target
 		target.Continue = false
+		target.UploadParallel = []backup.DCLimit{{Limit: 1}} // Upload one by one
 
 		go func() {
 			defer close(done)
@@ -739,7 +742,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 			}
 		}()
 
-		waitForTransfersToStart(t, h)
+		h.waitManifestUploaded()
 
 		Print("And: context is canceled")
 		cancel()
@@ -752,31 +755,26 @@ func TestBackupResumeIntegration(t *testing.T) {
 			Print("Then: runner completed execution")
 		}
 
-		Print("and: nothing is transferring")
-		if !nothingIsRunning(t, h) {
-			t.Fatal("There are still transfers underway on the hosts")
-		}
+		Print("And: nothing is transferring")
+		h.waitNoTransfers()
 
 		Print("When: runner is resumed with new RunID")
-		resumeID := uuid.NewTime()
-		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, resumeID, target)
+		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
-			t.Error("Didn't expect error", err)
+			t.Error("Unexpected error", err)
 		}
 
 		Print("Then: data is uploaded")
 		manifests, files := h.listFiles()
-		if len(manifests) < 3 {
-			t.Fatalf("Expected 3+ manifests got %s", manifests)
+		if len(manifests) <= 3 {
+			t.Fatalf("Expected over 3 manifests got %s", manifests)
 		}
 		if len(files) == 0 {
 			t.Fatal("Expected data to be uploaded")
 		}
 
 		Print("And: nothing is transferring")
-		if !nothingIsRunning(t, h) {
-			t.Fatal("There are still transfers on the hosts")
-		}
+		h.waitNoTransfers()
 	})
 }
 
