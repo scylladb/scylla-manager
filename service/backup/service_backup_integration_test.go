@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -29,9 +30,10 @@ import (
 )
 
 type backupTestHelper struct {
-	session *gocql.Session
-	client  *scyllaclient.Client
-	service *backup.Service
+	session  *gocql.Session
+	client   *scyllaclient.Client
+	service  *backup.Service
+	location backup.Location
 
 	clusterID uuid.UUID
 	taskID    uuid.UUID
@@ -40,17 +42,20 @@ type backupTestHelper struct {
 	t *testing.T
 }
 
-func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Config) *backupTestHelper {
+func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Config, location backup.Location) *backupTestHelper {
 	t.Helper()
+
+	S3InitBucket(t, location.Path)
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 	client := newTestClient(t, logger.Named("client"))
 	service := newTestService(t, session, client, config, logger)
 
 	return &backupTestHelper{
-		session: session,
-		client:  client,
-		service: service,
+		session:  session,
+		client:   client,
+		service:  service,
+		location: location,
 
 		clusterID: uuid.MustRandom(),
 		taskID:    uuid.MustRandom(),
@@ -88,6 +93,32 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 		t.Fatal(err)
 	}
 	return s
+}
+
+func (h *backupTestHelper) listFiles() (manifests, files []string) {
+	h.t.Helper()
+	all, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], h.location.RemotePath(""), true)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	for _, f := range all {
+		if f.IsDir {
+			continue
+		}
+		if strings.HasSuffix(f.Name, "manifest.json") {
+			manifests = append(manifests, f.Path)
+		} else {
+			files = append(files, f.Path)
+		}
+	}
+	return
+}
+
+func s3Location(bucket string) backup.Location {
+	return backup.Location{
+		Provider: backup.S3,
+		Path:     bucket,
+	}
 }
 
 func TestServiceGetTargetIntegration(t *testing.T) {
@@ -141,13 +172,13 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		},
 	}
 
+	const testBucket = "backuptest-void"
+
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig())
+		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket))
 		ctx     = context.Background()
 	)
-	const testBucket = "test-get-target"
-	S3InitBucket(t, testBucket)
 	registerRemotes(t, h)
 
 	for _, test := range table {
@@ -250,14 +281,13 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		},
 	}
 
+	const testBucket = "backuptest-void"
+
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig())
+		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket))
 		ctx     = context.Background()
 	)
-
-	const testBucket = "test-get-target"
-	S3InitBucket(t, testBucket)
 	registerRemotes(t, h)
 
 	for _, test := range table {
@@ -274,9 +304,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 }
 
 func TestServiceGetLastResumableRunIntegration(t *testing.T) {
-	const bucket = "get_last_resumable"
-
-	S3InitBucket(t, bucket)
+	const testBucket = "backuptest-void"
 
 	config := backup.DefaultConfig()
 	config.TestS3Endpoint = S3TestEndpoint()
@@ -284,7 +312,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 
 	var (
 		session = CreateSession(t)
-		h       = newBackupTestHelper(t, session, config)
+		h       = newBackupTestHelper(t, session, config, s3Location(testBucket))
 		ctx     = context.Background()
 	)
 
@@ -440,7 +468,6 @@ func execOnAllHosts(t *testing.T, cmd string) {
 // Check that any transfer have started to confirm backup actually
 // got to the uploading.
 func waitForTransfersToStart(t *testing.T, h *backupTestHelper) {
-	t.Helper()
 	WaitCond(t, func() bool {
 		for _, host := range ManagedClusterHosts {
 			s, err := h.client.RcloneStats(context.Background(), host, "")
@@ -460,6 +487,7 @@ func waitForTransfersToStart(t *testing.T, h *backupTestHelper) {
 
 // Returns true if no transfers are running on the hosts.
 func nothingIsRunning(t *testing.T, h *backupTestHelper) bool {
+	t.Helper()
 	res := false
 	for i := 0; i < 5; i++ {
 		count := 0
@@ -483,14 +511,13 @@ func nothingIsRunning(t *testing.T, h *backupTestHelper) bool {
 func TestBackupSmokeIntegration(t *testing.T) {
 	const testBucket = "backuptest-smoke"
 
-	S3InitBucket(t, testBucket)
-
+	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
 	config.TestS3Endpoint = S3TestEndpoint()
 
 	var (
 		session = CreateSession(t)
-		h       = newBackupTestHelper(t, session, config)
+		h       = newBackupTestHelper(t, session, config, location)
 		ctx     = context.Background()
 	)
 
@@ -508,13 +535,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 				Keyspace: "system_auth",
 			},
 		},
-		DC: []string{"dc1"},
-		Location: []backup.Location{
-			{
-				Provider: backup.S3,
-				Path:     testBucket,
-			},
-		},
+		DC:       []string{"dc1"},
+		Location: []backup.Location{location},
 	}
 
 	Print("When: run backup")
@@ -522,12 +544,9 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	Print("Then: data is uploaded")
-	d, err := h.client.RcloneListDir(ctx, ManagedClusterHosts[0], target.Location[0].RemotePath(""), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(d) < 9 {
-		t.Fatal("expected data")
+	manifests, _ := h.listFiles()
+	if len(manifests) != 5 {
+		t.Fatalf("Expected 5 manifests got %s", manifests)
 	}
 }
 
@@ -540,8 +559,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		testKeyspace = "backuptest_resume"
 	)
 
-	S3InitBucket(t, testBucket)
-
+	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
 	config.TestS3Endpoint = S3TestEndpoint()
 	config.PollInterval = time.Second
@@ -559,14 +577,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC: []string{"dc1"},
-		Location: []backup.Location{
-			{
-				Provider: backup.S3,
-				Path:     testBucket,
-			},
-		},
-		Retention: 1,
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 2,
 		RateLimit: []backup.DCLimit{
 			{"dc1", 1},
 		},
@@ -574,7 +587,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	}
 
 	t.Run("resume after stop", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config)
+		h := newBackupTestHelper(t, session, config, location)
 		defer func() {
 			for _, ip := range ManagedClusterHosts {
 				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
@@ -623,19 +636,12 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, testBucket), true)
-		if err != nil {
-			t.Fatal(err)
+		manifests, files := h.listFiles()
+		if len(manifests) != 3 {
+			t.Fatalf("Expected 3 manifests got %s", manifests)
 		}
-		if len(d) < 9 {
-			t.Fatal("expected data")
-		}
-
-		Print("And: directory with new runID is not created")
-		for i := range d {
-			if d[i].Name == resumeID.String() {
-				t.Errorf("Run is not resumed, new structure on remote: %+v", d[i])
-			}
+		if len(files) == 0 {
+			t.Fatal("Expected data to be uploaded")
 		}
 
 		Print("And: nothing is transferring")
@@ -645,7 +651,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 
 	t.Run("resume after agent restart", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config)
+		h := newBackupTestHelper(t, session, config, location)
 		defer func() {
 			for _, ip := range ManagedClusterHosts {
 				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
@@ -691,19 +697,12 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, testBucket), true)
-		if err != nil {
-			t.Fatal(err)
+		manifests, files := h.listFiles()
+		if len(manifests) != 3 {
+			t.Fatalf("Expected 3 manifests got %s", manifests)
 		}
-		if len(d) < 9 {
-			t.Fatal("expected data")
-		}
-
-		Print("And: directory with new runID is not created")
-		for i := range d {
-			if d[i].Name == resumeID.String() {
-				t.Errorf("Run is not resumed, new structure on remote: %+v", d[i])
-			}
+		if len(files) == 0 {
+			t.Fatal("Expected data to be uploaded")
 		}
 
 		Print("And: nothing is transferring")
@@ -713,7 +712,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 
 	t.Run("continue false", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config)
+		h := newBackupTestHelper(t, session, config, location)
 		defer func() {
 			for _, ip := range ManagedClusterHosts {
 				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
@@ -766,23 +765,12 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		d, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], fmt.Sprintf("%s:%s", backup.S3, testBucket), true)
-		if err != nil {
-			t.Fatal(err)
+		manifests, files := h.listFiles()
+		if len(manifests) < 3 {
+			t.Fatalf("Expected 3+ manifests got %s", manifests)
 		}
-		if len(d) < 9 {
-			t.Fatal("expected data")
-		}
-
-		Print("And: directory with new runID is created")
-		var created bool
-		for i := range d {
-			if d[i].Name == resumeID.String() {
-				created = true
-			}
-		}
-		if !created {
-			t.Error("Run is resumed instead of starting new")
+		if len(files) == 0 {
+			t.Fatal("Expected data to be uploaded")
 		}
 
 		Print("And: nothing is transferring")
@@ -798,8 +786,7 @@ func TestPurgeIntegration(t *testing.T) {
 		testKeyspace = "backuptest_purge"
 	)
 
-	S3InitBucket(t, testBucket)
-
+	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
 	config.TestS3Endpoint = S3TestEndpoint()
 
@@ -807,7 +794,7 @@ func TestPurgeIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
 
-		h   = newBackupTestHelper(t, session, config)
+		h   = newBackupTestHelper(t, session, config, location)
 		ctx = context.Background()
 	)
 
@@ -820,12 +807,6 @@ func TestPurgeIntegration(t *testing.T) {
 	}()
 
 	Print("Given: retention policy 1")
-
-	location := backup.Location{
-		Provider: backup.S3,
-		Path:     testBucket,
-	}
-
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
@@ -848,21 +829,14 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 
 	Print("Then: only the last task run is preserved")
-	files, err := h.client.RcloneListDir(ctx, ManagedClusterHosts[0], location.RemotePath(""), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var manifests []string
-	for _, f := range files {
-		if f.Name == "manifest.json" {
-			if !strings.Contains(f.Path, h.taskID.String()) || !strings.Contains(f.Path, runID.String()) {
-				t.Errorf("Manifest %s does not belong to task %s or run %s", f.Path, h.taskID, runID)
-			}
-			manifests = append(manifests, f.Path)
+	manifests, files := h.listFiles()
+	for _, m := range manifests {
+		if !strings.Contains(m, h.taskID.String()) {
+			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
 		}
 	}
 	if len(manifests) != 3 {
-		t.Fatalf("Expected 3 manifests got %d", len(manifests))
+		t.Fatalf("Expected 3 manifests got %s", manifests)
 	}
 
 	Print("And: old sstable files are removed")
@@ -884,17 +858,15 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 
 	for _, f := range files {
-		if !f.IsDir && f.Name != "manifest.json" {
-			ok := false
-			for _, pfx := range sstPfx {
-				if strings.HasPrefix(f.Name, pfx) {
-					ok = true
-					break
-				}
+		ok := false
+		for _, pfx := range sstPfx {
+			if strings.HasPrefix(path.Base(f), pfx) {
+				ok = true
+				break
 			}
-			if !ok {
-				t.Errorf("Unexpected file %s", f.Path)
-			}
+		}
+		if !ok {
+			t.Errorf("Unexpected file %s", f)
 		}
 	}
 }

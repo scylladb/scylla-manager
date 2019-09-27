@@ -13,7 +13,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/b16set"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/uuid"
@@ -21,10 +20,10 @@ import (
 )
 
 type remoteManifest struct {
-	TaskID  uuid.UUID
-	RunID   uuid.UUID
-	Version string
-	Files   []string
+	TaskID      uuid.UUID
+	SnapshotTag string
+	Version     string
+	Files       []string
 }
 
 const manifestFileSuffix = "-Data.db"
@@ -60,18 +59,18 @@ type purger struct {
 }
 
 func (p *purger) purge(ctx context.Context, h hostInfo) error {
-	// Get list of stale runs that need to be deleted
-	runs, err := p.listTaskRuns(ctx, h)
+	// Get list of stale tags that need to be deleted
+	tags, err := p.listTaskTags(ctx, h)
 	if err != nil {
-		return errors.Wrap(err, "failed to list remote task runs")
+		return errors.Wrap(err, "failed to list remote task tags")
 	}
-	// Exit if there no runs to delete
-	if len(runs) <= p.Policy {
+	// Exit if there no tags to delete
+	if len(tags) <= p.Policy {
 		p.Logger.Debug(ctx, "Nothing to do")
 		return nil
 	}
-	// Select runs to delete
-	staleRuns := runs[:len(runs)-p.Policy]
+	// Select tags to delete
+	staleTags := tags[:len(tags)-p.Policy]
 
 	// Load all manifests for the table
 	manifests, err := p.loadAllManifests(ctx, h)
@@ -80,15 +79,15 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 	}
 
 	// Select live sst files in the form version/la-xx-big
-	idx := b16set.New()
-	for _, r := range staleRuns {
-		idx.Add(r.Bytes16())
+	idx := strset.New()
+	for _, t := range staleTags {
+		idx.Add(t)
 	}
 	aliveFiles := strset.New()
 	staleFiles := strset.New()
 	for _, m := range manifests {
 		var s *strset.Set
-		if m.TaskID == p.TaskID && idx.Has(m.RunID.Bytes16()) {
+		if m.TaskID == p.TaskID && idx.Has(m.SnapshotTag) {
 			s = staleFiles
 		} else {
 			s = aliveFiles
@@ -113,20 +112,22 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 		return errors.Wrap(err, "failed to delete stale sstables")
 	}
 
-	// Delete stale runs
-	if err := p.deleteRuns(ctx, h, staleRuns); err != nil {
-		return errors.Wrap(err, "failed to delete stale runs")
+	// Delete stale tags
+	if err := p.deleteTags(ctx, h, staleTags); err != nil {
+		return errors.Wrap(err, "failed to delete stale tags")
 	}
 
 	return nil
 }
 
-// listTaskRuns returns a sorted list of run IDs for the task being purged.
-// The old runs are at the beginning of the returned slice.
-func (p *purger) listTaskRuns(ctx context.Context, h hostInfo) ([]uuid.UUID, error) {
-	baseDir := remoteRunsDir(p.ClusterID, p.TaskID, h.DC, h.ID, p.Keyspace, p.Table)
+var tagRegexp = regexp.MustCompile("^sm_[0-9]{14}UTC$")
 
-	p.Logger.Debug(ctx, "Listing runs",
+// listTaskTags returns a sorted list of tags for the task being purged.
+// The old tags are at the beginning of the returned slice.
+func (p *purger) listTaskTags(ctx context.Context, h hostInfo) ([]string, error) {
+	baseDir := remoteTagsDir(p.ClusterID, p.TaskID, h.DC, h.ID, p.Keyspace, p.Table)
+
+	p.Logger.Debug(ctx, "Listing tags",
 		"host", h.IP,
 		"location", h.Location,
 		"path", baseDir,
@@ -137,7 +138,7 @@ func (p *purger) listTaskRuns(ctx context.Context, h hostInfo) ([]uuid.UUID, err
 		return nil, err
 	}
 
-	var ids []uuid.UUID
+	var tags []string
 	for _, f := range files {
 		if !f.IsDir {
 			p.Logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
@@ -148,8 +149,9 @@ func (p *purger) listTaskRuns(ctx context.Context, h hostInfo) ([]uuid.UUID, err
 			)
 			continue
 		}
-		var runID uuid.UUID
-		if err := runID.UnmarshalText([]byte(f.Name)); err != nil {
+
+		tag := f.Name
+		if !claimTag(tag) {
 			p.Logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
 				"host", h.IP,
 				"location", h.Location,
@@ -158,17 +160,18 @@ func (p *purger) listTaskRuns(ctx context.Context, h hostInfo) ([]uuid.UUID, err
 			)
 			continue
 		}
-		ids = append(ids, runID)
+		tags = append(tags, tag)
 	}
 
-	sort.Slice(ids, func(i, j int) bool {
-		return uuid.Compare(ids[i], ids[j]) < 0
-	})
+	// Sort tags by date ascending
+	sort.Strings(tags)
 
-	return ids, nil
+	return tags, nil
 }
 
-// loadAllManifests returns manifests for all the tasks and runs for the given
+var taskTagVersionManifestRegexp = regexp.MustCompile("/([a-f0-9\\-]{36})/tag/(sm_[0-9]{14}UTC)/([a-f0-9]{32})/" + manifest + "$")
+
+// loadAllManifests returns manifests for all the tasks and tags for the given
 // kayspace and table.
 func (p *purger) loadAllManifests(ctx context.Context, h hostInfo) ([]remoteManifest, error) {
 	baseDir := remoteTasksDir(p.ClusterID, h.DC, h.ID, p.Keyspace, p.Table)
@@ -184,11 +187,9 @@ func (p *purger) loadAllManifests(ctx context.Context, h hostInfo) ([]remoteMani
 		return nil, err
 	}
 
-	r := regexp.MustCompile("/([a-f0-9\\-]{36})/run/([a-f0-9\\-]{36})/([a-f0-9]{32})/" + manifest + "$")
-
 	var manifests []remoteManifest
 	for _, f := range files {
-		m := r.FindStringSubmatch("/" + f.Path)
+		m := taskTagVersionManifestRegexp.FindStringSubmatch("/" + f.Path)
 		if m == nil {
 			// Report any unexpected files
 			if !f.IsDir {
@@ -212,22 +213,11 @@ func (p *purger) loadAllManifests(ctx context.Context, h hostInfo) ([]remoteMani
 			)
 			continue
 		}
-		var runID uuid.UUID
-		if err := runID.UnmarshalText([]byte(m[2])); err != nil {
-			p.Logger.Error(ctx, "Failed to parse run ID, ignoring file",
-				"host", h.IP,
-				"location", h.Location,
-				"path", path.Join(baseDir, f.Path),
-				"error", err,
-			)
-			continue
-		}
-		version := m[3]
 
 		v := remoteManifest{
-			TaskID:  taskID,
-			RunID:   runID,
-			Version: version,
+			TaskID:      taskID,
+			SnapshotTag: m[2],
+			Version:     m[3],
 		}
 
 		p.Logger.Debug(ctx, "Found manifest",
@@ -319,11 +309,11 @@ func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key
 	return errs
 }
 
-func (p *purger) deleteRuns(ctx context.Context, h hostInfo, runs []uuid.UUID) error {
+func (p *purger) deleteTags(ctx context.Context, h hostInfo, tags []string) error {
 	var errs error
-	for _, run := range runs {
-		dir := remoteRunDir(p.ClusterID, p.TaskID, run, h.DC, h.ID, p.Keyspace, p.Table)
-		p.Logger.Info(ctx, "Deleting run directory",
+	for _, t := range tags {
+		dir := remoteTagDir(p.ClusterID, p.TaskID, t, h.DC, h.ID, p.Keyspace, p.Table)
+		p.Logger.Info(ctx, "Deleting tag directory",
 			"host", h.IP,
 			"location", h.Location,
 			"path", dir,

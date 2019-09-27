@@ -301,11 +301,6 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		"target", target,
 	)
 
-	// Register the run
-	if err := s.putRun(run); err != nil {
-		return errors.Wrap(err, "failed to register the run")
-	}
-
 	// Get the cluster client
 	client, err := s.scyllaClient(ctx, run.ClusterID)
 	if err != nil {
@@ -346,11 +341,22 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		}
 	}
 
+	// Generate snapshot tag
+	if run.SnapshotTag == "" {
+		run.SnapshotTag = newSnapshotTag()
+	}
+
+	// Register the run
+	if err := s.putRun(run); err != nil {
+		return errors.Wrap(err, "failed to register the run")
+	}
+
 	// Create a worker
 	w := worker{
 		ClusterID:     clusterID,
 		TaskID:        taskID,
 		RunID:         runID,
+		SnapshotTag:   run.SnapshotTag,
 		Config:        s.config,
 		Units:         run.Units,
 		Client:        client,
@@ -386,6 +392,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	}
 
 	run.PrevID = prev.ID
+	run.SnapshotTag = prev.SnapshotTag
 	run.Units = prev.Units
 	run.DC = prev.DC
 

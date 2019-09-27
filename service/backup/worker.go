@@ -4,7 +4,6 @@ package backup
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	"github.com/scylladb/go-log"
@@ -40,6 +39,7 @@ type worker struct {
 	ClusterID     uuid.UUID
 	TaskID        uuid.UUID
 	RunID         uuid.UUID
+	SnapshotTag   string
 	Config        Config
 	Units         []Unit
 	Client        *scyllaclient.Client
@@ -65,12 +65,4 @@ func (w *worker) setHostSnapshotDirs(h hostInfo, dirs []snapshotDir) {
 	}
 
 	w.dirs[h.IP] = dirs
-}
-
-func snapshotTag(id uuid.UUID) string {
-	return "sm_" + id.String()
-}
-
-func claimTag(tag string) bool {
-	return strings.HasPrefix(tag, "sm_")
 }

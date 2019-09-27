@@ -10,6 +10,7 @@ CREATE TABLE backup_run (
     task_id uuid,
     id timeuuid,
     prev_id timeuuid,
+    snapshot_tag text,
     units list<frozen<backup_unit>>,
     dc list<text>,
     location list<text>,

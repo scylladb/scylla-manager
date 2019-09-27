@@ -78,12 +78,12 @@ func (w *worker) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
 
 func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 	for _, u := range w.Units {
-		w.Logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", snapshotTag(w.RunID))
+		w.Logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", w.SnapshotTag)
 		var tables []string
 		if !u.AllTables {
 			tables = u.Tables
 		}
-		if err := w.Client.TakeSnapshot(ctx, h.IP, snapshotTag(w.RunID), u.Keyspace, tables...); err != nil {
+		if err := w.Client.TakeSnapshot(ctx, h.IP, w.SnapshotTag, u.Keyspace, tables...); err != nil {
 			return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
 		}
 	}
@@ -97,7 +97,7 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	}
 
 	for _, t := range tags {
-		if claimTag(t) && t != snapshotTag(w.RunID) {
+		if claimTag(t) && t != w.SnapshotTag {
 			w.Logger.Info(ctx, "Deleting old snapshot", "host", h.IP, "tag", t)
 			if err := w.Client.DeleteSnapshot(ctx, h.IP, t); err != nil {
 				return err
@@ -116,7 +116,7 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 	for i, u := range w.Units {
 		w.Logger.Debug(ctx, "Finding table snapshot directories",
 			"host", h.IP,
-			"tag", snapshotTag(w.RunID),
+			"tag", w.SnapshotTag,
 			"keyspace", u.Keyspace,
 		)
 
@@ -138,7 +138,7 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 			d := snapshotDir{
 				Host:     h.IP,
 				Unit:     int64(i),
-				Path:     path.Join(baseDir, t.Path, "snapshots", snapshotTag(w.RunID)),
+				Path:     path.Join(baseDir, t.Path, "snapshots", w.SnapshotTag),
 				Keyspace: u.Keyspace,
 				Table:    m[1],
 				Version:  m[2],
@@ -158,7 +158,7 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 
 			w.Logger.Debug(ctx, "Found snapshot table directory",
 				"host", h.IP,
-				"tag", snapshotTag(w.RunID),
+				"tag", w.SnapshotTag,
 				"keyspace", d.Keyspace,
 				"table", d.Table,
 				"dir", d.Path,

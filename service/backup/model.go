@@ -51,11 +51,12 @@ type Run struct {
 	TaskID    uuid.UUID
 	ID        uuid.UUID
 
-	PrevID    uuid.UUID
-	Units     []Unit
-	DC        []string
-	Location  []Location
-	StartTime time.Time
+	PrevID      uuid.UUID
+	SnapshotTag string
+	Units       []Unit
+	DC          []string
+	Location    []Location
+	StartTime   time.Time
 }
 
 // RunProgress describes backup progress on per file basis.

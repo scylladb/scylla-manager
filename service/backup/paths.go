@@ -16,34 +16,34 @@ func keyspaceDir(keyspace string) string {
 
 const manifest = "manifest.json"
 
-func remoteManifestFile(clusterID, taskID, runID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
+func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
 		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
-		"run",
-		runID.String(),
+		"tag",
+		snapshotTag,
 		version,
 		manifest,
 	)
 }
 
-func remoteRunDir(clusterID, taskID, runID uuid.UUID, dc, nodeID, keyspace, table string) string {
+func remoteTagDir(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table string) string {
 	return path.Join(
 		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
-		"run",
-		runID.String(),
+		"tag",
+		snapshotTag,
 	)
 }
 
-func remoteRunsDir(clusterID, taskID uuid.UUID, dc, nodeID, keyspace, table string) string {
+func remoteTagsDir(clusterID, taskID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
 		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
-		"run",
+		"tag",
 	)
 }
 

@@ -13,6 +13,7 @@ var (
 			"task_id",
 			"id",
 			"prev_id",
+			"snapshot_tag",
 			"units",
 			"dc",
 			"location",

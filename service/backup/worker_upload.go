@@ -76,7 +76,7 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) err
 		w.Logger.Info(ctx, "Attaching to the previous agent job",
 			"host", h.IP,
 			"keyspace", d.Keyspace,
-			"tag", snapshotTag(w.RunID),
+			"tag", w.SnapshotTag,
 			"jobid", jobID,
 		)
 		if err := w.waitJob(ctx, jobID, d); err != nil {
@@ -355,7 +355,7 @@ func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapsho
 }
 
 func (w *worker) remoteManifestFile(h hostInfo, d snapshotDir) string {
-	return remoteManifestFile(w.ClusterID, w.TaskID, w.RunID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
+	return remoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
 }
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
