@@ -89,7 +89,7 @@ func inParallel(hosts []hostInfo, limit int, f func(h hostInfo) error) error {
 				if i >= len(hosts) {
 					return
 				}
-				out <- errors.Wrapf(f(hosts[i]), "host %s", hosts[i])
+				out <- errors.Wrapf(f(hosts[i]), "%s", hosts[i])
 			}
 		}()
 	}
