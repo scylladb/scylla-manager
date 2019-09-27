@@ -718,50 +718,6 @@
         },
         "security": []
       }
-    },
-    "/config/create": {
-      "post": {
-        "description": "Create configuration entry for the remote",
-        "summary": "Create new remote",
-        "operationId": "ConfigCreate",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "remote",
-            "description": "remote configuration",
-            "schema": {
-              "$ref": "#/definitions/Remote"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Empty object",
-            "schema": {
-              "type": "object"
-            },
-            "headers": {}
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
     }
   },
   "definitions": {

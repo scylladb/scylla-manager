@@ -16,7 +16,7 @@ import (
 // Run a suite of tests
 func testServer(t *testing.T, tests []httpTest) {
 	t.Helper()
-	registerInMemoryConf()
+	RegisterInMemoryConf()
 	rcServer := New()
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
@@ -240,7 +240,7 @@ func TestRCAsync(t *testing.T) {
 }
 
 func TestRCAsyncSuccessStatus(t *testing.T) {
-	registerInMemoryConf()
+	RegisterInMemoryConf()
 	rcServer := New()
 
 	body := runHTTPTest(t, rcServer, httpTest{
@@ -266,7 +266,7 @@ func TestRCAsyncSuccessStatus(t *testing.T) {
 }
 
 func TestRCAsyncErrorStatus(t *testing.T) {
-	registerInMemoryConf()
+	RegisterInMemoryConf()
 	rcServer := New()
 
 	body := runHTTPTest(t, rcServer, httpTest{
@@ -292,7 +292,7 @@ func TestRCAsyncErrorStatus(t *testing.T) {
 }
 
 func TestRCExcludeParams(t *testing.T) {
-	registerInMemoryConf()
+	RegisterInMemoryConf()
 	rcServer := New()
 
 	runHTTPTest(t, rcServer, httpTest{

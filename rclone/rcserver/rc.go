@@ -7,10 +7,12 @@ import (
 	"context"
 	"encoding/base64"
 
-	"github.com/rclone/rclone/fs"
-	"github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
+	"github.com/scylladb/mermaid/rclone/operations"
 )
+
+// CatLimit is the maximum amount of bytes that Cat operation can output.
+const CatLimit = 1024 * 1024
 
 func init() {
 	rc.Add(rc.Call{
@@ -33,14 +35,18 @@ See the [cat command](/commands/rclone_cat/) command for more information on the
 
 // Cat a remote
 func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	f, err := rc.GetFs(in)
-	if err != nil && err != fs.ErrorIsFile {
+	f, remote, err := rc.GetFsAndRemote(in)
+	if err != nil {
+		return nil, err
+	}
+	o, err := f.NewObject(ctx, remote)
+	if err != nil {
 		return nil, err
 	}
 
 	var buf bytes.Buffer
 	w := base64.NewEncoder(base64.URLEncoding, &buf)
-	if err := operations.Cat(ctx, f, w, 0, -1); err != nil {
+	if err := operations.Cat(ctx, o, w, CatLimit); err != nil {
 		return nil, err
 	}
 	w.Close()

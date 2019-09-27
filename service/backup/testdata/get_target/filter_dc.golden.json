@@ -31,7 +31,7 @@
     "dc1"
   ],
   "location": [
-    "s3:test-get-target"
+    "s3:backuptest-get-target"
   ],
   "retention": 3,
   "rate_limit": null,

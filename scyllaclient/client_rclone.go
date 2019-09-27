@@ -6,40 +6,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/internal/httputil/middleware"
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/client/operations"
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
 )
-
-// S3Params defines parameters for S3 remote.
-type S3Params struct {
-	Provider          string `json:"provider,omitempty"`
-	Region            string `json:"region,omitempty"`
-	EnvAuth           bool   `json:"env_auth,omitempty"`
-	AccessKeyID       string `json:"access_key_id,omitempty"`
-	SecretAccessKey   string `json:"secret_access_key,omitempty"`
-	Endpoint          string `json:"endpoint,omitempty"`
-	DisableChecksum   bool   `json:"disable_checksum,omitempty"`
-	UploadConcurrency int    `json:"upload_concurrency,omitempty"`
-}
-
-// RcloneRegisterS3Remote registers new S3 based remote with the rclone
-// configuration registry running on the agent.
-// After registering the remote with "name", bucket can be referenced in the
-// format "name:bucket-name".
-func (c *Client) RcloneRegisterS3Remote(ctx context.Context, host, name string, params S3Params) error {
-	p := operations.ConfigCreateParams{
-		Context: middleware.ForceHost(ctx, host),
-		Remote: &models.Remote{
-			Name:       name,
-			Type:       "s3",
-			Parameters: params,
-		},
-	}
-	_, err := c.rcloneOps.ConfigCreate(&p) //nolint:errcheck
-	return err
-}
 
 // RcloneSetBandwidthLimit sets bandwidth limit of all the current and future
 // transfers performed under current client session.
@@ -127,17 +100,24 @@ func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string
 // RcloneCopyFile copies file from the srcRemotePath to dstRemotePath.
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
-// Remote path format is "name:bucket/path" with exception of local file system
-// which is just path to the file.
+// Remote path format is "name:bucket/path".
 // Both dstRemotePath and srRemotePath must point to a file.
 func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
+	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
+	if err != nil {
+		return 0, err
+	}
+	srcFs, srcRemote, err := rcloneSplitRemotePath(srcRemotePath)
+	if err != nil {
+		return 0, err
+	}
 	p := operations.OperationsCopyfileParams{
 		Context: middleware.ForceHost(ctx, host),
 		Copyfile: &models.CopyOptions{
-			DstFs:     filepath.Dir(dstRemotePath),
-			DstRemote: filepath.Base(dstRemotePath),
-			SrcFs:     filepath.Dir(srcRemotePath),
-			SrcRemote: filepath.Base(srcRemotePath),
+			DstFs:     dstFs,
+			DstRemote: dstRemote,
+			SrcFs:     srcFs,
+			SrcRemote: srcRemote,
 		},
 		Async: true,
 	}
@@ -152,8 +132,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 // the directory pointed by dstRemotePath.
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
-// Remote path format is "name:bucket/path" with exception of local file system
-// which is just path to the directory.
+// Remote path format is "name:bucket/path".
 // To exclude files by filename pattern (just filename without directory path)
 // pass them as variadic arguments.
 func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string, exclude ...string) (int64, error) {
@@ -175,40 +154,45 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, 
 
 // RcloneDeleteDir removes a directory or container and all of its contents
 // from the remote.
-// Remote path format is "name:bucket/path" with exception of local file system
-// which is just path to the directory.
+// Remote path format is "name:bucket/path".
 func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath string) error {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return err
+	}
 	p := operations.OperationsPurgeParams{
 		Context: middleware.ForceHost(ctx, host),
 		Purge: &models.RemotePath{
-			Fs:     filepath.Dir(remotePath),
-			Remote: filepath.Base(remotePath),
+			Fs:     fs,
+			Remote: remote,
 		},
 		Async: false,
 	}
-	_, err := c.rcloneOps.OperationsPurge(&p) // nolint: errcheck
+	_, err = c.rcloneOps.OperationsPurge(&p) // nolint: errcheck
 	return err
 }
 
 // RcloneDeleteFile removes the single file pointed to by remotePath
-// Remote path format is "name:bucket/path" with exception of local file system
-// which is just path to the directory.
+// Remote path format is "name:bucket/path".
 func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath string) error {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return err
+	}
 	p := operations.OperationsDeletefileParams{
 		Context: middleware.ForceHost(ctx, host),
 		Deletefile: &models.RemotePath{
-			Fs:     filepath.Dir(remotePath),
-			Remote: filepath.Base(remotePath),
+			Fs:     fs,
+			Remote: remote,
 		},
 		Async: false,
 	}
-	_, err := c.rcloneOps.OperationsDeletefile(&p) // nolint: errcheck
+	_, err = c.rcloneOps.OperationsDeletefile(&p) // nolint: errcheck
 	return err
 }
 
 // RcloneDiskUsage get disk space usage.
-// Remote path format is "name:bucket/path" with exception of local file system
-// which is just path to the directory.
+// Remote path format is "name:bucket/path".
 func (c *Client) RcloneDiskUsage(ctx context.Context, host string, remotePath string) (*models.FileSystemDetails, error) {
 	p := operations.OperationsAboutParams{
 		Context: middleware.ForceHost(ctx, host),
@@ -227,10 +211,15 @@ func (c *Client) RcloneDiskUsage(ctx context.Context, host string, remotePath st
 // Only use that for small files, it loads the whole file to memory on a remote
 // node and only then returns it. This is caused by rclone design.
 func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) ([]byte, error) {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return nil, err
+	}
 	p := operations.OperationsCatParams{
 		Context: middleware.ForceHost(ctx, host),
 		Cat: &models.RemotePath{
-			Fs: remotePath,
+			Fs:     fs,
+			Remote: remote,
 		},
 	}
 	resp, err := c.rcloneOps.OperationsCat(&p)
@@ -244,8 +233,7 @@ func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) 
 type RcloneListDirOpts = models.ListOptionsOpt
 
 // RcloneListDir lists contents of a directory specified by the path.
-// Remote path format is "name:bucket/path" with exception of local file system
-// which is just path to the directory.
+// Remote path format is "name:bucket/path".
 // Listed item path is relative to the remote path root directory.
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*models.ListItem, error) {
 	empty := ""
@@ -273,4 +261,18 @@ func TransferredByFilename(filename string, transferred []*models.Transfer) []*m
 		}
 	}
 	return out
+}
+
+// rcloneSplitRemotePath splits string path into file system and file path.
+func rcloneSplitRemotePath(remotePath string) (string, string, error) {
+	parts := strings.Split(remotePath, ":")
+	if len(parts) != 2 {
+		return "", "", errors.New("remote path without file system name")
+	}
+	if parts[1] == "" {
+		return "", "", errors.New("file path empty")
+	}
+	fs := fmt.Sprintf("%s:%s", parts[0], filepath.Dir(parts[1]))
+	path := filepath.Base(parts[1])
+	return fs, path, nil
 }

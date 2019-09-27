@@ -6,6 +6,7 @@ services:
     privileged: true
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     environment:
+      AWS_S3_ENDPOINT: ${MINIO_ENDPOINT}
       AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
@@ -24,6 +25,7 @@ services:
     privileged: true
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     environment:
+      AWS_S3_ENDPOINT: ${MINIO_ENDPOINT}
       AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
@@ -42,6 +44,7 @@ services:
     privileged: true
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     environment:
+      AWS_S3_ENDPOINT: ${MINIO_ENDPOINT}
       AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
@@ -60,6 +63,7 @@ services:
     privileged: true
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     environment:
+      AWS_S3_ENDPOINT: ${MINIO_ENDPOINT}
       AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
@@ -78,6 +82,7 @@ services:
     privileged: true
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     environment:
+      AWS_S3_ENDPOINT: ${MINIO_ENDPOINT}
       AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
@@ -96,6 +101,7 @@ services:
     privileged: true
     command: --smp 2 --seeds 192.168.100.11,192.168.100.21
     environment:
+      AWS_S3_ENDPOINT: ${MINIO_ENDPOINT}
       AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:

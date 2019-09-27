@@ -1,1 +1,1 @@
-{"location": ["s3:test-get-target", "dc1:s3:test-get-target"]}
+{"location": ["s3:backuptest-get-target", "dc1:s3:backuptest-get-target"]}

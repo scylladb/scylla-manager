@@ -131,11 +131,6 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrap(err, "invalid location")
 	}
 
-	// Register providers with hosts
-	if err := s.registerProviders(ctx, client, t.DC, dcMap); err != nil {
-		return t, errors.Wrap(err, "failed to register backup providers")
-	}
-
 	// Validate that locations are accessible from the nodes
 	if err := s.checkRemoteLocations(ctx, client, t.Location, t.DC, dcMap); err != nil {
 		return t, errors.Wrap(err, "location not accessible")
@@ -306,29 +301,6 @@ func (s *Service) checkHostAccessibility(ctx context.Context, client *scyllaclie
 	}
 	s.logger.Info(ctx, "Host location check OK", "host", h, "location", l)
 	return nil
-}
-
-// registerProviders ensures that configuration for supported backup providers
-// is set on the provided hosts.
-func (s *Service) registerProviders(ctx context.Context, client *scyllaclient.Client, dcs []string, dcMap map[string][]string) error {
-	// Get hosts of the target DCs
-	hosts := dcHosts(dcMap, dcs)
-	if len(hosts) == 0 {
-		return errors.New("no matching hosts found")
-	}
-
-	var errs error
-
-	for _, pr := range SupportedProviders {
-		for _, h := range hosts {
-			s.logger.Info(ctx, "Registering backup provider", "host", h, "provider", pr)
-			if err := registerProvider(ctx, client, pr, h, s.config); err != nil {
-				errs = multierr.Append(errs, errors.Wrap(err, h))
-			}
-		}
-	}
-
-	return mermaid.ErrValidate(errs)
 }
 
 // Backup executes a backup on a given target.

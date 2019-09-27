@@ -37,9 +37,6 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit,
 }
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo, policy int) error {
-	if err := w.register(ctx, h); err != nil {
-		return errors.Wrap(err, "failed to register remote")
-	}
 	if err := w.setRateLimit(ctx, h); err != nil {
 		return errors.Wrap(err, "failed to set rate limit")
 	}
@@ -108,16 +105,6 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 	}
 
 	return 0
-}
-
-func (w *worker) register(ctx context.Context, h hostInfo) error {
-	w.Logger.Info(ctx, "Registering remote", "host", h.IP, "location", h.Location)
-
-	if h.Location.Provider != S3 {
-		return errors.Errorf("unsupported provider %s", h.Location.Provider)
-	}
-
-	return registerProvider(ctx, w.Client, h.Location.Provider, h.IP, w.Config)
 }
 
 func (w *worker) setRateLimit(ctx context.Context, h hostInfo) error {

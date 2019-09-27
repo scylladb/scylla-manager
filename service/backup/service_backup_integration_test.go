@@ -262,14 +262,15 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		},
 	}
 
-	const testBucket = "backuptest-void"
+	const testBucket = "backuptest-get-target"
 
 	var (
 		session = CreateSessionWithoutMigration(t)
 		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket))
 		ctx     = context.Background()
 	)
-	registerRemotes(t, h)
+
+	S3InitBucket(t, testBucket)
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
@@ -304,14 +305,6 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				t.Fatal(diff)
 			}
 		})
-	}
-}
-
-func registerRemotes(t *testing.T, h *backupTestHelper) {
-	for _, host := range ManagedClusterHosts() {
-		if err := h.client.RcloneRegisterS3Remote(context.Background(), host, "s3", NewS3ParamsEnvAuth()); err != nil {
-			t.Fatal(err)
-		}
 	}
 }
 
@@ -376,14 +369,15 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		},
 	}
 
-	const testBucket = "backuptest-void"
+	const testBucket = "backuptest-get-target"
 
 	var (
 		session = CreateSessionWithoutMigration(t)
 		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket))
 		ctx     = context.Background()
 	)
-	registerRemotes(t, h)
+
+	S3InitBucket(t, testBucket)
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
@@ -412,7 +406,6 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		h       = newBackupTestHelper(t, session, config, s3Location(testBucket))
 		ctx     = context.Background()
 	)
-	registerRemotes(t, h)
 
 	putRun := func(t *testing.T, r *backup.Run) {
 		t.Helper()

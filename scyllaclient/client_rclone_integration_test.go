@@ -13,35 +13,20 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-const (
-	testRemote = "s3"
-	testBucket = "testing"
-)
-
-func registerRemote(t *testing.T, c *scyllaclient.Client, host string) {
-	t.Helper()
-
-	if err := c.RcloneRegisterS3Remote(context.Background(), host, testRemote, NewS3Params()); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func remotePath(path string) string {
-	return testRemote + ":" + testBucket + path
-}
-
 var listRecursively = &scyllaclient.RcloneListDirOpts{Recurse: true}
 
 func TestRcloneCopyDirIntegration(t *testing.T) {
-	client, close := newMockRcloneServer(t)
-	defer close()
+	defer setRootDir(t)()
+	S3SetEnvAuth(t)
+
+	client, _, cl := newMockRcloneServer(t)
+	defer cl()
 
 	S3InitBucket(t, testBucket)
-	registerRemote(t, client, testHost)
 
 	ctx := context.Background()
 
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath("/copy"), "testdata/rclone/copy")
+	id, err := client.RcloneCopyDir(ctx, testHost, remotePath("/copy"), "data:testdata/rclone/copy")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,15 +78,18 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 }
 
 func TestRcloneCopyFileIntegration(t *testing.T) {
-	client, close := newMockRcloneServer(t)
-	defer close()
+	defer setRootDir(t)()
+
+	S3SetEnvAuth(t)
+
+	client, _, cl := newMockRcloneServer(t)
+	defer cl()
 
 	S3InitBucket(t, testBucket)
-	registerRemote(t, client, testHost)
 
 	ctx := context.Background()
 
-	id, err := client.RcloneCopyFile(ctx, testHost, remotePath("/file2.txt"), "testdata/rclone/copy/file.txt")
+	id, err := client.RcloneCopyFile(ctx, testHost, remotePath("/file2.txt"), "data:testdata/rclone/copy/file.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

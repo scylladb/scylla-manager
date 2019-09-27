@@ -4,66 +4,67 @@ package rcserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/rc"
+	"github.com/scylladb/go-set/strset"
+	"go.uber.org/multierr"
 )
 
-func init() {
-	registerInMemoryConf()
-}
+const (
+	// S3Provider is the name of the AWS S3 file system provided by rclone.
+	S3Provider = "s3"
+	// DataProvider is the name of the local file system overridden by mermaid.
+	DataProvider = "data"
+)
 
-func registerInMemoryConf() {
+var (
+	// Set of all allowed/supported providers.
+	providers = strset.New(S3Provider, DataProvider)
+
+	// ErrNotFound is returned when remote call is not available.
+	ErrNotFound = errors.New("not found")
+)
+
+// RegisterInMemoryConf registers global items for configuring backend
+// providers in rclone.
+// Function is idempotent.
+// Has to be called again to refresh AWS_S3_ENDPOINT value.
+func RegisterInMemoryConf() {
 	c := &inMemoryConf{}
 	// Set inMemoryConf as default handler for rclone/fs configuration.
 	fs.ConfigFileGet = c.Get
 	fs.ConfigFileSet = c.Set
 
-	call := rc.Calls.Get("config/create")
-	call.Fn = func(ctx context.Context, in rc.Params) (rc.Params, error) {
-		name, err := in.GetString("name")
-		if err != nil {
-			return nil, err
-		}
-		parameters := rc.Params{}
-		err = in.GetStruct("parameters", &parameters)
-		if err != nil {
-			return nil, err
-		}
-		remoteType, err := in.GetString("type")
-		if err != nil {
-			return nil, err
-		}
-		if err := c.Set(name, "type", remoteType); err != nil {
-			return nil, err
-		}
-		for k, v := range parameters {
-			if err := c.Set(name, k, fmt.Sprintf("%v", v)); err != nil {
-				return nil, err
-			}
-		}
-		return nil, nil
-	}
-	call = rc.Calls.Get("config/get")
-	call.Fn = func(ctx context.Context, in rc.Params) (rc.Params, error) {
-		name, err := in.GetString("name")
-		if err != nil {
-			return nil, err
-		}
-		section, ok := c.sections[name]
-		if !ok {
-			return nil, fmt.Errorf("unknown name %q", name)
-		}
-		params := rc.Params{}
-		for key, val := range section {
-			params[key] = val
-		}
-		return params, nil
-	}
+	// Disable config manipulation over remote calls.
+	rc.Calls.Get("config/create").Fn = notFoundFn
+	rc.Calls.Get("config/get").Fn = notFoundFn
+	rc.Calls.Get("config/providers").Fn = notFoundFn
+	rc.Calls.Get("config/delete").Fn = notFoundFn
 
-	fs.Debugf(nil, "config: registered in-memory config")
+	// Register providers.
+	errs := multierr.Combine(
+		fs.ConfigFileSet(S3Provider, "type", "s3"),
+		fs.ConfigFileSet(S3Provider, "provider", "AWS"),
+		fs.ConfigFileSet(S3Provider, "env_auth", "true"),
+		fs.ConfigFileSet(S3Provider, "disable_checksum", "true"),
+		fs.ConfigFileSet(S3Provider, "endpoint", os.Getenv("AWS_S3_ENDPOINT")),
+
+		fs.ConfigFileSet(DataProvider, "type", "data"),
+		fs.ConfigFileSet(DataProvider, "disable_checksum", "true"),
+	)
+	if errs != nil {
+		panic(fmt.Sprintf("failed to register backend providers: %+v", errs))
+	}
+	fs.Debugf(nil, "registered in-memory config")
+}
+
+func notFoundFn(ctx context.Context, in rc.Params) (rc.Params, error) {
+	return rc.Params{}, ErrNotFound
 }
 
 // inMemoryConf is in-memory implementation of rclone configuration for remote file

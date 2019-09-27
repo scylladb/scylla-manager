@@ -1,1 +1,1 @@
-{"upload_parallel": ["10", "dc1:20"], "location": ["s3:test-get-target"]}
+{"upload_parallel": ["10", "dc1:20"], "location": ["s3:backuptest-get-target"]}

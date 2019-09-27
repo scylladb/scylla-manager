@@ -6,23 +6,18 @@ package scyllaclient_test
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/scylladb/go-log"
 	. "github.com/scylladb/mermaid/mermaidtest"
+	"github.com/scylladb/mermaid/rclone/backend/data"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-func registerRemoteWithEnvAuth(t *testing.T, c *scyllaclient.Client, host string) {
-	t.Helper()
-
-	if err := c.RcloneRegisterS3Remote(context.Background(), host, testRemote, NewS3ParamsEnvAuth()); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestRcloneListDirAgentIntegration(t *testing.T) {
+func TestRcloneS3ListDirAgentIntegration(t *testing.T) {
 	testHost := ManagedClusterHost()
 
 	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
@@ -31,7 +26,6 @@ func TestRcloneListDirAgentIntegration(t *testing.T) {
 	}
 
 	S3InitBucket(t, testBucket)
-	registerRemoteWithEnvAuth(t, client, testHost)
 
 	ctx := context.Background()
 
@@ -54,17 +48,19 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 	testHost := ManagedClusterHost()
 
 	S3InitBucket(t, testBucket)
-	registerRemoteWithEnvAuth(t, client, testHost)
 
 	ctx := context.Background()
 
 	// Create test directory with files on the test host.
-	cmd := "rm -rf /tmp/copy && mkdir /tmp/copy && echo 'bar' > /tmp/copy/foo && echo 'foo' > /tmp/copy/bar"
+	cmd := injectRootDir(
+		"rm -rf %s/tmp/copy && mkdir -p %s/tmp/copy && echo 'bar' > %s/tmp/copy/foo && echo 'foo' > %s/tmp/copy/bar",
+		data.RootDir,
+	)
 	_, _, err = ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "/tmp/copy")
+	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +83,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 		}
 	}
 
-	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "/tmp/copy")
+	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,19 +117,21 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	testHost := ManagedClusterHost()
 
 	S3InitBucket(t, testBucket)
-	registerRemoteWithEnvAuth(t, client, testHost)
 
 	ctx := context.Background()
 
 	// Create big enough file on the test host to keep running for long enough.
 	// 1024*102400
-	cmd := "rm -rf /tmp/copy && dd if=/dev/zero of=/tmp/copy count=1024 bs=102400"
+	cmd := injectRootDir(
+		"rm -rf %s/tmp/copy && mkdir -p %s/tmp/ && dd if=/dev/zero of=%s/tmp/copy count=1024 bs=102400",
+		data.RootDir,
+	)
 	_, _, err = ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		cmd := "rm -rf /tmp/copy"
+		cmd := fmt.Sprintf("rm -rf %s/tmp/copy", data.RootDir)
 		_, _, err := ExecOnHost(testHost, cmd)
 		if err != nil {
 			t.Fatal(err)
@@ -142,7 +140,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	id, err := client.RcloneCopyFile(ctx, testHost, remotePath("/copy"), "/tmp/copy")
+	id, err := client.RcloneCopyFile(ctx, testHost, remotePath("/copy"), "data:tmp/copy")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,4 +170,8 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	if res[0].Error == "" {
 		t.Fatal("Expected error but got empty")
 	}
+}
+
+func injectRootDir(str, rootdir string) string {
+	return strings.ReplaceAll(str, "%s", rootdir)
 }

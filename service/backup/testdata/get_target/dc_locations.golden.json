@@ -32,8 +32,8 @@
     "dc2"
   ],
   "location": [
-    "s3:test-get-target",
-    "dc1:s3:test-get-target"
+    "s3:backuptest-get-target",
+    "dc1:s3:backuptest-get-target"
   ],
   "retention": 3,
   "rate_limit": null,

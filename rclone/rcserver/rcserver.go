@@ -58,7 +58,7 @@ func New() *Server {
 		// Rewind job ID to new values
 		jobs.SetInitialJobID(timeutc.Now().Unix())
 	})
-
+	RegisterInMemoryConf()
 	return &Server{
 		filter: filter.Active,
 	}
@@ -72,7 +72,7 @@ func writeError(path string, in rc.Params, w http.ResponseWriter, err error, sta
 	switch {
 	case errOrig == fs.ErrorDirNotFound || errOrig == fs.ErrorObjectNotFound:
 		status = http.StatusNotFound
-	case rc.IsErrParamInvalid(err) || rc.IsErrParamNotFound(err):
+	case isBadRequestErr(err):
 		status = http.StatusBadRequest
 	}
 	w.WriteHeader(status)
@@ -86,6 +86,18 @@ func writeError(path string, in rc.Params, w http.ResponseWriter, err error, sta
 		// can't return the error at this point
 		fs.Errorf(nil, "rc: failed to write JSON output: %v", err)
 	}
+}
+
+func isBadRequestErr(err error) bool {
+	errOrig := errors.Cause(err)
+	return rc.IsErrParamInvalid(err) ||
+		rc.IsErrParamNotFound(err) ||
+		IsErrParamInvalid(err) ||
+		errOrig == fs.ErrorIsFile ||
+		errOrig == fs.ErrorNotAFile ||
+		errOrig == fs.ErrorDirectoryNotEmpty ||
+		errOrig == fs.ErrorDirExists ||
+		errOrig == fs.ErrorListBucketRequired
 }
 
 // ServeHTTP implements http.Handler interface.
@@ -120,7 +132,7 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		values = r.Form
 	}
 
-	// Read the POST and URL parameters into in
+	// Merge POST and URL parameters into in
 	in := make(rc.Params)
 	for k, vs := range values {
 		if len(vs) > 0 {
@@ -150,6 +162,12 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		return
 	}
 	fn := call.Fn
+
+	if err := validateFsName(in); err != nil {
+		writeError(path, in, w, err, http.StatusBadRequest)
+		return
+	}
+
 	exclude, err := getExclude(in)
 	if err != nil {
 		writeError(path, in, w, err, http.StatusBadRequest)
@@ -197,7 +215,10 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		out, jobID, err = jobs.ExecuteJob(r.Context(), fn, in)
 		w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 	}
-	if err != nil {
+	if rc.IsErrParamNotFound(err) || err == ErrNotFound {
+		writeError(path, in, w, err, http.StatusNotFound)
+		return
+	} else if err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)
 		return
 	}
@@ -216,6 +237,28 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
 	fs.Errorf(nil, "rc: received unsupported GET request")
 	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+}
+
+// validateFsName ensures that only allowed file systems can be used in
+// parameters with file system format.
+func validateFsName(in rc.Params) error {
+	for _, name := range []string{"fs", "srcFs", "dstFs"} {
+		v, err := in.GetString(name)
+		if err != nil {
+			if rc.IsErrParamNotFound(err) {
+				continue
+			}
+			return err
+		}
+		_, remote, _, err := fs.ParseRemote(v)
+		if err != nil {
+			return err
+		}
+		if !providers.Has(remote) {
+			return errParamInvalid{errors.Errorf("invalid provider %s in %s param", remote, name)}
+		}
+	}
+	return nil
 }
 
 func getExclude(in rc.Params) ([]string, error) {
@@ -238,4 +281,15 @@ func getExclude(in rc.Params) ([]string, error) {
 		}
 	}
 	return out, nil
+}
+
+type errParamInvalid struct {
+	error
+}
+
+// IsErrParamInvalid checks if the provided error is invalid.
+// Added as a workaround for private error field of fs.ErrParamInvalid.
+func IsErrParamInvalid(err error) bool {
+	_, ok := err.(errParamInvalid)
+	return ok
 }

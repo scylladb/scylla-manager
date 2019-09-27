@@ -8,10 +8,10 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-const dataDir = "/var/lib/scylla/data"
+const dataDir = "data:"
 
 func keyspaceDir(keyspace string) string {
-	return path.Join(dataDir, keyspace)
+	return dataDir + keyspace
 }
 
 const manifest = "manifest.json"

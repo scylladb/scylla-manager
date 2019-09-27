@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/scylladb/mermaid/scyllaclient"
+	"go.uber.org/multierr"
 )
 
 var (
@@ -17,25 +17,6 @@ var (
 	flagS3AccessKeyID     = flag.String("s3-access-key-id", "", "s3 access key id")
 	flagS3SecretAccessKey = flag.String("s3-secret-access-key", "", "s3 access key secret")
 )
-
-// NewS3Params return s3 remote params with AccessKeyID and SecretAccessKey from flags.
-func NewS3Params() scyllaclient.S3Params {
-	return scyllaclient.S3Params{
-		Endpoint:        *flagS3Endpoint,
-		AccessKeyID:     *flagS3AccessKeyID,
-		SecretAccessKey: *flagS3SecretAccessKey,
-		DisableChecksum: true,
-	}
-}
-
-// NewS3ParamsEnvAuth return s3 remote params from flags.
-func NewS3ParamsEnvAuth() scyllaclient.S3Params {
-	return scyllaclient.S3Params{
-		Endpoint:        *flagS3Endpoint,
-		EnvAuth:         true,
-		DisableChecksum: true,
-	}
-}
 
 // S3InitBucket recreates a local bucket if s3-data-dir flag is specified.
 func S3InitBucket(t *testing.T, bucket string) {
@@ -52,6 +33,21 @@ func S3InitBucket(t *testing.T, bucket string) {
 	}
 	if err := os.Mkdir(p, 0700); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// S3SetEnvAuth sets environment variables when needed on the local machine.
+func S3SetEnvAuth(t *testing.T) {
+	t.Helper()
+
+	errs := multierr.Combine(
+		os.Setenv("AWS_S3_ENDPOINT", S3TestEndpoint()),
+		os.Setenv("AWS_ACCESS_KEY_ID", *flagS3AccessKeyID),
+		os.Setenv("AWS_SECRET_ACCESS_KEY", *flagS3SecretAccessKey),
+	)
+
+	if errs != nil {
+		t.Fatal(errs)
 	}
 }
 
