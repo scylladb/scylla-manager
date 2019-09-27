@@ -139,7 +139,7 @@ func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 				"duration", fmt.Sprintf("%dms", d),
 			}
 
-			log := logger.Debug
+			logFn := logger.Debug
 
 			if resp != nil {
 				f = append(f,
@@ -154,11 +154,11 @@ func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 					} else {
 						f = append(f, "dump", string(b))
 					}
-					log = logger.Info
+					logFn = logger.Info
 				}
 			}
 
-			log(req.Context(), "HTTP", f...)
+			logFn(req.Context(), "HTTP", f...)
 		}()
 		return next.RoundTrip(req)
 	})
@@ -176,12 +176,15 @@ func (b body) Close() error {
 }
 
 // Timeout sets request context timeout for individual requests.
-func Timeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
+func Timeout(next http.RoundTripper, timeout time.Duration, logger log.Logger) http.RoundTripper {
 	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
 		defer func() {
 			if resp != nil {
 				resp.Body = body{resp.Body, cancel}
+			}
+			if ctx.Err() != nil {
+				logger.Info(ctx, "Transport request timeout", "timeout", timeout, "err", ctx.Err())
 			}
 		}()
 		return next.RoundTrip(req.WithContext(ctx))

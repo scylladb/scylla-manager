@@ -86,7 +86,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		config.Transport = DefaultTransport()
 	}
 	transport := config.Transport
-	transport = middleware.Timeout(transport, config.RequestTimeout)
+	transport = middleware.Timeout(transport, config.RequestTimeout, logger)
 	transport = middleware.Logger(transport, logger)
 	transport = middleware.HostPool(transport, pool, config.AgentPort)
 	transport = middleware.Retry(transport, len(config.Hosts), logger)
