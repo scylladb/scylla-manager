@@ -571,7 +571,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 }
 
-var runnerTimeout = 10 * time.Second
+var backupTimeout = 10 * time.Second
 
 // Tests resuming a stopped backup.
 func TestBackupResumeIntegration(t *testing.T) {
@@ -620,7 +620,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			Print("When: runner is running")
+			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
 			if err == nil {
 				t.Error("Expected error on run but got nil")
@@ -638,16 +638,16 @@ func TestBackupResumeIntegration(t *testing.T) {
 		<-ctx.Done()
 
 		select {
-		case <-time.After(runnerTimeout):
-			t.Fatalf("Runner didn't complete in under %s", runnerTimeout)
+		case <-time.After(backupTimeout):
+			t.Fatalf("Backup failed to complete in under %s", backupTimeout)
 		case <-done:
-			Print("Then: runner completed execution")
+			Print("Then: backup completed execution")
 		}
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
 
-		Print("When: runner is resumed with new RunID")
+		Print("When: backup is resumed with new RunID")
 		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
 			t.Error("Unexpected error", err)
@@ -680,7 +680,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		done := make(chan struct{})
 		go func() {
-			Print("When: runner is running")
+			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
 			if err == nil {
 				t.Error("Expected error on run but got nil")
@@ -694,16 +694,16 @@ func TestBackupResumeIntegration(t *testing.T) {
 		restartAgents(t)
 
 		select {
-		case <-time.After(runnerTimeout * 3):
-			t.Fatalf("Runner didn't complete in under %s", runnerTimeout*3)
+		case <-time.After(backupTimeout * 3):
+			t.Fatalf("Backup failed to complete in under %s", backupTimeout*3)
 		case <-done:
-			Print("Then: runner completed execution")
+			Print("Then: backup completed execution")
 		}
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
 
-		Print("When: runner is resumed with new RunID")
+		Print("When: backup is resumed with new RunID")
 		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
 			t.Error("Unexpected error", err)
@@ -740,7 +740,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		go func() {
 			defer close(done)
-			Print("When: runner is running")
+			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
 			if err == nil {
 				t.Error("Expected error on run but got nil")
@@ -758,16 +758,16 @@ func TestBackupResumeIntegration(t *testing.T) {
 		<-ctx.Done()
 
 		select {
-		case <-time.After(runnerTimeout):
-			t.Fatalf("Runner didn't complete in under %s", runnerTimeout)
+		case <-time.After(backupTimeout):
+			t.Fatalf("Backup failed to complete in under %s", backupTimeout)
 		case <-done:
-			Print("Then: runner completed execution")
+			Print("Then: backup completed execution")
 		}
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
 
-		Print("When: runner is resumed with new RunID")
+		Print("When: backup is resumed with new RunID")
 		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
 			t.Error("Unexpected error", err)
