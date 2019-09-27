@@ -8,6 +8,7 @@ After=network-online.target
 Type=simple
 User=scylla-manager
 Group=scylla-manager
+EnvironmentFile=/etc/scylla-manager-agent/agent.env
 ExecStart=/usr/bin/scylla-manager-agent
 TimeoutStartSec=900
 KillMode=process
