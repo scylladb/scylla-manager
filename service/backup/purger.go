@@ -151,7 +151,7 @@ func (p *purger) listTaskTags(ctx context.Context, h hostInfo) ([]string, error)
 		}
 
 		tag := f.Name
-		if !claimTag(tag) {
+		if !isSnapshotTag(tag) {
 			p.Logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
 				"host", h.IP,
 				"location", h.Location,

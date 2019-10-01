@@ -97,7 +97,7 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	}
 
 	for _, t := range tags {
-		if claimTag(t) && t != w.SnapshotTag {
+		if isSnapshotTag(t) && t != w.SnapshotTag {
 			w.Logger.Info(ctx, "Deleting old snapshot", "host", h.IP, "tag", t)
 			if err := w.Client.DeleteSnapshot(ctx, h.IP, t); err != nil {
 				return err

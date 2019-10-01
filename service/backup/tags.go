@@ -10,6 +10,6 @@ func newSnapshotTag() string {
 	return "sm_" + timeutc.Now().Format("20060102150405") + "UTC"
 }
 
-func claimTag(tag string) bool {
+func isSnapshotTag(tag string) bool {
 	return tagRegexp.MatchString(tag)
 }
