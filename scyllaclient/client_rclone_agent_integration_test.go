@@ -23,9 +23,9 @@ func registerRemoteWithEnvAuth(t *testing.T, c *scyllaclient.Client, host string
 }
 
 func TestRcloneListDirAgentIntegration(t *testing.T) {
-	testHost := ManagedClusterHosts[0]
+	testHost := ManagedClusterHost()
 
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,13 +45,13 @@ func TestRcloneListDirAgentIntegration(t *testing.T) {
 }
 
 func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
-	config := scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken())
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testHost := ManagedClusterHosts[0]
+	testHost := ManagedClusterHost()
 
 	S3InitBucket(t, testBucket)
 	registerRemoteWithEnvAuth(t, client, testHost)
@@ -112,13 +112,13 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 }
 
 func TestRcloneStoppingTransferIntegration(t *testing.T) {
-	config := scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken())
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testHost := ManagedClusterHosts[0]
+	testHost := ManagedClusterHost()
 
 	S3InitBucket(t, testBucket)
 	registerRemoteWithEnvAuth(t, client, testHost)

@@ -57,7 +57,7 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 }
 
 func getHosts() ([]string, error) {
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ func TestGetStatusIntegration(t *testing.T) {
 			return "test_cluster", nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), logger.Named("scylla"))
+			return scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), logger.Named("scylla"))
 		},
 		kv.NopStore{},
 		kv.NopStore{},
@@ -117,10 +117,14 @@ func TestGetStatusIntegration(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		for i := range ManagedClusterHosts {
-			blockREST(t, ManagedClusterHosts[i])
-			defer unblockREST(t, ManagedClusterHosts[i])
+		for _, h := range ManagedClusterHosts() {
+			blockREST(t, h)
 		}
+		defer func() {
+			for _, h := range ManagedClusterHosts() {
+				unblockREST(t, h)
+			}
+		}()
 
 		_, err := s.GetStatus(ctx, uuid.MustRandom())
 		if err == nil {

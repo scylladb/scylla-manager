@@ -68,7 +68,7 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 func newTestClient(t *testing.T, logger log.Logger) *scyllaclient.Client {
 	t.Helper()
 
-	c, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), logger.Named("scylla"))
+	c, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), logger.Named("scylla"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 
 func (h *backupTestHelper) listFiles() (manifests, files []string) {
 	h.t.Helper()
-	all, err := h.client.RcloneListDir(context.Background(), ManagedClusterHosts[0], h.location.RemotePath(""), true)
+	all, err := h.client.RcloneListDir(context.Background(), ManagedClusterHost(), h.location.RemotePath(""), true)
 	if err != nil {
 		h.t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func restartAgents(t *testing.T) {
 
 func execOnAllHosts(t *testing.T, cmd string) {
 	t.Helper()
-	for _, host := range ManagedClusterHosts {
+	for _, host := range ManagedClusterHosts() {
 		stdout, stderr, err := ExecOnHost(host, cmd)
 		if err != nil {
 			t.Log("stdout", stdout)
@@ -163,7 +163,7 @@ func (h *backupTestHelper) waitCond(f func() bool) {
 func (h *backupTestHelper) waitTransfersStarted() {
 	h.waitCond(func() bool {
 		h.t.Helper()
-		for _, host := range ManagedClusterHosts {
+		for _, host := range ManagedClusterHosts() {
 			s, err := h.client.RcloneStats(context.Background(), host, "")
 			if err != nil {
 				h.t.Fatal(err)
@@ -190,7 +190,7 @@ func (h *backupTestHelper) waitManifestUploaded() {
 func (h *backupTestHelper) waitNoTransfers() {
 	h.waitCond(func() bool {
 		h.t.Helper()
-		for _, host := range ManagedClusterHosts {
+		for _, host := range ManagedClusterHosts() {
 			s, err := h.client.RcloneStats(context.Background(), host, "")
 			if err != nil {
 				h.t.Fatal(err)
@@ -307,7 +307,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 }
 
 func registerRemotes(t *testing.T, h *backupTestHelper) {
-	for _, host := range ManagedClusterHosts {
+	for _, host := range ManagedClusterHosts() {
 		if err := h.client.RcloneRegisterS3Remote(context.Background(), host, "s3", NewS3ParamsEnvAuth()); err != nil {
 			t.Fatal(err)
 		}
@@ -418,7 +418,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			ClusterID: r.ClusterID,
 			TaskID:    r.TaskID,
 			RunID:     r.ID,
-			Host:      ManagedClusterHosts[0],
+			Host:      ManagedClusterHost(),
 			Size:      size,
 			Uploaded:  uploaded,
 		}
@@ -534,7 +534,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	)
 
 	defer func() {
-		for _, ip := range ManagedClusterHosts {
+		for _, ip := range ManagedClusterHosts() {
 			if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
 				t.Error("Couldn't reset stats", ip, err)
 			}
@@ -601,7 +601,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("resume after stop", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
 		defer func() {
-			for _, ip := range ManagedClusterHosts {
+			for _, ip := range ManagedClusterHosts() {
 				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
 					t.Error("Couldn't reset stats", ip, err)
 				}
@@ -660,7 +660,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("resume after agent restart", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
 		defer func() {
-			for _, ip := range ManagedClusterHosts {
+			for _, ip := range ManagedClusterHosts() {
 				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
 					t.Error("Couldn't reset stats", ip, err)
 				}
@@ -716,7 +716,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("continue false", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
 		defer func() {
-			for _, ip := range ManagedClusterHosts {
+			for _, ip := range ManagedClusterHosts() {
 				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
 					t.Error("Couldn't reset stats", ip, err)
 				}
@@ -797,7 +797,7 @@ func TestPurgeIntegration(t *testing.T) {
 	)
 
 	defer func() {
-		for _, ip := range ManagedClusterHosts {
+		for _, ip := range ManagedClusterHosts() {
 			if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
 				t.Error("Couldn't reset stats", ip, err)
 			}
@@ -840,7 +840,7 @@ func TestPurgeIntegration(t *testing.T) {
 	Print("And: old sstable files are removed")
 	var sstPfx []string
 	for _, m := range manifests {
-		b, err := h.client.RcloneCat(ctx, ManagedClusterHosts[0], location.RemotePath(m))
+		b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), location.RemotePath(m))
 		if err != nil {
 			t.Fatal(err)
 		}

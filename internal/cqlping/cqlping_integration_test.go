@@ -17,7 +17,7 @@ import (
 
 func TestPingIntegration(t *testing.T) {
 	_, err := Ping(context.Background(), Config{
-		Addr:    mermaidtest.ManagedClusterHosts[0] + ":9042",
+		Addr:    mermaidtest.ManagedClusterHost() + ":9042",
 		Timeout: 250 * time.Millisecond,
 	})
 	if err != nil {
@@ -29,7 +29,7 @@ func TestPingTLSIntegration(t *testing.T) {
 	t.SkipNow()
 
 	_, err := Ping(context.Background(), Config{
-		Addr:    mermaidtest.ManagedClusterHosts[0] + ":9042",
+		Addr:    mermaidtest.ManagedClusterHost() + ":9042",
 		Timeout: 250 * time.Millisecond,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,

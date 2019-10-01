@@ -17,7 +17,7 @@ import (
 )
 
 func TestClientActiveRepairsIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken()), log.NewDevelopment())
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,14 +57,14 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 }
 
 func TestClientSnapshotIntegration(t *testing.T) {
-	config := scyllaclient.TestConfig(ManagedClusterHosts, AgentAuthToken())
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ctx := context.Background()
-	host := ManagedClusterHosts[0]
+	host := ManagedClusterHost()
 	tag := fmt.Sprint("test_snap_", time.Now().Unix())
 
 	Print("When: snapshot is taken")

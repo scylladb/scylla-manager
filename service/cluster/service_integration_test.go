@@ -82,7 +82,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 			c := &cluster.Cluster{
 				ID:        uuid.NewTime(),
 				Name:      "name" + strconv.Itoa(i),
-				Host:      ManagedClusterHosts[0],
+				Host:      ManagedClusterHost(),
 				AuthToken: AgentAuthToken(),
 			}
 			if err := s.PutCluster(ctx, c); err != nil {
@@ -273,7 +273,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		c := &cluster.Cluster{
 			ID:        uuid.NewTime(),
 			Name:      "clust1",
-			Host:      ManagedClusterHosts[0],
+			Host:      ManagedClusterHost(),
 			AuthToken: AgentAuthToken(),
 		}
 		if err := s.PutCluster(ctx, c); err != nil {
@@ -337,7 +337,7 @@ func validCluster() *cluster.Cluster {
 	return &cluster.Cluster{
 		ID:        uuid.MustRandom(),
 		Name:      "name_" + uuid.MustRandom().String(),
-		Host:      ManagedClusterHosts[0],
+		Host:      ManagedClusterHost(),
 		AuthToken: AgentAuthToken(),
 	}
 }

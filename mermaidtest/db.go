@@ -28,14 +28,23 @@ var (
 	flagRF             = flag.Int("rf", 1, "replication factor for test keyspace")
 	flagRetry          = flag.Int("retries", 5, "number of times to retry queries")
 	flagTimeout        = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
-
-	// ManagedClusterHosts specifies addresses of nodes in a test cluster.
-	ManagedClusterHosts []string
 )
 
-func init() {
-	flag.Parse()
-	ManagedClusterHosts = strings.Split(*flagManagedCluster, ",")
+// ManagedClusterHosts specifies addresses of nodes in a test cluster.
+func ManagedClusterHosts() []string {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return strings.Split(*flagManagedCluster, ",")
+}
+
+// ManagedClusterHost returns ManagedClusterHosts()[0]
+func ManagedClusterHost() string {
+	s := ManagedClusterHosts()
+	if len(s) == 0 {
+		panic("No nodes specified in --managed-cluster flag")
+	}
+	return s[0]
 }
 
 var initOnce sync.Once
@@ -110,7 +119,7 @@ func CreateSessionWithoutMigration(tb testing.TB) *gocql.Session {
 func CreateManagedClusterSession(tb testing.TB) *gocql.Session {
 	tb.Helper()
 
-	cluster := createCluster(ManagedClusterHosts...)
+	cluster := createCluster(ManagedClusterHosts()...)
 	session, err := cluster.CreateSession()
 	if err != nil {
 		tb.Fatal("createSession:", err)
