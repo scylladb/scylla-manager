@@ -90,6 +90,10 @@ start-dev-env: .testing-up dev-agent dev-cli dev-server
 .testing-up:
 	@make -C testing build down up
 
+.PHONY: dev-env-status
+dev-env-status:  ## Checks status of docker containers and cluster nodes
+	@make -C testing status
+
 .PHONY: dev-agent
 dev-agent: ## Build development agent binary and deploy it to testing containers
 	@echo "==> Building agent"

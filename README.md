@@ -15,21 +15,20 @@ Mermaid repository provides tools for managing clusters of Scylla servers. It co
 
 Let's start the test cluster.
 Docker compose environment for test cluster is located in the `testing` directory.
-Let's build the Scylla node image first.
+The following command will:
+ * build the custom Scylla image that is going to be used for every node in the test cluster
+ * start the whole cluster
+ * compile and starts manager development server 
+ * compile manager development client
+ * compile manager agent and deploy it to testing containers
 
 ```bash
-cd testing
-make build
+make start-dev-server
 ```
-
-This will build the image that is going to be used for every node in the test cluster.
-Now let's start the cluster:
-
-```bash
-make up
-```
-
-This will run `./docker-compose` from the current directory and bring up six ScyllaDB nodes along with one `Prometheus` node and one Scylla database node that is used by the `scylla-manager` to store metadata about the clusters.
+Test ScyllaDB cluster consist of two data centers (dc1 and dc2) and 6 nodes (3 nodes per dc).
+Additionally two utility containers are spawned:
+* `Prometheus` metrics node 
+* Scylla Manager database node - metadata storage about the clusters.
 
 ```
 # Check the status of the cluster
@@ -70,35 +69,29 @@ eb8e19c04d97        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hou
 
 ```
 
-![Overview](.github/overview.png)
-
-Open new terminal window to build and start `scylla-manager` development server:
-
-```bash
-# From the root of the project.
-make dev-server
-```
-
-This will start outputting `scylla-manager` logs. In another terminal window compile `sctool` development client:
-
-```bash
-# From the root of the project.
-make dev-cli
-```
-
 Once `scylla-manager` is bootstrapped use `sctool` to add information about the cluster to the manager:
 
 ```bash
-./sctool cluster add --host=192.168.100.11 --ssh-user=scylla-manager --ssh-identity-file=~/.ssh/scylla-manager.pem
+./sctool cluster add --host=192.168.100.11 --auth-token token --name my-cluster 
 ```
 
 Then ask `scylla-manager` to give the status of the cluster:
 
 ```bash
-./sctool status -c cluster1
+./sctool status -c my-cluster
 ```
 
-If everything worked correctly you should see the output similar to [this](https://docs.scylladb.com/operating-scylla/manager/latest/sctool/#status).
+If everything worked correctly you should see the output similar to [this](https://docs.scylladb.com/operating-scylla/manager/latest/sctool/#example-status).
+
+## Development
+To test new features during development, developers might use following commands:
+```bash
+make dev-server # compiles and run new `scylla-manager` server
+make dev-cli    # compiles new version of `sctool`
+make dev-agent  # compiles and deploys new version of agent to all cluster nodes
+``` 
+
+More Makefile targets are available in `testing` directory.
 
 ## Running tests
 

@@ -20,6 +20,8 @@ case ${DISTRO} in
         sudo dnf install ${FEDORA_PKGS}
         ;;
     "ubuntu")
+        echo "> Updating package information from configured sources"
+        sudo apt-get update
         echo "> Installing required system packages"
         sudo apt-get install ${UBUNTU_PKGS}
         ;;

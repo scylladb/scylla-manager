@@ -15,7 +15,7 @@ build: ## Build custom docker image
 up: ## Start docker containers
 	@echo "==> Starting containers"
 	@mkdir -p $(MINIO_DATA_DIR)
-	@source ./.env && $(COMPOSE) up -d
+	@. ./.env && $(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
 	@until $(CQLSH) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
 	@echo "==> Creating tables"
@@ -29,7 +29,8 @@ down: ## Stop docker containers
 	@$(COMPOSE) down --volumes --remove-orphans
 
 .PHONY: status
-status: ## Cluster nodetool status
+status: ## Cluster containers status and nodetool status
+	@$(COMPOSE) ps
 	@$(COMPOSE) exec dc1_node_1 nodetool status
 
 .PHONY: logs
@@ -40,8 +41,8 @@ logs: ## Show logs
 cqlsh: ## CQL shell to manager node
 	@$(CQLSH) 192.168.100.100
 
-.PHONY: drop-keysapce
-drop-keysapce: ## Drop Scylla Manager keyspace
+.PHONY: drop-keyspace
+drop-keyspace: ## Drop Scylla Manager keyspace
 	@$(CQLSH) 192.168.100.100 -e "DROP KEYSPACE scylla_manager"
 
 .PHONY: deploy-agent
