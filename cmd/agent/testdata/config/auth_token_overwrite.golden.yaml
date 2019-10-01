@@ -1,7 +1,7 @@
 auth_token: token
 https: 192.168.100.11:10001
-tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
-tls_key_file: /var/lib/scylla-manager/scylla_manager.key
+tls_cert_file: ./testdata/auth/scylla_manager.crt
+tls_key_file: ./testdata/auth/scylla_manager.key
 debug: ""
 cpu: -1
 logger:

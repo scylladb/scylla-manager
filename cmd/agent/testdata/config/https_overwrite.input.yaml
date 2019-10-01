@@ -1,1 +1,3 @@
+tls_cert_file: ./testdata/auth/scylla_manager.crt
+tls_key_file: ./testdata/auth/scylla_manager.key
 https: foobar
