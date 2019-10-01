@@ -191,7 +191,7 @@ func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error
 	}
 	r = r.WithContext(middleware.ForceHost(ctx, host))
 
-	resp, err := c.transport.RoundTrip(r)
+	resp, err := c.transport.RoundTrip(r) // nolint:bodyclose
 	if err != nil {
 		return nil, err
 	}

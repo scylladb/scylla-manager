@@ -60,6 +60,7 @@ func (mux *router) sendRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("copy error: %+v", err)
 	}
+	resp.Body.Close()
 }
 
 func withHostPort(r *http.Request, host, port string) *http.Request {

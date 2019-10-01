@@ -134,6 +134,8 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) error {
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
+
 	check := checkResponse{}
 	if err := json.Unmarshal(d, &check); err != nil {
 		return err

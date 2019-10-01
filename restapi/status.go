@@ -24,7 +24,6 @@ func (h *statusHandler) getStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.Respond(w, r, status)
-
 }
 
 func newStatusHandler(svc ClusterService, healthCheckService HealthCheckService) *chi.Mux {
