@@ -23,17 +23,16 @@ type tableKey struct {
 // aggregateProgress returns progress information classified by host, keyspace,
 // and host tables.
 func aggregateProgress(run *Run, prog []*RunProgress) Progress {
+	p := Progress{
+		SnapshotTag: run.SnapshotTag,
+		DC:          run.DC,
+	}
+
 	if len(run.Units) == 0 || len(prog) == 0 {
-		return Progress{
-			DC: run.DC,
-		}
+		return p
 	}
 
 	tableMap, hosts := aggregateTableProgress(run, prog)
-
-	p := Progress{
-		DC: run.DC,
-	}
 	for _, h := range hosts {
 		host := HostProgress{
 			Host: h,

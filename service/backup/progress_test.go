@@ -13,6 +13,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
+const (
+	testSnapshotTag = "sm_20091110230000UTC"
+)
+
 func TestAggregateProgress(t *testing.T) {
 	host1 := "host1"
 	host2 := "host2"
@@ -21,6 +25,7 @@ func TestAggregateProgress(t *testing.T) {
 	time3 := time2.Add(time.Minute)
 	time4 := time1.Add(5 * time.Minute)
 	run1 := &Run{
+		SnapshotTag: testSnapshotTag,
 		Units: []Unit{
 			{
 				Keyspace: "ks",
@@ -31,8 +36,9 @@ func TestAggregateProgress(t *testing.T) {
 		StartTime: time1,
 	}
 	runNoUnits := &Run{
-		DC:        []string{"dc3"},
-		StartTime: time1,
+		SnapshotTag: testSnapshotTag,
+		DC:          []string{"dc3"},
+		StartTime:   time1,
 	}
 	table := []struct {
 		Name        string

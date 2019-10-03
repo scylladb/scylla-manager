@@ -36,6 +36,9 @@ type BackupProgress struct {
 	// skipped
 	Skipped int64 `json:"skipped,omitempty"`
 
+	// snapshot tag
+	SnapshotTag string `json:"snapshot_tag,omitempty"`
+
 	// started at
 	StartedAt string `json:"started_at,omitempty"`
 

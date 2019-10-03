@@ -474,6 +474,9 @@
     "BackupProgress": {
       "type": "object",
       "properties": {
+        "snapshot_tag": {
+          "type": "string"
+        },
         "dcs": {
           "type": "array",
           "items": {

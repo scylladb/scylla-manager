@@ -532,6 +532,9 @@ End time:	{{ FormatTime .EndTime }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
 {{ with .Progress }}Progress:	{{ FormatUploadProgress .Size .Uploaded .Skipped }}
+{{- if ne .SnapshotTag "" }}
+Snapshot Tag:	{{ .SnapshotTag }}
+{{- end }}
 {{ if .Dcs -}}
 Datacenters:	{{ range .Dcs }}
   - {{ . }}

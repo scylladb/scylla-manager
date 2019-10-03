@@ -110,9 +110,9 @@ type progress struct {
 // Progress groups uploading progress for all backed up hosts.
 type Progress struct {
 	progress
-
-	DC    []string       `json:"dcs,omitempty"`
-	Hosts []HostProgress `json:"hosts,omitempty"`
+	SnapshotTag string         `json:"snapshot_tag"`
+	DC          []string       `json:"dcs,omitempty"`
+	Hosts       []HostProgress `json:"hosts,omitempty"`
 }
 
 // HostProgress groups uploading progress for keyspaces belonging to this host.
