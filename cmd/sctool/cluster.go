@@ -4,8 +4,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/internal/clipper"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/spf13/cobra"
 )
@@ -34,6 +36,22 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&cfgClusterAuthToken, "auth-token", "", "authentication token set on the cluster nodes in agent config file")
 	cmd.Flags().StringVar(&cfgClusterSSLUserCertFile, "ssl-user-cert-file", "", "`path` to client certificate when using client/server encryption with require_client_auth enabled")
 	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
+}
+
+func clusterAddedMessage(w io.Writer, id, name, startDay, interval string) error {
+	if name == "" {
+		name = "<name> (use --name flag to set cluster name)"
+	}
+	messageLines := []string{
+		"Cluster added! You can set it as default, by exporting env variable.",
+		"",
+		"$ export SCYLLA_MANAGER_CLUSTER=" + id,
+		"$ export SCYLLA_MANAGER_CLUSTER=" + name,
+		"",
+		"To see the currently scheduled tasks run:",
+		"$ sctool task list -c " + id,
+	}
+	return clipper.Say(w, messageLines...)
 }
 
 var clusterAddCmd = &cobra.Command{
@@ -82,7 +100,9 @@ var clusterAddCmd = &cobra.Command{
 		if len(tasks.ExtendedTaskSlice) > 0 {
 			s := tasks.ExtendedTaskSlice[0].Schedule
 			w := cmd.OutOrStderr()
-			fmt.Fprintf(w, clipper, id, mermaidclient.FormatTime(s.StartDate), s.Interval, id)
+			if err := clusterAddedMessage(w, id, cfgClusterName, mermaidclient.FormatTime(s.StartDate), s.Interval); err != nil {
+				return err
+			}
 		}
 
 		if cfgClusterAuthToken == "" {
