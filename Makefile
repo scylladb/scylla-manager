@@ -97,19 +97,19 @@ dev-env-status:  ## Checks status of docker containers and cluster nodes
 .PHONY: dev-agent
 dev-agent: ## Build development agent binary and deploy it to testing containers
 	@echo "==> Building agent"
-	@go build -race -o ./agent.dev ./cmd/agent
+	@go build -mod=vendor -race -o ./agent.dev ./cmd/agent
 	@echo "==> Deploying agent to testing containers"
 	@make -C testing deploy-agent restart-agent
 
 .PHONY: dev-cli
 dev-cli: ## Build development cli binary
 	@echo "==> Building sctool"
-	@go build -o ./sctool.dev ./cmd/sctool
+	@go build -mod=vendor -o ./sctool.dev ./cmd/sctool
 
 .PHONY: dev-server
 dev-server: ## Build and run development server
 	@echo "==> Building scylla-manager"
-	@go build -race -o ./scylla-manager.dev ./cmd/scylla-manager
+	@go build -mod=vendor -race -o ./scylla-manager.dev ./cmd/scylla-manager
 	@echo
 	@./scylla-manager.dev -c testing/scylla-manager/scylla-manager.yaml; rm -f ./scylla-manager.dev
 
