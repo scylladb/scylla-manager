@@ -145,6 +145,11 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			}
 			e.EndTime = runs[0].EndTime
 		}
+
+		if status != "" && e.Status != status {
+			continue
+		}
+
 		now := timeutc.Now()
 		if a := t.Sched.NextActivation(now, runs); a.After(now) {
 			e.NextActivation = &a
