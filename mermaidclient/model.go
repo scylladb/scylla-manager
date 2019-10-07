@@ -339,6 +339,9 @@ func (rp *BackupProgress) SetKeyspaceFilter(filters []string) (err error) {
 
 // AggregateErrors collects all errors from the table progress.
 func (rp *BackupProgress) AggregateErrors() {
+	if rp.Progress == nil {
+		return
+	}
 	for i := range rp.Progress.Hosts {
 		for j := range rp.Progress.Hosts[i].Keyspaces {
 			for _, t := range rp.Progress.Hosts[i].Keyspaces[j].Tables {

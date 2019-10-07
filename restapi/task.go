@@ -18,6 +18,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/timeutc"
+	"github.com/scylladb/mermaid/service/backup"
+	"github.com/scylladb/mermaid/service/repair"
 	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -392,6 +394,12 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 				Type:      t.Type,
 				TaskID:    t.ID,
 				Status:    scheduler.StatusNew,
+			}
+			switch t.Type {
+			case scheduler.RepairTask:
+				prog.Progress = repair.Progress{}
+			case scheduler.BackupTask:
+				prog.Progress = backup.Progress{}
 			}
 			render.Respond(w, r, prog)
 			return
