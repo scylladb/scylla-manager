@@ -7,7 +7,6 @@ package operations
 
 import (
 	"github.com/go-openapi/runtime"
-	"net/url"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -47,9 +46,6 @@ func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
-		if e, ok := err.(*url.Error); ok {
-			err = e.Err
-		}
 		return nil, err
 	}
 	success, ok := result.(*DeleteClusterClusterIDOK)

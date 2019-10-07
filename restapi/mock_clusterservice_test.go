@@ -35,65 +35,75 @@ func (m *MockClusterService) EXPECT() *MockClusterServiceMockRecorder {
 	return m.recorder
 }
 
-// ListClusters mocks base method
-func (m *MockClusterService) ListClusters(ctx context.Context, f *cluster.Filter) ([]*cluster.Cluster, error) {
-	ret := m.ctrl.Call(m, "ListClusters", ctx, f)
-	ret0, _ := ret[0].([]*cluster.Cluster)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// DeleteCluster mocks base method
+func (m *MockClusterService) DeleteCluster(arg0 context.Context, arg1 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCluster", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// ListClusters indicates an expected call of ListClusters
-func (mr *MockClusterServiceMockRecorder) ListClusters(ctx, f interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusters", reflect.TypeOf((*MockClusterService)(nil).ListClusters), ctx, f)
+// DeleteCluster indicates an expected call of DeleteCluster
+func (mr *MockClusterServiceMockRecorder) DeleteCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCluster", reflect.TypeOf((*MockClusterService)(nil).DeleteCluster), arg0, arg1)
 }
 
 // GetCluster mocks base method
-func (m *MockClusterService) GetCluster(ctx context.Context, idOrName string) (*cluster.Cluster, error) {
-	ret := m.ctrl.Call(m, "GetCluster", ctx, idOrName)
+func (m *MockClusterService) GetCluster(arg0 context.Context, arg1 string) (*cluster.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCluster", arg0, arg1)
 	ret0, _ := ret[0].(*cluster.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetCluster indicates an expected call of GetCluster
-func (mr *MockClusterServiceMockRecorder) GetCluster(ctx, idOrName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCluster", reflect.TypeOf((*MockClusterService)(nil).GetCluster), ctx, idOrName)
+func (mr *MockClusterServiceMockRecorder) GetCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCluster", reflect.TypeOf((*MockClusterService)(nil).GetCluster), arg0, arg1)
 }
 
-// PutCluster mocks base method
-func (m *MockClusterService) PutCluster(ctx context.Context, c *cluster.Cluster) error {
-	ret := m.ctrl.Call(m, "PutCluster", ctx, c)
-	ret0, _ := ret[0].(error)
-	return ret0
+// ListClusters mocks base method
+func (m *MockClusterService) ListClusters(arg0 context.Context, arg1 *cluster.Filter) ([]*cluster.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClusters", arg0, arg1)
+	ret0, _ := ret[0].([]*cluster.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// PutCluster indicates an expected call of PutCluster
-func (mr *MockClusterServiceMockRecorder) PutCluster(ctx, c interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutCluster", reflect.TypeOf((*MockClusterService)(nil).PutCluster), ctx, c)
-}
-
-// DeleteCluster mocks base method
-func (m *MockClusterService) DeleteCluster(ctx context.Context, id uuid.UUID) error {
-	ret := m.ctrl.Call(m, "DeleteCluster", ctx, id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteCluster indicates an expected call of DeleteCluster
-func (mr *MockClusterServiceMockRecorder) DeleteCluster(ctx, id interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCluster", reflect.TypeOf((*MockClusterService)(nil).DeleteCluster), ctx, id)
+// ListClusters indicates an expected call of ListClusters
+func (mr *MockClusterServiceMockRecorder) ListClusters(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusters", reflect.TypeOf((*MockClusterService)(nil).ListClusters), arg0, arg1)
 }
 
 // ListNodes mocks base method
-func (m *MockClusterService) ListNodes(ctx context.Context, id uuid.UUID) ([]cluster.Node, error) {
-	ret := m.ctrl.Call(m, "ListNodes", ctx, id)
+func (m *MockClusterService) ListNodes(arg0 context.Context, arg1 uuid.UUID) ([]cluster.Node, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNodes", arg0, arg1)
 	ret0, _ := ret[0].([]cluster.Node)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListNodes indicates an expected call of ListNodes
-func (mr *MockClusterServiceMockRecorder) ListNodes(ctx, id interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodes", reflect.TypeOf((*MockClusterService)(nil).ListNodes), ctx, id)
+func (mr *MockClusterServiceMockRecorder) ListNodes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodes", reflect.TypeOf((*MockClusterService)(nil).ListNodes), arg0, arg1)
+}
+
+// PutCluster mocks base method
+func (m *MockClusterService) PutCluster(arg0 context.Context, arg1 *cluster.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutCluster", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PutCluster indicates an expected call of PutCluster
+func (mr *MockClusterServiceMockRecorder) PutCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutCluster", reflect.TypeOf((*MockClusterService)(nil).PutCluster), arg0, arg1)
 }
