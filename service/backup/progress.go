@@ -56,12 +56,12 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 				ks.Tables = append(ks.Tables, *tp)
 				ks.progress = calcParentProgress(ks.progress, tp.progress)
 			}
-			host.Keyspaces = append(host.Keyspaces, ks)
 			ks.progress = extremeToNil(ks.progress)
+			host.Keyspaces = append(host.Keyspaces, ks)
 			host.progress = calcParentProgress(host.progress, ks.progress)
 		}
-		p.Hosts = append(p.Hosts, host)
 		host.progress = extremeToNil(host.progress)
+		p.Hosts = append(p.Hosts, host)
 		p.progress = calcParentProgress(p.progress, host.progress)
 	}
 
@@ -123,6 +123,7 @@ func aggregateTableProgress(run *Run, prog []*RunProgress) (map[tableKey]*TableP
 	return tableMap, hs
 }
 
+// extremeToNil converts from temporary extreme time values to nil.
 func extremeToNil(prog progress) progress {
 	if prog.StartedAt == &maxTime {
 		prog.StartedAt = nil
@@ -133,6 +134,8 @@ func extremeToNil(prog progress) progress {
 	return prog
 }
 
+// calcParentProgress returns updated progress for the parent that will include
+// child progress.
 func calcParentProgress(parent, child progress) progress {
 	parent.Size += child.Size
 	parent.Uploaded += child.Uploaded
@@ -140,15 +143,19 @@ func calcParentProgress(parent, child progress) progress {
 	parent.Failed += child.Failed
 
 	if child.StartedAt != nil {
+		// Use child start time as parent start time only if it started before
+		// parent.
 		if parent.StartedAt == nil || child.StartedAt.Before(*parent.StartedAt) {
 			parent.StartedAt = child.StartedAt
 		}
 	}
 	if child.CompletedAt != nil {
+		// Use child end time as parent end time only if it ended after parent.
 		if parent.CompletedAt != nil && child.CompletedAt.After(*parent.CompletedAt) {
 			parent.CompletedAt = child.CompletedAt
 		}
 	} else {
+		// Set parent end time to nil if any of its children are ending in nil.
 		parent.CompletedAt = nil
 	}
 
