@@ -109,19 +109,25 @@ func (m *ListOptions) UnmarshalBinary(b []byte) error {
 // swagger:model ListOptionsOpt
 type ListOptionsOpt struct {
 
-	// If set return modification time
+	// Show only directories in the listing
+	DirsOnly bool `json:"dirsOnly,omitempty"`
+
+	// Show only files in the listing
+	FilesOnly bool `json:"filesOnly,omitempty"`
+
+	// Don't read the modification time (can speed things up)
 	NoModTime bool `json:"noModTime,omitempty"`
 
-	// If set recurse directories
+	// Recurse into the listing
 	Recurse bool `json:"recurse,omitempty"`
 
-	// If set show decrypted names
+	// Show the encrypted names
 	ShowEncrypted bool `json:"showEncrypted,omitempty"`
 
-	// If set return a dictionary of hashes
+	// Include hashes in the output (may take longer)
 	ShowHash bool `json:"showHash,omitempty"`
 
-	// If set show the IDs for each item if known
+	// Show the ID of the underlying Object
 	ShowOrigIDs bool `json:"showOrigIDs,omitempty"`
 }
 

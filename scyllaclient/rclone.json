@@ -908,23 +908,31 @@
           "type": "object",
           "properties": {
             "recurse": {
-              "description": "If set recurse directories",
+              "description": "Recurse into the listing",
               "type": "boolean"
             },
             "noModTime": {
-              "description": "If set return modification time",
+              "description": "Don't read the modification time (can speed things up)",
               "type": "boolean"
             },
             "showEncrypted": {
-              "description": "If set show decrypted names",
+              "description": "Show the encrypted names",
               "type": "boolean"
             },
             "showOrigIDs": {
-              "description": "If set show the IDs for each item if known",
+              "description": "Show the ID of the underlying Object",
               "type": "boolean"
             },
             "showHash": {
-              "description": "If set return a dictionary of hashes",
+              "description": "Include hashes in the output (may take longer)",
+              "type": "boolean"
+            },
+            "dirsOnly": {
+              "description": "Show only directories in the listing",
+              "type": "boolean"
+            },
+            "filesOnly": {
+              "description": "Show only files in the listing",
               "type": "boolean"
             }
           }
