@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
 var (
@@ -159,4 +160,43 @@ func calcParentProgress(parent, child progress) progress {
 	}
 
 	return parent
+}
+
+// PercentComplete returns value from 0 to 100 representing percentage of successfully uploaded bytes so far.
+func (p *progress) PercentComplete() int {
+	if p.Uploaded == 0 {
+		return 0
+	}
+
+	if p.Uploaded+p.Skipped >= p.Size {
+		return 100
+	}
+
+	percent := 100 * (p.Uploaded + p.Skipped) / p.Size
+	if percent >= 100 {
+		percent = 99
+	}
+
+	return int(percent)
+}
+
+// ByteProgress returns how many bytes are already processed and how many bytes are left to completion.
+func (p *progress) ByteProgress() (done, left int64) {
+	done = p.Skipped + p.Uploaded
+	return done, p.Size - done
+}
+
+//AvgUploadBandwidth bandwidth calculated by dividing bytes uploaded by time duration of operation.
+func (p *progress) AvgUploadBandwidth() float64 {
+	if p.StartedAt == nil {
+		return 0
+	}
+
+	reference := timeutc.Now()
+	if p.CompletedAt != nil {
+		reference = *p.CompletedAt
+	}
+
+	uploadDuration := reference.Sub(*p.StartedAt)
+	return float64(p.Uploaded) / uploadDuration.Seconds()
 }

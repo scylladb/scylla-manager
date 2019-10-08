@@ -57,6 +57,9 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
+		// Populate global variables
+		mermaid.PrometheusScrapeInterval = config.PrometheusScrapeInterval
+
 		// Get a base context
 		ctx := log.WithNewTraceID(context.Background())
 

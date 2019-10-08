@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/dht"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -162,8 +163,7 @@ func (w *hostWorker) exec(ctx context.Context) error {
 	}
 
 	// Run metrics updater
-	u := newProgressMetricsUpdater(w.Run, w.Service.getProgress, w.Logger)
-	go u.Run(ctx, 5*time.Second)
+	stopMetricsUpdater := newProgressMetricsUpdater(ctx, w.Run, w.Service.getProgress, w.Logger, mermaid.PrometheusScrapeInterval)
 
 	// Join shard workers
 	var werr error
@@ -176,8 +176,8 @@ func (w *hostWorker) exec(ctx context.Context) error {
 			}
 		}
 	}
-	// join metrics updater
-	u.Stop()
+
+	stopMetricsUpdater()
 
 	// Try killing any remaining repairs
 	killCtx := log.CopyTraceID(context.Background(), ctx)

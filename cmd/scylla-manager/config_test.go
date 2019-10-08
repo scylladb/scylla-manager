@@ -25,13 +25,14 @@ func TestConfigModification(t *testing.T) {
 	}
 
 	e := &serverConfig{
-		HTTP:        "127.0.0.1:80",
-		HTTPS:       "127.0.0.1:443",
-		TLSCertFile: "tls.cert",
-		TLSKeyFile:  "tls.key",
-		TLSCAFile:   "ca.cert",
-		Prometheus:  "127.0.0.1:9090",
-		Debug:       "127.0.0.1:112",
+		HTTP:                     "127.0.0.1:80",
+		HTTPS:                    "127.0.0.1:443",
+		TLSCertFile:              "tls.cert",
+		TLSKeyFile:               "tls.key",
+		TLSCAFile:                "ca.cert",
+		Prometheus:               "127.0.0.1:9090",
+		PrometheusScrapeInterval: 1 * time.Second,
+		Debug:                    "127.0.0.1:112",
 		Logger: logConfig{
 			Mode:  log.StderrMode,
 			Level: zapcore.DebugLevel,

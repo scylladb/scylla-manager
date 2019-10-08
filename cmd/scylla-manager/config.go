@@ -44,27 +44,29 @@ type sslConfig struct {
 }
 
 type serverConfig struct {
-	HTTP        string             `yaml:"http"`
-	HTTPS       string             `yaml:"https"`
-	TLSCertFile string             `yaml:"tls_cert_file"`
-	TLSKeyFile  string             `yaml:"tls_key_file"`
-	TLSCAFile   string             `yaml:"tls_ca_file"`
-	Prometheus  string             `yaml:"prometheus"`
-	Debug       string             `json:"debug"`
-	Logger      logConfig          `yaml:"logger"`
-	Database    dbConfig           `yaml:"database"`
-	SSL         sslConfig          `yaml:"ssl"`
-	Healthcheck healthcheck.Config `yaml:"healthcheck"`
-	Backup      backup.Config      `yaml:"backup"`
-	Repair      repair.Config      `yaml:"repair"`
+	HTTP                     string             `yaml:"http"`
+	HTTPS                    string             `yaml:"https"`
+	TLSCertFile              string             `yaml:"tls_cert_file"`
+	TLSKeyFile               string             `yaml:"tls_key_file"`
+	TLSCAFile                string             `yaml:"tls_ca_file"`
+	Prometheus               string             `yaml:"prometheus"`
+	PrometheusScrapeInterval time.Duration      `yaml:"prometheus_scrape_interval"`
+	Debug                    string             `json:"debug"`
+	Logger                   logConfig          `yaml:"logger"`
+	Database                 dbConfig           `yaml:"database"`
+	SSL                      sslConfig          `yaml:"ssl"`
+	Healthcheck              healthcheck.Config `yaml:"healthcheck"`
+	Backup                   backup.Config      `yaml:"backup"`
+	Repair                   repair.Config      `yaml:"repair"`
 }
 
 func defaultConfig() *serverConfig {
-	return &serverConfig{
-		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
-		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
-		Prometheus:  ":56090",
-		Debug:       "",
+	config := &serverConfig{
+		TLSCertFile:              "/var/lib/scylla-manager/scylla_manager.crt",
+		TLSKeyFile:               "/var/lib/scylla-manager/scylla_manager.key",
+		Prometheus:               ":56090",
+		PrometheusScrapeInterval: 5 * time.Second,
+		Debug:                    "",
 		Logger: logConfig{
 			Mode:        log.StderrMode,
 			Level:       zapcore.InfoLevel,
@@ -87,6 +89,8 @@ func defaultConfig() *serverConfig {
 		Backup:      backup.DefaultConfig(),
 		Repair:      repair.DefaultConfig(),
 	}
+
+	return config
 }
 
 func newConfigFromFile(filename ...string) (*serverConfig, error) {
@@ -117,6 +121,9 @@ func (c *serverConfig) validate() error {
 		}
 	}
 
+	if c.PrometheusScrapeInterval <= 0 {
+		return errors.New("prometheus_scrape_interval must be > 0")
+	}
 	if len(c.Database.Hosts) == 0 {
 		return errors.New("missing database.hosts")
 	}

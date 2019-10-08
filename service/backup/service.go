@@ -392,6 +392,11 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 		OnRunProgress: s.putRunProgressLogError,
 	}
 
+	// Start metric updater
+	metricsUpdaterLogger := s.logger.Named("metrics")
+	stopMetricsUpdater := newBackupMetricUpdater(ctx, run, s.getProgress, metricsUpdaterLogger, mermaid.PrometheusScrapeInterval)
+	defer stopMetricsUpdater()
+
 	if run.PrevID == uuid.Nil {
 		if err := w.Snapshot(ctx, hi, target.SnapshotParallel); err != nil {
 			return err

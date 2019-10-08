@@ -9,6 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/tickrun"
 )
 
 var (
@@ -59,97 +60,66 @@ func init() {
 	)
 }
 
-type progressMetricsUpdater struct {
-	run    *Run
-	prog   func(ctx context.Context, run *Run) ([]*RunProgress, error)
-	logger log.Logger
-	stop   chan struct{}
-	done   chan struct{}
+type progressFetcher func(ctx context.Context, run *Run) ([]*RunProgress, error)
+
+func newProgressMetricsUpdater(ctx context.Context, run *Run, prog progressFetcher, logger log.Logger, interval time.Duration) (stop func()) {
+	return tickrun.NewTicker(interval, updateFunc(ctx, run, prog, logger))
 }
 
-func newProgressMetricsUpdater(run *Run, prog func(ctx context.Context, run *Run) ([]*RunProgress, error), logger log.Logger) *progressMetricsUpdater {
-	return &progressMetricsUpdater{
-		run:    run,
-		prog:   prog,
-		logger: logger,
-		stop:   make(chan struct{}),
-		done:   make(chan struct{}),
-	}
-}
-
-func (u *progressMetricsUpdater) Run(ctx context.Context, interval time.Duration) {
-	defer close(u.done)
-
-	t := time.NewTicker(interval)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
+func updateFunc(ctx context.Context, run *Run, prog progressFetcher, logger log.Logger) func() {
+	return func() {
+		prog, err := prog(ctx, run)
+		if err != nil {
+			logger.Error(ctx, "Failed to get hosts progress, err: %s", err)
 			return
-		case <-u.stop:
-			u.Update(ctx)
-			return
-		case <-t.C:
-			u.Update(ctx)
 		}
-	}
-}
 
-func (u *progressMetricsUpdater) Update(ctx context.Context) {
-	prog, err := u.prog(ctx, u.run)
-	if err != nil {
-		u.logger.Error(ctx, "Failed to get hosts progress", "error", err)
-		return
-	}
+		taskID := run.TaskID.String()
 
-	// Not aggregated keyspace host shard progress
-	for _, p := range prog {
-		repairProgress.With(prometheus.Labels{
-			"cluster":  u.run.clusterName,
-			"task":     u.run.TaskID.String(),
-			"keyspace": u.run.Units[p.Unit].Keyspace,
-			"host":     p.Host,
-			"shard":    fmt.Sprint(p.Shard),
-		}).Set(float64(p.PercentComplete()))
-	}
-
-	p := aggregateProgress(u.run, prog)
-
-	// Aggregated keyspace host progress
-	for _, unit := range p.Units {
-		for _, n := range unit.Nodes {
+		// Not aggregated keyspace host shard progress
+		for _, p := range prog {
 			repairProgress.With(prometheus.Labels{
-				"cluster":  u.run.clusterName,
-				"task":     u.run.TaskID.String(),
-				"keyspace": unit.Unit.Keyspace,
-				"host":     n.Host,
-				"shard":    "",
-			}).Set(n.PercentComplete)
+				"cluster":  run.clusterName,
+				"task":     run.TaskID.String(),
+				"keyspace": run.Units[p.Unit].Keyspace,
+				"host":     p.Host,
+				"shard":    fmt.Sprint(p.Shard),
+			}).Set(float64(p.PercentComplete()))
 		}
-	}
 
-	// Aggregated keyspace progress
-	for _, unit := range p.Units {
+		p := aggregateProgress(run, prog)
+
+		// Aggregated keyspace host progress
+		for _, unit := range p.Units {
+			for _, n := range unit.Nodes {
+				repairProgress.With(prometheus.Labels{
+					"cluster":  run.clusterName,
+					"task":     taskID,
+					"keyspace": unit.Unit.Keyspace,
+					"host":     n.Host,
+					"shard":    "",
+				}).Set(n.PercentComplete)
+			}
+		}
+
+		// Aggregated keyspace progress
+		for _, unit := range p.Units {
+			repairProgress.With(prometheus.Labels{
+				"cluster":  run.clusterName,
+				"task":     taskID,
+				"keyspace": unit.Unit.Keyspace,
+				"host":     "",
+				"shard":    "",
+			}).Set(unit.PercentComplete)
+		}
+
+		// Aggregated total progress
 		repairProgress.With(prometheus.Labels{
-			"cluster":  u.run.clusterName,
-			"task":     u.run.TaskID.String(),
-			"keyspace": unit.Unit.Keyspace,
+			"cluster":  run.clusterName,
+			"task":     taskID,
+			"keyspace": "",
 			"host":     "",
 			"shard":    "",
-		}).Set(unit.PercentComplete)
+		}).Set(p.PercentComplete)
 	}
-
-	// Aggregated total progress
-	repairProgress.With(prometheus.Labels{
-		"cluster":  u.run.clusterName,
-		"task":     u.run.TaskID.String(),
-		"keyspace": "",
-		"host":     "",
-		"shard":    "",
-	}).Set(p.PercentComplete)
-}
-
-func (u *progressMetricsUpdater) Stop() {
-	close(u.stop)
-	<-u.done
 }
