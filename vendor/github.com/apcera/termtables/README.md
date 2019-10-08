@@ -1,3 +1,9 @@
+_This repository was restored [here](https://github.com/brettski/go-termtables) after Apcera deleted their termtables repository on github. I was using the library on a project of mine and wanted to keep it around._
+
+# Original Content (working on updating)
+
+---
+
 # Termtables
 
 [![Build Status](https://travis-ci.org/apcera/termtables.svg?branch=master)](https://travis-ci.org/apcera/termtables)

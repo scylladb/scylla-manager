@@ -6,7 +6,7 @@ github.com/PuerkitoBio/urlesc
 github.com/Unknwon/goconfig
 # github.com/abbot/go-http-auth v0.4.0
 github.com/abbot/go-http-auth
-# github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055
+# github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055 => github.com/brettski/go-termtables v0.0.0-20190817160346-834c9b12e572
 github.com/apcera/termtables
 github.com/apcera/termtables/term
 # github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
@@ -14,41 +14,41 @@ github.com/asaskevich/govalidator
 # github.com/aws/aws-sdk-go v1.20.10
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
+github.com/aws/aws-sdk-go/aws/awsutil
+github.com/aws/aws-sdk-go/aws/client
+github.com/aws/aws-sdk-go/aws/client/metadata
 github.com/aws/aws-sdk-go/aws/corehandlers
 github.com/aws/aws-sdk-go/aws/credentials
 github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
-github.com/aws/aws-sdk-go/aws/defaults
-github.com/aws/aws-sdk-go/aws/ec2metadata
-github.com/aws/aws-sdk-go/aws/request
-github.com/aws/aws-sdk-go/aws/session
-github.com/aws/aws-sdk-go/service/s3
-github.com/aws/aws-sdk-go/service/s3/s3manager
-github.com/aws/aws-sdk-go/aws/endpoints
-github.com/aws/aws-sdk-go/internal/sdkio
-github.com/aws/aws-sdk-go/internal/ini
-github.com/aws/aws-sdk-go/internal/shareddefaults
-github.com/aws/aws-sdk-go/aws/client
-github.com/aws/aws-sdk-go/internal/sdkuri
 github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
-github.com/aws/aws-sdk-go/aws/client/metadata
-github.com/aws/aws-sdk-go/aws/awsutil
 github.com/aws/aws-sdk-go/aws/credentials/processcreds
 github.com/aws/aws-sdk-go/aws/credentials/stscreds
 github.com/aws/aws-sdk-go/aws/csm
+github.com/aws/aws-sdk-go/aws/defaults
+github.com/aws/aws-sdk-go/aws/ec2metadata
+github.com/aws/aws-sdk-go/aws/endpoints
+github.com/aws/aws-sdk-go/aws/request
+github.com/aws/aws-sdk-go/aws/session
 github.com/aws/aws-sdk-go/aws/signer/v4
+github.com/aws/aws-sdk-go/internal/ini
 github.com/aws/aws-sdk-go/internal/s3err
+github.com/aws/aws-sdk-go/internal/sdkio
+github.com/aws/aws-sdk-go/internal/sdkrand
+github.com/aws/aws-sdk-go/internal/sdkuri
+github.com/aws/aws-sdk-go/internal/shareddefaults
 github.com/aws/aws-sdk-go/private/protocol
 github.com/aws/aws-sdk-go/private/protocol/eventstream
 github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi
+github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
+github.com/aws/aws-sdk-go/private/protocol/query
+github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/private/protocol/rest
 github.com/aws/aws-sdk-go/private/protocol/restxml
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
+github.com/aws/aws-sdk-go/service/s3
 github.com/aws/aws-sdk-go/service/s3/s3iface
-github.com/aws/aws-sdk-go/internal/sdkrand
-github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
+github.com/aws/aws-sdk-go/service/s3/s3manager
 github.com/aws/aws-sdk-go/service/sts
-github.com/aws/aws-sdk-go/private/protocol/query
-github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 # github.com/beorn7/perks v1.0.0
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash v1.0.0
@@ -73,10 +73,10 @@ github.com/go-openapi/jsonreference
 # github.com/go-openapi/loads v0.19.2
 github.com/go-openapi/loads
 # github.com/go-openapi/runtime v0.19.2
-github.com/go-openapi/runtime/client
-github.com/go-openapi/runtime/middleware
 github.com/go-openapi/runtime
+github.com/go-openapi/runtime/client
 github.com/go-openapi/runtime/logger
+github.com/go-openapi/runtime/middleware
 github.com/go-openapi/runtime/middleware/denco
 github.com/go-openapi/runtime/middleware/header
 github.com/go-openapi/runtime/middleware/untyped
@@ -92,11 +92,11 @@ github.com/go-openapi/validate
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
 github.com/gobwas/glob/compiler
-github.com/gobwas/glob/syntax
 github.com/gobwas/glob/match
+github.com/gobwas/glob/syntax
 github.com/gobwas/glob/syntax/ast
-github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/syntax/lexer
+github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
 # github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163 => github.com/scylladb/gocql v1.2.0
 github.com/gocql/gocql
@@ -104,9 +104,9 @@ github.com/gocql/gocql/internal/lru
 github.com/gocql/gocql/internal/murmur
 github.com/gocql/gocql/internal/streams
 # github.com/golang/mock v1.2.0
+github.com/golang/mock/gomock
 github.com/golang/mock/mockgen
 github.com/golang/mock/mockgen/model
-github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
@@ -131,9 +131,9 @@ github.com/jzelinskie/whirlpool
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63
+github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-github.com/mailru/easyjson/buffer
 # github.com/mattn/go-runewidth v0.0.4
 github.com/mattn/go-runewidth
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -148,60 +148,60 @@ github.com/ncw/swift
 github.com/pkg/errors
 # github.com/prometheus/client_golang v1.0.0
 github.com/prometheus/client_golang/prometheus
-github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus/internal
+github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.6.0
 github.com/prometheus/common/expfmt
-github.com/prometheus/common/model
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 # github.com/rclone/rclone v1.49.3
-github.com/rclone/rclone/fs
+github.com/rclone/rclone/backend/crypt
+github.com/rclone/rclone/backend/crypt/pkcs7
+github.com/rclone/rclone/backend/dropbox/dbhash
 github.com/rclone/rclone/backend/local
+github.com/rclone/rclone/backend/onedrive/quickxorhash
 github.com/rclone/rclone/backend/s3
+github.com/rclone/rclone/cmd/serve/httplib
+github.com/rclone/rclone/cmd/serve/httplib/serve/data
+github.com/rclone/rclone/fs
 github.com/rclone/rclone/fs/accounting
+github.com/rclone/rclone/fs/asyncreader
+github.com/rclone/rclone/fs/cache
+github.com/rclone/rclone/fs/config
+github.com/rclone/rclone/fs/config/configmap
+github.com/rclone/rclone/fs/config/configstruct
+github.com/rclone/rclone/fs/config/obscure
+github.com/rclone/rclone/fs/dirtree
+github.com/rclone/rclone/fs/driveletter
 github.com/rclone/rclone/fs/filter
+github.com/rclone/rclone/fs/fserrors
 github.com/rclone/rclone/fs/fshttp
+github.com/rclone/rclone/fs/fspath
+github.com/rclone/rclone/fs/hash
+github.com/rclone/rclone/fs/list
+github.com/rclone/rclone/fs/march
+github.com/rclone/rclone/fs/object
 github.com/rclone/rclone/fs/operations
 github.com/rclone/rclone/fs/rc
 github.com/rclone/rclone/fs/rc/jobs
 github.com/rclone/rclone/fs/sync
-github.com/rclone/rclone/fs/config/configmap
-github.com/rclone/rclone/fs/config/configstruct
-github.com/rclone/rclone/fs/fserrors
-github.com/rclone/rclone/fs/fspath
-github.com/rclone/rclone/fs/hash
-github.com/rclone/rclone/lib/pacer
-github.com/rclone/rclone/lib/file
-github.com/rclone/rclone/lib/readers
+github.com/rclone/rclone/fs/version
 github.com/rclone/rclone/fs/walk
 github.com/rclone/rclone/lib/bucket
-github.com/rclone/rclone/lib/rest
-github.com/rclone/rclone/fs/asyncreader
-github.com/rclone/rclone/backend/crypt
-github.com/rclone/rclone/fs/cache
-github.com/rclone/rclone/fs/config
-github.com/rclone/rclone/fs/march
-github.com/rclone/rclone/fs/object
-github.com/rclone/rclone/lib/random
-github.com/rclone/rclone/cmd/serve/httplib
-github.com/rclone/rclone/fs/config/obscure
-github.com/rclone/rclone/fs/version
-github.com/rclone/rclone/lib/errors
-github.com/rclone/rclone/fs/driveletter
-github.com/rclone/rclone/backend/dropbox/dbhash
-github.com/rclone/rclone/backend/onedrive/quickxorhash
-github.com/rclone/rclone/fs/dirtree
-github.com/rclone/rclone/fs/list
-github.com/rclone/rclone/lib/pool
-github.com/rclone/rclone/backend/crypt/pkcs7
 github.com/rclone/rclone/lib/cache
-github.com/rclone/rclone/cmd/serve/httplib/serve/data
+github.com/rclone/rclone/lib/errors
+github.com/rclone/rclone/lib/file
 github.com/rclone/rclone/lib/mmap
+github.com/rclone/rclone/lib/pacer
+github.com/rclone/rclone/lib/pool
+github.com/rclone/rclone/lib/random
+github.com/rclone/rclone/lib/readers
+github.com/rclone/rclone/lib/rest
 # github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46
 github.com/rfjakob/eme
 # github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
@@ -210,15 +210,14 @@ github.com/scylladb/go-log/gocqllog
 # github.com/scylladb/go-reflectx v1.0.1
 github.com/scylladb/go-reflectx
 # github.com/scylladb/go-set v1.0.1
+github.com/scylladb/go-set/i64set
 github.com/scylladb/go-set/iset
 github.com/scylladb/go-set/strset
-github.com/scylladb/go-set/b16set
-github.com/scylladb/go-set/i64set
 # github.com/scylladb/gocqlx v1.3.1
-github.com/scylladb/gocqlx/migrate
 github.com/scylladb/gocqlx
-github.com/scylladb/gocqlx/table
+github.com/scylladb/gocqlx/migrate
 github.com/scylladb/gocqlx/qb
+github.com/scylladb/gocqlx/table
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/spf13/cobra v0.0.5
@@ -231,43 +230,43 @@ go.uber.org/atomic
 go.uber.org/multierr
 # go.uber.org/zap v1.9.1
 go.uber.org/zap
-go.uber.org/zap/zapcore
-go.uber.org/zap/zaptest/observer
-go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/buffer
+go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
+go.uber.org/zap/zapcore
+go.uber.org/zap/zaptest/observer
 # golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
-golang.org/x/crypto/ssh
-golang.org/x/crypto/curve25519
-golang.org/x/crypto/ed25519
-golang.org/x/crypto/internal/chacha20
-golang.org/x/crypto/poly1305
-golang.org/x/crypto/ed25519/internal/edwards25519
-golang.org/x/crypto/internal/subtle
-golang.org/x/crypto/nacl/secretbox
-golang.org/x/crypto/scrypt
-golang.org/x/crypto/ssh/terminal
-golang.org/x/crypto/salsa20/salsa
-golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
+golang.org/x/crypto/internal/chacha20
+golang.org/x/crypto/internal/subtle
+golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/poly1305
+golang.org/x/crypto/salsa20/salsa
+golang.org/x/crypto/scrypt
+golang.org/x/crypto/ssh
+golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20190620200207-3b0461eec859
-golang.org/x/net/publicsuffix
-golang.org/x/net/idna
 golang.org/x/net/context
+golang.org/x/net/idna
+golang.org/x/net/publicsuffix
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-golang.org/x/sys/cpu
 # golang.org/x/text v0.3.2
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-golang.org/x/text/secure/bidirule
-golang.org/x/text/unicode/bidi
-golang.org/x/text/transform
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
 # gopkg.in/inf.v0 v0.9.1
