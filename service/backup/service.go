@@ -231,8 +231,10 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 		}(h)
 	}
 
-	var total int64
-	var errs error
+	var (
+		total int64
+		errs error
+	)
 
 	for range hosts {
 		for _, u := range target.Units {
