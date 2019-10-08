@@ -37,22 +37,25 @@ func checkDCs(dcAtPos func(int) (string, string), n int, dcMap map[string][]stri
 	return
 }
 
-func checkAllDCsCovered(dcAtPos func(int) string, n int, dcs []string) error {
+func checkAllDCsCovered(locations []Location, dcs []string) error {
 	hasDCs := strset.New()
 	hasDefault := false
 
-	for i := 0; i < n; i++ {
-		dc := dcAtPos(i)
-		if dc == "" {
+	for _, l := range locations {
+		if l.DC == "" {
 			hasDefault = true
 			continue
 		}
-		hasDCs.Add(dc)
+		hasDCs.Add(l.DC)
 	}
 
 	if !hasDefault {
 		if d := strset.Difference(strset.New(dcs...), hasDCs); !d.IsEmpty() {
-			return errors.Errorf("missing configurations for datacenters %s", strings.Join(d.List(), " "))
+			msg := "missing location(s) for datacenters %s"
+			if d.Size() == 1 {
+				msg = "missing location for datacenter %s"
+			}
+			return errors.Errorf(msg, strings.Join(d.List(), ", "))
 		}
 	}
 

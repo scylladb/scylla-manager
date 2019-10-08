@@ -77,10 +77,6 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties))
 	}
 
-	// Copy simple properties
-	t.Retention = p.Retention
-	t.Continue = p.Continue
-
 	if p.Location == nil {
 		return t, errors.Errorf("missing location")
 	}
@@ -96,37 +92,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrap(err, "failed to read datacenters")
 	}
 
-	// Filter DCs
-	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
-		return t, err
-	}
-
 	// Validate location DCs
 	if err := checkDCs(func(i int) (string, string) { return p.Location[i].DC, p.Location[i].String() }, len(p.Location), dcMap); err != nil {
 		return t, errors.Wrap(err, "invalid location")
-	}
-
-	// Filter out definitions with missing dc.
-	t.Location = filterDCLocations(p.Location, t.DC)
-	if t.Location == nil {
-		return t, errors.Errorf("failed to match locations to dcs")
-	}
-	t.RateLimit = filterDCLimits(p.RateLimit, t.DC)
-	t.SnapshotParallel = filterDCLimits(p.SnapshotParallel, t.DC)
-	t.UploadParallel = filterDCLimits(p.UploadParallel, t.DC)
-
-	if err := checkAllDCsCovered(func(i int) string { return t.Location[i].DC }, len(t.Location), t.DC); err != nil {
-		return t, errors.Wrap(err, "invalid location")
-	}
-
-	// Register providers with hosts
-	if err := s.registerProviders(ctx, client, t.DC, dcMap); err != nil {
-		return t, errors.Wrap(err, "failed to register backup providers")
-	}
-
-	// Validate that locations are accessible from the nodes
-	if err := s.checkRemoteLocations(ctx, client, t.Location, t.DC, dcMap); err != nil {
-		return t, errors.Wrap(err, "location not accessible")
 	}
 
 	// Validate rate limit DCs
@@ -142,6 +110,35 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Validate snapshot parallel DCs
 	if err := checkDCs(dcLimitDCAtPos(p.UploadParallel), len(p.UploadParallel), dcMap); err != nil {
 		return t, errors.Wrap(err, "invalid upload-parallel")
+	}
+
+	// Copy simple properties
+	t.Retention = p.Retention
+	t.Continue = p.Continue
+
+	// Filter DCs
+	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
+		return t, err
+	}
+
+	// Filter out properties of not used DCs
+	t.Location = filterDCLocations(p.Location, t.DC)
+	t.RateLimit = filterDCLimits(p.RateLimit, t.DC)
+	t.SnapshotParallel = filterDCLimits(p.SnapshotParallel, t.DC)
+	t.UploadParallel = filterDCLimits(p.UploadParallel, t.DC)
+
+	if err := checkAllDCsCovered(t.Location, t.DC); err != nil {
+		return t, errors.Wrap(err, "invalid location")
+	}
+
+	// Register providers with hosts
+	if err := s.registerProviders(ctx, client, t.DC, dcMap); err != nil {
+		return t, errors.Wrap(err, "failed to register backup providers")
+	}
+
+	// Validate that locations are accessible from the nodes
+	if err := s.checkRemoteLocations(ctx, client, t.Location, t.DC, dcMap); err != nil {
+		return t, errors.Wrap(err, "location not accessible")
 	}
 
 	// Filter keyspaces
@@ -233,7 +230,7 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 
 	var (
 		total int64
-		errs error
+		errs  error
 	)
 
 	for range hosts {

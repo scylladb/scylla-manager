@@ -346,7 +346,12 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "no location for dc",
 			JSON:  `{"location": ["dc1:s3:test-get-target"]}`,
-			Error: "invalid location: missing configurations for datacenters",
+			Error: "invalid location: missing location for datacenter",
+		},
+		{
+			Name:  "no location dc filtered out",
+			JSON:  `{"dc": ["dc2"], "location": ["dc1:s3:test-get-target"]}`,
+			Error: "invalid location: missing location for datacenter",
 		},
 		{
 			Name:  "inaccessible location",
@@ -383,10 +388,12 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			_, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage(test.JSON), false)
 			if err == nil {
-				t.Fatal("expected error")
+				t.Fatal("GetTarget() expected error")
 			}
+
+			t.Log("GetTarget() error:", err)
 			if !strings.Contains(err.Error(), test.Error) {
-				t.Fatalf("expected %s got %s", test.Error, err)
+				t.Fatalf("GetTarget() expected error message %q got %q", test.Error, err)
 			}
 		})
 	}
