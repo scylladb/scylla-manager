@@ -122,7 +122,7 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 
 		baseDir := keyspaceDir(u.Keyspace)
 
-		tables, err := w.Client.RcloneListDir(ctx, h.IP, baseDir, false)
+		tables, err := w.Client.RcloneListDir(ctx, h.IP, baseDir, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to list keyspace")
 		}
@@ -148,7 +148,10 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 				continue
 			}
 
-			files, err := w.Client.RcloneListDir(ctx, h.IP, d.Path, false)
+			opts := &scyllaclient.RcloneListDirOpts{
+				FilesOnly: true,
+			}
+			files, err := w.Client.RcloneListDir(ctx, h.IP, d.Path, opts)
 			if err != nil {
 				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 					continue
@@ -165,9 +168,6 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 			)
 
 			for _, f := range files {
-				if f.IsDir {
-					continue
-				}
 				p := &RunProgress{
 					ClusterID: w.ClusterID,
 					TaskID:    w.TaskID,

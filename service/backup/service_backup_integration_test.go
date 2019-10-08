@@ -97,14 +97,15 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 
 func (h *backupTestHelper) listFiles() (manifests, files []string) {
 	h.t.Helper()
-	all, err := h.client.RcloneListDir(context.Background(), ManagedClusterHost(), h.location.RemotePath(""), true)
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse:   true,
+		FilesOnly: true,
+	}
+	allFiles, err := h.client.RcloneListDir(context.Background(), ManagedClusterHost(), h.location.RemotePath(""), opts)
 	if err != nil {
 		h.t.Fatal(err)
 	}
-	for _, f := range all {
-		if f.IsDir {
-			continue
-		}
+	for _, f := range allFiles {
 		if strings.HasSuffix(f.Name, "manifest.json") {
 			manifests = append(manifests, f.Path)
 		} else {

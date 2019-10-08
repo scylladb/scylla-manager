@@ -30,6 +30,8 @@ func remotePath(path string) string {
 	return testRemote + ":" + testBucket + path
 }
 
+var listRecursively = &scyllaclient.RcloneListDirOpts{Recurse: true}
+
 func TestRcloneCopyDirIntegration(t *testing.T) {
 	client, close := newMockRcloneServer(t)
 	defer close()
@@ -69,7 +71,7 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 		t.Errorf("Expected copy dir job to finish successfully")
 	}
 
-	d, err := client.RcloneListDir(ctx, testHost, remotePath("/copy"), true)
+	d, err := client.RcloneListDir(ctx, testHost, remotePath("/copy"), listRecursively)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +83,7 @@ func TestRcloneCopyDirIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d, err = client.RcloneListDir(ctx, testHost, remotePath("/copy"), true)
+	d, err = client.RcloneListDir(ctx, testHost, remotePath("/copy"), listRecursively)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +131,7 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 		t.Errorf("Expected copy file job to finish successfully")
 	}
 
-	d, err := client.RcloneListDir(ctx, testHost, remotePath(""), true)
+	d, err := client.RcloneListDir(ctx, testHost, remotePath(""), listRecursively)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +143,7 @@ func TestRcloneCopyFileIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d, err = client.RcloneListDir(ctx, testHost, remotePath(""), true)
+	d, err = client.RcloneListDir(ctx, testHost, remotePath(""), listRecursively)
 	if err != nil {
 		t.Fatal(err)
 	}

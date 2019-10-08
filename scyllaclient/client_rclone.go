@@ -240,20 +240,21 @@ func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) 
 	return resp.Payload.Content, nil
 }
 
+// RcloneListDirOpts specifies options for RcloneListDir.
+type RcloneListDirOpts = models.ListOptionsOpt
+
 // RcloneListDir lists contents of a directory specified by the path.
 // Remote path format is "name:bucket/path" with exception of local file system
 // which is just path to the directory.
 // Listed item path is relative to the remote path root directory.
-func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, recurse bool) ([]*models.ListItem, error) {
+func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*models.ListItem, error) {
 	empty := ""
 	p := operations.OperationsListParams{
 		Context: middleware.ForceHost(ctx, host),
 		ListOpts: &models.ListOptions{
 			Fs:     &remotePath,
 			Remote: &empty,
-			Opt: &models.ListOptionsOpt{
-				Recurse: recurse,
-			},
+			Opt:    opts,
 		},
 	}
 	resp, err := c.rcloneOps.OperationsList(&p)

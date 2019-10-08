@@ -35,7 +35,7 @@ func TestRcloneListDirAgentIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
-	d, err := client.RcloneListDir(ctx, testHost, remotePath(""), false)
+	d, err := client.RcloneListDir(ctx, testHost, remotePath(""), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

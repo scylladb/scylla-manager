@@ -293,7 +293,7 @@ func (s *Service) checkRemoteLocations(ctx context.Context, client *scyllaclient
 }
 
 func (s *Service) checkHostAccessibility(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
-	_, err := client.RcloneListDir(middleware.DontRetry(ctx), h, l.RemotePath(""), false)
+	_, err := client.RcloneListDir(middleware.DontRetry(ctx), h, l.RemotePath(""), nil)
 	if err != nil {
 		s.logger.Error(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
 		var e error

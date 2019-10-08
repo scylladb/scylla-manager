@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"strings"
 	"testing"
 
@@ -49,7 +50,7 @@ const (
 	testHost = "127.0.0.1"
 )
 
-func TestRcloneCatIntegration(t *testing.T) {
+func TestRcloneCat(t *testing.T) {
 	client, close := newMockRcloneServer(t)
 	defer close()
 
@@ -85,46 +86,71 @@ func TestRcloneCatIntegration(t *testing.T) {
 	}
 }
 
-func TestRcloneListDirIntegration(t *testing.T) {
-	client, close := newMockRcloneServer(t)
-	defer close()
-
-	ctx := context.Background()
-
-	got, err := client.RcloneListDir(ctx, testHost, "testdata/rclone/list", true)
-	if err != nil {
-		t.Fatal(err)
+func TestRcloneListDir(t *testing.T) {
+	f := func(file string, isDir bool) *models.ListItem {
+		return &models.ListItem{
+			Path:  file,
+			Name:  path.Base(file),
+			IsDir: isDir,
+		}
 	}
+	opts := cmpopts.IgnoreFields(models.ListItem{}, "MimeType", "ModTime", "Size")
 
-	expected := []*models.ListItem{
+	table := []struct {
+		Name     string
+		Opts     *scyllaclient.RcloneListDirOpts
+		Expected []*models.ListItem
+	}{
 		{
-			IsDir:    false,
-			MimeType: "text/plain; charset=utf-8",
-			ModTime:  "2019-05-08T08:32:10.401408354+02:00",
-			Name:     "file.txt",
-			Path:     "file.txt",
-			Size:     4,
+			Name:     "default",
+			Expected: []*models.ListItem{f("file.txt", false), f("subdir", true)},
+		},
+		{
+			Name:     "recursive",
+			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true},
+			Expected: []*models.ListItem{f("file.txt", false), f("subdir", true), f("subdir/file.txt", false)},
+		},
+		{
+			Name:     "recursive files",
+			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, FilesOnly: true},
+			Expected: []*models.ListItem{f("file.txt", false), f("subdir/file.txt", false)},
+		},
+		{
+			Name:     "recursive dirs",
+			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, DirsOnly: true},
+			Expected: []*models.ListItem{f("subdir", true)},
 		},
 	}
 
-	if diff := cmp.Diff(got, expected, cmpopts.IgnoreFields(models.ListItem{}, "ModTime")); diff != "" {
-		t.Fatal(got, diff)
+	client, close := newMockRcloneServer(t)
+	defer close()
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			files, err := client.RcloneListDir(context.Background(), testHost, "testdata/rclone/list", test.Opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
+				t.Fatal("RcloneListDir() diff", diff)
+			}
+		})
 	}
 }
 
-func TestRcloneListDirNotFoundIntegration(t *testing.T) {
+func TestRcloneListDirNotFound(t *testing.T) {
 	client, close := newMockRcloneServer(t)
 	defer close()
 
 	ctx := context.Background()
 
-	_, err := client.RcloneListDir(ctx, testHost, "testdata/rclone/not-found", true)
+	_, err := client.RcloneListDir(ctx, testHost, "testdata/rclone/not-found", nil)
 	if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 		t.Fatal("expected not found")
 	}
 }
 
-func TestRcloneDiskUsageIntegration(t *testing.T) {
+func TestRcloneDiskUsage(t *testing.T) {
 	client, close := newMockRcloneServer(t)
 	defer close()
 

@@ -133,7 +133,7 @@ func (p *purger) listTaskTags(ctx context.Context, h hostInfo) ([]string, error)
 		"path", baseDir,
 	)
 
-	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), false)
+	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,10 @@ func (p *purger) loadAllManifests(ctx context.Context, h hostInfo) ([]remoteMani
 		"path", baseDir,
 	)
 
-	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), true)
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse: true,
+	}
+	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), opts)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +271,11 @@ func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key
 		"path", baseDir,
 	)
 
-	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), true)
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse:   true,
+		FilesOnly: true,
+	}
+	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), opts)
 	if err != nil {
 		return err
 	}
