@@ -38,7 +38,7 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
 }
 
-func clusterAddedMessage(w io.Writer, id, name, startDay, interval string) error {
+func clusterAddedMessage(w io.Writer, id, name string) error {
 	if name == "" {
 		name = "<name> (use --name flag to set cluster name)"
 	}
@@ -93,16 +93,9 @@ var clusterAddCmd = &cobra.Command{
 		w := cmd.OutOrStdout()
 		fmt.Fprintln(w, id)
 
-		tasks, err := client.ListTasks(ctx, id, "repair", false, "")
-		if err != nil {
+		w = cmd.OutOrStderr()
+		if err := clusterAddedMessage(w, id, cfgClusterName); err != nil {
 			return err
-		}
-		if len(tasks.ExtendedTaskSlice) > 0 {
-			s := tasks.ExtendedTaskSlice[0].Schedule
-			w := cmd.OutOrStderr()
-			if err := clusterAddedMessage(w, id, cfgClusterName, mermaidclient.FormatTime(s.StartDate), s.Interval); err != nil {
-				return err
-			}
 		}
 
 		if cfgClusterAuthToken == "" {
