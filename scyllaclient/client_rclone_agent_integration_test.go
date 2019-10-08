@@ -167,9 +167,9 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(res) != 1 {
-		t.Errorf("Expected one transfer, got: len(Transferred)=%d", len(res))
+		t.Fatalf("Expected one transfer, got: len(Transferred)=%d", len(res))
 	}
 	if res[0].Error == "" {
-		t.Error("Expected error but got empty")
+		t.Fatal("Expected error but got empty")
 	}
 }
