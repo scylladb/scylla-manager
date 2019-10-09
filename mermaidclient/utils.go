@@ -73,6 +73,30 @@ func ParseStartDate(value string) (strfmt.DateTime, error) {
 	return strfmt.DateTime(t), nil
 }
 
+// ParseDate parses the supplied string as a strfmt.DateTime.
+func ParseDate(value string) (strfmt.DateTime, error) {
+	now := timeutc.Now()
+
+	if value == "now" {
+		return strfmt.DateTime(now), nil
+	}
+
+	if strings.HasPrefix(value, "now") {
+		d, err := duration.ParseDuration(value[3:])
+		if err != nil {
+			return strfmt.DateTime{}, err
+		}
+		return strfmt.DateTime(now.Add(d.Duration())), nil
+	}
+
+	// No more heuristics, assume the user passed a date formatted string
+	t, err := timeutc.Parse(time.RFC3339, value)
+	if err != nil {
+		return strfmt.DateTime(t), err
+	}
+	return strfmt.DateTime(t), nil
+}
+
 func uuidFromLocation(location string) (uuid.UUID, error) {
 	l, err := url.Parse(location)
 	if err != nil {

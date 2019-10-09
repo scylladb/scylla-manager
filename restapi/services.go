@@ -48,6 +48,7 @@ type RepairService interface {
 type BackupService interface {
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (backup.Target, error)
 	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
+	List(ctx context.Context, clusterID uuid.UUID, host string, locations []backup.Location, filter backup.ListFilter) ([]backup.ListItem, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
 }
 

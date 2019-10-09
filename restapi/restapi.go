@@ -35,6 +35,7 @@ func New(services Services, logger log.Logger) http.Handler {
 	r.With(clusterFilter{svc: services.Cluster}.clusterCtx).Mount("/api/v1/cluster/{cluster_id}/status", newStatusHandler(services.Cluster, services.HealthCheck))
 	r.With(clusterFilter{svc: services.Cluster}.clusterCtx).Mount("/api/v1/cluster/{cluster_id}/tasks", newTasksHandler(services))
 	r.With(clusterFilter{svc: services.Cluster}.clusterCtx).Mount("/api/v1/cluster/{cluster_id}/task", newTaskHandler(services))
+	r.With(clusterFilter{svc: services.Cluster}.clusterCtx).Mount("/api/v1/cluster/{cluster_id}/backups", newBackupHandler(services.Backup))
 
 	// NotFound registered last due to https://github.com/go-chi/chi/issues/297
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {

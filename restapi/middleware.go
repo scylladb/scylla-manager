@@ -51,19 +51,14 @@ type httpLogEntry struct {
 }
 
 func (e *httpLogEntry) Write(status, bytes int, elapsed time.Duration) {
-	f := e.l.Debug
-	if status >= 400 {
-		f = e.l.Info
-	}
-
 	if e.err == nil {
-		f(e.req.Context(), "HTTP",
+		e.l.Info(e.req.Context(), "HTTP",
 			"status", status,
 			"bytes", bytes,
 			"duration", fmt.Sprintf("%dms", elapsed/1000000),
 		)
 	} else {
-		f(e.req.Context(), "HTTP",
+		e.l.Info(e.req.Context(), "HTTP",
 			"status", status,
 			"bytes", bytes,
 			"duration", fmt.Sprintf("%dms", elapsed/1000000),

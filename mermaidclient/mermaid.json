@@ -384,6 +384,26 @@
         }
       }
     },
+    "BackupListItem": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BackupUnit"
+          }
+        },
+        "snapshot_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "BackupTarget": {
       "type": "object",
       "properties": {
@@ -423,13 +443,13 @@
         "snapshot_parallel": {
           "type": "array",
           "items": {
-            "type":  "string"
+            "type": "string"
           }
         },
         "upload_parallel": {
           "type": "array",
           "items": {
-            "type":  "string"
+            "type": "string"
           }
         },
         "units": {
@@ -1522,6 +1542,94 @@
             "description": "Backup progress",
             "schema": {
               "$ref": "#/definitions/TaskRunBackupProgress"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/backups": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "host",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "locations",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "keyspace",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "name": "min_date",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "name": "max_date",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup list",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/BackupListItem"
+              }
             }
           },
           "400": {

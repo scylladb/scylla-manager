@@ -5,6 +5,7 @@ package backup
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -132,7 +133,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Validate that locations are accessible from the nodes
-	if err := s.checkRemoteLocations(ctx, client, t.Location, t.DC, dcMap); err != nil {
+	if err := s.checkLocationsAvailableFromDCs(ctx, client, t.Location, t.DC, dcMap); err != nil {
 		return t, errors.Wrap(err, "location not accessible")
 	}
 
@@ -246,9 +247,11 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 	return total, errs
 }
 
-// checkRemoteLocations checks if each node has access to the remote location.
-func (s *Service) checkRemoteLocations(ctx context.Context, client *scyllaclient.Client, locations []Location, dcs []string, dcMap map[string][]string) error {
+// checkLocationsAvailableFromDCs checks if each node in every DC has access to
+// location assigned to that DC.
+func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *scyllaclient.Client, locations []Location, dcs []string, dcMap map[string][]string) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
+
 	// Get hosts of the target DCs
 	hosts := dcHosts(dcMap, dcs)
 	if len(hosts) == 0 {
@@ -275,7 +278,7 @@ func (s *Service) checkRemoteLocations(ctx context.Context, client *scyllaclient
 
 		for _, h := range lh {
 			go func(h string, l Location) {
-				res <- s.checkHostAccessibility(ctx, client, h, l)
+				res <- s.checkHostLocation(ctx, client, h, l)
 			}(h, l)
 		}
 
@@ -287,13 +290,34 @@ func (s *Service) checkRemoteLocations(ctx context.Context, client *scyllaclient
 	return mermaid.ErrValidate(errs)
 }
 
-func (s *Service) checkHostAccessibility(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
+func (s *Service) checkLocationsAvailableFromHost(ctx context.Context, client *scyllaclient.Client, locations []Location, host string) error {
+	s.logger.Info(ctx, "Checking accessibility of remote locations")
+
+	var (
+		errs error
+		res  = make(chan error)
+	)
+
+	for _, l := range locations {
+		go func(h string, l Location) {
+			res <- s.checkHostLocation(ctx, client, h, l)
+		}(host, l)
+	}
+
+	for range locations {
+		errs = multierr.Append(errs, <-res)
+	}
+
+	return errs
+}
+
+func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
 	_, err := client.RcloneListDir(middleware.DontRetry(ctx), h, l.RemotePath(""), nil)
 	if err != nil {
 		s.logger.Error(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
 		var e error
-		if scyllaclient.StatusCodeOf(err) == 404 {
-			e = errors.Errorf("%s: failed to access %s make sure that it's correct and credentials are set", h, l)
+		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+			e = errors.Errorf("%s: failed to access %s make sure that the location is correct and credentials are set", h, l)
 		} else {
 			e = errors.Wrapf(err, "%s: access %s", h, l)
 		}
@@ -303,8 +327,70 @@ func (s *Service) checkHostAccessibility(ctx context.Context, client *scyllaclie
 	return nil
 }
 
+// List returns available snapshots in remote locations.
+func (s *Service) List(ctx context.Context, clusterID uuid.UUID, host string, locations []Location, filter ListFilter) ([]ListItem, error) {
+	s.logger.Info(ctx, "Listing backups",
+		"cluster_id", clusterID,
+		"host", host,
+		"locations", locations,
+		"filter", filter,
+	)
+
+	// Validate inputs
+	if len(host) == 0 {
+		return nil, mermaid.ErrValidate(errors.New("empty host"))
+	}
+	if len(locations) == 0 {
+		return nil, mermaid.ErrValidate(errors.New("empty locations"))
+	}
+
+	// Get the cluster client
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get client proxy")
+	}
+
+	// Validate that locations are accessible from host
+	if err := s.checkLocationsAvailableFromHost(ctx, client, locations, host); err != nil {
+		return nil, mermaid.ErrValidate(err)
+	}
+
+	// List manifests
+	type manifestsError struct {
+		Manifests []remoteManifest
+		Err       error
+	}
+	res := make(chan manifestsError)
+	for _, l := range locations {
+		go func(l Location) {
+			s.logger.Info(ctx, "Listing remote manifests",
+				"cluster_id", clusterID,
+				"host", host,
+				"location", l,
+			)
+			m, err := listManifests(ctx, l, client, host, filter, false)
+			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", host, l)}
+		}(l)
+	}
+
+	var (
+		manifests []remoteManifest
+		errs      error
+	)
+	for range locations {
+		r := <-res
+		manifests = append(manifests, r.Manifests...)
+		errs = multierr.Append(errs, r.Err)
+	}
+	if errs != nil {
+		return nil, errs
+	}
+
+	return aggregateRemoteManifests(manifests), nil
+}
+
 // Backup executes a backup on a given target.
-func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.UUID, runID uuid.UUID, target Target) error {
+func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID, target Target) error {
 	s.logger.Debug(ctx, "Backup",
 		"cluster_id", clusterID,
 		"task_id", taskID,

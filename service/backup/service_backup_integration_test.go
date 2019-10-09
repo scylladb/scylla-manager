@@ -390,7 +390,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 				t.Fatal("GetTarget() expected error")
 			}
 
-			t.Log("GetTarget() error:", err)
+			t.Log("GetTarget() message:", err)
 			if !strings.Contains(err.Error(), test.Error) {
 				t.Fatalf("GetTarget() expected error message %q got %q", test.Error, err)
 			}
@@ -555,6 +555,16 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	manifests, _ := h.listFiles()
 	if len(manifests) == 0 {
 		t.Fatalf("Expected manifests to be uploaded")
+	}
+
+	Print("And: data can be found in listing")
+	items, err := h.service.List(ctx, h.clusterID, ManagedClusterHost(), []backup.Location{location}, backup.ListFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("Items: %+v", items)
+	if len(items) == 0 {
+		t.Fatal("Expected items in listing")
 	}
 }
 

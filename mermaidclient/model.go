@@ -355,7 +355,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-var progressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
+var repairProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
 {{ with .Run }}Status:		{{ .Status }}
 {{- if .Cause }}
@@ -388,7 +388,7 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"FormatDuration": FormatDuration,
 		"FormatProgress": FormatProgress,
 		"arguments":      rp.arguments,
-	}).Parse(progressTemplate))
+	}).Parse(repairProgressTemplate))
 	return temp.Execute(w, rp)
 }
 
@@ -436,27 +436,27 @@ type BackupProgress struct {
 }
 
 // SetHostFilter adds filtering rules used for rendering for host details.
-func (rp *BackupProgress) SetHostFilter(filters []string) (err error) {
-	rp.hostFilter, err = inexlist.ParseInExList(filters)
+func (bp *BackupProgress) SetHostFilter(filters []string) (err error) {
+	bp.hostFilter, err = inexlist.ParseInExList(filters)
 	return
 }
 
 // SetKeyspaceFilter adds filtering rules used for rendering for keyspace details.
-func (rp *BackupProgress) SetKeyspaceFilter(filters []string) (err error) {
-	rp.keyspaceFilter, err = inexlist.ParseInExList(filters)
+func (bp *BackupProgress) SetKeyspaceFilter(filters []string) (err error) {
+	bp.keyspaceFilter, err = inexlist.ParseInExList(filters)
 	return
 }
 
 // AggregateErrors collects all errors from the table progress.
-func (rp *BackupProgress) AggregateErrors() {
-	if rp.Progress == nil {
+func (bp *BackupProgress) AggregateErrors() {
+	if bp.Progress == nil {
 		return
 	}
-	for i := range rp.Progress.Hosts {
-		for j := range rp.Progress.Hosts[i].Keyspaces {
-			for _, t := range rp.Progress.Hosts[i].Keyspaces[j].Tables {
+	for i := range bp.Progress.Hosts {
+		for j := range bp.Progress.Hosts[i].Keyspaces {
+			for _, t := range bp.Progress.Hosts[i].Keyspaces[j].Tables {
 				if t.Error != "" {
-					rp.Errors = append(rp.Errors, t.Error)
+					bp.Errors = append(bp.Errors, t.Error)
 				}
 			}
 		}
@@ -464,32 +464,32 @@ func (rp *BackupProgress) AggregateErrors() {
 }
 
 // Render renders *BackupProgress in a tabular format.
-func (rp BackupProgress) Render(w io.Writer) error {
-	if err := rp.addHeader(w); err != nil {
+func (bp BackupProgress) Render(w io.Writer) error {
+	if err := bp.addHeader(w); err != nil {
 		return err
 	}
 
-	if rp.Progress != nil && rp.Progress.Size > 0 {
+	if bp.Progress != nil && bp.Progress.Size > 0 {
 		t := table.New()
-		rp.addHostProgress(t)
+		bp.addHostProgress(t)
 		if _, err := io.WriteString(w, t.String()); err != nil {
 			return err
 		}
 	}
 
-	if rp.Detailed && rp.Progress != nil && rp.Progress.Size > 0 {
-		if err := rp.addKeyspaceProgress(w); err != nil {
+	if bp.Detailed && bp.Progress != nil && bp.Progress.Size > 0 {
+		if err := bp.addKeyspaceProgress(w); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (rp BackupProgress) addHostProgress(t *table.Table) {
+func (bp BackupProgress) addHostProgress(t *table.Table) {
 	t.AddRow("host", "progress", "size", "uploaded", "skipped", "failed")
 	t.AddSeparator()
-	for _, h := range rp.Progress.Hosts {
-		if rp.hideHost(h.Host) {
+	for _, h := range bp.Progress.Hosts {
+		if bp.hideHost(h.Host) {
 			continue
 		}
 		p := "-"
@@ -505,9 +505,9 @@ func (rp BackupProgress) addHostProgress(t *table.Table) {
 	}
 }
 
-func (rp BackupProgress) addKeyspaceProgress(w io.Writer) error {
-	for _, h := range rp.Progress.Hosts {
-		if rp.hideHost(h.Host) {
+func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
+	for _, h := range bp.Progress.Hosts {
+		if bp.hideHost(h.Host) {
 			continue
 		}
 		fmt.Fprintf(w, "Host:		%s\n", h.Host)
@@ -515,7 +515,7 @@ func (rp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 		t := table.New()
 		addSeparator := false
 		for _, ks := range h.Keyspaces {
-			if rp.hideKeyspace(ks.Keyspace) {
+			if bp.hideKeyspace(ks.Keyspace) {
 				break
 			}
 			if addSeparator {
@@ -554,16 +554,16 @@ func (rp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 	return nil
 }
 
-func (rp BackupProgress) hideHost(host string) bool {
-	if rp.hostFilter.Size() > 0 {
-		return rp.hostFilter.FirstMatch(host) == -1
+func (bp BackupProgress) hideHost(host string) bool {
+	if bp.hostFilter.Size() > 0 {
+		return bp.hostFilter.FirstMatch(host) == -1
 	}
 	return false
 }
 
-func (rp BackupProgress) hideKeyspace(keyspace string) bool {
-	if rp.keyspaceFilter.Size() > 0 {
-		return rp.keyspaceFilter.FirstMatch(keyspace) == -1
+func (bp BackupProgress) hideKeyspace(keyspace string) bool {
+	if bp.keyspaceFilter.Size() > 0 {
+		return bp.keyspaceFilter.FirstMatch(keyspace) == -1
 	}
 	return false
 }
@@ -599,18 +599,53 @@ Errors:	{{ range .Errors }}
 {{- end }}
 {{ end -}}`
 
-func (rp BackupProgress) addHeader(w io.Writer) error {
+func (bp BackupProgress) addHeader(w io.Writer) error {
 	temp := template.Must(template.New("backup_progress").Funcs(template.FuncMap{
 		"isZero":               isZero,
 		"FormatTime":           FormatTime,
 		"FormatDuration":       FormatDuration,
 		"FormatUploadProgress": FormatUploadProgress,
-		"arguments":            rp.arguments,
+		"arguments":            bp.arguments,
 	}).Parse(backupProgressTemplate))
-	return temp.Execute(w, rp)
+	return temp.Execute(w, bp)
 }
 
 // arguments return task arguments that task was created with.
-func (rp BackupProgress) arguments() string {
-	return NewCmdRenderer(rp.Task, RenderTypeArgs).String()
+func (bp BackupProgress) arguments() string {
+	return NewCmdRenderer(bp.Task, RenderTypeArgs).String()
+}
+
+// BackupListItems is a []backup.ListItem representation.
+type BackupListItems struct {
+	items       []*models.BackupListItem
+	AllClusters bool
+}
+
+const backupListItemTemplate = `Snapshots:
+{{- range .SnapshotTags }}
+  - {{ . }}
+{{- end }}
+{{ range .Units }}Keyspace: {{ .Keyspace }}
+{{- range .Tables }}
+  - {{ . }}
+{{- end }}
+{{ end -}}
+`
+
+// Render implements Renderer interface.
+func (bl BackupListItems) Render(w io.Writer) error {
+	temp := template.Must(template.New("backup_list_items").Parse(backupListItemTemplate))
+	prev := ""
+	for _, i := range bl.items {
+		if bl.AllClusters {
+			if prev != i.ClusterID {
+				prev = i.ClusterID
+				fmt.Fprintln(w, "Cluster:", i.ClusterID)
+			}
+		}
+		if err := temp.Execute(w, i); err != nil {
+			return err
+		}
+	}
+	return nil
 }

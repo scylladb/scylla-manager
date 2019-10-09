@@ -16,6 +16,23 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
+// ListFilter specifies filtering for backup listing.
+type ListFilter struct {
+	ClusterID uuid.UUID `json:"cluster_id"`
+	Keyspace  []string  `json:"keyspace"`
+	MinDate   time.Time `json:"min_date"`
+	MaxDate   time.Time `json:"max_date"`
+}
+
+// ListItem represents contents of a snapshot within list boundaries.
+type ListItem struct {
+	ClusterID    uuid.UUID `json:"cluster_id"`
+	Units        []Unit    `json:"units,omitempty"`
+	SnapshotTags []string  `json:"snapshot_tags"`
+
+	unitsHash uint64 // Internal usage only
+}
+
 // Target specifies what should be backed up and where.
 type Target struct {
 	Units            []Unit     `json:"units,omitempty"`
@@ -229,7 +246,11 @@ func (l Location) RemoteName() string {
 // RemotePath returns string that can be used with rclone to specify a path in
 // the given location.
 func (l Location) RemotePath(p string) string {
-	return path.Join(l.RemoteName()+":"+l.Path, p)
+	r := l.RemoteName()
+	if r != "" {
+		r += ":"
+	}
+	return path.Join(r+l.Path, p)
 }
 
 // DCLimit specifies a rate limit for a DC.

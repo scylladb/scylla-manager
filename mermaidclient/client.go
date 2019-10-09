@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/runtime/middleware"
@@ -333,6 +334,34 @@ func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID str
 	return BackupProgress{
 		TaskRunBackupProgress: resp.Payload,
 	}, nil
+}
+
+// ListBackups returns listing of available backups.
+func (c Client) ListBackups(ctx context.Context, clusterID string, host string,
+	locations []string, allClusters bool, keyspace []string, minDate, maxDate strfmt.DateTime) (BackupListItems, error) {
+	p := &operations.GetClusterClusterIDBackupsParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Host:      host,
+		Locations: locations,
+		Keyspace:  keyspace,
+	}
+	if !allClusters {
+		p.QueryClusterID = &clusterID
+	}
+	if !time.Time(minDate).IsZero() {
+		p.MinDate = &minDate
+	}
+	if !time.Time(maxDate).IsZero() {
+		p.MaxDate = &maxDate
+	}
+
+	resp, err := c.operations.GetClusterClusterIDBackups(p)
+	if err != nil {
+		return BackupListItems{}, err
+	}
+
+	return BackupListItems{items: resp.Payload}, nil
 }
 
 // Version returns server version.

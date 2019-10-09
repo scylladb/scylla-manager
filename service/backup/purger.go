@@ -19,16 +19,10 @@ import (
 	"go.uber.org/multierr"
 )
 
-type remoteManifest struct {
-	TaskID      uuid.UUID
-	SnapshotTag string
-	Version     string
-	Files       []string
-}
+// used to get groupingKey
+var tableVersionFileNamePattern = regexp.MustCompile("^[a-f0-9]{32}/[a-z]{2}-[0-9]+-big")
 
-const manifestFileSuffix = "-Data.db"
-
-func (m remoteManifest) extractFilesGroupingKeys() []string {
+func extractGroupingKeys(m remoteManifest) []string {
 	var s []string
 	for _, f := range m.Files {
 		v := path.Join(m.Version, strings.TrimSuffix(f, manifestFileSuffix))
@@ -36,9 +30,6 @@ func (m remoteManifest) extractFilesGroupingKeys() []string {
 	}
 	return s
 }
-
-// used to get groupingKey
-var tableVersionFileNamePattern = regexp.MustCompile("^[a-f0-9]{32}/[a-z]{2}-[0-9]+-big")
 
 func groupingKey(file string) (string, error) {
 	m := tableVersionFileNamePattern.FindStringSubmatch(file)
@@ -92,7 +83,7 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 		} else {
 			s = aliveFiles
 		}
-		s.Add(m.extractFilesGroupingKeys()...)
+		s.Add(extractGroupingKeys(m)...)
 	}
 	// Remove alive files from stale files laving only the orphans
 	staleFiles.Separate(aliveFiles)
@@ -119,8 +110,6 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 
 	return nil
 }
-
-var tagRegexp = regexp.MustCompile("^sm_[0-9]{14}UTC$")
 
 // listTaskTags returns a sorted list of tags for the task being purged.
 // The old tags are at the beginning of the returned slice.

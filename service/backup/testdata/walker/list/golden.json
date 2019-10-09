@@ -1,0 +1,98 @@
+[
+  {
+    "CleanPath": [
+      "backup",
+      "cluster",
+      "26cef9b5-f1c7-4cda-8deb-c5493a4ace00",
+      "dc",
+      "dc1",
+      "node",
+      "0d510a2a-dc73-4910-b4e5-74afa7715e74",
+      "keyspace",
+      "backuptest_purge",
+      "table",
+      "big_table",
+      "task",
+      "4d7d7644-4d83-4d60-9549-513c6ea11f1a",
+      "tag",
+      "sm_20191010122636UTC",
+      "206e5870eb5911e9ac08000000000001",
+      "manifest.json"
+    ],
+    "ClusterID": "26cef9b5-f1c7-4cda-8deb-c5493a4ace00",
+    "DC": "dc1",
+    "NodeID": "0d510a2a-dc73-4910-b4e5-74afa7715e74",
+    "Keyspace": "backuptest_purge",
+    "Table": "big_table",
+    "TaskID": "4d7d7644-4d83-4d60-9549-513c6ea11f1a",
+    "SnapshotTag": "sm_20191010122636UTC",
+    "Version": "206e5870eb5911e9ac08000000000001",
+    "Files": [
+      "la-10-big-Data.db"
+    ]
+  },
+  {
+    "CleanPath": [
+      "backup",
+      "cluster",
+      "26cef9b5-f1c7-4cda-8deb-c5493a4ace00",
+      "dc",
+      "dc1",
+      "node",
+      "10b484e6-fc41-4362-a2bb-c38f156756e8",
+      "keyspace",
+      "backuptest_purge",
+      "table",
+      "big_table",
+      "task",
+      "4d7d7644-4d83-4d60-9549-513c6ea11f1a",
+      "tag",
+      "sm_20191010122636UTC",
+      "206e5870eb5911e9ac08000000000001",
+      "manifest.json"
+    ],
+    "ClusterID": "26cef9b5-f1c7-4cda-8deb-c5493a4ace00",
+    "DC": "dc1",
+    "NodeID": "10b484e6-fc41-4362-a2bb-c38f156756e8",
+    "Keyspace": "backuptest_purge",
+    "Table": "big_table",
+    "TaskID": "4d7d7644-4d83-4d60-9549-513c6ea11f1a",
+    "SnapshotTag": "sm_20191010122636UTC",
+    "Version": "206e5870eb5911e9ac08000000000001",
+    "Files": [
+      "la-10-big-Data.db"
+    ]
+  },
+  {
+    "CleanPath": [
+      "backup",
+      "cluster",
+      "26cef9b5-f1c7-4cda-8deb-c5493a4ace00",
+      "dc",
+      "dc1",
+      "node",
+      "393bb53a-4d75-4bb0-b5a9-7f5ca8ac0757",
+      "keyspace",
+      "backuptest_purge",
+      "table",
+      "big_table",
+      "task",
+      "4d7d7644-4d83-4d60-9549-513c6ea11f1a",
+      "tag",
+      "sm_20191010122636UTC",
+      "206e5870eb5911e9ac08000000000001",
+      "manifest.json"
+    ],
+    "ClusterID": "26cef9b5-f1c7-4cda-8deb-c5493a4ace00",
+    "DC": "dc1",
+    "NodeID": "393bb53a-4d75-4bb0-b5a9-7f5ca8ac0757",
+    "Keyspace": "backuptest_purge",
+    "Table": "big_table",
+    "TaskID": "4d7d7644-4d83-4d60-9549-513c6ea11f1a",
+    "SnapshotTag": "sm_20191010122636UTC",
+    "Version": "206e5870eb5911e9ac08000000000001",
+    "Files": [
+      "la-10-big-Data.db"
+    ]
+  }
+]

@@ -3,7 +3,9 @@
 package backup
 
 import (
+	"os"
 	"path"
+	"strings"
 
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -14,7 +16,14 @@ func keyspaceDir(keyspace string) string {
 	return dataDir + keyspace
 }
 
-const manifest = "manifest.json"
+const (
+	manifest = "manifest.json"
+	sep      = string(os.PathSeparator)
+)
+
+func remoteManifestLevel() int {
+	return len(strings.Split(remoteManifestFile(uuid.Nil, uuid.Nil, "a", "b", "c", "d", "e", "f"), sep))
+}
 
 func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(

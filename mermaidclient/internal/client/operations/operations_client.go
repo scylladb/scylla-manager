@@ -124,6 +124,39 @@ func (a *Client) GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClu
 }
 
 /*
+GetClusterClusterIDBackups get cluster cluster ID backups API
+*/
+func (a *Client) GetClusterClusterIDBackups(params *GetClusterClusterIDBackupsParams) (*GetClusterClusterIDBackupsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDBackupsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDBackups",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/backups",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDBackupsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDBackupsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDBackupsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 GetClusterClusterIDStatus get cluster cluster ID status API
 */
 func (a *Client) GetClusterClusterIDStatus(params *GetClusterClusterIDStatusParams) (*GetClusterClusterIDStatusOK, error) {

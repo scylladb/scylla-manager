@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/internal/duration"
 	"github.com/scylladb/mermaid/mermaidclient"
@@ -165,4 +166,72 @@ func init() {
 
 	taskInitCommonFlags(fs)
 	requireFlags(cmd, "location")
+}
+
+var backupListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List available backups",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var (
+			host        string
+			location    []string
+			allClusters bool
+			keyspace    []string
+			minDate     strfmt.DateTime
+			maxDate     strfmt.DateTime
+		)
+
+		host, err := cmd.Flags().GetString("host")
+		if err != nil {
+			return err
+		}
+		location, err = cmd.Flags().GetStringSlice("location")
+		if err != nil {
+			return err
+		}
+		allClusters, err = cmd.Flags().GetBool("all-clusters")
+		if err != nil {
+			return err
+		}
+		keyspace, err = cmd.Flags().GetStringSlice("keyspace")
+		if err != nil {
+			return err
+		}
+		if f := cmd.Flag("min-date"); f.Changed {
+			minDate, err = mermaidclient.ParseDate(f.Value.String())
+			if err != nil {
+				return err
+			}
+		}
+		if f := cmd.Flag("max-date"); f.Changed {
+			maxDate, err = mermaidclient.ParseDate(f.Value.String())
+			if err != nil {
+				return err
+			}
+		}
+
+		list, err := client.ListBackups(ctx, cfgCluster, host, location, allClusters, keyspace, minDate, maxDate)
+		if err != nil {
+			return err
+		}
+		list.AllClusters = allClusters
+
+		return list.Render(cmd.OutOrStdout())
+	},
+}
+
+func init() {
+	cmd := backupListCmd
+	withScyllaDocs(cmd, "/sctool/#backup-list")
+	register(cmd, backupCmd)
+
+	fs := cmd.Flags()
+	fs.String("host", "", "host used to access locations")
+	fs.StringSliceP("location", "L", nil, "a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>, the dc part is optional and only needed when different datacenters upload data to different locations, the supported providers are: s3") //nolint: lll
+	fs.Bool("all-clusters", false, "show backups for all clusters")
+	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
+	fs.String("min-date", "", "minimal snapshot date in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
+	fs.String("max-date", "", "maximal snapshot date in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
+
+	requireFlags(cmd, "host", "location")
 }
