@@ -11,6 +11,8 @@ import (
 )
 
 func TestMakeHostsLimit(t *testing.T) {
+	t.Parallel()
+
 	var (
 		dc1h1 = hostInfo{DC: "dc1", ID: "1"}
 		dc1h2 = hostInfo{DC: "dc1", ID: "2"}
@@ -68,6 +70,8 @@ func TestMakeHostsLimit(t *testing.T) {
 }
 
 func TestInParallel(t *testing.T) {
+	t.Parallel()
+
 	const limit = 2
 
 	tokens := atomic.NewInt32(0)

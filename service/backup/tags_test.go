@@ -5,6 +5,8 @@ package backup
 import "testing"
 
 func TestSnapshotTag(t *testing.T) {
+	t.Parallel()
+
 	tag := newSnapshotTag()
 	t.Log(tag)
 	if !isSnapshotTag(tag) {

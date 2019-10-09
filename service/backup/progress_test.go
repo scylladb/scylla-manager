@@ -203,6 +203,8 @@ func TestAggregateProgress(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			f, err := os.Open(path.Join("testdata/aggregate_progress", test.Expected))
 			if err != nil {
 				t.Fatal(err)

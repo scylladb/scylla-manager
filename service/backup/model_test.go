@@ -7,6 +7,8 @@ import (
 )
 
 func TestProviderMarshalUnmarshalText(t *testing.T) {
+	t.Parallel()
+
 	for _, k := range []Provider{S3} {
 		b, err := k.MarshalText()
 		if err != nil {
@@ -23,6 +25,8 @@ func TestProviderMarshalUnmarshalText(t *testing.T) {
 }
 
 func TestLocationMarshalUnmarshalText(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name     string
 		Location Location
@@ -63,6 +67,8 @@ func TestLocationMarshalUnmarshalText(t *testing.T) {
 }
 
 func TestInvalidLocationUnmarshalText(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name     string
 		Location string
@@ -104,6 +110,8 @@ func TestInvalidLocationUnmarshalText(t *testing.T) {
 }
 
 func TestLocationRemotePath(t *testing.T) {
+	t.Parallel()
+
 	l := Location{
 		Provider: S3,
 		Path:     "foo",
@@ -131,6 +139,8 @@ func TestLocationRemotePath(t *testing.T) {
 }
 
 func TestDCLimitMarshalUnmarshalText(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name    string
 		DCLimit DCLimit

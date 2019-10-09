@@ -9,6 +9,8 @@ import (
 )
 
 func TestFilterDCLocations(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name      string
 		Locations []Location
@@ -61,6 +63,8 @@ func TestFilterDCLocations(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			if diff := cmp.Diff(test.Expect, filterDCLocations(test.Locations, test.DCs)); diff != "" {
 				t.Error(diff)
 			}
@@ -69,6 +73,8 @@ func TestFilterDCLocations(t *testing.T) {
 }
 
 func TestFilterDCLimit(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name     string
 		DCLimits []DCLimit
@@ -121,6 +127,8 @@ func TestFilterDCLimit(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			if diff := cmp.Diff(test.Expect, filterDCLimits(test.DCLimits, test.DCs)); diff != "" {
 				t.Error(diff)
 			}
