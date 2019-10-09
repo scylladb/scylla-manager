@@ -34,7 +34,7 @@ func TestInMemoryConfNotExposed(t *testing.T) {
 		},
 	}
 
-	RegisterInMemoryConf()
+	MustRegisterInMemoryConf()
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {

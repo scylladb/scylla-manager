@@ -100,6 +100,13 @@ var rootCmd = &cobra.Command{
 		rclone.SetDefaultConfig()
 		// Redirect rclone logger to the logger
 		rclone.RedirectLogPrint(logger.Named("rclone"))
+		// Register rclone providers
+		if err := rcserver.RegisterInMemoryConf(); err != nil {
+			return err
+		}
+		if err := rcserver.RegisterLocalDirProvider("data", "Jailed Scylla data", "/var/lib/scylla/data"); err != nil {
+			return err
+		}
 
 		// Start servers
 		errCh := make(chan error, 2)

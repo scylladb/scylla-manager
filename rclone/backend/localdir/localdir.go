@@ -1,9 +1,9 @@
 // Copyright (C) 2017 ScyllaDB
 
-// Package data is rclone backend based on local backend provided by rclone.
-// The difference from local is that data is always rooted to the scylla data
-// directory.
-package data
+// Package localdir is rclone backend based on local backend provided by rclone.
+// The difference from local is that data is always rooted at a directory
+// that can be specified dynamically on creation.
+package localdir
 
 import (
 	"path/filepath"
@@ -17,18 +17,12 @@ const (
 	linkSuffix = ".rclonelink"
 )
 
-var (
-	// RootDir represents absolute path under which data: file system will
-	// operate.
-	RootDir = "/var/lib/scylla/data"
-)
-
-// Register with Fs
-func init() {
+// Init registers new data provider with rclone.
+func Init(name, description, rootDir string) {
 	fsi := &fs.RegInfo{
-		Name:        "data",
-		Description: "Jailed Scylla data",
-		NewFs:       NewFs,
+		Name:        name,
+		Description: description,
+		NewFs:       NewFs(rootDir),
 		Options: []fs.Option{{
 			Name: "nounc",
 			Help: "Disable UNC (long path names) conversion on Windows",
@@ -107,10 +101,12 @@ to override the default choice.`,
 			Advanced: true,
 		}},
 	}
+
 	fs.Register(fsi)
 }
 
-func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
-	r := filepath.Join(RootDir, filepath.Clean(root))
-	return local.NewFs(name, r, m)
+func NewFs(rootDir string) func(name, root string, m configmap.Mapper) (fs.Fs, error) {
+	return func(name, root string, m configmap.Mapper) (fs.Fs, error) {
+		return local.NewFs(name, filepath.Join(rootDir, filepath.Clean(root)), m)
+	}
 }

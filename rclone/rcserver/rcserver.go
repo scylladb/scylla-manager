@@ -58,7 +58,6 @@ func New() *Server {
 		// Rewind job ID to new values
 		jobs.SetInitialJobID(timeutc.Now().Unix())
 	})
-	RegisterInMemoryConf()
 	return &Server{
 		filter: filter.Active,
 	}
