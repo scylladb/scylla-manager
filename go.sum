@@ -288,6 +288,8 @@ github.com/putdotio/go-putio v0.0.0-20190731220109-37c0795af843 h1:Hf9Zw1N+0gQol
 github.com/putdotio/go-putio v0.0.0-20190731220109-37c0795af843/go.mod h1:EWtDL88jJLLWZzywr0QaPO+mGP8gFpvl8dcox8qTk3Y=
 github.com/rclone/rclone v1.49.3 h1:nqUkUReuE1EBlM7xfHWh+xqv81sQ/5mJ848QwbRHGoY=
 github.com/rclone/rclone v1.49.3/go.mod h1:VpljyG+YNflubTUvhZBH/tpA6ziCZZdNx3sIDA/NETg=
+github.com/rclone/rclone v1.49.5 h1:EajKdzModlJrbLCXrdLbNPFAMDfTvjsJZRBU7R6f5To=
+github.com/rclone/rclone v1.49.5/go.mod h1:VpljyG+YNflubTUvhZBH/tpA6ziCZZdNx3sIDA/NETg=
 github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46 h1:w2CpS5muK+jyydnmlkqpAhzKmHmMBzBkfYUDjQNS1Dk=
 github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46/go.mod h1:U2bmx0hDj8EyDdcxmD5t3XHDnBFnyNNc22n1R4008eM=
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
