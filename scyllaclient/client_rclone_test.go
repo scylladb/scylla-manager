@@ -3,122 +3,40 @@
 package scyllaclient_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"go.uber.org/zap/zapcore"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path"
-	"strings"
 	"testing"
-
-	"github.com/scylladb/mermaid/rclone/backend/data"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
+	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
 )
 
-const (
-	testHost   = "127.0.0.1"
-	testRemote = "s3"
-	testBucket = "testing"
-)
-
-func remotePath(path string) string {
-	return testRemote + ":" + testBucket + path
-}
-
-func setRootDir(t *testing.T) func() {
-	t.Helper()
-	old := data.RootDir
-	dir, err := os.Getwd()
+func setupRclone() {
+	rootDir, err := os.Getwd()
 	if err != nil {
-		t.Fatal(t)
+		panic(err)
 	}
-	data.RootDir = dir
 
-	return func() {
-		data.RootDir = old
-	}
+	rclone.SetDefaultConfig()
+	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
+	rcserver.MustRegisterInMemoryConf()
+	rcserver.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
+	rcserver.MustRegisterLocalDirProvider("dev", "", "/dev")
 }
 
-func setRootDirVal(t *testing.T, root string) func() {
-	t.Helper()
-	old := data.RootDir
-	data.RootDir = root
+func TestRcloneSplitRemotePath(t *testing.T) {
+	t.Parallel()
 
-	return func() {
-		data.RootDir = old
-	}
-}
-
-func TestRcloneCatIntegration(t *testing.T) {
-	defer setRootDir(t)()
-	client, _, cl := newMockRcloneServer(t)
-	defer cl()
-
-	expected, err := ioutil.ReadFile("testdata/rclone/cat/file.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx := context.Background()
-
-	for _, test := range []struct {
-		Name  string
-		Path  string
-		Error bool
-	}{
-		{
-			Name:  "file",
-			Path:  "data:testdata/rclone/cat/file.txt",
-			Error: false,
-		},
-		{
-			Name:  "dir",
-			Path:  "data:testdata/rclone/cat",
-			Error: true,
-		},
-	} {
-		t.Run(test.Name, func(t *testing.T) {
-			got, err := client.RcloneCat(ctx, testHost, test.Path)
-			if test.Error && err == nil {
-				t.Fatal(err)
-			} else if !test.Error && err != nil {
-				t.Fatal(err)
-			} else if err != nil {
-				return
-			}
-
-			if diff := cmp.Diff(got, expected); diff != "" {
-				t.Fatal(got, diff)
-			}
-		})
-	}
-}
-
-func TestRcloneCatLimit(t *testing.T) {
-	defer setRootDirVal(t, "/dev")()
-	client, _, cl := newMockRcloneServer(t)
-	defer cl()
-
-	got, err := client.RcloneCat(context.Background(), testHost, "data:zero")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) > rcserver.CatLimit {
-		t.Errorf("Expected max red bytes to be %d, got %d", rcserver.CatLimit, len(got))
-	}
-}
-
-func TestSplitRemotePath(t *testing.T) {
 	table := []struct {
 		Name  string
 		Path  string
@@ -128,19 +46,19 @@ func TestSplitRemotePath(t *testing.T) {
 	}{
 		{
 			Name: "Single path",
-			Path: "data:file",
-			Fs:   "data:.",
+			Path: "rclonetest:file",
+			Fs:   "rclonetest:.",
 			File: "file",
 		},
 		{
 			Name: "Long path",
-			Path: "data:dir/file",
-			Fs:   "data:dir",
+			Path: "rclonetest:dir/file",
+			Fs:   "rclonetest:dir",
 			File: "file",
 		},
 		{
 			Name:  "Invalid file path",
-			Path:  "data:",
+			Path:  "rclonetest:",
 			Error: true,
 		},
 		{
@@ -152,7 +70,9 @@ func TestSplitRemotePath(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			fs, file, err := scyllaclient.SplitRemotePath(test.Path)
+			t.Parallel()
+
+			fs, file, err := scyllaclient.RcloneSplitRemotePath(test.Path)
 			if err != nil && !test.Error {
 				t.Fatal(err)
 			} else if err == nil && test.Error {
@@ -168,8 +88,74 @@ func TestSplitRemotePath(t *testing.T) {
 	}
 }
 
+func TestRcloneCat(t *testing.T) {
+	t.Parallel()
+
+	expected, err := ioutil.ReadFile("testdata/rclone/cat/file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table := []struct {
+		Name  string
+		Path  string
+		Error bool
+	}{
+		{
+			Name:  "file",
+			Path:  "rclonetest:testdata/rclone/cat/file.txt",
+			Error: false,
+		},
+		{
+			Name:  "dir",
+			Path:  "rclonetest:testdata/rclone/cat",
+			Error: true,
+		},
+	}
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
+	defer cl()
+
+	t.Run("group", func(t *testing.T) {
+		for _, test := range table {
+			t.Run(test.Name, func(t *testing.T) {
+				t.Parallel()
+
+				got, err := client.RcloneCat(context.Background(), scyllaclienttest.TestHost, test.Path)
+				if test.Error && err == nil {
+					t.Fatal(err)
+				} else if !test.Error && err != nil {
+					t.Fatal(err)
+				} else if err != nil {
+					return
+				}
+
+				if diff := cmp.Diff(got, expected); diff != "" {
+					t.Fatal(got, diff)
+				}
+			})
+		}
+	})
+}
+
+func TestRcloneCatLimit(t *testing.T) {
+	t.Parallel()
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
+	defer cl()
+
+	got, err := client.RcloneCat(context.Background(), scyllaclienttest.TestHost, "dev:zero")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) > rcserver.CatLimit {
+		t.Errorf("Expected max red bytes to be %d, got %d", rcserver.CatLimit, len(got))
+	}
+}
+
 func TestRcloneListDir(t *testing.T) {
-	defer setRootDir(t)()
+	t.Parallel()
+
 	f := func(file string, isDir bool) *models.ListItem {
 		return &models.ListItem{
 			Path:  file,
@@ -205,99 +191,54 @@ func TestRcloneListDir(t *testing.T) {
 		},
 	}
 
-	client, _, cl := newMockRcloneServer(t)
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
 	defer cl()
 
-	for _, test := range table {
-		t.Run(test.Name, func(t *testing.T) {
-			files, err := client.RcloneListDir(context.Background(), testHost, "data:testdata/rclone/list", test.Opts)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
-				t.Fatal("RcloneListDir() diff", diff)
-			}
-		})
-	}
+	t.Run("group", func(t *testing.T) {
+		for _, test := range table {
+			t.Run(test.Name, func(t *testing.T) {
+				t.Parallel()
+
+				files, err := client.RcloneListDir(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
+					t.Fatal("RcloneListDir() diff", diff)
+				}
+			})
+		}
+	})
 }
 
 func TestRcloneListDirNotFound(t *testing.T) {
-	defer setRootDir(t)()
-	client, _, cl := newMockRcloneServer(t)
+	t.Parallel()
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
 	defer cl()
 
 	ctx := context.Background()
 
-	_, err := client.RcloneListDir(ctx, testHost, "data:testdata/rclone/not-found", nil)
+	_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/not-found", nil)
 	if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 		t.Fatal("expected not found")
 	}
 }
 
 func TestRcloneDiskUsage(t *testing.T) {
-	defer setRootDir(t)()
-	client, _, cl := newMockRcloneServer(t)
+	t.Parallel()
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
 	defer cl()
 
 	ctx := context.Background()
 
-	got, err := client.RcloneDiskUsage(ctx, testHost, "data:testdata/rclone/")
+	got, err := client.RcloneDiskUsage(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if got.Total <= 0 || got.Free <= 0 || got.Used <= 0 {
 		t.Errorf("Expected usage bigger than zero, got: %+v", got)
-	}
-}
-
-func newMockRcloneServer(t *testing.T) (*scyllaclient.Client, string, func()) {
-	t.Helper()
-
-	rc := rcserver.New()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
-		rc.ServeHTTP(w, r)
-	}))
-
-	host, port, err := net.SplitHostPort(server.Listener.Addr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = []string{host}
-	config.Scheme = "http"
-	config.AgentPort = port
-
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return client, server.URL, func() { server.Close() }
-}
-
-func TestRcloneConfigurationIsNotAccessible(t *testing.T) {
-	defer setRootDir(t)()
-	_, url, cl := newMockRcloneServer(t)
-	defer cl()
-
-	values := map[string]string{}
-	jsonValue, _ := json.Marshal(values)
-	paths := []string{"config/create", "config/get", "config/providers", "config/delete"}
-
-	for _, p := range paths {
-		resp, err := http.Post(url+"/"+p, "application/json", bytes.NewBuffer(jsonValue))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if resp.StatusCode != http.StatusNotFound {
-			res, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Log(string(res))
-			t.Fatalf("Expected bad request, got: %+v", resp)
-		}
 	}
 }

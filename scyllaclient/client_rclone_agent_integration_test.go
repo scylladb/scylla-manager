@@ -13,7 +13,6 @@ import (
 
 	"github.com/scylladb/go-log"
 	. "github.com/scylladb/mermaid/mermaidtest"
-	"github.com/scylladb/mermaid/rclone/backend/data"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
@@ -52,10 +51,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	// Create test directory with files on the test host.
-	cmd := injectRootDir(
-		"rm -rf %s/tmp/copy && mkdir -p %s/tmp/copy && echo 'bar' > %s/tmp/copy/foo && echo 'foo' > %s/tmp/copy/bar",
-		data.RootDir,
-	)
+	cmd := injectDataDir("rm -rf %s/tmp/copy && mkdir -p %s/tmp/copy && echo 'bar' > %s/tmp/copy/foo && echo 'foo' > %s/tmp/copy/bar")
 	_, _, err = ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
@@ -122,16 +118,13 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 
 	// Create big enough file on the test host to keep running for long enough.
 	// 1024*102400
-	cmd := injectRootDir(
-		"rm -rf %s/tmp/copy && mkdir -p %s/tmp/ && dd if=/dev/zero of=%s/tmp/copy count=1024 bs=102400",
-		data.RootDir,
-	)
+	cmd := injectDataDir("rm -rf %s/tmp/copy && mkdir -p %s/tmp/ && dd if=/dev/zero of=%s/tmp/copy count=1024 bs=102400")
 	_, _, err = ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		cmd := fmt.Sprintf("rm -rf %s/tmp/copy", data.RootDir)
+		cmd := fmt.Sprintf("rm -rf %s/tmp/copy", scyllaDataDir)
 		_, _, err := ExecOnHost(testHost, cmd)
 		if err != nil {
 			t.Fatal(err)
@@ -172,6 +165,8 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	}
 }
 
-func injectRootDir(str, rootdir string) string {
-	return strings.ReplaceAll(str, "%s", rootdir)
+const scyllaDataDir = "/var/lib/scylla/data"
+
+func injectDataDir(cmd string) string {
+	return strings.ReplaceAll(cmd, "%s", scyllaDataDir)
 }

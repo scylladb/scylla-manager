@@ -2,6 +2,10 @@
 
 package scyllaclient
 
-func SplitRemotePath(remotePath string) (string, string, error) {
+func PickNRandomHosts(n int, hosts []string) []string {
+	return pickNRandomHosts(n, hosts)
+}
+
+func RcloneSplitRemotePath(remotePath string) (string, string, error) {
 	return rcloneSplitRemotePath(remotePath)
 }

@@ -1,19 +1,22 @@
 // Copyright (C) 2017 ScyllaDB
 
-package scyllaclient
+package scyllaclient_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
 )
 
 func TestClientPing(t *testing.T) {
 	t.Parallel()
 
-	c, close := newMockServer(t, "/dev/null")
+	c, close := scyllaclienttest.NewFakeScyllaServer(t, "/dev/null")
 	defer close()
 
-	if _, err := c.Ping(context.Background(), testHost); err != nil {
+	if _, err := c.Ping(context.Background(), scyllaclienttest.TestHost); err != nil {
 		t.Fatal(err)
 	}
 
@@ -52,7 +55,7 @@ func TestPickNRandomHosts(t *testing.T) {
 	}
 
 	for i, test := range table {
-		picked := pickNRandomHosts(test.N, test.H)
+		picked := scyllaclient.PickNRandomHosts(test.N, test.H)
 		if len(picked) != test.E {
 			t.Errorf("picked %d hosts, expected %d in test %d", len(picked), test.E, i)
 		}

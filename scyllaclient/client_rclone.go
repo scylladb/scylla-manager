@@ -232,6 +232,9 @@ func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) 
 // RcloneListDirOpts specifies options for RcloneListDir.
 type RcloneListDirOpts = models.ListOptionsOpt
 
+// RcloneListDirItem represents a file in a listing with RcloneListDir.
+type RcloneListDirItem = models.ListItem
+
 // RcloneListDir lists contents of a directory specified by the path.
 // Remote path format is "name:bucket/path".
 // Listed item path is relative to the remote path root directory.

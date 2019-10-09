@@ -1,19 +1,21 @@
 // Copyright (C) 2017 ScyllaDB
 
-package scyllaclient
+package scyllaclient_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
 )
 
 func TestConfigClientListenAddress(t *testing.T) {
 	t.Parallel()
 
-	c, close := newMockConfigServer(t, "testdata/scylla_api/v2_config_listen_address.json")
-	defer close()
+	client, cl := scyllaclienttest.NewFakeScyllaV2Server(t, "testdata/scylla_api/v2_config_listen_address.json")
+	defer cl()
 
-	v, err := c.ListenAddress(context.Background())
+	v, err := client.ListenAddress(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,10 +27,10 @@ func TestConfigClientListenAddress(t *testing.T) {
 func TestConfigClientBroadcastAddress(t *testing.T) {
 	t.Parallel()
 
-	c, close := newMockConfigServer(t, "testdata/scylla_api/v2_config_broadcast_address.json")
-	defer close()
+	client, cl := scyllaclienttest.NewFakeScyllaV2Server(t, "testdata/scylla_api/v2_config_broadcast_address.json")
+	defer cl()
 
-	v, err := c.BroadcastAddress(context.Background())
+	v, err := client.BroadcastAddress(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,10 +42,10 @@ func TestConfigClientBroadcastAddress(t *testing.T) {
 func TestConfigClientPrometheusAddress(t *testing.T) {
 	t.Parallel()
 
-	c, close := newMockConfigServer(t, "testdata/scylla_api/v2_config_prometheus_address.json")
-	defer close()
+	client, cl := scyllaclienttest.NewFakeScyllaV2Server(t, "testdata/scylla_api/v2_config_prometheus_address.json")
+	defer cl()
 
-	v, err := c.PrometheusAddress(context.Background())
+	v, err := client.PrometheusAddress(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,10 +57,10 @@ func TestConfigClientPrometheusAddress(t *testing.T) {
 func TestConfigClientPrometheusPort(t *testing.T) {
 	t.Parallel()
 
-	c, close := newMockConfigServer(t, "testdata/scylla_api/v2_config_prometheus_port.json")
-	defer close()
+	client, cl := scyllaclienttest.NewFakeScyllaV2Server(t, "testdata/scylla_api/v2_config_prometheus_port.json")
+	defer cl()
 
-	v, err := c.PrometheusPort(context.Background())
+	v, err := client.PrometheusPort(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
