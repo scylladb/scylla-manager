@@ -57,7 +57,6 @@ func (rc *CmdRenderer) writeArg(in ...string) {
 		if rc.err != nil {
 			return
 		}
-		s = escapeGlobPattern(s)
 		_, err := io.WriteString(rc.buf, s)
 		if err != nil {
 			rc.err = err
@@ -65,12 +64,9 @@ func (rc *CmdRenderer) writeArg(in ...string) {
 	}
 }
 
-func escapeGlobPattern(pat string) string {
-	pat = strings.Replace(pat, "!", `\!`, -1)
-	return strings.Replace(pat, "*", `\*`, -1)
-}
-
-func (rc *CmdRenderer) writeProp(arg, prop string) {
+// writeProp adds a map from argument to the task property.
+// If quoted is true property value will be single quoted.
+func (rc *CmdRenderer) writeProp(arg, prop string, quoted bool) {
 	if rc.task.Properties == nil {
 		return
 	}
@@ -88,13 +84,25 @@ func (rc *CmdRenderer) writeProp(arg, prop string) {
 		for i := range tmp {
 			tmp[i] = val[i].(string)
 		}
-		rc.writeArg(arg, " ", strings.Join(tmp, ","))
+		out := strings.Join(tmp, ",")
+		if quoted {
+			out = "'" + out + "'"
+		}
+		rc.writeArg(arg, " ", out)
 	case []string:
-		rc.writeArg(arg, " ", strings.Join(val, ","))
+		out := strings.Join(val, ",")
+		if quoted {
+			out = "'" + out + "'"
+		}
+		rc.writeArg(arg, " ", out)
 	case bool:
 		rc.writeArg(arg)
 	default:
-		rc.writeArg(arg, " ", fmt.Sprintf("%v", v))
+		out := fmt.Sprintf("%v", v)
+		if quoted {
+			out = "'" + out + "'"
+		}
+		rc.writeArg(arg, " ", out)
 	}
 }
 
@@ -115,20 +123,20 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 	case RenderTypeArgs:
 		switch rc.task.Type {
 		case backupTaskType:
-			rc.writeProp("-K", "keyspace")
-			rc.writeProp("--dc", "dc")
-			rc.writeProp("-L", "location")
-			rc.writeProp("--retention", "retention")
-			rc.writeProp("--rate-limit", "rate_limit")
-			rc.writeProp("--snapshot-parallel", "snapshot_parallel")
-			rc.writeProp("--upload-parallel", "upload_parallel")
+			rc.writeProp("-K", "keyspace", true)
+			rc.writeProp("--dc", "dc", true)
+			rc.writeProp("-L", "location", false)
+			rc.writeProp("--retention", "retention", false)
+			rc.writeProp("--rate-limit", "rate_limit", false)
+			rc.writeProp("--snapshot-parallel", "snapshot_parallel", false)
+			rc.writeProp("--upload-parallel", "upload_parallel", false)
 		case repairTaskType:
-			rc.writeProp("-K", "keyspace")
-			rc.writeProp("--dc", "dc")
-			rc.writeProp("--host", "host")
-			rc.writeProp("--with-hosts", "with_hosts")
-			rc.writeProp("--fail-fast", "fail_fast")
-			rc.writeProp("--token-ranges", "token_ranges")
+			rc.writeProp("-K", "keyspace", true)
+			rc.writeProp("--dc", "dc", true)
+			rc.writeProp("--host", "host", false)
+			rc.writeProp("--with-hosts", "with_hosts", false)
+			rc.writeProp("--fail-fast", "fail_fast", false)
+			rc.writeProp("--token-ranges", "token_ranges", false)
 		}
 	}
 
