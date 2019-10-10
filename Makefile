@@ -64,9 +64,15 @@ unit-test: ## Run unit tests
 	@echo "==> Running tests (race)"
 	@go test -cover -race ./...
 
+# Export AWS env variables for rclone integration tests with minio.
+include testing/.env
+export AWS_S3_ENDPOINT := $(MINIO_ENDPOINT)
+export AWS_ACCESS_KEY_ID := $(MINIO_ACCESS_KEY)
+export AWS_SECRET_ACCESS_KEY := $(MINIO_SECRET_KEY)
+
 DB_ARGS    := -cluster 192.168.100.100 -managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23
 AGENT_ARGS := -agent-auth-token token
-S3_ARGS    := -s3-data-dir $(PWD)/testing/minio/data -s3-endpoint http://192.168.100.99:9000 -s3-access-key-id minio -s3-secret-access-key minio123
+S3_ARGS    := -s3-data-dir $(PWD)/testing/minio/data
 
 INTEGRATION_TEST_ARGS := $(DB_ARGS) $(AGENT_ARGS) $(S3_ARGS)
 

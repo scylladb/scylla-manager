@@ -7,15 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"go.uber.org/multierr"
 )
 
 var (
-	flagS3DataDir         = flag.String("s3-data-dir", "", "location of a local folder mounted by the test s3 instance")
-	flagS3Endpoint        = flag.String("s3-endpoint", "", "s3 service compatible endpoint")
-	flagS3AccessKeyID     = flag.String("s3-access-key-id", "", "s3 access key id")
-	flagS3SecretAccessKey = flag.String("s3-secret-access-key", "", "s3 access key secret")
+	flagS3DataDir = flag.String("s3-data-dir", "", "location of a local folder mounted by the test s3 instance")
 )
 
 // S3InitBucket recreates a local bucket if s3-data-dir flag is specified.
@@ -34,24 +29,4 @@ func S3InitBucket(t *testing.T, bucket string) {
 	if err := os.Mkdir(p, 0700); err != nil {
 		t.Fatal(err)
 	}
-}
-
-// S3SetEnvAuth sets environment variables when needed on the local machine.
-func S3SetEnvAuth(t *testing.T) {
-	t.Helper()
-
-	errs := multierr.Combine(
-		os.Setenv("AWS_S3_ENDPOINT", S3TestEndpoint()),
-		os.Setenv("AWS_ACCESS_KEY_ID", *flagS3AccessKeyID),
-		os.Setenv("AWS_SECRET_ACCESS_KEY", *flagS3SecretAccessKey),
-	)
-
-	if errs != nil {
-		t.Fatal(errs)
-	}
-}
-
-// S3TestEndpoint returns an endpoint for testing like minio.
-func S3TestEndpoint() string {
-	return *flagS3Endpoint
 }

@@ -398,7 +398,6 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	const testBucket = "backuptest-void"
 
 	config := backup.DefaultConfig()
-	config.TestS3Endpoint = S3TestEndpoint()
 	config.PollInterval = time.Second
 
 	var (
@@ -527,7 +526,6 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
-	config.TestS3Endpoint = S3TestEndpoint()
 
 	var (
 		session = CreateSession(t)
@@ -575,7 +573,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
-	config.TestS3Endpoint = S3TestEndpoint()
 	config.PollInterval = time.Second
 
 	var (
@@ -788,7 +785,6 @@ func TestPurgeIntegration(t *testing.T) {
 
 	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
-	config.TestS3Endpoint = S3TestEndpoint()
 
 	var (
 		session        = CreateSession(t)

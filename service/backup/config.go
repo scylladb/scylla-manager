@@ -14,9 +14,6 @@ type Config struct {
 	DiskSpaceFreeMinPercent int           `yaml:"disk_space_free_min_percent"`
 	PollInterval            time.Duration `yaml:"poll_interval"`
 	AgeMax                  time.Duration `yaml:"age_max"`
-
-	// Additional configuration for testing
-	TestS3Endpoint string `yaml:"test_s3_endpoint"`
 }
 
 // DefaultConfig returns a Config initialized with default values.
