@@ -4,7 +4,6 @@ package scyllaclient_test
 
 import (
 	"context"
-	"go.uber.org/zap/zapcore"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
 	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
+	"go.uber.org/zap/zapcore"
 )
 
 func setupRclone() {
@@ -223,6 +223,90 @@ func TestRcloneListDirNotFound(t *testing.T) {
 	if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 		t.Fatal("expected not found")
 	}
+}
+
+func TestRcloneListDirEscapeJail(t *testing.T) {
+	t.Parallel()
+
+	rcserver.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
+
+	f := func(file string, isDir bool) *models.ListItem {
+		return &models.ListItem{
+			Path:  file,
+			Name:  path.Base(file),
+			IsDir: isDir,
+		}
+	}
+	opts := cmpopts.IgnoreFields(models.ListItem{}, "MimeType", "ModTime", "Size")
+
+	table := []struct {
+		Name     string
+		Opts     *scyllaclient.RcloneListDirOpts
+		Path     string
+		Expected []*models.ListItem
+		Error    bool
+	}{
+		{
+			Name:     "list subdir 1",
+			Path:     "rclonejail:subdir1",
+			Expected: []*models.ListItem{f("subdir2", true), f("foo.txt", false)},
+			Error:    false,
+		},
+		{
+			Name:     "list subdir 1 recursive",
+			Path:     "rclonejail:subdir1",
+			Expected: []*models.ListItem{f("subdir2", true), f("foo.txt", false), f("file.txt", false)},
+			Error:    false,
+		},
+		{
+			Name:     "list just root",
+			Path:     "rclonejail:/",
+			Expected: []*models.ListItem{f("subdir1", true)},
+			Error:    false,
+		},
+		{
+			Name:     "access one level above root",
+			Path:     "rclonejail:subdir1/../..",
+			Expected: nil,
+			Error:    true,
+		},
+		{
+			Name:     "access several levels above root",
+			Path:     "rclonejail:subdir1/../../.././...",
+			Expected: nil,
+			Error:    true,
+		},
+		{
+			Name:     "access root directory",
+			Path:     "rclonejail:.",
+			Expected: []*models.ListItem{f("subdir1", true)},
+			Error:    false,
+		},
+	}
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
+	defer cl()
+
+	t.Run("group", func(t *testing.T) {
+		for _, test := range table {
+			t.Run(test.Name, func(t *testing.T) {
+				t.Parallel()
+
+				files, err := client.RcloneListDir(context.Background(), scyllaclienttest.TestHost, test.Path, test.Opts)
+				if test.Error && err == nil {
+					for _, f := range files {
+						t.Log(f)
+					}
+					t.Fatal("Expected error")
+				} else if !test.Error && err != nil {
+					t.Fatal(err)
+				}
+				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
+					t.Fatal("RcloneListDir() diff", diff)
+				}
+			})
+		}
+	})
 }
 
 func TestRcloneDiskUsage(t *testing.T) {

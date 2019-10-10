@@ -8,6 +8,7 @@ package localdir
 import (
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/rclone/rclone/backend/local"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/config/configmap"
@@ -107,6 +108,20 @@ to override the default choice.`,
 
 func NewFs(rootDir string) func(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	return func(name, root string, m configmap.Mapper) (fs.Fs, error) {
-		return local.NewFs(name, filepath.Join(rootDir, filepath.Clean(root)), m)
+		p := cleanPath(root)
+		if len(root) > 1 && p == "" {
+			// If root has more than one byte and after cleanPath we end up with
+			// empty path then we received invalid path.
+			return nil, errors.Wrap(fs.ErrorObjectNotFound, "accessing path outside of root")
+		}
+		return local.NewFs(name, filepath.Join(rootDir, p), m)
 	}
+}
+
+func cleanPath(path string) string {
+	// filepath.Clean will turn everything that goes up and beyond root into
+	// single /.
+	// We are prepending slash to turn it into absolute path and then returning
+	// result without the slash.
+	return filepath.Clean("/" + path)[1:]
 }
