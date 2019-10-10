@@ -51,6 +51,12 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 	client := newTestClient(t, logger.Named("client"))
 	service := newTestService(t, session, client, config, logger)
 
+	for _, ip := range ManagedClusterHosts() {
+		if err := client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
+			t.Error("Couldn't reset stats", ip, err)
+		}
+	}
+
 	return &backupTestHelper{
 		session:  session,
 		client:   client,
@@ -531,14 +537,6 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	defer func() {
-		for _, ip := range ManagedClusterHosts() {
-			if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
-				t.Error("Couldn't reset stats", ip, err)
-			}
-		}
-	}()
-
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
@@ -597,15 +595,10 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	t.Run("resume after stop", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
-		defer func() {
-			for _, ip := range ManagedClusterHosts() {
-				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
-					t.Error("Couldn't reset stats", ip, err)
-				}
-			}
-		}()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
+
 		go func() {
 			defer close(done)
 			Print("When: backup is running")
@@ -656,13 +649,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	t.Run("resume after agent restart", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
-		defer func() {
-			for _, ip := range ManagedClusterHosts() {
-				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
-					t.Error("Couldn't reset stats", ip, err)
-				}
-			}
-		}()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -712,13 +699,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	t.Run("continue false", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
-		defer func() {
-			for _, ip := range ManagedClusterHosts() {
-				if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
-					t.Error("Couldn't reset stats", ip, err)
-				}
-			}
-		}()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 
@@ -791,14 +772,6 @@ func TestPurgeIntegration(t *testing.T) {
 		h   = newBackupTestHelper(t, session, config, location)
 		ctx = context.Background()
 	)
-
-	defer func() {
-		for _, ip := range ManagedClusterHosts() {
-			if err := h.client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
-				t.Error("Couldn't reset stats", ip, err)
-			}
-		}
-	}()
 
 	Print("Given: retention policy 1")
 	target := backup.Target{
