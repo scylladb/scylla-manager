@@ -88,6 +88,12 @@ integration-test: ## Run integration tests
 	@go test -cover -race -v -tags integration -run Integration ./service/scheduler $(INTEGRATION_TEST_ARGS)
 	@go test -cover -race -v -tags integration -run Integration ./schema/cql $(INTEGRATION_TEST_ARGS)
 
+.PHONY: pkg-stress-test
+pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
+	@echo "==> Running stress tests for package $(PKG) (race)"
+	@go test -race -c -o stress.test $(PKG)
+	@cd $(PKG); $(GOBIN)/stress $(PWD)/stress.test
+
 .PHONY: start-dev-env
 start-dev-env: ## Start testing containers and run server
 start-dev-env: .testing-up dev-agent dev-cli dev-server
@@ -121,7 +127,7 @@ dev-server: ## Build and run development server
 
 .PHONY: clean
 clean: ## Remove dev build artifacts (*.dev files)
-	@rm -rf agent.dev sctool.dev scylla-manager.dev
+	@rm -rf agent.dev sctool.dev scylla-manager.dev stress.test
 
 .PHONY: mrproper
 mrproper: ## Clean go caches
