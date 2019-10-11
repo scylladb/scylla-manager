@@ -11,7 +11,8 @@ GO_PKGS="
 golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.19.1/golangci-lint-1.19.1-linux-amd64.tar.gz \
 swagger             https://github.com/go-swagger/go-swagger/releases/download/v0.20.1/swagger_linux_amd64 \
 license-detector    https://github.com/src-d/go-license-detector/releases/download/2.0.2/license-detector.linux_amd64.gz \
-mockgen             github.com/golang/mock/mockgen"
+mockgen             github.com/golang/mock/mockgen \
+stress              golang.org/x/tools/cmd/stress"
 
 echo "==> Installing system packages"
 DISTRO=` cat /etc/os-release | grep '^ID=' | cut -d= -f2`

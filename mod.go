@@ -11,6 +11,7 @@ package mermaid
 
 import (
 	_ "github.com/golang/mock/mockgen"
+	_ "golang.org/x/tools/cmd/stress"
 
 	_ "github.com/go-openapi/analysis"
 	_ "github.com/go-openapi/jsonpointer"
