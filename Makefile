@@ -78,15 +78,20 @@ INTEGRATION_TEST_ARGS := $(DB_ARGS) $(AGENT_ARGS) $(S3_ARGS)
 
 .PHONY: integration-test
 integration-test: ## Run integration tests
-	@echo "==> Running integration tests"
-	@go test -cover -race -v -tags integration -run Integration ./internal/cqlping $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./scyllaclient $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./service/backup $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./service/cluster $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./service/healthcheck $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./service/repair $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./service/scheduler $(INTEGRATION_TEST_ARGS)
-	@go test -cover -race -v -tags integration -run Integration ./schema/cql $(INTEGRATION_TEST_ARGS)
+integration-test:
+	@$(MAKE) pkg-integration-test PKG=./internal/cqlping
+	@$(MAKE) pkg-integration-test PKG=./scyllaclient
+	@$(MAKE) pkg-integration-test PKG=./service/backup
+	@$(MAKE) pkg-integration-test PKG=./service/cluster
+	@$(MAKE) pkg-integration-test PKG=./service/healthcheck
+	@$(MAKE) pkg-integration-test PKG=./service/repair
+	@$(MAKE) pkg-integration-test PKG=./service/scheduler
+	@$(MAKE) pkg-integration-test PKG=./schema/cql
+
+.PHONY: pkg-integration-test
+pkg-integration-test: ## Run integration tests for a package, requires PKG parameter
+	@echo "==> Running integration tests for package $(PKG)"
+	@go test -cover -v -tags integration -run Integration $(PKG) $(INTEGRATION_TEST_ARGS)
 
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
