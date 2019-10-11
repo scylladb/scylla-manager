@@ -23,7 +23,19 @@ import (
 	scyllaOperations "github.com/scylladb/mermaid/scyllaclient/internal/scylla/client/operations"
 )
 
-var initOnce sync.Once
+var setOpenAPIGlobalsOnce sync.Once
+
+func setOpenAPIGlobals() {
+	setOpenAPIGlobalsOnce.Do(func() {
+		// Timeout is defined in http client that we provide in api.NewWithClient.
+		// If Context is provided to operation, which is always the case here,
+		// this value has no meaning since OpenAPI runtime ignores it.
+		api.DefaultTimeout = 0
+		// Disable debug output to stderr, it could have been enabled by setting
+		// SWAGGER_DEBUG or DEBUG env variables.
+		apiMiddleware.Debug = false
+	})
+}
 
 //go:generate ./internalgen.sh
 
@@ -65,16 +77,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
 	}
-
-	initOnce.Do(func() {
-		// Timeout is defined in http client that we provide in api.NewWithClient.
-		// If Context is provided to operation, which is always the case here,
-		// this value has no meaning since OpenAPI runtime ignores it.
-		api.DefaultTimeout = 0
-		// Disable debug output to stderr, it could have been enabled by setting
-		// SWAGGER_DEBUG or DEBUG env variables.
-		apiMiddleware.Debug = false
-	})
+	setOpenAPIGlobals()
 
 	// Copy hosts
 	hosts := make([]string, len(config.Hosts))

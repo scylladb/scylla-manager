@@ -18,6 +18,8 @@ type ConfigClient struct {
 }
 
 func NewConfigClient(addr string) *ConfigClient {
+	setOpenAPIGlobals()
+
 	t := api.DefaultTransportConfig().WithHost(addr)
 	return &ConfigClient{
 		client: api.NewHTTPClientWithConfig(strfmt.Default, t),

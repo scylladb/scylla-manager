@@ -29,7 +29,8 @@ func NewFakeScyllaServerMatching(t *testing.T, m Matcher) (*scyllaclient.Client,
 
 		f, err := os.Open(file)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
+			return
 		}
 		defer f.Close()
 		if _, err := io.Copy(w, f); err != nil {
@@ -52,7 +53,8 @@ func NewFakeScyllaV2ServerMatching(t *testing.T, m Matcher) (*scyllaclient.Confi
 
 		f, err := os.Open(file)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
+			return
 		}
 		defer f.Close()
 		if _, err := io.Copy(w, f); err != nil {
