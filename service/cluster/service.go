@@ -266,6 +266,18 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		if c.ID, err = uuid.NewRandom(); err != nil {
 			return errors.Wrap(err, "couldn't generate random UUID for Cluster")
 		}
+	} else {
+		// User may set ID on his own
+		_, err := s.GetClusterByID(ctx, c.ID)
+		if err != nil {
+			if err != mermaid.ErrNotFound {
+				return err
+			}
+			t = Create
+		}
+	}
+
+	if t == Create {
 		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
 	} else {
 		s.logger.Info(ctx, "Updating cluster", "cluster_id", c.ID)

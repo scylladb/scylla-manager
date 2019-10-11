@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )
@@ -23,8 +24,8 @@ func NewTaskMatcher(expected *scheduler.Task) *TaskMatcher {
 }
 
 // Matches returns whether x is a match.
-func (m TaskMatcher) Matches(x interface{}) bool {
-	task, ok := x.(*scheduler.Task)
+func (m TaskMatcher) Matches(v interface{}) bool {
+	task, ok := v.(*scheduler.Task)
 	if !ok {
 		return false
 	}
@@ -46,8 +47,8 @@ func NewUUIDMatcher(expected uuid.UUID) *UUIDMatcher {
 }
 
 // Matches returns whether x is a match.
-func (m UUIDMatcher) Matches(x interface{}) bool {
-	id, ok := x.(uuid.UUID)
+func (m UUIDMatcher) Matches(v interface{}) bool {
+	id, ok := v.(uuid.UUID)
 	if !ok {
 		return false
 	}
@@ -56,4 +57,29 @@ func (m UUIDMatcher) Matches(x interface{}) bool {
 
 func (m *UUIDMatcher) String() string {
 	return fmt.Sprintf("is equal to: %s", m.expected.String())
+}
+
+// ClusterMatcher gomock.Matcher interface implementation for cluster.Cluster.
+type ClusterMatcher struct {
+	expected *cluster.Cluster
+}
+
+// NewClusterMatcher returns gomock.Matcher for clusters. It compares only ID field.
+func NewClusterMatcher(expected *cluster.Cluster) *ClusterMatcher {
+	return &ClusterMatcher{
+		expected: expected,
+	}
+}
+
+// Matches returns whether x is a match.
+func (m ClusterMatcher) Matches(v interface{}) bool {
+	c, ok := v.(*cluster.Cluster)
+	if !ok {
+		return false
+	}
+	return cmp.Equal(m.expected.ID, c.ID, UUIDComparer())
+}
+
+func (m ClusterMatcher) String() string {
+	return fmt.Sprintf("is equal to cluster with ID: %s", m.expected.ID.String())
 }

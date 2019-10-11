@@ -168,7 +168,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("put conflicting cluster", func(t *testing.T) {
+	t.Run("put conflicting cluster name", func(t *testing.T) {
 		setup(t)
 
 		c0 := validCluster()
@@ -224,6 +224,18 @@ func TestServiceStorageIntegration(t *testing.T) {
 		setup(t)
 
 		c := validCluster()
+		// Given cluster
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		if change.ID != c.ID {
+			t.Fatal("id mismatch")
+		}
+		if change.Type != cluster.Create {
+			t.Fatal("invalid type", change)
+		}
+
+		// Then PutCluster with same data results in Update
 		if err := s.PutCluster(ctx, c); err != nil {
 			t.Fatal(err)
 		}

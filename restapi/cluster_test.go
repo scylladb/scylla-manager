@@ -15,6 +15,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/uuid"
@@ -60,7 +61,7 @@ func TestClusterList(t *testing.T) {
 	assertJsonBody(t, w, expected)
 }
 
-func TestClusterCreate(t *testing.T) {
+func TestClusterCreateGeneratesIDWhenNotProvided(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -77,6 +78,35 @@ func TestClusterCreate(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/clusters", jsonBody(t, &cluster.Cluster{Name: "name"}))
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Expected to receive %d status code, got %d", http.StatusCreated, w.Code)
+	}
+
+	if !strings.Contains(w.Header().Get("Location"), id.String()) {
+		t.Fatal(w.Header())
+	}
+}
+
+func TestClusterCreateWithProvidedID(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	id := uuid.MustRandom()
+
+	m := restapi.NewMockClusterService(ctrl)
+	m.EXPECT().PutCluster(gomock.Any(), mermaidtest.NewClusterMatcher(&cluster.Cluster{ID: id})).Return(nil)
+
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/clusters", jsonBody(t, &cluster.Cluster{ID: id}))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Expected to receive %d status code, got %d", http.StatusCreated, w.Code)
+	}
 
 	if !strings.Contains(w.Header().Get("Location"), id.String()) {
 		t.Fatal(w.Header())

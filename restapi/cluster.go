@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/service/cluster"
-	"github.com/scylladb/mermaid/uuid"
 )
 
 type clusterFilter struct {
@@ -96,10 +95,6 @@ func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	newCluster, err := h.parseCluster(r)
 	if err != nil {
 		respondBadRequest(w, r, err)
-		return
-	}
-	if newCluster.ID != uuid.Nil {
-		respondBadRequest(w, r, errors.Errorf("unexpected ID %q", newCluster.ID))
 		return
 	}
 

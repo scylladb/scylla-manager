@@ -23,6 +23,7 @@ func init() {
 }
 
 var (
+	cfgClusterID              string
 	cfgClusterName            string
 	cfgClusterHost            string
 	cfgClusterAuthToken       string
@@ -59,7 +60,20 @@ var clusterAddCmd = &cobra.Command{
 	Short: "Add a cluster to manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if cfgClusterID != "" {
+			clusters, err := client.ListClusters(ctx)
+			if err != nil {
+				return err
+			}
+			for _, c := range clusters {
+				if c.ID == cfgClusterID {
+					return errors.Errorf("Cluster ID  %q already taken", cfgClusterID)
+				}
+			}
+		}
+
 		c := &mermaidclient.Cluster{
+			ID:        cfgClusterID,
 			Name:      cfgClusterName,
 			Host:      cfgClusterHost,
 			AuthToken: cfgClusterAuthToken,
@@ -113,6 +127,7 @@ func init() {
 	register(cmd, clusterCmd)
 
 	clusterInitCommonFlags(cmd)
+	cmd.Flags().StringVarP(&cfgClusterID, "id", "i", "", "explicitly specify cluster ID, when not provided random UUID will be generated")
 	requireFlags(cmd, "host")
 }
 
