@@ -6,33 +6,16 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
 	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
-	"go.uber.org/zap/zapcore"
 )
-
-func setupRclone() {
-	rootDir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	rclone.SetDefaultConfig()
-	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
-	rcserver.MustRegisterInMemoryConf()
-	rcserver.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
-	rcserver.MustRegisterLocalDirProvider("dev", "", "/dev")
-}
 
 func TestRcloneSplitRemotePath(t *testing.T) {
 	t.Parallel()
@@ -227,8 +210,6 @@ func TestRcloneListDirNotFound(t *testing.T) {
 
 func TestRcloneListDirEscapeJail(t *testing.T) {
 	t.Parallel()
-
-	rcserver.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
 
 	f := func(file string, isDir bool) *models.ListItem {
 		return &models.ListItem{
