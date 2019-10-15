@@ -64,18 +64,6 @@ unit-test: ## Run unit tests
 	@echo "==> Running tests (race)"
 	@go test -cover -race ./...
 
-# Export AWS env variables for rclone integration tests with minio.
-include testing/.env
-export AWS_S3_ENDPOINT := $(MINIO_ENDPOINT)
-export AWS_ACCESS_KEY_ID := $(MINIO_ACCESS_KEY)
-export AWS_SECRET_ACCESS_KEY := $(MINIO_SECRET_KEY)
-
-DB_ARGS    := -cluster 192.168.100.100 -managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23
-AGENT_ARGS := -agent-auth-token token
-S3_ARGS    := -s3-data-dir $(PWD)/testing/minio/data
-
-INTEGRATION_TEST_ARGS := $(DB_ARGS) $(AGENT_ARGS) $(S3_ARGS)
-
 .PHONY: integration-test
 integration-test: ## Run integration tests
 integration-test:
@@ -88,10 +76,23 @@ integration-test:
 	@$(MAKE) pkg-integration-test PKG=./service/scheduler
 	@$(MAKE) pkg-integration-test PKG=./schema/cql
 
+# Export AWS env variables for rclone integration tests with minio.
+include testing/.env
+export AWS_S3_ENDPOINT := $(MINIO_ENDPOINT)
+export AWS_ACCESS_KEY_ID := $(MINIO_ACCESS_KEY)
+export AWS_SECRET_ACCESS_KEY := $(MINIO_SECRET_KEY)
+
+INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
+-managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
+-agent-auth-token token \
+-s3-data-dir $(PWD)/testing/minio/data
+
+RUN := Integration
+
 .PHONY: pkg-integration-test
 pkg-integration-test: ## Run integration tests for a package, requires PKG parameter
 	@echo "==> Running integration tests for package $(PKG)"
-	@go test -cover -v -tags integration -run Integration $(PKG) $(INTEGRATION_TEST_ARGS)
+	@go test -cover -v -tags integration -run $(RUN) $(PKG) $(INTEGRATION_TEST_ARGS)
 
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
