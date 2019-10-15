@@ -6,4 +6,4 @@ import "time"
 
 // PrometheusScrapeInterval specifies how often internal metrics
 // should be aggregated and exported.
-var PrometheusScrapeInterval time.Duration
+var PrometheusScrapeInterval = 5 * time.Second
