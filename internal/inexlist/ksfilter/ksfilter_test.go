@@ -11,6 +11,8 @@ import (
 )
 
 func TestValidate(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		F string
 		E string
@@ -34,6 +36,8 @@ func TestValidate(t *testing.T) {
 }
 
 func TestDecorate(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		F []string
 		E []string
@@ -77,6 +81,8 @@ func TestDecorate(t *testing.T) {
 }
 
 func TestSortUnits(t *testing.T) {
+	t.Parallel()
+
 	defaultTables := []string{"t"}
 
 	var table = []struct {
@@ -128,6 +134,8 @@ func TestSortUnits(t *testing.T) {
 }
 
 func TestFilterAdd(t *testing.T) {
+	t.Parallel()
+
 	filters := []string{
 		"system",
 		"*.*foo",
@@ -162,5 +170,68 @@ func TestFilterAdd(t *testing.T) {
 
 	if diff := cmp.Diff(units, expected); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestCheck(t *testing.T) {
+	t.Parallel()
+
+	filters := []string{
+		"system",
+		"*.*foo",
+		"!bar.*foo",
+	}
+
+	f, err := NewFilter(filters)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table := []struct {
+		K string
+		T string
+		C bool
+	}{
+		{
+			K: "system",
+			T: "foo",
+			C: true,
+		},
+		{
+			K: "system",
+			T: "bar",
+			C: true,
+		},
+		{
+			K: "system",
+			T: "baz",
+			C: true,
+		},
+		{
+			K: "baz",
+			T: "foo",
+			C: true,
+		},
+		{
+			K: "bar",
+			T: "foo",
+			C: false,
+		},
+		{
+			K: "bar",
+			T: "bar",
+			C: false,
+		},
+		{
+			K: "bar",
+			T: "baz",
+			C: false,
+		},
+	}
+
+	for i, test := range table {
+		if c := f.Check(test.K, test.T); test.C != c {
+			t.Error(i, "expected", test.C, "got", c)
+		}
 	}
 }

@@ -113,6 +113,12 @@ func (f *Filter) Add(keyspace string, tables []string) {
 	f.units = append(f.units, u)
 }
 
+// Check returns true iff table matches filter.
+func (f *Filter) Check(keyspace string, table string) bool {
+	key := keyspace + "." + table
+	return len(f.inex.Filter([]string{key})) > 0
+}
+
 // Apply returns the resulting units. The units are sorted by position of a
 // first match in the filters.
 // If no units are found or a filter is invalid a validation error is returned.
