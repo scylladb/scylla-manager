@@ -51,6 +51,7 @@ func clusterAddedMessage(w io.Writer, id, name string) error {
 		"",
 		"To see the currently scheduled tasks run:",
 		"$ sctool task list -c " + id,
+		"",
 	}
 	return clipper.Say(w, messageLines...)
 }
