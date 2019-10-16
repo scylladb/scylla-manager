@@ -17,16 +17,9 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/restapi"
-	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
 )
-
-func givenCluster() *cluster.Cluster {
-	return &cluster.Cluster{
-		ID: uuid.NewTime(),
-	}
-}
 
 func givenTask(clusterID uuid.UUID, taskType scheduler.TaskType) *scheduler.Task {
 	return &scheduler.Task{
@@ -56,9 +49,12 @@ func givenListTasksRequest(clusterID uuid.UUID, taskType scheduler.TaskType, sta
 }
 
 func TestListTaskStatusFiltering(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
-	schedMock := restapi.NewMockSchedService(ctrl)
-	clusterMock := restapi.NewMockClusterService(ctrl)
+	defer ctrl.Finish()
+	sm := restapi.NewMockSchedService(ctrl)
+	cm := restapi.NewMockClusterService(ctrl)
 
 	taskType := scheduler.RepairTask
 
@@ -69,18 +65,18 @@ func TestListTaskStatusFiltering(t *testing.T) {
 	run1 := givenTaskRun(c.ID, t1.ID, taskType, scheduler.StatusError)
 
 	services := restapi.Services{
-		Scheduler: schedMock,
-		Cluster:   clusterMock,
+		Scheduler: sm,
+		Cluster:   cm,
 	}
 
 	h := restapi.New(services, log.Logger{})
 	r := givenListTasksRequest(c.ID, taskType, scheduler.StatusRunning)
 	w := httptest.NewRecorder()
 
-	clusterMock.EXPECT().GetCluster(gomock.Any(), c.ID.String()).Return(c, nil)
-	schedMock.EXPECT().ListTasks(gomock.Any(), mermaidtest.NewUUIDMatcher(c.ID), t0.Type).Return([]*scheduler.Task{t0, t1}, nil)
-	schedMock.EXPECT().GetLastRun(gomock.Any(), mermaidtest.NewTaskMatcher(t0), gomock.Any()).Return([]*scheduler.Run{run0}, nil)
-	schedMock.EXPECT().GetLastRun(gomock.Any(), mermaidtest.NewTaskMatcher(t1), gomock.Any()).Return([]*scheduler.Run{run1}, nil)
+	cm.EXPECT().GetCluster(gomock.Any(), c.ID.String()).Return(c, nil)
+	sm.EXPECT().ListTasks(gomock.Any(), mermaidtest.NewUUIDMatcher(c.ID), t0.Type).Return([]*scheduler.Task{t0, t1}, nil)
+	sm.EXPECT().GetLastRun(gomock.Any(), mermaidtest.NewTaskMatcher(t0), gomock.Any()).Return([]*scheduler.Run{run0}, nil)
+	sm.EXPECT().GetLastRun(gomock.Any(), mermaidtest.NewTaskMatcher(t1), gomock.Any()).Return([]*scheduler.Run{run1}, nil)
 
 	h.ServeHTTP(w, r)
 

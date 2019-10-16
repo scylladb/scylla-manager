@@ -28,17 +28,22 @@ type taskHandler struct {
 	Services
 }
 
+func newTasksHandler(services Services) *chi.Mux {
+	m := chi.NewMux()
+	h := &taskHandler{services}
+
+	m.Get("/", h.listTasks)
+	m.Post("/", h.createTask)
+	m.Put("/{task_type}/target", h.getTarget)
+
+	return m
+}
+
 func newTaskHandler(services Services) *chi.Mux {
 	m := chi.NewMux()
 	h := &taskHandler{services}
 
-	m.Route("/tasks", func(r chi.Router) {
-		r.Get("/", h.listTasks)
-		r.Post("/", h.createTask)
-		r.Put("/{task_type}/target", h.getTarget)
-	})
-
-	m.Route("/task/{task_type}/{task_id}", func(r chi.Router) {
+	m.Route("/{task_type}/{task_id}", func(r chi.Router) {
 		r.Use(h.taskCtx)
 		r.Get("/", h.loadTask)
 		r.Put("/", h.updateTask)
