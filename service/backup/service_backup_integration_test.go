@@ -270,8 +270,6 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	S3InitBucket(t, testBucket)
-
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
 			b, err := ioutil.ReadFile(test.Input)
@@ -324,27 +322,27 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		},
 		{
 			Name:  "invalid keyspace filter",
-			JSON:  `{"keyspace": ["foobar"], "location": ["s3:test-get-target"]}`,
+			JSON:  `{"keyspace": ["foobar"], "location": ["s3:backuptest-get-target"]}`,
 			Error: "no matching keyspaces found",
 		},
 		{
 			Name:  "invalid dc filter",
-			JSON:  `{"dc": ["foobar"], "location": ["s3:test-get-target"]}`,
+			JSON:  `{"dc": ["foobar"], "location": ["s3:backuptest-get-target"]}`,
 			Error: "no matching DCs found",
 		},
 		{
 			Name:  "invalid location dc",
-			JSON:  `{"location": ["foobar:s3:test-get-target"]}`,
+			JSON:  `{"location": ["foobar:s3:backuptest-get-target"]}`,
 			Error: "invalid location: no such datacenter",
 		},
 		{
 			Name:  "no location for dc",
-			JSON:  `{"location": ["dc1:s3:test-get-target"]}`,
+			JSON:  `{"location": ["dc1:s3:backuptest-get-target"]}`,
 			Error: "invalid location: missing location for datacenter",
 		},
 		{
 			Name:  "no location dc filtered out",
-			JSON:  `{"dc": ["dc2"], "location": ["dc1:s3:test-get-target"]}`,
+			JSON:  `{"dc": ["dc2"], "location": ["dc1:s3:backuptest-get-target"]}`,
 			Error: "invalid location: missing location for datacenter",
 		},
 		{
@@ -354,22 +352,22 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		},
 		{
 			Name:  "invalid rate limit dc",
-			JSON:  `{"rate_limit": ["foobar:100"], "location": ["s3:test-get-target"]}`,
+			JSON:  `{"rate_limit": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
 			Error: "invalid rate-limit: no such datacenter",
 		},
 		{
 			Name:  "invalid snapshot parallel dc",
-			JSON:  `{"snapshot_parallel": ["foobar:100"], "location": ["s3:test-get-target"]}`,
+			JSON:  `{"snapshot_parallel": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
 			Error: "invalid snapshot-parallel: no such datacenter",
 		},
 		{
 			Name:  "invalid upload parallel dc",
-			JSON:  `{"upload_parallel": ["foobar:100"], "location": ["s3:test-get-target"]}`,
+			JSON:  `{"upload_parallel": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
 			Error: "invalid upload-parallel: no such datacenter",
 		},
 	}
 
-	const testBucket = "backuptest-get-target"
+	const testBucket = "backupbackuptest-get-target"
 
 	var (
 		session = CreateSessionWithoutMigration(t)
