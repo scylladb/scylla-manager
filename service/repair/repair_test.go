@@ -343,12 +343,6 @@ func TestValidateShardProgress(t *testing.T) {
 		},
 		{
 			S:   segments{{0, 10}, {20, 30}},
-			P:   &RunProgress{SegmentCount: 2, SegmentErrorStartTokens: []int64{15}, LastStartToken: 20},
-			Err: "shard 0: no segment for (failed) start token 15",
-		},
-
-		{
-			S:   segments{{0, 10}, {20, 30}},
 			P:   &RunProgress{SegmentCount: 2, LastStartToken: 20},
 			Err: "",
 		},

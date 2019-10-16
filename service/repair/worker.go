@@ -443,7 +443,6 @@ func (w *shardWorker) waitCommand(ctx context.Context, id int32) error {
 func (w *shardWorker) resetProgress() {
 	w.progress.SegmentSuccess = 0
 	w.progress.SegmentError = 0
-	w.progress.SegmentErrorStartTokens = nil
 	w.progress.LastStartToken = 0
 	w.progress.LastStartTime = time.Time{}
 	w.progress.LastCommandID = 0

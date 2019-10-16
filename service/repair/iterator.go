@@ -19,25 +19,40 @@ type retryIterator struct {
 
 func (i *retryIterator) Next() (start, end int, ok bool) {
 	if i.end != 0 {
-		i.progress.SegmentErrorStartTokens = i.progress.SegmentErrorStartTokens[1:]
+		i.progress.SegmentErrorPos = i.progress.SegmentErrorPos[i.end-i.start:]
 	}
 
-	if len(i.progress.SegmentErrorStartTokens) == 0 {
+	if len(i.progress.SegmentErrorPos) == 0 {
 		return 0, 0, false
 	}
 
-	startToken := i.progress.SegmentErrorStartTokens[0]
-	start, _ = i.segments.containStartToken(startToken)
+	start = i.progress.SegmentErrorPos[0]
 	if i.end != 0 && start <= i.start {
 		return 0, 0, false
 	}
-	i.start = start
-	i.end = i.start + i.segmentsPerRepair
 
-	if i.end > len(i.segments) {
-		i.end = len(i.segments)
+	end = start + i.blockLength()
+	if end > len(i.segments) {
+		end = len(i.segments)
 	}
+
+	i.start = start
+	i.end = end
+
 	return i.start, i.end, true
+}
+
+// blockLength returns maximum number of segments that can be processed in
+// parallel.
+func (i *retryIterator) blockLength() int {
+	c := 1
+	for j := 1; j < len(i.progress.SegmentErrorPos) && j < i.segmentsPerRepair; j++ {
+		if i.progress.SegmentErrorPos[j]-i.progress.SegmentErrorPos[j-1] > 1 {
+			break
+		}
+		c++
+	}
+	return c
 }
 
 func (i *retryIterator) OnSuccess() {
@@ -47,9 +62,7 @@ func (i *retryIterator) OnSuccess() {
 }
 
 func (i *retryIterator) OnError() {
-	startToken := i.progress.SegmentErrorStartTokens[0]
-
-	i.progress.SegmentErrorStartTokens = append(i.progress.SegmentErrorStartTokens, startToken)
+	i.progress.SegmentErrorPos = appendRange(i.progress.SegmentErrorPos, i.start, i.end)
 }
 
 type forwardIterator struct {
@@ -86,8 +99,14 @@ func (i *forwardIterator) OnSuccess() {
 }
 
 func (i *forwardIterator) OnError() {
-	startToken := i.segments[i.start].StartToken
-
 	i.progress.SegmentError += i.end - i.start
-	i.progress.SegmentErrorStartTokens = append(i.progress.SegmentErrorStartTokens, startToken)
+
+	i.progress.SegmentErrorPos = appendRange(i.progress.SegmentErrorPos, i.start, i.end)
+}
+
+func appendRange(ranges []int, start, end int) []int {
+	for i := start; i < end; i++ {
+		ranges = append(ranges, i)
+	}
+	return ranges
 }

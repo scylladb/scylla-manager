@@ -132,6 +132,34 @@ func (h *repairTestHelper) assertDone(wait time.Duration) {
 	}, _interval, wait)
 }
 
+func (h *repairTestHelper) assertProgressSuccess() {
+	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	se := 0
+	ss := 0
+	st := 0
+	for _, u := range p.Units {
+		for _, n := range u.Nodes {
+			for _, s := range n.Shards {
+				se += s.SegmentError
+				ss += s.SegmentSuccess
+				st += s.SegmentCount
+			}
+		}
+	}
+
+	Print("And: there are no more errors")
+	if se != 0 {
+		h.t.Fatal("expected", 0, "got", se)
+	}
+	if ss != st {
+		h.t.Fatal("expected", st, "got", ss)
+	}
+}
+
 func (h *repairTestHelper) assertError(wait time.Duration) {
 	h.t.Helper()
 
@@ -161,8 +189,17 @@ func (h *repairTestHelper) assertProgress(unit, node, percent int, wait time.Dur
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		p := h.progress(unit, node, allShards)
+		p, _ := h.progress(unit, node, allShards)
 		return p >= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertProgressFailed(unit, node, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		_, f := h.progress(unit, node, allShards)
+		return f >= percent
 	}, _interval, wait)
 }
 
@@ -170,7 +207,7 @@ func (h *repairTestHelper) assertMaxProgress(unit, node, percent int, wait time.
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		p := h.progress(unit, node, allShards)
+		p, _ := h.progress(unit, node, allShards)
 		return p <= percent
 	}, _interval, wait)
 }
@@ -179,7 +216,7 @@ func (h *repairTestHelper) assertShardProgress(unit, node, shard, percent int, w
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		p := h.progress(unit, node, shard)
+		p, _ := h.progress(unit, node, shard)
 		return p >= percent
 	}, _interval, wait)
 }
@@ -188,12 +225,12 @@ func (h *repairTestHelper) assertMaxShardProgress(unit, node, shard, percent int
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		p := h.progress(unit, node, shard)
+		p, _ := h.progress(unit, node, shard)
 		return p <= percent
 	}, _interval, wait)
 }
 
-func (h *repairTestHelper) progress(unit, node, shard int) int {
+func (h *repairTestHelper) progress(unit, node, shard int) (int, int) {
 	h.t.Helper()
 
 	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
@@ -202,18 +239,18 @@ func (h *repairTestHelper) progress(unit, node, shard int) int {
 	}
 
 	if len(p.Units[unit].Nodes) <= node {
-		return -1
+		return -1, -1
 	}
 
 	if shard < 0 {
-		return int(p.Units[unit].Nodes[node].PercentComplete)
+		return int(p.Units[unit].Nodes[node].PercentComplete), int(p.Units[unit].Nodes[node].PercentFailed)
 	}
 
 	if len(p.Units[unit].Nodes[node].Shards) <= shard {
-		return -1
+		return -1, -1
 	}
 
-	return int(p.Units[unit].Nodes[node].Shards[shard].PercentComplete)
+	return int(p.Units[unit].Nodes[node].Shards[shard].PercentComplete), int(p.Units[unit].Nodes[node].Shards[shard].PercentFailed)
 }
 
 func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
@@ -275,6 +312,18 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 		}
 
 		return resp, nil
+	})
+}
+
+func unstableRepairInterceptor() http.RoundTripper {
+	failRi := repairInterceptor(scyllaclient.CommandFailed)
+	successRi := repairInterceptor(scyllaclient.CommandSuccessful)
+	return middleware.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		id := atomic.LoadInt32(&commandCounter)
+		if id != 0 && id%20 == 0 {
+			return failRi.RoundTrip(req)
+		}
+		return successRi.RoundTrip(req)
 	})
 }
 
@@ -764,7 +813,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: repair of node0 starts from scratch")
 		h.assertProgress(0, node0, 1, shortWait)
-		if h.progress(0, node0, allShards) >= 50 {
+		if p, _ := h.progress(0, node0, allShards); p >= 50 {
 			t.Fatal("node0 should start from schratch")
 		}
 	})
@@ -820,6 +869,70 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if len(prog.Units) != 2 {
 			t.Fatal(prog.Units)
 		}
+	})
+
+	t.Run("repair restart task segments_per_repair changed", func(t *testing.T) {
+		c := defaultConfig()
+		c.ErrorBackoff = time.Millisecond
+		c.SegmentsPerRepair = 3
+		h := newRepairTestHelper(t, session, c)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		h.hrt.SetInterceptor(unstableRepairInterceptor())
+
+		Print("When: run repair")
+		h.runRepair(ctx, multipleUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node0 is 5% repaired")
+		h.assertProgress(0, node0, 5, shortWait)
+
+		Print("And: node0 is 2% failed")
+		h.assertProgressFailed(0, node0, 2, shortWait)
+
+		Print("And: stop repair")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+
+		Print("When: create a new task")
+		c.SegmentsPerRepair = 7
+		h = newRepairTestHelper(t, session, c)
+		ctx, cancel = context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("And: run repair with modified segments_per_repair")
+		h.runRepair(ctx, multipleUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: repair of node1 continues")
+		h.assertProgress(0, node0, 100, shortWait)
+		h.assertProgress(0, node1, 50, shortWait)
+		h.assertProgress(0, node2, 50, shortWait)
+
+		Print("Then: status is StatusDone")
+		h.assertDone(longWait)
+
+		Print("And: dc1 is used for repair")
+		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if diff := cmp.Diff(prog.DC, multipleUnits().DC); diff != "" {
+			h.t.Fatal(diff, prog)
+		}
+		if len(prog.Units) != 2 {
+			t.Fatal(prog.Units)
+		}
+
+		Print("And: progress is successful")
+		h.assertProgressSuccess()
 	})
 
 	t.Run("repair temporary network outage", func(t *testing.T) {
@@ -1015,5 +1128,5 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	h.runRepair(ctx, singleUnit())
 
 	Print("Then: repair fails")
-	h.assertErrorContains("active repair on hosts", shortWait)
+	h.assertErrorContains("active repair on hosts", longWait)
 }

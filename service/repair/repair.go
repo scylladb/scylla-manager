@@ -151,10 +151,8 @@ func validateShardProgress(shards []segments, prog []*RunProgress) error {
 				return errors.Errorf("shard %d: no segment for start token %d", p.Shard, p.LastStartToken)
 			}
 		}
-		for _, token := range p.SegmentErrorStartTokens {
-			if _, ok := shards[i].containStartToken(token); !ok {
-				return errors.Errorf("shard %d: no segment for (failed) start token %d", p.Shard, token)
-			}
+		if len(p.SegmentErrorStartTokens) > 0 {
+			return errors.Errorf("shard %d: cannot resume failed repairs dating before 2.0", p.Shard)
 		}
 	}
 

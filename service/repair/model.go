@@ -178,6 +178,7 @@ type RunProgress struct {
 	SegmentSuccess          int
 	SegmentError            int
 	SegmentErrorStartTokens []int64
+	SegmentErrorPos         []int
 	LastStartToken          int64
 	LastStartTime           time.Time
 	LastCommandID           int32

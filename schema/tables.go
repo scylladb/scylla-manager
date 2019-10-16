@@ -89,6 +89,7 @@ var (
 			"segment_success",
 			"segment_error",
 			"segment_error_start_tokens",
+			"segment_error_pos",
 			"last_start_token",
 			"last_start_time",
 			"last_command_id",
