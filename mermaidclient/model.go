@@ -40,7 +40,52 @@ func (cs ClusterSlice) Render(w io.Writer) error {
 	return nil
 }
 
-// Task is a sched.Task representation.
+const statusDown = "DOWN"
+
+// ClusterStatus contains cluster status info.
+type ClusterStatus models.ClusterStatus
+
+// Render renders ClusterStatus in a tabular format.
+func (cs ClusterStatus) Render(w io.Writer) error {
+	if len(cs) == 0 {
+		return nil
+	}
+
+	var (
+		dc = cs[0].Dc
+		t  = table.New("CQL", "SSL", "REST", "Host")
+	)
+
+	for _, s := range cs {
+		if s.Dc != dc {
+			if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
+				return err
+			}
+			dc = s.Dc
+			t = table.New("CQL", "SSL", "REST", "Host")
+		}
+		cqlStatus := statusDown
+		if s.CqlStatus != statusDown {
+			cqlStatus = fmt.Sprintf("%s (%.0fms)", s.CqlStatus, s.CqlRttMs)
+		}
+		restStatus := statusDown
+		if s.RestStatus != statusDown {
+			restStatus = fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
+		}
+		ssl := "OFF"
+		if s.Ssl {
+			ssl = "ON"
+		}
+		t.AddRow(cqlStatus, ssl, restStatus, s.Host)
+	}
+	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Task is a scheduler.Task representation.
 type Task = models.Task
 
 func makeTaskUpdate(t *Task) *models.TaskUpdate {
@@ -149,13 +194,16 @@ func (t BackupTarget) Render(w io.Writer) error {
 	return temp.Execute(w, t)
 }
 
-// ExtendedTask is a representation of sched.Task with additional fields from sched.Run.
+// ExtendedTask is a representation of scheduler.Task with additional fields
+// from scheduler.Run.
 type ExtendedTask = models.ExtendedTask
 
-// ExtendedTaskSlice is a representation of a slice of sched.Task with additional fields from sched.Run.
+// ExtendedTaskSlice is a representation of a slice of scheduler.Task with
+// additional fields from scheduler.Run.
 type ExtendedTaskSlice = []*models.ExtendedTask
 
-// ExtendedTasks is a representation of []*sched.Task with additional fields from sched.Run.
+// ExtendedTasks is a representation of []*scheduler.Task with additional
+// fields from scheduler.Run.
 type ExtendedTasks struct {
 	ExtendedTaskSlice
 	All bool
@@ -190,13 +238,13 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 	return nil
 }
 
-// Schedule is a sched.Schedule representation.
+// Schedule is a scheduler.Schedule representation.
 type Schedule = models.Schedule
 
-// TaskRun is a sched.TaskRun representation.
+// TaskRun is a scheduler.TaskRun representation.
 type TaskRun = models.TaskRun
 
-// TaskRunSlice is a []*sched.TaskRun representation.
+// TaskRunSlice is a []*scheduler.TaskRun representation.
 type TaskRunSlice []*TaskRun
 
 // Render renders TaskRunSlice in a tabular format.
@@ -361,6 +409,9 @@ func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {
 		t.AddRow(u.Unit.Keyspace, p)
 	}
 }
+
+// RepairUnitProgress contains unit progress info.
+type RepairUnitProgress = models.RepairProgressUnitsItems0
 
 func (rp RepairProgress) addRepairUnitDetailedProgress(t *table.Table, u *RepairUnitProgress) {
 	for _, n := range u.Nodes {
@@ -563,51 +614,3 @@ func (rp BackupProgress) addHeader(w io.Writer) error {
 func (rp BackupProgress) arguments() string {
 	return NewCmdRenderer(rp.Task, RenderTypeArgs).String()
 }
-
-const statusDown = "DOWN"
-
-// ClusterStatus contains cluster status info.
-type ClusterStatus models.ClusterStatus
-
-// Render renders ClusterStatus in a tabular format.
-func (cs ClusterStatus) Render(w io.Writer) error {
-	if len(cs) == 0 {
-		return nil
-	}
-
-	var (
-		dc = cs[0].Dc
-		t  = table.New("CQL", "SSL", "REST", "Host")
-	)
-
-	for _, s := range cs {
-		if s.Dc != dc {
-			if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
-				return err
-			}
-			dc = s.Dc
-			t = table.New("CQL", "SSL", "REST", "Host")
-		}
-		cqlStatus := statusDown
-		if s.CqlStatus != statusDown {
-			cqlStatus = fmt.Sprintf("%s (%.0fms)", s.CqlStatus, s.CqlRttMs)
-		}
-		restStatus := statusDown
-		if s.RestStatus != statusDown {
-			restStatus = fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
-		}
-		ssl := "OFF"
-		if s.Ssl {
-			ssl = "ON"
-		}
-		t.AddRow(cqlStatus, ssl, restStatus, s.Host)
-	}
-	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// RepairUnitProgress contains unit progress info.
-type RepairUnitProgress = models.RepairProgressUnitsItems0

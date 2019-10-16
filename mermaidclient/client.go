@@ -127,40 +127,6 @@ func (c Client) ListClusters(ctx context.Context) (ClusterSlice, error) {
 	return resp.Payload, nil
 }
 
-// RepairProgress returns repair progress.
-func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (RepairProgress, error) {
-	resp, err := c.operations.GetClusterClusterIDTaskRepairTaskIDRunID(&operations.GetClusterClusterIDTaskRepairTaskIDRunIDParams{
-		Context:   ctx,
-		ClusterID: clusterID,
-		TaskID:    taskID,
-		RunID:     runID,
-	})
-	if err != nil {
-		return RepairProgress{}, err
-	}
-
-	return RepairProgress{
-		TaskRunRepairProgress: resp.Payload,
-	}, nil
-}
-
-// BackupProgress returns backup progress.
-func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
-	resp, err := c.operations.GetClusterClusterIDTaskBackupTaskIDRunID(&operations.GetClusterClusterIDTaskBackupTaskIDRunIDParams{
-		Context:   ctx,
-		ClusterID: clusterID,
-		TaskID:    taskID,
-		RunID:     runID,
-	})
-	if err != nil {
-		return BackupProgress{}, err
-	}
-
-	return BackupProgress{
-		TaskRunBackupProgress: resp.Payload,
-	}, nil
-}
-
 // ClusterStatus returns health check progress.
 func (c Client) ClusterStatus(ctx context.Context, clusterID string) (ClusterStatus, error) {
 	resp, err := c.operations.GetClusterClusterIDStatus(&operations.GetClusterClusterIDStatusParams{
@@ -172,18 +138,6 @@ func (c Client) ClusterStatus(ctx context.Context, clusterID string) (ClusterSta
 	}
 
 	return ClusterStatus(resp.Payload), nil
-}
-
-// Version returns server version.
-func (c Client) Version(ctx context.Context) (*models.Version, error) {
-	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
-		Context: ctx,
-	})
-	if err != nil {
-		return &models.Version{}, err
-	}
-
-	return resp.Payload, nil
 }
 
 // GetRepairTarget fetches information about repair target.
@@ -345,4 +299,50 @@ func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all 
 	}
 	et.ExtendedTaskSlice = resp.Payload
 	return et, nil
+}
+
+// RepairProgress returns repair progress.
+func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (RepairProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskRepairTaskIDRunID(&operations.GetClusterClusterIDTaskRepairTaskIDRunIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		RunID:     runID,
+	})
+	if err != nil {
+		return RepairProgress{}, err
+	}
+
+	return RepairProgress{
+		TaskRunRepairProgress: resp.Payload,
+	}, nil
+}
+
+// BackupProgress returns backup progress.
+func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskBackupTaskIDRunID(&operations.GetClusterClusterIDTaskBackupTaskIDRunIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		RunID:     runID,
+	})
+	if err != nil {
+		return BackupProgress{}, err
+	}
+
+	return BackupProgress{
+		TaskRunBackupProgress: resp.Payload,
+	}, nil
+}
+
+// Version returns server version.
+func (c Client) Version(ctx context.Context) (*models.Version, error) {
+	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
+		Context: ctx,
+	})
+	if err != nil {
+		return &models.Version{}, err
+	}
+
+	return resp.Payload, nil
 }
