@@ -23,7 +23,7 @@ func NewTaskMatcher(expected *scheduler.Task) *TaskMatcher {
 	}
 }
 
-// Matches returns whether x is a match.
+// Matches returns whether v is a match.
 func (m TaskMatcher) Matches(v interface{}) bool {
 	task, ok := v.(*scheduler.Task)
 	if !ok {
@@ -46,7 +46,7 @@ func NewUUIDMatcher(expected uuid.UUID) *UUIDMatcher {
 	return &UUIDMatcher{expected: expected}
 }
 
-// Matches returns whether x is a match.
+// Matches returns whether v is a match.
 func (m UUIDMatcher) Matches(v interface{}) bool {
 	id, ok := v.(uuid.UUID)
 	if !ok {
@@ -71,7 +71,7 @@ func NewClusterMatcher(expected *cluster.Cluster) *ClusterMatcher {
 	}
 }
 
-// Matches returns whether x is a match.
+// Matches returns whether v is a match.
 func (m ClusterMatcher) Matches(v interface{}) bool {
 	c, ok := v.(*cluster.Cluster)
 	if !ok {
