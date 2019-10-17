@@ -123,13 +123,16 @@ var rootCmd = &cobra.Command{
 			}
 			errCh <- errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server failed to start")
 		}()
+
 		if c.Debug != "" {
-			logger.Info(ctx, "Starting debug server", "address", c.Debug)
-			server := http.Server{
-				Addr:    c.Debug,
-				Handler: pprof.Handler(),
-			}
-			errCh <- errors.Wrap(server.ListenAndServe(), "debug server failed to start")
+			go func() {
+				logger.Info(ctx, "Starting debug server", "address", c.Debug)
+				server := http.Server{
+					Addr:    c.Debug,
+					Handler: pprof.Handler(),
+				}
+				errCh <- errors.Wrap(server.ListenAndServe(), "debug server failed to start")
+			}()
 		}
 
 		return <-errCh

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"io/ioutil"
+	"net"
 	"os"
 
 	"github.com/pkg/errors"
@@ -117,7 +118,7 @@ func (c scyllaConfig) validate() (errs error) {
 }
 
 func enrichScyllaConfigFromAPI(c *scyllaConfig) error {
-	client := scyllaclient.NewConfigClient(c.APIAddress + ":" + c.APIPort)
+	client := scyllaclient.NewConfigClient(net.JoinHostPort(c.APIAddress, c.APIPort))
 
 	var (
 		ctx = context.Background()
@@ -149,5 +150,5 @@ func updateHTTPSConfigFromScyllaConfig(c *config) {
 	} else {
 		addr = c.Scylla.ListenAddress
 	}
-	c.HTTPS = addr + ":" + defaultHTTPSPort
+	c.HTTPS = net.JoinHostPort(addr, defaultHTTPSPort)
 }

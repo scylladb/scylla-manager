@@ -9,7 +9,7 @@ import (
 
 // Health check defaults.
 var (
-	DefaultPort      = 9042
+	DefaultPort      = "9042"
 	DefaultTLSConfig = &tls.Config{
 		InsecureSkipVerify: true,
 	}

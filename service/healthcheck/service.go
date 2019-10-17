@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"runtime"
 	"sort"
 	"sync"
@@ -202,7 +203,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 	}
 
 	config := cqlping.Config{
-		Addr:      fmt.Sprint(host, ":", DefaultPort),
+		Addr:      net.JoinHostPort(host, DefaultPort),
 		Timeout:   s.config.Timeout,
 		TLSConfig: tlsConfig,
 	}

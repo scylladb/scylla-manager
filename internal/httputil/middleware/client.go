@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -104,7 +105,7 @@ func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 		r := cloneRequest(req)
 
 		// Set host and port
-		hp := h + ":" + port
+		hp := net.JoinHostPort(h, port)
 		r.Host = hp
 		r.URL.Host = hp
 
