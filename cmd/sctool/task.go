@@ -5,10 +5,14 @@ package main
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
+	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/internal/duration"
+	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/mermaidclient"
 	"github.com/scylladb/mermaid/service/scheduler"
 	"github.com/scylladb/mermaid/uuid"
@@ -49,6 +53,14 @@ var taskListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		sortKey, err := fs.GetString("sort")
+		if err != nil {
+			return err
+		}
+
+		if err := validateSortKey(sortKey); err != nil {
+			return err
+		}
 
 		var clusters []*mermaidclient.Cluster
 		if cfgCluster == "" {
@@ -76,6 +88,8 @@ var taskListCmd = &cobra.Command{
 				return err
 			}
 
+			sortTasks(tasks, taskListSortKey(sortKey))
+
 			if err := render(w, tasks); err != nil {
 				return err
 			}
@@ -83,6 +97,83 @@ var taskListCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+type taskListSortKey string
+
+const (
+	taskListSortStartTime      taskListSortKey = "start-time"
+	taskListSortEndTime        taskListSortKey = "end-time"
+	taskListSortNextActivation taskListSortKey = "next-activation"
+	taskListSortStatus         taskListSortKey = "status"
+)
+
+var allTaskSortKeys = []taskListSortKey{taskListSortStartTime, taskListSortNextActivation, taskListSortEndTime, taskListSortStatus}
+
+var tasksSortFunctions = map[taskListSortKey]func(tasks mermaidclient.ExtendedTaskSlice){
+	taskListSortStartTime:      sortTasksByStartTime,
+	taskListSortEndTime:        sortTasksByEndTime,
+	taskListSortNextActivation: sortTasksByNextActivation,
+	taskListSortStatus:         sortTasksByStatus,
+}
+
+func validateSortKey(sortKey string) error {
+	if sortKey == "" {
+		return nil
+	}
+
+	for _, sk := range allTaskSortKeys {
+		if string(sk) == sortKey {
+			return nil
+		}
+	}
+	return errors.Errorf("%s sort key not supported", sortKey)
+}
+
+func sortTasks(tasks mermaidclient.ExtendedTasks, key taskListSortKey) {
+	if key == "" {
+		return
+	}
+	tasksSortFunctions[key](tasks.ExtendedTaskSlice)
+}
+
+func timeLessFunc(lhvDate, rhvDate strfmt.DateTime) bool {
+	lhv := timeutc.MustParse(time.RFC3339, lhvDate.String())
+	rhv := timeutc.MustParse(time.RFC3339, rhvDate.String())
+	return lhv.Before(rhv)
+}
+
+func sortTasksByNextActivation(tasks mermaidclient.ExtendedTaskSlice) {
+	sort.Slice(tasks, func(i, j int) bool {
+		return timeLessFunc(tasks[i].NextActivation, tasks[j].NextActivation)
+	})
+}
+
+func sortTasksByStartTime(tasks mermaidclient.ExtendedTaskSlice) {
+	sort.Slice(tasks, func(i, j int) bool {
+		return timeLessFunc(tasks[i].StartTime, tasks[j].StartTime)
+	})
+}
+
+func sortTasksByEndTime(tasks mermaidclient.ExtendedTaskSlice) {
+	sort.Slice(tasks, func(i, j int) bool {
+		return timeLessFunc(tasks[i].EndTime, tasks[j].EndTime)
+	})
+}
+
+var taskStatusSortOrder = map[string]int{
+	"NEW":     1,
+	"RUNNING": 2,
+	"STOPPED": 3,
+	"DONE":    4,
+	"ERROR":   5,
+	"ABORTED": 6,
+}
+
+func sortTasksByStatus(tasks mermaidclient.ExtendedTaskSlice) {
+	sort.Slice(tasks, func(i, j int) bool {
+		return taskStatusSortOrder[tasks[i].Status] < taskStatusSortOrder[tasks[j].Status]
+	})
 }
 
 func init() {
@@ -94,6 +185,7 @@ func init() {
 	fs.BoolP("all", "a", false, "list disabled tasks as well")
 	fs.StringP("status", "s", "", "filter tasks according to last run status")
 	fs.StringP("type", "t", "", "task type")
+	fs.String("sort", "", fmt.Sprintf("returned results will be sorted by given key, valid values: %s", allTaskSortKeys))
 }
 
 var taskStartCmd = &cobra.Command{
