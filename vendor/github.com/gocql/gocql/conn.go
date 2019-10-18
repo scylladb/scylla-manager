@@ -28,6 +28,8 @@ var (
 		"org.apache.cassandra.auth.PasswordAuthenticator",
 		"com.instaclustr.cassandra.auth.SharedSecretAuthenticator",
 		"com.datastax.bdp.cassandra.auth.DseAuthenticator",
+		"io.aiven.cassandra.auth.AivenAuthenticator",
+		"com.ericsson.bss.cassandra.ecaudit.auth.AuditPasswordAuthenticator",
 	}
 )
 
@@ -191,7 +193,7 @@ func (s *Session) dialWithoutObserver(host *HostInfo, cfg *ConnConfig, errorHand
 	port := host.port
 
 	// TODO(zariel): remove these
-	if len(ip) == 0 || ip.IsUnspecified() {
+	if !validIpAddr(ip) {
 		panic(fmt.Sprintf("host missing connect ip address: %v", ip))
 	} else if port == 0 {
 		panic(fmt.Sprintf("host missing port: %v", port))
@@ -209,15 +211,12 @@ func (s *Session) dialWithoutObserver(host *HostInfo, cfg *ConnConfig, errorHand
 		dialer.KeepAlive = cfg.Keepalive
 	}
 
-	// TODO(zariel): handle ipv6 zone
-	addr := (&net.TCPAddr{IP: ip, Port: port}).String()
-
 	if cfg.tlsConfig != nil {
 		// the TLS config is safe to be reused by connections but it must not
 		// be modified after being used.
-		conn, err = tls.DialWithDialer(dialer, "tcp", addr, cfg.tlsConfig)
+		conn, err = tls.DialWithDialer(dialer, "tcp", host.HostnameAndPort(), cfg.tlsConfig)
 	} else {
-		conn, err = dialer.Dial("tcp", addr)
+		conn, err = dialer.Dial("tcp", host.HostnameAndPort())
 	}
 
 	if err != nil {
@@ -283,6 +282,7 @@ func (s *Session) dialWithoutObserver(host *HostInfo, cfg *ConnConfig, errorHand
 	}
 
 	go c.serve()
+	go c.heartBeat()
 
 	return c, nil
 }
@@ -538,6 +538,53 @@ func (p *protocolError) Error() string {
 	return fmt.Sprintf("gocql: received unexpected frame on stream %d: %v", p.frame.Header().stream, p.frame)
 }
 
+func (c *Conn) heartBeat() {
+	sleepTime := 1 * time.Second
+	timer := time.NewTimer(sleepTime)
+	defer timer.Stop()
+
+	var failures int
+
+	for {
+		if failures > 5 {
+			c.closeWithError(fmt.Errorf("gocql: heartbeat failed"))
+			return
+		}
+
+		timer.Reset(sleepTime)
+
+		select {
+		case <-c.quit:
+			return
+		case <-timer.C:
+		}
+
+		framer, err := c.exec(context.Background(), &writeOptionsFrame{}, nil)
+		if err != nil {
+			failures++
+			continue
+		}
+
+		resp, err := framer.parseFrame()
+		if err != nil {
+			// invalid frame
+			failures++
+			continue
+		}
+
+		switch resp.(type) {
+		case *supportedFrame:
+			// Everything ok
+			sleepTime = 5 * time.Second
+			failures = 0
+		case error:
+			// TODO: should we do something here?
+		default:
+			panic(fmt.Sprintf("gocql: unknown frame in response to options: %T", resp))
+		}
+	}
+}
+
 func (c *Conn) recv() error {
 	// not safe for concurrent reads
 
@@ -564,6 +611,7 @@ func (c *Conn) recv() error {
 			Length:  int32(head.length),
 			Start:   headStartTime,
 			End:     headEndTime,
+			Host:    c.host,
 		})
 	}
 
@@ -1313,11 +1361,12 @@ func (c *Conn) query(ctx context.Context, statement string, values ...interface{
 
 func (c *Conn) awaitSchemaAgreement(ctx context.Context) (err error) {
 	const (
-		peerSchemas  = "SELECT schema_version, peer FROM system.peers"
+		peerSchemas  = "SELECT * FROM system.peers"
 		localSchemas = "SELECT schema_version FROM system.local WHERE key='local'"
 	)
 
 	var versions map[string]struct{}
+	var schemaVersion string
 
 	endDeadline := time.Now().Add(c.session.cfg.MaxWaitSchemaAgreement)
 	for time.Now().Before(endDeadline) {
@@ -1325,16 +1374,22 @@ func (c *Conn) awaitSchemaAgreement(ctx context.Context) (err error) {
 
 		versions = make(map[string]struct{})
 
-		var schemaVersion string
-		var peer string
-		for iter.Scan(&schemaVersion, &peer) {
-			if schemaVersion == "" {
-				Logger.Printf("skipping peer entry with empty schema_version: peer=%q", peer)
+		rows, err := iter.SliceMap()
+		if err != nil {
+			goto cont
+		}
+
+		for _, row := range rows {
+			host, err := c.session.hostInfoFromMap(row, &HostInfo{connectAddress: c.host.ConnectAddress(), port: c.session.cfg.Port})
+			if err != nil {
+				goto cont
+			}
+			if !isValidPeer(host) || host.schemaVersion == "" {
+				Logger.Printf("invalid peer or peer with empty schema_version: peer=%q", host)
 				continue
 			}
 
-			versions[schemaVersion] = struct{}{}
-			schemaVersion = ""
+			versions[host.schemaVersion] = struct{}{}
 		}
 
 		if err = iter.Close(); err != nil {
@@ -1385,7 +1440,7 @@ func (c *Conn) localHostInfo(ctx context.Context) (*HostInfo, error) {
 	port := c.conn.RemoteAddr().(*net.TCPAddr).Port
 
 	// TODO(zariel): avoid doing this here
-	host, err := c.session.hostInfoFromMap(row, port)
+	host, err := c.session.hostInfoFromMap(row, &HostInfo{connectAddress: c.host.connectAddress, port: port})
 	if err != nil {
 		return nil, err
 	}

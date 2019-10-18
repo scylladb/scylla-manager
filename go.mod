@@ -47,5 +47,5 @@ require (
 
 replace (
 	github.com/apcera/termtables => github.com/brettski/go-termtables v0.0.0-20190817160346-834c9b12e572
-	github.com/gocql/gocql => github.com/scylladb/gocql v1.2.0
+	github.com/gocql/gocql => github.com/scylladb/gocql v1.3.0
 )
