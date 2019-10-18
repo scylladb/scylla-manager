@@ -22,6 +22,7 @@ linters:
   - interfacer
   - maligned
   - prealloc
+  - wsl
 
 issues:
   exclude-use-default: false

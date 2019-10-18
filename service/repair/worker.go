@@ -265,7 +265,7 @@ func (w *shardWorker) newForwardIterator() *forwardIterator {
 	}
 }
 
-func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
+func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error { // nolint: gocognit
 	w.updateProgress(ctx)
 
 	var (

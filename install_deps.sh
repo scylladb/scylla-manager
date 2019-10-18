@@ -8,7 +8,7 @@ UBUNTU_PKGS="jq make moreutils sshpass pcregrep   python2.7 python-pip"
 PYTHON_PKGS="cqlsh docker-compose"
 
 GO_PKGS="
-golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.19.1/golangci-lint-1.19.1-linux-amd64.tar.gz \
+golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.21.0/golangci-lint-1.21.0-linux-amd64.tar.gz \
 swagger             https://github.com/go-swagger/go-swagger/releases/download/v0.20.1/swagger_linux_amd64 \
 license-detector    https://github.com/src-d/go-license-detector/releases/download/2.0.2/license-detector.linux_amd64.gz \
 mockgen             github.com/golang/mock/mockgen \

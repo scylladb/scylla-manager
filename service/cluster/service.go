@@ -252,7 +252,7 @@ func (s *Service) GetClusterName(ctx context.Context, id uuid.UUID) (string, err
 
 // PutCluster upserts a cluster, cluster instance must pass Validate() checks.
 // If u.ID == uuid.Nil a new one is generated.
-func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
+func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) { // nolint: gocognit
 	s.logger.Debug(ctx, "PutCluster", "cluster", c)
 	if c == nil {
 		return mermaid.ErrNilPtr
