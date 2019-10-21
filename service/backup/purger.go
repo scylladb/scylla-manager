@@ -62,7 +62,7 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 	// Get list of stale tags that need to be deleted
 	tags, err := p.listTaskTags(ctx, h)
 	if err != nil {
-		return errors.Wrap(err, "failed to list remote task tags")
+		return errors.Wrap(err, "list remote task tags")
 	}
 	// Exit if there no tags to delete
 	if len(tags) <= p.Policy {
@@ -75,7 +75,7 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 	// Load all manifests for the table
 	manifests, err := p.loadAllManifests(ctx, h)
 	if err != nil {
-		return errors.Wrap(err, "failed to find and load remote manifests")
+		return errors.Wrap(err, "find and load remote manifests")
 	}
 
 	// Select live sst files in the form version/la-xx-big
@@ -109,12 +109,12 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 		return !aliveFiles.Has(key)
 	}
 	if err := p.deleteSSTables(ctx, h, isNotAlive); err != nil {
-		return errors.Wrap(err, "failed to delete stale sstables")
+		return errors.Wrap(err, "delete stale sstables")
 	}
 
 	// Delete stale tags
 	if err := p.deleteTags(ctx, h, staleTags); err != nil {
-		return errors.Wrap(err, "failed to delete stale tags")
+		return errors.Wrap(err, "delete stale tags")
 	}
 
 	return nil
@@ -231,7 +231,7 @@ func (p *purger) loadAllManifests(ctx context.Context, h hostInfo) ([]remoteMani
 
 		v.Files, err = p.loadManifest(ctx, h, path.Join(baseDir, f.Path))
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to load manifest")
+			return nil, errors.Wrap(err, "load manifest")
 		}
 
 		manifests = append(manifests, v)
@@ -256,7 +256,7 @@ func (p *purger) loadManifest(ctx context.Context, h hostInfo, path string) ([]s
 		Files []string `json:"files"`
 	}
 	if err := json.Unmarshal(b, &v); err != nil {
-		return nil, errors.Wrap(err, "failed to parse manifest")
+		return nil, errors.Wrap(err, "parse manifest")
 	}
 
 	return v.Files, nil
@@ -309,7 +309,7 @@ func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key
 		l := h.Location.RemotePath(path.Join(baseDir, f.Path))
 		errs = multierr.Append(
 			errs,
-			errors.Wrapf(p.deleteFile(ctx, h.IP, l), "failed to delete file %s", l),
+			errors.Wrapf(p.deleteFile(ctx, h.IP, l), "delete file %s", l),
 		)
 	}
 
@@ -328,7 +328,7 @@ func (p *purger) deleteTags(ctx context.Context, h hostInfo, tags []string) erro
 		l := h.Location.RemotePath(dir)
 		errs = multierr.Append(
 			errs,
-			errors.Wrapf(p.deleteDir(ctx, h.IP, l), "failed to delete directory %s", l),
+			errors.Wrapf(p.deleteDir(ctx, h.IP, l), "delete directory %s", l),
 		)
 	}
 

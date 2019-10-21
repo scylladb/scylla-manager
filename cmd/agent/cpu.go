@@ -16,7 +16,7 @@ import (
 func findFreeCPU() (int, error) {
 	busy, err := cpuset.ParseScyllaConfigFile()
 	if err != nil {
-		return noCPU, errors.Wrapf(err, "failed to parse Scylla cpuset configuration, "+
+		return noCPU, errors.Wrapf(err, "Scylla cpuset parse error "+
 			"run scylla_cpuset_setup or set cpu field in the Scylla Manager Agent configuration file")
 	}
 	cpus, err := cpuset.AvailableCPUs(busy, 1)
@@ -49,7 +49,7 @@ var cpuTestCmd = &cobra.Command{
 		var cpu = cpuTestArgs.cpu
 		if cpu >= 0 {
 			if err := pinToCPU(cpu); err != nil {
-				return errors.Wrapf(err, "failed to pin to CPU %d", cpu)
+				return errors.Wrapf(err, "pin to CPU %d", cpu)
 			}
 			fmt.Println("Pinned to CPU", cpuTestArgs.cpu, "pid", os.Getpid())
 		} else {

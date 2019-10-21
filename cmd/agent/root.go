@@ -121,7 +121,7 @@ var rootCmd = &cobra.Command{
 				Addr:    c.HTTPS,
 				Handler: h,
 			}
-			errCh <- errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server failed to start")
+			errCh <- errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server start")
 		}()
 
 		if c.Debug != "" {
@@ -131,7 +131,7 @@ var rootCmd = &cobra.Command{
 					Addr:    c.Debug,
 					Handler: pprof.Handler(),
 				}
-				errCh <- errors.Wrap(server.ListenAndServe(), "debug server failed to start")
+				errCh <- errors.Wrap(server.ListenAndServe(), "debug server start")
 			}()
 		}
 

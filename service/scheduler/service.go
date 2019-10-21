@@ -147,7 +147,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 
 	for _, t := range tasks {
 		if err := s.fixRunStatus(ctx, t); err != nil {
-			return errors.Wrap(err, "failed to fix run status")
+			return errors.Wrap(err, "fix run status")
 		}
 	}
 

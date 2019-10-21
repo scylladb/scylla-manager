@@ -74,7 +74,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	t := Target{}
 
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return t, mermaid.ErrValidate(errors.Wrapf(err, "failed to parse runner properties: %s", properties))
+		return t, mermaid.ErrValidate(errors.Wrapf(err, "parse runner properties: %s", properties))
 	}
 
 	if p.Location == nil {
@@ -83,13 +83,13 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return t, errors.Wrapf(err, "failed to get client")
+		return t, errors.Wrapf(err, "get client")
 	}
 
 	// Get hosts in DCs
 	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
-		return t, errors.Wrap(err, "failed to read datacenters")
+		return t, errors.Wrap(err, "read datacenters")
 	}
 
 	// Validate location DCs
@@ -144,18 +144,18 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	keyspaces, err := client.Keyspaces(ctx)
 	if err != nil {
-		return t, errors.Wrapf(err, "failed to read keyspaces")
+		return t, errors.Wrapf(err, "read keyspaces")
 	}
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
-			return t, errors.Wrapf(err, "keyspace %s: failed to get tables", keyspace)
+			return t, errors.Wrapf(err, "keyspace %s: get tables", keyspace)
 		}
 
 		// Get the ring description and skip local data
 		ring, err := client.DescribeRing(ctx, keyspace)
 		if err != nil {
-			return t, errors.Wrapf(err, "keyspace %s: failed to get ring description", keyspace)
+			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
 		}
 		if ring.Replication == scyllaclient.LocalStrategy {
 			continue
@@ -194,12 +194,12 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 	s.logger.Info(ctx, "Calculating target size")
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return 0, errors.Wrapf(err, "failed to get client")
+		return 0, errors.Wrapf(err, "get client")
 	}
 	// Get hosts in all DCs
 	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to read datacenters")
+		return 0, errors.Wrap(err, "read datacenters")
 	}
 	// Get hosts in the given DCs
 	hosts := dcHosts(dcMap, target.DC)
@@ -215,7 +215,7 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 				for _, t := range u.Tables {
 					size, err := client.TableDiskSize(ctx, h, u.Keyspace, t)
 					if err != nil {
-						err = errors.Wrapf(err, "failed to get size of %s.%s on %s", u.Keyspace, t, h)
+						err = errors.Wrapf(err, "get size of %s.%s on %s", u.Keyspace, t, h)
 					}
 					results <- diskSize{size, err}
 				}
@@ -295,7 +295,7 @@ func (s *Service) checkHostAccessibility(ctx context.Context, client *scyllaclie
 		if scyllaclient.StatusCodeOf(err) == 404 {
 			e = errors.Errorf("%s: failed to access %s make sure that it's correct and credentials are set", h, l)
 		} else {
-			e = errors.Wrapf(err, "%s: failed to access %s", h, l)
+			e = errors.Wrapf(err, "%s: access %s", h, l)
 		}
 		return e
 	}
@@ -332,13 +332,13 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 	// Get the cluster client
 	client, err := s.scyllaClient(ctx, run.ClusterID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get client proxy")
+		return errors.Wrap(err, "get client proxy")
 	}
 
 	// Get hosts in all DCs
 	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to read datacenters")
+		return errors.Wrap(err, "read datacenters")
 	}
 
 	// Get hosts in the given DCs
@@ -350,7 +350,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 	// Get host IDs
 	hostIDs, err := client.HostIDs(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get host IDs")
+		return errors.Wrap(err, "get host IDs")
 	}
 
 	// Create hostInfo for hosts
@@ -376,7 +376,7 @@ func (s *Service) Backup(ctx context.Context, clusterID uuid.UUID, taskID uuid.U
 
 	// Register the run
 	if err := s.putRun(run); err != nil {
-		return errors.Wrap(err, "failed to register the run")
+		return errors.Wrap(err, "register the run")
 	}
 
 	// Create a worker
@@ -414,7 +414,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 		return nil
 	}
 	if err != nil {
-		return errors.Wrap(err, "failed to get previous run")
+		return errors.Wrap(err, "get previous run")
 	}
 
 	// Check if can continue from prev

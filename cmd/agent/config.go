@@ -55,16 +55,16 @@ func parseConfig(file string) (config, error) {
 
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
-		return c, errors.Wrapf(err, "failed to read config file %s", file)
+		return c, errors.Wrapf(err, "read config file %s", file)
 	}
 	if err := yaml.Unmarshal(b, &c); err != nil {
-		return c, errors.Wrapf(err, "failed to parse config file %s", file)
+		return c, errors.Wrapf(err, "parse config file %s", file)
 	}
 	if err := c.validate(); err != nil {
 		return c, errors.Wrapf(err, "invalid config file %s", file)
 	}
 	if err := enrichScyllaConfigFromAPI(&c.Scylla); err != nil {
-		return c, errors.Wrapf(err, "failed to get configuration from Scylla API "+
+		return c, errors.Wrapf(err, "Scylla configuration retrieval error "+
 			"make sure that Scylla server is running and api_address and api_port are set correctly in %s", file)
 	}
 	updateHTTPSConfigFromScyllaConfig(&c)

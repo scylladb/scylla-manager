@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 		if cfgAPICertFile != "" {
 			cert, err := tls.LoadX509KeyPair(cfgAPICertFile, cfgAPIKeyFile)
 			if err != nil {
-				return errors.Wrap(err, "failed to load client certificate")
+				return errors.Wrap(err, "load client certificate")
 			}
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}

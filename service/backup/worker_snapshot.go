@@ -40,7 +40,7 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 		return errors.Wrap(err, "disk space check")
 	}
 	if err := w.takeSnapshot(ctx, h); err != nil {
-		return errors.Wrap(err, "failed to take snapshot")
+		return errors.Wrap(err, "take snapshot")
 	}
 	if err := w.deleteOldSnapshots(ctx, h); err != nil {
 		// Not a fatal error we can continue, just log the error
@@ -49,7 +49,7 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 
 	dirs, err := w.findSnapshotDirs(ctx, h)
 	if err != nil {
-		return errors.Wrap(err, "failed to list snapshot dirs")
+		return errors.Wrap(err, "list snapshot dirs")
 	}
 	w.setHostSnapshotDirs(h, dirs)
 
@@ -124,7 +124,7 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 
 		tables, err := w.Client.RcloneListDir(ctx, h.IP, baseDir, nil)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to list keyspace")
+			return nil, errors.Wrap(err, "list keyspace")
 		}
 
 		filter := strset.New(u.Tables...)
@@ -156,7 +156,7 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 					continue
 				}
-				return nil, errors.Wrap(err, "failed to list table")
+				return nil, errors.Wrap(err, "list table")
 			}
 
 			w.Logger.Debug(ctx, "Found snapshot table directory",

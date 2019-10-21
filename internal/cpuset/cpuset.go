@@ -101,7 +101,7 @@ func parseCPUSet(s string) ([]int, error) {
 func AvailableCPUs(busyCPUs []int, wantCPUs int) ([]int, error) {
 	var cpus unix.CPUSet
 	if err := unix.SchedGetaffinity(os.Getpid(), &cpus); err != nil {
-		return nil, errors.Wrap(err, "failed to get affinity")
+		return nil, errors.Wrap(err, "get affinity")
 	}
 	for _, c := range busyCPUs {
 		cpus.Clear(c)
@@ -130,7 +130,7 @@ func AvailableCPUs(busyCPUs []int, wantCPUs int) ([]int, error) {
 func SchedSetAffinity(useCPUs []int) error {
 	pids, err := osTasks(os.Getpid())
 	if err != nil {
-		return errors.Wrap(err, "failed to get tasks")
+		return errors.Wrap(err, "get tasks")
 	}
 
 	return schedSetAffinityToMany(pids, cpuset(useCPUs))

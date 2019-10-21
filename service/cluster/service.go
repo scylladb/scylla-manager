@@ -88,16 +88,16 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 
 	client, err := s.createClient(c)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create client")
+		return nil, errors.Wrap(err, "create client")
 	}
 	defer client.Close()
 
 	hosts, err := s.discoverHosts(ctx, client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to discover cluster topology")
+		return nil, errors.Wrap(err, "discover cluster topology")
 	}
 	if err := s.setKnownHosts(c, hosts); err != nil {
-		return nil, errors.Wrap(err, "failed to update cluster")
+		return nil, errors.Wrap(err, "update cluster")
 	}
 
 	s.logger.Info(ctx, "New Scylla REST client", "cluster_id", clusterID)
@@ -322,14 +322,14 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) { // n
 		r, err := putWithRollback(s.sslCertStore, c.ID, c.SSLUserCertFile)
 		rollback = append(rollback, r)
 		if err != nil {
-			return errors.Wrap(err, "failed to save SSL cert file")
+			return errors.Wrap(err, "save SSL cert file")
 		}
 	}
 	if len(c.SSLUserKeyFile) != 0 {
 		r, err := putWithRollback(s.sslKeyStore, c.ID, c.SSLUserKeyFile)
 		rollback = append(rollback, r)
 		if err != nil {
-			return errors.Wrap(err, "failed to save SSL key file")
+			return errors.Wrap(err, "save SSL key file")
 		}
 	}
 
@@ -364,18 +364,18 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	if c.Host != "" {
 		c.KnownHosts = []string{c.Host}
 	} else if err := s.loadKnownHosts(c); err != nil {
-		return errors.Wrap(err, "failed to load known hosts")
+		return errors.Wrap(err, "load known hosts")
 	}
 
 	client, err := s.createClient(c)
 	if err != nil {
-		return errors.Wrap(err, "failed to create client")
+		return errors.Wrap(err, "create client")
 	}
 	defer client.Close()
 
 	hosts, err := client.Hosts(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to discover cluster topology")
+		return errors.Wrap(err, "discover cluster topology")
 	}
 
 	// For every reachable host check that there are not HTTP errors
@@ -447,7 +447,7 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get dcs for cluster with id %s", clusterID)
+		return nil, errors.Wrapf(err, "get dcs for cluster with id %s", clusterID)
 	}
 
 	for dc, hosts := range dcs {

@@ -219,11 +219,11 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 		// parse tokens
 		ring.Tokens[i].StartToken, err = strconv.ParseInt(p.StartToken, 10, 64)
 		if err != nil {
-			return Ring{}, errors.Wrap(err, "failed to parse StartToken")
+			return Ring{}, errors.Wrap(err, "parse StartToken")
 		}
 		ring.Tokens[i].EndToken, err = strconv.ParseInt(p.EndToken, 10, 64)
 		if err != nil {
-			return Ring{}, errors.Wrap(err, "failed to parse EndToken")
+			return Ring{}, errors.Wrap(err, "parse EndToken")
 		}
 		// save replicas
 		ring.Tokens[i].Replicas = p.Endpoints

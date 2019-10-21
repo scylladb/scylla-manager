@@ -99,10 +99,10 @@ func newConfigFromFile(filename ...string) (*serverConfig, error) {
 	for _, f := range filename {
 		b, err := ioutil.ReadFile(f)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read file %q", f)
+			return nil, errors.Wrapf(err, "read file %q", f)
 		}
 		if err := yaml.Unmarshal(b, config); err != nil {
-			return nil, errors.Wrapf(err, "failed to parse file %q", f)
+			return nil, errors.Wrapf(err, "parse file %q", f)
 		}
 	}
 	return config, nil

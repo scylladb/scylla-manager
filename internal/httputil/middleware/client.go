@@ -151,7 +151,7 @@ func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 				// Dump body of failed requests, ignore 404s
 				if c := resp.StatusCode; c >= 400 && c != http.StatusNotFound {
 					if b, err := httputil.DumpResponse(resp, true); err != nil {
-						f = append(f, "dump", errors.Wrap(err, "failed to dump request"))
+						f = append(f, "dump", errors.Wrap(err, "dump request"))
 					} else {
 						f = append(f, "dump", string(b))
 					}

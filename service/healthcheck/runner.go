@@ -27,7 +27,7 @@ type Runner struct {
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
 	clusterName, err := r.clusterName(ctx, clusterID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get cluster")
+		return errors.Wrap(err, "get cluster")
 	}
 
 	defer func() {
@@ -38,12 +38,12 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 
 	client, err := r.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get client")
+		return errors.Wrap(err, "get client")
 	}
 
 	hosts, err := client.Hosts(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get hosts")
+		return errors.Wrap(err, "get hosts")
 	}
 
 	r.removeDecommissionedHosts(clusterName, hosts)

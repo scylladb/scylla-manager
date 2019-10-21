@@ -44,13 +44,13 @@ func (w *hostWorker) init(ctx context.Context) error {
 	// Continue from a savepoint
 	prog, err := w.Service.getHostProgress(w.Run, w.Unit, w.Host)
 	if err != nil {
-		return errors.Wrap(err, "failed to get host progress")
+		return errors.Wrap(err, "get host progress")
 	}
 
 	// Split segments to shards
 	p, err := w.partitioner(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get partitioner")
+		return errors.Wrap(err, "get partitioner")
 	}
 	shards := w.splitSegmentsToShards(ctx, p)
 
@@ -110,7 +110,7 @@ func (w *hostWorker) init(ctx context.Context) error {
 func (w *hostWorker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, error) {
 	shardCount, err := w.Client.ShardCount(ctx, w.Host)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get shard count")
+		return nil, errors.Wrap(err, "get shard count")
 	}
 	return dht.NewMurmur3Partitioner(shardCount, uint(w.Config.ShardingIgnoreMsbBits)), nil
 }
@@ -329,7 +329,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error { // 
 			id, err = w.runRepair(ctx, start, end)
 			if err != nil {
 				w.logger.Error(ctx, "Failed to request repair", "error", err)
-				err = errors.Wrap(err, "failed to request repair")
+				err = errors.Wrap(err, "request repair")
 			} else {
 				savepoint()
 			}

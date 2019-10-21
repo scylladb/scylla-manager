@@ -44,7 +44,7 @@ func RegisterLocalDirProvider(name, description, rootDir string) error {
 		fs.ConfigFileSet(name, "disable_checksum", "true"),
 	)
 	if errs != nil {
-		return errors.Wrapf(errs, "failed to register localdir provider %s", name)
+		return errors.Wrapf(errs, "register localdir provider %s", name)
 	}
 	fs.Infof(nil, "registered localdir provider %s rooted at %s", name, rootDir)
 
@@ -86,7 +86,7 @@ func RegisterInMemoryConf() error {
 		fs.ConfigFileSet(S3Provider, "endpoint", os.Getenv("AWS_S3_ENDPOINT")),
 	)
 	if errs != nil {
-		return errors.Wrapf(errs, "failed to register s3 provider")
+		return errors.Wrapf(errs, "register s3 provider")
 	}
 	fs.Infof(nil, "registered s3 provider")
 

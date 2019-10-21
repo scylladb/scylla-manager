@@ -38,7 +38,7 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit,
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo, policy int) error {
 	if err := w.setRateLimit(ctx, h); err != nil {
-		return errors.Wrap(err, "failed to set rate limit")
+		return errors.Wrap(err, "set rate limit")
 	}
 
 	dirs := w.hostSnapshotDirs(h)
@@ -46,18 +46,18 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo, policy int) error {
 		var err error
 		dirs, err = w.findSnapshotDirs(ctx, h)
 		if err != nil {
-			return errors.Wrap(err, "failed to list snapshot dirs")
+			return errors.Wrap(err, "list snapshot dirs")
 		}
 	}
 
 	for _, d := range dirs {
 		// Check if we should attach to a previous job and wait for it to complete.
 		if err := w.attachToJob(ctx, h, d); err != nil {
-			return errors.Wrap(err, "failed to attach to the agent job")
+			return errors.Wrap(err, "attach to the agent job")
 		}
 		// Start new upload with new job.
 		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
-			return errors.Wrap(err, "failed to upload snapshot")
+			return errors.Wrap(err, "upload snapshot")
 		}
 		// Try to purge remote stale snapshots.
 		if err := w.deleteRemoteStaleSnapshots(ctx, h, d, policy); err != nil {
@@ -132,7 +132,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		dataSrc = d.Path
 	)
 	if err := w.uploadDir(ctx, dataDst, dataSrc, d, manifest); err != nil {
-		return errors.Wrapf(err, "failed to copy %q to %q", dataSrc, dataDst)
+		return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
 	}
 
 	// Upload manifest
@@ -147,7 +147,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		manifestSrc = path.Join(d.Path, manifest)
 	)
 	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d); err != nil {
-		return errors.Wrapf(err, "failed to copy %q to %q", manifestSrc, manifestDst)
+		return errors.Wrapf(err, "copy %q to %q", manifestSrc, manifestDst)
 	}
 
 	return nil

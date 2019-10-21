@@ -83,7 +83,7 @@ func writeError(path string, in rc.Params, w http.ResponseWriter, err error, sta
 	})
 	if err != nil {
 		// can't return the error at this point
-		fs.Errorf(nil, "rc: failed to write JSON output: %v", err)
+		fs.Errorf(nil, "rc: write JSON output: %v", err)
 	}
 }
 
@@ -125,7 +125,7 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		// Parse the POST and URL parameters into r.Form, for others r.Form will be empty value
 		err := r.ParseForm()
 		if err != nil {
-			writeError(path, nil, w, errors.Wrap(err, "failed to parse form/URL parameters"), http.StatusBadRequest)
+			writeError(path, nil, w, errors.Wrap(err, "parse form/URL parameters"), http.StatusBadRequest)
 			return
 		}
 		values = r.Form
@@ -143,12 +143,12 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 	if contentType == "application/json" {
 		j, err := ioutil.ReadAll(&io.LimitedReader{R: r.Body, N: bodySizeLimit})
 		if err != nil {
-			writeError(path, in, w, errors.Wrap(err, "failed to read request body"), http.StatusBadRequest)
+			writeError(path, in, w, errors.Wrap(err, "read request body"), http.StatusBadRequest)
 			return
 		}
 		if len(j) > 0 {
 			if err := json.Unmarshal(j, &in); err != nil {
-				writeError(path, in, w, errors.Wrap(err, "failed to read input JSON"), http.StatusBadRequest)
+				writeError(path, in, w, errors.Wrap(err, "read input JSON"), http.StatusBadRequest)
 				return
 			}
 		}
@@ -190,7 +190,7 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 				}()
 				for _, e := range exclude {
 					if err := s.filter.Add(false, e); err != nil {
-						return nil, errors.Wrap(err, "failed to set exclude pattern")
+						return nil, errors.Wrap(err, "set exclude pattern")
 					}
 				}
 				return fn(ctx, in)

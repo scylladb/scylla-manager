@@ -18,7 +18,7 @@ type Runner struct {
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
 	t, err := r.service.GetTarget(ctx, clusterID, properties, false)
 	if err != nil {
-		return errors.Wrap(err, "failed to get repair target")
+		return errors.Wrap(err, "get repair target")
 	}
 
 	return r.service.Repair(ctx, clusterID, taskID, runID, t)

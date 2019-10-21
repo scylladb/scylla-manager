@@ -75,11 +75,11 @@ func (s *server) makeServices() error {
 
 	sslCertStore, err := kv.NewFsStore(dir, "cert")
 	if err != nil {
-		return errors.Wrapf(err, "failed to init SSL cert store at %s", dir)
+		return errors.Wrapf(err, "init SSL cert store at %s", dir)
 	}
 	sslKeyStore, err := kv.NewFsStore(dir, "key")
 	if err != nil {
-		return errors.Wrapf(err, "failed to init SSL key store at %s", dir)
+		return errors.Wrapf(err, "init SSL key store at %s", dir)
 	}
 
 	s.clusterSvc, err = cluster.NewService(s.session, sslCertStore, sslKeyStore, s.logger.Named("cluster"))
@@ -145,25 +145,25 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	switch c.Type {
 	case cluster.Create:
 		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckTask(c.ID)); err != nil {
-			return errors.Wrapf(err, "failed to add automatically scheduled health check for cluster %s", c.ID)
+			return errors.Wrapf(err, "add automatically scheduled health check for cluster %s", c.ID)
 		}
 		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckRESTTask(c.ID)); err != nil {
-			return errors.Wrapf(err, "failed to add automatically scheduled REST health check for cluster %s", c.ID)
+			return errors.Wrapf(err, "add automatically scheduled REST health check for cluster %s", c.ID)
 		}
 		if err := s.schedSvc.PutTask(ctx, makeAutoRepairTask(c.ID)); err != nil {
-			return errors.Wrapf(err, "failed to add automatically scheduled weekly repair for cluster %s", c.ID)
+			return errors.Wrapf(err, "add automatically scheduled weekly repair for cluster %s", c.ID)
 		}
 	case cluster.Delete:
 		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, "")
 		if err != nil {
-			return errors.Wrapf(err, "failed to find this cluster %s tasks", c.ID)
+			return errors.Wrapf(err, "find this cluster %s tasks", c.ID)
 		}
 		var errs error
 		for _, t := range tasks {
 			errs = multierr.Append(errs, s.schedSvc.DeleteTask(ctx, t))
 		}
 		if errs != nil {
-			return errors.Wrapf(errs, "failed to remove cluster %s tasks", c.ID)
+			return errors.Wrapf(errs, "remove cluster %s tasks", c.ID)
 		}
 	}
 
@@ -197,7 +197,7 @@ func (s *server) makeHTTPServers() error {
 			pool := x509.NewCertPool()
 			b, err := ioutil.ReadFile(s.config.TLSCAFile)
 			if err != nil {
-				return errors.Wrapf(err, "https failed to read certificate file %s", s.config.TLSCAFile)
+				return errors.Wrapf(err, "https read certificate file %s", s.config.TLSCAFile)
 			}
 			if !pool.AppendCertsFromPEM(b) {
 				return errors.Errorf("https no certificates found in %s", s.config.TLSCAFile)
@@ -242,21 +242,21 @@ func (s *server) startHTTPServers(ctx context.Context) {
 	if s.httpsServer != nil {
 		s.logger.Info(ctx, "Starting HTTPS server", "address", s.httpsServer.Addr, "client_ca", s.config.TLSCAFile)
 		go func() {
-			s.errCh <- errors.Wrap(s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile), "HTTPS server failed to start")
+			s.errCh <- errors.Wrap(s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile), "HTTPS server start")
 		}()
 	}
 
 	if s.prometheusServer != nil {
 		s.logger.Info(ctx, "Starting Prometheus server", "address", s.prometheusServer.Addr)
 		go func() {
-			s.errCh <- errors.Wrap(s.prometheusServer.ListenAndServe(), "Prometheus server failed to start")
+			s.errCh <- errors.Wrap(s.prometheusServer.ListenAndServe(), "Prometheus server start")
 		}()
 	}
 
 	if s.debugServer != nil {
 		s.logger.Info(ctx, "Starting debug server", "address", s.debugServer.Addr)
 		go func() {
-			s.errCh <- errors.Wrap(s.debugServer.ListenAndServe(), "debug server failed to start")
+			s.errCh <- errors.Wrap(s.debugServer.ListenAndServe(), "debug server start")
 		}()
 	}
 }

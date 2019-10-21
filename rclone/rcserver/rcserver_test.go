@@ -108,7 +108,7 @@ func TestRC(t *testing.T) {
 		ContentType: "application/json",
 		Status:      http.StatusBadRequest,
 		Expected: `{
-	"error": "failed to read input JSON: invalid character 'p' looking for beginning of object key string",
+	"error": "read input JSON: invalid character 'p' looking for beginning of object key string",
 	"input": {
 		"param1": "potato",
 		"param2": "sausage"
@@ -150,7 +150,7 @@ func TestRC(t *testing.T) {
 		ContentType: "application/x-www-form-urlencoded",
 		Status:      http.StatusBadRequest,
 		Expected: `{
-	"error": "failed to parse form/URL parameters: invalid URL escape \"%zz\"",
+	"error": "parse form/URL parameters: invalid URL escape \"%zz\"",
 	"input": null,
 	"path": "rc/noop",
 	"status": 400

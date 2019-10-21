@@ -138,9 +138,9 @@ func TestFormatTimeNonZero(t *testing.T) {
 }
 
 func TestFormatMultiHostError(t *testing.T) {
-	msg := `Error: failed to create cluster: connectivity check failed: 192.168.100.13: unknown network bla; 192.168.100.22: unknown network bla; 192.168.100.12: unknown network bla; 192.168.100.23: unknown network bla; 192.168.100.11: unknown network bla; 192.168.100.21: unknown network bla`
+	msg := `Error: create cluster: connectivity check failed: 192.168.100.13: unknown network bla; 192.168.100.22: unknown network bla; 192.168.100.12: unknown network bla; 192.168.100.23: unknown network bla; 192.168.100.11: unknown network bla; 192.168.100.21: unknown network bla`
 
-	golden := `Error: failed to create cluster: connectivity check failed
+	golden := `Error: create cluster: connectivity check failed
  192.168.100.13: unknown network bla
  192.168.100.22: unknown network bla
  192.168.100.12: unknown network bla

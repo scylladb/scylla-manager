@@ -103,12 +103,12 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get client for cluster with id %s", clusterID)
+		return nil, errors.Wrapf(err, "get client for cluster with id %s", clusterID)
 	}
 
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get dcs for cluster with id %s", clusterID)
+		return nil, errors.Wrapf(err, "get dcs for cluster with id %s", clusterID)
 	}
 
 	check := func(host, name string, ping pingFunc, q chan pingStat) {
@@ -231,7 +231,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string) (time.Duration, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return 0, errors.Wrapf(err, "failed to get client for cluster with id %s", clusterID)
+		return 0, errors.Wrapf(err, "get client for cluster with id %s", clusterID)
 	}
 
 	return client.PingN(ctx, host, pingLaps, 0)
@@ -255,11 +255,11 @@ func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Conf
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get SSL user cert from a secure store")
+		return nil, errors.Wrap(err, "get SSL user cert from a secure store")
 	}
 	key, err := s.sslKeyStore.Get(clusterID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get SSL user key from a secure store")
+		return nil, errors.Wrap(err, "get SSL user key from a secure store")
 	}
 	keyPair, err := tls.X509KeyPair(cert, key)
 	if err != nil {
