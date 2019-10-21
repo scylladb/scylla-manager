@@ -18,11 +18,11 @@
     {
       "keyspace": "system_traces",
       "tables": [
-        "node_slow_log",
-        "sessions",
         "node_slow_log_time_idx",
-        "sessions_time_idx",
-        "events"
+        "node_slow_log",
+        "events",
+        "sessions",
+        "sessions_time_idx"
       ],
       "all_tables": true
     }
