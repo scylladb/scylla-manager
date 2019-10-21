@@ -102,12 +102,12 @@ INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
 -agent-auth-token token \
 -s3-data-dir $(PWD)/testing/minio/data
 
-RUN := Integration
-
 .PHONY: pkg-integration-test
 pkg-integration-test: ## Run integration tests for a package, requires PKG parameter
+pkg-integration-test: RUN=Integration
+pkg-integration-test:
 	@echo "==> Running integration tests for package $(PKG)"
-	@go test -cover -v -tags integration -run $(RUN) $(PKG) $(INTEGRATION_TEST_ARGS)
+	@go test -cover -v -tags integration -run $(RUN) $(PKG) $(INTEGRATION_TEST_ARGS) $(ARGS)
 
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
