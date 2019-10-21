@@ -997,7 +997,11 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	defer cancel()
 
 	Print("Given: repair is running on a host")
+	done := make(chan struct{})
 	go func() {
+		time.AfterFunc(500*time.Millisecond, func() {
+			close(done)
+		})
 		ExecOnHost(ManagedClusterHost(), "nodetool repair -pr")
 	}()
 	defer func() {
@@ -1005,6 +1009,8 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}()
+
+	<-done
 	Print("When: repair starts")
 	h.runRepair(ctx, singleUnit())
 
