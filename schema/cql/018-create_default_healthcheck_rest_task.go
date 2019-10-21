@@ -35,7 +35,7 @@ VALUES (?, 'healthcheck_rest', uuid(), true, {start_date: ?, interval_seconds: ?
 	for _, id := range ids {
 		iq.Bind(id, timeutc.Now().Add(1*time.Minute), 60*60, 0, []byte{'{', '}'})
 		if err := iq.Exec(); err != nil {
-			logger.Error(ctx, "failed to add healthcheck REST task", "cluster_id", id, "error", err.Error())
+			logger.Error(ctx, "Failed to add healthcheck REST task", "cluster_id", id, "error", err.Error())
 		}
 	}
 

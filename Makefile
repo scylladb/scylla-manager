@@ -13,7 +13,8 @@ fmt: ## Format source code
 
 .PHONY: check
 check: ## Perform static code analysis
-check: .check-go-version .check-copyright .check-comments .check-errors-wrap .check-timeutc .check-lint .check-vendor
+check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
+.check-log-capital-letter .check-timeutc .check-lint .check-vendor
 
 .PHONY: .check-go-version
 .check-go-version:
@@ -43,6 +44,13 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap .ch
 .check-errors-wrap:
 	@set -e; for f in `$(GOFILES)`; do \
 		! e=`grep -n errors.Wrap $$f | grep "failed to"` || \
+		(echo $$f $$e; false); \
+	done
+
+.PHONY: .check-log-capital-letter
+.check-log-capital-letter:
+	@set -e; for f in `$(GOFILES)`; do \
+		! e=`grep -n -E '\.(Error|Info|Debug)\(ctx, "[a-z]' $$f` || \
 		(echo $$f $$e; false); \
 	done
 

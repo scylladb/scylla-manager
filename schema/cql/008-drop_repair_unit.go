@@ -34,7 +34,7 @@ VALUES (?, 'repair', uuid(), true, {start_date: ?, interval_days: ?, num_retries
 	for _, id := range ids {
 		iq.Bind(id, timeutc.TodayMidnight(), 7, 3, []byte{'{', '}'})
 		if err := iq.Exec(); err != nil {
-			logger.Error(ctx, "failed to add repair task", "cluster_id", id, "error", err.Error())
+			logger.Error(ctx, "Failed to add repair task", "cluster_id", id, "error", err.Error())
 		}
 	}
 

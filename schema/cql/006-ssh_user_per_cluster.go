@@ -70,7 +70,7 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Sessi
 	for _, id := range ids {
 		identityFile := filepath.Join(h.dir, id.String())
 		if err := os.Link(cfg.IdentityFile, identityFile); err != nil {
-			logger.Info(ctx, "failed to link ssh identity file",
+			logger.Info(ctx, "Failed to link ssh identity file",
 				"from", cfg.IdentityFile,
 				"to", identityFile,
 				"error", err,
@@ -78,7 +78,7 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Sessi
 			continue
 		}
 		if err := os.Chmod(identityFile, 0600); err != nil {
-			logger.Info(ctx, "failed to change identity file permissions",
+			logger.Info(ctx, "Failed to change identity file permissions",
 				"file", identityFile,
 				"error", err,
 			)

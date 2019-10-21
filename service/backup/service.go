@@ -512,7 +512,7 @@ func (s *Service) putRun(r *Run) error {
 // putRunLogError executes putRun and consumes the error.
 func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	if err := s.putRun(r); err != nil {
-		s.logger.Error(ctx, "failed to update the run",
+		s.logger.Error(ctx, "Failed to update the run",
 			"run", r,
 			"error", err,
 		)

@@ -35,7 +35,7 @@ VALUES (?, 'healthcheck', uuid(), true, {start_date: ?, interval_seconds: ?, num
 	for _, id := range ids {
 		iq.Bind(id, timeutc.Now().Add(30*time.Second), 15, 0, []byte{'{', '}'})
 		if err := iq.Exec(); err != nil {
-			logger.Error(ctx, "failed to add healthcheck task", "cluster_id", id, "error", err.Error())
+			logger.Error(ctx, "Failed to add healthcheck task", "cluster_id", id, "error", err.Error())
 		}
 	}
 

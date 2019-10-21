@@ -157,7 +157,7 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 					case restStatus = <-restQ:
 						continue
 					case <-ctx.Done():
-						s.logger.Error(ctx, "status check canceled",
+						s.logger.Error(ctx, "Status check canceled",
 							"cluster_id", clusterID,
 							"host", h,
 							"error", ctx.Err(),
