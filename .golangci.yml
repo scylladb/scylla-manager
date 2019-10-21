@@ -11,6 +11,8 @@ run:
 linters-settings:
   errcheck:
     check-blank: true
+  gocognit:
+    min-complexity: 50
   lll:
     line-length: 180
 
