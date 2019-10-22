@@ -2,8 +2,10 @@ run:
   deadline: 5m
   tests: false
   skip-dirs:
-  - mermaidclient/internal
-  - scyllaclient/internal
+    - mermaidclient/internal
+    - scyllaclient/internal
+  skip-files:
+    - mock_.*\\.go
   silent: true
 
 linters-settings:
@@ -15,29 +17,29 @@ linters-settings:
 linters:
   enable-all: true
   disable:
-  - funlen
-  - gas
-  - gochecknoglobals
-  - gochecknoinits
-  - interfacer
-  - maligned
-  - prealloc
-  - wsl
+    - funlen
+    - gas
+    - gochecknoglobals
+    - gochecknoinits
+    - interfacer
+    - maligned
+    - prealloc
+    - wsl
 
 issues:
   exclude-use-default: false
   exclude:
-  - composite literal uses unkeyed fields
-  - exported function `New.+` should have comment or be unexported
-  - exported method `Runner.Run` should have comment or be unexported
-  - exported method `.+.MarshalCQL` should have comment or be unexported
-  - exported method `.+.UnmarshalCQL` should have comment or be unexported
-  - exported method `.+.MarshalUDT` should have comment or be unexported
-  - exported method `.+.UnmarshalUDT` should have comment or be unexported
-  - exported method `.+.MarshalText` should have comment or be unexported
-  - exported method `.+.UnmarshalText` should have comment or be unexported
-  - Error return value of `.+\.Close` is not checked
-  - Error return value of `net.SplitHostPort` is not checked
-  - Error return value of `strconv.ParseBool` is not checked
-  - should merge variable declaration with assignment on next line
-  - at least one file in a package should have a package comment
+    - composite literal uses unkeyed fields
+    - exported function `New.+` should have comment or be unexported
+    - exported method `Runner.Run` should have comment or be unexported
+    - exported method `.+.MarshalCQL` should have comment or be unexported
+    - exported method `.+.UnmarshalCQL` should have comment or be unexported
+    - exported method `.+.MarshalUDT` should have comment or be unexported
+    - exported method `.+.UnmarshalUDT` should have comment or be unexported
+    - exported method `.+.MarshalText` should have comment or be unexported
+    - exported method `.+.UnmarshalText` should have comment or be unexported
+    - Error return value of `.+\.Close` is not checked
+    - Error return value of `net.SplitHostPort` is not checked
+    - Error return value of `strconv.ParseBool` is not checked
+    - should merge variable declaration with assignment on next line
+    - at least one file in a package should have a package comment

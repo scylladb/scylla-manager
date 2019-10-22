@@ -9,7 +9,7 @@ GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .Tes
 
 .PHONY: fmt
 fmt: ## Format source code
-	@go fmt ./...
+	@golangci-lint run -c .golangci-fmt.yml --fix
 
 .PHONY: check
 check: ## Perform static code analysis

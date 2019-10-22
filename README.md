@@ -11,6 +11,14 @@ Mermaid repository provides tools for managing clusters of Scylla servers. It co
 * Install and Docker.
 * Run installation script `install_deps.sh`.
 
+If using GoLand update import grouping policy:
+
+* Open File -> Settings -> Editor -> Code Style -> Go
+* Go to Imports Pane
+* Set "Sorting type" to goimports
+* Check every checkbox but "Group current project imports"
+* Press OK
+
 ## Running a development server and sctool
 
 Let's start the test cluster.

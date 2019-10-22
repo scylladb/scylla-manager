@@ -3,12 +3,12 @@
 package cpuset
 
 import (
-	"golang.org/x/sys/unix"
 	"os"
 	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/sys/unix"
 )
 
 func TestCpuSetPattern(t *testing.T) {

@@ -3,12 +3,12 @@
 package mermaidclient
 
 import (
-	"github.com/google/go-cmp/cmp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/uuid"
 )
