@@ -20,6 +20,7 @@ type Cluster struct {
 	AuthToken       string    `json:"auth_token"`
 	SSLUserCertFile []byte    `json:"ssl_user_cert_file,omitempty" db:"-"`
 	SSLUserKeyFile  []byte    `json:"ssl_user_key_file,omitempty" db:"-"`
+	WithoutRepair   bool      `json:"without_repair,omitempty" db:"-"`
 }
 
 // String returns cluster Name or ID if Name is is empty.

@@ -35,6 +35,9 @@ type Cluster struct {
 	// ssl user key file
 	// Format: byte
 	SslUserKeyFile strfmt.Base64 `json:"ssl_user_key_file,omitempty"`
+
+	// without repair
+	WithoutRepair bool `json:"without_repair,omitempty"`
 }
 
 // Validate validates this cluster

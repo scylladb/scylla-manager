@@ -150,8 +150,10 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckRESTTask(c.ID)); err != nil {
 			return errors.Wrapf(err, "add automatically scheduled REST health check for cluster %s", c.ID)
 		}
-		if err := s.schedSvc.PutTask(ctx, makeAutoRepairTask(c.ID)); err != nil {
-			return errors.Wrapf(err, "add automatically scheduled weekly repair for cluster %s", c.ID)
+		if !c.WithoutRepair {
+			if err := s.schedSvc.PutTask(ctx, makeAutoRepairTask(c.ID)); err != nil {
+				return errors.Wrapf(err, "add automatically scheduled weekly repair for cluster %s", c.ID)
+			}
 		}
 	case cluster.Delete:
 		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, "")

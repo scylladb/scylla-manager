@@ -220,6 +220,21 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("put new cluster without automatic repair", func(t *testing.T) {
+		setup(t)
+
+		c := validCluster()
+		c.ID = uuid.Nil
+		c.WithoutRepair = true
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		if !change.WithoutRepair {
+			t.Fatal("automatic repair scheduling not skipped")
+		}
+	})
+
 	t.Run("put existing cluster", func(t *testing.T) {
 		setup(t)
 

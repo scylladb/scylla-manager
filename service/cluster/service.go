@@ -32,8 +32,9 @@ const (
 
 // Change specifies cluster modification.
 type Change struct {
-	ID   uuid.UUID
-	Type ChangeType
+	ID            uuid.UUID
+	Type          ChangeType
+	WithoutRepair bool
 }
 
 // Service manages cluster configurations.
@@ -356,7 +357,12 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		s.clientCache.Invalidate(c.ID)
 	}
 
-	return s.notifyChangeListener(ctx, Change{ID: c.ID, Type: t})
+	changeEvent := Change{
+		ID:            c.ID,
+		Type:          t,
+		WithoutRepair: c.WithoutRepair,
+	}
+	return s.notifyChangeListener(ctx, changeEvent)
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {

@@ -100,6 +100,12 @@ var clusterAddCmd = &cobra.Command{
 			c.SslUserKeyFile = b1
 		}
 
+		withoutRepair, err := cmd.Flags().GetBool("without-repair")
+		if err != nil {
+			return err
+		}
+		c.WithoutRepair = withoutRepair
+
 		id, err := client.CreateCluster(ctx, c)
 		if err != nil {
 			return err
@@ -129,6 +135,7 @@ func init() {
 
 	clusterInitCommonFlags(cmd)
 	cmd.Flags().StringVarP(&cfgClusterID, "id", "i", "", "explicitly specify cluster ID, when not provided random UUID will be generated")
+	cmd.Flags().Bool("without-repair", false, "skip automatic repair scheduling")
 	requireFlags(cmd, "host")
 }
 

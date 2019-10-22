@@ -42,6 +42,9 @@
         "ssl_user_key_file": {
           "type": "string",
           "format": "byte"
+        },
+        "without_repair": {
+          "type": "boolean"
         }
       }
     },
