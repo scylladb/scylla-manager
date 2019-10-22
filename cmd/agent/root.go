@@ -66,7 +66,8 @@ var rootCmd = &cobra.Command{
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
 
-		// Log config
+		// Log version and config
+		logger.Info(ctx, "Scylla Manager Agent", "version", mermaid.Version())
 		logger.Info(ctx, "Using config", "config", obfuscateSecrets(c), "config_file", rootArgs.configFile)
 
 		// Instruct users to set auth token

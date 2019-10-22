@@ -76,6 +76,9 @@ var rootCmd = &cobra.Command{
 			}
 			logger.Sync() // nolint
 		}()
+
+		// Log version and config
+		logger.Info(ctx, "Scylla Manager Server", "version", mermaid.Version())
 		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config), "config_files", cfgConfigFile)
 
 		// Redirect standard logger to the logger
