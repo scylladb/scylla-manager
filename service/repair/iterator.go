@@ -2,6 +2,45 @@
 
 package repair
 
+type forwardIterator struct {
+	segments          segments
+	progress          *RunProgress
+	segmentsPerRepair int
+
+	start int
+	end   int
+}
+
+func (i *forwardIterator) Next() (start, end int, ok bool) {
+	if i.end == len(i.segments) {
+		return 0, 0, false
+	}
+
+	if i.end == 0 {
+		if i.progress.LastStartToken != 0 {
+			i.start, _ = i.segments.containStartToken(i.progress.LastStartToken)
+		}
+		i.end = i.start + i.segmentsPerRepair
+	} else {
+		i.start, i.end = i.end, i.end+i.segmentsPerRepair
+	}
+
+	if i.end > len(i.segments) {
+		i.end = len(i.segments)
+	}
+	return i.start, i.end, true
+}
+
+func (i *forwardIterator) OnSuccess() {
+	i.progress.SegmentSuccess += i.end - i.start
+}
+
+func (i *forwardIterator) OnError() {
+	i.progress.SegmentError += i.end - i.start
+
+	i.progress.SegmentErrorPos = appendRange(i.progress.SegmentErrorPos, i.start, i.end)
+}
+
 type repairIterator interface {
 	Next() (start, end int, ok bool)
 	OnSuccess()
@@ -62,45 +101,6 @@ func (i *retryIterator) OnSuccess() {
 }
 
 func (i *retryIterator) OnError() {
-	i.progress.SegmentErrorPos = appendRange(i.progress.SegmentErrorPos, i.start, i.end)
-}
-
-type forwardIterator struct {
-	segments          segments
-	progress          *RunProgress
-	segmentsPerRepair int
-
-	start int
-	end   int
-}
-
-func (i *forwardIterator) Next() (start, end int, ok bool) {
-	if i.end == len(i.segments) {
-		return 0, 0, false
-	}
-
-	if i.end == 0 {
-		if i.progress.LastStartToken != 0 {
-			i.start, _ = i.segments.containStartToken(i.progress.LastStartToken)
-		}
-		i.end = i.start + i.segmentsPerRepair
-	} else {
-		i.start, i.end = i.end, i.end+i.segmentsPerRepair
-	}
-
-	if i.end > len(i.segments) {
-		i.end = len(i.segments)
-	}
-	return i.start, i.end, true
-}
-
-func (i *forwardIterator) OnSuccess() {
-	i.progress.SegmentSuccess += i.end - i.start
-}
-
-func (i *forwardIterator) OnError() {
-	i.progress.SegmentError += i.end - i.start
-
 	i.progress.SegmentErrorPos = appendRange(i.progress.SegmentErrorPos, i.start, i.end)
 }
 

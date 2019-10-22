@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestRetryIteratorNext(t *testing.T) {
+func TestForwardIteratorNext(t *testing.T) {
 	var ri repairIterator
 
 	modifiers := []func(){
@@ -18,11 +18,9 @@ func TestRetryIteratorNext(t *testing.T) {
 	}
 
 	for _, postFunc := range modifiers {
-		ri = &retryIterator{
-			segments: segments{{0, 1}, {1, 2}, {3, 4}},
-			progress: &RunProgress{
-				SegmentErrorPos: []int{1, 2},
-			},
+		ri = &forwardIterator{
+			segments:          segments{{0, 1}, {1, 2}, {3, 4}},
+			progress:          &RunProgress{},
 			segmentsPerRepair: 1,
 		}
 
@@ -38,13 +36,13 @@ func TestRetryIteratorNext(t *testing.T) {
 			actual = append(actual, start)
 		}
 
-		if diff := cmp.Diff(actual, []int{1, 2}); diff != "" {
+		if diff := cmp.Diff(actual, []int{0, 1, 2}); diff != "" {
 			t.Fatal(diff)
 		}
 	}
 }
 
-func TestForwardIteratorNext(t *testing.T) {
+func TestRetryIteratorNext(t *testing.T) {
 	var ri repairIterator
 
 	modifiers := []func(){
@@ -54,9 +52,11 @@ func TestForwardIteratorNext(t *testing.T) {
 	}
 
 	for _, postFunc := range modifiers {
-		ri = &forwardIterator{
-			segments:          segments{{0, 1}, {1, 2}, {3, 4}},
-			progress:          &RunProgress{},
+		ri = &retryIterator{
+			segments: segments{{0, 1}, {1, 2}, {3, 4}},
+			progress: &RunProgress{
+				SegmentErrorPos: []int{1, 2},
+			},
 			segmentsPerRepair: 1,
 		}
 
