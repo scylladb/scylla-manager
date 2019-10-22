@@ -29,8 +29,8 @@ func remotePath(p string) string {
 func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	S3InitBucket(t, testBucket)
 
-	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	defer closeServer()
 
 	ctx := context.Background()
 
@@ -88,8 +88,8 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 	S3InitBucket(t, testBucket)
 
-	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	defer closeServer()
 
 	ctx := context.Background()
 

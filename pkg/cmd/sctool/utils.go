@@ -16,7 +16,7 @@ func render(w io.Writer, d mermaidclient.TableRenderer) error {
 	return d.Render(w)
 }
 
-func register(cmd *cobra.Command, parent *cobra.Command) {
+func register(cmd, parent *cobra.Command) {
 	// By default do not accept any arguments
 	if cmd.Args == nil {
 		cmd.Args = cobra.NoArgs
@@ -48,7 +48,7 @@ func readFile(filename string) ([]byte, error) {
 // as it's not a valid char in keyspace or table name
 func unescapeFilters(strs []string) []string {
 	for i := range strs {
-		strs[i] = strings.Replace(strs[i], "\\", "", -1)
+		strs[i] = strings.ReplaceAll(strs[i], "\\", "")
 	}
 	return strs
 }

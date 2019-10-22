@@ -46,7 +46,7 @@ func validateHostsBelongToCluster(dcMap map[string][]string, hosts ...string) er
 // If host is not empty the mapping contains only token ranges for that host.
 // If withHosts is not empty the mapping contains only token ranges that are
 // replicated by at least one of the hosts.
-func groupSegmentsByHost(dc string, host string, withHosts []string, tr TokenRangesKind, ring scyllaclient.Ring) map[string]segments {
+func groupSegmentsByHost(dc, host string, withHosts []string, tr TokenRangesKind, ring scyllaclient.Ring) map[string]segments {
 	var (
 		hostSegments  = make(map[string]segments)
 		replicaFilter = strset.New(withHosts...)

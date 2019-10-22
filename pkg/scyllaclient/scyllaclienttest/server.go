@@ -17,7 +17,7 @@ import (
 // TestHost should be used if a function in test requires host parameter.
 const TestHost = "127.0.0.1"
 
-func server(t *testing.T, h http.Handler) (host, port string, close func()) {
+func makeServer(t *testing.T, h http.Handler) (host, port string, closeServer func()) {
 	t.Helper()
 
 	server := httptest.NewServer(h)
@@ -26,12 +26,12 @@ func server(t *testing.T, h http.Handler) (host, port string, close func()) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	close = func() { server.Close() }
+	closeServer = func() { server.Close() }
 
 	return
 }
 
-func client(t *testing.T, host, port string) *scyllaclient.Client {
+func makeClient(t *testing.T, host, port string) *scyllaclient.Client {
 	t.Helper()
 
 	config := scyllaclient.DefaultConfig()

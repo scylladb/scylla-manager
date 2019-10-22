@@ -114,7 +114,7 @@ func (f *Filter) Add(keyspace string, tables []string) {
 }
 
 // Check returns true iff table matches filter.
-func (f *Filter) Check(keyspace string, table string) bool {
+func (f *Filter) Check(keyspace, table string) bool {
 	key := keyspace + "." + table
 	return len(f.inex.Filter([]string{key})) > 0
 }

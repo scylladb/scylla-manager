@@ -12,7 +12,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 )
 
-func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (*scyllaclient.Client, func()) {
+func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (client *scyllaclient.Client, closeServer func()) {
 	rc := rcserver.New()
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +31,7 @@ func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (*scyllaclient.Clien
 		}
 	})
 
-	host, port, close := server(t, h)
-	return client(t, host, port), close
+	host, port, closeServer := makeServer(t, h)
+	client = makeClient(t, host, port)
+	return
 }

@@ -175,7 +175,7 @@ func (p *progress) ByteProgress() (done, left int64) {
 	return done, p.Size - done
 }
 
-//AvgUploadBandwidth bandwidth calculated by dividing bytes uploaded by time duration of operation.
+// AvgUploadBandwidth bandwidth calculated by dividing bytes uploaded by time duration of operation.
 func (p *progress) AvgUploadBandwidth() float64 {
 	if p.StartedAt == nil {
 		return 0

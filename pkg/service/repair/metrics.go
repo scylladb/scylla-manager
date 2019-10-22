@@ -90,7 +90,8 @@ func updateFunc(ctx context.Context, run *Run, prog progressFetcher, logger log.
 		p := aggregateProgress(run, prog)
 
 		// Aggregated keyspace host progress
-		for _, unit := range p.Units {
+		for i := range p.Units {
+			unit := &p.Units[i]
 			for _, n := range unit.Nodes {
 				repairProgress.With(prometheus.Labels{
 					"cluster":  run.clusterName,
@@ -103,7 +104,8 @@ func updateFunc(ctx context.Context, run *Run, prog progressFetcher, logger log.
 		}
 
 		// Aggregated keyspace progress
-		for _, unit := range p.Units {
+		for i := range p.Units {
+			unit := &p.Units[i]
 			repairProgress.With(prometheus.Labels{
 				"cluster":  run.clusterName,
 				"task":     taskID,

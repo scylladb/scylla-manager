@@ -132,7 +132,8 @@ func aggregateRemoteManifests(manifests []remoteManifest) []ListItem {
 	}
 	kv := make(map[key][]value)
 
-	for _, m := range manifests {
+	for i := range manifests {
+		m := &manifests[i]
 		v, ok := kv[key{m.ClusterID, m.SnapshotTag}]
 		if ok {
 			ok = false

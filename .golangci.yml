@@ -5,7 +5,8 @@ run:
     - mermaidclient/internal
     - scyllaclient/internal
   skip-files:
-    - mock_.*\\.go
+    - mock_.*\.go$
+    - _string\.go$
   silent: true
 
 linters-settings:
@@ -13,6 +14,17 @@ linters-settings:
     check-blank: true
   gocognit:
     min-complexity: 50
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - commentedOutCode
+      - evalOrder
+      - hugeParam
+      - importShadow
+      - yodaStyleExpr
   lll:
     line-length: 180
 

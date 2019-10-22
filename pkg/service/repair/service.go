@@ -343,7 +343,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			return run.prevProg[i].Unit >= unit
 		})
 		end := sort.Search(n, func(i int) bool {
-			return run.prevProg[i].Unit >= unit+1
+			return run.prevProg[i].Unit > unit
 		})
 		for i := idx; i < end; i++ {
 			prog = append(prog, *run.prevProg[i])
@@ -355,8 +355,8 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 
 		// Check if hosts did not change
 		prevHosts := strset.New()
-		for _, p := range prog {
-			prevHosts.Add(p.Host)
+		for i := range prog {
+			prevHosts.Add(prog[i].Host)
 		}
 		hosts := strset.New()
 		for host := range hostSegments {
@@ -506,7 +506,7 @@ func (s *Service) resolveDC(ctx context.Context, client *scyllaclient.Client, u 
 	return dc, nil
 }
 
-func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Client, runDCs []string, ksDCs []string) (string, error) {
+func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Client, runDCs, ksDCs []string) (string, error) {
 	runSet := strset.Intersection(strset.New(runDCs...), strset.New(ksDCs...))
 	if runSet.IsEmpty() {
 		return "", errors.New("no matching DCs")

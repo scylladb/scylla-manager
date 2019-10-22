@@ -108,7 +108,7 @@ func uuidFromLocation(location string) (uuid.UUID, error) {
 }
 
 // FormatProgress creates complete vs. failed representation.
-func FormatProgress(complete float32, failed float32) string {
+func FormatProgress(complete, failed float32) string {
 	if failed == 0 {
 		return FormatPercent(complete)
 	}
@@ -168,7 +168,7 @@ func FormatTime(t strfmt.DateTime) string {
 
 // FormatDuration creates and formats the duration between
 // the supplied DateTime values.
-func FormatDuration(t0 strfmt.DateTime, t1 strfmt.DateTime) string {
+func FormatDuration(t0, t1 strfmt.DateTime) string {
 	if isZero(t0) && isZero(t1) {
 		return "0s"
 	}

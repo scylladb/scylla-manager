@@ -64,14 +64,14 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 	}
 	aliveFiles := strset.New()
 	staleFiles := strset.New()
-	for _, m := range manifests {
+	for i := range manifests {
 		var s *strset.Set
-		if m.TaskID == p.TaskID && idx.Has(m.SnapshotTag) {
+		if manifests[i].TaskID == p.TaskID && idx.Has(manifests[i].SnapshotTag) {
 			s = staleFiles
 		} else {
 			s = aliveFiles
 		}
-		s.Add(extractGroupingKeys(m)...)
+		s.Add(extractGroupingKeys(manifests[i])...)
 	}
 
 	// Remove alive files from stale files laving only the orphans

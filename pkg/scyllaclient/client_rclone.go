@@ -115,7 +115,7 @@ func rcloneDefaultGroup(jobID int64) string {
 // Remotes need to be registered with the server first.
 // Remote path format is "name:bucket/path".
 // Both dstRemotePath and srRemotePath must point to a file.
-func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) error {
+func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRemotePath string) error {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath,
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 // Both dstRemotePath and srRemotePath must point to a file.
-func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
+func (c *Client) RcloneCopyFile(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return 0, err
@@ -173,7 +173,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
-func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
+func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
 	p := operations.SyncCopyParams{
 		Context: httpmw.ForceHost(ctx, host),
 		Copydir: operations.SyncCopyBody{
@@ -192,7 +192,7 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, 
 // RcloneDeleteDir removes a directory or container and all of its contents
 // from the remote.
 // Remote path format is "name:bucket/path".
-func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath string) error {
+func (c *Client) RcloneDeleteDir(ctx context.Context, host, remotePath string) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath st
 
 // RcloneDeleteFile removes the single file pointed to by remotePath
 // Remote path format is "name:bucket/path".
-func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath string) error {
+func (c *Client) RcloneDeleteFile(ctx context.Context, host, remotePath string) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return err
@@ -230,7 +230,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath s
 
 // RcloneDiskUsage get disk space usage.
 // Remote path format is "name:bucket/path".
-func (c *Client) RcloneDiskUsage(ctx context.Context, host string, remotePath string) (*models.FileSystemDetails, error) {
+func (c *Client) RcloneDiskUsage(ctx context.Context, host, remotePath string) (*models.FileSystemDetails, error) {
 	p := operations.OperationsAboutParams{
 		Context: httpmw.ForceHost(ctx, host),
 		About: &models.RemotePath{
@@ -247,7 +247,7 @@ func (c *Client) RcloneDiskUsage(ctx context.Context, host string, remotePath st
 // RcloneCat returns a content of a remote path.
 // Only use that for small files, it loads the whole file to memory on a remote
 // node and only then returns it. This is caused by rclone design.
-func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) ([]byte, error) {
+func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte, error) {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return nil, err
@@ -308,15 +308,18 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 }
 
 // rcloneSplitRemotePath splits string path into file system and file path.
-func rcloneSplitRemotePath(remotePath string) (string, string, error) {
+func rcloneSplitRemotePath(remotePath string) (fs, path string, err error) {
 	parts := strings.Split(remotePath, ":")
 	if len(parts) != 2 {
-		return "", "", errors.New("remote path without file system name")
+		err = errors.New("remote path without file system name")
+		return
 	}
 	if parts[1] == "" {
-		return "", "", errors.New("file path empty")
+		err = errors.New("file path empty")
+		return
 	}
-	fs := fmt.Sprintf("%s:%s", parts[0], filepath.Dir(parts[1]))
-	path := filepath.Base(parts[1])
-	return fs, path, nil
+
+	fs = fmt.Sprintf("%s:%s", parts[0], filepath.Dir(parts[1]))
+	path = filepath.Base(parts[1])
+	return
 }

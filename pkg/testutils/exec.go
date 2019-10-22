@@ -25,7 +25,7 @@ const (
 
 // ExecOnHost executes the given command on the given host. It returns the
 // stdout and stderr of the remote command.
-func ExecOnHost(host string, cmd string) (string, string, error) {
+func ExecOnHost(host, cmd string) (stdout, stderr string, err error) {
 	client, err := ssh.Dial("tcp", net.JoinHostPort(host, "22"), sshAsRoot())
 	if err != nil {
 		return "", "", err
@@ -38,12 +38,14 @@ func ExecOnHost(host string, cmd string) (string, string, error) {
 	}
 	defer session.Close()
 
-	var stdout, stderr bytes.Buffer
-	session.Stdout = &stdout
-	session.Stderr = &stderr
+	var stdoutBuf, stderrBuf bytes.Buffer
+	session.Stdout = &stdoutBuf
+	session.Stderr = &stderrBuf
 
 	err = session.Run(cmd)
-	return stdout.String(), stderr.String(), err
+	stdout = stdoutBuf.String()
+	stderr = stderrBuf.String()
+	return
 }
 
 func sshAsRoot() *ssh.ClientConfig {

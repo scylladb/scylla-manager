@@ -16,8 +16,8 @@ import (
 func TestClientClusterName(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_cluster_name.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_cluster_name.json")
+	defer closeServer()
 
 	v, err := client.ClusterName(context.Background())
 	if err != nil {
@@ -44,8 +44,8 @@ func TestClientDatacenters(t *testing.T) {
 		return ""
 	}
 
-	client, cl := scyllaclienttest.NewFakeScyllaServerMatching(t, m)
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServerMatching(t, m)
+	defer closeServer()
 
 	dcs, err := client.Datacenters(context.Background())
 	if err != nil {
@@ -59,8 +59,8 @@ func TestClientDatacenters(t *testing.T) {
 func TestClientKeyspaces(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_keyspaces.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_keyspaces.json")
+	defer closeServer()
 
 	v, err := client.Keyspaces(context.Background())
 	if err != nil {
@@ -76,8 +76,8 @@ func TestClientKeyspaces(t *testing.T) {
 func TestClientTables(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_name.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_name.json")
+	defer closeServer()
 
 	v, err := client.Tables(context.Background(), "scylla_manager")
 	if err != nil {
@@ -93,8 +93,8 @@ func TestClientTables(t *testing.T) {
 func TestHosts(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/host_id_map.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/host_id_map.json")
+	defer closeServer()
 
 	v, err := client.Hosts(context.Background())
 	if err != nil {
@@ -108,8 +108,8 @@ func TestHosts(t *testing.T) {
 func TestHostIDs(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/host_id_map.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/host_id_map.json")
+	defer closeServer()
 
 	golden := map[string]string{
 		"192.168.100.12": "2938f381-882b-4da7-b94b-e78ad66a5ed4",
@@ -129,8 +129,8 @@ func TestHostIDs(t *testing.T) {
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/tokens_endpoint.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/tokens_endpoint.json")
+	defer closeServer()
 
 	v, err := client.Tokens(context.Background())
 	if err != nil {
@@ -144,8 +144,8 @@ func TestClientTokens(t *testing.T) {
 func TestClientPartitioner(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_partitioner_name.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_partitioner_name.json")
+	defer closeServer()
 
 	v, err := client.Partitioner(context.Background())
 	if err != nil {
@@ -159,8 +159,8 @@ func TestClientPartitioner(t *testing.T) {
 func TestClientShardCount(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_metrics/metrics")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_metrics/metrics")
+	defer closeServer()
 
 	v, err := client.ShardCount(context.Background(), scyllaclienttest.TestHost)
 	if err != nil {
@@ -174,8 +174,8 @@ func TestClientShardCount(t *testing.T) {
 func TestClientDescribeRing(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/describe_ring_scylla_manager.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/describe_ring_scylla_manager.json")
+	defer closeServer()
 
 	ring, err := client.DescribeRing(context.Background(), "scylla_manager")
 	if err != nil {
@@ -245,8 +245,8 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			client, cl := scyllaclienttest.NewFakeScyllaServer(t, test.File)
-			defer cl()
+			client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, test.File)
+			defer closeServer()
 
 			ring, err := client.DescribeRing(context.Background(), "scylla_manager")
 			if err != nil {
@@ -262,8 +262,8 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 func TestClientRepair(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_0.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_0.json")
+	defer closeServer()
 
 	v, err := client.Repair(context.Background(), scyllaclienttest.TestHost, &scyllaclient.RepairConfig{
 		Keyspace: "scylla_manager",
@@ -280,8 +280,8 @@ func TestClientRepair(t *testing.T) {
 func TestClientRepairStatus(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_1.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_1.json")
+	defer closeServer()
 
 	v, err := client.RepairStatus(context.Background(), scyllaclienttest.TestHost, "scylla_manager", 1)
 	if err != nil {
@@ -295,8 +295,8 @@ func TestClientRepairStatus(t *testing.T) {
 func TestClientRepairStatusForWrongID(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_2.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_2.json")
+	defer closeServer()
 
 	_, err := client.RepairStatus(context.Background(), scyllaclienttest.TestHost, "scylla_manager", 5)
 	if err == nil {
@@ -307,8 +307,8 @@ func TestClientRepairStatusForWrongID(t *testing.T) {
 func TestClientActiveRepairs(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_active_repair.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_active_repair.json")
+	defer closeServer()
 
 	v, err := client.ActiveRepairs(context.Background(), []string{scyllaclienttest.TestHost})
 	if err != nil {
@@ -322,8 +322,8 @@ func TestClientActiveRepairs(t *testing.T) {
 func TestClientKillAllRepairs(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_force_terminate_repair.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_force_terminate_repair.json")
+	defer closeServer()
 
 	err := client.KillAllRepairs(context.Background(), scyllaclienttest.TestHost)
 	if err != nil {
@@ -334,8 +334,8 @@ func TestClientKillAllRepairs(t *testing.T) {
 func TestClientSnapshotDetails(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_snapshots.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_snapshots.json")
+	defer closeServer()
 
 	golden := []scyllaclient.Unit{
 		{Keyspace: "system_auth", Tables: []string{"role_members", "roles"}},
@@ -361,8 +361,8 @@ func TestClientSnapshotDetails(t *testing.T) {
 func TestClientTableDiskSize(t *testing.T) {
 	t.Parallel()
 
-	client, cl := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_total_disk_space_used.json")
-	defer cl()
+	client, closeServer :=scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_total_disk_space_used.json")
+	defer closeServer()
 
 	size, err := client.TableDiskSize(context.Background(), scyllaclienttest.TestHost, "system_schema", "tables")
 	if err != nil {
