@@ -6,23 +6,26 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"path"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
 	"github.com/scylladb/mermaid/uuid"
 )
 
-func TestWalkerSimple(t *testing.T) {
+func TestWalkerDirsAtLevelN(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
 		Name  string
 		Level int
-		Files []string
+		Dirs  []string
 	}{
 		{
 			Name:  "level 0",
@@ -31,12 +34,12 @@ func TestWalkerSimple(t *testing.T) {
 		{
 			Name:  "level 1",
 			Level: 1,
-			Files: []string{"file.txt"},
+			Dirs:  []string{"a", "c"},
 		},
 		{
-			Name:  "level 3",
-			Level: 3,
-			Files: []string{"a/b/b.txt", "c/d/d.txt"},
+			Name:  "level 2",
+			Level: 2,
+			Dirs:  []string{"a/b", "c/d"},
 		},
 	}
 
@@ -44,6 +47,7 @@ func TestWalkerSimple(t *testing.T) {
 	defer cl()
 
 	w := walker{
+		Host:     scyllaclienttest.TestHost,
 		Location: Location{Provider: "walkertest"},
 		Client:   client,
 	}
@@ -55,25 +59,26 @@ func TestWalkerSimple(t *testing.T) {
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
-				files, err := w.FilesAtLevel(context.Background(), scyllaclienttest.TestHost, test.Level)
+				files, err := w.DirsAtLevelN(context.Background(), "", test.Level)
 				if err != nil {
-					t.Fatal("FilesAtLevel() error", err)
+					t.Fatal("DirsAtLevelN() error", err)
 				}
-				if diff := cmp.Diff(files, test.Files); diff != "" {
-					t.Fatal("FilesAtLevel() unexpected files got", files, "expected", test.Files)
+				if diff := cmp.Diff(files, test.Dirs); diff != "" {
+					t.Fatalf("DirsAtLevelN() = %v, expected %v", files, test.Dirs)
 				}
 			})
 		}
 	})
 }
 
-func TestWalkerPrune(t *testing.T) {
+func TestWalkerDirsAtLevelNPrune(t *testing.T) {
 	t.Parallel()
 
 	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
 	defer cl()
 
 	w := walker{
+		Host:     scyllaclienttest.TestHost,
 		Location: Location{Provider: "walkertest"},
 		Client:   client,
 		Prune: func(dir string) bool {
@@ -82,16 +87,16 @@ func TestWalkerPrune(t *testing.T) {
 	}
 
 	var (
-		level  = 3
-		golden = []string{"a/b/b.txt"}
+		level  = 2
+		golden = []string{"a/b"}
 	)
 
-	files, err := w.FilesAtLevel(context.Background(), scyllaclienttest.TestHost, level)
+	files, err := w.DirsAtLevelN(context.Background(), "", level)
 	if err != nil {
-		t.Fatal("FilesAtLevel() error", err)
+		t.Fatal("DirsAtLevelN() error", err)
 	}
 	if diff := cmp.Diff(files, golden); diff != "" {
-		t.Fatal("FilesAtLevel() unexpected files got", files, "expected", golden)
+		t.Fatalf("DirsAtLevelN() = %v, expected %v", files, golden)
 	}
 }
 
@@ -176,19 +181,18 @@ func TestListManifests(t *testing.T) {
 
 	const goldenFile = "testdata/walker/list/golden.json"
 
-	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/metrics", "testdata/walker/scylla_metrics/metrics"))
 	defer cl()
 
-	manifests, err := listManifests(context.Background(),
-		Location{Provider: "listtest"},
-		client,
-		scyllaclienttest.TestHost,
-		ListFilter{},
-		true,
-	)
+	manifests, err := listManifests(context.Background(), client, scyllaclienttest.TestHost, Location{Provider: "listtest"}, ListFilter{}, log.NewDevelopment())
 	if err != nil {
 		t.Fatal("listManifests() error", err)
 	}
+
+	// Sort for repeatable runs
+	sort.Slice(manifests, func(i, j int) bool {
+		return path.Join(manifests[i].CleanPath...) < path.Join(manifests[j].CleanPath...)
+	})
 
 	if UpdateGoldenFiles() {
 		b, err := json.Marshal(manifests)
@@ -209,7 +213,7 @@ func TestListManifests(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(manifests, golden, remoteManifestCmpOpts); diff != "" {
-		t.Fatal("listManifests() unexpected files got", manifests, "expected", golden)
+	if diff := cmp.Diff(manifests, golden, UUIDComparer()); diff != "" {
+		t.Fatalf("listManifests() = %v, diff %s", manifests, diff)
 	}
 }

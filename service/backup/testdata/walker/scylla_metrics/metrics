@@ -1,0 +1,1580 @@
+# HELP scylla_batchlog_manager_total_write_replay_attempts Counts write operations issued in a batchlog replay flow. The high value of this metric indicates that we have a long batch replay list.
+# TYPE scylla_batchlog_manager_total_write_replay_attempts counter
+scylla_batchlog_manager_total_write_replay_attempts{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_batchlog_manager_total_write_replay_attempts{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_batchlog_manager_total_write_replay_attempts{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_batchlog_manager_total_write_replay_attempts{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_active_reads number of currently active reads
+# TYPE scylla_cache_active_reads gauge
+scylla_cache_active_reads{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_cache_active_reads{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_cache_active_reads{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_cache_active_reads{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_cache_bytes_total total size of memory for the cache
+# TYPE scylla_cache_bytes_total gauge
+scylla_cache_bytes_total{instance="aacdf42015e4",shard="0",type="gauge"} 262144.000000
+scylla_cache_bytes_total{instance="aacdf42015e4",shard="1",type="gauge"} 262144.000000
+scylla_cache_bytes_total{instance="aacdf42015e4",shard="2",type="gauge"} 262144.000000
+scylla_cache_bytes_total{instance="aacdf42015e4",shard="3",type="gauge"} 262144.000000
+# HELP scylla_cache_bytes_used current bytes used by the cache out of the total size of memory
+# TYPE scylla_cache_bytes_used gauge
+scylla_cache_bytes_used{instance="aacdf42015e4",shard="0",type="gauge"} 3944.000000
+scylla_cache_bytes_used{instance="aacdf42015e4",shard="1",type="gauge"} 15633.000000
+scylla_cache_bytes_used{instance="aacdf42015e4",shard="2",type="gauge"} 104173.000000
+scylla_cache_bytes_used{instance="aacdf42015e4",shard="3",type="gauge"} 91040.000000
+# HELP scylla_cache_concurrent_misses_same_key total number of operation with misses same key
+# TYPE scylla_cache_concurrent_misses_same_key counter
+scylla_cache_concurrent_misses_same_key{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_concurrent_misses_same_key{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_concurrent_misses_same_key{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_concurrent_misses_same_key{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_mispopulations number of entries not inserted by reads
+# TYPE scylla_cache_mispopulations counter
+scylla_cache_mispopulations{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_mispopulations{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_mispopulations{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_mispopulations{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_partition_evictions total number of evicted partitions
+# TYPE scylla_cache_partition_evictions counter
+scylla_cache_partition_evictions{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_partition_evictions{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_partition_evictions{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_partition_evictions{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_partition_hits number of partitions needed by reads and found in cache
+# TYPE scylla_cache_partition_hits counter
+scylla_cache_partition_hits{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_partition_hits{instance="aacdf42015e4",shard="1",type="derive"} 26
+scylla_cache_partition_hits{instance="aacdf42015e4",shard="2",type="derive"} 1127
+scylla_cache_partition_hits{instance="aacdf42015e4",shard="3",type="derive"} 316
+# HELP scylla_cache_partition_insertions total number of partitions added to cache
+# TYPE scylla_cache_partition_insertions counter
+scylla_cache_partition_insertions{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_partition_insertions{instance="aacdf42015e4",shard="1",type="derive"} 2
+scylla_cache_partition_insertions{instance="aacdf42015e4",shard="2",type="derive"} 15
+scylla_cache_partition_insertions{instance="aacdf42015e4",shard="3",type="derive"} 15
+# HELP scylla_cache_partition_merges total number of partitions merged
+# TYPE scylla_cache_partition_merges counter
+scylla_cache_partition_merges{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_partition_merges{instance="aacdf42015e4",shard="1",type="derive"} 3
+scylla_cache_partition_merges{instance="aacdf42015e4",shard="2",type="derive"} 69
+scylla_cache_partition_merges{instance="aacdf42015e4",shard="3",type="derive"} 3
+# HELP scylla_cache_partition_misses number of partitions needed by reads and missing in cache
+# TYPE scylla_cache_partition_misses counter
+scylla_cache_partition_misses{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_partition_misses{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_partition_misses{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_partition_misses{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_partition_removals total number of invalidated partitions
+# TYPE scylla_cache_partition_removals counter
+scylla_cache_partition_removals{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_partition_removals{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_partition_removals{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_partition_removals{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_partitions total number of cached partitions
+# TYPE scylla_cache_partitions gauge
+scylla_cache_partitions{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_cache_partitions{instance="aacdf42015e4",shard="1",type="gauge"} 2.000000
+scylla_cache_partitions{instance="aacdf42015e4",shard="2",type="gauge"} 15.000000
+scylla_cache_partitions{instance="aacdf42015e4",shard="3",type="gauge"} 15.000000
+# HELP scylla_cache_pinned_dirty_memory_overload amount of pinned bytes that we tried to unpin over the limit. This should sit constantly at 0, and any number different than 0 is indicative of a bug
+# TYPE scylla_cache_pinned_dirty_memory_overload counter
+scylla_cache_pinned_dirty_memory_overload{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_pinned_dirty_memory_overload{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_pinned_dirty_memory_overload{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_pinned_dirty_memory_overload{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_reads number of started reads
+# TYPE scylla_cache_reads counter
+scylla_cache_reads{instance="aacdf42015e4",shard="0",type="derive"} 10699
+scylla_cache_reads{instance="aacdf42015e4",shard="1",type="derive"} 10717
+scylla_cache_reads{instance="aacdf42015e4",shard="2",type="derive"} 11298
+scylla_cache_reads{instance="aacdf42015e4",shard="3",type="derive"} 10733
+# HELP scylla_cache_reads_with_misses number of reads which had to read from sstables
+# TYPE scylla_cache_reads_with_misses counter
+scylla_cache_reads_with_misses{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_reads_with_misses{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_reads_with_misses{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_reads_with_misses{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_row_hits total number of rows needed by reads and found in cache
+# TYPE scylla_cache_row_hits counter
+scylla_cache_row_hits{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_row_hits{instance="aacdf42015e4",shard="1",type="derive"} 15
+scylla_cache_row_hits{instance="aacdf42015e4",shard="2",type="derive"} 7364
+scylla_cache_row_hits{instance="aacdf42015e4",shard="3",type="derive"} 4429
+# HELP scylla_cache_row_insertions total number of rows added to cache
+# TYPE scylla_cache_row_insertions counter
+scylla_cache_row_insertions{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_row_insertions{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_row_insertions{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_row_insertions{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_row_misses total number of rows needed by reads and missing in cache
+# TYPE scylla_cache_row_misses counter
+scylla_cache_row_misses{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_row_misses{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_row_misses{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_row_misses{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_sstable_partition_skips number of times sstable reader was fast forwarded across partitions
+# TYPE scylla_cache_sstable_partition_skips counter
+scylla_cache_sstable_partition_skips{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_sstable_partition_skips{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_sstable_partition_skips{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_sstable_partition_skips{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_sstable_reader_recreations number of times sstable reader was recreated due to memtable flush
+# TYPE scylla_cache_sstable_reader_recreations counter
+scylla_cache_sstable_reader_recreations{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_sstable_reader_recreations{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_sstable_reader_recreations{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_sstable_reader_recreations{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cache_sstable_row_skips number of times sstable reader was fast forwarded within a partition
+# TYPE scylla_cache_sstable_row_skips counter
+scylla_cache_sstable_row_skips{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cache_sstable_row_skips{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cache_sstable_row_skips{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cache_sstable_row_skips{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_commitlog_alloc Counts a number of times a new mutation has been added to a segment. Divide bytes_written by this value to get the average number of bytes per mutation written to the disk.
+# TYPE scylla_commitlog_alloc counter
+scylla_commitlog_alloc{instance="aacdf42015e4",shard="0",type="derive"} 4
+scylla_commitlog_alloc{instance="aacdf42015e4",shard="1",type="derive"} 33
+scylla_commitlog_alloc{instance="aacdf42015e4",shard="2",type="derive"} 186
+scylla_commitlog_alloc{instance="aacdf42015e4",shard="3",type="derive"} 112
+# HELP scylla_commitlog_allocating_segments Holds the number of not closed segments that still have some free space. This value should not get too high.
+# TYPE scylla_commitlog_allocating_segments gauge
+scylla_commitlog_allocating_segments{instance="aacdf42015e4",shard="0",type="gauge"} 1.000000
+scylla_commitlog_allocating_segments{instance="aacdf42015e4",shard="1",type="gauge"} 1.000000
+scylla_commitlog_allocating_segments{instance="aacdf42015e4",shard="2",type="gauge"} 1.000000
+scylla_commitlog_allocating_segments{instance="aacdf42015e4",shard="3",type="gauge"} 1.000000
+# HELP scylla_commitlog_bytes_written Counts a number of bytes written to the disk. Divide this value by "alloc" to get the average number of bytes per mutation written to the disk.
+# TYPE scylla_commitlog_bytes_written counter
+scylla_commitlog_bytes_written{instance="aacdf42015e4",shard="0",type="derive"} 8192
+scylla_commitlog_bytes_written{instance="aacdf42015e4",shard="1",type="derive"} 36864
+scylla_commitlog_bytes_written{instance="aacdf42015e4",shard="2",type="derive"} 229376
+scylla_commitlog_bytes_written{instance="aacdf42015e4",shard="3",type="derive"} 122880
+# HELP scylla_commitlog_cycle Counts a number of commitlog write cycles - when the data is written from the internal memory buffer to the disk.
+# TYPE scylla_commitlog_cycle counter
+scylla_commitlog_cycle{instance="aacdf42015e4",shard="0",type="derive"} 2
+scylla_commitlog_cycle{instance="aacdf42015e4",shard="1",type="derive"} 3
+scylla_commitlog_cycle{instance="aacdf42015e4",shard="2",type="derive"} 5
+scylla_commitlog_cycle{instance="aacdf42015e4",shard="3",type="derive"} 5
+# HELP scylla_commitlog_disk_total_bytes Holds a size of disk space in bytes used for data so far. A too high value indicates that we have some bottleneck in the writing to sstables path.
+# TYPE scylla_commitlog_disk_total_bytes gauge
+scylla_commitlog_disk_total_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 262144.000000
+scylla_commitlog_disk_total_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 393216.000000
+scylla_commitlog_disk_total_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 655360.000000
+scylla_commitlog_disk_total_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 655360.000000
+# HELP scylla_commitlog_flush Counts a number of times the flush() method was called for a file.
+# TYPE scylla_commitlog_flush counter
+scylla_commitlog_flush{instance="aacdf42015e4",shard="0",type="derive"} 2
+scylla_commitlog_flush{instance="aacdf42015e4",shard="1",type="derive"} 3
+scylla_commitlog_flush{instance="aacdf42015e4",shard="2",type="derive"} 4
+scylla_commitlog_flush{instance="aacdf42015e4",shard="3",type="derive"} 5
+# HELP scylla_commitlog_flush_limit_exceeded Counts a number of times a flush limit was exceeded. A non-zero value indicates that there are too many pending flush operations (see pending_flushes) and some of them will be blocked till the total amount of pending flush operations drops below 5.
+# TYPE scylla_commitlog_flush_limit_exceeded counter
+scylla_commitlog_flush_limit_exceeded{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_commitlog_flush_limit_exceeded{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_commitlog_flush_limit_exceeded{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_commitlog_flush_limit_exceeded{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_commitlog_memory_buffer_bytes Holds the total number of bytes in internal memory buffers.
+# TYPE scylla_commitlog_memory_buffer_bytes gauge
+scylla_commitlog_memory_buffer_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 131072.000000
+scylla_commitlog_memory_buffer_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 131072.000000
+scylla_commitlog_memory_buffer_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 262144.000000
+scylla_commitlog_memory_buffer_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 131072.000000
+# HELP scylla_commitlog_pending_allocations Holds a number of currently pending allocations. A non-zero value indicates that we have a bottleneck in the disk write flow.
+# TYPE scylla_commitlog_pending_allocations gauge
+scylla_commitlog_pending_allocations{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_commitlog_pending_allocations{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_commitlog_pending_allocations{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_commitlog_pending_allocations{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_commitlog_pending_flushes Holds a number of currently pending flushes. See the related flush_limit_exceeded metric.
+# TYPE scylla_commitlog_pending_flushes gauge
+scylla_commitlog_pending_flushes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_commitlog_pending_flushes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_commitlog_pending_flushes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_commitlog_pending_flushes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_commitlog_requests_blocked_memory Counts a number of requests blocked due to memory pressure. A non-zero value indicates that the commitlog memory quota is not enough to serve the required amount of requests.
+# TYPE scylla_commitlog_requests_blocked_memory counter
+scylla_commitlog_requests_blocked_memory{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_commitlog_requests_blocked_memory{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_commitlog_requests_blocked_memory{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_commitlog_requests_blocked_memory{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_commitlog_segments Holds the current number of segments.
+# TYPE scylla_commitlog_segments gauge
+scylla_commitlog_segments{instance="aacdf42015e4",shard="0",type="gauge"} 1.000000
+scylla_commitlog_segments{instance="aacdf42015e4",shard="1",type="gauge"} 1.000000
+scylla_commitlog_segments{instance="aacdf42015e4",shard="2",type="gauge"} 1.000000
+scylla_commitlog_segments{instance="aacdf42015e4",shard="3",type="gauge"} 1.000000
+# HELP scylla_commitlog_slack Counts a number of unused bytes written to the disk due to disk segment alignment.
+# TYPE scylla_commitlog_slack counter
+scylla_commitlog_slack{instance="aacdf42015e4",shard="0",type="derive"} 4840
+scylla_commitlog_slack{instance="aacdf42015e4",shard="1",type="derive"} 7346
+scylla_commitlog_slack{instance="aacdf42015e4",shard="2",type="derive"} 7584
+scylla_commitlog_slack{instance="aacdf42015e4",shard="3",type="derive"} 11487
+# HELP scylla_commitlog_unused_segments Holds the current number of unused segments. A non-zero value indicates that the disk write path became temporary slow.
+# TYPE scylla_commitlog_unused_segments gauge
+scylla_commitlog_unused_segments{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_commitlog_unused_segments{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_commitlog_unused_segments{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_commitlog_unused_segments{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_compaction_manager_compactions Holds the number of currently active compactions.
+# TYPE scylla_compaction_manager_compactions gauge
+scylla_compaction_manager_compactions{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_compaction_manager_compactions{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_compaction_manager_compactions{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_compaction_manager_compactions{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_cql_batches Counts a total number of CQL BATCH requests.
+# TYPE scylla_cql_batches counter
+scylla_cql_batches{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cql_batches{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_batches{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_batches{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cql_batches_pure_logged Counts a total number of LOGGED batches that were executed as LOGGED batches.
+# TYPE scylla_cql_batches_pure_logged counter
+scylla_cql_batches_pure_logged{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cql_batches_pure_logged{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_batches_pure_logged{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_batches_pure_logged{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cql_batches_pure_unlogged Counts a total number of UNLOGGED batches that were executed as UNLOGGED batches.
+# TYPE scylla_cql_batches_pure_unlogged counter
+scylla_cql_batches_pure_unlogged{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cql_batches_pure_unlogged{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_batches_pure_unlogged{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_batches_pure_unlogged{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cql_batches_unlogged_from_logged Counts a total number of LOGGED batches that were executed as UNLOGGED batches.
+# TYPE scylla_cql_batches_unlogged_from_logged counter
+scylla_cql_batches_unlogged_from_logged{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cql_batches_unlogged_from_logged{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_batches_unlogged_from_logged{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_batches_unlogged_from_logged{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cql_deletes Counts a total number of CQL DELETE requests.
+# TYPE scylla_cql_deletes counter
+scylla_cql_deletes{instance="aacdf42015e4",shard="0",type="derive"} 23
+scylla_cql_deletes{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_deletes{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_deletes{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cql_inserts Counts a total number of CQL INSERT requests.
+# TYPE scylla_cql_inserts counter
+scylla_cql_inserts{instance="aacdf42015e4",shard="0",type="derive"} 87
+scylla_cql_inserts{instance="aacdf42015e4",shard="1",type="derive"} 7
+scylla_cql_inserts{instance="aacdf42015e4",shard="2",type="derive"} 20
+scylla_cql_inserts{instance="aacdf42015e4",shard="3",type="derive"} 1
+# HELP scylla_cql_prepared_cache_evictions Counts a number of prepared statements cache entries evictions.
+# TYPE scylla_cql_prepared_cache_evictions counter
+scylla_cql_prepared_cache_evictions{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cql_prepared_cache_evictions{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_prepared_cache_evictions{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_prepared_cache_evictions{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cql_prepared_cache_memory_footprint Size (in bytes) of the prepared statements cache.
+# TYPE scylla_cql_prepared_cache_memory_footprint gauge
+scylla_cql_prepared_cache_memory_footprint{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_cql_prepared_cache_memory_footprint{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_cql_prepared_cache_memory_footprint{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_cql_prepared_cache_memory_footprint{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_cql_prepared_cache_size A number of entries in the prepared statements cache.
+# TYPE scylla_cql_prepared_cache_size gauge
+scylla_cql_prepared_cache_size{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_cql_prepared_cache_size{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_cql_prepared_cache_size{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_cql_prepared_cache_size{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_cql_reads Counts a total number of CQL read requests.
+# TYPE scylla_cql_reads counter
+scylla_cql_reads{instance="aacdf42015e4",shard="0",type="derive"} 99
+scylla_cql_reads{instance="aacdf42015e4",shard="1",type="derive"} 89
+scylla_cql_reads{instance="aacdf42015e4",shard="2",type="derive"} 66
+scylla_cql_reads{instance="aacdf42015e4",shard="3",type="derive"} 66
+# HELP scylla_cql_statements_in_batches Counts a total number of sub-statements in CQL BATCH requests.
+# TYPE scylla_cql_statements_in_batches counter
+scylla_cql_statements_in_batches{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cql_statements_in_batches{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_statements_in_batches{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_statements_in_batches{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_cql_updates Counts a total number of CQL UPDATE requests.
+# TYPE scylla_cql_updates counter
+scylla_cql_updates{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_cql_updates{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_cql_updates{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_cql_updates{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_active_reads Holds the number of currently active read operations.
+# TYPE scylla_database_active_reads gauge
+scylla_database_active_reads{instance="aacdf42015e4",class="streaming",shard="0",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="system",shard="0",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="user",shard="0",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="streaming",shard="1",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="system",shard="1",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="user",shard="1",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="streaming",shard="2",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="system",shard="2",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="user",shard="2",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="streaming",shard="3",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="system",shard="3",type="gauge"} 0.000000
+scylla_database_active_reads{instance="aacdf42015e4",class="user",shard="3",type="gauge"} 0.000000
+# HELP scylla_database_active_reads_memory_consumption Holds the amount of memory consumed by currently active read operations. If this value gets close to 155692564 we are likely to start dropping new read requests. In that case sstable_read_queue_overloads is going to get a non-zero value.
+# TYPE scylla_database_active_reads_memory_consumption gauge
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="streaming",shard="0",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="system",shard="0",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="user",shard="0",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="streaming",shard="1",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="system",shard="1",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="user",shard="1",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="streaming",shard="2",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="system",shard="2",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="user",shard="2",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="streaming",shard="3",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="system",shard="3",type="gauge"} 0.000000
+scylla_database_active_reads_memory_consumption{instance="aacdf42015e4",class="user",shard="3",type="gauge"} 0.000000
+# HELP scylla_database_clustering_filter_count Counts bloom filter invocations.
+# TYPE scylla_database_clustering_filter_count counter
+scylla_database_clustering_filter_count{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_clustering_filter_count{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_clustering_filter_count{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_clustering_filter_count{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_clustering_filter_fast_path_count Counts number of times bloom filtering short cut to include all sstables when only one full range was specified.
+# TYPE scylla_database_clustering_filter_fast_path_count counter
+scylla_database_clustering_filter_fast_path_count{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_clustering_filter_fast_path_count{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_clustering_filter_fast_path_count{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_clustering_filter_fast_path_count{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_clustering_filter_sstables_checked Counts sstables checked after applying the bloom filter. High value indicates that bloom filter is not very efficient.
+# TYPE scylla_database_clustering_filter_sstables_checked counter
+scylla_database_clustering_filter_sstables_checked{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_clustering_filter_sstables_checked{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_clustering_filter_sstables_checked{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_clustering_filter_sstables_checked{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_clustering_filter_surviving_sstables Counts sstables that survived the clustering key filtering. High value indicates that bloom filter is not very efficient and still have to access a lot of sstables to get data.
+# TYPE scylla_database_clustering_filter_surviving_sstables counter
+scylla_database_clustering_filter_surviving_sstables{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_clustering_filter_surviving_sstables{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_clustering_filter_surviving_sstables{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_clustering_filter_surviving_sstables{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_counter_cell_lock_acquisition The number of acquired counter cell locks.
+# TYPE scylla_database_counter_cell_lock_acquisition counter
+scylla_database_counter_cell_lock_acquisition{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_database_counter_cell_lock_acquisition{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_database_counter_cell_lock_acquisition{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_database_counter_cell_lock_acquisition{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_database_counter_cell_lock_pending The number of counter updates waiting for a lock.
+# TYPE scylla_database_counter_cell_lock_pending gauge
+scylla_database_counter_cell_lock_pending{instance="aacdf42015e4",shard="0",type="queue_length"} 0.000000
+scylla_database_counter_cell_lock_pending{instance="aacdf42015e4",shard="1",type="queue_length"} 0.000000
+scylla_database_counter_cell_lock_pending{instance="aacdf42015e4",shard="2",type="queue_length"} 0.000000
+scylla_database_counter_cell_lock_pending{instance="aacdf42015e4",shard="3",type="queue_length"} 0.000000
+# HELP scylla_database_cpu_flush_quota The current quota for memtable CPU scheduling group
+# TYPE scylla_database_cpu_flush_quota gauge
+scylla_database_cpu_flush_quota{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_database_cpu_flush_quota{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_database_cpu_flush_quota{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_database_cpu_flush_quota{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_database_queued_reads Holds the number of currently queued read operations.
+# TYPE scylla_database_queued_reads gauge
+scylla_database_queued_reads{instance="aacdf42015e4",class="streaming",shard="0",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="system",shard="0",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="user",shard="0",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="streaming",shard="1",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="system",shard="1",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="user",shard="1",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="streaming",shard="2",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="system",shard="2",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="user",shard="2",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="streaming",shard="3",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="system",shard="3",type="gauge"} 0.000000
+scylla_database_queued_reads{instance="aacdf42015e4",class="user",shard="3",type="gauge"} 0.000000
+# HELP scylla_database_requests_blocked_memory Holds the current number of requests blocked due to reaching the memory quota (1751541350B). Non-zero value indicates that our bottleneck is memory and more specifically - the memory quota allocated for the "database" component.
+# TYPE scylla_database_requests_blocked_memory counter
+scylla_database_requests_blocked_memory{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_requests_blocked_memory{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_requests_blocked_memory{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_requests_blocked_memory{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_requests_blocked_memory_current Holds the current number of requests blocked due to reaching the memory quota (1751541350B). Non-zero value indicates that our bottleneck is memory and more specifically - the memory quota allocated for the "database" component.
+# TYPE scylla_database_requests_blocked_memory_current gauge
+scylla_database_requests_blocked_memory_current{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_database_requests_blocked_memory_current{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_database_requests_blocked_memory_current{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_database_requests_blocked_memory_current{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_database_short_data_queries The rate of data queries (data or digest reads) that returned less rows than requested due to result size limiting.
+# TYPE scylla_database_short_data_queries counter
+scylla_database_short_data_queries{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_short_data_queries{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_short_data_queries{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_short_data_queries{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_short_mutation_queries The rate of mutation queries that returned less rows than requested due to result size limiting.
+# TYPE scylla_database_short_mutation_queries counter
+scylla_database_short_mutation_queries{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_short_mutation_queries{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_short_mutation_queries{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_short_mutation_queries{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_sstable_read_queue_overloads Counts the number of times the sstable read queue was overloaded. A non-zero value indicates that we have to drop read requests because they arrive faster than we can serve them.
+# TYPE scylla_database_sstable_read_queue_overloads counter
+scylla_database_sstable_read_queue_overloads{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_sstable_read_queue_overloads{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_sstable_read_queue_overloads{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_sstable_read_queue_overloads{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_total_reads Counts the total number of successful reads on this shard.
+# TYPE scylla_database_total_reads counter
+scylla_database_total_reads{instance="aacdf42015e4",shard="0",type="derive"} 10699
+scylla_database_total_reads{instance="aacdf42015e4",shard="1",type="derive"} 10717
+scylla_database_total_reads{instance="aacdf42015e4",shard="2",type="derive"} 11298
+scylla_database_total_reads{instance="aacdf42015e4",shard="3",type="derive"} 10733
+# HELP scylla_database_total_reads_failed Counts the total number of failed read operations. Add the total_reads to this value to get the total amount of reads issued on this shard.
+# TYPE scylla_database_total_reads_failed counter
+scylla_database_total_reads_failed{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_total_reads_failed{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_total_reads_failed{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_total_reads_failed{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_total_result_bytes Holds the current amount of memory used for results.
+# TYPE scylla_database_total_result_bytes gauge
+scylla_database_total_result_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_database_total_result_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_database_total_result_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_database_total_result_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_database_total_writes Counts the total number of successful write operations performed by this shard.
+# TYPE scylla_database_total_writes counter
+scylla_database_total_writes{instance="aacdf42015e4",shard="0",type="derive"} 4
+scylla_database_total_writes{instance="aacdf42015e4",shard="1",type="derive"} 33
+scylla_database_total_writes{instance="aacdf42015e4",shard="2",type="derive"} 186
+scylla_database_total_writes{instance="aacdf42015e4",shard="3",type="derive"} 112
+# HELP scylla_database_total_writes_failed Counts the total number of failed write operations. A sum of this value plus total_writes represents a total amount of writes attempted on this shard.
+# TYPE scylla_database_total_writes_failed counter
+scylla_database_total_writes_failed{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_total_writes_failed{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_total_writes_failed{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_total_writes_failed{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_database_total_writes_timedout Counts write operations failed due to a timeout. A positive value is a sign of storage being overloaded.
+# TYPE scylla_database_total_writes_timedout counter
+scylla_database_total_writes_timedout{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_database_total_writes_timedout{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_database_total_writes_timedout{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_database_total_writes_timedout{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_execution_stages_function_calls_enqueued Counts function calls added to execution stages queues
+# TYPE scylla_execution_stages_function_calls_enqueued counter
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="cql3_select",shard="0",type="derive"} 21
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="data_query",shard="0",type="derive"} 0
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="db_apply",shard="0",type="derive"} 4
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="mutation_query",shard="0",type="derive"} 10699
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="transport",shard="0",type="derive"} 24
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="cql3_select",shard="1",type="derive"} 23
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="data_query",shard="1",type="derive"} 18
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="db_apply",shard="1",type="derive"} 33
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="mutation_query",shard="1",type="derive"} 10699
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="transport",shard="1",type="derive"} 27
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="data_query",shard="2",type="derive"} 120
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="db_apply",shard="2",type="derive"} 186
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="mutation_query",shard="2",type="derive"} 11178
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="data_query",shard="3",type="derive"} 28
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="db_apply",shard="3",type="derive"} 112
+scylla_execution_stages_function_calls_enqueued{instance="aacdf42015e4",execution_stage="mutation_query",shard="3",type="derive"} 10705
+# HELP scylla_execution_stages_function_calls_executed Counts function calls executed by execution stages
+# TYPE scylla_execution_stages_function_calls_executed counter
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="cql3_select",shard="0",type="derive"} 21
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="data_query",shard="0",type="derive"} 0
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="db_apply",shard="0",type="derive"} 4
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="mutation_query",shard="0",type="derive"} 10699
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="transport",shard="0",type="derive"} 24
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="cql3_select",shard="1",type="derive"} 23
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="data_query",shard="1",type="derive"} 18
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="db_apply",shard="1",type="derive"} 33
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="mutation_query",shard="1",type="derive"} 10699
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="transport",shard="1",type="derive"} 27
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="data_query",shard="2",type="derive"} 120
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="db_apply",shard="2",type="derive"} 186
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="mutation_query",shard="2",type="derive"} 11178
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="data_query",shard="3",type="derive"} 28
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="db_apply",shard="3",type="derive"} 112
+scylla_execution_stages_function_calls_executed{instance="aacdf42015e4",execution_stage="mutation_query",shard="3",type="derive"} 10705
+# HELP scylla_execution_stages_tasks_preempted Counts tasks which were preempted before execution all queued operations
+# TYPE scylla_execution_stages_tasks_preempted counter
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="cql3_select",shard="0",type="derive"} 1
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="data_query",shard="0",type="derive"} 0
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="db_apply",shard="0",type="derive"} 0
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="mutation_query",shard="0",type="derive"} 432
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="transport",shard="0",type="derive"} 4
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="cql3_select",shard="1",type="derive"} 3
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="data_query",shard="1",type="derive"} 5
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="db_apply",shard="1",type="derive"} 3
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="mutation_query",shard="1",type="derive"} 135
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="transport",shard="1",type="derive"} 3
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="data_query",shard="2",type="derive"} 2
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="db_apply",shard="2",type="derive"} 3
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="mutation_query",shard="2",type="derive"} 152
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="data_query",shard="3",type="derive"} 0
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="db_apply",shard="3",type="derive"} 0
+scylla_execution_stages_tasks_preempted{instance="aacdf42015e4",execution_stage="mutation_query",shard="3",type="derive"} 98
+# HELP scylla_execution_stages_tasks_scheduled Counts tasks scheduled by execution stages
+# TYPE scylla_execution_stages_tasks_scheduled counter
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="cql3_select",shard="0",type="derive"} 11
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="data_query",shard="0",type="derive"} 0
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="db_apply",shard="0",type="derive"} 4
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="mutation_query",shard="0",type="derive"} 7156
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="transport",shard="0",type="derive"} 15
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="cql3_select",shard="1",type="derive"} 20
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="data_query",shard="1",type="derive"} 18
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="db_apply",shard="1",type="derive"} 33
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="mutation_query",shard="1",type="derive"} 7105
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="transport",shard="1",type="derive"} 22
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="data_query",shard="2",type="derive"} 120
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="db_apply",shard="2",type="derive"} 65
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="mutation_query",shard="2",type="derive"} 7198
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="data_query",shard="3",type="derive"} 22
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="db_apply",shard="3",type="derive"} 32
+scylla_execution_stages_tasks_scheduled{instance="aacdf42015e4",execution_stage="mutation_query",shard="3",type="derive"} 7076
+# HELP scylla_gossip_heart_beat Heartbeat of the current Node.
+# TYPE scylla_gossip_heart_beat counter
+scylla_gossip_heart_beat{instance="aacdf42015e4",shard="0",type="derive"} 31739
+# HELP scylla_httpd_connections_current The current number of open  connections
+# TYPE scylla_httpd_connections_current gauge
+scylla_httpd_connections_current{instance="aacdf42015e4",service="API",shard="0",type="gauge"} 0.000000
+scylla_httpd_connections_current{instance="aacdf42015e4",service="prometheus",shard="0",type="gauge"} 1.000000
+scylla_httpd_connections_current{instance="aacdf42015e4",service="API",shard="1",type="gauge"} 0.000000
+scylla_httpd_connections_current{instance="aacdf42015e4",service="prometheus",shard="1",type="gauge"} 0.000000
+scylla_httpd_connections_current{instance="aacdf42015e4",service="API",shard="2",type="gauge"} 0.000000
+scylla_httpd_connections_current{instance="aacdf42015e4",service="prometheus",shard="2",type="gauge"} 0.000000
+scylla_httpd_connections_current{instance="aacdf42015e4",service="API",shard="3",type="gauge"} 0.000000
+scylla_httpd_connections_current{instance="aacdf42015e4",service="prometheus",shard="3",type="gauge"} 0.000000
+# HELP scylla_httpd_connections_total The total number of connections opened
+# TYPE scylla_httpd_connections_total counter
+scylla_httpd_connections_total{instance="aacdf42015e4",service="API",shard="0",type="derive"} 2
+scylla_httpd_connections_total{instance="aacdf42015e4",service="prometheus",shard="0",type="derive"} 5
+scylla_httpd_connections_total{instance="aacdf42015e4",service="API",shard="1",type="derive"} 2
+scylla_httpd_connections_total{instance="aacdf42015e4",service="prometheus",shard="1",type="derive"} 0
+scylla_httpd_connections_total{instance="aacdf42015e4",service="API",shard="2",type="derive"} 0
+scylla_httpd_connections_total{instance="aacdf42015e4",service="prometheus",shard="2",type="derive"} 0
+scylla_httpd_connections_total{instance="aacdf42015e4",service="API",shard="3",type="derive"} 0
+scylla_httpd_connections_total{instance="aacdf42015e4",service="prometheus",shard="3",type="derive"} 0
+# HELP scylla_httpd_read_errors The total number of errors while reading http requests
+# TYPE scylla_httpd_read_errors counter
+scylla_httpd_read_errors{instance="aacdf42015e4",service="API",shard="0",type="derive"} 0
+scylla_httpd_read_errors{instance="aacdf42015e4",service="prometheus",shard="0",type="derive"} 0
+scylla_httpd_read_errors{instance="aacdf42015e4",service="API",shard="1",type="derive"} 0
+scylla_httpd_read_errors{instance="aacdf42015e4",service="prometheus",shard="1",type="derive"} 0
+scylla_httpd_read_errors{instance="aacdf42015e4",service="API",shard="2",type="derive"} 0
+scylla_httpd_read_errors{instance="aacdf42015e4",service="prometheus",shard="2",type="derive"} 0
+scylla_httpd_read_errors{instance="aacdf42015e4",service="API",shard="3",type="derive"} 0
+scylla_httpd_read_errors{instance="aacdf42015e4",service="prometheus",shard="3",type="derive"} 0
+# HELP scylla_httpd_reply_errors The total number of errors while replying to http
+# TYPE scylla_httpd_reply_errors counter
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="API",shard="0",type="derive"} 0
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="prometheus",shard="0",type="derive"} 0
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="API",shard="1",type="derive"} 0
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="prometheus",shard="1",type="derive"} 0
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="API",shard="2",type="derive"} 0
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="prometheus",shard="2",type="derive"} 0
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="API",shard="3",type="derive"} 0
+scylla_httpd_reply_errors{instance="aacdf42015e4",service="prometheus",shard="3",type="derive"} 0
+# HELP scylla_httpd_requests_served The total number of http requests served
+# TYPE scylla_httpd_requests_served counter
+scylla_httpd_requests_served{instance="aacdf42015e4",service="API",shard="0",type="derive"} 4
+scylla_httpd_requests_served{instance="aacdf42015e4",service="prometheus",shard="0",type="derive"} 5
+scylla_httpd_requests_served{instance="aacdf42015e4",service="API",shard="1",type="derive"} 3
+scylla_httpd_requests_served{instance="aacdf42015e4",service="prometheus",shard="1",type="derive"} 0
+scylla_httpd_requests_served{instance="aacdf42015e4",service="API",shard="2",type="derive"} 0
+scylla_httpd_requests_served{instance="aacdf42015e4",service="prometheus",shard="2",type="derive"} 0
+scylla_httpd_requests_served{instance="aacdf42015e4",service="API",shard="3",type="derive"} 0
+scylla_httpd_requests_served{instance="aacdf42015e4",service="prometheus",shard="3",type="derive"} 0
+# HELP scylla_io_queue_commitlog_delay total delay time in the queue
+# TYPE scylla_io_queue_commitlog_delay gauge
+scylla_io_queue_commitlog_delay{instance="aacdf42015e4",ioshard="0",shard="0",type="gauge"} 0.000055
+scylla_io_queue_commitlog_delay{instance="aacdf42015e4",ioshard="1",shard="1",type="gauge"} 0.000032
+scylla_io_queue_commitlog_delay{instance="aacdf42015e4",ioshard="2",shard="2",type="gauge"} 0.000008
+scylla_io_queue_commitlog_delay{instance="aacdf42015e4",ioshard="3",shard="3",type="gauge"} 0.000042
+# HELP scylla_io_queue_commitlog_queue_length Number of requests in the queue
+# TYPE scylla_io_queue_commitlog_queue_length gauge
+scylla_io_queue_commitlog_queue_length{instance="aacdf42015e4",ioshard="0",shard="0",type="queue_length"} 0.000000
+scylla_io_queue_commitlog_queue_length{instance="aacdf42015e4",ioshard="1",shard="1",type="queue_length"} 0.000000
+scylla_io_queue_commitlog_queue_length{instance="aacdf42015e4",ioshard="2",shard="2",type="queue_length"} 0.000000
+scylla_io_queue_commitlog_queue_length{instance="aacdf42015e4",ioshard="3",shard="3",type="queue_length"} 0.000000
+# HELP scylla_io_queue_commitlog_total_bytes Total bytes passed in the queue
+# TYPE scylla_io_queue_commitlog_total_bytes counter
+scylla_io_queue_commitlog_total_bytes{instance="aacdf42015e4",ioshard="0",shard="0",type="derive"} 8192
+scylla_io_queue_commitlog_total_bytes{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 36864
+scylla_io_queue_commitlog_total_bytes{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 229376
+scylla_io_queue_commitlog_total_bytes{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 122880
+# HELP scylla_io_queue_commitlog_total_operations Total bytes passed in the queue
+# TYPE scylla_io_queue_commitlog_total_operations counter
+scylla_io_queue_commitlog_total_operations{instance="aacdf42015e4",ioshard="0",shard="0",type="derive"} 2
+scylla_io_queue_commitlog_total_operations{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 3
+scylla_io_queue_commitlog_total_operations{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 5
+scylla_io_queue_commitlog_total_operations{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 5
+# HELP scylla_io_queue_compaction_delay total delay time in the queue
+# TYPE scylla_io_queue_compaction_delay gauge
+scylla_io_queue_compaction_delay{instance="aacdf42015e4",ioshard="1",shard="1",type="gauge"} 0.000001
+scylla_io_queue_compaction_delay{instance="aacdf42015e4",ioshard="2",shard="2",type="gauge"} 0.000002
+scylla_io_queue_compaction_delay{instance="aacdf42015e4",ioshard="3",shard="3",type="gauge"} 0.000004
+# HELP scylla_io_queue_compaction_queue_length Number of requests in the queue
+# TYPE scylla_io_queue_compaction_queue_length gauge
+scylla_io_queue_compaction_queue_length{instance="aacdf42015e4",ioshard="1",shard="1",type="queue_length"} 0.000000
+scylla_io_queue_compaction_queue_length{instance="aacdf42015e4",ioshard="2",shard="2",type="queue_length"} 0.000000
+scylla_io_queue_compaction_queue_length{instance="aacdf42015e4",ioshard="3",shard="3",type="queue_length"} 0.000000
+# HELP scylla_io_queue_compaction_total_bytes Total bytes passed in the queue
+# TYPE scylla_io_queue_compaction_total_bytes counter
+scylla_io_queue_compaction_total_bytes{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 49152
+scylla_io_queue_compaction_total_bytes{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 1674240
+scylla_io_queue_compaction_total_bytes{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 89088
+# HELP scylla_io_queue_compaction_total_operations Total bytes passed in the queue
+# TYPE scylla_io_queue_compaction_total_operations counter
+scylla_io_queue_compaction_total_operations{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 12
+scylla_io_queue_compaction_total_operations{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 240
+scylla_io_queue_compaction_total_operations{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 12
+# HELP scylla_io_queue_default_delay total delay time in the queue
+# TYPE scylla_io_queue_default_delay gauge
+scylla_io_queue_default_delay{instance="aacdf42015e4",ioshard="0",shard="0",type="gauge"} 0.000001
+scylla_io_queue_default_delay{instance="aacdf42015e4",ioshard="1",shard="1",type="gauge"} 0.000003
+scylla_io_queue_default_delay{instance="aacdf42015e4",ioshard="2",shard="2",type="gauge"} 0.000002
+scylla_io_queue_default_delay{instance="aacdf42015e4",ioshard="3",shard="3",type="gauge"} 0.000004
+# HELP scylla_io_queue_default_queue_length Number of requests in the queue
+# TYPE scylla_io_queue_default_queue_length gauge
+scylla_io_queue_default_queue_length{instance="aacdf42015e4",ioshard="0",shard="0",type="queue_length"} 0.000000
+scylla_io_queue_default_queue_length{instance="aacdf42015e4",ioshard="1",shard="1",type="queue_length"} 0.000000
+scylla_io_queue_default_queue_length{instance="aacdf42015e4",ioshard="2",shard="2",type="queue_length"} 0.000000
+scylla_io_queue_default_queue_length{instance="aacdf42015e4",ioshard="3",shard="3",type="queue_length"} 0.000000
+# HELP scylla_io_queue_default_total_bytes Total bytes passed in the queue
+# TYPE scylla_io_queue_default_total_bytes counter
+scylla_io_queue_default_total_bytes{instance="aacdf42015e4",ioshard="0",shard="0",type="derive"} 1488896
+scylla_io_queue_default_total_bytes{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 24576
+scylla_io_queue_default_total_bytes{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 397312
+scylla_io_queue_default_total_bytes{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 73728
+# HELP scylla_io_queue_default_total_operations Total bytes passed in the queue
+# TYPE scylla_io_queue_default_total_operations counter
+scylla_io_queue_default_total_operations{instance="aacdf42015e4",ioshard="0",shard="0",type="derive"} 184
+scylla_io_queue_default_total_operations{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 6
+scylla_io_queue_default_total_operations{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 97
+scylla_io_queue_default_total_operations{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 18
+# HELP scylla_io_queue_memtable_flush_delay total delay time in the queue
+# TYPE scylla_io_queue_memtable_flush_delay gauge
+scylla_io_queue_memtable_flush_delay{instance="aacdf42015e4",ioshard="1",shard="1",type="gauge"} 0.000003
+scylla_io_queue_memtable_flush_delay{instance="aacdf42015e4",ioshard="2",shard="2",type="gauge"} 0.000002
+scylla_io_queue_memtable_flush_delay{instance="aacdf42015e4",ioshard="3",shard="3",type="gauge"} 0.000004
+# HELP scylla_io_queue_memtable_flush_queue_length Number of requests in the queue
+# TYPE scylla_io_queue_memtable_flush_queue_length gauge
+scylla_io_queue_memtable_flush_queue_length{instance="aacdf42015e4",ioshard="1",shard="1",type="queue_length"} 0.000000
+scylla_io_queue_memtable_flush_queue_length{instance="aacdf42015e4",ioshard="2",shard="2",type="queue_length"} 0.000000
+scylla_io_queue_memtable_flush_queue_length{instance="aacdf42015e4",ioshard="3",shard="3",type="queue_length"} 0.000000
+# HELP scylla_io_queue_memtable_flush_total_bytes Total bytes passed in the queue
+# TYPE scylla_io_queue_memtable_flush_total_bytes counter
+scylla_io_queue_memtable_flush_total_bytes{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 188416
+scylla_io_queue_memtable_flush_total_bytes{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 3207168
+scylla_io_queue_memtable_flush_total_bytes{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 651264
+# HELP scylla_io_queue_memtable_flush_total_operations Total bytes passed in the queue
+# TYPE scylla_io_queue_memtable_flush_total_operations counter
+scylla_io_queue_memtable_flush_total_operations{instance="aacdf42015e4",ioshard="1",shard="1",type="derive"} 40
+scylla_io_queue_memtable_flush_total_operations{instance="aacdf42015e4",ioshard="2",shard="2",type="derive"} 616
+scylla_io_queue_memtable_flush_total_operations{instance="aacdf42015e4",ioshard="3",shard="3",type="derive"} 136
+# HELP scylla_lsa_free_space_in_zones Holds a current amount of free memory in zones.
+# TYPE scylla_lsa_free_space_in_zones gauge
+scylla_lsa_free_space_in_zones{instance="aacdf42015e4",shard="0",type="gauge"} 58720256.000000
+scylla_lsa_free_space_in_zones{instance="aacdf42015e4",shard="1",type="gauge"} 58458112.000000
+scylla_lsa_free_space_in_zones{instance="aacdf42015e4",shard="2",type="gauge"} 57671680.000000
+scylla_lsa_free_space_in_zones{instance="aacdf42015e4",shard="3",type="gauge"} 57409536.000000
+# HELP scylla_lsa_large_objects_total_space_bytes Holds a current size of allocated non-LSA memory.
+# TYPE scylla_lsa_large_objects_total_space_bytes gauge
+scylla_lsa_large_objects_total_space_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_lsa_large_objects_total_space_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_lsa_large_objects_total_space_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_lsa_large_objects_total_space_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_lsa_non_lsa_used_space_bytes Holds a current amount of used non-LSA memory.
+# TYPE scylla_lsa_non_lsa_used_space_bytes gauge
+scylla_lsa_non_lsa_used_space_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 83111936.000000
+scylla_lsa_non_lsa_used_space_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 81887232.000000
+scylla_lsa_non_lsa_used_space_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 82714624.000000
+scylla_lsa_non_lsa_used_space_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 81346560.000000
+# HELP scylla_lsa_occupancy Holds a current portion (in percents) of the used memory.
+# TYPE scylla_lsa_occupancy gauge
+scylla_lsa_occupancy{instance="aacdf42015e4",shard="0",type="gauge"} 1.602173
+scylla_lsa_occupancy{instance="aacdf42015e4",shard="1",type="gauge"} 2.975845
+scylla_lsa_occupancy{instance="aacdf42015e4",shard="2",type="gauge"} 7.208570
+scylla_lsa_occupancy{instance="aacdf42015e4",shard="3",type="gauge"} 5.358887
+# HELP scylla_lsa_segments_compacted Counts a number of compacted segments.
+# TYPE scylla_lsa_segments_compacted counter
+scylla_lsa_segments_compacted{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_lsa_segments_compacted{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_lsa_segments_compacted{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_lsa_segments_compacted{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_lsa_segments_migrated Counts a number of migrated segments.
+# TYPE scylla_lsa_segments_migrated counter
+scylla_lsa_segments_migrated{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_lsa_segments_migrated{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_lsa_segments_migrated{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_lsa_segments_migrated{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_lsa_small_objects_total_space_bytes Holds a current size of "small objects" memory region in bytes.
+# TYPE scylla_lsa_small_objects_total_space_bytes gauge
+scylla_lsa_small_objects_total_space_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 524288.000000
+scylla_lsa_small_objects_total_space_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 786432.000000
+scylla_lsa_small_objects_total_space_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1572864.000000
+scylla_lsa_small_objects_total_space_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1835008.000000
+# HELP scylla_lsa_small_objects_used_space_bytes Holds a current amount of used "small objects" memory in bytes.
+# TYPE scylla_lsa_small_objects_used_space_bytes gauge
+scylla_lsa_small_objects_used_space_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 8400.000000
+scylla_lsa_small_objects_used_space_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 23403.000000
+scylla_lsa_small_objects_used_space_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 113381.000000
+scylla_lsa_small_objects_used_space_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 98336.000000
+# HELP scylla_lsa_total_space_bytes Holds a current size of allocated memory in bytes.
+# TYPE scylla_lsa_total_space_bytes gauge
+scylla_lsa_total_space_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 524288.000000
+scylla_lsa_total_space_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 786432.000000
+scylla_lsa_total_space_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1572864.000000
+scylla_lsa_total_space_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1835008.000000
+# HELP scylla_lsa_used_space_bytes Holds a current amount of used memory in bytes.
+# TYPE scylla_lsa_used_space_bytes gauge
+scylla_lsa_used_space_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 8400.000000
+scylla_lsa_used_space_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 23403.000000
+scylla_lsa_used_space_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 113381.000000
+scylla_lsa_used_space_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 98336.000000
+# HELP scylla_lsa_zones Holds a current number of zones.
+# TYPE scylla_lsa_zones gauge
+scylla_lsa_zones{instance="aacdf42015e4",shard="0",type="gauge"} 1.000000
+scylla_lsa_zones{instance="aacdf42015e4",shard="1",type="gauge"} 1.000000
+scylla_lsa_zones{instance="aacdf42015e4",shard="2",type="gauge"} 1.000000
+scylla_lsa_zones{instance="aacdf42015e4",shard="3",type="gauge"} 1.000000
+# HELP scylla_memory_allocated_memory Allocated memeory size in bytes
+# TYPE scylla_memory_allocated_memory counter
+scylla_memory_allocated_memory{instance="aacdf42015e4",shard="0",type="bytes"} 142356480
+scylla_memory_allocated_memory{instance="aacdf42015e4",shard="1",type="bytes"} 141131776
+scylla_memory_allocated_memory{instance="aacdf42015e4",shard="2",type="bytes"} 141959168
+scylla_memory_allocated_memory{instance="aacdf42015e4",shard="3",type="bytes"} 140591104
+# HELP scylla_memory_cross_cpu_free_operations Total number of cross cpu free
+# TYPE scylla_memory_cross_cpu_free_operations counter
+scylla_memory_cross_cpu_free_operations{instance="aacdf42015e4",shard="0",type="derive"} 232883
+scylla_memory_cross_cpu_free_operations{instance="aacdf42015e4",shard="1",type="derive"} 40923
+scylla_memory_cross_cpu_free_operations{instance="aacdf42015e4",shard="2",type="derive"} 40926
+scylla_memory_cross_cpu_free_operations{instance="aacdf42015e4",shard="3",type="derive"} 40926
+# HELP scylla_memory_dirty_bytes Holds the current size of all ("regular", "system" and "streaming") non-free memory in bytes: used memory + released memory that hasn't been returned to a free memory pool yet. Total memory size minus this value represents the amount of available memory. If this value minus virtual_dirty_bytes is too high then this means that the dirty memory eviction lags behind.
+# TYPE scylla_memory_dirty_bytes gauge
+scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 262144.000000
+scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 524288.000000
+scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1310720.000000
+scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1572864.000000
+# HELP scylla_memory_free_memory Free memeory size in bytes
+# TYPE scylla_memory_free_memory counter
+scylla_memory_free_memory{instance="aacdf42015e4",shard="0",type="bytes"} 7642271744
+scylla_memory_free_memory{instance="aacdf42015e4",shard="1",type="bytes"} 7643496448
+scylla_memory_free_memory{instance="aacdf42015e4",shard="2",type="bytes"} 7642669056
+scylla_memory_free_memory{instance="aacdf42015e4",shard="3",type="bytes"} 7644037120
+# HELP scylla_memory_free_operations Total number of free operations
+# TYPE scylla_memory_free_operations counter
+scylla_memory_free_operations{instance="aacdf42015e4",shard="0",type="derive"} 26437451
+scylla_memory_free_operations{instance="aacdf42015e4",shard="1",type="derive"} 6566252
+scylla_memory_free_operations{instance="aacdf42015e4",shard="2",type="derive"} 6311351
+scylla_memory_free_operations{instance="aacdf42015e4",shard="3",type="derive"} 5963135
+# HELP scylla_memory_malloc_live_objects Number of live objects
+# TYPE scylla_memory_malloc_live_objects gauge
+scylla_memory_malloc_live_objects{instance="aacdf42015e4",shard="0",type="gauge"} 25715.000000
+scylla_memory_malloc_live_objects{instance="aacdf42015e4",shard="1",type="gauge"} 17167.000000
+scylla_memory_malloc_live_objects{instance="aacdf42015e4",shard="2",type="gauge"} 17661.000000
+scylla_memory_malloc_live_objects{instance="aacdf42015e4",shard="3",type="gauge"} 17357.000000
+# HELP scylla_memory_malloc_operations Total number of malloc operations
+# TYPE scylla_memory_malloc_operations counter
+scylla_memory_malloc_operations{instance="aacdf42015e4",shard="0",type="derive"} 26463167
+scylla_memory_malloc_operations{instance="aacdf42015e4",shard="1",type="derive"} 6583420
+scylla_memory_malloc_operations{instance="aacdf42015e4",shard="2",type="derive"} 6329013
+scylla_memory_malloc_operations{instance="aacdf42015e4",shard="3",type="derive"} 5980493
+# HELP scylla_memory_reclaims_operations Total reclaims operations
+# TYPE scylla_memory_reclaims_operations counter
+scylla_memory_reclaims_operations{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_memory_reclaims_operations{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_memory_reclaims_operations{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_memory_reclaims_operations{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_memory_regular_dirty_bytes Holds the current size of a all non-free memory in bytes: used memory + released memory that hasn't been returned to a free memory pool yet. Total memory size minus this value represents the amount of available memory. If this value minus virtual_dirty_bytes is too high then this means that the dirty memory eviction lags behind.
+# TYPE scylla_memory_regular_dirty_bytes gauge
+scylla_memory_regular_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_memory_regular_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_memory_regular_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_memory_regular_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_memory_regular_virtual_dirty_bytes Holds the size of used memory in bytes. Compare it to "dirty_bytes" to see how many memory is wasted (neither used nor available).
+# TYPE scylla_memory_regular_virtual_dirty_bytes gauge
+scylla_memory_regular_virtual_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_memory_regular_virtual_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_memory_regular_virtual_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_memory_regular_virtual_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_memory_streaming_dirty_bytes Holds the current size of a all non-free memory in bytes: used memory + released memory that hasn't been returned to a free memory pool yet. Total memory size minus this value represents the amount of available memory. If this value minus virtual_dirty_bytes is too high then this means that the dirty memory eviction lags behind.
+# TYPE scylla_memory_streaming_dirty_bytes gauge
+scylla_memory_streaming_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_memory_streaming_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_memory_streaming_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_memory_streaming_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_memory_streaming_virtual_dirty_bytes Holds the size of used memory in bytes. Compare it to "dirty_bytes" to see how many memory is wasted (neither used nor available).
+# TYPE scylla_memory_streaming_virtual_dirty_bytes gauge
+scylla_memory_streaming_virtual_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_memory_streaming_virtual_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_memory_streaming_virtual_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_memory_streaming_virtual_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_memory_system_dirty_bytes Holds the current size of a all non-free memory in bytes: used memory + released memory that hasn't been returned to a free memory pool yet. Total memory size minus this value represents the amount of available memory. If this value minus virtual_dirty_bytes is too high then this means that the dirty memory eviction lags behind.
+# TYPE scylla_memory_system_dirty_bytes gauge
+scylla_memory_system_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 262144.000000
+scylla_memory_system_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 524288.000000
+scylla_memory_system_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1310720.000000
+scylla_memory_system_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1572864.000000
+# HELP scylla_memory_system_virtual_dirty_bytes Holds the size of used memory in bytes. Compare it to "dirty_bytes" to see how many memory is wasted (neither used nor available).
+# TYPE scylla_memory_system_virtual_dirty_bytes gauge
+scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 262144.000000
+scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 524288.000000
+scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1310720.000000
+scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1572864.000000
+# HELP scylla_memory_total_memory Total memeory size in bytes
+# TYPE scylla_memory_total_memory counter
+scylla_memory_total_memory{instance="aacdf42015e4",shard="0",type="bytes"} 7784628224
+scylla_memory_total_memory{instance="aacdf42015e4",shard="1",type="bytes"} 7784628224
+scylla_memory_total_memory{instance="aacdf42015e4",shard="2",type="bytes"} 7784628224
+scylla_memory_total_memory{instance="aacdf42015e4",shard="3",type="bytes"} 7784628224
+# HELP scylla_memory_virtual_dirty_bytes Holds the size of all ("regular", "system" and "streaming") used memory in bytes. Compare it to "dirty_bytes" to see how many memory is wasted (neither used nor available).
+# TYPE scylla_memory_virtual_dirty_bytes gauge
+scylla_memory_virtual_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 262144.000000
+scylla_memory_virtual_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 524288.000000
+scylla_memory_virtual_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1310720.000000
+scylla_memory_virtual_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1572864.000000
+# HELP scylla_memtables_pending_flushes Holds the current number of memtables that are currently being flushed to sstables. High value in this metric may be an indication of storage being a bottleneck.
+# TYPE scylla_memtables_pending_flushes gauge
+scylla_memtables_pending_flushes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_memtables_pending_flushes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_memtables_pending_flushes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_memtables_pending_flushes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_memtables_pending_flushes_bytes Holds the current number of bytes in memtables that are currently being flushed to sstables. High value in this metric may be an indication of storage being a bottleneck.
+# TYPE scylla_memtables_pending_flushes_bytes gauge
+scylla_memtables_pending_flushes_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_memtables_pending_flushes_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_memtables_pending_flushes_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_memtables_pending_flushes_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_query_processor_statements_prepared Counts a total number of parsed CQL requests.
+# TYPE scylla_query_processor_statements_prepared counter
+scylla_query_processor_statements_prepared{instance="aacdf42015e4",shard="0",type="derive"} 21
+scylla_query_processor_statements_prepared{instance="aacdf42015e4",shard="1",type="derive"} 25
+scylla_query_processor_statements_prepared{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_query_processor_statements_prepared{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_reactor_aio_bytes_read Total aio-reads bytes
+# TYPE scylla_reactor_aio_bytes_read counter
+scylla_reactor_aio_bytes_read{instance="aacdf42015e4",shard="0",type="total_bytes"} 1488896
+scylla_reactor_aio_bytes_read{instance="aacdf42015e4",shard="1",type="total_bytes"} 8192
+scylla_reactor_aio_bytes_read{instance="aacdf42015e4",shard="2",type="total_bytes"} 109568
+scylla_reactor_aio_bytes_read{instance="aacdf42015e4",shard="3",type="total_bytes"} 19456
+# HELP scylla_reactor_aio_bytes_write Total aio-writes bytes
+# TYPE scylla_reactor_aio_bytes_write counter
+scylla_reactor_aio_bytes_write{instance="aacdf42015e4",shard="0",type="total_bytes"} 8192
+scylla_reactor_aio_bytes_write{instance="aacdf42015e4",shard="1",type="total_bytes"} 290816
+scylla_reactor_aio_bytes_write{instance="aacdf42015e4",shard="2",type="total_bytes"} 5398528
+scylla_reactor_aio_bytes_write{instance="aacdf42015e4",shard="3",type="total_bytes"} 917504
+# HELP scylla_reactor_aio_reads Total aio-reads operations
+# TYPE scylla_reactor_aio_reads counter
+scylla_reactor_aio_reads{instance="aacdf42015e4",shard="0",type="derive"} 184
+scylla_reactor_aio_reads{instance="aacdf42015e4",shard="1",type="derive"} 4
+scylla_reactor_aio_reads{instance="aacdf42015e4",shard="2",type="derive"} 80
+scylla_reactor_aio_reads{instance="aacdf42015e4",shard="3",type="derive"} 4
+# HELP scylla_reactor_aio_writes Total aio-writes operations
+# TYPE scylla_reactor_aio_writes counter
+scylla_reactor_aio_writes{instance="aacdf42015e4",shard="0",type="derive"} 2
+scylla_reactor_aio_writes{instance="aacdf42015e4",shard="1",type="derive"} 57
+scylla_reactor_aio_writes{instance="aacdf42015e4",shard="2",type="derive"} 878
+scylla_reactor_aio_writes{instance="aacdf42015e4",shard="3",type="derive"} 167
+# HELP scylla_reactor_cpp_exceptions Total number of C++ exceptions
+# TYPE scylla_reactor_cpp_exceptions counter
+scylla_reactor_cpp_exceptions{instance="aacdf42015e4",shard="0",type="derive"} 1
+scylla_reactor_cpp_exceptions{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_reactor_cpp_exceptions{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_reactor_cpp_exceptions{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_reactor_cpu_busy_ns Total cpu busy time in nanoseconds
+# TYPE scylla_reactor_cpu_busy_ns counter
+scylla_reactor_cpu_busy_ns{instance="aacdf42015e4",shard="0",type="derive"} 83622704138
+scylla_reactor_cpu_busy_ns{instance="aacdf42015e4",shard="1",type="derive"} 14337390435
+scylla_reactor_cpu_busy_ns{instance="aacdf42015e4",shard="2",type="derive"} 14768720030
+scylla_reactor_cpu_busy_ns{instance="aacdf42015e4",shard="3",type="derive"} 13507773431
+# HELP scylla_reactor_fstream_read_bytes Counts bytes read from disk file streams.  A high rate indicates high disk activity. Divide by fstream_reads to determine average read size.
+# TYPE scylla_reactor_fstream_read_bytes counter
+scylla_reactor_fstream_read_bytes{instance="aacdf42015e4",shard="0",type="derive"} 761856
+scylla_reactor_fstream_read_bytes{instance="aacdf42015e4",shard="1",type="derive"} 6382
+scylla_reactor_fstream_read_bytes{instance="aacdf42015e4",shard="2",type="derive"} 82473
+scylla_reactor_fstream_read_bytes{instance="aacdf42015e4",shard="3",type="derive"} 18247
+# HELP scylla_reactor_fstream_read_bytes_blocked Counts the number of bytes read from disk that could not be satisfied from read-ahead buffers, and had to block. Indicates short streams, or incorrect read ahead configuration.
+# TYPE scylla_reactor_fstream_read_bytes_blocked counter
+scylla_reactor_fstream_read_bytes_blocked{instance="aacdf42015e4",shard="0",type="derive"} 761856
+scylla_reactor_fstream_read_bytes_blocked{instance="aacdf42015e4",shard="1",type="derive"} 6382
+scylla_reactor_fstream_read_bytes_blocked{instance="aacdf42015e4",shard="2",type="derive"} 82473
+scylla_reactor_fstream_read_bytes_blocked{instance="aacdf42015e4",shard="3",type="derive"} 18247
+# HELP scylla_reactor_fstream_reads Counts reads from disk file streams.  A high rate indicates high disk activity. Contrast with other fstream_read* counters to locate bottlenecks.
+# TYPE scylla_reactor_fstream_reads counter
+scylla_reactor_fstream_reads{instance="aacdf42015e4",shard="0",type="counter"} 93
+scylla_reactor_fstream_reads{instance="aacdf42015e4",shard="1",type="counter"} 4
+scylla_reactor_fstream_reads{instance="aacdf42015e4",shard="2",type="counter"} 80
+scylla_reactor_fstream_reads{instance="aacdf42015e4",shard="3",type="counter"} 4
+# HELP scylla_reactor_fstream_reads_ahead_bytes_discarded Counts the number of buffered bytes that were read ahead of time and were discarded because they were not needed, wasting disk bandwidth. Indicates over-eager read ahead configuration.
+# TYPE scylla_reactor_fstream_reads_ahead_bytes_discarded counter
+scylla_reactor_fstream_reads_ahead_bytes_discarded{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_reactor_fstream_reads_ahead_bytes_discarded{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_reactor_fstream_reads_ahead_bytes_discarded{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_reactor_fstream_reads_ahead_bytes_discarded{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_reactor_fstream_reads_aheads_discarded Counts the number of times a buffer that was read ahead of time and was discarded because it was not needed, wasting disk bandwidth. Indicates over-eager read ahead configuration.
+# TYPE scylla_reactor_fstream_reads_aheads_discarded counter
+scylla_reactor_fstream_reads_aheads_discarded{instance="aacdf42015e4",shard="0",type="counter"} 0
+scylla_reactor_fstream_reads_aheads_discarded{instance="aacdf42015e4",shard="1",type="counter"} 0
+scylla_reactor_fstream_reads_aheads_discarded{instance="aacdf42015e4",shard="2",type="counter"} 0
+scylla_reactor_fstream_reads_aheads_discarded{instance="aacdf42015e4",shard="3",type="counter"} 0
+# HELP scylla_reactor_fstream_reads_blocked Counts the number of times a disk read could not be satisfied from read-ahead buffers, and had to block. Indicates short streams, or incorrect read ahead configuration.
+# TYPE scylla_reactor_fstream_reads_blocked counter
+scylla_reactor_fstream_reads_blocked{instance="aacdf42015e4",shard="0",type="counter"} 93
+scylla_reactor_fstream_reads_blocked{instance="aacdf42015e4",shard="1",type="counter"} 4
+scylla_reactor_fstream_reads_blocked{instance="aacdf42015e4",shard="2",type="counter"} 80
+scylla_reactor_fstream_reads_blocked{instance="aacdf42015e4",shard="3",type="counter"} 4
+# HELP scylla_reactor_fsyncs Total number of fsync operations
+# TYPE scylla_reactor_fsyncs counter
+scylla_reactor_fsyncs{instance="aacdf42015e4",shard="0",type="derive"} 188
+scylla_reactor_fsyncs{instance="aacdf42015e4",shard="1",type="derive"} 75
+scylla_reactor_fsyncs{instance="aacdf42015e4",shard="2",type="derive"} 1168
+scylla_reactor_fsyncs{instance="aacdf42015e4",shard="3",type="derive"} 221
+# HELP scylla_reactor_io_queue_requests Number of requests in the io queue
+# TYPE scylla_reactor_io_queue_requests gauge
+scylla_reactor_io_queue_requests{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_reactor_io_queue_requests{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_reactor_io_queue_requests{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_reactor_io_queue_requests{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_reactor_io_threaded_fallbacks Total number of io-threaded-fallbacks operations
+# TYPE scylla_reactor_io_threaded_fallbacks counter
+scylla_reactor_io_threaded_fallbacks{instance="aacdf42015e4",shard="0",type="derive"} 2410
+scylla_reactor_io_threaded_fallbacks{instance="aacdf42015e4",shard="1",type="derive"} 434
+scylla_reactor_io_threaded_fallbacks{instance="aacdf42015e4",shard="2",type="derive"} 6684
+scylla_reactor_io_threaded_fallbacks{instance="aacdf42015e4",shard="3",type="derive"} 1240
+# HELP scylla_reactor_logging_failures Total number of logging failures
+# TYPE scylla_reactor_logging_failures counter
+scylla_reactor_logging_failures{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_reactor_logging_failures{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_reactor_logging_failures{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_reactor_logging_failures{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_reactor_polls Number of times pollers were executed
+# TYPE scylla_reactor_polls counter
+scylla_reactor_polls{instance="aacdf42015e4",shard="0",type="derive"} 296347097
+scylla_reactor_polls{instance="aacdf42015e4",shard="1",type="derive"} 31328784
+scylla_reactor_polls{instance="aacdf42015e4",shard="2",type="derive"} 31594184
+scylla_reactor_polls{instance="aacdf42015e4",shard="3",type="derive"} 28346421
+# HELP scylla_reactor_tasks_pending Number of pending tasks in the queue
+# TYPE scylla_reactor_tasks_pending gauge
+scylla_reactor_tasks_pending{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_reactor_tasks_pending{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_reactor_tasks_pending{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_reactor_tasks_pending{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_reactor_tasks_processed Total tasks processed
+# TYPE scylla_reactor_tasks_processed counter
+scylla_reactor_tasks_processed{instance="aacdf42015e4",shard="0",type="derive"} 2532174
+scylla_reactor_tasks_processed{instance="aacdf42015e4",shard="1",type="derive"} 600439
+scylla_reactor_tasks_processed{instance="aacdf42015e4",shard="2",type="derive"} 548648
+scylla_reactor_tasks_processed{instance="aacdf42015e4",shard="3",type="derive"} 428683
+# HELP scylla_reactor_timers_pending Number of tasks in the timer-pending queue
+# TYPE scylla_reactor_timers_pending counter
+scylla_reactor_timers_pending{instance="aacdf42015e4",shard="0",type="derive"} 246
+scylla_reactor_timers_pending{instance="aacdf42015e4",shard="1",type="derive"} 244
+scylla_reactor_timers_pending{instance="aacdf42015e4",shard="2",type="derive"} 244
+scylla_reactor_timers_pending{instance="aacdf42015e4",shard="3",type="derive"} 244
+# HELP scylla_reactor_utilization CPU utilization
+# TYPE scylla_reactor_utilization gauge
+scylla_reactor_utilization{instance="aacdf42015e4",shard="0",type="gauge"} 0.173488
+scylla_reactor_utilization{instance="aacdf42015e4",shard="1",type="gauge"} 0.005336
+scylla_reactor_utilization{instance="aacdf42015e4",shard="2",type="gauge"} 0.047971
+scylla_reactor_utilization{instance="aacdf42015e4",shard="3",type="gauge"} 0.016341
+# HELP scylla_scheduler_queue_length Size of backlog on this queue, in tasks; indicates whether the queue is busy and/or contended
+# TYPE scylla_scheduler_queue_length gauge
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="atexit",shard="0",type="gauge"} 0.000000
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="main",shard="0",type="gauge"} 0.000000
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="atexit",shard="1",type="gauge"} 0.000000
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="main",shard="1",type="gauge"} 0.000000
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="atexit",shard="2",type="gauge"} 0.000000
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="main",shard="2",type="gauge"} 0.000000
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="atexit",shard="3",type="gauge"} 0.000000
+scylla_scheduler_queue_length{instance="aacdf42015e4",group="main",shard="3",type="gauge"} 0.000000
+# HELP scylla_scheduler_runtime_ms Accumulated runtime of this task queue; an increment rate of 1000ms per second indicates full utilization
+# TYPE scylla_scheduler_runtime_ms counter
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="atexit",shard="0",type="counter"} 0
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="main",shard="0",type="counter"} 35546
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="atexit",shard="1",type="counter"} 0
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="main",shard="1",type="counter"} 11555
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="atexit",shard="2",type="counter"} 0
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="main",shard="2",type="counter"} 11524
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="atexit",shard="3",type="counter"} 0
+scylla_scheduler_runtime_ms{instance="aacdf42015e4",group="main",shard="3",type="counter"} 9693
+# HELP scylla_scheduler_shares Shares allocated to this queue
+# TYPE scylla_scheduler_shares gauge
+scylla_scheduler_shares{instance="aacdf42015e4",group="atexit",shard="0",type="gauge"} 1000.000000
+scylla_scheduler_shares{instance="aacdf42015e4",group="main",shard="0",type="gauge"} 1000.000000
+scylla_scheduler_shares{instance="aacdf42015e4",group="atexit",shard="1",type="gauge"} 1000.000000
+scylla_scheduler_shares{instance="aacdf42015e4",group="main",shard="1",type="gauge"} 1000.000000
+scylla_scheduler_shares{instance="aacdf42015e4",group="atexit",shard="2",type="gauge"} 1000.000000
+scylla_scheduler_shares{instance="aacdf42015e4",group="main",shard="2",type="gauge"} 1000.000000
+scylla_scheduler_shares{instance="aacdf42015e4",group="atexit",shard="3",type="gauge"} 1000.000000
+scylla_scheduler_shares{instance="aacdf42015e4",group="main",shard="3",type="gauge"} 1000.000000
+# HELP scylla_scheduler_tasks_processed Count of tasks executing on this queue; indicates together with runtime_ms indicates length of tasks
+# TYPE scylla_scheduler_tasks_processed counter
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="atexit",shard="0",type="counter"} 0
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="main",shard="0",type="counter"} 2532174
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="atexit",shard="1",type="counter"} 0
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="main",shard="1",type="counter"} 600439
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="atexit",shard="2",type="counter"} 0
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="main",shard="2",type="counter"} 548648
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="atexit",shard="3",type="counter"} 0
+scylla_scheduler_tasks_processed{instance="aacdf42015e4",group="main",shard="3",type="counter"} 428683
+# HELP scylla_scollectd_latency avrage latency
+# TYPE scylla_scollectd_latency gauge
+scylla_scollectd_latency{instance="aacdf42015e4",shard="0",type="gauge"} 0.003835
+scylla_scollectd_latency{instance="aacdf42015e4",shard="1",type="gauge"} 0.001039
+scylla_scollectd_latency{instance="aacdf42015e4",shard="2",type="gauge"} 0.001108
+scylla_scollectd_latency{instance="aacdf42015e4",shard="3",type="gauge"} 0.001587
+# HELP scylla_scollectd_records number of records reported
+# TYPE scylla_scollectd_records gauge
+scylla_scollectd_records{instance="aacdf42015e4",shard="0",type="gauge"} 212.000000
+scylla_scollectd_records{instance="aacdf42015e4",shard="1",type="gauge"} 218.000000
+scylla_scollectd_records{instance="aacdf42015e4",shard="2",type="gauge"} 218.000000
+scylla_scollectd_records{instance="aacdf42015e4",shard="3",type="gauge"} 218.000000
+# HELP scylla_scollectd_total_bytes_sent total bytes sent
+# TYPE scylla_scollectd_total_bytes_sent counter
+scylla_scollectd_total_bytes_sent{instance="aacdf42015e4",shard="0",type="derive"} 93088473
+scylla_scollectd_total_bytes_sent{instance="aacdf42015e4",shard="1",type="derive"} 95438410
+scylla_scollectd_total_bytes_sent{instance="aacdf42015e4",shard="2",type="derive"} 92469294
+scylla_scollectd_total_bytes_sent{instance="aacdf42015e4",shard="3",type="derive"} 92460531
+# HELP scylla_scollectd_total_requests total requests
+# TYPE scylla_scollectd_total_requests counter
+scylla_scollectd_total_requests{instance="aacdf42015e4",shard="0",type="derive"} 93880
+scylla_scollectd_total_requests{instance="aacdf42015e4",shard="1",type="derive"} 99110
+scylla_scollectd_total_requests{instance="aacdf42015e4",shard="2",type="derive"} 93902
+scylla_scollectd_total_requests{instance="aacdf42015e4",shard="3",type="derive"} 93898
+# HELP scylla_scollectd_total_time_in_ms total time in milliseconds
+# TYPE scylla_scollectd_total_time_in_ms counter
+scylla_scollectd_total_time_in_ms{instance="aacdf42015e4",shard="0",type="derive"} 360
+scylla_scollectd_total_time_in_ms{instance="aacdf42015e4",shard="1",type="derive"} 103
+scylla_scollectd_total_time_in_ms{instance="aacdf42015e4",shard="2",type="derive"} 104
+scylla_scollectd_total_time_in_ms{instance="aacdf42015e4",shard="3",type="derive"} 149
+# HELP scylla_scollectd_total_values current number of values reported
+# TYPE scylla_scollectd_total_values gauge
+scylla_scollectd_total_values{instance="aacdf42015e4",shard="0",type="gauge"} 212.000000
+scylla_scollectd_total_values{instance="aacdf42015e4",shard="1",type="gauge"} 218.000000
+scylla_scollectd_total_values{instance="aacdf42015e4",shard="2",type="gauge"} 218.000000
+scylla_scollectd_total_values{instance="aacdf42015e4",shard="3",type="gauge"} 218.000000
+# HELP scylla_scylladb_current_version Current ScyllaDB version.
+# TYPE scylla_scylladb_current_version gauge
+scylla_scylladb_current_version{instance="aacdf42015e4",shard="",type="gauge",version="2.1.3-0.20180501.8e33e80ad"} 0.000000
+# HELP scylla_sstables_index_page_blocks Index page requests which needed to wait due to page not being loaded yet
+# TYPE scylla_sstables_index_page_blocks counter
+scylla_sstables_index_page_blocks{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_sstables_index_page_blocks{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_sstables_index_page_blocks{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_sstables_index_page_blocks{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_sstables_index_page_hits Index page requests which could be satisfied without waiting
+# TYPE scylla_sstables_index_page_hits counter
+scylla_sstables_index_page_hits{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_sstables_index_page_hits{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_sstables_index_page_hits{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_sstables_index_page_hits{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_sstables_index_page_misses Index page requests which initiated a read from disk
+# TYPE scylla_sstables_index_page_misses counter
+scylla_sstables_index_page_misses{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_sstables_index_page_misses{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_sstables_index_page_misses{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_sstables_index_page_misses{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_storage_proxy_coordinator_background_read_repairs number of background read repairs
+# TYPE scylla_storage_proxy_coordinator_background_read_repairs counter
+scylla_storage_proxy_coordinator_background_read_repairs{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_background_read_repairs{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_background_read_repairs{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_background_read_repairs{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_background_reads number of currently pending background read requests
+# TYPE scylla_storage_proxy_coordinator_background_reads gauge
+scylla_storage_proxy_coordinator_background_reads{instance="aacdf42015e4",shard="0",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_background_reads{instance="aacdf42015e4",shard="1",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_background_reads{instance="aacdf42015e4",shard="2",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_background_reads{instance="aacdf42015e4",shard="3",type="queue_length"} 0.000000
+# HELP scylla_storage_proxy_coordinator_background_write_bytes number of bytes in pending background write requests
+# TYPE scylla_storage_proxy_coordinator_background_write_bytes counter
+scylla_storage_proxy_coordinator_background_write_bytes{instance="aacdf42015e4",shard="0",type="bytes"} 0
+scylla_storage_proxy_coordinator_background_write_bytes{instance="aacdf42015e4",shard="1",type="bytes"} 0
+scylla_storage_proxy_coordinator_background_write_bytes{instance="aacdf42015e4",shard="2",type="bytes"} 0
+scylla_storage_proxy_coordinator_background_write_bytes{instance="aacdf42015e4",shard="3",type="bytes"} 0
+# HELP scylla_storage_proxy_coordinator_background_writes number of currently pending background write requests
+# TYPE scylla_storage_proxy_coordinator_background_writes gauge
+scylla_storage_proxy_coordinator_background_writes{instance="aacdf42015e4",shard="0",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_background_writes{instance="aacdf42015e4",shard="1",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_background_writes{instance="aacdf42015e4",shard="2",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_background_writes{instance="aacdf42015e4",shard="3",type="queue_length"} 0.000000
+# HELP scylla_storage_proxy_coordinator_canceled_read_repairs number of global read repairs canceled due to a concurrent write
+# TYPE scylla_storage_proxy_coordinator_canceled_read_repairs counter
+scylla_storage_proxy_coordinator_canceled_read_repairs{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_canceled_read_repairs{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_canceled_read_repairs{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_canceled_read_repairs{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_completed_reads_local_node number of data read requests that completedon a local Node
+# TYPE scylla_storage_proxy_coordinator_completed_reads_local_node counter
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="data",shard="0",type="derive"} 181
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="0",type="derive"} 10
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="data",shard="1",type="derive"} 136
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="1",type="derive"} 5
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="data",shard="2",type="derive"} 65
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="2",type="derive"} 5
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="data",shard="3",type="derive"} 65
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="3",type="derive"} 0
+scylla_storage_proxy_coordinator_completed_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="3",type="derive"} 5
+# HELP scylla_storage_proxy_coordinator_current_throttled_writes number of currently throttled write requests
+# TYPE scylla_storage_proxy_coordinator_current_throttled_writes gauge
+scylla_storage_proxy_coordinator_current_throttled_writes{instance="aacdf42015e4",shard="0",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_current_throttled_writes{instance="aacdf42015e4",shard="1",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_current_throttled_writes{instance="aacdf42015e4",shard="2",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_current_throttled_writes{instance="aacdf42015e4",shard="3",type="queue_length"} 0.000000
+# HELP scylla_storage_proxy_coordinator_foreground_read_repair number of foreground read repairs
+# TYPE scylla_storage_proxy_coordinator_foreground_read_repair counter
+scylla_storage_proxy_coordinator_foreground_read_repair{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_foreground_read_repair{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_foreground_read_repair{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_foreground_read_repair{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_foreground_reads number of currently pending foreground read requests
+# TYPE scylla_storage_proxy_coordinator_foreground_reads gauge
+scylla_storage_proxy_coordinator_foreground_reads{instance="aacdf42015e4",shard="0",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_foreground_reads{instance="aacdf42015e4",shard="1",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_foreground_reads{instance="aacdf42015e4",shard="2",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_foreground_reads{instance="aacdf42015e4",shard="3",type="queue_length"} 0.000000
+# HELP scylla_storage_proxy_coordinator_foreground_writes number of currently pending foreground write requests
+# TYPE scylla_storage_proxy_coordinator_foreground_writes gauge
+scylla_storage_proxy_coordinator_foreground_writes{instance="aacdf42015e4",shard="0",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_foreground_writes{instance="aacdf42015e4",shard="1",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_foreground_writes{instance="aacdf42015e4",shard="2",type="queue_length"} 0.000000
+scylla_storage_proxy_coordinator_foreground_writes{instance="aacdf42015e4",shard="3",type="queue_length"} 0.000000
+# HELP scylla_storage_proxy_coordinator_queued_write_bytes number of bytes in pending write requests
+# TYPE scylla_storage_proxy_coordinator_queued_write_bytes counter
+scylla_storage_proxy_coordinator_queued_write_bytes{instance="aacdf42015e4",shard="0",type="bytes"} 0
+scylla_storage_proxy_coordinator_queued_write_bytes{instance="aacdf42015e4",shard="1",type="bytes"} 0
+scylla_storage_proxy_coordinator_queued_write_bytes{instance="aacdf42015e4",shard="2",type="bytes"} 0
+scylla_storage_proxy_coordinator_queued_write_bytes{instance="aacdf42015e4",shard="3",type="bytes"} 0
+# HELP scylla_storage_proxy_coordinator_range_timeouts number of range read operations failed due to a timeout
+# TYPE scylla_storage_proxy_coordinator_range_timeouts counter
+scylla_storage_proxy_coordinator_range_timeouts{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_range_timeouts{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_range_timeouts{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_range_timeouts{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_range_unavailable number of range read operations failed due to an "unavailable" error
+# TYPE scylla_storage_proxy_coordinator_range_unavailable counter
+scylla_storage_proxy_coordinator_range_unavailable{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_range_unavailable{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_range_unavailable{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_range_unavailable{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_read_errors_local_node number of data read requests that failedon a local Node
+# TYPE scylla_storage_proxy_coordinator_read_errors_local_node counter
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="data",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="digest",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="data",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="digest",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="data",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="digest",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="data",shard="3",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="digest",shard="3",type="derive"} 0
+scylla_storage_proxy_coordinator_read_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="3",type="derive"} 0
+# HELP scylla_storage_proxy_coordinator_read_latency The general read latency histogram
+# TYPE scylla_storage_proxy_coordinator_read_latency histogram
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="0",type="histogram"} 7
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="0",type="histogram"} 35
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="0",type="histogram"} 83
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="0",type="histogram"} 144
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="0",type="histogram"} 210
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="0",type="histogram"} 286
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="0",type="histogram"} 368
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="0",type="histogram"} 451
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="0",type="histogram"} 541
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="0",type="histogram"} 634
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="0",type="histogram"} 733
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="0",type="histogram"} 836
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="0",type="histogram"} 939
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="0",type="histogram"} 1042
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="0",type="histogram"} 1145
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="0",type="histogram"} 1248
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="0",type="histogram"} 1351
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="0",type="histogram"} 1454
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="0",type="histogram"} 1557
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="0",type="histogram"} 1660
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="0",type="histogram"} 103
+scylla_storage_proxy_coordinator_read_latency_sum{instance="aacdf42015e4"} 178286
+scylla_storage_proxy_coordinator_read_latency_count{instance="aacdf42015e4"} 103
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="1",type="histogram"} 4
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="1",type="histogram"} 21
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="1",type="histogram"} 47
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="1",type="histogram"} 82
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="1",type="histogram"} 118
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="1",type="histogram"} 164
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="1",type="histogram"} 212
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="1",type="histogram"} 262
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="1",type="histogram"} 317
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="1",type="histogram"} 375
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="1",type="histogram"} 438
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="1",type="histogram"} 501
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="1",type="histogram"} 564
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="1",type="histogram"} 627
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="1",type="histogram"} 690
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="1",type="histogram"} 753
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="1",type="histogram"} 816
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="1",type="histogram"} 879
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="1",type="histogram"} 942
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="1",type="histogram"} 1005
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="1",type="histogram"} 63
+scylla_storage_proxy_coordinator_read_latency_sum{instance="aacdf42015e4"} 87710
+scylla_storage_proxy_coordinator_read_latency_count{instance="aacdf42015e4"} 63
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_sum{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_read_latency_count{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_read_latency_sum{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_read_latency_count{instance="aacdf42015e4"} 0
+# HELP scylla_storage_proxy_coordinator_read_repair_write_attempts_local_node number of write operations in a read repair contexton a local Node
+# TYPE scylla_storage_proxy_coordinator_read_repair_write_attempts_local_node counter
+scylla_storage_proxy_coordinator_read_repair_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_read_repair_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_read_repair_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_read_repair_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="3",type="derive"} 0
+# HELP scylla_storage_proxy_coordinator_read_retries number of read retry attempts
+# TYPE scylla_storage_proxy_coordinator_read_retries counter
+scylla_storage_proxy_coordinator_read_retries{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_retries{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_retries{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_retries{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_read_timeouts number of read request failed due to a timeout
+# TYPE scylla_storage_proxy_coordinator_read_timeouts counter
+scylla_storage_proxy_coordinator_read_timeouts{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_timeouts{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_timeouts{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_timeouts{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_read_unavailable number read requests failed due to an "unavailable" error
+# TYPE scylla_storage_proxy_coordinator_read_unavailable counter
+scylla_storage_proxy_coordinator_read_unavailable{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_unavailable{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_unavailable{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_read_unavailable{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_reads_local_node number of data read requestson a local Node
+# TYPE scylla_storage_proxy_coordinator_reads_local_node counter
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="data",shard="0",type="derive"} 181
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="0",type="derive"} 10
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="data",shard="1",type="derive"} 136
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="1",type="derive"} 5
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="data",shard="2",type="derive"} 65
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="2",type="derive"} 5
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="data",shard="3",type="derive"} 65
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="digest",shard="3",type="derive"} 0
+scylla_storage_proxy_coordinator_reads_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="3",type="derive"} 5
+# HELP scylla_storage_proxy_coordinator_throttled_writes number of throttled write requests
+# TYPE scylla_storage_proxy_coordinator_throttled_writes counter
+scylla_storage_proxy_coordinator_throttled_writes{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_throttled_writes{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_throttled_writes{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_throttled_writes{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_total_write_attempts_local_node total number of write requestson a local Node
+# TYPE scylla_storage_proxy_coordinator_total_write_attempts_local_node counter
+scylla_storage_proxy_coordinator_total_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_total_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_total_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_total_write_attempts_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="3",type="derive"} 0
+# HELP scylla_storage_proxy_coordinator_write_errors_local_node number of write requests that failedon a local Node
+# TYPE scylla_storage_proxy_coordinator_write_errors_local_node counter
+scylla_storage_proxy_coordinator_write_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="0",type="derive"} 0
+scylla_storage_proxy_coordinator_write_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="1",type="derive"} 0
+scylla_storage_proxy_coordinator_write_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="2",type="derive"} 0
+scylla_storage_proxy_coordinator_write_errors_local_node{instance="aacdf42015e4",op_type="mutation_data",shard="3",type="derive"} 0
+# HELP scylla_storage_proxy_coordinator_write_latency The general write latency histogram
+# TYPE scylla_storage_proxy_coordinator_write_latency histogram
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="0",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_sum{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_write_latency_count{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="1",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_sum{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_write_latency_count{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="2",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_sum{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_write_latency_count{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="64.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="128.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="256.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="512.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1024.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2048.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4096.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8192.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="16384.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="32768.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="65536.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="131072.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="262144.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="524288.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="1048576.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="2097152.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="4194304.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="8388608.000000",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_bucket{instance="aacdf42015e4",le="+Inf",shard="3",type="histogram"} 0
+scylla_storage_proxy_coordinator_write_latency_sum{instance="aacdf42015e4"} 0
+scylla_storage_proxy_coordinator_write_latency_count{instance="aacdf42015e4"} 0
+# HELP scylla_storage_proxy_coordinator_write_timeouts number of write request failed due to a timeout
+# TYPE scylla_storage_proxy_coordinator_write_timeouts counter
+scylla_storage_proxy_coordinator_write_timeouts{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_write_timeouts{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_write_timeouts{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_write_timeouts{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_coordinator_write_unavailable number write requests failed due to an "unavailable" error
+# TYPE scylla_storage_proxy_coordinator_write_unavailable counter
+scylla_storage_proxy_coordinator_write_unavailable{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_coordinator_write_unavailable{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_coordinator_write_unavailable{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_coordinator_write_unavailable{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_replica_forwarded_mutations number of mutations forwarded to other replica Nodes
+# TYPE scylla_storage_proxy_replica_forwarded_mutations counter
+scylla_storage_proxy_replica_forwarded_mutations{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_replica_forwarded_mutations{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_replica_forwarded_mutations{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_replica_forwarded_mutations{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_replica_forwarding_errors number of errors during forwarding mutations to other replica Nodes
+# TYPE scylla_storage_proxy_replica_forwarding_errors counter
+scylla_storage_proxy_replica_forwarding_errors{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_replica_forwarding_errors{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_replica_forwarding_errors{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_replica_forwarding_errors{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_replica_reads number of remote data read requests this Node received
+# TYPE scylla_storage_proxy_replica_reads counter
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="data",shard="0",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="digest",shard="0",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="mutation_data",shard="0",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="data",shard="1",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="digest",shard="1",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="mutation_data",shard="1",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="data",shard="2",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="digest",shard="2",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="mutation_data",shard="2",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="data",shard="3",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="digest",shard="3",type="total_operations"} 0
+scylla_storage_proxy_replica_reads{instance="aacdf42015e4",op_type="mutation_data",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_replica_received_counter_updates number of counter updates received by this node acting as an update leader
+# TYPE scylla_storage_proxy_replica_received_counter_updates counter
+scylla_storage_proxy_replica_received_counter_updates{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_replica_received_counter_updates{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_replica_received_counter_updates{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_replica_received_counter_updates{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_storage_proxy_replica_received_mutations number of mutations received by a replica Node
+# TYPE scylla_storage_proxy_replica_received_mutations counter
+scylla_storage_proxy_replica_received_mutations{instance="aacdf42015e4",shard="0",type="total_operations"} 0
+scylla_storage_proxy_replica_received_mutations{instance="aacdf42015e4",shard="1",type="total_operations"} 0
+scylla_storage_proxy_replica_received_mutations{instance="aacdf42015e4",shard="2",type="total_operations"} 0
+scylla_storage_proxy_replica_received_mutations{instance="aacdf42015e4",shard="3",type="total_operations"} 0
+# HELP scylla_streaming_total_incoming_bytes This is a received bytes rate.
+# TYPE scylla_streaming_total_incoming_bytes counter
+scylla_streaming_total_incoming_bytes{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_streaming_total_incoming_bytes{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_streaming_total_incoming_bytes{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_streaming_total_incoming_bytes{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_streaming_total_outgoing_bytes This is a sent bytes rate.
+# TYPE scylla_streaming_total_outgoing_bytes counter
+scylla_streaming_total_outgoing_bytes{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_streaming_total_outgoing_bytes{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_streaming_total_outgoing_bytes{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_streaming_total_outgoing_bytes{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_thrift_current_connections Holds a current number of opened Thrift connections.
+# TYPE scylla_thrift_current_connections gauge
+scylla_thrift_current_connections{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_thrift_current_connections{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_thrift_current_connections{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_thrift_current_connections{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_thrift_served Rate of serving Thrift requests.
+# TYPE scylla_thrift_served counter
+scylla_thrift_served{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_thrift_served{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_thrift_served{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_thrift_served{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_thrift_thrift_connections Rate of creation of new Thrift connections.
+# TYPE scylla_thrift_thrift_connections counter
+scylla_thrift_thrift_connections{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_thrift_thrift_connections{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_thrift_thrift_connections{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_thrift_thrift_connections{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_tracing_active_sessions Holds a number of a currently active tracing sessions.
+# TYPE scylla_tracing_active_sessions gauge
+scylla_tracing_active_sessions{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_tracing_active_sessions{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_tracing_active_sessions{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_tracing_active_sessions{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_tracing_cached_records Holds a number of tracing records cached in the tracing sessions that are not going to be written in the next write event. If sum of this metric, pending_for_write_records and flushing_records is close to 11000 we are likely to start dropping tracing records.
+# TYPE scylla_tracing_cached_records gauge
+scylla_tracing_cached_records{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_tracing_cached_records{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_tracing_cached_records{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_tracing_cached_records{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_tracing_dropped_records Counts a number of dropped records due to too many pending records. High value indicates that backend is saturated with the rate with which new tracing records are created.
+# TYPE scylla_tracing_dropped_records counter
+scylla_tracing_dropped_records{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_tracing_dropped_records{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_tracing_dropped_records{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_tracing_dropped_records{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_tracing_dropped_sessions Counts a number of dropped sessions due to too many pending sessions/records. High value indicates that backend is saturated with the rate with which new tracing records are created.
+# TYPE scylla_tracing_dropped_sessions counter
+scylla_tracing_dropped_sessions{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_tracing_dropped_sessions{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_tracing_dropped_sessions{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_tracing_dropped_sessions{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_tracing_flushing_records Holds a number of tracing records that currently being written to the I/O backend. If sum of this metric, cached_records and pending_for_write_records is close to 11000 we are likely to start dropping tracing records.
+# TYPE scylla_tracing_flushing_records gauge
+scylla_tracing_flushing_records{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_tracing_flushing_records{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_tracing_flushing_records{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_tracing_flushing_records{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_tracing_keyspace_helper_bad_column_family_errors Counts a number of times write failed due to one of the tables in the system_traces keyspace has an incompatible schema. One error may result one or more tracing records to be lost. Non-zero value indicates that the administrator has to take immediate steps to fix the corresponding schema. The appropriate error message will be printed in the syslog.
+# TYPE scylla_tracing_keyspace_helper_bad_column_family_errors counter
+scylla_tracing_keyspace_helper_bad_column_family_errors{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_tracing_keyspace_helper_bad_column_family_errors{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_tracing_keyspace_helper_bad_column_family_errors{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_tracing_keyspace_helper_bad_column_family_errors{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_tracing_keyspace_helper_tracing_errors Counts a number of errors during writing to a system_traces keyspace. One error may cause one or more tracing records to be lost.
+# TYPE scylla_tracing_keyspace_helper_tracing_errors counter
+scylla_tracing_keyspace_helper_tracing_errors{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_tracing_keyspace_helper_tracing_errors{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_tracing_keyspace_helper_tracing_errors{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_tracing_keyspace_helper_tracing_errors{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_tracing_pending_for_write_records Holds a number of tracing records that are going to be written in the next write event. If sum of this metric, cached_records and flushing_records is close to 11000 we are likely to start dropping tracing records.
+# TYPE scylla_tracing_pending_for_write_records gauge
+scylla_tracing_pending_for_write_records{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_tracing_pending_for_write_records{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_tracing_pending_for_write_records{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_tracing_pending_for_write_records{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_tracing_trace_errors Counts a number of trace records dropped due to an error (e.g. OOM).
+# TYPE scylla_tracing_trace_errors counter
+scylla_tracing_trace_errors{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_tracing_trace_errors{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_tracing_trace_errors{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_tracing_trace_errors{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_tracing_trace_records_count This metric is a rate of tracing records generation.
+# TYPE scylla_tracing_trace_records_count counter
+scylla_tracing_trace_records_count{instance="aacdf42015e4",shard="0",type="derive"} 0
+scylla_tracing_trace_records_count{instance="aacdf42015e4",shard="1",type="derive"} 0
+scylla_tracing_trace_records_count{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_tracing_trace_records_count{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_transport_cql_connections Counts a number of client connections.
+# TYPE scylla_transport_cql_connections counter
+scylla_transport_cql_connections{instance="aacdf42015e4",shard="0",type="derive"} 1
+scylla_transport_cql_connections{instance="aacdf42015e4",shard="1",type="derive"} 1
+scylla_transport_cql_connections{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_transport_cql_connections{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_transport_current_connections Holds a current number of client connections.
+# TYPE scylla_transport_current_connections gauge
+scylla_transport_current_connections{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_transport_current_connections{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_transport_current_connections{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_transport_current_connections{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_transport_requests_blocked_memory Holds a number of requests that are blocked due to reaching the memory quota limit (778462822B). Non-zero value indicates that our bottleneck is memory and more specifically - the memory quota allocated for the "CQL transport" component.
+# TYPE scylla_transport_requests_blocked_memory gauge
+scylla_transport_requests_blocked_memory{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_transport_requests_blocked_memory{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_transport_requests_blocked_memory{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_transport_requests_blocked_memory{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_transport_requests_served Counts a number of served requests.
+# TYPE scylla_transport_requests_served counter
+scylla_transport_requests_served{instance="aacdf42015e4",shard="0",type="derive"} 24
+scylla_transport_requests_served{instance="aacdf42015e4",shard="1",type="derive"} 27
+scylla_transport_requests_served{instance="aacdf42015e4",shard="2",type="derive"} 0
+scylla_transport_requests_served{instance="aacdf42015e4",shard="3",type="derive"} 0
+# HELP scylla_transport_requests_serving Holds a number of requests that are being processed right now.
+# TYPE scylla_transport_requests_serving gauge
+scylla_transport_requests_serving{instance="aacdf42015e4",shard="0",type="gauge"} 0.000000
+scylla_transport_requests_serving{instance="aacdf42015e4",shard="1",type="gauge"} 0.000000
+scylla_transport_requests_serving{instance="aacdf42015e4",shard="2",type="gauge"} 0.000000
+scylla_transport_requests_serving{instance="aacdf42015e4",shard="3",type="gauge"} 0.000000
+# HELP scylla_transport_unpaged_queries The number of unpaged queries served.
+# TYPE scylla_transport_unpaged_queries counter
+scylla_transport_unpaged_queries{instance="aacdf42015e4",shard="0",type="counter"} 21
+scylla_transport_unpaged_queries{instance="aacdf42015e4",shard="1",type="counter"} 22
+scylla_transport_unpaged_queries{instance="aacdf42015e4",shard="2",type="counter"} 0
+scylla_transport_unpaged_queries{instance="aacdf42015e4",shard="3",type="counter"} 0

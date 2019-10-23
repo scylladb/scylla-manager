@@ -314,7 +314,7 @@ func (s *Service) checkLocationsAvailableFromHost(ctx context.Context, client *s
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
 	_, err := client.RcloneListDir(middleware.DontRetry(ctx), h, l.RemotePath(""), nil)
 	if err != nil {
-		s.logger.Error(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
+		s.logger.Info(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
 		var e error
 		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 			e = errors.Errorf("%s: failed to access %s make sure that the location is correct and credentials are set", h, l)
@@ -368,7 +368,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, host string, lo
 				"host", host,
 				"location", l,
 			)
-			m, err := listManifests(ctx, l, client, host, filter, false)
+			m, err := listManifests(ctx, client, host, l, filter, s.logger.Named("list"))
 			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", host, l)}
 		}(l)
 	}
@@ -504,7 +504,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	}
 
 	// Check if can continue from prev
-	s.logger.Info(ctx, "Found previous run", "run_id", prev.ID, "prev_run_id", prev.PrevID)
+	s.logger.Info(ctx, "Found previous run", "run_id", prev.ID)
 	if timeutc.Since(prev.StartTime) > s.config.AgeMax {
 		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 		return nil

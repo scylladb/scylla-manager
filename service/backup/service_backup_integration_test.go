@@ -390,9 +390,9 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 				t.Fatal("GetTarget() expected error")
 			}
 
-			t.Log("GetTarget() message:", err)
+			t.Log("GetTarget():", err)
 			if !strings.Contains(err.Error(), test.Error) {
-				t.Fatalf("GetTarget() expected error message %q got %q", test.Error, err)
+				t.Fatalf("GetTarget() = %v, expected %v", err, test.Error)
 			}
 		})
 	}
@@ -594,11 +594,11 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(items) != 1 {
-		t.Fatalf("List() expected one item got %d %v", len(items), items)
+		t.Fatalf("List() = %v, expected one item", items)
 	}
 	i := items[0]
 	if len(i.SnapshotTags) != 2 {
-		t.Fatalf("List() expected two SnapshotTags %d %v", len(i.SnapshotTags), i)
+		t.Fatalf("List() = %v, expected two SnapshotTags", items)
 	}
 }
 

@@ -21,13 +21,25 @@ const (
 	sep      = string(os.PathSeparator)
 )
 
-func remoteManifestLevel() int {
-	return len(strings.Split(remoteManifestFile(uuid.Nil, uuid.Nil, "a", "b", "c", "d", "e", "f"), sep))
+func remoteMetaClusterDCDir(clusterID uuid.UUID) string {
+	return path.Join(
+		"backup",
+		string(metaDirKind),
+		"cluster",
+		clusterID.String(),
+		"dc",
+	)
+}
+
+func remoteMetaKeyspaceLevel(baseDir string) int {
+	a := len(strings.Split(remoteBaseDir(metaDirKind, uuid.Nil, "a", "b", "c", "d"), sep))
+	b := len(strings.Split(baseDir, sep))
+	return a - b - 2
 }
 
 func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
+		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
 		"tag",
@@ -39,7 +51,7 @@ func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, ke
 
 func remoteTagDir(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
+		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
 		"tag",
@@ -49,7 +61,7 @@ func remoteTagDir(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace
 
 func remoteTagsDir(clusterID, taskID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
+		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
 		"task",
 		taskID.String(),
 		"tag",
@@ -58,29 +70,33 @@ func remoteTagsDir(clusterID, taskID uuid.UUID, dc, nodeID, keyspace, table stri
 
 func remoteTasksDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
+		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
 		"task",
 	)
 }
 
 func remoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
-		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
-		"sst",
+		remoteBaseDir(sstDirKind, clusterID, dc, nodeID, keyspace, table),
 		version,
 	)
 }
 
 func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
-	return path.Join(
-		remoteBaseDir(clusterID, dc, nodeID, keyspace, table),
-		"sst",
-	)
+	return remoteBaseDir(sstDirKind, clusterID, dc, nodeID, keyspace, table)
 }
 
-func remoteBaseDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
+type dirKind string
+
+const (
+	sstDirKind  = dirKind("sst")
+	metaDirKind = dirKind("meta")
+)
+
+func remoteBaseDir(kind dirKind, clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
 		"backup",
+		string(kind),
 		"cluster",
 		clusterID.String(),
 		"dc",

@@ -15,13 +15,13 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 )
 
-var remoteManifestCmpOpts = cmp.Options{
-	UUIDComparer(),
-	cmpopts.IgnoreFields(remoteManifest{}, "CleanPath", "Files"),
-}
-
 func TestRemoteManifestParsePath(t *testing.T) {
 	t.Parallel()
+
+	var cmpOpts = cmp.Options{
+		UUIDComparer(),
+		cmpopts.IgnoreFields(remoteManifest{}, "CleanPath", "Files"),
+	}
 
 	golden := remoteManifest{
 		ClusterID:   uuid.MustRandom(),
@@ -35,11 +35,11 @@ func TestRemoteManifestParsePath(t *testing.T) {
 	}
 
 	var m remoteManifest
-	if err := m.ParsePartialPath(golden.remoteManifestFile()); err != nil {
+	if err := m.ParsePartialPath(golden.RemoteManifestFile()); err != nil {
 		t.Fatal("ParsePartialPath() error", err)
 	}
-	if diff := cmp.Diff(golden, m, remoteManifestCmpOpts); diff != "" {
-		t.Fatal("ParsePartialPath() unexpected result", diff)
+	if diff := cmp.Diff(m, golden, cmpOpts); diff != "" {
+		t.Fatal("ParsePartialPath() diff", diff)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestRemoteManifestParsePathEmpty(t *testing.T) {
 			t.Parallel()
 			var p remoteManifest
 			if err := p.ParsePartialPath(test.Path); err != nil {
-				t.Fatal("ParsePartialPath() unexpected error", err)
+				t.Fatal("ParsePartialPath() error", err)
 			}
 		})
 	}
@@ -92,12 +92,12 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		},
 		{
 			Name:  "invalid cluster ID",
-			Path:  "backup/cluster/bla",
+			Path:  "backup/meta/cluster/bla",
 			Error: "invalid UUID",
 		},
 		{
 			Name:  "invalid static DC",
-			Path:  "backup/cluster/" + uuid.MustRandom().String() + "/bla",
+			Path:  "backup/meta/cluster/" + uuid.MustRandom().String() + "/bla",
 			Error: "expected dc",
 		},
 		{
@@ -108,7 +108,7 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		{
 			Name:  "sSTable dir",
 			Path:  remoteSSTableDir(uuid.MustRandom(), "dc", "nodeID", "keysapce", "table"),
-			Error: "expected task",
+			Error: "expected meta",
 		},
 	}
 
@@ -124,9 +124,9 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 				t.Fatal("ParsePartialPath() expected error")
 			}
 
-			t.Log("ParsePartialPath() message:", err)
+			t.Log("ParsePartialPath():", err)
 			if !strings.Contains(err.Error(), test.Error) {
-				t.Fatalf("ParsePartialPath() expected error message %q got %q", test.Error, err)
+				t.Fatalf("ParsePartialPath() = %v, expected %v", err, test.Error)
 			}
 		})
 	}
@@ -206,13 +206,13 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	golden := []ListItem{
 		{
 			ClusterID:    c0,
-			Units:        units,
-			SnapshotTags: []string{s1, s0},
+			Units:        []Unit{{Keyspace: ks0, Tables: []string{tb0}}},
+			SnapshotTags: []string{s3},
 		},
 		{
 			ClusterID:    c0,
-			Units:        []Unit{{Keyspace: ks0, Tables: []string{tb0}}},
-			SnapshotTags: []string{s3},
+			Units:        units,
+			SnapshotTags: []string{s1, s0},
 		},
 		{
 			ClusterID:    c1,
@@ -224,6 +224,6 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	v := aggregateRemoteManifests(input)
 
 	if diff := cmp.Diff(v, golden, listItemCmpOpts); diff != "" {
-		t.Errorf("AggregateRemoteManifests() unexpected result diff %s value %+v", diff, v)
+		t.Error("AggregateRemoteManifests() diff", diff)
 	}
 }

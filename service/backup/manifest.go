@@ -32,7 +32,7 @@ type remoteManifest struct {
 }
 
 // ParsePartialPath tries extracting properties from remote path to manifest.
-// This is a reverse process to calling remoteManifestFile function.
+// This is a reverse process to calling RemoteManifestFile function.
 // It supports path prefixes i.e. paths that may lead to a manifest file,
 // in that case no error is returned but only some fields will be set.
 func (m *remoteManifest) ParsePartialPath(s string) error {
@@ -68,6 +68,7 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 
 	parsers := []func(v string) error{
 		static("backup"),
+		static("meta"),
 		static("cluster"),
 		id(&m.ClusterID),
 		static("dc"),
@@ -110,7 +111,7 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 	return nil
 }
 
-func (m remoteManifest) remoteManifestFile() string {
+func (m remoteManifest) RemoteManifestFile() string {
 	return remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
 }
 
@@ -195,8 +196,8 @@ func aggregateRemoteManifests(manifests []remoteManifest) []ListItem {
 		if c := uuid.Compare(list[i].ClusterID, list[j].ClusterID); c != 0 {
 			return c < 0
 		}
-		if len(list[i].Units) != len(list[j].Units) {
-			return len(list[i].Units) > len(list[j].Units)
+		if list[i].SnapshotTags[0] != list[j].SnapshotTags[0] {
+			return list[i].SnapshotTags[0] > list[j].SnapshotTags[0]
 		}
 		return list[i].unitsHash < list[j].unitsHash
 	})

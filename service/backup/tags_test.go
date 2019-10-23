@@ -13,7 +13,7 @@ func TestSnapshotTag(t *testing.T) {
 	tag := newSnapshotTag()
 	t.Log(tag)
 	if !isSnapshotTag(tag) {
-		t.Fatalf("isSnapshotTag() did not claim newSnapshotTag() output %s", tag)
+		t.Fatalf("isSnapshotTag(%s) = false, expected true", tag)
 	}
 }
 
@@ -24,6 +24,6 @@ func TestSnapshotTagChanges(t *testing.T) {
 	time.Sleep(time.Second)
 	t1 := newSnapshotTag()
 	if t0 == t1 {
-		t.Fatal("newSnapshotTag() did not change between invocations")
+		t.Fatalf("newSnapshotTag() = %s; newSnapshotTag() = %s, expected to be different", t0, t1)
 	}
 }
