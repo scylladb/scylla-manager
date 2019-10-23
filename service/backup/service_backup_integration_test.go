@@ -543,28 +543,31 @@ func TestBackupSmokeIntegration(t *testing.T) {
 				Keyspace: "system_auth",
 			},
 		},
-		DC:       []string{"dc1"},
-		Location: []backup.Location{location},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 3,
 	}
 
 	Print("When: run backup")
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)
 	}
-	Print("Then: data is uploaded")
-	manifests, _ := h.listFiles()
-	if len(manifests) == 0 {
-		t.Fatalf("Expected manifests to be uploaded")
+	Print("And: run it again")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
 	}
 
-	Print("And: data can be found in listing")
-	items, err := h.service.List(ctx, h.clusterID, ManagedClusterHost(), []backup.Location{location}, backup.ListFilter{})
+	Print("Then: there are two backups")
+	items, err := h.service.List(ctx, h.clusterID, ManagedClusterHost(), []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("Items: %+v", items)
-	if len(items) == 0 {
-		t.Fatal("Expected items in listing")
+	if len(items) != 1 {
+		t.Fatalf("List() expected one item got %d %v", len(items), items)
+	}
+	i := items[0]
+	if len(i.SnapshotTags) != 2 {
+		t.Fatalf("List() expected two SnapshotTags %d %v", len(i.SnapshotTags), i)
 	}
 }
 

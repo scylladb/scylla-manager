@@ -131,7 +131,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		dataDst = h.Location.RemotePath(sstablesPath)
 		dataSrc = d.Path
 	)
-	if err := w.uploadDir(ctx, dataDst, dataSrc, d, manifest); err != nil {
+	if err := w.uploadDataDir(ctx, dataDst, dataSrc, d); err != nil {
 		return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
 	}
 
@@ -146,32 +146,42 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		manifestDst = h.Location.RemotePath(manifestPath)
 		manifestSrc = path.Join(d.Path, manifest)
 	)
-	if err := w.uploadFile(ctx, manifestDst, manifestSrc, d); err != nil {
+	if err := w.uploadManifestFile(ctx, manifestDst, manifestSrc, d); err != nil {
 		return errors.Wrapf(err, "copy %q to %q", manifestSrc, manifestDst)
 	}
 
 	return nil
 }
 
-func (w *worker) uploadFile(ctx context.Context, dst, src string, d snapshotDir) error {
-	w.Logger.Debug(ctx, "Uploading file", "host", d.Host, "from", src, "to", dst)
+func (w *worker) uploadManifestFile(ctx context.Context, dst, src string, d snapshotDir) error {
 	id, err := w.Client.RcloneCopyFile(ctx, d.Host, dst, src)
 	if err != nil {
 		return err
 	}
+
+	w.Logger.Debug(ctx, "Uploading file", "host", d.Host, "from", src, "to", dst, "agent_job_id", id)
+	for _, p := range d.Progress {
+		if p.FileName == manifest {
+			p.AgentJobID = id
+			w.onRunProgress(ctx, p)
+			break // There is only one manifest in snapshotDir
+		}
+	}
 	return w.waitJob(ctx, id, d)
 }
 
-func (w *worker) uploadDir(ctx context.Context, dst, src string, d snapshotDir, exclude ...string) error {
-	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst)
-	id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src, exclude...)
+func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotDir) error {
+	id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src, manifest)
 	if err != nil {
 		return err
 	}
 
+	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "agent_job_id", id)
 	for _, p := range d.Progress {
-		p.AgentJobID = id
-		w.onRunProgress(ctx, p)
+		if p.FileName != manifest {
+			p.AgentJobID = id
+			w.onRunProgress(ctx, p)
+		}
 	}
 	return w.waitJob(ctx, id, d)
 }
