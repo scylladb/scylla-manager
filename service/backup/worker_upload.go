@@ -121,30 +121,20 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 	)
 
 	// Upload sstables
-	sstablesPath := w.remoteSSTableDir(h, d)
-	w.Logger.Info(ctx, "Uploading sstables",
-		"host", h.IP,
-		"location", h.Location,
-		"path", sstablesPath,
-	)
 	var (
-		dataDst = h.Location.RemotePath(sstablesPath)
-		dataSrc = d.Path
+		sstablesPath = w.remoteSSTableDir(h, d)
+		dataDst      = h.Location.RemotePath(sstablesPath)
+		dataSrc      = d.Path
 	)
 	if err := w.uploadDataDir(ctx, dataDst, dataSrc, d); err != nil {
 		return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
 	}
 
 	// Upload manifest
-	manifestPath := w.remoteManifestFile(h, d)
-	w.Logger.Info(ctx, "Uploading manifest",
-		"host", h.IP,
-		"location", h.Location,
-		"path", manifestPath,
-	)
 	var (
-		manifestDst = h.Location.RemotePath(manifestPath)
-		manifestSrc = path.Join(d.Path, manifest)
+		manifestPath = w.remoteManifestFile(h, d)
+		manifestDst  = h.Location.RemotePath(manifestPath)
+		manifestSrc  = path.Join(d.Path, manifest)
 	)
 	if err := w.uploadManifestFile(ctx, manifestDst, manifestSrc, d); err != nil {
 		return errors.Wrapf(err, "copy %q to %q", manifestSrc, manifestDst)
