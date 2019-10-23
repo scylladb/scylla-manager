@@ -218,12 +218,17 @@ var backupListCmd = &cobra.Command{
 				return err
 			}
 		}
+		showTables, err := cmd.Flags().GetInt("show-tables")
+		if err != nil {
+			return err
+		}
 
 		list, err := client.ListBackups(ctx, cfgCluster, host, location, allClusters, keyspace, minDate, maxDate)
 		if err != nil {
 			return err
 		}
 		list.AllClusters = allClusters
+		list.ShowTables = showTables
 
 		return list.Render(cmd.OutOrStdout())
 	},
@@ -235,12 +240,20 @@ func init() {
 	register(cmd, backupCmd)
 
 	fs := cmd.Flags()
-	fs.String("host", "", "host used to access locations")
-	fs.StringSliceP("location", "L", nil, "a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>, the dc part is optional and only needed when different datacenters upload data to different locations, the supported providers are: s3") //nolint: lll
-	fs.Bool("all-clusters", false, "show backups for all clusters")
-	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	fs.String("min-date", "", "minimal snapshot date in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
-	fs.String("max-date", "", "maximal snapshot date in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
+	fs.String("host", "",
+		"host used to access locations")
+	fs.StringSliceP("location", "L", nil,
+		"a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
+	fs.Bool("all-clusters", false,
+		"show backups for all clusters")
+	fs.StringSliceP("keyspace", "K", nil,
+		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+	fs.String("min-date", "",
+		"specifies minimal snapshot date expressed in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
+	fs.String("max-date", "",
+		"specifies maximal snapshot date expressed in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
+	fs.Int("show-tables", 0,
+		"specifies maximal number of table names printed for a keyspace, use -1 for no limit")
 
 	requireFlags(cmd, "host", "location")
 }

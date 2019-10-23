@@ -181,3 +181,15 @@ func FormatMultiHostError(msg, prefix string) string {
 	r := regexp.MustCompile(`[:;] (([0-9]{1,3}\.){3}[0-9]{1,3}): `)
 	return r.ReplaceAllString(msg, "\n"+prefix+"${1}: ")
 }
+
+// FormatTables returns tables listing if number of tables is lower than
+// threshold. It prints (n tables) or (table_a, table_b, ...).
+func FormatTables(threshold int, tables []string) string {
+	if len(tables) == 0 || threshold == 0 || (threshold > 0 && len(tables) > threshold) {
+		if len(tables) == 1 {
+			return "(1 table)"
+		}
+		return fmt.Sprintf("(%d tables)", len(tables))
+	}
+	return "(" + strings.Join(tables, ", ") + ")"
+}

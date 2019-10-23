@@ -162,3 +162,65 @@ func TestFormatMultiHostError(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestFormatTables(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Name      string
+		Threshold int
+		Tables    []string
+		Golden    string
+	}{
+		{
+			Name:      "empty with threshold",
+			Threshold: 2,
+			Golden:    "(0 tables)",
+		},
+		{
+			Name:      "empty unlimited",
+			Threshold: -1,
+			Golden:    "(0 tables)",
+		},
+		{
+			Name:      "unlimited",
+			Threshold: -1,
+			Tables:    []string{"a", "b"},
+			Golden:    "(a, b)",
+		},
+		{
+			Name:   "one table",
+			Tables: []string{"a"},
+			Golden: "(1 table)",
+		},
+		{
+			Name:   "no threshold",
+			Tables: []string{"a", "b"},
+			Golden: "(2 tables)",
+		},
+		{
+			Name:      "above threshold",
+			Threshold: 1,
+			Tables:    []string{"a", "b"},
+			Golden:    "(2 tables)",
+		},
+		{
+			Name:      "below threshold",
+			Threshold: 1,
+			Tables:    []string{"a"},
+			Golden:    "(a)",
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
+			if s := FormatTables(test.Threshold, test.Tables); s != test.Golden {
+				t.Errorf("FormatTables() expected %s got %s", test.Golden, s)
+			}
+		})
+	}
+}

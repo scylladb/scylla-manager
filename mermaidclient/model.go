@@ -619,28 +619,35 @@ func (bp BackupProgress) arguments() string {
 type BackupListItems struct {
 	items       []*models.BackupListItem
 	AllClusters bool
+	ShowTables  int
 }
 
 const backupListItemTemplate = `Snapshots:
 {{- range .SnapshotTags }}
   - {{ . }}
 {{- end }}
-{{ range .Units }}Keyspace: {{ .Keyspace }}
-{{- range .Tables }}
-  - {{ . }}
+Keyspaces:
+{{- range .Units }}
+  - {{ .Keyspace }} {{ FormatTables .Tables }}
 {{- end }}
-{{ end -}}
+
 `
 
 // Render implements Renderer interface.
 func (bl BackupListItems) Render(w io.Writer) error {
-	temp := template.Must(template.New("backup_list_items").Parse(backupListItemTemplate))
+	temp := template.Must(template.New("backup_list_items").Funcs(template.FuncMap{
+		"FormatTables": func(tables []string) string {
+			return FormatTables(bl.ShowTables, tables)
+		},
+	}).Parse(backupListItemTemplate))
+
 	prev := ""
 	for _, i := range bl.items {
 		if bl.AllClusters {
 			if prev != i.ClusterID {
 				prev = i.ClusterID
 				fmt.Fprintln(w, "Cluster:", i.ClusterID)
+				fmt.Fprintln(w)
 			}
 		}
 		if err := temp.Execute(w, i); err != nil {
