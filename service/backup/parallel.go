@@ -4,7 +4,7 @@ package backup
 
 import (
 	"github.com/pkg/errors"
-	"go.uber.org/atomic"
+	"github.com/scylladb/mermaid/internal/parallel"
 	"go.uber.org/multierr"
 )
 
@@ -76,27 +76,7 @@ func inParallelWithLimits(hosts []hostInfo, limits []DCLimit, f func(h hostInfo)
 }
 
 func inParallel(hosts []hostInfo, limit int, f func(h hostInfo) error) error {
-	if limit <= 0 {
-		limit = len(hosts)
-	}
-
-	idx := atomic.NewInt32(0)
-	out := make(chan error)
-	for j := 0; j < limit; j++ {
-		go func() {
-			for {
-				i := int(idx.Inc()) - 1
-				if i >= len(hosts) {
-					return
-				}
-				out <- errors.Wrapf(f(hosts[i]), "%s", hosts[i])
-			}
-		}()
-	}
-
-	var errs error
-	for range hosts {
-		errs = multierr.Append(errs, <-out)
-	}
-	return errs
+	return parallel.Run(len(hosts), limit, func(i int) error {
+		return errors.Wrapf(f(hosts[i]), "%s", hosts[i])
+	})
 }

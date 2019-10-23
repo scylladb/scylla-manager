@@ -4,10 +4,8 @@ package backup
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.uber.org/atomic"
 )
 
 func TestMakeHostsLimit(t *testing.T) {
@@ -71,22 +69,4 @@ func TestMakeHostsLimit(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestInParallel(t *testing.T) {
-	t.Parallel()
-
-	const limit = 2
-
-	tokens := atomic.NewInt32(0)
-	f := func(h hostInfo) error {
-		v := tokens.Inc()
-		if v > limit {
-			t.Errorf("Limit exeded, got %d", v)
-		}
-		time.Sleep(50 * time.Millisecond)
-		tokens.Dec()
-		return nil
-	}
-	inParallel(make([]hostInfo, 100*limit), limit, f)
 }
