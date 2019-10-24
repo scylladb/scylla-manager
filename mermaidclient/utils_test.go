@@ -14,6 +14,8 @@ import (
 )
 
 func TestTaskSplit(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		S  string
 		T  string
@@ -58,6 +60,8 @@ func TestUUIDFromLocation(t *testing.T) {
 }
 
 func TestParseStartDate(t *testing.T) {
+	t.Parallel()
+
 	const epsilon = 50 * time.Millisecond
 
 	table := []struct {
@@ -108,7 +112,7 @@ func TestParseStartDate(t *testing.T) {
 		}
 
 		s := truncateToSecond(time.Time(startDate))
-		now := truncateToSecond(time.Time(timeutc.Now()))
+		now := truncateToSecond(timeutc.Now())
 		diff := now.Add(test.D).Sub(s)
 		if diff < 0 {
 			diff *= -1
@@ -124,12 +128,16 @@ func truncateToSecond(t time.Time) time.Time {
 }
 
 func TestFormatTimeZero(t *testing.T) {
+	t.Parallel()
+
 	if s := FormatTime(strfmt.DateTime(time.Time{})); s != "" {
 		t.Error(s)
 	}
 }
 
 func TestFormatTimeNonZero(t *testing.T) {
+	t.Parallel()
+
 	tz, _ := timeutc.Now().Local().Zone()
 
 	if s := FormatTime(strfmt.DateTime(timeutc.Now())); !strings.Contains(s, tz) {
@@ -138,6 +146,8 @@ func TestFormatTimeNonZero(t *testing.T) {
 }
 
 func TestFormatMultiHostError(t *testing.T) {
+	t.Parallel()
+
 	msg := `Error: create cluster: connectivity check failed: 192.168.100.13: unknown network bla; 192.168.100.22: unknown network bla; 192.168.100.12: unknown network bla; 192.168.100.23: unknown network bla; 192.168.100.11: unknown network bla; 192.168.100.21: unknown network bla`
 
 	golden := `Error: create cluster: connectivity check failed

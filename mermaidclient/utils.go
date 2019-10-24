@@ -120,14 +120,6 @@ func FormatPercent(p float32) string {
 	return fmt.Sprintf("%0.2f%%", p)
 }
 
-// FormatTime formats the supplied DateTime in `02 Jan 06 15:04:05 MST` format.
-func FormatTime(t strfmt.DateTime) string {
-	if isZero(t) {
-		return ""
-	}
-	return time.Time(t).Local().Format(rfc822WithSec)
-}
-
 // FormatUploadProgress formats size and uploaded bytes to human readable
 // format.
 func FormatUploadProgress(size, uploaded, skipped int64) string {
@@ -153,6 +145,14 @@ func ByteCountBinary(b int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f%ciB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+// FormatTime formats the supplied DateTime in `02 Jan 06 15:04:05 MST` format.
+func FormatTime(t strfmt.DateTime) string {
+	if isZero(t) {
+		return ""
+	}
+	return time.Time(t).Local().Format(rfc822WithSec)
 }
 
 // FormatDuration creates and formats the duration between
