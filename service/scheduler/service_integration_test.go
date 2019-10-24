@@ -261,12 +261,12 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		if total != len(tasks) {
-			t.Fatalf("wrong number of tasks after two PutOnce")
+			t.Fatalf("Wrong number of tasks after two PutOnce")
 		}
 		for _, ts := range tasks {
 			if ts.ID == task.ID {
 				if ts.Sched != task.Sched {
-					t.Fatalf("expected task %+v, got %+v", task.Sched, ts.Sched)
+					t.Fatalf("Expected task %+v, got %+v", task.Sched, ts.Sched)
 				}
 			}
 		}

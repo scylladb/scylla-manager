@@ -224,6 +224,6 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	v := aggregateRemoteManifests(input)
 
 	if diff := cmp.Diff(v, golden, listItemCmpOpts); diff != "" {
-		t.Errorf("aggregateRemoteManifests() unexpected result diff %s value %+v", diff, v)
+		t.Errorf("AggregateRemoteManifests() unexpected result diff %s value %+v", diff, v)
 	}
 }

@@ -57,7 +57,7 @@ func TestPickNRandomHosts(t *testing.T) {
 	for i, test := range table {
 		picked := scyllaclient.PickNRandomHosts(test.N, test.H)
 		if len(picked) != test.E {
-			t.Errorf("picked %d hosts, expected %d in test %d", len(picked), test.E, i)
+			t.Errorf("Picked %d hosts, expected %d in test %d", len(picked), test.E, i)
 		}
 	}
 }

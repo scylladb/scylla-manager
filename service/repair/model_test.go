@@ -19,7 +19,7 @@ func TestTokenRangesKindMarshalUnmarshalText(t *testing.T) {
 			t.Error(err)
 		}
 		if k != l {
-			t.Errorf("got %s, expected %s", l, k)
+			t.Errorf("Got %s, expected %s", l, k)
 		}
 	}
 }

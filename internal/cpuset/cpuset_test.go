@@ -70,10 +70,10 @@ func TestCpuSetPattern(t *testing.T) {
 			p := regexp.MustCompile(cpuSetPattern)
 			m := p.MatchString(test.Line)
 			if test.Match && !m {
-				t.Errorf("expected a match")
+				t.Errorf("Expected a match")
 			}
 			if !test.Match && m {
-				t.Errorf("expected NOT a match")
+				t.Errorf("Expected NOT a match")
 			}
 		})
 	}

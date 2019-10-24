@@ -97,11 +97,11 @@ func TestTaskValidate(t *testing.T) {
 		err := task.T.Validate()
 		if task.V {
 			if err != nil {
-				t.Errorf("expected valid task nr %d, error=%s, %v ", i, err, task.T)
+				t.Errorf("Expected valid task nr %d, error=%s, %v ", i, err, task.T)
 			}
 		} else {
 			if err == nil {
-				t.Errorf("expected invalid task nr %d, error=%s, %v ", i, err, task.T)
+				t.Errorf("Expected invalid task nr %d, error=%s, %v ", i, err, task.T)
 			}
 		}
 	}
@@ -284,7 +284,7 @@ func TestConsecutiveErrorCount(t *testing.T) {
 	for _, test := range table {
 		t.Run(test.N, func(t *testing.T) {
 			if got := test.S.ConsecutiveErrorCount(test.R, now); got != test.E {
-				t.Errorf("got %d, expects %d", got, test.E)
+				t.Errorf("Got %d, expects %d", got, test.E)
 			}
 		})
 	}

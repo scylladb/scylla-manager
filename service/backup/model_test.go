@@ -19,7 +19,7 @@ func TestProviderMarshalUnmarshalText(t *testing.T) {
 			t.Error(err)
 		}
 		if k != p {
-			t.Errorf("got %s, expected %s", p, k)
+			t.Errorf("Got %s, expected %s", p, k)
 		}
 	}
 }
@@ -64,7 +64,7 @@ func TestLocationMarshalUnmarshalText(t *testing.T) {
 				t.Error(err)
 			}
 			if golden != l {
-				t.Errorf("got %s, expected %s", l, golden)
+				t.Errorf("Got %s, expected %s", l, golden)
 			}
 		})
 	}
@@ -184,7 +184,7 @@ func TestDCLimitMarshalUnmarshalText(t *testing.T) {
 				t.Error(err)
 			}
 			if golden != r {
-				t.Errorf("got %s, expected %s", r, golden)
+				t.Errorf("Got %s, expected %s", r, golden)
 			}
 		})
 	}

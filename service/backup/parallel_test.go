@@ -82,7 +82,7 @@ func TestInParallel(t *testing.T) {
 	f := func(h hostInfo) error {
 		v := tokens.Inc()
 		if v > limit {
-			t.Errorf("limit exeded, got %d", v)
+			t.Errorf("Limit exeded, got %d", v)
 		}
 		time.Sleep(50 * time.Millisecond)
 		tokens.Dec()

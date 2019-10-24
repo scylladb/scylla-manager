@@ -61,7 +61,7 @@ func TestClient_Do(t *testing.T) {
 	// Create a request
 	req, err := NewRequest("PUT", "http://127.0.0.1:28934/v1/foo", body)
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("Err: %v", err)
 	}
 	req.Header.Set("foo", "bar")
 
@@ -79,13 +79,13 @@ func TestClient_Do(t *testing.T) {
 		var err error
 		resp, err = client.Do(req)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatalf("Err: %v", err)
 		}
 	}()
 
 	select {
 	case <-doneCh:
-		t.Fatalf("should retry on error")
+		t.Fatalf("Should retry on error")
 	case <-time.After(200 * time.Millisecond):
 		// Client should still be retrying due to connection failure.
 	}
@@ -97,25 +97,25 @@ func TestClient_Do(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check the request details
 		if r.Method != "PUT" {
-			t.Fatalf("bad method: %s", r.Method)
+			t.Fatalf("Bad method: %s", r.Method)
 		}
 		if r.RequestURI != "/v1/foo" {
-			t.Fatalf("bad uri: %s", r.RequestURI)
+			t.Fatalf("Bad uri: %s", r.RequestURI)
 		}
 
 		// Check the headers
 		if v := r.Header.Get("foo"); v != "bar" {
-			t.Fatalf("bad header: expect foo=bar, got foo=%v", v)
+			t.Fatalf("Bad header: expect foo=bar, got foo=%v", v)
 		}
 
 		// Check the payload
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("Err: %s", err)
 		}
 		expected := []byte("hello")
 		if !bytes.Equal(body, expected) {
-			t.Fatalf("bad: %v", body)
+			t.Fatalf("Bad: %v", body)
 		}
 
 		w.WriteHeader(int(atomic.LoadInt64(&code)))
@@ -124,7 +124,7 @@ func TestClient_Do(t *testing.T) {
 	// Create a test server
 	list, err := net.Listen("tcp", ":28934")
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("Err: %v", err)
 	}
 	defer list.Close()
 	go http.Serve(list, handler)
@@ -133,11 +133,11 @@ func TestClient_Do(t *testing.T) {
 	select {
 	case <-doneCh:
 	case <-time.After(time.Second):
-		t.Fatalf("timed out")
+		t.Fatalf("Timed out")
 	}
 
 	if resp.StatusCode != 200 {
-		t.Fatalf("exected 200, got: %d", resp.StatusCode)
+		t.Fatalf("Exected 200, got: %d", resp.StatusCode)
 	}
 }
 
@@ -157,13 +157,13 @@ func TestClient_Do_fails(t *testing.T) {
 	// Create the request
 	req, err := NewRequest("POST", ts.URL, nil)
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("Err: %v", err)
 	}
 
 	// Send the request.
 	_, err = client.Do(req)
 	if err == nil || !strings.Contains(err.Error(), "giving up") {
-		t.Fatalf("expected giving up error, got: %#v", err)
+		t.Fatalf("Expected giving up error, got: %#v", err)
 	}
 }
 
@@ -546,7 +546,7 @@ func TestBackoff(t *testing.T) {
 
 	for _, tc := range cases {
 		if v := DefaultBackoff(tc.min, tc.max, tc.i, nil); v != tc.expect {
-			t.Fatalf("bad: %#v -> %s", tc, v)
+			t.Fatalf("Bad: %#v -> %s", tc, v)
 		}
 	}
 }
@@ -572,10 +572,10 @@ func TestClient_BackoffCustom(t *testing.T) {
 	// Make the request.
 	resp, err := client.Get(ts.URL + "/foo/bar")
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("Err: %v", err)
 	}
 	resp.Body.Close()
 	if retries != int32(transport.RetryMax) {
-		t.Fatalf("expected retries: %d != %d", transport.RetryMax, retries)
+		t.Fatalf("Expected retries: %d != %d", transport.RetryMax, retries)
 	}
 }

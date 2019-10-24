@@ -73,21 +73,21 @@ func TestParseInExList(t *testing.T) {
 	for i, test := range table {
 		inEx, err := ParseInExList(test.P)
 		if err != nil {
-			t.Errorf("pos %d, malformed pattern %s", i, test.P)
+			t.Errorf("Pos %d, malformed pattern %s", i, test.P)
 		}
 
 		if !cmp.Equal(inEx.list, test.E.list, opt) {
-			t.Errorf("pos %d, expected %v, got=%v", i, test.E.list, inEx.list)
+			t.Errorf("Pos %d, expected %v, got=%v", i, test.E.list, inEx.list)
 		}
 
 		if !cmp.Equal(test.E.patterns, inEx.patterns, opt) {
-			t.Errorf("pos %d, wrong pattern expected %s, got %s", i, test.P, inEx.patterns)
+			t.Errorf("Pos %d, wrong pattern expected %s, got %s", i, test.P, inEx.patterns)
 		}
 		for i, v := range inEx.list {
 			expected := test.E.list[i]
 
 			if v.Sign != expected.Sign || v.Pattern != expected.Pattern {
-				t.Errorf("pos %d, expected %s, got %s", i, expected, v)
+				t.Errorf("Pos %d, expected %s, got %s", i, expected, v)
 			}
 		}
 	}
@@ -174,11 +174,11 @@ func TestInExListFilter(t *testing.T) {
 	for i, test := range table {
 		l, err := ParseInExList(test.P)
 		if err != nil {
-			t.Errorf("malformed pattern %s", test.P)
+			t.Errorf("Malformed pattern %s", test.P)
 		}
 		out := l.Filter(test.I)
 		if !cmp.Equal(out, test.out, cmpopts.EquateEmpty()) {
-			t.Errorf("pos %d, filtered list wrong expected %v, got %v", i, test.out, out)
+			t.Errorf("Pos %d, filtered list wrong expected %v, got %v", i, test.out, out)
 		}
 	}
 }

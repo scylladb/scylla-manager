@@ -119,7 +119,7 @@ func TestConsulAPI(t *testing.T) {
 			t.Fatal(diff)
 		}
 		if h, ok := w.HeaderMap["X-Consul-Index"]; !ok && h[0] != "1" {
-			t.Fatalf("wrong X-Consul-Index header %+v", w.HeaderMap)
+			t.Fatalf("Wrong X-Consul-Index header %+v", w.HeaderMap)
 		}
 	})
 }

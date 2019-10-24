@@ -25,7 +25,7 @@ func TestRespondError(t *testing.T) {
 			t.Fatal(diff)
 		}
 		if response.Code != http.StatusNotFound {
-			t.Errorf("response status is wrong, got '%d' want '%d'", response.Code, http.StatusNotFound)
+			t.Errorf("Response status is wrong, got '%d' want '%d'", response.Code, http.StatusNotFound)
 		}
 	})
 
@@ -39,7 +39,7 @@ func TestRespondError(t *testing.T) {
 			t.Fatal(diff)
 		}
 		if response.Code != http.StatusBadRequest {
-			t.Errorf("response status is wrong, got '%d' want '%d'", response.Code, http.StatusBadRequest)
+			t.Errorf("Response status is wrong, got '%d' want '%d'", response.Code, http.StatusBadRequest)
 		}
 	})
 
@@ -54,7 +54,7 @@ func TestRespondError(t *testing.T) {
 		}
 
 		if response.Code != http.StatusInternalServerError {
-			t.Errorf("response status is wrong, got '%d' want '%d'", response.Code, http.StatusInternalServerError)
+			t.Errorf("Response status is wrong, got '%d' want '%d'", response.Code, http.StatusInternalServerError)
 		}
 	})
 }
