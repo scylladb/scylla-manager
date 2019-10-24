@@ -80,31 +80,31 @@ func TestTaskTimeSortingFunctions(t *testing.T) {
 		Expected     mermaidclient.ExtendedTaskSlice
 	}{
 		{
-			Name:         "Sort by by next activation time",
+			Name:         "sort by by next activation time",
 			SortFunction: sortTasksByNextActivation,
 			Input:        mermaidclient.ExtendedTaskSlice{t2, t1, t0},
 			Expected:     mermaidclient.ExtendedTaskSlice{t0, t1, t2},
 		},
 		{
-			Name:         "Sort by by start time",
+			Name:         "sort by by start time",
 			SortFunction: sortTasksByStartTime,
 			Input:        mermaidclient.ExtendedTaskSlice{t2, t1, t0},
 			Expected:     mermaidclient.ExtendedTaskSlice{t0, t1, t2},
 		},
 		{
-			Name:         "Sort by by end time",
+			Name:         "sort by by end time",
 			SortFunction: sortTasksByEndTime,
 			Input:        mermaidclient.ExtendedTaskSlice{t2, t1, t0},
 			Expected:     mermaidclient.ExtendedTaskSlice{t0, t1, t2},
 		},
 		{
-			Name:         "Sorting by start time with not started task",
+			Name:         "sorting by start time with not started task",
 			SortFunction: sortTasksByStartTime,
 			Input:        mermaidclient.ExtendedTaskSlice{t0, notStartedTask},
 			Expected:     mermaidclient.ExtendedTaskSlice{notStartedTask, t0},
 		},
 		{
-			Name:         "Sorting by end time with running task",
+			Name:         "sorting by end time with running task",
 			SortFunction: sortTasksByStartTime,
 			Input:        mermaidclient.ExtendedTaskSlice{t0, runningTask},
 			Expected:     mermaidclient.ExtendedTaskSlice{runningTask, t0},

@@ -107,47 +107,47 @@ func TestListFilterPruneFunc(t *testing.T) {
 		Prune  bool
 	}{
 		{
-			Name:  "Empty filer valid dir",
+			Name:  "empty filer valid dir",
 			Dir:   "backup",
 			Prune: false,
 		},
 		{
-			Name:  "Empty filer invalid dir",
+			Name:  "empty filer invalid dir",
 			Dir:   "foobar",
 			Prune: true,
 		},
 		{
-			Name:   "Filter cluster",
+			Name:   "filter cluster",
 			Filter: ListFilter{ClusterID: uuid.MustRandom()},
 			Dir:    dir,
 			Prune:  true,
 		},
 		{
-			Name:   "Filter keysapce",
+			Name:   "filter keysapce",
 			Filter: ListFilter{Keyspace: []string{"keysapce2"}},
 			Dir:    dir,
 			Prune:  true,
 		},
 		{
-			Name:   "Filter keysapce",
+			Name:   "filter keysapce",
 			Filter: ListFilter{Keyspace: []string{"keysapce.table2"}},
 			Dir:    dir,
 			Prune:  true,
 		},
 		{
-			Name:   "Filter keysapce",
+			Name:   "filter keysapce",
 			Filter: ListFilter{Keyspace: []string{"keysapce.table2"}},
 			Dir:    dir,
 			Prune:  true,
 		},
 		{
-			Name:   "Filter min date",
+			Name:   "filter min date",
 			Filter: ListFilter{MinDate: timeutc.Now().Add(time.Hour)},
 			Dir:    dir,
 			Prune:  true,
 		},
 		{
-			Name:   "Filter max date",
+			Name:   "filter max date",
 			Filter: ListFilter{MaxDate: timeutc.Now().Add(-time.Hour)},
 			Dir:    dir,
 			Prune:  true,

@@ -114,7 +114,7 @@ func TestIteratorSegmentsPerRepairChange(t *testing.T) {
 			},
 		},
 		{
-			Name:       "Change spr low to high",
+			Name:       "change spr low to high",
 			Segments:   segments{{0, 10}, {11, 20}, {21, 30}},
 			SPRForward: 1,
 			SPRRetry:   3,
@@ -124,7 +124,7 @@ func TestIteratorSegmentsPerRepairChange(t *testing.T) {
 			},
 		},
 		{
-			Name:       "Change spr low to high over total",
+			Name:       "change spr low to high over total",
 			Segments:   segments{{0, 10}, {11, 20}, {21, 30}},
 			SPRForward: 1,
 			SPRRetry:   10,
@@ -134,7 +134,7 @@ func TestIteratorSegmentsPerRepairChange(t *testing.T) {
 			},
 		},
 		{
-			Name:       "Change spr high to low",
+			Name:       "change spr high to low",
 			Segments:   segments{{0, 10}, {11, 20}, {21, 30}},
 			SPRForward: 3,
 			SPRRetry:   1,
@@ -144,7 +144,7 @@ func TestIteratorSegmentsPerRepairChange(t *testing.T) {
 			},
 		},
 		{
-			Name:          "Success segments at start",
+			Name:          "success segments at start",
 			Segments:      segments{{0, 10}, {11, 20}, {21, 30}},
 			SuccessEvents: []int{0, 1}, // Success on first two segments
 			SPRForward:    1,
@@ -155,7 +155,7 @@ func TestIteratorSegmentsPerRepairChange(t *testing.T) {
 			},
 		},
 		{
-			Name:          "Success segment in the middle",
+			Name:          "success segment in the middle",
 			Segments:      segments{{0, 10}, {11, 20}, {21, 30}},
 			SuccessEvents: []int{1}, // Success on second segment
 			SPRForward:    1,
@@ -166,7 +166,7 @@ func TestIteratorSegmentsPerRepairChange(t *testing.T) {
 			},
 		},
 		{
-			Name:          "Success segment in the middle high spr",
+			Name:          "success segment in the middle high spr",
 			Segments:      segments{{0, 10}, {11, 20}, {21, 30}},
 			SuccessEvents: []int{1}, // Success on second segment
 			SPRForward:    1,
@@ -177,7 +177,7 @@ func TestIteratorSegmentsPerRepairChange(t *testing.T) {
 			},
 		},
 		{
-			Name:          "Success segment at the end",
+			Name:          "success segment at the end",
 			Segments:      segments{{0, 10}, {11, 20}, {21, 30}},
 			SuccessEvents: []int{2}, // Success on last segment
 			SPRForward:    1,

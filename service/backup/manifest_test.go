@@ -51,15 +51,15 @@ func TestRemoteManifestParsePathEmpty(t *testing.T) {
 		Path string
 	}{
 		{
-			Name: "Empty",
+			Name: "empty",
 			Path: "",
 		},
 		{
-			Name: "Backup prefix",
+			Name: "backup prefix",
 			Path: "backup",
 		},
 		{
-			Name: "Backup prefix with slash",
+			Name: "backup prefix with slash",
 			Path: "/backup",
 		},
 	}
@@ -86,27 +86,27 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		Error string
 	}{
 		{
-			Name:  "Invalid prefix",
+			Name:  "invalid prefix",
 			Path:  "foobar",
 			Error: "expected backup",
 		},
 		{
-			Name:  "Invalid cluster ID",
+			Name:  "invalid cluster ID",
 			Path:  "backup/cluster/bla",
 			Error: "invalid UUID",
 		},
 		{
-			Name:  "Invalid static DC",
+			Name:  "invalid static DC",
 			Path:  "backup/cluster/" + uuid.MustRandom().String() + "/bla",
 			Error: "expected dc",
 		},
 		{
-			Name:  "Not a manifest file",
+			Name:  "not a manifest file",
 			Path:  remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID", "keysapce", "table", "version") + ".old",
 			Error: "expected manifest.json",
 		},
 		{
-			Name:  "SSTable dir",
+			Name:  "sSTable dir",
 			Path:  remoteSSTableDir(uuid.MustRandom(), "dc", "nodeID", "keysapce", "table"),
 			Error: "expected task",
 		},

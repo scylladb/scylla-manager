@@ -16,19 +16,19 @@ func TestInMemoryConfNotExposed(t *testing.T) {
 		In   rc.Params
 	}{
 		{
-			Name: "Create Config",
+			Name: "create Config",
 			Path: "config/create",
 			In: rc.Params{
 				"name": "testdata", "type": "local", "parameters": rc.Params{"extra": "data"},
 			},
 		},
 		{
-			Name: "Get Remote",
+			Name: "get Remote",
 			Path: "config/get",
 			In:   rc.Params{"name": "testdata"},
 		},
 		{
-			Name: "Delete Remote",
+			Name: "delete Remote",
 			Path: "config/delete",
 			In:   rc.Params{"name": "testdata"},
 		},

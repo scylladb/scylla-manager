@@ -28,24 +28,24 @@ func TestRcloneSplitRemotePath(t *testing.T) {
 		Error bool
 	}{
 		{
-			Name: "Single path",
+			Name: "single path",
 			Path: "rclonetest:file",
 			Fs:   "rclonetest:.",
 			File: "file",
 		},
 		{
-			Name: "Long path",
+			Name: "long path",
 			Path: "rclonetest:dir/file",
 			Fs:   "rclonetest:dir",
 			File: "file",
 		},
 		{
-			Name:  "Invalid file path",
+			Name:  "invalid file path",
 			Path:  "rclonetest:",
 			Error: true,
 		},
 		{
-			Name:  "Invalid file system",
+			Name:  "invalid file system",
 			Path:  "data",
 			Error: true,
 		},

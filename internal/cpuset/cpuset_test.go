@@ -20,42 +20,42 @@ func TestCpuSetPattern(t *testing.T) {
 		Match bool
 	}{
 		{
-			Name:  "Line commented with space",
+			Name:  "line commented with space",
 			Line:  `# CPUSET="--cpuset 0 --smp 1"`,
 			Match: false,
 		},
 		{
-			Name:  "Line commented without space",
+			Name:  "line commented without space",
 			Line:  `#CPUSET="--cpuset 0 --smp 1"`,
 			Match: false,
 		},
 		{
-			Name:  "CPUSET without space",
+			Name:  "cpuset without space",
 			Line:  `CPUSET="--cpuset 0 --smp 1"`,
 			Match: true,
 		},
 		{
-			Name:  "CPUSET with space",
+			Name:  "cpuset with space",
 			Line:  ` CPUSET="--cpuset 0 --smp 1"`,
 			Match: true,
 		},
 		{
-			Name:  "CPUSET no smp",
+			Name:  "cpuset no smp",
 			Line:  `CPUSET="--cpuset 0"`,
 			Match: true,
 		},
 		{
-			Name:  "CPUSET no cpuset",
+			Name:  "cpuset no cpuset",
 			Line:  `CPUSET="--smp 1"`,
 			Match: true,
 		},
 		{
-			Name:  "CPUSET advanced",
+			Name:  "cpuset advanced",
 			Line:  `CPUSET="--cpuset 0-10,15,17-20"`,
 			Match: true,
 		},
 		{
-			Name:  "CPUSET broken",
+			Name:  "cpuset broken",
 			Line:  `CPUSET="--cpuset 0foo1bar"`,
 			Match: false,
 		},
@@ -88,12 +88,12 @@ func TestParseCpuSet(t *testing.T) {
 		CPUs  []int
 	}{
 		{
-			Name:  "List of values",
+			Name:  "list of values",
 			Param: "1,2,4",
 			CPUs:  []int{1, 2, 4},
 		},
 		{
-			Name:  "Range of values",
+			Name:  "range of values",
 			Param: "1-2,4",
 			CPUs:  []int{1, 2, 4},
 		},
@@ -126,17 +126,17 @@ func TestParseConfigFile(t *testing.T) {
 		Err  string
 	}{
 		{
-			Name: "Default",
+			Name: "default",
 			File: "testdata/cpuset_default.conf",
 			Err:  "no CPUSET configuration",
 		},
 		{
-			Name: "SMP only",
+			Name: "sMP only",
 			File: "testdata/cpuset_smp_only.conf",
 			Err:  "CPUSET configuration is missing cpuset flag",
 		},
 		{
-			Name: "Multiline",
+			Name: "multiline",
 			File: "testdata/cpuset_multiline.conf",
 			CPUs: []int{2},
 		},
