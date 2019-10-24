@@ -11,7 +11,7 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show version information",
+	Short: "Shows version information",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Fprintln(cmd.OutOrStdout(), fmt.Sprintf("Client version: %v", mermaid.Version()))
 

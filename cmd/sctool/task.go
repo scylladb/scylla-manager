@@ -21,14 +21,14 @@ import (
 )
 
 func taskInitCommonFlags(fs *pflag.FlagSet) {
-	fs.StringP("start-date", "s", "now", "task start date in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
+	fs.StringP("start-date", "s", "now", "specifies the task start date expressed in the RFC3339 format or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
 	fs.StringP("interval", "i", "0", "task schedule interval e.g. 3d2h10m, valid units are d, h, m, s")
-	fs.Int64P("num-retries", "r", 3, "task schedule number of retries")
+	fs.Int64P("num-retries", "r", 3, "the number of times a scheduled task will retry to run before failing")
 }
 
 var taskCmd = &cobra.Command{
 	Use:   "task",
-	Short: "Manage tasks",
+	Short: "Manages tasks",
 }
 
 func init() {
@@ -37,7 +37,7 @@ func init() {
 
 var taskListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Show available tasks and their last run status",
+	Short: "Shows available tasks and their last run status",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fs := cmd.Flags()
@@ -190,7 +190,7 @@ func init() {
 
 var taskStartCmd = &cobra.Command{
 	Use:   "start <type/task-id>",
-	Short: "Start executing a task",
+	Short: "Starts executing a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -222,7 +222,7 @@ func init() {
 
 var taskStopCmd = &cobra.Command{
 	Use:   "stop <type/task-id>",
-	Short: "Stop the currently running task instance",
+	Short: "Stops the currently running task instance",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -254,7 +254,7 @@ func init() {
 
 var taskHistoryCmd = &cobra.Command{
 	Use:   "history <type/task-id>",
-	Short: "Show run history of a task",
+	Short: "Shows run history of a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -287,7 +287,7 @@ func init() {
 
 var taskUpdateCmd = &cobra.Command{
 	Use:   "update <type/task-id>",
-	Short: "Modify a task",
+	Short: "Modifies a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -359,7 +359,7 @@ func init() {
 
 var taskDeleteCmd = &cobra.Command{
 	Use:   "delete <type/task-id>",
-	Short: "Delete a task",
+	Short: "Deletes a task",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -383,7 +383,7 @@ func init() {
 
 var taskProgressCmd = &cobra.Command{
 	Use:   "progress <type/task-id>",
-	Short: "Show a task progress",
+	Short: "Shows a task progress",
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {

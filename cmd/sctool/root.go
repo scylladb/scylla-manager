@@ -87,5 +87,5 @@ func init() {
 	f.StringVar(&cfgAPICertFile, "api-cert-file", os.Getenv("SCYLLA_MANAGER_API_CERT_FILE"), "`path` to HTTPS client certificate to access Scylla Manager server")
 	f.StringVar(&cfgAPIKeyFile, "api-key-file", os.Getenv("SCYLLA_MANAGER_API_KEY_FILE"), "`path` to HTTPS client key to access Scylla Manager server")
 
-	f.StringVarP(&cfgCluster, "cluster", "c", os.Getenv("SCYLLA_MANAGER_CLUSTER"), "target cluster `name` or ID")
+	f.StringVarP(&cfgCluster, "cluster", "c", os.Getenv("SCYLLA_MANAGER_CLUSTER"), "Specifies the target cluster `name` or ID")
 }

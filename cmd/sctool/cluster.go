@@ -58,7 +58,7 @@ func clusterAddedMessage(w io.Writer, id, name string) error {
 
 var clusterAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Add a cluster to manager",
+	Short: "Adds a cluster to manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if cfgClusterID != "" {
@@ -134,7 +134,7 @@ func init() {
 
 var clusterUpdateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Modify a cluster",
+	Short: "Modifies a cluster",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cluster, err := client.GetCluster(ctx, cfgCluster)
@@ -199,7 +199,7 @@ func init() {
 
 var clusterDeleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete a cluster from manager",
+	Short: "Deletes a cluster from manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := client.DeleteCluster(ctx, cfgCluster); err != nil {
@@ -218,7 +218,7 @@ func init() {
 
 var clusterListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Show managed clusters",
+	Short: "Shows managed clusters",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusters, err := client.ListClusters(ctx)

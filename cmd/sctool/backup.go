@@ -16,7 +16,7 @@ import (
 
 var backupCmd = &cobra.Command{
 	Use:   "backup",
-	Short: "Schedule backup",
+	Short: "Schedules backups",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		props := make(map[string]interface{})
 
@@ -154,15 +154,24 @@ func init() {
 	register(cmd, rootCmd)
 
 	fs := cmd.Flags()
-	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*'")
-	fs.StringSliceP("location", "L", nil, "a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>, the dc part is optional and only needed when different datacenters upload data to different locations, the supported providers are: s3") //nolint: lll
-	fs.Int("retention", 3, "data retention, how many backups shall be kept")
-	fs.StringSlice("rate-limit", nil, "a comma-separated `list` of rate limit as megabytes (MiB) per second in the format <dc>:<limit>, the dc part is optional and only needed when different datacenters need different upload limits")                                                                                                                             //nolint: lll
-	fs.StringSlice("snapshot-parallel", nil, "a comma-separated `list` of snapshot parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ") //nolint: lll
-	fs.StringSlice("upload-parallel", nil, "a comma-separated `list` of upload parallelism limits in the format <dc>:<limit>, the dc part is optional and allows for specifying different limits in selected datacenters, if DC is not set the limit is global e.g. 'dc1:2,5' would run in parallel in 2 nodes in dc1 and 5 nodes in all the other datacenters ")     //nolint: lll
-	fs.Bool("force", false, "force backup to skip database validation and schedule even if there are no matching keyspaces/tables")
-	fs.Bool("dry-run", false, "validate and print backup information without scheduling a backup")
+	fs.StringSliceP("keyspace", "K", nil,
+		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+	fs.StringSlice("dc", nil,
+		"a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*' used to specify the DCs to include or exclude from backup")
+	fs.StringSliceP("location", "L", nil,
+		"a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
+	fs.Int("retention", 3,
+		"The number of backups which are to be stored")
+	fs.StringSlice("rate-limit", nil,
+		"a comma-separated `list` of megabytes (MiB) per second rate limits expressed in the format <dc>:<limit>. The dc flag is optional and only needed when different datacenters need different upload limits") //nolint: lll
+	fs.StringSlice("snapshot-parallel", nil,
+		"a comma-separated `list` of snapshot parallelism limits in the format <dc>:<limit>. The dc flag is optional and allows for specifying different limits in selected datacenters. If the dc flag is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") //nolint: lll
+	fs.StringSlice("upload-parallel", nil,
+		"a comma-separated `list` of upload parallelism limits in the format <dc>:<limit>. The dc flag is optional and allows for specifying different limits in selected datacenters. If the dc flag is not set the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") //nolint: lll
+	fs.Bool("force", false,
+		"forces backup to skip database validation and schedules a backup even if there are no matching keyspaces/tables")
+	fs.Bool("dry-run", false,
+		"validates and prints backup information without scheduling a backup")
 
 	taskInitCommonFlags(fs)
 	requireFlags(cmd, "location")
@@ -170,7 +179,7 @@ func init() {
 
 var backupListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List available backups",
+	Short: "Lists available backups",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
 			host        string

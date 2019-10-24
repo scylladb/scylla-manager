@@ -45,7 +45,7 @@ var repairTokenRanges = tokenRangesKind("")
 
 var repairCmd = &cobra.Command{
 	Use:   "repair",
-	Short: "Schedule repair",
+	Short: "Schedules repair",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		props := make(map[string]interface{})
 
@@ -160,8 +160,9 @@ func init() {
 	register(cmd, rootCmd)
 
 	fs := cmd.Flags()
-	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*'")
+	fs.StringSliceP("keyspace", "K", nil,
+		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*', used to specify the DCs to include or exclude from repair")
 	fs.String("host", "", "host to repair, by default all hosts are repaired")
 	fs.StringSlice("with-hosts", nil, "a comma-separated `list` of hosts to repair with")
 	fs.Var(&repairTokenRanges, "token-ranges", "`kind` of token-ranges valid values are: pr, npr, all")

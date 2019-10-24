@@ -354,7 +354,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "inaccessible location",
 			JSON:  `{"location": ["s3:foo", "dc1:s3:bar"]}`,
-			Error: "location not accessible",
+			Error: "location is not accessible",
 		},
 		{
 			Name:  "invalid rate limit dc",

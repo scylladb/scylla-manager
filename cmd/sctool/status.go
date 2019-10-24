@@ -6,7 +6,7 @@ import "github.com/spf13/cobra"
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show cluster status",
+	Short: "Shows cluster status",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		w := cmd.OutOrStdout()

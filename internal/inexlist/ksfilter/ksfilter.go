@@ -125,7 +125,7 @@ func (f *Filter) Check(keyspace string, table string) bool {
 // The validation error may be disabled by providing the force=true.
 func (f *Filter) Apply(force bool) ([]Unit, error) {
 	if len(f.units) == 0 && !force {
-		return nil, mermaid.ErrValidate(errors.Errorf("no matching keyspaces found for filters %s", f.filters))
+		return nil, mermaid.ErrValidate(errors.Errorf("no matching keyspaces found using the filters %s", f.filters))
 	}
 
 	// Sort units by the presence

@@ -134,7 +134,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Validate that locations are accessible from the nodes
 	if err := s.checkLocationsAvailableFromDCs(ctx, client, t.Location, t.DC, dcMap); err != nil {
-		return t, errors.Wrap(err, "location not accessible")
+		return t, errors.Wrap(err, "location is not accessible")
 	}
 
 	// Filter keyspaces
