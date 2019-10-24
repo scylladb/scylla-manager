@@ -417,7 +417,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	putRunProgress := func(t *testing.T, r *backup.Run, size, uploaded int64) {
+	putRunProgress := func(t *testing.T, r *backup.Run, size, uploaded, skipped int64) {
 		t.Helper()
 		p := backup.RunProgress{
 			ClusterID: r.ClusterID,
@@ -426,6 +426,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			Host:      ManagedClusterHost(),
 			Size:      size,
 			Uploaded:  uploaded,
+			Skipped:   skipped,
 		}
 		stmt, names := schema.BackupRunProgress.Insert()
 		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease(); err != nil {
@@ -474,7 +475,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			Units:     []backup.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0)
+		putRunProgress(t, r0, 10, 0, 0)
 
 		r1 := &backup.Run{
 			ClusterID: clusterID,
@@ -483,7 +484,37 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			Units:     []backup.Unit{{Keyspace: "test"}},
 		}
 		putRun(t, r1)
-		putRunProgress(t, r0, 10, 10)
+		putRunProgress(t, r0, 10, 10, 0)
+
+		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
+		if err != mermaid.ErrNotFound {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("started run before skipped run", func(t *testing.T) {
+		t.Parallel()
+
+		clusterID := uuid.MustRandom()
+		taskID := uuid.MustRandom()
+
+		r0 := &backup.Run{
+			ClusterID: clusterID,
+			TaskID:    taskID,
+			ID:        uuid.NewTime(),
+			Units:     []backup.Unit{{Keyspace: "test"}},
+		}
+		putRun(t, r0)
+		putRunProgress(t, r0, 10, 0, 0)
+
+		r1 := &backup.Run{
+			ClusterID: clusterID,
+			TaskID:    taskID,
+			ID:        uuid.NewTime(),
+			Units:     []backup.Unit{{Keyspace: "test"}},
+		}
+		putRun(t, r1)
+		putRunProgress(t, r0, 10, 0, 10)
 
 		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
 		if err != mermaid.ErrNotFound {
@@ -504,7 +535,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			Units:     []backup.Unit{{Keyspace: "test1"}},
 		}
 		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0)
+		putRunProgress(t, r0, 10, 0, 0)
 
 		r1 := &backup.Run{
 			ClusterID: clusterID,

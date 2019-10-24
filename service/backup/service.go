@@ -547,9 +547,9 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		if err != nil {
 			return nil, err
 		}
-		size, uploaded := runProgress(r, prog)
+		size, uploaded, skipped := runProgress(r, prog)
 		if size > 0 {
-			if size == uploaded {
+			if size == uploaded+skipped {
 				break
 			}
 			return r, nil
@@ -561,18 +561,16 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 
 // runProgress returns total size and uploaded bytes for all files belonging to
 // the run.
-func runProgress(run *Run, prog []*RunProgress) (int64, int64) {
-	var size, uploaded int64
+func runProgress(run *Run, prog []*RunProgress) (size, uploaded, skipped int64) {
 	if len(run.Units) == 0 {
-		return size, uploaded
+		return
 	}
-
 	for i := range prog {
 		size += prog[i].Size
 		uploaded += prog[i].Uploaded
+		skipped += prog[i].Skipped
 	}
-
-	return size, uploaded
+	return
 }
 
 func (s *Service) getProgress(run *Run) ([]*RunProgress, error) {
