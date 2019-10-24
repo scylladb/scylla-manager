@@ -47,8 +47,12 @@ func TestClipperSay(t *testing.T) {
 			Expected: "full.golden.txt",
 		},
 	}
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			f, err := ioutil.ReadFile(path.Join("testdata/", test.Expected))
 			if err != nil {
 				t.Fatal(err)

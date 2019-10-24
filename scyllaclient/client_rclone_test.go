@@ -51,7 +51,9 @@ func TestRcloneSplitRemotePath(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
@@ -100,7 +102,9 @@ func TestRcloneCat(t *testing.T) {
 	defer cl()
 
 	t.Run("group", func(t *testing.T) {
-		for _, test := range table {
+		for i := range table {
+			test := table[i]
+
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
@@ -178,7 +182,9 @@ func TestRcloneListDir(t *testing.T) {
 	defer cl()
 
 	t.Run("group", func(t *testing.T) {
-		for _, test := range table {
+		for i := range table {
+			test := table[i]
+
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
@@ -230,13 +236,16 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 		{
 			Name:     "list subdir 1",
 			Path:     "rclonejail:subdir1",
-			Expected: []*models.ListItem{f("subdir2", true), f("foo.txt", false)},
+			Expected: []*models.ListItem{f("foo.txt", false), f("subdir2", true)},
 			Error:    false,
 		},
 		{
-			Name:     "list subdir 1 recursive",
+			Name: "list subdir 1 recursive",
+			Opts: &scyllaclient.RcloneListDirOpts{
+				Recurse: true,
+			},
 			Path:     "rclonejail:subdir1",
-			Expected: []*models.ListItem{f("subdir2", true), f("foo.txt", false), f("file.txt", false)},
+			Expected: []*models.ListItem{f("foo.txt", false), f("subdir2", true), f("subdir2/file.txt", false)},
 			Error:    false,
 		},
 		{
@@ -269,7 +278,9 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 	defer cl()
 
 	t.Run("group", func(t *testing.T) {
-		for _, test := range table {
+		for i := range table {
+			test := table[i]
+
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
@@ -282,6 +293,7 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 				} else if !test.Error && err != nil {
 					t.Fatal(err)
 				}
+
 				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
 					t.Fatal("RcloneListDir() diff", diff)
 				}

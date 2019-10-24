@@ -12,6 +12,8 @@ import (
 )
 
 func TestCpuSetPattern(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name  string
 		Line  string
@@ -59,8 +61,12 @@ func TestCpuSetPattern(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			p := regexp.MustCompile(cpuSetPattern)
 			m := p.MatchString(test.Line)
 			if test.Match && !m {
@@ -74,6 +80,8 @@ func TestCpuSetPattern(t *testing.T) {
 }
 
 func TestParseCpuSet(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name  string
 		Param string
@@ -91,8 +99,12 @@ func TestParseCpuSet(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			l, err := parseCPUSet(test.Param)
 			if err != nil {
 				t.Error(err)
@@ -105,6 +117,8 @@ func TestParseCpuSet(t *testing.T) {
 }
 
 func TestParseConfigFile(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name string
 		File string
@@ -128,8 +142,12 @@ func TestParseConfigFile(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			l, err := parseConfigFile(test.File)
 			if test.Err != "" {
 				if err == nil || err.Error() != test.Err {

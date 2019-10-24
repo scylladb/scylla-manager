@@ -61,7 +61,9 @@ func TestFilterDCLocations(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
@@ -125,7 +127,9 @@ func TestFilterDCLimit(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 

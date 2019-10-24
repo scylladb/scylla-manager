@@ -58,8 +58,12 @@ func TestMakeHostsLimit(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			golden := test.HostsLimit
 			m := makeHostsLimit(test.Hosts, test.Limits)
 			if diff := cmp.Diff(golden, m, cmp.AllowUnexported(hostsLimit{})); diff != "" {

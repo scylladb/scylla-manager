@@ -64,7 +64,9 @@ func TestRemoteManifestParsePathEmpty(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 			var p remoteManifest
@@ -110,8 +112,12 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			var m remoteManifest
 			err := m.ParsePartialPath(test.Path)
 			if err == nil {

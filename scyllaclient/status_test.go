@@ -14,6 +14,8 @@ import (
 )
 
 func TestStatusCodeOf(t *testing.T) {
+	t.Parallel()
+
 	configNotFound := scylla2ConfigOperations.NewFindConfigAPIAddressDefault(404)
 	configNotFound.Payload = &scylla2Models.ErrorModel{Result: 404}
 
@@ -52,8 +54,12 @@ func TestStatusCodeOf(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			if s := StatusCodeOf(test.Err); s != test.Status {
 				t.Error("expected", test.Status, "got", s)
 			}

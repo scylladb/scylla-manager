@@ -13,10 +13,12 @@ import (
 )
 
 func TestLinuxDistro(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
-		name     string
-		file     string
-		expected Distro
+		Name     string
+		File     string
+		Expected Distro
 	}{
 		{"supported distro", "testdata/linux_distro/supported", Ubuntu},
 		{"supported quoted", "testdata/linux_distro/supported-quoted", Centos},
@@ -24,24 +26,29 @@ func TestLinuxDistro(t *testing.T) {
 		{"empty", "testdata/linux_distro/empty", Unknown},
 		{"error", "testdata/linux_distro", Unknown},
 	}
-	for _, test := range table {
-		t.Run(test.name, func(t *testing.T) {
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
 			defer func(old string) { osReleaseFile = old }(osReleaseFile)
-			osReleaseFile = test.file
+			osReleaseFile = test.File
 			dist := LinuxDistro()
-			if dist != test.expected {
-				t.Errorf("LinuxDistro() = %q, expected %q", dist, test.expected)
+			if dist != test.Expected {
+				t.Errorf("LinuxDistro() = %q, expected %q", dist, test.Expected)
 			}
 		})
 	}
 }
 
 func TestDocker(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
-		name       string
-		dockerFile string
-		cgroupFile string
-		expected   bool
+		Name       string
+		DockerFile string
+		CgroupFile string
+		Expected   bool
 	}{
 		{"dockerenv present", "testdata/docker/dockerenv", "", true},
 		{"cgroup docker", "", "testdata/docker/cgroup-docker", true},
@@ -49,23 +56,29 @@ func TestDocker(t *testing.T) {
 		{"not docker error files", "", "", false},
 		{"not docker missing cgroup", "", "testdata/docker/empty", false},
 	}
-	for _, test := range table {
-		t.Run(test.name, func(t *testing.T) {
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			defer func(oldEnv, oldCgr string) {
 				dockerEnvFile = oldEnv
 				cGroupFile = oldCgr
 			}(dockerEnvFile, cGroupFile)
-			dockerEnvFile = test.dockerFile
-			cGroupFile = test.cgroupFile
+			dockerEnvFile = test.DockerFile
+			cGroupFile = test.CgroupFile
 			got := Docker()
-			if got != test.expected {
-				t.Errorf("Docker() = %v, expected %v", got, test.expected)
+			if got != test.Expected {
+				t.Errorf("Docker() = %v, expected %v", got, test.Expected)
 			}
 		})
 	}
 }
 
 func TestMacUUID(t *testing.T) {
+	t.Parallel()
+
 	defer func(old string) { macUUIDFile = old }(macUUIDFile)
 	f, err := ioutil.TempFile("", "scylla-manager-testing-macuuid")
 	if err != nil {
@@ -88,6 +101,8 @@ func TestMacUUID(t *testing.T) {
 const regUUID = "41e0c292-6044-11e9-940a-c85b76fba4f6"
 
 func TestRegUUID(t *testing.T) {
+	t.Parallel()
+
 	defer func(old string) { osReleaseFile = old }(osReleaseFile)
 	defer func(old func(name string, args ...string) ([]byte, error)) { regExecCommand = old }(regExecCommand)
 	regExecCommand = fakeExecCommand

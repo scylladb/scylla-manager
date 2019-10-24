@@ -48,8 +48,12 @@ func TestLocationMarshalUnmarshalText(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			golden := test.Location
 			b, err := golden.MarshalText()
 			if err != nil {
@@ -99,8 +103,12 @@ func TestInvalidLocationUnmarshalText(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			l := Location{}
 			if err := l.UnmarshalText([]byte(test.Location)); err == nil {
 				t.Error("expected error")
@@ -160,8 +168,12 @@ func TestDCLimitMarshalUnmarshalText(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			golden := test.DCLimit
 			b, err := golden.MarshalText()
 			if err != nil {

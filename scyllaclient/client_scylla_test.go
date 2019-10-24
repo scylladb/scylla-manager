@@ -218,39 +218,41 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
-		N string
-		F string
-		S scyllaclient.ReplicationStrategy
+		Name     string
+		File     string
+		Strategy scyllaclient.ReplicationStrategy
 	}{
 		{
-			N: "local",
-			F: "testdata/scylla_api/storage_service_describe_ring_system.json",
-			S: scyllaclient.LocalStrategy,
+			Name:     "local",
+			File:     "testdata/scylla_api/storage_service_describe_ring_system.json",
+			Strategy: scyllaclient.LocalStrategy,
 		},
 		{
-			N: "simple",
-			F: "testdata/scylla_api/storage_service_describe_ring_system_auth.json",
-			S: scyllaclient.SimpleStrategy,
+			Name:     "simple",
+			File:     "testdata/scylla_api/storage_service_describe_ring_system_auth.json",
+			Strategy: scyllaclient.SimpleStrategy,
 		},
 		{
-			N: "network",
-			F: "testdata/scylla_api/storage_service_describe_ring_test_keyspace_dc2_rf2.json",
-			S: scyllaclient.NetworkTopologyStrategy,
+			Name:     "network",
+			File:     "testdata/scylla_api/storage_service_describe_ring_test_keyspace_dc2_rf2.json",
+			Strategy: scyllaclient.NetworkTopologyStrategy,
 		},
 	}
 
-	for _, test := range table {
-		t.Run(test.N, func(t *testing.T) {
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			client, cl := scyllaclienttest.NewFakeScyllaServer(t, test.F)
+			client, cl := scyllaclienttest.NewFakeScyllaServer(t, test.File)
 			defer cl()
 
 			ring, err := client.DescribeRing(context.Background(), "scylla_manager")
 			if err != nil {
 				t.Fatal(err)
 			}
-			if ring.Replication != test.S {
+			if ring.Replication != test.Strategy {
 				t.Fatal(ring.Replication)
 			}
 		})

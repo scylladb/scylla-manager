@@ -113,8 +113,12 @@ func TestTaskTimeSortingFunctions(t *testing.T) {
 
 	cmpOptions := cmp.Options{mermaidtest.DateTimeComparer()}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			test.SortFunction(test.Input)
 			if diff := cmp.Diff(test.Input, test.Expected, cmpOptions); diff != "" {
 				t.Fatal(diff)

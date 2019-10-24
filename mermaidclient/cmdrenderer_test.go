@@ -12,6 +12,8 @@ import (
 )
 
 func TestCmdlineRender(t *testing.T) {
+	t.Parallel()
+
 	task := &Task{
 		ClusterID: "564a4ef1-0f37-40c5-802c-d08d788b8503",
 		Type:      "repair",
@@ -31,9 +33,9 @@ func TestCmdlineRender(t *testing.T) {
 	}
 
 	table := []struct {
-		N string
-		R *CmdRenderer
-		E string
+		Name     string
+		Renderer *CmdRenderer
+		Err      string
 	}{
 		{
 			"render all",
@@ -52,17 +54,20 @@ func TestCmdlineRender(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
-		t.Run(test.N, func(t *testing.T) {
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			buf := bytes.Buffer{}
-			err := test.R.Render(&buf)
+			err := test.Renderer.Render(&buf)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			if diff := cmp.Diff(buf.String(), test.E); diff != "" {
+			if diff := cmp.Diff(buf.String(), test.Err); diff != "" {
 				t.Fatal(diff)
 			}
 		})
 	}
-
 }

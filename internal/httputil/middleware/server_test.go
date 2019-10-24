@@ -10,6 +10,8 @@ import (
 )
 
 func TestParseBearerAuth(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name   string
 		Header string
@@ -37,8 +39,12 @@ func TestParseBearerAuth(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			if token := parseBearerAuth(test.Header); token != test.Token {
 				t.Error("expected", test.Token, "got", token)
 			}
@@ -47,6 +53,8 @@ func TestParseBearerAuth(t *testing.T) {
 }
 
 func TestValidateAuthTokenMiddlewareNoToken(t *testing.T) {
+	t.Parallel()
+
 	h := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 	r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 	w := httptest.NewRecorder()
@@ -58,6 +66,8 @@ func TestValidateAuthTokenMiddlewareNoToken(t *testing.T) {
 }
 
 func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
+	t.Parallel()
+
 	const token = "token"
 	h := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 	r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
@@ -71,6 +81,8 @@ func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
 }
 
 func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
+	t.Parallel()
+
 	h := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		t.Fatal("this must not be called")
 	})
@@ -108,6 +120,8 @@ func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
 }
 
 func TestCrossCheckAuthTokenMiddleware(t *testing.T) {
+	t.Parallel()
+
 	const token = "token"
 
 	var h http.Handler

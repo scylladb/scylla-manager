@@ -18,6 +18,8 @@ const (
 )
 
 func TestAggregateProgress(t *testing.T) {
+	t.Parallel()
+
 	host1 := "host1"
 	host2 := "host2"
 	time1 := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Add(-time.Hour)
@@ -201,7 +203,9 @@ func TestAggregateProgress(t *testing.T) {
 		cmpopts.IgnoreUnexported(progress{}),
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 

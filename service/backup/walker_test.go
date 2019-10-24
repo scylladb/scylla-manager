@@ -49,7 +49,9 @@ func TestWalkerSimple(t *testing.T) {
 	}
 
 	t.Run("group", func(t *testing.T) {
-		for _, test := range table {
+		for i := range table {
+			test := table[i]
+
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
@@ -152,7 +154,9 @@ func TestListFilterPruneFunc(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for i := range table {
+		test := table[i]
+
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
