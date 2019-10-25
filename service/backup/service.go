@@ -466,7 +466,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Create a worker
-	w := worker{
+	w := &worker{
 		ClusterID:     clusterID,
 		TaskID:        taskID,
 		RunID:         runID,
@@ -474,22 +474,28 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Config:        s.config,
 		Units:         run.Units,
 		Client:        client,
-		Logger:        s.logger.Named("worker"),
 		OnRunProgress: s.putRunProgressLogError,
 	}
 
 	// Start metric updater
-	metricsUpdaterLogger := s.logger.Named("metrics")
-	stopMetricsUpdater := newBackupMetricUpdater(ctx, run, s.getProgress, metricsUpdaterLogger, mermaid.PrometheusScrapeInterval)
+	stopMetricsUpdater := newBackupMetricUpdater(ctx, run, s.getProgress, s.logger.Named("metrics"), mermaid.PrometheusScrapeInterval)
 	defer stopMetricsUpdater()
 
+	// Take snapshot if needed
 	if run.PrevID == uuid.Nil {
+		w = w.WithLogger(s.logger.Named("snapshot"))
 		if err := w.Snapshot(ctx, hi, target.SnapshotParallel); err != nil {
-			return err
+			return errors.Wrap(err, "snapshot")
 		}
 	}
 
-	return w.Upload(ctx, hi, target.UploadParallel, target.Retention)
+	// Upload
+	w = w.WithLogger(s.logger.Named("upload"))
+	if err := w.Upload(ctx, hi, target.UploadParallel, target.Retention); err != nil {
+		return errors.Wrap(err, "upload")
+	}
+
+	return nil
 }
 
 // decorateWithPrevRun gets task previous run and if it can be continued

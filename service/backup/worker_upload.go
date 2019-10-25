@@ -350,13 +350,6 @@ func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 }
 
 func (w *worker) deleteRemoteStaleSnapshots(ctx context.Context, h hostInfo, d snapshotDir, policy int) error {
-	w.Logger.Info(ctx, "Deleting remote stale snapshots",
-		"host", h.IP,
-		"keyspace", d.Keyspace,
-		"table", d.Table,
-		"location", h.Location,
-	)
-
 	return w.makePurger(d, policy).purge(ctx, h)
 }
 
@@ -368,6 +361,6 @@ func (w *worker) makePurger(d snapshotDir, policy int) *purger {
 		Table:     d.Table,
 		Policy:    policy,
 		Client:    w.Client,
-		Logger:    w.Logger,
+		Logger:    w.Logger.Named("purge"),
 	}
 }

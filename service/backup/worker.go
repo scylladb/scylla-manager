@@ -51,6 +51,11 @@ type worker struct {
 	dirsMu sync.Mutex
 }
 
+func (w *worker) WithLogger(logger log.Logger) *worker {
+	w.Logger = logger
+	return w
+}
+
 func (w *worker) hostSnapshotDirs(h hostInfo) []snapshotDir {
 	w.dirsMu.Lock()
 	defer w.dirsMu.Unlock()

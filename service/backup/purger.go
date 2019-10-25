@@ -50,16 +50,25 @@ type purger struct {
 }
 
 func (p *purger) purge(ctx context.Context, h hostInfo) error {
+	p.Logger.Info(ctx, "Analysing",
+		"host", h.IP,
+		"keyspace", p.Keyspace,
+		"table", p.Table,
+		"location", h.Location,
+	)
+
 	// Get list of stale tags that need to be deleted
 	tags, err := p.listTaskTags(ctx, h)
 	if err != nil {
 		return errors.Wrap(err, "list remote task tags")
 	}
+
 	// Exit if there no tags to delete
 	if len(tags) <= p.Policy {
 		p.Logger.Debug(ctx, "Nothing to do")
 		return nil
 	}
+
 	// Select tags to delete
 	staleTags := tags[:len(tags)-p.Policy]
 
@@ -85,12 +94,19 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 		}
 		s.Add(extractGroupingKeys(m)...)
 	}
+
 	// Remove alive files from stale files laving only the orphans
 	staleFiles.Separate(aliveFiles)
+
 	// Exit if there are no orphan files
 	if staleFiles.IsEmpty() {
 		p.Logger.Debug(ctx, "Nothing to do, no stale files")
 		return nil
+	}
+
+	// Delete stale tags
+	if err := p.deleteTags(ctx, h, staleTags); err != nil {
+		return errors.Wrap(err, "delete stale tags")
 	}
 
 	// Delete sstables that are not alive (by grouping key)
@@ -100,12 +116,7 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 		return !aliveFiles.Has(key)
 	}
 	if err := p.deleteSSTables(ctx, h, isNotAlive); err != nil {
-		return errors.Wrap(err, "delete stale sstables")
-	}
-
-	// Delete stale tags
-	if err := p.deleteTags(ctx, h, staleTags); err != nil {
-		return errors.Wrap(err, "delete stale tags")
+		return errors.Wrap(err, "delete stale data")
 	}
 
 	return nil
@@ -269,7 +280,11 @@ func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key
 		return err
 	}
 
-	var errs error
+	var (
+		errs        error
+		deleted     int
+		deletedSize int64
+	)
 	for _, f := range files {
 		if f.IsDir {
 			continue
@@ -288,38 +303,50 @@ func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key
 			continue
 		}
 
-		p.Logger.Info(ctx, "Deleting sstable file",
-			"host", h.IP,
-			"location", h.Location,
-			"path", path.Join(baseDir, f.Path),
-			"size", f.Size,
-		)
-
 		l := h.Location.RemotePath(path.Join(baseDir, f.Path))
-		errs = multierr.Append(
-			errs,
-			errors.Wrapf(p.deleteFile(ctx, h.IP, l), "delete file %s", l),
-		)
+		if err := p.deleteFile(ctx, h.IP, l); err != nil {
+			errs = multierr.Append(errs, errors.Wrapf(err, "delete file %s", l))
+		} else {
+			deleted++
+			deletedSize += f.Size
+		}
 	}
+
+	p.Logger.Info(ctx, "Deleted orphaned data files",
+		"host", h.IP,
+		"keyspace", p.Keyspace,
+		"table", p.Table,
+		"location", h.Location,
+		"files", deleted,
+		"size", deletedSize,
+	)
 
 	return errs
 }
 
 func (p *purger) deleteTags(ctx context.Context, h hostInfo, tags []string) error {
-	var errs error
+	var (
+		errs    error
+		deleted int
+	)
 	for _, t := range tags {
 		dir := remoteTagDir(p.ClusterID, p.TaskID, t, h.DC, h.ID, p.Keyspace, p.Table)
-		p.Logger.Info(ctx, "Deleting tag directory",
-			"host", h.IP,
-			"location", h.Location,
-			"path", dir,
-		)
 		l := h.Location.RemotePath(dir)
-		errs = multierr.Append(
-			errs,
-			errors.Wrapf(p.deleteDir(ctx, h.IP, l), "delete directory %s", l),
-		)
+		if err := p.deleteDir(ctx, h.IP, l); err != nil {
+			errs = multierr.Append(errs, errors.Wrapf(err, "delete directory %s", l))
+		} else {
+			deleted++
+		}
 	}
+
+	p.Logger.Info(ctx, "Deleted metadata according to retention policy",
+		"host", h.IP,
+		"keyspace", p.Keyspace,
+		"table", p.Table,
+		"location", h.Location,
+		"tags", deleted,
+		"policy", p.Policy,
+	)
 
 	return errs
 }
