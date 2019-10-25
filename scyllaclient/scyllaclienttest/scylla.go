@@ -3,10 +3,8 @@
 package scyllaclienttest
 
 import (
-	"io"
 	"net"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -21,21 +19,9 @@ func NewFakeScyllaServerMatching(t *testing.T, m Matcher) (*scyllaclient.Client,
 		if err := r.ParseForm(); err != nil {
 			t.Error("ParseForm() error", err)
 		}
-
 		// Emulate ScyllaDB bug
 		r.Header.Set("Content-Type", "text/plain")
-
-		file := m(r)
-
-		f, err := os.Open(file)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer f.Close()
-		if _, err := io.Copy(w, f); err != nil {
-			t.Error("Copy() error", err)
-		}
+		sendFile(t, w, m(r))
 	})
 
 	host, port, close := server(t, h)
@@ -48,18 +34,8 @@ func NewFakeScyllaV2Server(t *testing.T, file string) (*scyllaclient.ConfigClien
 
 func NewFakeScyllaV2ServerMatching(t *testing.T, m Matcher) (*scyllaclient.ConfigClient, func()) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file := m(r)
 		w.Header().Set("Content-Type", "application/json")
-
-		f, err := os.Open(file)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer f.Close()
-		if _, err := io.Copy(w, f); err != nil {
-			t.Error("Copy() error", err)
-		}
+		sendFile(t, w, m(r))
 	})
 
 	host, port, close := server(t, h)

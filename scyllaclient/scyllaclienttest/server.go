@@ -3,9 +3,11 @@
 package scyllaclienttest
 
 import (
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/scylladb/go-log"
@@ -42,4 +44,16 @@ func client(t *testing.T, host, port string) *scyllaclient.Client {
 		t.Fatal(err)
 	}
 	return client
+}
+
+func sendFile(t *testing.T, w http.ResponseWriter, file string) {
+	f, err := os.Open(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer f.Close()
+	if _, err := io.Copy(w, f); err != nil {
+		t.Error("Copy() error", err)
+	}
 }

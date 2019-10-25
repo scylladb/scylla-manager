@@ -13,3 +13,13 @@ func FileMatcher(file string) Matcher {
 		return file
 	}
 }
+
+// PathFileMatcher matcher which verifies URL path.
+func PathFileMatcher(path, file string) Matcher {
+	return func(req *http.Request) string {
+		if req.URL.Path == path {
+			return file
+		}
+		return ""
+	}
+}

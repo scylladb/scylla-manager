@@ -4,6 +4,7 @@ package scyllaclienttest
 
 import (
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 
@@ -11,12 +12,23 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-func NewFakeRcloneServer(t *testing.T) (*scyllaclient.Client, func()) {
+func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (*scyllaclient.Client, func()) {
 	rc := rcserver.New()
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
-		rc.ServeHTTP(w, r)
+		for _, m := range matchers {
+			if m(r) != "" {
+				sendFile(t, w, m(r))
+				return
+			}
+		}
+
+		if p := path.Clean(r.URL.Path) + "/"; strings.HasPrefix(p, "/rclone/") {
+			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
+			rc.ServeHTTP(w, r)
+		} else {
+			t.Error("No matcher for path", r.URL.Path)
+		}
 	})
 
 	host, port, close := server(t, h)
