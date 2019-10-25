@@ -1,3 +1,8 @@
+-- Cluster
+
+ALTER TABLE cluster DROP ssh_user;
+ALTER TABLE cluster ADD auth_token text;
+
 -- Backup
 
 CREATE TYPE backup_unit (
@@ -16,7 +21,7 @@ CREATE TABLE backup_run (
     location list<text>,
     start_time timestamp,
     PRIMARY KEY ((cluster_id, task_id), id)
-) WITH CLUSTERING ORDER BY (id DESC);
+) WITH CLUSTERING ORDER BY (id DESC) AND default_time_to_live = 15552000;
 
 CREATE TABLE backup_run_progress (
     cluster_id uuid,
@@ -35,4 +40,12 @@ CREATE TABLE backup_run_progress (
     skipped bigint,
     failed bigint,
     PRIMARY KEY ((cluster_id, task_id, run_id), host, unit, table_name, file_name)
-);
+) WITH default_time_to_live = 15552000;
+
+-- Scheduler & Repair adjust TTLs
+
+ALTER TABLE scheduler_task WITH default_time_to_live = 15552000;
+ALTER TABLE scheduler_task_run WITH default_time_to_live = 15552000;
+
+ALTER TABLE repair_run WITH default_time_to_live = 15552000;
+ALTER TABLE repair_run_progress WITH default_time_to_live = 15552000;
