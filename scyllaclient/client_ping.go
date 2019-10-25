@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -198,15 +199,24 @@ func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
 	return timeutc.Since(t), err
 }
 
-func (c *Client) ping(ctx context.Context, host string) error {
-	u := url.URL{
-		Scheme: c.config.Scheme,
-		Host:   host,
-		Path:   "/",
+func (c *Client) newURL(host, path string) url.URL {
+	port := "80"
+	if c.config.Scheme == "https" {
+		port = "443"
 	}
+
+	return url.URL{
+		Scheme: c.config.Scheme,
+		Host:   net.JoinHostPort(host, port),
+		Path:   path,
+	}
+}
+
+func (c *Client) ping(ctx context.Context, host string) error {
+	u := c.newURL(host, "/")
 	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "create http request")
 	}
 	r = r.WithContext(middleware.ForceHost(ctx, host))
 

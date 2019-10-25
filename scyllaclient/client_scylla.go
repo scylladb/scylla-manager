@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"runtime"
 	"sort"
 	"strconv"
@@ -179,12 +178,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 // metrics returns Prometheus metrics response body, caller is responsible for
 // closing the returned body.
 func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error) {
-	u := url.URL{
-		Scheme: c.config.Scheme,
-		Host:   host,
-		Path:   "/metrics",
-	}
-
+	u := c.newURL(host, "/metrics")
 	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
