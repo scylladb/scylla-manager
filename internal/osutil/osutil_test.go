@@ -13,8 +13,6 @@ import (
 )
 
 func TestLinuxDistro(t *testing.T) {
-	t.Parallel()
-
 	table := []struct {
 		Name     string
 		File     string
@@ -30,7 +28,6 @@ func TestLinuxDistro(t *testing.T) {
 		test := table[i]
 
 		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
 			defer func(old string) { osReleaseFile = old }(osReleaseFile)
 			osReleaseFile = test.File
 			dist := LinuxDistro()
@@ -42,8 +39,6 @@ func TestLinuxDistro(t *testing.T) {
 }
 
 func TestDocker(t *testing.T) {
-	t.Parallel()
-
 	table := []struct {
 		Name       string
 		DockerFile string
@@ -60,8 +55,6 @@ func TestDocker(t *testing.T) {
 		test := table[i]
 
 		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-
 			defer func(oldEnv, oldCgr string) {
 				dockerEnvFile = oldEnv
 				cGroupFile = oldCgr
@@ -77,8 +70,6 @@ func TestDocker(t *testing.T) {
 }
 
 func TestMacUUID(t *testing.T) {
-	t.Parallel()
-
 	defer func(old string) { macUUIDFile = old }(macUUIDFile)
 	f, err := ioutil.TempFile("", "scylla-manager-testing-macuuid")
 	if err != nil {
@@ -101,8 +92,6 @@ func TestMacUUID(t *testing.T) {
 const regUUID = "41e0c292-6044-11e9-940a-c85b76fba4f6"
 
 func TestRegUUID(t *testing.T) {
-	t.Parallel()
-
 	defer func(old string) { osReleaseFile = old }(osReleaseFile)
 	defer func(old func(name string, args ...string) ([]byte, error)) { regExecCommand = old }(regExecCommand)
 	regExecCommand = fakeExecCommand
