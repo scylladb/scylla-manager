@@ -114,7 +114,7 @@ func checkHashes(ctx context.Context, src fs.ObjectInfo, dst fs.Object, ht hash.
 // Otherwise the file is considered to be not equal including if there
 // were errors reading info.
 func Equal(ctx context.Context, src fs.ObjectInfo, dst fs.Object) bool {
-	return equal(ctx, src, dst, fs.Config.SizeOnly, fs.Config.CheckSum, !fs.Config.NoUpdateModTime)
+	return equal(ctx, src, dst, defaultEqualOpt())
 }
 
 // sizeDiffers compare the size of src and dst taking into account the
@@ -128,12 +128,30 @@ func sizeDiffers(src, dst fs.ObjectInfo) bool {
 
 var checksumWarning sync.Once
 
-func equal(ctx context.Context, src fs.ObjectInfo, dst fs.Object, sizeOnly, checkSum, UpdateModTime bool) bool {
+// options for equal function()
+type equalOpt struct {
+	sizeOnly          bool // if set only check size
+	checkSum          bool // if set check checksum+size instead of modtime+size
+	updateModTime     bool // if set update the modtime if hashes identical and checking with modtime+size
+	forceModTimeMatch bool // if set assume modtimes match
+}
+
+// default set of options for equal()
+func defaultEqualOpt() equalOpt {
+	return equalOpt{
+		sizeOnly:          fs.Config.SizeOnly,
+		checkSum:          fs.Config.CheckSum,
+		updateModTime:     !fs.Config.NoUpdateModTime,
+		forceModTimeMatch: false,
+	}
+}
+
+func equal(ctx context.Context, src fs.ObjectInfo, dst fs.Object, opt equalOpt) bool {
 	if sizeDiffers(src, dst) {
 		fs.Debugf(src, "Sizes differ (src %d vs dst %d)", src.Size(), dst.Size())
 		return false
 	}
-	if sizeOnly {
+	if opt.sizeOnly {
 		fs.Debugf(src, "Sizes identical")
 		return true
 	}
@@ -141,7 +159,7 @@ func equal(ctx context.Context, src fs.ObjectInfo, dst fs.Object, sizeOnly, chec
 	// Assert: Size is equal or being ignored
 
 	// If checking checksum and not modtime
-	if checkSum {
+	if opt.checkSum {
 		// Check the hash
 		same, ht, _ := CheckHashes(ctx, src, dst)
 		if !same {
@@ -159,21 +177,23 @@ func equal(ctx context.Context, src fs.ObjectInfo, dst fs.Object, sizeOnly, chec
 		return true
 	}
 
-	// Sizes the same so check the mtime
-	modifyWindow := fs.GetModifyWindow(src.Fs(), dst.Fs())
-	if modifyWindow == fs.ModTimeNotSupported {
-		fs.Debugf(src, "Sizes identical")
-		return true
-	}
 	srcModTime := src.ModTime(ctx)
-	dstModTime := dst.ModTime(ctx)
-	dt := dstModTime.Sub(srcModTime)
-	if dt < modifyWindow && dt > -modifyWindow {
-		fs.Debugf(src, "Size and modification time the same (differ by %s, within tolerance %s)", dt, modifyWindow)
-		return true
-	}
+	if !opt.forceModTimeMatch {
+		// Sizes the same so check the mtime
+		modifyWindow := fs.GetModifyWindow(src.Fs(), dst.Fs())
+		if modifyWindow == fs.ModTimeNotSupported {
+			fs.Debugf(src, "Sizes identical")
+			return true
+		}
+		dstModTime := dst.ModTime(ctx)
+		dt := dstModTime.Sub(srcModTime)
+		if dt < modifyWindow && dt > -modifyWindow {
+			fs.Debugf(src, "Size and modification time the same (differ by %s, within tolerance %s)", dt, modifyWindow)
+			return true
+		}
 
-	fs.Debugf(src, "Modification times differ by %s: %v, %v", dt, srcModTime, dstModTime)
+		fs.Debugf(src, "Modification times differ by %s: %v, %v", dt, srcModTime, dstModTime)
+	}
 
 	// Check if the hashes are the same
 	same, ht, _ := CheckHashes(ctx, src, dst)
@@ -187,7 +207,7 @@ func equal(ctx context.Context, src fs.ObjectInfo, dst fs.Object, sizeOnly, chec
 	}
 
 	// mod time differs but hash is the same to reset mod time if required
-	if UpdateModTime {
+	if opt.updateModTime {
 		if fs.Config.DryRun {
 			fs.Logf(src, "Not updating modification time as --dry-run")
 		} else {
@@ -302,10 +322,18 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 			if fs.Config.MaxTransfer >= 0 && accounting.Stats(ctx).GetBytes() >= int64(fs.Config.MaxTransfer) {
 				return nil, accounting.ErrorMaxTransferLimitReached
 			}
+			in := tr.Account(nil) // account the transfer
+			in.ServerSideCopyStart()
 			newDst, err = doCopy(ctx, src, remote)
 			if err == nil {
 				dst = newDst
-				accounting.Stats(ctx).Bytes(dst.Size()) // account the bytes for the server side transfer
+				in.ServerSideCopyEnd(dst.Size()) // account the bytes for the server side transfer
+				err = in.Close()
+			} else {
+				_ = in.Close()
+			}
+			if err == fs.ErrorCantCopy {
+				tr.Reset() // skip incomplete accounting - will be overwritten by the manual copy below
 			}
 		} else {
 			err = fs.ErrorCantCopy
@@ -972,15 +1000,6 @@ func Sha1sum(ctx context.Context, f fs.Fs, w io.Writer) error {
 	return HashLister(ctx, hash.SHA1, f, w)
 }
 
-// DropboxHashSum list the Fs to the supplied writer
-//
-// Obeys includes and excludes
-//
-// Lists in parallel which may get them out of order
-func DropboxHashSum(ctx context.Context, f fs.Fs, w io.Writer) error {
-	return HashLister(ctx, hash.Dropbox, f, w)
-}
-
 // hashSum returns the human readable hash for ht passed in.  This may
 // be UNSUPPORTED or ERROR.
 func hashSum(ctx context.Context, ht hash.Type, o fs.Object) string {
@@ -1003,7 +1022,7 @@ func hashSum(ctx context.Context, ht hash.Type, o fs.Object) string {
 func HashLister(ctx context.Context, ht hash.Type, f fs.Fs, w io.Writer) error {
 	return ListFn(ctx, f, func(o fs.Object) {
 		sum := hashSum(ctx, ht, o)
-		syncFprintf(w, "%*s  %s\n", hash.Width[ht], sum, o.Remote())
+		syncFprintf(w, "%*s  %s\n", hash.Width(ht), sum, o.Remote())
 	})
 }
 
@@ -1445,7 +1464,9 @@ func copyDest(ctx context.Context, fdst fs.Fs, dst, src fs.Object, CopyDest, bac
 	default:
 		return false, err
 	}
-	if equal(ctx, src, CopyDestFile, fs.Config.SizeOnly, fs.Config.CheckSum, false) {
+	opt := defaultEqualOpt()
+	opt.updateModTime = false
+	if equal(ctx, src, CopyDestFile, opt) {
 		if dst == nil || !Equal(ctx, src, dst) {
 			if dst != nil && backupDir != nil {
 				err = MoveBackupDir(ctx, backupDir, dst)
@@ -1490,7 +1511,7 @@ func CompareOrCopyDest(ctx context.Context, fdst fs.Fs, dst, src fs.Object, Comp
 // transferred or not.
 func NeedTransfer(ctx context.Context, dst, src fs.Object) bool {
 	if dst == nil {
-		fs.Debugf(src, "Couldn't find file - need to transfer")
+		fs.Debugf(src, "Need to transfer - File not found at Destination")
 		return true
 	}
 	// If we should ignore existing files, don't transfer
@@ -1521,13 +1542,22 @@ func NeedTransfer(ctx context.Context, dst, src fs.Object) bool {
 			fs.Debugf(src, "Destination is newer than source, skipping")
 			return false
 		case dt <= -modifyWindow:
-			fs.Debugf(src, "Destination is older than source, transferring")
-		default:
-			if !sizeDiffers(src, dst) {
-				fs.Debugf(src, "Destination mod time is within %v of source and sizes identical, skipping", modifyWindow)
+			// force --checksum on for the check and do update modtimes by default
+			opt := defaultEqualOpt()
+			opt.forceModTimeMatch = true
+			if equal(ctx, src, dst, opt) {
+				fs.Debugf(src, "Unchanged skipping")
 				return false
 			}
-			fs.Debugf(src, "Destination mod time is within %v of source but sizes differ, transferring", modifyWindow)
+		default:
+			// Do a size only compare unless --checksum is set
+			opt := defaultEqualOpt()
+			opt.sizeOnly = !fs.Config.CheckSum
+			if equal(ctx, src, dst, opt) {
+				fs.Debugf(src, "Destination mod time is within %v of source and files identical, skipping", modifyWindow)
+				return false
+			}
+			fs.Debugf(src, "Destination mod time is within %v of source but files differ, transferring", modifyWindow)
 		}
 	} else {
 		// Check to see if changed or not
@@ -1582,7 +1612,7 @@ func RcatSize(ctx context.Context, fdst fs.Fs, dstFileName string, in io.ReadClo
 }
 
 // CopyURL copies the data from the url to (fdst, dstFileName)
-func CopyURL(ctx context.Context, fdst fs.Fs, dstFileName string, url string) (dst fs.Object, err error) {
+func CopyURL(ctx context.Context, fdst fs.Fs, dstFileName string, url string, dstFileNameFromURL bool) (dst fs.Object, err error) {
 	client := fshttp.NewClient(fs.Config)
 	resp, err := client.Get(url)
 	if err != nil {
@@ -1592,6 +1622,14 @@ func CopyURL(ctx context.Context, fdst fs.Fs, dstFileName string, url string) (d
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, errors.Errorf("CopyURL failed: %s", resp.Status)
 	}
+
+	if dstFileNameFromURL {
+		dstFileName = path.Base(resp.Request.URL.Path)
+		if dstFileName == "." || dstFileName == "/" {
+			return nil, errors.Errorf("CopyURL failed: file name wasn't found in url")
+		}
+	}
+
 	return RcatSize(ctx, fdst, dstFileName, resp.Body, resp.ContentLength, time.Now())
 }
 

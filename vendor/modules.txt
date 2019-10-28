@@ -11,7 +11,7 @@ github.com/apcera/termtables
 github.com/apcera/termtables/term
 # github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 github.com/asaskevich/govalidator
-# github.com/aws/aws-sdk-go v1.20.10
+# github.com/aws/aws-sdk-go v1.23.8
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -49,6 +49,7 @@ github.com/aws/aws-sdk-go/service/s3
 github.com/aws/aws-sdk-go/service/s3/s3iface
 github.com/aws/aws-sdk-go/service/s3/s3manager
 github.com/aws/aws-sdk-go/service/sts
+github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/beorn7/perks v1.0.0
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash v1.0.0
@@ -103,15 +104,15 @@ github.com/gocql/gocql
 github.com/gocql/gocql/internal/lru
 github.com/gocql/gocql/internal/murmur
 github.com/gocql/gocql/internal/streams
-# github.com/golang/mock v1.2.0
+# github.com/golang/mock v1.3.1
 github.com/golang/mock/gomock
 github.com/golang/mock/mockgen
 github.com/golang/mock/mockgen/model
-# github.com/golang/protobuf v1.3.1
+# github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
-# github.com/google/go-cmp v0.3.0
+# github.com/google/go-cmp v0.3.1
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/cmpopts
 github.com/google/go-cmp/cmp/internal/diff
@@ -128,12 +129,16 @@ github.com/inconshreveable/mousetrap
 github.com/jmespath/go-jmespath
 # github.com/jzelinskie/whirlpool v0.0.0-20170603002051-c19460b8caa6
 github.com/jzelinskie/whirlpool
-# github.com/konsorten/go-windows-terminal-sequences v1.0.1
+# github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
+# github.com/mattn/go-colorable v0.1.2
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.8
+github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.4
 github.com/mattn/go-runewidth
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -142,7 +147,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
-# github.com/ncw/swift v1.0.47
+# github.com/ncw/swift v1.0.49
 github.com/ncw/swift
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
@@ -159,12 +164,10 @@ github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
-# github.com/rclone/rclone v1.49.5
+# github.com/rclone/rclone v1.50.0
 github.com/rclone/rclone/backend/crypt
 github.com/rclone/rclone/backend/crypt/pkcs7
-github.com/rclone/rclone/backend/dropbox/dbhash
 github.com/rclone/rclone/backend/local
-github.com/rclone/rclone/backend/onedrive/quickxorhash
 github.com/rclone/rclone/backend/s3
 github.com/rclone/rclone/cmd/serve/httplib
 github.com/rclone/rclone/cmd/serve/httplib/serve/data
@@ -178,6 +181,7 @@ github.com/rclone/rclone/fs/config/configstruct
 github.com/rclone/rclone/fs/config/obscure
 github.com/rclone/rclone/fs/dirtree
 github.com/rclone/rclone/fs/driveletter
+github.com/rclone/rclone/fs/encodings
 github.com/rclone/rclone/fs/filter
 github.com/rclone/rclone/fs/fserrors
 github.com/rclone/rclone/fs/fshttp
@@ -192,8 +196,10 @@ github.com/rclone/rclone/fs/rc/jobs
 github.com/rclone/rclone/fs/sync
 github.com/rclone/rclone/fs/version
 github.com/rclone/rclone/fs/walk
+github.com/rclone/rclone/lib/atexit
 github.com/rclone/rclone/lib/bucket
 github.com/rclone/rclone/lib/cache
+github.com/rclone/rclone/lib/encoder
 github.com/rclone/rclone/lib/errors
 github.com/rclone/rclone/lib/file
 github.com/rclone/rclone/lib/mmap
@@ -202,6 +208,7 @@ github.com/rclone/rclone/lib/pool
 github.com/rclone/rclone/lib/random
 github.com/rclone/rclone/lib/readers
 github.com/rclone/rclone/lib/rest
+github.com/rclone/rclone/lib/terminal
 # github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46
 github.com/rfjakob/eme
 # github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
@@ -236,7 +243,7 @@ go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest/observer
-# golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
+# golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/curve25519
@@ -251,13 +258,13 @@ golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 golang.org/x/net/context
 golang.org/x/net/idna
 golang.org/x/net/publicsuffix
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+# golang.org/x/sys v0.0.0-20190826163724-acd9dae8e8cc
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -271,6 +278,13 @@ golang.org/x/text/width
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20191010201905-e5ffc44a6fee
 golang.org/x/tools/cmd/stress
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/go/packages
+golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/semver
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.2.4

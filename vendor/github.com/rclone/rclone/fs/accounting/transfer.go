@@ -102,6 +102,8 @@ func (tr *Transfer) Done(err error) {
 		}
 		// Signal done with accounting
 		acc.Done()
+		// free the account since we may keep the transfer
+		acc = nil
 	}
 
 	tr.mu.Lock()
@@ -112,6 +114,21 @@ func (tr *Transfer) Done(err error) {
 		tr.stats.DoneChecking(tr.remote)
 	} else {
 		tr.stats.DoneTransferring(tr.remote, err == nil)
+	}
+	tr.stats.PruneTransfers()
+}
+
+// Reset allows to switch the Account to another transfer method.
+func (tr *Transfer) Reset() {
+	tr.mu.RLock()
+	acc := tr.acc
+	tr.acc = nil
+	tr.mu.RUnlock()
+
+	if acc != nil {
+		if err := acc.Close(); err != nil {
+			fs.LogLevelPrintf(fs.Config.StatsLogLevel, nil, "can't close account: %+v\n", err)
+		}
 	}
 }
 

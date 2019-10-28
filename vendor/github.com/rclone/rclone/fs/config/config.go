@@ -36,6 +36,7 @@ import (
 	"github.com/rclone/rclone/fs/fspath"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/lib/random"
+	"github.com/rclone/rclone/lib/terminal"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/text/unicode/norm"
 )
@@ -624,6 +625,16 @@ var ReadLine = func() string {
 	return strings.TrimSpace(line)
 }
 
+// ReadNonEmptyLine prints prompt and calls Readline until non empty
+func ReadNonEmptyLine(prompt string) string {
+	result := ""
+	for result == "" {
+		fmt.Print(prompt)
+		result = strings.TrimSpace(ReadLine())
+	}
+	return result
+}
+
 // Command - choose one
 func Command(commands []string) byte {
 	opts := []string{}
@@ -687,6 +698,7 @@ func Choose(what string, defaults, help []string, newOk bool) string {
 		valueDescription = "your own"
 	}
 	fmt.Printf("Choose a number from below, or type in %s value\n", valueDescription)
+	attributes := []string{terminal.HiRedFg, terminal.HiGreenFg}
 	for i, text := range defaults {
 		var lines []string
 		if help != nil {
@@ -695,6 +707,7 @@ func Choose(what string, defaults, help []string, newOk bool) string {
 		}
 		lines = append(lines, fmt.Sprintf("%q", text))
 		pos := i + 1
+		terminal.WriteString(attributes[i%len(attributes)])
 		if len(lines) == 1 {
 			fmt.Printf("%2d > %s\n", pos, text)
 		} else {
@@ -716,6 +729,7 @@ func Choose(what string, defaults, help []string, newOk bool) string {
 				fmt.Printf("%s %c %s\n", number, sep, line)
 			}
 		}
+		terminal.WriteString(terminal.Reset)
 	}
 	for {
 		fmt.Printf("%s> ", what)
@@ -944,6 +958,10 @@ func suppressConfirm() func() {
 // UpdateRemote adds the keyValues passed in to the remote of name.
 // keyValues should be key, value pairs.
 func UpdateRemote(name string, keyValues rc.Params) error {
+	err := fspath.CheckConfigName(name)
+	if err != nil {
+		return err
+	}
 	defer suppressConfirm()()
 
 	// Work out which options need to be obscured
@@ -987,6 +1005,10 @@ func UpdateRemote(name string, keyValues rc.Params) error {
 // parameters which are key, value pairs.  If update is set then it
 // adds the new keys rather than replacing all of them.
 func CreateRemote(name string, provider string, keyValues rc.Params) error {
+	err := fspath.CheckConfigName(name)
+	if err != nil {
+		return err
+	}
 	// Delete the old config if it exists
 	getConfigData().DeleteSection(name)
 	// Set the type
@@ -998,6 +1020,10 @@ func CreateRemote(name string, provider string, keyValues rc.Params) error {
 // PasswordRemote adds the keyValues passed in to the remote of name.
 // keyValues should be key, value pairs.
 func PasswordRemote(name string, keyValues rc.Params) error {
+	err := fspath.CheckConfigName(name)
+	if err != nil {
+		return err
+	}
 	defer suppressConfirm()()
 	for k, v := range keyValues {
 		keyValues[k] = obscure.MustObscure(fmt.Sprint(v))
@@ -1041,14 +1067,14 @@ func NewRemoteName() (name string) {
 	for {
 		fmt.Printf("name> ")
 		name = ReadLine()
-		parts := fspath.Matcher.FindStringSubmatch(name + ":")
+		err := fspath.CheckConfigName(name)
 		switch {
 		case name == "":
 			fmt.Printf("Can't use empty name.\n")
 		case driveletter.IsDriveLetter(name):
 			fmt.Printf("Can't use %q as it can be confused with a drive letter.\n", name)
-		case parts == nil:
-			fmt.Printf("Can't use %q as it has invalid characters in it.\n", name)
+		case err != nil:
+			fmt.Printf("Can't use %q as %v.\n", name, err)
 		default:
 			return name
 		}

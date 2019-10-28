@@ -17,11 +17,14 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,6 +44,7 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/config/configmap"
 	"github.com/rclone/rclone/fs/config/configstruct"
+	"github.com/rclone/rclone/fs/encodings"
 	"github.com/rclone/rclone/fs/fserrors"
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/hash"
@@ -49,6 +53,8 @@ import (
 	"github.com/rclone/rclone/lib/pacer"
 	"github.com/rclone/rclone/lib/rest"
 )
+
+const enc = encodings.S3
 
 // Register with Fs
 func init() {
@@ -748,6 +754,17 @@ Use this only if v4 signatures don't work, eg pre Jewel/v10 CEPH.`,
 See: [AWS S3 Transfer acceleration](https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html)`,
 			Default:  false,
 			Advanced: true,
+		}, {
+			Name:     "leave_parts_on_error",
+			Provider: "AWS",
+			Help: `If true avoid calling abort upload on a failure, leaving all successfully uploaded parts on S3 for manual recovery.
+
+It should be set to true for resuming uploads across different sessions.
+
+WARNING: Storing parts of an incomplete multipart upload counts towards space usage on S3 and will add additional costs if not cleaned up.
+`,
+			Default:  false,
+			Advanced: true,
 		}},
 	})
 }
@@ -788,6 +805,7 @@ type Options struct {
 	ForcePathStyle        bool          `config:"force_path_style"`
 	V2Auth                bool          `config:"v2_auth"`
 	UseAccelerateEndpoint bool          `config:"use_accelerate_endpoint"`
+	LeavePartsOnError     bool          `config:"leave_parts_on_error"`
 }
 
 // Fs represents a remote s3 server
@@ -899,7 +917,8 @@ func parsePath(path string) (root string) {
 // split returns bucket and bucketPath from the rootRelativePath
 // relative to f.root
 func (f *Fs) split(rootRelativePath string) (bucketName, bucketPath string) {
-	return bucket.Split(path.Join(f.root, rootRelativePath))
+	bucketName, bucketPath = bucket.Split(path.Join(f.root, rootRelativePath))
+	return enc.FromStandardName(bucketName), enc.FromStandardPath(bucketPath)
 }
 
 // split returns bucket and bucketPath from the object
@@ -1095,9 +1114,10 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	}).Fill(f)
 	if f.rootBucket != "" && f.rootDirectory != "" {
 		// Check to see if the object exists
+		encodedDirectory := enc.FromStandardPath(f.rootDirectory)
 		req := s3.HeadObjectInput{
 			Bucket: &f.rootBucket,
-			Key:    &f.rootDirectory,
+			Key:    &encodedDirectory,
 		}
 		err = f.pacer.Call(func() (bool, error) {
 			_, err = f.c.HeadObject(&req)
@@ -1218,6 +1238,22 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 		delimiter = "/"
 	}
 	var marker *string
+	// URL encode the listings so we can use control characters in object names
+	// See: https://github.com/aws/aws-sdk-go/issues/1914
+	//
+	// However this doesn't work perfectly under Ceph (and hence DigitalOcean/Dreamhost) because
+	// it doesn't encode CommonPrefixes.
+	// See: https://tracker.ceph.com/issues/41870
+	//
+	// This does not work under IBM COS also: See https://github.com/rclone/rclone/issues/3345
+	// though maybe it does on some versions.
+	//
+	// This does work with minio but was only added relatively recently
+	// https://github.com/minio/minio/pull/7265
+	//
+	// So we enable only on providers we know supports it properly, all others can retry when a
+	// XML Syntax error is detected.
+	var urlEncodeListings = (f.opt.Provider == "AWS" || f.opt.Provider == "Wasabi" || f.opt.Provider == "Alibaba")
 	for {
 		// FIXME need to implement ALL loop
 		req := s3.ListObjectsInput{
@@ -1227,10 +1263,26 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 			MaxKeys:   &maxKeys,
 			Marker:    marker,
 		}
+		if urlEncodeListings {
+			req.EncodingType = aws.String(s3.EncodingTypeUrl)
+		}
 		var resp *s3.ListObjectsOutput
 		var err error
 		err = f.pacer.Call(func() (bool, error) {
 			resp, err = f.c.ListObjectsWithContext(ctx, &req)
+			if err != nil && !urlEncodeListings {
+				if awsErr, ok := err.(awserr.RequestFailure); ok {
+					if origErr := awsErr.OrigErr(); origErr != nil {
+						if _, ok := origErr.(*xml.SyntaxError); ok {
+							// Retry the listing with URL encoding as there were characters that XML can't encode
+							urlEncodeListings = true
+							req.EncodingType = aws.String(s3.EncodingTypeUrl)
+							fs.Debugf(f, "Retrying listing because of characters which can't be XML encoded")
+							return true, err
+						}
+					}
+				}
+			}
 			return f.shouldRetry(err)
 		})
 		if err != nil {
@@ -1259,6 +1311,14 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 					continue
 				}
 				remote := *commonPrefix.Prefix
+				if urlEncodeListings {
+					remote, err = url.QueryUnescape(remote)
+					if err != nil {
+						fs.Logf(f, "failed to URL decode %q in listing common prefix: %v", *commonPrefix.Prefix, err)
+						continue
+					}
+				}
+				remote = enc.ToStandardPath(remote)
 				if !strings.HasPrefix(remote, prefix) {
 					fs.Logf(f, "Odd name received %q", remote)
 					continue
@@ -1278,6 +1338,14 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 		}
 		for _, object := range resp.Contents {
 			remote := aws.StringValue(object.Key)
+			if urlEncodeListings {
+				remote, err = url.QueryUnescape(remote)
+				if err != nil {
+					fs.Logf(f, "failed to URL decode %q in listing: %v", aws.StringValue(object.Key), err)
+					continue
+				}
+			}
+			remote = enc.ToStandardPath(remote)
 			if !strings.HasPrefix(remote, prefix) {
 				fs.Logf(f, "Odd name received %q", remote)
 				continue
@@ -1362,7 +1430,7 @@ func (f *Fs) listBuckets(ctx context.Context) (entries fs.DirEntries, err error)
 		return nil, err
 	}
 	for _, bucket := range resp.Buckets {
-		bucketName := aws.StringValue(bucket.Name)
+		bucketName := enc.ToStandardName(aws.StringValue(bucket.Name))
 		f.cache.MarkOK(bucketName)
 		d := fs.NewDir(bucketName, aws.TimeValue(bucket.CreationDate))
 		entries = append(entries, d)
@@ -1558,7 +1626,7 @@ func pathEscape(s string) string {
 //
 // It adds the boiler plate to the req passed in and calls the s3
 // method
-func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPath, srcBucket, srcPath string) error {
+func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPath, srcBucket, srcPath string, srcSize int64) error {
 	req.Bucket = &dstBucket
 	req.ACL = &f.opt.ACL
 	req.Key = &dstPath
@@ -1573,8 +1641,109 @@ func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPa
 	if req.StorageClass == nil && f.opt.StorageClass != "" {
 		req.StorageClass = &f.opt.StorageClass
 	}
+
+	if srcSize >= int64(f.opt.UploadCutoff) {
+		return f.copyMultipart(ctx, req, dstBucket, dstPath, srcBucket, srcPath, srcSize)
+	}
 	return f.pacer.Call(func() (bool, error) {
 		_, err := f.c.CopyObjectWithContext(ctx, req)
+		return f.shouldRetry(err)
+	})
+}
+
+func calculateRange(partSize, partIndex, numParts, totalSize int64) string {
+	start := partIndex * partSize
+	var ends string
+	if partIndex == numParts-1 {
+		if totalSize >= 0 {
+			ends = strconv.FormatInt(totalSize, 10)
+		}
+	} else {
+		ends = strconv.FormatInt(start+partSize-1, 10)
+	}
+	return fmt.Sprintf("bytes=%v-%v", start, ends)
+}
+
+func (f *Fs) copyMultipart(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPath, srcBucket, srcPath string, srcSize int64) (err error) {
+	var cout *s3.CreateMultipartUploadOutput
+	if err := f.pacer.Call(func() (bool, error) {
+		var err error
+		cout, err = f.c.CreateMultipartUploadWithContext(ctx, &s3.CreateMultipartUploadInput{
+			Bucket: &dstBucket,
+			Key:    &dstPath,
+		})
+		return f.shouldRetry(err)
+	}); err != nil {
+		return err
+	}
+	uid := cout.UploadId
+
+	defer func() {
+		if err != nil {
+			// We can try to abort the upload, but ignore the error.
+			_ = f.pacer.Call(func() (bool, error) {
+				_, err := f.c.AbortMultipartUploadWithContext(ctx, &s3.AbortMultipartUploadInput{
+					Bucket:       &dstBucket,
+					Key:          &dstPath,
+					UploadId:     uid,
+					RequestPayer: req.RequestPayer,
+				})
+				return f.shouldRetry(err)
+			})
+		}
+	}()
+
+	partSize := int64(f.opt.ChunkSize)
+	numParts := (srcSize-1)/partSize + 1
+
+	var parts []*s3.CompletedPart
+	for partNum := int64(1); partNum <= numParts; partNum++ {
+		if err := f.pacer.Call(func() (bool, error) {
+			partNum := partNum
+			uploadPartReq := &s3.UploadPartCopyInput{
+				Bucket:          &dstBucket,
+				Key:             &dstPath,
+				PartNumber:      &partNum,
+				UploadId:        uid,
+				CopySourceRange: aws.String(calculateRange(partSize, partNum-1, numParts, srcSize)),
+				// Args copy from req
+				CopySource:                     req.CopySource,
+				CopySourceIfMatch:              req.CopySourceIfMatch,
+				CopySourceIfModifiedSince:      req.CopySourceIfModifiedSince,
+				CopySourceIfNoneMatch:          req.CopySourceIfNoneMatch,
+				CopySourceIfUnmodifiedSince:    req.CopySourceIfUnmodifiedSince,
+				CopySourceSSECustomerAlgorithm: req.CopySourceSSECustomerAlgorithm,
+				CopySourceSSECustomerKey:       req.CopySourceSSECustomerKey,
+				CopySourceSSECustomerKeyMD5:    req.CopySourceSSECustomerKeyMD5,
+				RequestPayer:                   req.RequestPayer,
+				SSECustomerAlgorithm:           req.SSECustomerAlgorithm,
+				SSECustomerKey:                 req.SSECustomerKey,
+				SSECustomerKeyMD5:              req.SSECustomerKeyMD5,
+			}
+			uout, err := f.c.UploadPartCopyWithContext(ctx, uploadPartReq)
+			if err != nil {
+				return f.shouldRetry(err)
+			}
+			parts = append(parts, &s3.CompletedPart{
+				PartNumber: &partNum,
+				ETag:       uout.CopyPartResult.ETag,
+			})
+			return false, nil
+		}); err != nil {
+			return err
+		}
+	}
+
+	return f.pacer.Call(func() (bool, error) {
+		_, err := f.c.CompleteMultipartUploadWithContext(ctx, &s3.CompleteMultipartUploadInput{
+			Bucket: &dstBucket,
+			Key:    &dstPath,
+			MultipartUpload: &s3.CompletedMultipartUpload{
+				Parts: parts,
+			},
+			RequestPayer: req.RequestPayer,
+			UploadId:     uid,
+		})
 		return f.shouldRetry(err)
 	})
 }
@@ -1603,7 +1772,7 @@ func (f *Fs) Copy(ctx context.Context, src fs.Object, remote string) (fs.Object,
 	req := s3.CopyObjectInput{
 		MetadataDirective: aws.String(s3.MetadataDirectiveCopy),
 	}
-	err = f.copy(ctx, &req, dstBucket, dstPath, srcBucket, srcPath)
+	err = f.copy(ctx, &req, dstBucket, dstPath, srcBucket, srcPath, srcObj.Size())
 	if err != nil {
 		return nil, err
 	}
@@ -1703,6 +1872,9 @@ func (o *Object) readMetaData(ctx context.Context) (err error) {
 	o.etag = aws.StringValue(resp.ETag)
 	o.bytes = size
 	o.meta = resp.Metadata
+	if o.meta == nil {
+		o.meta = map[string]*string{}
+	}
 	o.storageClass = aws.StringValue(resp.StorageClass)
 	if resp.LastModified == nil {
 		fs.Logf(o, "Failed to read last modified from HEAD: %v", err)
@@ -1766,7 +1938,7 @@ func (o *Object) SetModTime(ctx context.Context, modTime time.Time) error {
 		Metadata:          o.meta,
 		MetadataDirective: aws.String(s3.MetadataDirectiveReplace), // replace metadata with that passed in
 	}
-	return o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath)
+	return o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath, o.bytes)
 }
 
 // Storable raturns a boolean indicating if this object is storable
@@ -1825,7 +1997,7 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	if multipart {
 		uploader = s3manager.NewUploader(o.fs.ses, func(u *s3manager.Uploader) {
 			u.Concurrency = o.fs.opt.UploadConcurrency
-			u.LeavePartsOnError = false
+			u.LeavePartsOnError = o.fs.opt.LeavePartsOnError
 			u.S3 = o.fs.c
 			u.PartSize = int64(o.fs.opt.ChunkSize)
 
@@ -1925,6 +2097,10 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 			return errors.Wrap(err, "s3 upload: sign request")
 		}
 
+		if o.fs.opt.V2Auth && headers == nil {
+			headers = putObj.HTTPRequest.Header
+		}
+
 		// Set request to nil if empty so as not to make chunked encoding
 		if size == 0 {
 			in = nil
@@ -1935,7 +2111,7 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		if err != nil {
 			return errors.Wrap(err, "s3 upload: new request")
 		}
-		httpReq = httpReq.WithContext(ctx)
+		httpReq = httpReq.WithContext(ctx) // go1.13 can use NewRequestWithContext
 
 		// set the headers we signed and the length
 		httpReq.Header = headers
@@ -2000,7 +2176,7 @@ func (o *Object) SetTier(tier string) (err error) {
 		MetadataDirective: aws.String(s3.MetadataDirectiveCopy),
 		StorageClass:      aws.String(tier),
 	}
-	err = o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath)
+	err = o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath, o.bytes)
 	if err != nil {
 		return err
 	}
