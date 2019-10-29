@@ -35,6 +35,15 @@ func (c *ConfigClient) ListenAddress(ctx context.Context) (string, error) {
 	return resp.Payload, err
 }
 
+// RPCAddress returns node rpc address.
+func (c *ConfigClient) RPCAddress(ctx context.Context) (string, error) {
+	resp, err := c.client.Config.FindConfigRPCAddress(config.NewFindConfigRPCAddressParamsWithContext(ctx))
+	if err != nil {
+		return "", err
+	}
+	return resp.Payload, err
+}
+
 // BroadcastAddress returns node broadcast address.
 func (c *ConfigClient) BroadcastAddress(ctx context.Context) (string, error) {
 	resp, err := c.client.Config.FindConfigBroadcastAddress(config.NewFindConfigBroadcastAddressParamsWithContext(ctx))

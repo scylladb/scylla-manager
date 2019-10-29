@@ -24,6 +24,21 @@ func TestConfigClientListenAddress(t *testing.T) {
 	}
 }
 
+func TestConfigClientRPCAddress(t *testing.T) {
+	t.Parallel()
+
+	client, cl := scyllaclienttest.NewFakeScyllaV2Server(t, "testdata/scylla_api/v2_config_rpc_address.json")
+	defer cl()
+
+	v, err := client.RPCAddress(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != "192.168.100.101" {
+		t.Fatalf("Expected %s got %s", "192.168.100.101", v)
+	}
+}
+
 func TestConfigClientBroadcastAddress(t *testing.T) {
 	t.Parallel()
 

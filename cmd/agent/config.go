@@ -33,7 +33,6 @@ type scyllaConfig struct {
 	APIPort    string `yaml:"api_port"`
 
 	ListenAddress     string
-	BroadcastAddress  string
 	PrometheusAddress string
 	PrometheusPort    string
 }
@@ -127,9 +126,6 @@ func enrichScyllaConfigFromAPI(c *scyllaConfig) error {
 	if c.ListenAddress, err = client.ListenAddress(ctx); err != nil {
 		return err
 	}
-	if c.BroadcastAddress, err = client.BroadcastAddress(ctx); err != nil {
-		return err
-	}
 	if c.PrometheusAddress, err = client.PrometheusAddress(ctx); err != nil {
 		return err
 	}
@@ -144,11 +140,5 @@ func updateHTTPSConfigFromScyllaConfig(c *config) {
 	if c.HTTPS != "" {
 		return
 	}
-	var addr string
-	if c.Scylla.BroadcastAddress != "" {
-		addr = c.Scylla.BroadcastAddress
-	} else {
-		addr = c.Scylla.ListenAddress
-	}
-	c.HTTPS = net.JoinHostPort(addr, defaultHTTPSPort)
+	c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, defaultHTTPSPort)
 }

@@ -12,6 +12,5 @@ scylla:
   api_address: 0.0.0.0
   api_port: "10000"
   listenaddress: 192.168.100.11
-  broadcastaddress: 192.168.100.11
   prometheusaddress: 192.168.100.11
   prometheusport: "9180"
