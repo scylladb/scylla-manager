@@ -89,7 +89,7 @@ Summary: Scylla Manager server
 
 %{?systemd_requires}
 BuildRequires: systemd
-Requires: bash curl jq openssl psmisc yum-utils
+Requires: bash yum-utils
 
 %description server
 %{common_description} This package provides the Scylla Manager server that manages maintenance tasks for Scylla database clusters.
