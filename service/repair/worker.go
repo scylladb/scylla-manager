@@ -123,7 +123,6 @@ func (w *hostWorker) splitSegmentsToShards(ctx context.Context, p *dht.Murmur3Pa
 
 	for i := range shards {
 		shards[i] = shards[i].merge()
-		shards[i] = shards[i].split(int64(w.Config.SegmentTokensMax))
 	}
 
 	return shards

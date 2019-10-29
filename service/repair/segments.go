@@ -74,51 +74,6 @@ func (s segments) merge() segments {
 	return res
 }
 
-// split splits the segments so that each segment size is less or
-// equal sizeLimit.
-func (s segments) split(sizeLimit int64) segments {
-	if len(s) == 0 || sizeLimit <= 0 {
-		return s
-	}
-
-	// Calculate slice size after the split
-	size := int64(0)
-	for _, seg := range s {
-		r := seg.EndToken - seg.StartToken
-		if r > sizeLimit {
-			size += r / sizeLimit
-		}
-		size++
-	}
-
-	// No split needed
-	if size == int64(len(s)) {
-		return s
-	}
-
-	// Split the segments
-	split := make(segments, 0, size)
-	for _, seg := range s {
-		r := seg.EndToken - seg.StartToken
-		if r > sizeLimit {
-			start := seg.StartToken
-			end := seg.EndToken
-			for start < end {
-				token := start + sizeLimit
-				if token > end {
-					token = end
-				}
-				split = append(split, &segment{StartToken: start, EndToken: token})
-				start = token
-			}
-		} else {
-			split = append(split, seg)
-		}
-	}
-
-	return split
-}
-
 // containStartToken checks if there exists a segment starting with a
 // given token.
 func (s segments) containStartToken(token int64) (int, bool) {

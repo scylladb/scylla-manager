@@ -13,7 +13,6 @@ import (
 // Config specifies the repair service configuration.
 type Config struct {
 	SegmentsPerRepair      int           `yaml:"segments_per_repair"`
-	SegmentTokensMax       int           `yaml:"segment_tokens_max"`
 	ShardParallelMax       int           `yaml:"shard_parallel_max"`
 	ShardFailedSegmentsMax int           `yaml:"shard_failed_segments_max"`
 	PollInterval           time.Duration `yaml:"poll_interval"`
@@ -26,7 +25,6 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		SegmentsPerRepair:      1,
-		SegmentTokensMax:       0,
 		ShardFailedSegmentsMax: 100,
 		ErrorBackoff:           5 * time.Minute,
 		PollInterval:           200 * time.Millisecond,
@@ -44,9 +42,6 @@ func (c *Config) Validate() error {
 	var err error
 	if c.SegmentsPerRepair <= 0 {
 		err = multierr.Append(err, errors.New("invalid segments_per_repair, must be > 0"))
-	}
-	if c.SegmentTokensMax < 0 {
-		err = multierr.Append(err, errors.New("invalid segment_tokens_max, must be > 0 or 0 for no limit"))
 	}
 	if c.ShardParallelMax < 0 {
 		err = multierr.Append(err, errors.New("invalid shard_parallel_max, must be > 0 or 0 for no limit"))

@@ -42,7 +42,6 @@ backup:
 
 repair:
   segments_per_repair: 7
-  segment_tokens_max: 10
   shard_parallel_max: 10
   shard_failed_segments_max: 0
   error_backoff: 10s
