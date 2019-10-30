@@ -17,8 +17,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/httputil/middleware"
-	rcloneClient "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client"
-	rcloneOperations "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client/operations"
+	agentClient "github.com/scylladb/mermaid/scyllaclient/internal/agent/client"
+	agentOperations "github.com/scylladb/mermaid/scyllaclient/internal/agent/client/operations"
 	scyllaClient "github.com/scylladb/mermaid/scyllaclient/internal/scylla/client"
 	scyllaOperations "github.com/scylladb/mermaid/scyllaclient/internal/scylla/client/operations"
 )
@@ -68,7 +68,8 @@ type Client struct {
 	logger log.Logger
 
 	scyllaOps *scyllaOperations.Client
-	rcloneOps *rcloneOperations.Client
+	agentOps  *agentOperations.Client
+
 	transport http.RoundTripper
 }
 
@@ -104,18 +105,19 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	scyllaRuntime := api.NewWithClient(
 		scyllaClient.DefaultHost, scyllaClient.DefaultBasePath, []string{config.Scheme}, c,
 	)
-	rcloneRuntime := api.NewWithClient(
-		rcloneClient.DefaultHost, rcloneClient.DefaultBasePath, []string{config.Scheme}, c,
+	agentRuntime := api.NewWithClient(
+		agentClient.DefaultHost, agentClient.DefaultBasePath, []string{config.Scheme}, c,
 	)
-	// debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
+
+	// Debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
 	scyllaRuntime.Debug = false
-	rcloneRuntime.Debug = false
+	agentRuntime.Debug = false
 
 	return &Client{
 		config:    config,
 		logger:    logger,
 		scyllaOps: scyllaOperations.New(scyllaRuntime, strfmt.Default),
-		rcloneOps: rcloneOperations.New(rcloneRuntime, strfmt.Default),
+		agentOps:  agentOperations.New(agentRuntime, strfmt.Default),
 		transport: transport,
 	}, nil
 }

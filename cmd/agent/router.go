@@ -32,11 +32,13 @@ func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s := mux.config.Scylla
 	p := path.Clean(r.URL.Path) + "/"
 	switch {
-	case strings.HasPrefix(p, "/rclone/"):
+	case strings.HasPrefix(p, "/agent/rclone/"):
 		// Stripping prefix to use clean paths in rclone server
-		// eg. "/rclone/operations/about" to "/operations/about".
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
+		// eg. "/agent/rclone/operations/about" to "/operations/about".
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/agent/rclone")
 		mux.rclone.ServeHTTP(w, r)
+	case strings.HasPrefix(p, "/agent/node_info"):
+		mux.getNodeInfo(w, r)
 	case strings.HasPrefix(p, "/metrics/"):
 		mux.sendRequest(w, withHostPort(r, s.PrometheusAddress, s.PrometheusPort))
 	default:

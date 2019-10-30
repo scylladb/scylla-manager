@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/scylladb/mermaid/scyllaclient"
-	"github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
+	"github.com/scylladb/mermaid/scyllaclient/internal/agent/models"
 	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
 )
 

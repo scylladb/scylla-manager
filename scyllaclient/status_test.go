@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
-	rcloneOperations "github.com/scylladb/mermaid/scyllaclient/internal/rclone/client/operations"
-	rcloneModels "github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
+	rcloneOperations "github.com/scylladb/mermaid/scyllaclient/internal/agent/client/operations"
+	agentModels "github.com/scylladb/mermaid/scyllaclient/internal/agent/models"
 	scylla2ConfigOperations "github.com/scylladb/mermaid/scyllaclient/internal/scylla_v2/client/config"
 	scylla2Models "github.com/scylladb/mermaid/scyllaclient/internal/scylla_v2/models"
 )
@@ -20,7 +20,7 @@ func TestStatusCodeOf(t *testing.T) {
 	configNotFound.Payload = &scylla2Models.ErrorModel{Result: 404}
 
 	rcloneNotFound := rcloneOperations.NewOperationsListNotFound()
-	rcloneNotFound.Payload = &rcloneModels.ErrorResponse{Status: 404}
+	rcloneNotFound.Payload = &agentModels.ErrorResponse{Status: 404}
 
 	table := []struct {
 		Name   string

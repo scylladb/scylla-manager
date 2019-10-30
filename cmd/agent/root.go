@@ -117,7 +117,6 @@ var rootCmd = &cobra.Command{
 			var h http.Handler
 			h = newRouter(c, rcserver.New(), http.DefaultClient)
 			h = middleware.ValidateAuthToken(h, c.AuthToken, time.Second)
-
 			server := http.Server{
 				Addr:    c.HTTPS,
 				Handler: h,

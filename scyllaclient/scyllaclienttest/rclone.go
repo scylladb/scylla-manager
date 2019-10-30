@@ -23,8 +23,8 @@ func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (*scyllaclient.Clien
 			}
 		}
 
-		if p := path.Clean(r.URL.Path) + "/"; strings.HasPrefix(p, "/rclone/") {
-			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/rclone")
+		if p := path.Clean(r.URL.Path) + "/"; strings.HasPrefix(p, "/agent/rclone/") {
+			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/agent/rclone")
 			rc.ServeHTTP(w, r)
 		} else {
 			t.Error("No matcher for path", r.URL.Path)

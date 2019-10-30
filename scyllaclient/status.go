@@ -5,7 +5,7 @@ package scyllaclient
 import (
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
-	rcloneModels "github.com/scylladb/mermaid/scyllaclient/internal/rclone/models"
+	agentModels "github.com/scylladb/mermaid/scyllaclient/internal/agent/models"
 	scylla2Models "github.com/scylladb/mermaid/scyllaclient/internal/scylla_v2/models"
 )
 
@@ -17,7 +17,7 @@ func StatusCodeOf(err error) int {
 	case *runtime.APIError:
 		return v.Code
 	case interface {
-		GetPayload() *rcloneModels.ErrorResponse
+		GetPayload() *agentModels.ErrorResponse
 	}:
 		p := v.GetPayload()
 		if p != nil {

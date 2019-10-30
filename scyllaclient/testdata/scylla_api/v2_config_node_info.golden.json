@@ -1,0 +1,12 @@
+{
+  "listen_address": "192.168.100.100",
+  "prometheus_port": "9180",
+  "prometheus_address": "0.0.0.0",
+  "broadcast_address": "192.168.100.100",
+  "broadcast_rpc_address": "1.2.3.4",
+  "rpc_port": "9160",
+  "rpc_address": "192.168.100.101",
+  "native_transport_port": "9042",
+  "api_address": "127.0.0.1",
+  "api_port": "35605"
+}
