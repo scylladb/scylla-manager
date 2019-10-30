@@ -51,6 +51,39 @@ func TestGetStatusIntegration(t *testing.T) {
 		}
 	}
 
+	t.Run("resolve address via Agent NodeInfo endpoint", func(t *testing.T) {
+		cid := uuid.MustRandom()
+
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.11"}] = &scyllaclient.NodeInfo{
+			BroadcastRPCAddress: "127.0.0.1",
+			NativeTransportPort: DefaultPort,
+		}
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.12"}] = &scyllaclient.NodeInfo{
+			BroadcastRPCAddress: "192.168.100.12",
+			NativeTransportPort: "1",
+		}
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.13"}] = &scyllaclient.NodeInfo{
+			BroadcastRPCAddress: "400.400.400.400",
+			NativeTransportPort: DefaultPort,
+		}
+
+		status, err := s.GetStatus(context.Background(), cid)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		expected := []Status{
+			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		}
+		compare(t, status, expected)
+	})
+
 	t.Run("all nodes UP", func(t *testing.T) {
 		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
 		if err != nil {

@@ -169,7 +169,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 		}
 	}
 
-	s.healthSvc.InvalidateTLSConfigCache(c.ID)
+	s.healthSvc.InvalidateCache(c.ID)
 
 	return nil
 }
