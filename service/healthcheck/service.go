@@ -218,7 +218,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 
 	cqlAddr := net.JoinHostPort(host, DefaultPort)
 	if ni, ok := s.hasNodeInfo(cidHost); ok {
-		cqlAddr = ni.CQLAddr(cqlAddr)
+		cqlAddr = ni.CQLAddr(host)
 	}
 
 	// Try to connect directly to host address and default port
