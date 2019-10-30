@@ -26,25 +26,24 @@ func (c *Client) NodeInfo(ctx context.Context, host string) (*NodeInfo, error) {
 	return (*NodeInfo)(resp.Payload), nil
 }
 
-// CQLAddress returns CQL address from NodeInfo.
-// Scylla can have separate rpc_address (CQL), listen_address
-// and respectfully broadcast_rpc_address and broadcast_address
-// if some 3rd party routing is added.
-// `fallback` argument is used in case any of above addresses is
-// zero IPv4/6 address.
-func (ni *NodeInfo) CQLAddress(fallback string) string {
-	const zeroIpv4, zeroIpv6 = "0.0.0.0", "::0"
+// CQLAddr returns CQL address from NodeInfo.
+// Scylla can have separate rpc_address (CQL), listen_address and respectfully
+// broadcast_rpc_address and broadcast_address if some 3rd party routing
+// is added.
+// `fallback` argument is used in case any of above addresses is zero address.
+func (ni *NodeInfo) CQLAddr(fallback string) string {
+	const ipv4Zero, ipv6Zero = "0.0.0.0", "::0"
 
 	if ni.BroadcastRPCAddress != "" {
 		return net.JoinHostPort(ni.BroadcastRPCAddress, ni.NativeTransportPort)
 	}
 	if ni.RPCAddress != "" {
-		if ni.RPCAddress == zeroIpv4 || ni.RPCAddress == zeroIpv6 {
+		if ni.RPCAddress == ipv4Zero || ni.RPCAddress == ipv6Zero {
 			return net.JoinHostPort(fallback, ni.NativeTransportPort)
 		}
 		return net.JoinHostPort(ni.RPCAddress, ni.NativeTransportPort)
 	}
-	if ni.ListenAddress == zeroIpv4 || ni.ListenAddress == zeroIpv6 {
+	if ni.ListenAddress == ipv4Zero || ni.ListenAddress == ipv6Zero {
 		return net.JoinHostPort(fallback, ni.NativeTransportPort)
 	}
 

@@ -9,8 +9,10 @@ import (
 	"github.com/scylladb/mermaid/scyllaclient"
 )
 
-func TestNodeInfo_CQLAddress(t *testing.T) {
-	fallback := "4.3.2.1"
+func TestNodeInfoCQLAddr(t *testing.T) {
+	t.Parallel()
+
+	const fallback = "4.3.2.1"
 
 	table := []struct {
 		Name          string
@@ -82,7 +84,8 @@ func TestNodeInfo_CQLAddress(t *testing.T) {
 		test := table[i]
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
-			addr := test.NodeInfo.CQLAddress(fallback)
+
+			addr := test.NodeInfo.CQLAddr(fallback)
 			if addr != test.GoldenAddress {
 				t.Errorf("expected %s address, got %s", test.GoldenAddress, addr)
 			}
