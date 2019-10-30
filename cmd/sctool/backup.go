@@ -109,6 +109,10 @@ var backupCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+			res.ShowTables, err = cmd.Flags().GetInt("show-tables")
+			if err != nil {
+				return err
+			}
 			return res.Render(cmd.OutOrStdout())
 		}
 
@@ -172,6 +176,8 @@ func init() {
 		"forces backup to skip database validation and schedules a backup even if there are no matching keyspaces/tables")
 	fs.Bool("dry-run", false,
 		"validates and prints backup information without scheduling a backup")
+	fs.Int("show-tables", 0,
+		"specifies maximal number of table names printed for a keyspace, use -1 for no limit")
 
 	taskInitCommonFlags(fs)
 	requireFlags(cmd, "location")

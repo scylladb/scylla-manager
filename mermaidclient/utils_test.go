@@ -170,6 +170,7 @@ func TestFormatTables(t *testing.T) {
 		Name      string
 		Threshold int
 		Tables    []string
+		AllTables bool
 		Golden    string
 	}{
 		{
@@ -210,6 +211,20 @@ func TestFormatTables(t *testing.T) {
 			Tables:    []string{"a"},
 			Golden:    "(a)",
 		},
+		{
+			Name:      "all tables above threshold",
+			Threshold: 1,
+			Tables:    []string{"a", "b"},
+			AllTables: true,
+			Golden:    "all (2 tables)",
+		},
+		{
+			Name:      "all tables below threshold",
+			Threshold: 1,
+			Tables:    []string{"a"},
+			AllTables: true,
+			Golden:    "all (a)",
+		},
 	}
 
 	for i := range table {
@@ -218,7 +233,7 @@ func TestFormatTables(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			if s := FormatTables(test.Threshold, test.Tables); s != test.Golden {
+			if s := FormatTables(test.Threshold, test.Tables, test.AllTables); s != test.Golden {
 				t.Errorf("FormatTables() expected %s got %s", test.Golden, s)
 			}
 		})

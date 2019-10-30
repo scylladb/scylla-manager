@@ -152,7 +152,7 @@ func (c *Client) GetRepairTarget(ctx context.Context, clusterID string, t *Task)
 		return nil, err
 	}
 
-	return &RepairTarget{*resp.Payload}, nil
+	return &RepairTarget{RepairTarget: *resp.Payload}, nil
 }
 
 // GetBackupTarget fetches information about repair target.
@@ -166,7 +166,7 @@ func (c *Client) GetBackupTarget(ctx context.Context, clusterID string, t *Task)
 		return nil, err
 	}
 
-	return &BackupTarget{*resp.Payload}, nil
+	return &BackupTarget{BackupTarget: *resp.Payload}, nil
 }
 
 // CreateTask creates a new task.

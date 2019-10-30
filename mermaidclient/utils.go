@@ -184,12 +184,20 @@ func FormatMultiHostError(msg, prefix string) string {
 
 // FormatTables returns tables listing if number of tables is lower than
 // threshold. It prints (n tables) or (table_a, table_b, ...).
-func FormatTables(threshold int, tables []string) string {
+func FormatTables(threshold int, tables []string, all bool) string {
+	var out string
 	if len(tables) == 0 || threshold == 0 || (threshold > 0 && len(tables) > threshold) {
 		if len(tables) == 1 {
-			return "(1 table)"
+			out = "(1 table)"
+		} else {
+			out = fmt.Sprintf("(%d tables)", len(tables))
 		}
-		return fmt.Sprintf("(%d tables)", len(tables))
 	}
-	return "(" + strings.Join(tables, ", ") + ")"
+	if out == "" {
+		out = "(" + strings.Join(tables, ", ") + ")"
+	}
+	if all {
+		out = "all " + out
+	}
+	return out
 }

@@ -102,6 +102,7 @@ func makeTaskUpdate(t *Task) *models.TaskUpdate {
 // RepairTarget is a representing results of dry running repair task.
 type RepairTarget struct {
 	models.RepairTarget
+	ShowTables int
 }
 
 const repairTargetTemplate = `{{ if ne .TokenRanges "dcpr" -}}
@@ -119,40 +120,37 @@ With Hosts:
 Data Centers:
 {{ range .Dc }}  - {{ . }}
 {{ end -}}
-{{ range .Units }}Keyspace: {{ .Keyspace }}
-{{- if .AllTables }}
-  (all tables)
-{{ else -}}
-{{ range .Tables }}
-  - {{ . }}
-{{ end -}}
-{{- end -}}
-{{ end }}`
+Keyspaces:
+{{- range .Units }}
+  - {{ .Keyspace }} {{ FormatTables .Tables .AllTables -}}
+{{ end }}
+`
 
 // Render implements Renderer interface.
 func (t RepairTarget) Render(w io.Writer) error {
-	temp := template.Must(template.New("target").Parse(repairTargetTemplate))
+	temp := template.Must(template.New("target").Funcs(template.FuncMap{
+		"FormatTables": func(tables []string, all bool) string {
+			return FormatTables(t.ShowTables, tables, all)
+		},
+	}).Parse(repairTargetTemplate))
 	return temp.Execute(w, t)
 }
 
 // BackupTarget is a representing results of dry running backup task.
 type BackupTarget struct {
 	models.BackupTarget
+	ShowTables int
 }
 
 const backupTargetTemplate = `Data Centers:
 {{ range .Dc }}  - {{ . }}
 {{ end -}}
 
-{{ range .Units }}Keyspace: {{ .Keyspace }}
-{{- if .AllTables }}
-  (all tables)
-{{ else -}}
-{{ range .Tables }}
-  - {{ . }}
-{{ end -}}
-{{- end -}}
-{{ end }}
+Keyspaces:
+{{- range .Units }}
+  - {{ .Keyspace }} {{ FormatTables .Tables .AllTables }}
+{{- end }}
+
 Locations:
 {{- range .Location }}
   - {{ . }}
@@ -190,6 +188,9 @@ Retention: Last {{ .Retention }} backups
 func (t BackupTarget) Render(w io.Writer) error {
 	temp := template.Must(template.New("target").Funcs(template.FuncMap{
 		"ByteCountBinary": ByteCountBinary,
+		"FormatTables": func(tables []string, all bool) string {
+			return FormatTables(t.ShowTables, tables, all)
+		},
 	}).Parse(backupTargetTemplate))
 	return temp.Execute(w, t)
 }
@@ -263,8 +264,9 @@ func (tr TaskRunSlice) Render(w io.Writer) error {
 // RepairProgress contains shard progress info.
 type RepairProgress struct {
 	*models.TaskRunRepairProgress
-	Task     *Task
-	Detailed bool
+	Task       *Task
+	Detailed   bool
+	ShowTables int
 
 	hostFilter     inexlist.InExList
 	keyspaceFilter inexlist.InExList
@@ -628,7 +630,7 @@ const backupListItemTemplate = `Snapshots:
 {{- end }}
 Keyspaces:
 {{- range .Units }}
-  - {{ .Keyspace }} {{ FormatTables .Tables }}
+  - {{ .Keyspace }} {{ FormatTables .Tables .AllTables }}
 {{- end }}
 
 `
@@ -636,8 +638,8 @@ Keyspaces:
 // Render implements Renderer interface.
 func (bl BackupListItems) Render(w io.Writer) error {
 	temp := template.Must(template.New("backup_list_items").Funcs(template.FuncMap{
-		"FormatTables": func(tables []string) string {
-			return FormatTables(bl.ShowTables, tables)
+		"FormatTables": func(tables []string, all bool) string {
+			return FormatTables(bl.ShowTables, tables, all)
 		},
 	}).Parse(backupListItemTemplate))
 
