@@ -3,7 +3,7 @@
 # Specify authentication token, the auth_token needs to be the same for all the
 # nodes in a cluster. Use scyllamgr_auth_token_gen to generate the auth_token
 # value.
-# auth_token:
+#auth_token:
 
 # Bind REST API to the specified TCP address using HTTPS protocol. By default
 # Scylla Manager Agent uses Scylla listen/broadcast address that is read from
