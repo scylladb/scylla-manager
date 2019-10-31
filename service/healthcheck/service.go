@@ -216,14 +216,14 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 		Host:      host,
 	}
 
-	cqlAddr := net.JoinHostPort(host, DefaultPort)
+	addr := net.JoinHostPort(host, DefaultPort)
 	if ni, ok := s.hasNodeInfo(cidHost); ok {
-		cqlAddr = ni.CQLAddr(host)
+		addr = ni.CQLAddr(host)
 	}
 
 	// Try to connect directly to host address and default port
 	config := cqlping.Config{
-		Addr:      cqlAddr,
+		Addr:      addr,
 		Timeout:   s.config.Timeout,
 		TLSConfig: tlsConfig,
 	}
@@ -231,9 +231,10 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 		config.Timeout = s.config.SSLTimeout
 	}
 	rtt, err = cqlping.Ping(ctx, config)
+
 	// If connection was cut by the server try upgrading to TLS.
 	if errors.Cause(err) == io.EOF && config.TLSConfig == nil {
-		s.logger.Info(ctx, "Upgrading connection to TLS",
+		s.logger.Info(ctx, "Upgrading CQL connection to TLS",
 			"cluster_id", clusterID,
 			"host", host,
 		)
@@ -252,8 +253,15 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 			return 0, err
 		}
 
-		if cqlAddr != ni.CQLAddr(host) {
-			config.Addr = ni.CQLAddr(host)
+		if addr := ni.CQLAddr(host); addr != config.Addr {
+			s.logger.Info(ctx, "Changing CQL IP/port based on information from Scylla API",
+				"cluster_id", cidHost.ClusterID,
+				"host", cidHost.Host,
+				"from", config.Addr,
+				"to", addr,
+			)
+
+			config.Addr = addr
 			rtt, err = cqlping.Ping(ctx, config)
 		}
 	}
@@ -281,7 +289,6 @@ func (s *Service) hasNodeInfo(cidHost clusterIDHost) (*scyllaclient.NodeInfo, bo
 }
 
 func (s *Service) fetchNodeInfo(ctx context.Context, cidHost clusterIDHost) (*scyllaclient.NodeInfo, error) {
-	s.logger.Info(ctx, "Fetching node information", "cluster_id", cidHost.ClusterID, "host", cidHost.Host)
 	s.invalidateHostNodeInfoCache(cidHost)
 
 	client, err := s.scyllaClient(ctx, cidHost.ClusterID)
@@ -298,7 +305,6 @@ func (s *Service) fetchNodeInfo(ctx context.Context, cidHost clusterIDHost) (*sc
 	s.nodeInfoCache[cidHost] = ni
 	s.cacheMu.Unlock()
 
-	s.logger.Info(ctx, "Got node information", "cluster_id", cidHost.ClusterID, "host", cidHost.Host, "node_info", *ni)
 	return ni, nil
 }
 
