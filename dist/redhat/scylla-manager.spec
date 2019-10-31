@@ -158,7 +158,7 @@ BuildRequires: systemd
 %{_sbindir}/scyllamgr_auth_token_gen
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}-agent/%{name}-agent.yaml
-%config(noreplace) %{_sysconfdir}/%{name}-agent/agent.env
+%config(noreplace) %{_sysconfdir}/%{name}-agent/credentials.env
 %{_unitdir}/%{name}-agent.service
 %license %{_docdir}/%{name}-agent/LICENSE
 %license %{_docdir}/%{name}-agent/LICENSE.3RD_PARTY
