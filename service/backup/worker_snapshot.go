@@ -96,12 +96,24 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 		return err
 	}
 
+	var deleted []string
+	defer func() {
+		if len(deleted) > 0 {
+			w.Logger.Info(ctx, "Deleted stale local snapshots",
+				"host", h.IP,
+				"tags", deleted,
+			)
+		} else {
+			w.Logger.Info(ctx, "No stale local snapshots to delete", "host", h.IP)
+		}
+	}()
+
 	for _, t := range tags {
 		if isSnapshotTag(t) && t != w.SnapshotTag {
-			w.Logger.Info(ctx, "Deleting old snapshot", "host", h.IP, "tag", t)
 			if err := w.Client.DeleteSnapshot(ctx, h.IP, t); err != nil {
 				return err
 			}
+			deleted = append(deleted, t)
 		}
 	}
 
