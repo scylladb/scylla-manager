@@ -52,7 +52,11 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 			}
 			for _, t := range u.Tables {
 				tp := tableMap[tableKey{h, u.Keyspace, t}]
-				tp.progress = extremeToNil(tp.progress)
+				if tp != nil {
+					tp.progress = extremeToNil(tp.progress)
+				} else {
+					tp = &TableProgress{Table: t}
+				}
 				ks.Tables = append(ks.Tables, *tp)
 				ks.progress = calcParentProgress(ks.progress, tp.progress)
 			}

@@ -1,0 +1,44 @@
+{
+  "size": 11,
+  "uploaded": 0,
+  "skipped": 11,
+  "started_at":   "2018-12-31T23:01:00Z",
+  "snapshot_tag": "sm_20091110230000UTC",
+  "dcs": [
+    "dc1",
+    "dc2"
+  ],
+  "hosts": [
+    {
+      "host": "host1",
+      "keyspaces": [
+        {
+          "keyspace": "ks",
+          "tables": [
+            {
+              "table": "table1",
+              "started_at":   "2018-12-31T23:01:00Z",
+              "completed_at":   "2018-12-31T23:02:00Z",
+              "size": 11,
+              "uploaded": 0,
+              "skipped": 11
+            },
+            {
+              "table": "table2",
+              "size": 0,
+              "uploaded": 0
+            }
+          ],
+          "started_at":   "2018-12-31T23:01:00Z",
+          "size": 11,
+          "uploaded": 0,
+          "skipped": 11
+        }
+      ],
+      "started_at":   "2018-12-31T23:01:00Z",
+      "size": 11,
+      "uploaded": 0,
+      "skipped": 11
+    }
+  ]
+}

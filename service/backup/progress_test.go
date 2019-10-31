@@ -37,6 +37,17 @@ func TestAggregateProgress(t *testing.T) {
 		DC:        []string{"dc1", "dc2"},
 		StartTime: time1,
 	}
+	run2 := &Run{
+		SnapshotTag: testSnapshotTag,
+		Units: []Unit{
+			{
+				Keyspace: "ks",
+				Tables:   []string{"table1", "table2", "table3"},
+			},
+		},
+		DC:        []string{"dc1", "dc2"},
+		StartTime: time1,
+	}
 	runNoUnits := &Run{
 		SnapshotTag: testSnapshotTag,
 		DC:          []string{"dc3"},
@@ -46,13 +57,13 @@ func TestAggregateProgress(t *testing.T) {
 		Name        string
 		Run         *Run
 		RunProgress []*RunProgress
-		Expected    string
+		Golden      string
 	}{
 		{
 			Name:        "run with no progress",
 			Run:         run1,
 			RunProgress: nil,
-			Expected:    "no_run_progress.golden.json",
+			Golden:      "no_run_progress.golden.json",
 		},
 		{
 			Name: "run with no units",
@@ -60,7 +71,7 @@ func TestAggregateProgress(t *testing.T) {
 			RunProgress: []*RunProgress{
 				{},
 			},
-			Expected: "no_units.golden.json",
+			Golden: "no_units.golden.json",
 		},
 		{
 			Name: "run with success progress",
@@ -131,7 +142,78 @@ func TestAggregateProgress(t *testing.T) {
 					Uploaded:    10,
 				},
 			},
-			Expected: "on_success.golden.json",
+			Golden: "on_success.golden.json",
+		},
+		{
+			Name: "run with success progress on non-started tables",
+			Run:  run2,
+			RunProgress: []*RunProgress{
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file1.f",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "",
+					Size:        10,
+					Skipped:     10,
+				},
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file12.f",
+					StartedAt:   &time2,
+					CompletedAt: &time3,
+					Error:       "",
+					Size:        7,
+					Uploaded:    7,
+				},
+				{
+					Host:      host1,
+					Unit:      0,
+					TableName: "table2",
+					FileName:  "file2.f",
+					StartedAt: &time1,
+					Error:     "",
+					Size:      10,
+					Uploaded:  5,
+				},
+				{
+					Host:        host2,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file1.f",
+					StartedAt:   &time1,
+					CompletedAt: &time4,
+					Error:       "",
+					Size:        10,
+					Uploaded:    10,
+				},
+				{
+					Host:      host2,
+					Unit:      0,
+					TableName: "table2",
+					FileName:  "file2.f",
+					StartedAt: &time1,
+					Error:     "",
+					Size:      10,
+					Uploaded:  3,
+				},
+				{
+					Host:        host2,
+					Unit:        0,
+					TableName:   "table2",
+					FileName:    "file21.f",
+					StartedAt:   &time2,
+					CompletedAt: &time3,
+					Error:       "",
+					Size:        10,
+					Uploaded:    10,
+				},
+			},
+			Golden: "on_success_not_started.golden.json",
 		},
 		{
 			Name: "run with error progress",
@@ -194,7 +276,74 @@ func TestAggregateProgress(t *testing.T) {
 					Uploaded:  3,
 				},
 			},
-			Expected: "on_error.golden.json",
+			Golden: "on_error.golden.json",
+		},
+		{
+			Name: "run with only manifest success progress",
+			Run:  run1,
+			RunProgress: []*RunProgress{
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "manifest.json",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "",
+					Size:        10,
+					Skipped:     10,
+				},
+				{
+					Host:      host1,
+					Unit:      0,
+					TableName: "table2",
+					FileName:  "manifest.json",
+					StartedAt: &time1,
+					Error:     "",
+					Size:      10,
+					Uploaded:  5,
+				},
+			},
+			Golden: "only_manifest.golden.json",
+		},
+		{
+			Name: "run with manifest success progress",
+			Run:  run1,
+			RunProgress: []*RunProgress{
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "manifest.json",
+					StartedAt:   &time1,
+					CompletedAt: &time2,
+					Error:       "",
+					Size:        10,
+					Skipped:     10,
+				},
+				{
+					Host:        host1,
+					Unit:        0,
+					TableName:   "table1",
+					FileName:    "file.f",
+					StartedAt:   &time2,
+					CompletedAt: &time3,
+					Error:       "",
+					Size:        11,
+					Skipped:     11,
+				},
+				{
+					Host:      host1,
+					Unit:      0,
+					TableName: "table2",
+					FileName:  "manifest.json",
+					StartedAt: &time1,
+					Error:     "",
+					Size:      10,
+					Uploaded:  5,
+				},
+			},
+			Golden: "with_manifest.golden.json",
 		},
 	}
 
@@ -209,7 +358,7 @@ func TestAggregateProgress(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			f, err := os.Open(path.Join("testdata/aggregate_progress", test.Expected))
+			f, err := os.Open(path.Join("testdata/aggregate_progress", test.Golden))
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -1,0 +1,78 @@
+{
+  "size": 50,
+  "uploaded": 33,
+  "failed": 10,
+  "started_at": "2018-12-31T23:00:00Z",
+  "snapshot_tag": "sm_20091110230000UTC",
+  "dcs": [
+    "dc1",
+    "dc2"
+  ],
+  "hosts": [
+    {
+      "host": "host1",
+      "keyspaces": [
+        {
+          "keyspace": "ks",
+          "tables": [
+            {
+              "table": "table1",
+              "size": 10,
+              "uploaded": 10,
+              "started_at": "2018-12-31T23:00:00Z",
+              "completed_at": "2018-12-31T23:01:00Z"
+            },
+            {
+              "table": "table2",
+              "error": "error1, error2",
+              "size": 20,
+              "uploaded": 10,
+              "failed": 10,
+              "started_at": "2018-12-31T23:00:00Z",
+              "completed_at": "2018-12-31T23:01:00Z"
+            }
+          ],
+          "size": 30,
+          "uploaded": 20,
+          "failed": 10,
+          "started_at": "2018-12-31T23:00:00Z",
+          "completed_at": "2018-12-31T23:01:00Z"
+        }
+      ],
+      "size": 30,
+      "uploaded": 20,
+      "failed": 10,
+      "started_at": "2018-12-31T23:00:00Z",
+      "completed_at": "2018-12-31T23:01:00Z"
+    },
+    {
+      "host": "host2",
+      "keyspaces": [
+        {
+          "keyspace": "ks",
+          "tables": [
+            {
+              "table": "table1",
+              "size": 10,
+              "uploaded": 10,
+              "started_at": "2018-12-31T23:00:00Z",
+              "completed_at": "2018-12-31T23:05:00Z"
+            },
+            {
+              "table": "table2",
+              "size": 10,
+              "uploaded": 3,
+              "started_at": "2018-12-31T23:00:00Z"
+            }
+          ],
+          "size": 20,
+          "uploaded": 13,
+          "started_at": "2018-12-31T23:00:00Z"
+        }
+      ],
+      "size": 20,
+      "uploaded": 13,
+      "started_at": "2018-12-31T23:00:00Z"
+    }
+  ]
+}
