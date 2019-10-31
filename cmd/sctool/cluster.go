@@ -40,21 +40,38 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 }
 
 func clusterAddedMessage(w io.Writer, id, name string) error {
-	if name == "" {
-		name = "<name> (use --name flag to set cluster name)"
+	nameOrID := func() string {
+		if name != "" {
+			return name
+		}
+		return id
 	}
+
+	nameOrPlaceholder := func() string {
+		if name != "" {
+			return name
+		}
+		return "<name>"
+	}
+
 	messageLines := []string{
-		"Cluster added! You can set it as default, by exporting env variable.",
-		"",
+		"Cluster added! You can set it as default, by exporting its name or ID as env variable:",
 		"$ export SCYLLA_MANAGER_CLUSTER=" + id,
-		"$ export SCYLLA_MANAGER_CLUSTER=" + name,
+		"$ export SCYLLA_MANAGER_CLUSTER=" + nameOrPlaceholder(),
 		"",
 		"To see the currently scheduled tasks run:",
-		"$ sctool task list -c " + id,
+		"$ sctool task list -c " + nameOrID(),
+		"",
 		"",
 	}
+
 	return clipper.Say(w, messageLines...)
 }
+
+const clusterAddNoAuthTokenWarning = `
+WARNING! Scylla data may be exposed
+Protect it by specifying auth_token in /etc/scylla-manager-agent/scylla-manager-agent.yaml on Scylla nodes
+`
 
 var clusterAddCmd = &cobra.Command{
 	Use:   "add",
@@ -120,8 +137,7 @@ var clusterAddCmd = &cobra.Command{
 		}
 
 		if cfgClusterAuthToken == "" {
-			fmt.Fprintln(w, "WARNING! Scylla data is exposed, "+
-				"protect it by specifying auth_token in Scylla Manager Agent config file on Scylla nodes\n")
+			fmt.Fprintln(w, clusterAddNoAuthTokenWarning)
 		}
 
 		return nil
