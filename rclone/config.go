@@ -30,9 +30,15 @@ func SetDefaultConfig() {
 	// Don't update destination mod-time if files identical.
 	fs.Config.NoUpdateModTime = true
 	// Set proper agent for backend clients.
-	fs.Config.UserAgent = fmt.Sprintf("Scylla Manager Agent %s", mermaid.Version())
+	fs.Config.UserAgent = UserAgent()
 	// How many times to retry low level operations like copy file.
 	fs.Config.LowLevelRetries = 5
 	// How many stat groups to keep in memory.
 	fs.Config.MaxStatsGroups = 1000
+}
+
+// UserAgent returns string value that can be used as identifier in client
+// calls to the service providers.
+func UserAgent() string {
+	return fmt.Sprintf("Scylla Manager Agent %s", mermaid.Version())
 }
