@@ -73,7 +73,7 @@ var rootCmd = &cobra.Command{
 		// Instruct users to set auth token
 		if c.AuthToken == "" {
 			ip, _, _ := net.SplitHostPort(c.HTTPS)
-			logger.Info(ctx, "WARNING! Scylla data is exposed on IP "+ip+", "+
+			logger.Info(ctx, "WARNING! Scylla data may be exposed on IP "+ip+", "+
 				"protect it by specifying auth_token in config file", "config_file", rootArgs.configFile,
 			)
 		}
@@ -134,6 +134,8 @@ var rootCmd = &cobra.Command{
 				errCh <- errors.Wrap(server.ListenAndServe(), "debug server start")
 			}()
 		}
+
+		logger.Info(ctx, "Service started")
 
 		return <-errCh
 	},
