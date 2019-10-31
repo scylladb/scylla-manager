@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -78,22 +79,28 @@ var rootCmd = &cobra.Command{
 			)
 		}
 
-		// Get CPU
+		// Try to get a CPU to pin to
 		var cpu = c.CPU
 		if cpu == noCPU {
-			logger.Info(ctx, "Looking for a free CPU to run on")
 			if c, err := findFreeCPU(); err != nil {
-				logger.Info(ctx, "Could not get a free CPU", "error", err.Error())
+				if errors.Cause(err) == os.ErrNotExist {
+					// Ignore if there is no cpuset file
+					logger.Debug(ctx, "Failed to find CPU to pin to", "error", err)
+				} else {
+					logger.Error(ctx, "Failed to find CPU to pin to", "error", err)
+				}
 			} else {
 				cpu = c
 			}
 		}
 		// Pin to CPU if possible
-		if cpu != noCPU {
+		if cpu == noCPU {
+			logger.Info(ctx, "Running on all CPUs")
+		} else {
 			if err := pinToCPU(cpu); err != nil {
 				logger.Error(ctx, "Failed to pin to CPU", "cpu", cpu, "error", err)
 			} else {
-				logger.Info(ctx, "Pinned to CPU", "cpu", cpu)
+				logger.Info(ctx, "Running on CPU", "cpu", cpu)
 			}
 		}
 

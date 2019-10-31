@@ -16,8 +16,7 @@ import (
 func findFreeCPU() (int, error) {
 	busy, err := cpuset.ParseScyllaConfigFile()
 	if err != nil {
-		return noCPU, errors.Wrapf(err, "Scylla cpuset parse error "+
-			"run scylla_cpuset_setup or set cpu field in the Scylla Manager Agent configuration file")
+		return noCPU, errors.Wrapf(err, "cpuset parse error")
 	}
 	cpus, err := cpuset.AvailableCPUs(busy, 1)
 	if err != nil {
