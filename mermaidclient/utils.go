@@ -124,7 +124,7 @@ func FormatPercent(p float32) string {
 // format.
 func FormatUploadProgress(size, uploaded, skipped int64) string {
 	if size == 0 {
-		return "-"
+		return "100%"
 	}
 	transferred := uploaded + skipped
 	return fmt.Sprintf("%d%%",
