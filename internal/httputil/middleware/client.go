@@ -66,8 +66,26 @@ func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTr
 	// Retry policy while using host pool, no backoff wait time, switch host as
 	// fast as possible.
 	poolRetry := retryablehttp.NewTransport(next, logger)
-	poolRetry.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration { return 0 }
 	poolRetry.RetryMax = poolSize
+	// DefaultRetryPolicy uses special logic not to retry on broken connections,
+	// here as we switch hosts we want to always retry.
+	poolRetry.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
+		if req != nil {
+			if err := req.Context().Err(); err != nil {
+				return false, err
+			}
+		}
+		if err != nil {
+			return true, err
+		}
+		if c := resp.StatusCode; c == 0 || c == 401 || c == 403 || (c >= 500 && c != 501) {
+			return true, nil
+		}
+		return false, nil
+	}
+	poolRetry.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+		return 0
+	}
 
 	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		if _, ok := req.Context().Value(ctxDontRetry).(bool); ok {
