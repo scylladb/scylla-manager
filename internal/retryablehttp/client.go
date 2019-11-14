@@ -251,14 +251,16 @@ loop:
 			"left", remain,
 		)
 
-		select {
-		case <-req.Context().Done():
-			// If we hit this point that means we are waiting for another
-			// retry. break allows to preserve previous err after returning.
-			// It was just coincidence that context was canceled while there
-			// were errors.
-			break loop
-		case <-time.After(wait):
+		if wait > 0 {
+			select {
+			case <-req.Context().Done():
+				// If we hit this point that means we are waiting for another
+				// retry. break allows to preserve previous err after returning.
+				// It was just coincidence that context was canceled while there
+				// were errors.
+				break loop
+			case <-time.After(wait):
+			}
 		}
 	}
 
