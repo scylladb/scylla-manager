@@ -3,33 +3,50 @@
 package main
 
 import (
-	"io"
-	"log"
 	"net"
 	"net/http"
-	"net/url"
+	"net/http/httputil"
 	"path"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type router struct {
 	config config
 	rclone http.Handler
-	client *http.Client
+	proxy  *httputil.ReverseProxy
 }
 
-func newRouter(config config, rclone http.Handler, client *http.Client) *router {
+func newRouter(config config, rclone http.Handler) *router {
 	return &router{
 		config: config,
 		rclone: rclone,
-		client: client,
+		proxy: &httputil.ReverseProxy{
+			Director: director(config.Scylla),
+		},
+	}
+}
+
+func director(c scyllaConfig) func(r *http.Request) {
+	var (
+		promAddr = net.JoinHostPort(c.PrometheusAddress, c.PrometheusPort)
+		apiAddr  = net.JoinHostPort(c.APIAddress, c.APIPort)
+	)
+
+	return func(r *http.Request) {
+		var addr string
+		if strings.HasPrefix(r.URL.Path, "/metrics") {
+			addr = promAddr
+		} else {
+			addr = apiAddr
+		}
+
+		r.Host = addr
+		r.URL.Host = addr
+		r.URL.Scheme = "http"
 	}
 }
 
 func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s := mux.config.Scylla
 	p := path.Clean(r.URL.Path) + "/"
 	switch {
 	case strings.HasPrefix(p, "/agent/rclone/"):
@@ -39,67 +56,7 @@ func (mux *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mux.rclone.ServeHTTP(w, r)
 	case strings.HasPrefix(p, "/agent/node_info"):
 		mux.getNodeInfo(w, r)
-	case strings.HasPrefix(p, "/metrics/"):
-		mux.sendRequest(w, withHostPort(r, s.PrometheusAddress, s.PrometheusPort))
 	default:
-		mux.sendRequest(w, withHostPort(r, s.APIAddress, s.APIPort))
-	}
-}
-
-func (mux *router) sendRequest(w http.ResponseWriter, r *http.Request) {
-	resp, err := mux.client.Do(r)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(errors.Wrap(err, "proxy error").Error())) // nolint: errcheck
-	}
-
-	// Headers
-	copyHeader(w.Header(), resp.Header)
-	w.WriteHeader(resp.StatusCode)
-
-	// Body
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		log.Printf("copy error: %+v", err)
-	}
-	resp.Body.Close()
-}
-
-func withHostPort(r *http.Request, host, port string) *http.Request {
-	hp := net.JoinHostPort(host, port)
-	req := cloneRequest(r)
-	req.Host = hp
-	req.URL.Host = hp
-	req.URL.Scheme = "http"
-	return req
-}
-
-// clone request creates a new client request from router request.
-func cloneRequest(r *http.Request) *http.Request {
-	// New copy basic fields, same that are set with http.NewRequest
-	req := &http.Request{
-		Method:     r.Method,
-		URL:        new(url.URL),
-		Proto:      r.Proto,
-		ProtoMajor: r.ProtoMajor,
-		ProtoMinor: r.ProtoMinor,
-		Header:     make(http.Header),
-		Body:       r.Body,
-	}
-
-	// Deep copy URL
-	*req.URL = *r.URL
-
-	// Deep copy headers
-	copyHeader(req.Header, r.Header)
-
-	return req
-}
-
-func copyHeader(dst, src http.Header) {
-	for k, v := range src {
-		vv := make([]string, len(v))
-		copy(vv, v)
-		dst[k] = vv
+		mux.proxy.ServeHTTP(w, r)
 	}
 }

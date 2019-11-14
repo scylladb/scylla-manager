@@ -138,7 +138,7 @@ var rootCmd = &cobra.Command{
 		logger.Info(ctx, "Starting HTTPS server", "address", c.HTTPS)
 		go func() {
 			var h http.Handler
-			h = newRouter(c, rcserver.New(), http.DefaultClient)
+			h = newRouter(c, rcserver.New())
 			h = middleware.ValidateAuthToken(h, c.AuthToken, time.Second)
 			server := http.Server{
 				Addr:    c.HTTPS,
