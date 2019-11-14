@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"go.uber.org/multierr"
 )
 
 func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit, policy int) (err error) {
@@ -176,7 +177,14 @@ func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotD
 	return w.waitJob(ctx, id, d)
 }
 
-func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) error {
+func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err error) {
+	defer func() {
+		err = multierr.Combine(
+			err,
+			w.clearJobStats(ctx, id, d.Host),
+		)
+	}()
+
 	t := time.NewTicker(w.Config.PollInterval)
 	defer t.Stop()
 
@@ -210,6 +218,11 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) error {
 			}
 		}
 	}
+}
+
+func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) error {
+	w.Logger.Debug(ctx, "Clearing job stats", "host", host, "agent_job_id", jobID)
+	return errors.Wrap(w.Client.RcloneStatsReset(ctx, host, scyllaclient.RcloneDefaultGroup(jobID)), "clear job stats")
 }
 
 func (w *worker) getJobStatus(ctx context.Context, jobID int64, d snapshotDir) (jobStatus, error) {

@@ -600,6 +600,18 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if len(i.SnapshotTags) != 2 {
 		t.Fatalf("List() = %v, expected two SnapshotTags", items)
 	}
+
+	Print("Then: transfer statistics are cleared")
+	for _, host := range ManagedClusterHosts() {
+		s, err := h.client.RcloneTransferred(context.Background(), host, "")
+		if err != nil {
+			h.t.Fatal(err)
+		}
+
+		if len(s) > 0 {
+			h.t.Fatalf("Expected empty transfer statistics, got %v", s)
+		}
+	}
 }
 
 var backupTimeout = 10 * time.Second

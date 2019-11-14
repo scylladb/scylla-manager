@@ -44,7 +44,7 @@ type Server struct {
 // is needed and configuration is completely loaded.
 func New() *Server {
 	initOnce.Do(func() {
-		// Disable finished transfer statistics purging.
+		// Disable finished transfer statistics purging
 		accounting.MaxCompletedTransfers = -1
 		// Start the token bucket limiter
 		accounting.StartTokenBucket()
