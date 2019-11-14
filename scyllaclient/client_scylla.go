@@ -432,21 +432,34 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 	return s, nil
 }
 
-// TakeSnapshot takes a snapshot of a keyspace, multiple keyspaces may have
-// the same tag.
+// TakeSnapshot flushes and takes a snapshot of a keyspace.
+// Multiple keyspaces may have the same tag.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
-	params := &operations.StorageServiceSnapshotsPostParams{
+	var cfPtr *string
+
+	if len(tables) > 0 {
+		v := strings.Join(tables, ",")
+		cfPtr = &v
+	}
+
+	if _, err := c.scyllaOps.StorageServiceKeyspaceFlushByKeyspacePost(&operations.StorageServiceKeyspaceFlushByKeyspacePostParams{ // nolint: errcheck
+		Context:  middleware.ForceHost(ctx, host),
+		Keyspace: keyspace,
+		Cf:       cfPtr,
+	}); err != nil {
+		return err
+	}
+
+	if _, err := c.scyllaOps.StorageServiceSnapshotsPost(&operations.StorageServiceSnapshotsPostParams{ // nolint: errcheck
 		Context: middleware.ForceHost(ctx, host),
 		Tag:     &tag,
 		Kn:      &keyspace,
-	}
-	if len(tables) > 0 {
-		cf := strings.Join(tables, ",")
-		params.Cf = &cf
+		Cf:      cfPtr,
+	}); err != nil {
+		return err
 	}
 
-	_, err := c.scyllaOps.StorageServiceSnapshotsPost(params) // nolint: errcheck
-	return err
+	return nil
 }
 
 // DeleteSnapshot removes a snapshot with a given tag.
