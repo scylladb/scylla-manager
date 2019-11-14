@@ -3,11 +3,17 @@
 package fsutil
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestExpand(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal("UserHomeDir() error", err)
+	}
+
 	table := []struct {
 		Input  string
 		Output string
@@ -21,7 +27,7 @@ func TestExpand(t *testing.T) {
 
 		{
 			"~/foo",
-			filepath.Join(HomeDir(), "foo"),
+			filepath.Join(home, "foo"),
 			false,
 		},
 
@@ -33,7 +39,7 @@ func TestExpand(t *testing.T) {
 
 		{
 			"~",
-			HomeDir(),
+			home,
 			false,
 		},
 

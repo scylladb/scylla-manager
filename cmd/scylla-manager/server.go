@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/fsutil"
 	"github.com/scylladb/mermaid/internal/httputil/pprof"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/restapi"
@@ -71,7 +71,11 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 }
 
 func (s *server) makeServices() error {
-	dir := filepath.Join(fsutil.HomeDir(), ".certs")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return errors.Wrap(err, "get home dir")
+	}
+	dir := filepath.Join(home, ".certs")
 
 	sslCertStore, err := kv.NewFsStore(dir, "cert")
 	if err != nil {
