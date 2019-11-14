@@ -453,7 +453,7 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get dcs for cluster with id %s", clusterID)
+		return nil, errors.Wrapf(err, "get hosts for cluster with id %s", clusterID)
 	}
 
 	for dc, hosts := range dcs {

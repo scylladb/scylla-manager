@@ -162,8 +162,8 @@ func TestGetStatusIntegration(t *testing.T) {
 		_, err := s.GetStatus(ctx, uuid.MustRandom())
 		if err == nil {
 			t.Error("Expected error got nil")
-		} else if !strings.Contains(err.Error(), "get dcs for cluster") {
-			t.Errorf("Expected 'failed to get dcs for cluster' got %s", err)
+		} else if !strings.Contains(err.Error(), "get hosts for cluster") {
+			t.Errorf("Expected 'failed to get hosts for cluster' got %s", err)
 		}
 	})
 
