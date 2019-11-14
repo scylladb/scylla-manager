@@ -438,10 +438,7 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 	ts := http.Server{
 		Addr: testAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			select {
-			case requests <- struct{}{}:
-			default:
-			}
+			requests <- struct{}{}
 			w.Header().Add("Content-Type", "application/json")
 			fmt.Fprint(w, "{}")
 		}),
@@ -454,8 +451,8 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 	transport.RetryWaitMax = 50 * time.Millisecond
 	transport.RetryMax = 50
 	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
-		retry, err := DefaultRetryPolicy(req, resp, err)
 		retries <- struct{}{}
+		retry, err := DefaultRetryPolicy(req, resp, err)
 		return retry, err
 	}
 	sendRequest := func() {
@@ -491,7 +488,7 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 	case res := <-results:
 		// Response should fail because of network error.
 		if res.err == nil {
-			t.Fatalf("Request failed %+v", res.err)
+			t.Errorf("Request should fail")
 		}
 	case <-time.After(testTimeout):
 		t.Fatal("time out getting request after retries")
