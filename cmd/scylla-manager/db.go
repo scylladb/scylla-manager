@@ -5,55 +5,13 @@ package main
 import (
 	"bytes"
 	"context"
-	"net"
 	"text/template"
-	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/migrate"
 	"github.com/scylladb/mermaid/schema/cql"
-	"go.uber.org/multierr"
 )
-
-func waitForDatabase(ctx context.Context, config *serverConfig, logger log.Logger) error {
-	const (
-		wait        = 5 * time.Second
-		maxAttempts = 60
-	)
-
-	for i := 0; i < maxAttempts; i++ {
-		if _, err := tryConnectToDatabase(config); err != nil {
-			logger.Info(ctx, "Could not connect to database",
-				"sleep", wait,
-				"error", err,
-			)
-			time.Sleep(wait)
-		} else {
-			return nil
-		}
-	}
-
-	return errors.New("could not connect to database, max attempts reached")
-}
-
-func tryConnectToDatabase(config *serverConfig) (string, error) {
-	var errs error
-
-	for _, host := range config.Database.Hosts {
-		conn, err := net.Dial("tcp", net.JoinHostPort(host, "9042"))
-		if conn != nil {
-			conn.Close()
-		}
-		if err == nil {
-			return host, nil
-		}
-		errs = multierr.Append(errs, errors.Wrap(err, host))
-	}
-
-	return "", errs
-}
 
 func keyspaceExists(config *serverConfig) (bool, error) {
 	session, err := gocqlClusterConfigForDBInit(config).CreateSession()
@@ -115,16 +73,6 @@ func migrateSchema(config *serverConfig, logger log.Logger) error {
 	c := gocqlClusterConfigForDBInit(config)
 	c.Keyspace = config.Database.Keyspace
 
-	// Use only a single host for migrations, using multiple hosts may lead to
-	// conflicting schema changes. This can be avoided by awaiting schema
-	// changes see https://github.com/scylladb/gocqlx/issues/106.
-	host, err := tryConnectToDatabase(config)
-	if err != nil {
-		return err
-	}
-	c.Hosts = []string{host}
-	c.DisableInitialHostLookup = true
-
 	session, err := c.CreateSession()
 	if err != nil {
 		return err
@@ -141,6 +89,13 @@ func gocqlClusterConfigForDBInit(config *serverConfig) *gocql.ClusterConfig {
 	c.Keyspace = "system"
 	c.Timeout = config.Database.MigrateTimeout
 	c.MaxWaitSchemaAgreement = config.Database.MigrateMaxWaitSchemaAgreement
+
+	// Use only a single host for migrations, using multiple hosts may lead to
+	// conflicting schema changes. This can be avoided by awaiting schema
+	// changes see https://github.com/scylladb/gocqlx/issues/106.
+	c.Hosts = []string{config.Database.initAddr}
+	c.DisableInitialHostLookup = true
+
 	return c
 }
 

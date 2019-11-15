@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -19,7 +20,7 @@ import (
 
 var update = flag.Bool("update", false, "update .golden files")
 
-func TestConfigParse(t *testing.T) {
+func TestParsingConfig(t *testing.T) {
 	table := []struct {
 		Name   string
 		Input  string
@@ -72,8 +73,11 @@ func TestConfigParse(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			c, err := parseConfig(test.Input)
+			c, err := parseConfigFile(test.Input)
 			if err != nil {
+				t.Fatal(err)
+			}
+			if err := c.enrichConfigFromAPI(context.Background(), net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort)); err != nil {
 				t.Fatal(err)
 			}
 			buf := bytes.Buffer{}

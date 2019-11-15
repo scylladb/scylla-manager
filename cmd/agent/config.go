@@ -49,28 +49,6 @@ type config struct {
 	Scylla      scyllaConfig `yaml:"scylla"`
 }
 
-func parseConfig(file string) (config, error) {
-	c := defaultConfig()
-
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return c, errors.Wrapf(err, "read config file %s", file)
-	}
-	if err := yaml.Unmarshal(b, &c); err != nil {
-		return c, errors.Wrapf(err, "parse config file %s", file)
-	}
-	if err := c.validate(); err != nil {
-		return c, errors.Wrapf(err, "invalid config file %s", file)
-	}
-	if err := enrichScyllaConfigFromAPI(&c.Scylla); err != nil {
-		return c, errors.Wrapf(err, "Scylla configuration retrieval error "+
-			"make sure that Scylla server is running and api_address and api_port are set correctly in %s", file)
-	}
-	updateHTTPSConfigFromScyllaConfig(&c)
-
-	return c, nil
-}
-
 func defaultConfig() config {
 	return config{
 		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
@@ -86,6 +64,34 @@ func defaultConfig() config {
 			Development: false,
 		},
 	}
+}
+
+func parseConfigFile(file string) (config, error) {
+	c := defaultConfig()
+
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return c, errors.Wrapf(err, "read config file %s", file)
+	}
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return c, errors.Wrapf(err, "parse config file %s", file)
+	}
+	if err := c.validate(); err != nil {
+		return c, errors.Wrapf(err, "invalid config file %s", file)
+	}
+
+	return c, nil
+}
+
+func (c *config) updateWithScyllaConfig(external scyllaConfig) {
+	c.Scylla.ListenAddress = external.ListenAddress
+	c.Scylla.PrometheusAddress = external.PrometheusAddress
+	c.Scylla.PrometheusPort = external.PrometheusPort
+
+	if c.HTTPS != "" {
+		return
+	}
+	c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, defaultHTTPSPort)
 }
 
 func (c config) validate() (errs error) {
@@ -116,29 +122,29 @@ func (c scyllaConfig) validate() (errs error) {
 	return
 }
 
-func enrichScyllaConfigFromAPI(c *scyllaConfig) error {
-	client := scyllaclient.NewConfigClient(net.JoinHostPort(c.APIAddress, c.APIPort))
-
-	var (
-		ctx = context.Background()
-		err error
-	)
-	if c.ListenAddress, err = client.ListenAddress(ctx); err != nil {
-		return err
-	}
-	if c.PrometheusAddress, err = client.PrometheusAddress(ctx); err != nil {
-		return err
-	}
-	if c.PrometheusPort, err = client.PrometheusPort(ctx); err != nil {
+// enrichConfigFromAPI fetches address info from the node and updates the
+// configuration.
+func (c *config) enrichConfigFromAPI(ctx context.Context, addr string) error {
+	external, err := fetchScyllaConfig(ctx, addr)
+	if err != nil {
 		return err
 	}
 
+	c.updateWithScyllaConfig(external)
 	return nil
 }
 
-func updateHTTPSConfigFromScyllaConfig(c *config) {
-	if c.HTTPS != "" {
+func fetchScyllaConfig(ctx context.Context, addr string) (c scyllaConfig, err error) {
+	client := scyllaclient.NewConfigClient(addr)
+
+	if c.ListenAddress, err = client.ListenAddress(ctx); err != nil {
 		return
 	}
-	c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, defaultHTTPSPort)
+	if c.PrometheusAddress, err = client.PrometheusAddress(ctx); err != nil {
+		return
+	}
+	if c.PrometheusPort, err = client.PrometheusPort(ctx); err != nil {
+		return
+	}
+	return
 }

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-log/gocqllog"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/netwait"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -45,7 +47,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Read configuration
-		config, err := newConfigFromFile(cfgConfigFile...)
+		config, err := parseConfigFile(cfgConfigFile...)
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", cfgConfigFile)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
@@ -83,6 +85,8 @@ var rootCmd = &cobra.Command{
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
+		// Set logger to netwait
+		netwait.DefaultWaiter.Logger = logger.Named("wait")
 
 		// Set gocql logger
 		gocql.Logger = gocqllog.StdLogger{
@@ -91,9 +95,16 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Wait for database
-		if err := waitForDatabase(ctx, config, logger); err != nil {
-			return errors.Wrapf(err, "db init")
+		logger.Info(ctx, "Checking database connectivity...")
+		initHost, err := netwait.AnyHostPort(ctx, config.Database.Hosts, "9042")
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"no connection to database, make sure Scylla server is running and that database section in config file(s) %s is set correctly",
+				strings.Join(cfgConfigFile, ", "),
+			)
 		}
+		config.Database.initAddr = net.JoinHostPort(initHost, "9042")
 
 		// Create keyspace if needed
 		ok, err := keyspaceExists(config)

@@ -34,6 +34,8 @@ type dbConfig struct {
 	ReplicationFactor             int           `yaml:"replication_factor"`
 	Timeout                       time.Duration `yaml:"timeout"`
 	TokenAware                    bool          `yaml:"token_aware"`
+	// initAddr specifies address used to create manager keyspace and tables.
+	initAddr string
 }
 
 type sslConfig struct {
@@ -93,7 +95,7 @@ func defaultConfig() *serverConfig {
 	return config
 }
 
-func newConfigFromFile(filename ...string) (*serverConfig, error) {
+func parseConfigFile(filename ...string) (*serverConfig, error) {
 	config := defaultConfig()
 
 	for _, f := range filename {

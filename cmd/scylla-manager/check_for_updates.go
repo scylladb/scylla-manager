@@ -22,7 +22,7 @@ var checkForUpdatesCmd = &cobra.Command{
 
 		// Reuse configuration loading from root to make sure we are using
 		// same logger configuration.
-		config, err := newConfigFromFile(cfgConfigFile...)
+		config, err := parseConfigFile(cfgConfigFile...)
 		if err != nil {
 			config = defaultConfig()
 		}

@@ -16,10 +16,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var serverConfigCmpOpts = cmp.Options{
+	mermaidtest.UUIDComparer(),
+	cmpopts.IgnoreUnexported(dbConfig{}),
+}
+
 func TestConfigModification(t *testing.T) {
 	t.Parallel()
 
-	c, err := newConfigFromFile("testdata/scylla-manager.yaml")
+	c, err := parseConfigFile("testdata/scylla-manager.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,19 +82,18 @@ func TestConfigModification(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(c, e, mermaidtest.UUIDComparer()); diff != "" {
+	if diff := cmp.Diff(c, e, serverConfigCmpOpts); diff != "" {
 		t.Fatal(diff)
 	}
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := newConfigFromFile("../../dist/etc/scylla-manager/scylla-manager.yaml")
+	c, err := parseConfigFile("../../dist/etc/scylla-manager/scylla-manager.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
 	e := defaultConfig()
-	opts := []cmp.Option{mermaidtest.UUIDComparer(), cmpopts.IgnoreTypes(serverConfig{})}
-	if diff := cmp.Diff(c, e, opts...); diff != "" {
+	if diff := cmp.Diff(c, e, serverConfigCmpOpts); diff != "" {
 		t.Fatal(diff)
 	}
 }

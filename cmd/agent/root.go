@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/httputil/middleware"
 	"github.com/scylladb/mermaid/internal/httputil/pprof"
+	"github.com/scylladb/mermaid/internal/netwait"
 	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/spf13/cobra"
@@ -41,16 +42,14 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
-		// Parse config
-		c, err := parseConfig(rootArgs.configFile)
+		c, err := parseConfigFile(rootArgs.configFile)
 		if err != nil {
 			return err
 		}
 
-		// Get a base context
+		// Get a base context with tracing id
 		ctx := log.WithNewTraceID(context.Background())
 
-		// Create logger
 		logger, err := logger(c)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
@@ -66,9 +65,26 @@ var rootCmd = &cobra.Command{
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
+		// Set logger to netwait
+		netwait.DefaultWaiter.Logger = logger.Named("wait")
 
-		// Log version and config
 		logger.Info(ctx, "Scylla Manager Agent", "version", mermaid.Version())
+
+		// Wait for Scylla API to be available
+		addr := net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort)
+		if _, err := netwait.AnyAddr(ctx, addr); err != nil {
+			return errors.Wrapf(
+				err,
+				"no connection to Scylla API, make sure that Scylla server is running and api_address and api_port are set correctly in config file %s",
+				rootArgs.configFile,
+			)
+		}
+
+		// Update configuration from the REST API
+		if err := c.enrichConfigFromAPI(ctx, addr); err != nil {
+			return err
+		}
+
 		logger.Info(ctx, "Using config", "config", obfuscateSecrets(c), "config_file", rootArgs.configFile)
 
 		// Instruct users to set auth token
