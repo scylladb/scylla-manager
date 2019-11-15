@@ -93,7 +93,7 @@ func TestDefaultConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := defaultConfig()
-	if diff := cmp.Diff(c, e, serverConfigCmpOpts); diff != "" {
+	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(serverConfig{}, "HTTP", "HTTPS")); diff != "" {
 		t.Fatal(diff)
 	}
 }
