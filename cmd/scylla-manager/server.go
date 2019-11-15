@@ -8,8 +8,6 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -17,13 +15,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/httppprof"
-	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/service/backup"
 	"github.com/scylladb/mermaid/service/cluster"
 	"github.com/scylladb/mermaid/service/healthcheck"
 	"github.com/scylladb/mermaid/service/repair"
 	"github.com/scylladb/mermaid/service/scheduler"
+	"github.com/scylladb/mermaid/service/secrets/dbsecrets"
 	"go.uber.org/multierr"
 )
 
@@ -71,22 +69,12 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 }
 
 func (s *server) makeServices() error {
-	home, err := os.UserHomeDir()
+	secretsStore, err := dbsecrets.New(s.session)
 	if err != nil {
-		return errors.Wrap(err, "get home dir")
-	}
-	dir := filepath.Join(home, ".certs")
-
-	sslCertStore, err := kv.NewFsStore(dir, "cert")
-	if err != nil {
-		return errors.Wrapf(err, "init SSL cert store at %s", dir)
-	}
-	sslKeyStore, err := kv.NewFsStore(dir, "key")
-	if err != nil {
-		return errors.Wrapf(err, "init SSL key store at %s", dir)
+		return errors.Wrap(err, "db secrets service")
 	}
 
-	s.clusterSvc, err = cluster.NewService(s.session, sslCertStore, sslKeyStore, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, secretsStore, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
@@ -96,8 +84,7 @@ func (s *server) makeServices() error {
 		s.config.Healthcheck,
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
-		sslCertStore,
-		sslKeyStore,
+		secretsStore,
 		s.logger.Named("healthcheck"),
 	)
 	if err != nil {

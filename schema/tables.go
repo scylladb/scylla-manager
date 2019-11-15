@@ -130,4 +130,15 @@ var (
 		PartKey: []string{"cluster_id", "type", "task_id"},
 		SortKey: []string{"id"},
 	})
+
+	Secrets = table.New(table.Metadata{
+		Name: "secrets",
+		Columns: []string{
+			"cluster_id",
+			"key",
+			"value",
+		},
+		PartKey: []string{"cluster_id"},
+		SortKey: []string{"key"},
+	})
 )

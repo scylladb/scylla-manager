@@ -17,8 +17,8 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/cqlping"
-	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/service/secrets"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -39,8 +39,7 @@ type Service struct {
 	config       Config
 	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
-	sslCertStore kv.Store
-	sslKeyStore  kv.Store
+	secretsStore secrets.Store
 
 	cacheMu sync.Mutex
 	// fields below are protected by cacheMu
@@ -51,26 +50,19 @@ type Service struct {
 }
 
 func NewService(config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
-	sslCertStore, sslKeyStore kv.Store, logger log.Logger) (*Service, error) {
+	secretsStore secrets.Store, logger log.Logger) (*Service, error) {
 	if clusterName == nil {
 		return nil, errors.New("invalid cluster name provider")
 	}
 	if scyllaClient == nil {
 		return nil, errors.New("invalid scylla provider")
 	}
-	if sslCertStore == nil {
-		return nil, errors.New("missing SSL cert store")
-	}
-	if sslKeyStore == nil {
-		return nil, errors.New("missing SSL key store")
-	}
 
 	return &Service{
 		config:        config,
 		clusterName:   clusterName,
 		scyllaClient:  scyllaClient,
-		sslCertStore:  sslCertStore,
-		sslKeyStore:   sslKeyStore,
+		secretsStore:  secretsStore,
 		tlsCache:      make(map[uuid.UUID]*tls.Config),
 		nodeInfoCache: make(map[clusterIDHost]*scyllaclient.NodeInfo),
 		logger:        logger,
@@ -317,8 +309,11 @@ func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Conf
 		return c, nil
 	}
 
-	s.logger.Info(ctx, "Loading SSL certificate from secure store", "cluster_id", clusterID)
-	cert, err := s.sslCertStore.Get(clusterID)
+	s.logger.Info(ctx, "Loading SSL certificate from secrets store", "cluster_id", clusterID)
+	tlsIdentity := &secrets.TLSIdentity{
+		ClusterID: clusterID,
+	}
+	err := s.secretsStore.Get(tlsIdentity)
 	// If there is no user certificate record no TLS config to avoid rereading
 	// from a secure store.
 	if err == mermaid.ErrNotFound {
@@ -326,13 +321,9 @@ func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Conf
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "get SSL user cert from a secure store")
+		return nil, errors.Wrap(err, "get SSL user cert from secrets store")
 	}
-	key, err := s.sslKeyStore.Get(clusterID)
-	if err != nil {
-		return nil, errors.Wrap(err, "get SSL user key from a secure store")
-	}
-	keyPair, err := tls.X509KeyPair(cert, key)
+	keyPair, err := tls.X509KeyPair(tlsIdentity.Cert, tlsIdentity.PrivateKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid SSL user key pair")
 	}

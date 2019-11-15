@@ -89,6 +89,7 @@ integration-test:
 	@$(MAKE) pkg-integration-test PKG=./service/healthcheck
 	@$(MAKE) pkg-integration-test PKG=./service/repair
 	@$(MAKE) pkg-integration-test PKG=./service/scheduler
+	@$(MAKE) pkg-integration-test PKG=./service/secrets/dbsecrets
 	@$(MAKE) pkg-integration-test PKG=./schema/cql
 
 # Export AWS env variables for rclone integration tests with minio.

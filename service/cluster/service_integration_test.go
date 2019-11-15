@@ -15,9 +15,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/kv"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/service/cluster"
+	"github.com/scylladb/mermaid/service/secrets"
+	"github.com/scylladb/mermaid/service/secrets/dbsecrets"
 	"github.com/scylladb/mermaid/uuid"
 )
 
@@ -31,10 +32,12 @@ func TestServiceStorageIntegration(t *testing.T) {
 	defer func() {
 		os.Remove(dir)
 	}()
-	sslCertStore, _ := kv.NewFsStore(dir, "cert")
-	sslKeyStore, _ := kv.NewFsStore(dir, "key")
 
-	s, err := cluster.NewService(session, sslCertStore, sslKeyStore, log.NewDevelopment())
+	secretsStore, err := dbsecrets.New(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := cluster.NewService(session, secretsStore, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,6 +223,99 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("put new cluster with TLS config", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+
+		tlsIdentity := &secrets.TLSIdentity{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(tlsIdentity); err != nil {
+			t.Fatal(err)
+		}
+		if tlsIdentity.ClusterID != c.ID {
+			t.Fatal("invalid clusterID", tlsIdentity.ClusterID)
+		}
+		if cmp.Diff(tlsIdentity.PrivateKey, tlsKey) != "" {
+			t.Fatal("invalid TLS key", tlsIdentity.PrivateKey)
+		}
+		if cmp.Diff(tlsIdentity.Cert, tlsCert) != "" {
+			t.Fatal("invalid TLS cert", tlsIdentity.Cert)
+		}
+	})
+
+	t.Run("update of TLS cluster with new TLS data also updates TLS identity", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		var err error
+		tlsCert, err = ioutil.ReadFile("testdata/cluster_update.crt")
+		if err != nil {
+			t.Fatal(err)
+		}
+		tlsKey, err = ioutil.ReadFile("testdata/cluster_update.key")
+		if err != nil {
+			t.Fatal(err)
+		}
+		c.SSLUserKeyFile = tlsKey
+		c.SSLUserCertFile = tlsCert
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+
+		tlsIdentity := &secrets.TLSIdentity{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(tlsIdentity); err != nil {
+			t.Fatal(err)
+		}
+		if tlsIdentity.ClusterID != c.ID {
+			t.Fatal("invalid clusterID", tlsIdentity.ClusterID)
+		}
+		if cmp.Diff(tlsIdentity.PrivateKey, tlsKey) != "" {
+			t.Fatal("invalid TLS key", tlsIdentity.PrivateKey)
+		}
+		if cmp.Diff(tlsIdentity.Cert, tlsCert) != "" {
+			t.Fatal("invalid TLS cert", tlsIdentity.Cert)
+		}
+
+	})
+
+	t.Run("delete TLS cluster removes TLS data", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.DeleteCluster(ctx, c.ID); err != nil {
+			t.Fatal(err)
+		}
+		tlsIdentity := &secrets.TLSIdentity{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(tlsIdentity); err != mermaid.ErrNotFound {
+			t.Fatal(err)
+		}
+		if tlsIdentity.Cert != nil || tlsIdentity.PrivateKey != nil {
+			t.Fatal("expected to get nil tls identity")
+		}
+	})
+
 	t.Run("put new cluster without automatic repair", func(t *testing.T) {
 		setup(t)
 
@@ -367,4 +463,28 @@ func validCluster() *cluster.Cluster {
 		Host:      ManagedClusterHost(),
 		AuthToken: AgentAuthToken(),
 	}
+}
+
+var (
+	tlsCert []byte
+	tlsKey  []byte
+)
+
+func init() {
+	var err error
+	tlsCert, err = ioutil.ReadFile("testdata/cluster.crt")
+	if err != nil {
+		panic(err)
+	}
+	tlsKey, err = ioutil.ReadFile("testdata/cluster.key")
+	if err != nil {
+		panic(err)
+	}
+}
+
+func tlsCluster() *cluster.Cluster {
+	c := validCluster()
+	c.SSLUserCertFile = tlsCert
+	c.SSLUserKeyFile = tlsKey
+	return c
 }

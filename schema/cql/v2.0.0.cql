@@ -49,3 +49,12 @@ ALTER TABLE scheduler_task_run WITH default_time_to_live = 15552000;
 
 ALTER TABLE repair_run WITH default_time_to_live = 15552000;
 ALTER TABLE repair_run_progress WITH default_time_to_live = 15552000;
+
+-- Secrets
+
+CREATE TABLE secrets (
+    cluster_id uuid,
+    key text,
+    value blob,
+    PRIMARY KEY (cluster_id, key)
+);

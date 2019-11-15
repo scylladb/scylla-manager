@@ -14,15 +14,21 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/kv"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/service/secrets/dbsecrets"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/zap/zapcore"
 )
 
 func TestGetStatusIntegration(t *testing.T) {
+	session := CreateSession(t)
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
+
+	secretService, err := dbsecrets.New(session)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	s, err := NewService(
 		DefaultConfig(),
@@ -32,8 +38,7 @@ func TestGetStatusIntegration(t *testing.T) {
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), logger.Named("scylla"))
 		},
-		kv.NopStore{},
-		kv.NopStore{},
+		secretService,
 		logger,
 	)
 	if err != nil {

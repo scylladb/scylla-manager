@@ -13,9 +13,9 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/service/secrets"
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/multierr"
 )
@@ -40,28 +40,20 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          *gocql.Session
-	sslCertStore     kv.Store
-	sslKeyStore      kv.Store
+	secretsStore     secrets.Store
 	clientCache      *scyllaclient.CachedProvider
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session *gocql.Session, sslCertStore, sslKeyStore kv.Store, l log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, secretsStore secrets.Store, l log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
-	}
-	if sslCertStore == nil {
-		return nil, errors.New("missing SSL cert store")
-	}
-	if sslKeyStore == nil {
-		return nil, errors.New("missing SSL key store")
 	}
 
 	s := &Service{
 		session:      session,
-		sslCertStore: sslCertStore,
-		sslKeyStore:  sslKeyStore,
+		secretsStore: secretsStore,
 		logger:       l,
 	}
 	s.clientCache = scyllaclient.NewCachedProvider(s.client)
@@ -319,18 +311,11 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		}
 	}()
 
-	if len(c.SSLUserCertFile) != 0 {
-		r, err := putWithRollback(s.sslCertStore, c.ID, c.SSLUserCertFile)
+	if len(c.SSLUserCertFile) != 0 && len(c.SSLUserKeyFile) != 0 {
+		r, err := s.saveTLSIdentityWithRollback(c.ID, c.SSLUserCertFile, c.SSLUserKeyFile)
 		rollback = append(rollback, r)
 		if err != nil {
 			return errors.Wrap(err, "save SSL cert file")
-		}
-	}
-	if len(c.SSLUserKeyFile) != 0 {
-		r, err := putWithRollback(s.sslKeyStore, c.ID, c.SSLUserKeyFile)
-		rollback = append(rollback, r)
-		if err != nil {
-			return errors.Wrap(err, "save SSL key file")
 		}
 	}
 
@@ -363,6 +348,34 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		WithoutRepair: c.WithoutRepair,
 	}
 	return s.notifyChangeListener(ctx, changeEvent)
+}
+
+func (s *Service) saveTLSIdentityWithRollback(clusterID uuid.UUID, cert, key []byte) (func(), error) {
+	oldIdentity := &secrets.TLSIdentity{
+		ClusterID: clusterID,
+	}
+	err := s.secretsStore.Get(oldIdentity)
+	if err != nil && err != mermaid.ErrNotFound {
+		return nil, errors.Wrap(err, "read old tls identity")
+	}
+
+	if oldIdentity.PrivateKey != nil && oldIdentity.Cert != nil {
+		if err := s.secretsStore.Delete(oldIdentity); err != nil {
+			return nil, errors.Wrap(err, "delete old tls identity")
+		}
+	}
+
+	identity := secrets.MakeTLSIdentity(clusterID, cert, key)
+	if err := s.secretsStore.Put(identity); err != nil {
+		return nil, errors.Wrap(err, "put tls identity")
+	}
+
+	return func() {
+		s.secretsStore.Delete(identity) // nolint:errcheck
+		if oldIdentity.PrivateKey != nil && oldIdentity.Cert != nil {
+			s.secretsStore.Put(oldIdentity) // nolint:errcheck
+		}
+	}, nil
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
@@ -425,13 +438,12 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 		return err
 	}
 
-	for _, kv := range []kv.Store{s.sslKeyStore, s.sslCertStore} {
-		if err := kv.Put(clusterID, nil); err != nil {
-			s.logger.Error(ctx, "Failed to delete file",
-				"cluster_id", clusterID,
-				"error", err,
-			)
-		}
+	if err := s.secretsStore.DeleteAll(clusterID); err != nil {
+		s.logger.Error(ctx, "Failed to delete cluster secrets",
+			"cluster_id", clusterID,
+			"error", err,
+		)
+		return errors.Wrap(err, "delete cluster secrets")
 	}
 
 	s.clientCache.Invalidate(clusterID)
