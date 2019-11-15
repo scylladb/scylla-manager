@@ -6,7 +6,7 @@ require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
 	github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055
 	github.com/cespare/xxhash v1.0.0
-	github.com/go-chi/chi v3.3.2+incompatible
+	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-chi/render v1.0.0
 	github.com/go-openapi/analysis v0.19.2
 	github.com/go-openapi/errors v0.19.2
