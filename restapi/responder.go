@@ -5,10 +5,10 @@ package restapi
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/internal/httpmw"
 )
 
 func responder(w http.ResponseWriter, r *http.Request, v interface{}) {
@@ -29,10 +29,7 @@ func responder(w http.ResponseWriter, r *http.Request, v interface{}) {
 		}
 	}
 
-	if le, _ := middleware.GetLogEntry(r).(*httpLogEntry); le != nil {
-		le.AddError(err)
-	}
-
+	httpmw.RequestLoggerSetRequestError(r, err)
 	render.Status(r, herr.StatusCode)
 	render.DefaultResponder(w, r, herr)
 }

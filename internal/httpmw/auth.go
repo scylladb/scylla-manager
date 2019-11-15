@@ -9,6 +9,35 @@ import (
 	"time"
 )
 
+// AuthToken sets authorization header. If token is empty it immediately returns
+// the next handler.
+func AuthToken(next http.RoundTripper, token string) http.RoundTripper {
+	if token == "" {
+		return next
+	}
+
+	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		r := cloneRequest(req)
+		r.Header.Set("Authorization", "Bearer "+token)
+		return next.RoundTrip(r)
+	})
+}
+
+// FixContentType adjusts Scylla REST API response so that it can be consumed
+// by Open API.
+func FixContentType(next http.RoundTripper) http.RoundTripper {
+	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		defer func() {
+			if resp != nil {
+				// Force JSON, Scylla returns "text/plain" that misleads the
+				// unmarshaller and breaks processing.
+				resp.Header.Set("Content-Type", "application/json")
+			}
+		}()
+		return next.RoundTrip(req)
+	})
+}
+
 // ValidateAuthToken is http server middleware that checks if Authorization
 // header contains `Bearer token`.
 // If not the execution would be held for the penalty duration and then 401

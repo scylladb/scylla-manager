@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package restapi_test
+package httpmw
 
 import (
 	"encoding/json"
@@ -8,23 +8,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/restapi"
 )
 
-func TestVersion(t *testing.T) {
+func TestVersionHandler(t *testing.T) {
 	t.Parallel()
 
-	h := restapi.New(restapi.Services{}, log.Logger{})
+	h := VersionHandler()
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 
-	v := &restapi.Version{}
-	err := json.NewDecoder(w.Result().Body).Decode(&v)
-	if err != nil {
-		t.Fatal(err)
+	var v version
+	if err := json.NewDecoder(w.Result().Body).Decode(&v); err != nil {
+		t.Fatal("json Decode() error", err)
 	}
 
 	if v.Version != mermaid.Version() {
