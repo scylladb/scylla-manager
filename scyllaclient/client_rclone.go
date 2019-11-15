@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/internal/httputil/middleware"
+	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/scyllaclient/internal/agent/models"
 )
@@ -20,7 +20,7 @@ import (
 // To turn off limitation set it to 0.
 func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit int) error {
 	p := operations.CoreBwlimitParams{
-		Context:       middleware.ForceHost(ctx, host),
+		Context:       httpmw.ForceHost(ctx, host),
 		BandwidthRate: &models.Bandwidth{Rate: fmt.Sprintf("%dM", limit)},
 	}
 	_, err := c.agentOps.CoreBwlimit(&p) //nolint:errcheck
@@ -30,7 +30,7 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 // RcloneJobStatus fetches information about the created job.
 func (c *Client) RcloneJobStatus(ctx context.Context, host string, id int64) (*models.Job, error) {
 	p := operations.JobStatusParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Jobid:   &models.Jobid{Jobid: id},
 	}
 	resp, err := c.agentOps.JobStatus(&p)
@@ -43,7 +43,7 @@ func (c *Client) RcloneJobStatus(ctx context.Context, host string, id int64) (*m
 // RcloneJobStop stops running job.
 func (c *Client) RcloneJobStop(ctx context.Context, host string, id int64) error {
 	p := operations.JobStopParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Jobid:   &models.Jobid{Jobid: id},
 	}
 	_, err := c.agentOps.JobStop(&p) //nolint:errcheck
@@ -53,7 +53,7 @@ func (c *Client) RcloneJobStop(ctx context.Context, host string, id int64) error
 // RcloneTransferred fetches information about all completed transfers.
 func (c *Client) RcloneTransferred(ctx context.Context, host string, group string) ([]*models.Transfer, error) {
 	p := operations.CoreTransferredParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		StatsParams: &models.StatsParams{
 			Group: group,
 		},
@@ -68,7 +68,7 @@ func (c *Client) RcloneTransferred(ctx context.Context, host string, group strin
 // RcloneStats fetches stats about current transfers.
 func (c *Client) RcloneStats(ctx context.Context, host string, group string) (*models.Stats, error) {
 	p := operations.CoreStatsParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		StatsParams: &models.StatsParams{
 			Group: group,
 		},
@@ -88,7 +88,7 @@ func RcloneDefaultGroup(jobID int64) string {
 // RcloneStatsReset resets stats.
 func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string) error {
 	p := operations.CoreStatsResetParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		StatsParams: &models.StatsParams{
 			Group: group,
 		},
@@ -112,7 +112,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 		return 0, err
 	}
 	p := operations.OperationsCopyfileParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Copyfile: &models.CopyOptions{
 			DstFs:     dstFs,
 			DstRemote: dstRemote,
@@ -137,7 +137,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 // pass them as variadic arguments.
 func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string, exclude ...string) (int64, error) {
 	p := operations.SyncCopyParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Copydir: operations.SyncCopyBody{
 			SrcFs:   srcRemotePath,
 			DstFs:   dstRemotePath,
@@ -161,7 +161,7 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host string, remotePath st
 		return err
 	}
 	p := operations.OperationsPurgeParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Purge: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
@@ -180,7 +180,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath s
 		return err
 	}
 	p := operations.OperationsDeletefileParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Deletefile: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
@@ -195,7 +195,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host string, remotePath s
 // Remote path format is "name:bucket/path".
 func (c *Client) RcloneDiskUsage(ctx context.Context, host string, remotePath string) (*models.FileSystemDetails, error) {
 	p := operations.OperationsAboutParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		About: &models.RemotePath{
 			Fs: remotePath,
 		},
@@ -216,7 +216,7 @@ func (c *Client) RcloneCat(ctx context.Context, host string, remotePath string) 
 		return nil, err
 	}
 	p := operations.OperationsCatParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Cat: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
@@ -241,7 +241,7 @@ type RcloneListDirItem = models.ListItem
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*models.ListItem, error) {
 	empty := ""
 	p := operations.OperationsListParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		ListOpts: &models.ListOptions{
 			Fs:     &remotePath,
 			Remote: &empty,

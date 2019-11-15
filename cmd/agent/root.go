@@ -14,8 +14,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/httputil/middleware"
-	"github.com/scylladb/mermaid/internal/httputil/pprof"
+	"github.com/scylladb/mermaid/internal/httpmw"
+	"github.com/scylladb/mermaid/internal/httppprof"
 	"github.com/scylladb/mermaid/internal/netwait"
 	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
@@ -139,7 +139,7 @@ var rootCmd = &cobra.Command{
 		go func() {
 			var h http.Handler
 			h = newRouter(c, rcserver.New())
-			h = middleware.ValidateAuthToken(h, c.AuthToken, time.Second)
+			h = httpmw.ValidateAuthToken(h, c.AuthToken, time.Second)
 			server := http.Server{
 				Addr:    c.HTTPS,
 				Handler: h,
@@ -152,7 +152,7 @@ var rootCmd = &cobra.Command{
 				logger.Info(ctx, "Starting debug server", "address", c.Debug)
 				server := http.Server{
 					Addr:    c.Debug,
-					Handler: pprof.Handler(),
+					Handler: httppprof.Handler(),
 				}
 				errCh <- errors.Wrap(server.ListenAndServe(), "debug server start")
 			}()

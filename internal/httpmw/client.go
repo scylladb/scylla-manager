@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package middleware
+package httpmw
 
 import (
 	"context"

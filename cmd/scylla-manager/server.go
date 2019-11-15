@@ -16,7 +16,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/httputil/pprof"
+	"github.com/scylladb/mermaid/internal/httppprof"
 	"github.com/scylladb/mermaid/internal/kv"
 	"github.com/scylladb/mermaid/restapi"
 	"github.com/scylladb/mermaid/service/backup"
@@ -223,7 +223,7 @@ func (s *server) makeHTTPServers() error {
 	if s.config.Debug != "" {
 		s.debugServer = &http.Server{
 			Addr:    s.config.Debug,
-			Handler: pprof.Handler(),
+			Handler: httppprof.Handler(),
 		}
 	}
 

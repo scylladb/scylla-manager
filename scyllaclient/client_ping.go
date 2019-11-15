@@ -18,7 +18,7 @@ import (
 
 	apiRuntime "github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/internal/httputil/middleware"
+	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/internal/timeutc"
 )
 
@@ -192,7 +192,7 @@ func (c *Client) PingN(ctx context.Context, host string, n int, timeout time.Dur
 // Ping checks if host is available using HTTP ping and returns RTT.
 // Ping requests are not retried, use this function with caution.
 func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
-	ctx = middleware.DontRetry(ctx)
+	ctx = httpmw.DontRetry(ctx)
 
 	t := timeutc.Now()
 	err := c.ping(ctx, host)
@@ -218,7 +218,7 @@ func (c *Client) ping(ctx context.Context, host string) error {
 	if err != nil {
 		return errors.Wrap(err, "create http request")
 	}
-	r = r.WithContext(middleware.ForceHost(ctx, host))
+	r = r.WithContext(httpmw.ForceHost(ctx, host))
 
 	resp, err := c.transport.RoundTrip(r)
 	if resp != nil {

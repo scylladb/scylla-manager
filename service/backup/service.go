@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/httputil/middleware"
+	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
 	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/internal/timeutc"
@@ -312,7 +312,7 @@ func (s *Service) checkLocationsAvailableFromHost(ctx context.Context, client *s
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
-	_, err := client.RcloneListDir(middleware.DontRetry(ctx), h, l.RemotePath(""), nil)
+	_, err := client.RcloneListDir(httpmw.DontRetry(ctx), h, l.RemotePath(""), nil)
 	if err != nil {
 		s.logger.Info(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
 		var e error

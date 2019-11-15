@@ -16,7 +16,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/internal/httputil/middleware"
+	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/scyllaclient/internal/scylla/client/operations"
 	"go.uber.org/multierr"
 )
@@ -183,7 +183,7 @@ func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error
 	if err != nil {
 		return nil, err
 	}
-	r = r.WithContext(middleware.ForceHost(ctx, host))
+	r = r.WithContext(httpmw.ForceHost(ctx, host))
 
 	resp, err := c.transport.RoundTrip(r) // nolint:bodyclose
 	if err != nil {
@@ -265,7 +265,7 @@ type RepairConfig struct {
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
-		Context:  middleware.ForceHost(ctx, host),
+		Context:  httpmw.ForceHost(ctx, host),
 		Keyspace: config.Keyspace,
 		Ranges:   &config.Ranges,
 	}
@@ -294,7 +294,7 @@ func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) 
 // RepairStatus returns current status of a repair command.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
 	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
-		Context:  middleware.ForceHost(ctx, host),
+		Context:  httpmw.ForceHost(ctx, host),
 		Keyspace: keyspace,
 		ID:       id,
 	})
@@ -346,7 +346,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 	const wait = 50 * time.Millisecond
 	for i := 0; i < 10; i++ {
 		resp, err := c.scyllaOps.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
-			Context: middleware.ForceHost(ctx, host),
+			Context: httpmw.ForceHost(ctx, host),
 		})
 		if err != nil {
 			return false, err
@@ -369,10 +369,10 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 // KillAllRepairs forces a termination of all repairs running on a host, the
 // operation is not retried to avoid side effects of a deferred kill.
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
-	ctx = middleware.DontRetry(ctx)
+	ctx = httpmw.DontRetry(ctx)
 
 	_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 	})
 	return err
 }
@@ -380,7 +380,7 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 // Snapshots lists available snapshots.
 func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 	})
 	if err != nil {
 		return nil, err
@@ -398,7 +398,7 @@ func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 // snapshot.
 func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit, error) {
 	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 	})
 	if err != nil {
 		return nil, err
@@ -443,7 +443,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 	}
 
 	if _, err := c.scyllaOps.StorageServiceKeyspaceFlushByKeyspacePost(&operations.StorageServiceKeyspaceFlushByKeyspacePostParams{ // nolint: errcheck
-		Context:  middleware.ForceHost(ctx, host),
+		Context:  httpmw.ForceHost(ctx, host),
 		Keyspace: keyspace,
 		Cf:       cfPtr,
 	}); err != nil {
@@ -451,7 +451,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 	}
 
 	if _, err := c.scyllaOps.StorageServiceSnapshotsPost(&operations.StorageServiceSnapshotsPostParams{ // nolint: errcheck
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Tag:     &tag,
 		Kn:      &keyspace,
 		Cf:      cfPtr,
@@ -465,7 +465,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 // DeleteSnapshot removes a snapshot with a given tag.
 func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
 	_, err := c.scyllaOps.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Tag:     &tag,
 	})
 	return err
@@ -474,7 +474,7 @@ func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
 // TableDiskSize returns total on disk size of the table in bytes.
 func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string) (int64, error) {
 	resp, err := c.scyllaOps.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(&operations.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetParams{
-		Context: middleware.ForceHost(ctx, host),
+		Context: httpmw.ForceHost(ctx, host),
 		Name:    keyspace + ":" + table,
 	})
 	if err != nil {

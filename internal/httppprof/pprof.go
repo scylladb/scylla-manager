@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package pprof
+package httppprof
 
 import (
 	"net/http"

@@ -16,7 +16,7 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/internal/httputil/middleware"
+	"github.com/scylladb/mermaid/internal/httpmw"
 	agentClient "github.com/scylladb/mermaid/scyllaclient/internal/agent/client"
 	agentOperations "github.com/scylladb/mermaid/scyllaclient/internal/agent/client/operations"
 	scyllaClient "github.com/scylladb/mermaid/scyllaclient/internal/scylla/client"
@@ -90,12 +90,12 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		config.Transport = DefaultTransport()
 	}
 	transport := config.Transport
-	transport = middleware.Timeout(transport, config.RequestTimeout, logger)
-	transport = middleware.Logger(transport, logger)
-	transport = middleware.HostPool(transport, pool, config.AgentPort)
-	transport = middleware.Retry(transport, len(config.Hosts), logger)
-	transport = middleware.AuthToken(transport, config.AuthToken)
-	transport = middleware.FixContentType(transport)
+	transport = httpmw.Timeout(transport, config.RequestTimeout, logger)
+	transport = httpmw.Logger(transport, logger)
+	transport = httpmw.HostPool(transport, pool, config.AgentPort)
+	transport = httpmw.Retry(transport, len(config.Hosts), logger)
+	transport = httpmw.AuthToken(transport, config.AuthToken)
+	transport = httpmw.FixContentType(transport)
 
 	c := &http.Client{
 		Timeout:   config.Timeout,
