@@ -185,7 +185,7 @@ func (s *server) makeHTTPServers() error {
 		Repair:      s.repairSvc,
 		Backup:      s.backupSvc,
 		Scheduler:   s.schedSvc,
-	}, s.logger.Named("restapi"))
+	}, s.logger.Named("http"))
 
 	if s.config.HTTP != "" {
 		s.httpServer = &http.Server{

@@ -91,6 +91,7 @@ type logEntry struct {
 func (le *logEntry) Write(status, bytes int, elapsed time.Duration) {
 	d := elapsed / 1000000
 	f := []interface{}{
+		"from", le.r.RemoteAddr,
 		"method", le.r.Method,
 		"uri", le.r.URL.RequestURI(),
 		"status", status,

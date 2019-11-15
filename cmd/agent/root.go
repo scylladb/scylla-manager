@@ -9,12 +9,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
-	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/internal/httppprof"
 	"github.com/scylladb/mermaid/internal/netwait"
 	"github.com/scylladb/mermaid/rclone"
@@ -137,12 +135,9 @@ var rootCmd = &cobra.Command{
 
 		logger.Info(ctx, "Starting HTTPS server", "address", c.HTTPS)
 		go func() {
-			var h http.Handler
-			h = newRouter(c, rcserver.New())
-			h = httpmw.ValidateAuthToken(h, c.AuthToken, time.Second)
 			server := http.Server{
 				Addr:    c.HTTPS,
-				Handler: h,
+				Handler: newRouter(c, rcserver.New(), logger.Named("http")),
 			}
 			errCh <- errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server start")
 		}()

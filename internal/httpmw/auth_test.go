@@ -59,7 +59,7 @@ func TestValidateAuthTokenMiddlewareNoToken(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 	w := httptest.NewRecorder()
 
-	ValidateAuthToken(h, "", 0).ServeHTTP(w, r)
+	ValidateAuthToken("", 0)(h).ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Error("expected status 200 got", w)
 	}
@@ -74,7 +74,7 @@ func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
 	r.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ValidateAuthToken(h, token, 0).ServeHTTP(w, r)
+	ValidateAuthToken(token, 0)(h).ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Error("expected status 200 got", w)
 	}
@@ -91,7 +91,7 @@ func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
 		t.Helper()
 
 		w := httptest.NewRecorder()
-		ValidateAuthToken(h, "token", penalty).ServeHTTP(w, r)
+		ValidateAuthToken("token", penalty)(h).ServeHTTP(w, r)
 		if w.Code != http.StatusUnauthorized {
 			t.Error("expected status 401 got", w)
 		}
@@ -126,7 +126,7 @@ func TestCrossCheckAuthTokenMiddleware(t *testing.T) {
 
 	var h http.Handler
 	h = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-	h = ValidateAuthToken(h, token, 0)
+	h = ValidateAuthToken(token, 0)(h)
 
 	var rt http.RoundTripper
 	rt = RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
