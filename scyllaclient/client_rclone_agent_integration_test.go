@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/scyllaclient/internal/agent/models"
 )
 
 func TestRcloneS3ListDirAgentIntegration(t *testing.T) {
@@ -61,16 +62,17 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(50 * time.Millisecond)
+	var transferred []*models.Transfer
+	WaitCond(t, func() bool {
+		var err error
+		transferred, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(transferred) == 2
+	}, 50*time.Millisecond, time.Second)
 
-	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 2 {
-		t.Errorf("Expected two transfers, got: len(Transferred)=%d", len(res))
-	}
-	for _, r := range res {
+	for _, r := range transferred {
 		if r.Checked == true {
 			t.Errorf("Expected transferred files to not be checked")
 		}
@@ -84,16 +86,16 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(50 * time.Millisecond)
+	WaitCond(t, func() bool {
+		var err error
+		transferred, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(transferred) == 2
+	}, 50*time.Millisecond, time.Second)
 
-	res, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 2 {
-		t.Errorf("Expected two transfers, got: len(Transferred)=%d", len(res))
-	}
-	for _, r := range res {
+	for _, r := range transferred {
 		if r.Checked == false {
 			t.Errorf("Expected transferred files to be checked")
 		}
@@ -131,36 +133,35 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(50 * time.Millisecond)
-
 	id, err := client.RcloneCopyFile(ctx, testHost, remotePath("/copy"), "data:tmp/copy")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 0 {
-		t.Errorf("Expected no completed transfers, got: len(Transferred)=%d", len(res))
-	}
+	WaitCond(t, func() bool {
+		stats, err := client.RcloneStats(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(stats.Transferring) > 0
+	}, 50*time.Millisecond, time.Second)
 
 	err = client.RcloneJobStop(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	time.Sleep(500 * time.Millisecond)
+	var transferred []*models.Transfer
+	WaitCond(t, func() bool {
+		var err error
+		transferred, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(transferred) > 0
+	}, 50*time.Millisecond, time.Second)
 
-	res, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 1 {
-		t.Fatalf("Expected one transfer, got: len(Transferred)=%d", len(res))
-	}
-	if res[0].Error == "" {
+	if transferred[0].Error == "" {
 		t.Fatal("Expected error but got empty")
 	}
 }

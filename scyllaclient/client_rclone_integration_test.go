@@ -12,6 +12,7 @@ import (
 
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
+	"github.com/scylladb/mermaid/scyllaclient/internal/agent/models"
 	"github.com/scylladb/mermaid/scyllaclient/scyllaclienttest"
 )
 
@@ -39,16 +40,17 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(50 * time.Millisecond)
+	var transferred []*models.Transfer
+	WaitCond(t, func() bool {
+		var err error
+		transferred, err = client.RcloneTransferred(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(transferred) == 2
+	}, 50*time.Millisecond, time.Second)
 
-	res, err := client.RcloneTransferred(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 2 {
-		t.Errorf("Expected two transfers, got: len(Transferred)=%d", len(res))
-	}
-	for _, r := range res {
+	for _, r := range transferred {
 		if r.Error != "" {
 			t.Errorf("Expected no error got: %s, %v", r.Error, r)
 		}
@@ -98,16 +100,17 @@ func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(50 * time.Millisecond)
+	var transferred []*models.Transfer
+	WaitCond(t, func() bool {
+		var err error
+		transferred, err = client.RcloneTransferred(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(transferred) == 1
+	}, 50*time.Millisecond, time.Second)
 
-	res, err := client.RcloneTransferred(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 1 {
-		t.Errorf("Expected one transfer, got: len(Transferred)=%d", len(res))
-	}
-	for _, r := range res {
+	for _, r := range transferred {
 		if r.Error != "" {
 			t.Errorf("Expected no error got: %s, %v", r.Error, r)
 		}
