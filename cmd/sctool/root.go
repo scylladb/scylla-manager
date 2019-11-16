@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	defaultURL = "https://127.0.0.1:56443/api/v1"
+	defaultURL = "http://127.0.0.1:56080/api/v1"
 
 	cfgAPIURL      string
 	cfgAPICertFile string

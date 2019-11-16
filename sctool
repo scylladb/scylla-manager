@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-SCYLLA_MANAGER_API_URL=http://localhost:56080/api/v1 ./sctool.dev $@
+./sctool.dev $@
