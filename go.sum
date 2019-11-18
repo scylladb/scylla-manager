@@ -324,8 +324,6 @@ github.com/prometheus/procfs v0.0.3 h1:CTwfnzjQ+8dS6MhHHu4YswVAD99sL2wjPqP+VkURm
 github.com/prometheus/procfs v0.0.3/go.mod h1:4A/X28fw3Fc593LaREMrKMqOKvUAntwMDaekg4FpcdQ=
 github.com/putdotio/go-putio v0.0.0-20190822121956-19b9c636c877 h1:sKIa5MAIViLAnQbEo+uiDi2FMowy8KcdZW8XZpmyNxs=
 github.com/putdotio/go-putio v0.0.0-20190822121956-19b9c636c877/go.mod h1:EWtDL88jJLLWZzywr0QaPO+mGP8gFpvl8dcox8qTk3Y=
-github.com/rclone/rclone v1.50.0 h1:YFw+HF/4xAz4itWrOCF2JGE1zDwM0rsoS+mPKyPKZL8=
-github.com/rclone/rclone v1.50.0/go.mod h1:VNSnyymI+2hjJtDMkQyA1dx2TBIjfJ9Uv9T4y1gfAUk=
 github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46 h1:w2CpS5muK+jyydnmlkqpAhzKmHmMBzBkfYUDjQNS1Dk=
 github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46/go.mod h1:U2bmx0hDj8EyDdcxmD5t3XHDnBFnyNNc22n1R4008eM=
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
@@ -388,6 +386,8 @@ github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a h1:wRlvyDgRuJOLgD2vc
 github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a/go.mod h1:rHwXgn7JulP+udvsHwJoVG1YGAP6VLg4y9I5dyZdqmA=
 github.com/yunify/qingstor-sdk-go/v3 v3.0.2 h1:2pL3tEj6eEESsHKrqsLZ5D+OkHEhYfsW1xwYRcHCgZs=
 github.com/yunify/qingstor-sdk-go/v3 v3.0.2/go.mod h1:KciFNuMu6F4WLk9nGwwK69sCGKLCdd9f97ac/wfumS4=
+github.com/zimnx/rclone v1.50.1-patched h1:STODxvzDK32UCBoCne8mDcqq0K+PwL153sOqN58Qhu8=
+github.com/zimnx/rclone v1.50.1-patched/go.mod h1:VNSnyymI+2hjJtDMkQyA1dx2TBIjfJ9Uv9T4y1gfAUk=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
