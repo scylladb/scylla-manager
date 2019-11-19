@@ -78,20 +78,22 @@ func RegisterInMemoryConf() error {
 	rc.Calls.Get("config/delete").Fn = notFoundFn
 
 	// Register s3 provider
-	region := awsS3Region()
-	endpoint := os.Getenv("AWS_S3_ENDPOINT")
+	var (
+		s3region   = awsS3Region()
+		s3endpoint = os.Getenv("AWS_S3_ENDPOINT")
+	)
 	errs := multierr.Combine(
 		fs.ConfigFileSet(S3Provider, "type", "s3"),
 		fs.ConfigFileSet(S3Provider, "provider", "AWS"),
 		fs.ConfigFileSet(S3Provider, "env_auth", "true"),
 		fs.ConfigFileSet(S3Provider, "disable_checksum", "true"),
-		fs.ConfigFileSet(S3Provider, "region", region),
-		fs.ConfigFileSet(S3Provider, "endpoint", endpoint),
+		fs.ConfigFileSet(S3Provider, "region", s3region),
+		fs.ConfigFileSet(S3Provider, "endpoint", s3endpoint),
 	)
 	if errs != nil {
 		return errors.Wrapf(errs, "register s3 provider")
 	}
-	fs.Infof(nil, "registered s3 provider: region=%s, endpoint=%s", region, endpoint)
+	fs.Infof(nil, "registered s3 provider [region=%s, endpoint=%s]", s3region, s3endpoint)
 
 	return nil
 }

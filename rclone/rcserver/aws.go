@@ -24,23 +24,21 @@ func awsS3Region() string {
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
 // Returns empty string if region can't be obtained for whatever reason.
 func fetchRegionFromMetadataAPI() string {
-	url := "http://169.254.169.254/latest/dynamic/instance-identity/document"
-
-	metadataClient := http.Client{
-		Timeout: time.Second * 2,
-	}
+	const url = "http://169.254.169.254/latest/dynamic/instance-identity/document"
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		fs.Errorf(nil, "create metadata request: %+v", err)
 		return ""
 	}
-
 	req.Header.Set("User-Agent", rclone.UserAgent())
 
+	metadataClient := http.Client{
+		Timeout: 2 * time.Second,
+	}
 	res, err := metadataClient.Do(req)
 	if err != nil {
-		fs.Errorf(nil, "fetch instance identity: %+v", err)
+		fs.Debugf(nil, "AWS failed to fetch instance identity: %+v", err)
 		return ""
 	}
 	defer res.Body.Close()
