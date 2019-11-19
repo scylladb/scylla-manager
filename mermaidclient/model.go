@@ -584,7 +584,7 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}
+{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}{{else}}-{{ end }}
 {{- if ne .SnapshotTag "" }}
 Snapshot Tag:	{{ .SnapshotTag }}
 {{- end }}
