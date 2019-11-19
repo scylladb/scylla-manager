@@ -1167,12 +1167,12 @@
           "description": "Port for the CQL native transport to listen for clients on.",
           "type": "string"
         },
-        "rpc_address":{
+        "rpc_address": {
           "description": "Address on which Scylla is going to expect Thrift and CQL clients connections.",
           "type": "string"
         },
         "rpc_port": {
-          "description" : "Port for Thrift to listen for clients on.",
+          "description": "Port for Thrift to listen for clients on.",
           "type": "string"
         },
         "broadcast_address": {
