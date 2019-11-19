@@ -496,7 +496,7 @@ func (bp BackupProgress) addHostProgress(t *table.Table) {
 		}
 		p := "-"
 		if len(h.Keyspaces) > 0 {
-			p = FormatUploadProgress(h.Size, h.Uploaded, h.Skipped)
+			p = FormatUploadProgress(h.Size, h.Uploaded, h.Skipped, h.Failed)
 		}
 		t.AddRow(h.Host, p,
 			ByteCountBinary(h.Size),
@@ -512,8 +512,7 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 		if bp.hideHost(h.Host) {
 			continue
 		}
-		fmt.Fprintf(w, "Host:		%s\n", h.Host)
-		fmt.Fprintf(w, "Started At:	%s\nCompleted At:	%s\n", h.StartedAt, h.CompletedAt)
+		fmt.Fprintf(w, "\nHost:		%s\n", h.Host)
 		t := table.New()
 		addSeparator := false
 		for _, ks := range h.Keyspaces {
@@ -534,7 +533,8 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 					tbl.Table,
 					FormatUploadProgress(tbl.Size,
 						tbl.Uploaded,
-						tbl.Skipped),
+						tbl.Skipped,
+						tbl.Failed),
 					ByteCountBinary(tbl.Size),
 					ByteCountBinary(tbl.Uploaded),
 					ByteCountBinary(tbl.Skipped),
@@ -584,7 +584,7 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	{{ FormatUploadProgress .Size .Uploaded .Skipped }}
+{{ with .Progress }}Progress:	{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}
 {{- if ne .SnapshotTag "" }}
 Snapshot Tag:	{{ .SnapshotTag }}
 {{- end }}
@@ -599,7 +599,8 @@ Datacenters:	{{ range .Dcs }}
 Errors:	{{ range .Errors }}
   - {{ . }}
 {{- end }}
-{{ end -}}`
+{{ end }}
+`
 
 func (bp BackupProgress) addHeader(w io.Writer) error {
 	temp := template.Must(template.New("backup_progress").Funcs(template.FuncMap{

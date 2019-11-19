@@ -120,16 +120,19 @@ func FormatPercent(p float32) string {
 	return fmt.Sprintf("%0.2f%%", p)
 }
 
-// FormatUploadProgress formats size and uploaded bytes to human readable
-// format.
-func FormatUploadProgress(size, uploaded, skipped int64) string {
+// FormatUploadProgress calculates percentage of success and failed uploads
+func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
 	if size == 0 {
 		return "100%"
 	}
 	transferred := uploaded + skipped
-	return fmt.Sprintf("%d%%",
+	out := fmt.Sprintf("%d%%",
 		transferred*100/size,
 	)
+	if failed > 0 {
+		out += fmt.Sprintf("/%d%%", failed*100/size)
+	}
+	return out
 }
 
 // ByteCountBinary returns string representation of the byte count with proper

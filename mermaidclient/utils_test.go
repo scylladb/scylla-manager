@@ -239,3 +239,63 @@ func TestFormatTables(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatUploadProgress(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Name     string
+		Size     int64
+		Uploaded int64
+		Skipped  int64
+		Failed   int64
+		Golden   string
+	}{
+		{
+			Name:     "everything uploaded",
+			Size:     10,
+			Uploaded: 10,
+			Golden:   "100%",
+		},
+		{
+			Name:    "everything skipped",
+			Size:    10,
+			Skipped: 10,
+			Golden:  "100%",
+		},
+		{
+			Name:   "everything failed",
+			Size:   10,
+			Failed: 10,
+			Golden: "0%/100%",
+		},
+		{
+			Name:     "partial failure complete",
+			Size:     10,
+			Uploaded: 5,
+			Skipped:  3,
+			Failed:   2,
+			Golden:   "80%/20%",
+		},
+		{
+			Name:     "partial failure not-complete",
+			Size:     10,
+			Uploaded: 5,
+			Skipped:  3,
+			Failed:   1,
+			Golden:   "80%/10%",
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
+			if s := FormatUploadProgress(test.Size, test.Uploaded, test.Skipped, test.Failed); s != test.Golden {
+				t.Errorf("FormatUploadProgress() expected %s got %s", test.Golden, s)
+			}
+		})
+	}
+}
