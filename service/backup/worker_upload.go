@@ -273,7 +273,7 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 	}
 
 	for _, p := range d.Progress {
-		if p.AgentJobID != jobID || p.Size == p.Uploaded {
+		if p.AgentJobID != jobID || (p.CompletedAt != nil && !p.CompletedAt.IsZero()) {
 			continue
 		}
 		trs := scyllaclient.TransferredByFilename(p.FileName, transferred)
