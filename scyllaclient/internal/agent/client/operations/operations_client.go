@@ -535,6 +535,45 @@ func (a *Client) OperationsList(params *OperationsListParams) (*OperationsListOK
 }
 
 /*
+OperationsMovefile moves a file
+
+Move a file from source remote to destination remote
+*/
+func (a *Client) OperationsMovefile(params *OperationsMovefileParams) (*OperationsMovefileOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewOperationsMovefileParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "OperationsMovefile",
+		Method:             "POST",
+		PathPattern:        "/rclone/operations/movefile",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &OperationsMovefileReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
+		return nil, err
+	}
+	success, ok := result.(*OperationsMovefileOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for OperationsMovefile: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
+}
+
+/*
 OperationsPurge purges container
 
 Remove a directory or container and all of its contents

@@ -90,7 +90,7 @@ type OperationsCopyfileParams struct {
 	  copyfile
 
 	*/
-	Copyfile *models.CopyOptions
+	Copyfile *models.MoveOrCopyFileOptions
 
 	timeout    time.Duration
 	Context    context.Context
@@ -153,13 +153,13 @@ func (o *OperationsCopyfileParams) SetGroup(group string) {
 }
 
 // WithCopyfile adds the copyfile to the operations copyfile params
-func (o *OperationsCopyfileParams) WithCopyfile(copyfile *models.CopyOptions) *OperationsCopyfileParams {
+func (o *OperationsCopyfileParams) WithCopyfile(copyfile *models.MoveOrCopyFileOptions) *OperationsCopyfileParams {
 	o.SetCopyfile(copyfile)
 	return o
 }
 
 // SetCopyfile adds the copyfile to the operations copyfile params
-func (o *OperationsCopyfileParams) SetCopyfile(copyfile *models.CopyOptions) {
+func (o *OperationsCopyfileParams) SetCopyfile(copyfile *models.MoveOrCopyFileOptions) {
 	o.Copyfile = copyfile
 }
 

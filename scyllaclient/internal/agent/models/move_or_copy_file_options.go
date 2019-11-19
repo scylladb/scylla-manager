@@ -11,9 +11,9 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// CopyOptions copy options
-// swagger:model CopyOptions
-type CopyOptions struct {
+// MoveOrCopyFileOptions move or copy file options
+// swagger:model MoveOrCopyFileOptions
+type MoveOrCopyFileOptions struct {
 
 	// A remote name string eg. drive: for the destination
 	DstFs string `json:"dstFs,omitempty"`
@@ -28,13 +28,13 @@ type CopyOptions struct {
 	SrcRemote string `json:"srcRemote,omitempty"`
 }
 
-// Validate validates this copy options
-func (m *CopyOptions) Validate(formats strfmt.Registry) error {
+// Validate validates this move or copy file options
+func (m *MoveOrCopyFileOptions) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *CopyOptions) MarshalBinary() ([]byte, error) {
+func (m *MoveOrCopyFileOptions) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -42,8 +42,8 @@ func (m *CopyOptions) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *CopyOptions) UnmarshalBinary(b []byte) error {
-	var res CopyOptions
+func (m *MoveOrCopyFileOptions) UnmarshalBinary(b []byte) error {
+	var res MoveOrCopyFileOptions
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

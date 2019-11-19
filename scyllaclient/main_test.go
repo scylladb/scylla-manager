@@ -28,6 +28,7 @@ func setupRclone() {
 
 	rcserver.MustRegisterInMemoryConf()
 	rcserver.MustRegisterLocalDirProvider("dev", "", "/dev")
+	rcserver.MustRegisterLocalDirProvider("tmp", "", "/tmp")
 	rcserver.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
 	rcserver.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
 }

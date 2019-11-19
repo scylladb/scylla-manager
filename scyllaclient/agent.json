@@ -376,6 +376,65 @@
         "security": []
       }
     },
+    "/rclone/operations/movefile": {
+      "post": {
+        "description": "Move a file from source remote to destination remote",
+        "summary": "Move a file",
+        "operationId": "OperationsMovefile",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
+          {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "copyfile",
+            "description": "copyfile",
+            "schema": {
+              "$ref": "#/definitions/MoveOrCopyFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/operations/copyfile": {
       "post": {
         "description": "Copy a file from source remote to destination remote",
@@ -405,7 +464,7 @@
             "name": "copyfile",
             "description": "copyfile",
             "schema": {
-              "$ref": "#/definitions/CopyOptions"
+              "$ref": "#/definitions/MoveOrCopyFileOptions"
             }
           }
         ],
@@ -967,7 +1026,7 @@
         }
       }
     },
-    "CopyOptions": {
+    "MoveOrCopyFileOptions": {
       "type": "object",
       "properties": {
         "srcFs": {

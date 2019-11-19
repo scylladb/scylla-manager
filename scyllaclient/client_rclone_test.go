@@ -6,11 +6,15 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/scyllaclient/internal/agent/models"
@@ -318,4 +322,42 @@ func TestRcloneDiskUsage(t *testing.T) {
 	if got.Total <= 0 || got.Free <= 0 || got.Used <= 0 {
 		t.Errorf("Expected usage bigger than zero, got: %+v", got)
 	}
+}
+
+func TestRcloneMoveFile(t *testing.T) {
+	t.Parallel()
+
+	dir, err := ioutil.TempDir("", "mermaid.scyllaclient.TestRcloneMoveFile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(dir)
+
+	if err := ioutil.WriteFile(path.Join(dir, "a"), []byte{'a'}, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
+	defer cl()
+
+	ctx := context.Background()
+
+	tmpRemotePath := func(file string) string {
+		return "tmp:" + path.Join(strings.TrimPrefix(dir, "/tmp/"), file)
+	}
+
+	if _, err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("b"), tmpRemotePath("a")); err != nil {
+		t.Fatal("RcloneMoveFile() error", err)
+	}
+	WaitCond(t, func() bool {
+		if _, err := os.Stat(path.Join(dir, "a")); !os.IsNotExist(err) {
+			t.Log("File a Stat() error", err)
+			return false
+		}
+		if _, err := os.Stat(path.Join(dir, "b")); err != nil {
+			t.Log("File b Stat() error", err)
+			return false
+		}
+		return true
+	}, 50*time.Millisecond, time.Second)
 }
