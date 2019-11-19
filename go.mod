@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
-	github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055
 	github.com/cespare/xxhash v1.0.0
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-chi/render v1.0.0
@@ -30,6 +29,7 @@ require (
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rclone/rclone v1.50.0
+	github.com/scylladb-fork/termtables v1.0.0
 	github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
 	github.com/scylladb/go-set v1.0.1
 	github.com/scylladb/gocqlx v1.3.1
@@ -46,7 +46,6 @@ require (
 )
 
 replace (
-	github.com/apcera/termtables => github.com/brettski/go-termtables v0.0.0-20190817160346-834c9b12e572
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.3.0
 	github.com/rclone/rclone => github.com/zimnx/rclone v1.50.1-patched
 )

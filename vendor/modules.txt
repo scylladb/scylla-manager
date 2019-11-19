@@ -6,9 +6,6 @@ github.com/PuerkitoBio/urlesc
 github.com/Unknwon/goconfig
 # github.com/abbot/go-http-auth v0.4.0
 github.com/abbot/go-http-auth
-# github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055 => github.com/brettski/go-termtables v0.0.0-20190817160346-834c9b12e572
-github.com/apcera/termtables
-github.com/apcera/termtables/term
 # github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 github.com/asaskevich/govalidator
 # github.com/aws/aws-sdk-go v1.23.8
@@ -211,6 +208,9 @@ github.com/rclone/rclone/lib/rest
 github.com/rclone/rclone/lib/terminal
 # github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46
 github.com/rfjakob/eme
+# github.com/scylladb-fork/termtables v1.0.0
+github.com/scylladb-fork/termtables
+github.com/scylladb-fork/termtables/term
 # github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
 github.com/scylladb/go-log
 github.com/scylladb/go-log/gocqllog

@@ -5,10 +5,11 @@ package termtables
 import (
 	"bytes"
 	"os"
+	"regexp"
 	"runtime"
 	"strings"
 
-	"github.com/apcera/termtables/term"
+	"github.com/scylladb-fork/termtables/term"
 )
 
 // MaxColumns represents the maximum number of columns that are available for
@@ -78,11 +79,13 @@ func SetModeMarkdown(onoff bool) {
 	chooseDefaultOutput()
 }
 
+var utfRe = regexp.MustCompile(`utf\-8|utf8|UTF\-8|UTF8`)
+
 // EnableUTF8PerLocale will use current locale character map information to
 // determine if UTF-8 is expected and, if so, is equivalent to EnableUTF8.
 func EnableUTF8PerLocale() {
 	locale := getLocale()
-	if strings.Contains(locale, "UTF-8") {
+	if utfRe.MatchString(locale) {
 		EnableUTF8()
 	}
 }

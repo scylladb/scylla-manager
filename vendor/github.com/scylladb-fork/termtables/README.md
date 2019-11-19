@@ -1,25 +1,18 @@
-_This repository was restored [here](https://github.com/brettski/go-termtables) after Apcera deleted their termtables repository on github. I was using the library on a project of mine and wanted to keep it around._
+# termtables
 
-# Original Content (working on updating)
+[![Actions Status](https://github.com/scylladb-fork/termtables/workflows/Go/badge.svg)](https://github.com/scylladb-fork/termtables/actions)
+[![GoDoc](https://godoc.org/github.com/scylladb-fork/termtables?status.svg)](http://godoc.org/github.com/scylladb-fork/termtables)
+[![Go Report Card](https://goreportcard.com/badge/github.com/scylladb-fork/termtables)](https://goreportcard.com/report/github.com/scylladb-fork/termtables)
 
----
-
-# Termtables
-
-[![Build Status](https://travis-ci.org/apcera/termtables.svg?branch=master)](https://travis-ci.org/apcera/termtables)
-
-A [Go](http://golang.org) port of the Ruby library [terminal-tables](https://github.com/visionmedia/terminal-table) for
-fast and simple ASCII table generation.
+A [Go](http://golang.org) port of the Ruby library [terminal-tables](https://github.com/visionmedia/terminal-table) for fast and simple ASCII table generation. This project was originally created by [Apcera](https://github.com/apcera) and adopted here when they removed it from GitHub.
 
 ## Installation
 
 ```bash
-go get github.com/apcera/termtables
+go get github.com/scylladb-fork/termtables
 ```
 
-## Go Style Documentation
-
-[http://godoc.org/github.com/apcera/termtables](http://godoc.org/github.com/apcera/termtables)
+or add as a Go module
 
 ## APC Command Line usage
 
@@ -36,7 +29,7 @@ package main
 
 import (
   "fmt"
-  "github.com/apcera/termtables"
+  termtables "github.com/scylladb-fork/termtables"
 )
 
 func main() {
@@ -53,7 +46,7 @@ func main() {
 
 Result:
 
-```
+```console
 +-------+-------+
 | Name  | Age   |
 +-------+-------+

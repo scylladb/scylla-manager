@@ -4,9 +4,19 @@ package table
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/apcera/termtables"
+	"github.com/scylladb-fork/termtables"
 )
+
+func init() {
+	// Select drawing character set for termtables to avoid output bugs.
+	// See scylladb/mermaid#1381.
+	ascii := os.Getenv("SCTOOL_ASCII_TABLES")
+	if ascii == "" {
+		termtables.EnableUTF8PerLocale()
+	}
+}
 
 var defaultCellStyle = &termtables.CellStyle{
 	Alignment: termtables.AlignLeft,
@@ -91,7 +101,6 @@ func (t *Table) AddSeparator() {
 // Render returns a string representation of a fully rendered table.
 func (t *Table) Render() string {
 	tbl := termtables.CreateTable()
-	tbl.UTF8Box()
 	if len(t.headers) > 0 {
 		tbl.AddHeaders(t.headers...)
 	}

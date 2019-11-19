@@ -74,8 +74,6 @@ github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4Yn
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
 github.com/bradfitz/iter v0.0.0-20140124041915-454541ec3da2/go.mod h1:PyRFw1Lt2wKX4ZVSQ2mk+PeDa1rxyObEDlApuIsUKuo=
 github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c/go.mod h1:PyRFw1Lt2wKX4ZVSQ2mk+PeDa1rxyObEDlApuIsUKuo=
-github.com/brettski/go-termtables v0.0.0-20190817160346-834c9b12e572 h1:sKDiPkleJ8UVHJZBaTVw3z9F0WZFgp60Cgd6uLsWo3Q=
-github.com/brettski/go-termtables v0.0.0-20190817160346-834c9b12e572/go.mod h1:ZgaTJNybQVUXNQW7bdJPU0cV7G87ZnVSA7U+LFQiVwY=
 github.com/cespare/xxhash v1.0.0 h1:naDmySfoNg0nKS62/ujM6e71ZgM2AoVdaqGwMG0w18A=
 github.com/cespare/xxhash v1.0.0/go.mod h1:fX/lfQBkSCDXZSUgv6jVIu/EVA3/JNseAX5asI4c4T4=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
@@ -269,6 +267,7 @@ github.com/mattn/go-ieproxy v0.0.0-20190805055040-f9202b1cfdeb/go.mod h1:31jz6HN
 github.com/mattn/go-isatty v0.0.8 h1:HLtExJ+uU2HOZ+wI0Tt5DtUDrx8yhUqDcp7fYERX4CE=
 github.com/mattn/go-isatty v0.0.8/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hdxcsrc5s=
 github.com/mattn/go-pointer v0.0.0-20180825124634-49522c3f3791/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
+github.com/mattn/go-runewidth v0.0.3-0.20170201023540-14207d285c6c/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/mattn/go-runewidth v0.0.4 h1:2BvfKmzob6Bmd4YsL0zygOqfdFnK7GR4QL06Do4/p7Y=
 github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
@@ -329,6 +328,8 @@ github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46/go.mod h1:U2bmx0hDj8Ey
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46/go.mod h1:uAQ5PCi+MFsC7HjREoAz1BU+Mq60+05gifQSsHSDG/8=
+github.com/scylladb-fork/termtables v1.0.0 h1:B13x0omdSbyo0kJBVJPENUlzUejDB3TJx8vh7aKAC4E=
+github.com/scylladb-fork/termtables v1.0.0/go.mod h1:SlVw8nUJOr/ZnOZo0eY8W5edIyUw0OPbmZrEOtVq3Mc=
 github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18 h1:RtLd0N+xr2Dd6BSo+2RG+s2EkzyXKfEMBlHQYwQLhuk=
 github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18/go.mod h1:DkwlG8salCBbaM/tPKuvbPAIHjJeXgKUTBY+lFm4it0=
 github.com/scylladb/go-reflectx v1.0.1 h1:b917wZM7189pZdlND9PbIJ6NQxfDPfBvUaQ7cjj1iZQ=

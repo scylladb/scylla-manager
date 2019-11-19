@@ -5,9 +5,8 @@ package table
 import (
 	"testing"
 
-	"github.com/apcera/termtables"
-
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb-fork/termtables"
 )
 
 func TestTable(t *testing.T) {
