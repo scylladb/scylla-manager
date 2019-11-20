@@ -328,6 +328,8 @@ github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46/go.mod h1:U2bmx0hDj8Ey
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46/go.mod h1:uAQ5PCi+MFsC7HjREoAz1BU+Mq60+05gifQSsHSDG/8=
+github.com/scylladb-fork/rclone v1.50.2-memory-fixes h1:qRgY52NOvU6OjmrnaQmyXcL5pi1oVQ6XIK34fcMk0I0=
+github.com/scylladb-fork/rclone v1.50.2-memory-fixes/go.mod h1:VNSnyymI+2hjJtDMkQyA1dx2TBIjfJ9Uv9T4y1gfAUk=
 github.com/scylladb-fork/termtables v1.0.0 h1:B13x0omdSbyo0kJBVJPENUlzUejDB3TJx8vh7aKAC4E=
 github.com/scylladb-fork/termtables v1.0.0/go.mod h1:SlVw8nUJOr/ZnOZo0eY8W5edIyUw0OPbmZrEOtVq3Mc=
 github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18 h1:RtLd0N+xr2Dd6BSo+2RG+s2EkzyXKfEMBlHQYwQLhuk=
@@ -387,8 +389,6 @@ github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a h1:wRlvyDgRuJOLgD2vc
 github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a/go.mod h1:rHwXgn7JulP+udvsHwJoVG1YGAP6VLg4y9I5dyZdqmA=
 github.com/yunify/qingstor-sdk-go/v3 v3.0.2 h1:2pL3tEj6eEESsHKrqsLZ5D+OkHEhYfsW1xwYRcHCgZs=
 github.com/yunify/qingstor-sdk-go/v3 v3.0.2/go.mod h1:KciFNuMu6F4WLk9nGwwK69sCGKLCdd9f97ac/wfumS4=
-github.com/zimnx/rclone v1.50.1-patched h1:STODxvzDK32UCBoCne8mDcqq0K+PwL153sOqN58Qhu8=
-github.com/zimnx/rclone v1.50.1-patched/go.mod h1:VNSnyymI+2hjJtDMkQyA1dx2TBIjfJ9Uv9T4y1gfAUk=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
