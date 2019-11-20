@@ -104,7 +104,7 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 				"tags", deleted,
 			)
 		} else {
-			w.Logger.Info(ctx, "No stale local snapshots to delete", "host", h.IP)
+			w.Logger.Debug(ctx, "No stale local snapshots to delete", "host", h.IP)
 		}
 	}()
 

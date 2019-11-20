@@ -761,7 +761,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		target := target
 		target.Continue = false
-		target.UploadParallel = []backup.DCLimit{{Limit: 1}} // Upload one by one
 
 		go func() {
 			defer close(done)
@@ -791,8 +790,10 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
+		tagAfterRun := backup.NewSnapshotTag()
 
 		Print("When: backup is resumed with new RunID")
+		time.Sleep(time.Second) // wait for new tag
 		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
 			t.Error("Unexpected error", err)
@@ -800,8 +801,14 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("Then: data is uploaded")
 		manifests, files := h.listFiles()
-		if len(manifests) <= 3 {
-			t.Fatalf("Expected over 3 manifests got %s", manifests)
+		c := 0
+		for _, m := range manifests {
+			if backup.SnapshotTagFromManifestPath(t, m) > tagAfterRun {
+				c += 1
+			}
+		}
+		if c != 3 {
+			t.Fatalf("Expected 3 new manifests got %d from %s", c, manifests)
 		}
 		if len(files) == 0 {
 			t.Fatal("Expected data to be uploaded")

@@ -489,10 +489,22 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// Upload
+	// Upload files
 	w = w.WithLogger(s.logger.Named("upload"))
-	if err := w.Upload(ctx, hi, target.UploadParallel, target.Retention); err != nil {
+	if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "upload")
+	}
+
+	// Move manifests
+	w = w.WithLogger(s.logger.Named("move"))
+	if err := w.MoveManifests(ctx, hi); err != nil {
+		return errors.Wrap(err, "move manifests")
+	}
+
+	// Purge remote data
+	w = w.WithLogger(s.logger.Named("purge"))
+	if err := w.Purge(ctx, hi, target.Retention); err != nil {
+		return errors.Wrap(err, "purge")
 	}
 
 	return nil

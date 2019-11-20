@@ -5,7 +5,6 @@ package backup
 import (
 	"context"
 	"fmt"
-	"path"
 	"strings"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit, policy int) (err error) {
+func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
 	w.Logger.Info(ctx, "Starting upload procedure")
 	defer func() {
 		if err != nil {
@@ -27,7 +26,7 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit,
 
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
 		w.Logger.Info(ctx, "Executing upload procedure on host", "host", h.IP)
-		err := w.uploadHost(ctx, h, policy)
+		err := w.uploadHost(ctx, h)
 		if err != nil {
 			w.Logger.Error(ctx, "Upload procedure failed on host", "host", h.IP, "error", err)
 		} else {
@@ -37,7 +36,7 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit,
 	})
 }
 
-func (w *worker) uploadHost(ctx context.Context, h hostInfo, policy int) error {
+func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	if err := w.setRateLimit(ctx, h); err != nil {
 		return errors.Wrap(err, "set rate limit")
 	}
@@ -60,11 +59,6 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo, policy int) error {
 		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
 			return errors.Wrap(err, "upload snapshot")
 		}
-		// Try to purge remote stale snapshots.
-		if err := w.deleteRemoteStaleSnapshots(ctx, h, d, policy); err != nil {
-			// Not a fatal error we can continue, just log the error.
-			w.Logger.Error(ctx, "Failed to delete remote stale snapshots", "error", err)
-		}
 	}
 	return nil
 }
@@ -75,7 +69,7 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) err
 			"host", h.IP,
 			"keyspace", d.Keyspace,
 			"tag", w.SnapshotTag,
-			"jobid", jobID,
+			"job_id", jobID,
 		)
 		if err := w.waitJob(ctx, jobID, d); err != nil {
 			return err
@@ -131,43 +125,16 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
 	}
 
-	// Upload manifest
-	var (
-		manifestPath = w.remoteManifestFile(h, d)
-		manifestDst  = h.Location.RemotePath(manifestPath)
-		manifestSrc  = path.Join(d.Path, manifest)
-	)
-	if err := w.uploadManifestFile(ctx, manifestDst, manifestSrc, d); err != nil {
-		return errors.Wrapf(err, "copy %q to %q", manifestSrc, manifestDst)
-	}
-
 	return nil
 }
 
-func (w *worker) uploadManifestFile(ctx context.Context, dst, src string, d snapshotDir) error {
-	id, err := w.Client.RcloneCopyFile(ctx, d.Host, dst, src)
-	if err != nil {
-		return err
-	}
-
-	w.Logger.Debug(ctx, "Uploading file", "host", d.Host, "from", src, "to", dst, "agent_job_id", id)
-	for _, p := range d.Progress {
-		if p.FileName == manifest {
-			p.AgentJobID = id
-			w.onRunProgress(ctx, p)
-			break // There is only one manifest in snapshotDir
-		}
-	}
-	return w.waitJob(ctx, id, d)
-}
-
 func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotDir) error {
-	id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src, manifest)
+	id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src)
 	if err != nil {
 		return err
 	}
 
-	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "agent_job_id", id)
+	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
 	for _, p := range d.Progress {
 		if p.FileName != manifest {
 			p.AgentJobID = id
@@ -197,7 +164,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 					"error", err,
 					"host", d.Host,
 					"unit", d.Unit,
-					"jobid", id,
+					"job_id", id,
 					"table", d.Table,
 				)
 			}
@@ -221,7 +188,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 }
 
 func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) error {
-	w.Logger.Debug(ctx, "Clearing job stats", "host", host, "agent_job_id", jobID)
+	w.Logger.Debug(ctx, "Clearing job stats", "host", host, "job_id", jobID)
 	return errors.Wrap(w.Client.RcloneStatsReset(ctx, host, scyllaclient.RcloneDefaultGroup(jobID)), "clear job stats")
 }
 
@@ -232,7 +199,7 @@ func (w *worker) getJobStatus(ctx context.Context, jobID int64, d snapshotDir) (
 			"error", err,
 			"host", d.Host,
 			"unit", d.Unit,
-			"jobid", jobID,
+			"job_id", jobID,
 			"table", d.Table,
 		)
 		if strings.Contains(err.Error(), "job not found") {
@@ -258,7 +225,7 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 		w.Logger.Error(ctx, "Failed to get transferred files",
 			"error", err,
 			"host", d.Host,
-			"jobid", jobID,
+			"job_id", jobID,
 		)
 		return
 	}
@@ -267,7 +234,7 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 		w.Logger.Error(ctx, "Failed to get transfer stats",
 			"error", err,
 			"host", d.Host,
-			"jobid", jobID,
+			"job_id", jobID,
 		)
 		return
 	}
@@ -333,7 +300,7 @@ func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapsho
 		w.Logger.Error(ctx, "Failed to parse start time",
 			"error", err,
 			"host", d.Host,
-			"jobid", jobID,
+			"job_id", jobID,
 			"value", start,
 		)
 	}
@@ -345,7 +312,7 @@ func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapsho
 		w.Logger.Error(ctx, "Failed to parse complete time",
 			"error", err,
 			"host", d.Host,
-			"jobid", jobID,
+			"job_id", jobID,
 			"value", end,
 		)
 	}
@@ -360,20 +327,4 @@ func (w *worker) remoteManifestFile(h hostInfo, d snapshotDir) string {
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 	return remoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
-}
-
-func (w *worker) deleteRemoteStaleSnapshots(ctx context.Context, h hostInfo, d snapshotDir, policy int) error {
-	return w.makePurger(d, policy).purge(ctx, h)
-}
-
-func (w *worker) makePurger(d snapshotDir, policy int) *purger {
-	return &purger{
-		ClusterID: w.ClusterID,
-		TaskID:    w.TaskID,
-		Keyspace:  d.Keyspace,
-		Table:     d.Table,
-		Policy:    policy,
-		Client:    w.Client,
-		Logger:    w.Logger.Named("purge"),
-	}
 }
