@@ -32,12 +32,11 @@ func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 }
 
 func logReqResp(logger log.Logger, elapsed time.Duration, req *http.Request, resp *http.Response) {
-	d := elapsed / 1000000
 	f := []interface{}{
 		"host", req.Host,
 		"method", req.Method,
 		"uri", req.URL.RequestURI(),
-		"duration", fmt.Sprintf("%dms", d),
+		"duration", fmt.Sprintf("%dms", elapsed.Milliseconds()),
 	}
 	logFn := logger.Debug
 	if resp != nil {
@@ -89,14 +88,13 @@ type logEntry struct {
 }
 
 func (le *logEntry) Write(status, bytes int, elapsed time.Duration) {
-	d := elapsed / 1000000
 	f := []interface{}{
 		"from", le.r.RemoteAddr,
 		"method", le.r.Method,
 		"uri", le.r.URL.RequestURI(),
 		"status", status,
 		"bytes", bytes,
-		"duration", fmt.Sprintf("%dms", d),
+		"duration", fmt.Sprintf("%dms", elapsed.Milliseconds()),
 	}
 	if le.err != nil {
 		f = append(f, "error", le.err)
