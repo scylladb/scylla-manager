@@ -26,8 +26,9 @@ func RequestTraceID(next http.Handler) http.Handler {
 func Logger(next http.RoundTripper, logger log.Logger) http.RoundTripper {
 	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		start := timeutc.Now()
-		defer logReqResp(logger, timeutc.Since(start), req, resp)
-		return next.RoundTrip(req)
+		resp, err = next.RoundTrip(req)
+		logReqResp(logger, timeutc.Since(start), req, resp)
+		return
 	})
 }
 
