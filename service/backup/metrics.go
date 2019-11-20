@@ -68,7 +68,7 @@ func updateFunc(ctx context.Context, run *Run, prog progressFetcher, logger log.
 	return func() {
 		prog, err := prog(run)
 		if err != nil {
-			logger.Error(ctx, "Failed to get backup progress, err: %s", err)
+			logger.Error(ctx, "Failed to get backup progress", "error", err)
 			return
 		}
 

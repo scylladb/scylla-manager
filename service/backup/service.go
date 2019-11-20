@@ -271,7 +271,7 @@ func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *sc
 		if l.DC != "" {
 			lh = dcHosts(dcMap, []string{l.DC})
 			if len(lh) == 0 {
-				s.logger.Error(ctx, "No matching hosts found for %s", l)
+				s.logger.Error(ctx, "No matching hosts found", "location", l)
 				continue
 			}
 		}

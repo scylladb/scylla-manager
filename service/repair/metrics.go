@@ -70,7 +70,7 @@ func updateFunc(ctx context.Context, run *Run, prog progressFetcher, logger log.
 	return func() {
 		prog, err := prog(ctx, run)
 		if err != nil {
-			logger.Error(ctx, "Failed to get hosts progress, err: %s", err)
+			logger.Error(ctx, "Failed to get hosts progress", "error", err)
 			return
 		}
 
