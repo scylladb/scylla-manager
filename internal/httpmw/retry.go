@@ -108,6 +108,9 @@ func cloneRequest(req *http.Request) *http.Request {
 	// Shallow clone
 	*r = *req
 
+	// Copy ctx
+	r = r.WithContext(req.Context())
+
 	// Deep copy headers
 	r.Header = cloneHeader(req.Header)
 

@@ -210,7 +210,7 @@ loop:
 				"host", r.Host,
 				"method", r.Method,
 				"uri", r.URL.RequestURI(),
-				"error", err,
+				"error", err.Error(),
 			)
 		}
 

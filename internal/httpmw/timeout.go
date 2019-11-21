@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 )
 
@@ -28,10 +29,14 @@ func Timeout(next http.RoundTripper, timeout time.Duration, logger log.Logger) h
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
 		defer func() {
 			if resp != nil {
-				resp.Body = body{resp.Body, cancel}
+				resp.Body = body{
+					ReadCloser: resp.Body,
+					cancel:     cancel,
+				}
 			}
-			if ctx.Err() != nil {
-				logger.Info(ctx, "Transport request timeout", "timeout", timeout, "err", ctx.Err())
+
+			if errors.Cause(err) == context.DeadlineExceeded && ctx.Err() == context.DeadlineExceeded {
+				err = errors.Errorf("timeout after %s", timeout)
 			}
 		}()
 		return next.RoundTrip(req.WithContext(ctx))

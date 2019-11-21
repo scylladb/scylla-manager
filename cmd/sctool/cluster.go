@@ -59,10 +59,9 @@ func clusterAddedMessage(w io.Writer, id, name string) error {
 		"$ export SCYLLA_MANAGER_CLUSTER=" + id,
 		"$ export SCYLLA_MANAGER_CLUSTER=" + nameOrPlaceholder(),
 		"",
-		"To see the currently scheduled tasks run:",
+		"Now run:",
+		"$ sctool status -c " + nameOrID(),
 		"$ sctool task list -c " + nameOrID(),
-		"",
-		"",
 	}
 
 	return clipper.Say(w, messageLines...)

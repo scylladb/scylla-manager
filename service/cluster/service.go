@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"github.com/scylladb/mermaid/service/secrets"
@@ -296,7 +297,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 
 	// Check hosts connectivity.
 	if err := s.validateHostsConnectivity(ctx, c); err != nil {
-		return err
+		return errors.Wrap(err, "make sure the IP is correct and access to port 10001 is unblocked")
 	}
 
 	// Rollback on error.
@@ -379,6 +380,9 @@ func (s *Service) saveTLSIdentityWithRollback(clusterID uuid.UUID, cert, key []b
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
+	// Do not retry in validate
+	ctx = httpmw.DontRetry(ctx)
+
 	// If host changes ignore old known hosts.
 	if c.Host != "" {
 		c.KnownHosts = []string{c.Host}
@@ -412,7 +416,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 			alive++
 		}
 	}
-	if alive == 0 {
+	if alive < len(hosts)/2 {
 		abort = true
 	}
 	if abort {
