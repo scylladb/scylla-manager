@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
 	"github.com/scylladb/mermaid/internal/httppprof"
@@ -131,7 +132,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Start servers
-		errCh := make(chan error, 2)
+		errCh := make(chan error)
 
 		logger.Info(ctx, "Starting HTTPS server", "address", c.HTTPS)
 		go func() {
@@ -141,6 +142,17 @@ var rootCmd = &cobra.Command{
 			}
 			errCh <- errors.Wrap(server.ListenAndServeTLS(c.TLSCertFile, c.TLSKeyFile), "HTTPS server start")
 		}()
+
+		if c.Prometheus != "" {
+			logger.Info(ctx, "Starting Prometheus server", "address", c.Prometheus)
+			go func() {
+				prometheusServer := &http.Server{
+					Addr:    c.Prometheus,
+					Handler: promhttp.Handler(),
+				}
+				errCh <- errors.Wrap(prometheusServer.ListenAndServe(), "prometheus server")
+			}()
+		}
 
 		if c.Debug != "" {
 			go func() {

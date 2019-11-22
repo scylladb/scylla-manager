@@ -4,3 +4,21 @@ scrape_configs:
   - job_name: 'scylla-manager'
     static_configs:
       - targets: ['localhost:56090']
+  - job_name: 'scylla-agent-dc1-node1'
+    static_configs:
+      - targets: ['192.168.100.11:56090']
+  - job_name: 'scylla-agent-dc1-node2'
+    static_configs:
+      - targets: ['192.168.100.12:56090']
+  - job_name: 'scylla-agent-dc1-node3'
+    static_configs:
+      - targets: ['192.168.100.13:56090']
+  - job_name: 'scylla-agent-dc2-node1'
+    static_configs:
+      - targets: ['192.168.100.21:56090']
+  - job_name: 'scylla-agent-dc2-node2'
+    static_configs:
+      - targets: ['192.168.100.22:56090']
+  - job_name: 'scylla-agent-dc2-node3'
+    static_configs:
+      - targets: ['192.168.100.23:56090']

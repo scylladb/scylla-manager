@@ -45,6 +45,7 @@ type config struct {
 	HTTPS       string       `yaml:"https"`
 	TLSCertFile string       `yaml:"tls_cert_file"`
 	TLSKeyFile  string       `yaml:"tls_key_file"`
+	Prometheus  string       `yaml:"prometheus"`
 	Debug       string       `yaml:"debug"`
 	CPU         int          `yaml:"cpu"`
 	Logger      logConfig    `yaml:"logger"`
@@ -55,17 +56,18 @@ func defaultConfig() config {
 	return config{
 		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
+		Prometheus:  ":56090",
 		CPU:         noCPU,
+		Logger: logConfig{
+			Mode:        log.StderrMode,
+			Level:       zapcore.InfoLevel,
+			Development: false,
+		},
 		Scylla: scyllaConfig{
 			APIAddress: "0.0.0.0",
 			APIPort:    "10000",
 
 			DataDirectory: "/var/lib/scylla/data",
-		},
-		Logger: logConfig{
-			Mode:        log.StderrMode,
-			Level:       zapcore.InfoLevel,
-			Development: false,
 		},
 	}
 }

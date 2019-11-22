@@ -2,6 +2,7 @@ auth_token: ""
 https: foobar
 tls_cert_file: ./testdata/auth/scylla_manager.crt
 tls_key_file: ./testdata/auth/scylla_manager.key
+prometheus: :56090
 debug: ""
 cpu: -1
 logger:

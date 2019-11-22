@@ -2,6 +2,7 @@ auth_token: ""
 https: 192.168.100.11:10001
 tls_cert_file: ./testdata/auth/scylla_manager.crt
 tls_key_file: ./testdata/auth/scylla_manager.key
+prometheus: :56090
 debug: "1002"
 cpu: -1
 logger:

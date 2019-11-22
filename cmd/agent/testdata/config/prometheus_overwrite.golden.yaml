@@ -2,7 +2,7 @@ auth_token: ""
 https: 192.168.100.11:10001
 tls_cert_file: ./testdata/auth/scylla_manager.crt
 tls_key_file: ./testdata/auth/scylla_manager.key
-prometheus: :56090
+prometheus: :1234
 debug: ""
 cpu: -1
 logger:
@@ -10,7 +10,7 @@ logger:
   level: info
   development: false
 scylla:
-  api_address: 127.0.0.1
+  api_address: 0.0.0.0
   api_port: "10000"
   listenaddress: 192.168.100.11
   prometheusaddress: 192.168.100.11

@@ -51,6 +51,11 @@ func TestParsingConfig(t *testing.T) {
 			Input:  "./testdata/config/debug_overwrite.input.yaml",
 			Golden: "./testdata/config/debug_overwrite.golden.yaml",
 		},
+		{
+			Name:   "prometheus overwrite",
+			Input:  "./testdata/config/prometheus_overwrite.input.yaml",
+			Golden: "./testdata/config/prometheus_overwrite.golden.yaml",
+		},
 	}
 
 	s := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
