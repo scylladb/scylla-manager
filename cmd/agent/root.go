@@ -126,7 +126,7 @@ var rootCmd = &cobra.Command{
 		if err := rcserver.RegisterInMemoryConf(); err != nil {
 			return err
 		}
-		if err := rcserver.RegisterLocalDirProvider("data", "Jailed Scylla data", "/var/lib/scylla/data"); err != nil {
+		if err := rcserver.RegisterLocalDirProvider("data", "Jailed Scylla data", c.Scylla.DataDirectory); err != nil {
 			return err
 		}
 

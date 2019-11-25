@@ -14,3 +14,4 @@ scylla:
   listenaddress: 192.168.100.11
   prometheusaddress: 192.168.100.11
   prometheusport: "9180"
+  datadirectory: /var/lib/scylla/data

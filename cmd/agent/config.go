@@ -35,6 +35,8 @@ type scyllaConfig struct {
 	ListenAddress     string
 	PrometheusAddress string
 	PrometheusPort    string
+
+	DataDirectory string
 }
 
 // config specifies the agent and scylla configuration.
@@ -57,6 +59,8 @@ func defaultConfig() config {
 		Scylla: scyllaConfig{
 			APIAddress: "0.0.0.0",
 			APIPort:    "10000",
+
+			DataDirectory: "/var/lib/scylla/data",
 		},
 		Logger: logConfig{
 			Mode:        log.StderrMode,
@@ -92,6 +96,10 @@ func (c *config) updateWithScyllaConfig(external scyllaConfig) {
 		return
 	}
 	c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, defaultHTTPSPort)
+
+	if external.DataDirectory != "" {
+		c.Scylla.DataDirectory = external.DataDirectory
+	}
 }
 
 func (c config) validate() (errs error) {
@@ -144,6 +152,9 @@ func fetchScyllaConfig(ctx context.Context, addr string) (c scyllaConfig, err er
 		return
 	}
 	if c.PrometheusPort, err = client.PrometheusPort(ctx); err != nil {
+		return
+	}
+	if c.DataDirectory, err = client.DataDirectory(ctx); err != nil {
 		return
 	}
 	return

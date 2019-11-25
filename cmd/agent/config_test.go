@@ -55,10 +55,15 @@ func TestParsingConfig(t *testing.T) {
 
 	s := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if strings.HasSuffix(r.URL.Path, "prometheus_port") {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "prometheus_port"):
 			fmt.Fprint(w, 9180)
-		} else {
+		case strings.HasSuffix(r.URL.Path, "listen_address"):
 			fmt.Fprint(w, `"192.168.100.11"`)
+		case strings.HasSuffix(r.URL.Path, "prometheus_address"):
+			fmt.Fprint(w, `"192.168.100.11"`)
+		case strings.HasSuffix(r.URL.Path, "data_file_directories"):
+			fmt.Fprint(w, `["/var/lib/scylla/data"]`)
 		}
 	}))
 

@@ -90,6 +90,14 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			},
 			Golden: "9042",
 		},
+		{
+			Name:             "Data directories",
+			ResponseFilePath: "testdata/scylla_api/v2_config_data_file_directories.json",
+			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
+				return client.DataDirectory
+			},
+			Golden: "/var/lib/scylla/data",
+		},
 	}
 
 	for i := range table {
@@ -123,6 +131,7 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 			scyllaclienttest.PathFileMatcher("/v2/config/prometheus_port", "testdata/scylla_api/v2_config_prometheus_port.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/rpc_address", "testdata/scylla_api/v2_config_rpc_address.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/rpc_port", "testdata/scylla_api/v2_config_rpc_port.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/data_file_directories", "testdata/scylla_api/v2_config_data_file_directories.json"),
 		),
 	)
 	defer cl()

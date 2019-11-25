@@ -102,6 +102,18 @@ func (c *ConfigClient) PrometheusPort(ctx context.Context) (string, error) {
 	return fmt.Sprint(resp.Payload), err
 }
 
+// DataDirectory returns node data directory.
+func (c *ConfigClient) DataDirectory(ctx context.Context) (string, error) {
+	resp, err := c.client.Config.FindConfigDataFileDirectories(config.NewFindConfigDataFileDirectoriesParamsWithContext(ctx))
+	if err != nil {
+		return "", err
+	}
+	if len(resp.Payload) == 0 {
+		return "", nil
+	}
+	return resp.Payload[0], nil
+}
+
 // NodeInfo returns aggregated information about Scylla node.
 func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 	apiAddress, apiPort, err := net.SplitHostPort(c.addr)
