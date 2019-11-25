@@ -37,6 +37,10 @@ func MustRegisterLocalDirProvider(name, description, rootDir string) {
 // RegisterInMemoryConf is called. It allows for adding dynamically adding
 // localdir providers.
 func RegisterLocalDirProvider(name, description, rootDir string) error {
+	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
+		return errors.Wrapf(err, "register local dir provider %s", rootDir)
+	}
+
 	localdir.Init(name, description, rootDir)
 
 	errs := multierr.Combine(
