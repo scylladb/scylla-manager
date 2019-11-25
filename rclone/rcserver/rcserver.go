@@ -4,7 +4,6 @@
 package rcserver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
-	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
@@ -27,10 +25,7 @@ import (
 var initOnce sync.Once
 
 // Server implements http.Handler interface.
-type Server struct {
-	mu     sync.Mutex
-	filter *filter.Filter
-}
+type Server struct{}
 
 // New creates new rclone server.
 // Since we are overriding default behavior of saving remote configuration to
@@ -42,7 +37,7 @@ type Server struct {
 // depend on it.
 // We are initializing it once here to make sure it's executed only when server
 // is needed and configuration is completely loaded.
-func New() *Server {
+func New() Server {
 	initOnce.Do(func() {
 		// Disable finished transfer statistics purging
 		accounting.MaxCompletedTransfers = -1
@@ -60,9 +55,7 @@ func New() *Server {
 		// Rewind job ID to new values
 		jobs.SetInitialJobID(timeutc.Now().Unix())
 	})
-	return &Server{
-		filter: filter.Active,
-	}
+	return Server{}
 }
 
 // writeError writes a formatted error to the output.
@@ -102,7 +95,7 @@ func isBadRequestErr(err error) bool {
 }
 
 // ServeHTTP implements http.Handler interface.
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimLeft(r.URL.Path, "/")
 
 	switch r.Method {
@@ -118,7 +111,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 const bodySizeLimit int64 = 1024 * 1024
 
-func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
+func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
 	contentType := r.Header.Get("Content-Type")
 	w.Header().Set("Content-Type", "application/json")
 
@@ -169,37 +162,6 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 		return
 	}
 
-	exclude, err := getExclude(in)
-	if err != nil {
-		writeError(path, in, w, err, http.StatusBadRequest)
-		return
-	}
-	if len(exclude) > 0 {
-		// File filter is global variable and this is a workaround to serialize
-		// access to it.
-		// In the current setup server is the only access point to this
-		// variable so we are blocking access to it until underlying function
-		// is complete.
-		// In the use of the API this is not a big problem because parameter
-		// use is always synchronous but we are protecting it to be safe.
-		// The change is needed upstream to remove this.
-		fn = func(fn rc.Func) rc.Func {
-			return func(ctx context.Context, in rc.Params) (rc.Params, error) {
-				s.mu.Lock()
-				defer func() {
-					s.filter.Clear()
-					s.mu.Unlock()
-				}()
-				for _, e := range exclude {
-					if err := s.filter.Add(false, e); err != nil {
-						return nil, errors.Wrap(err, "set exclude pattern")
-					}
-				}
-				return fn(ctx, in)
-			}
-		}(fn)
-	}
-
 	// Check to see if it is async or not
 	isAsync, err := in.GetBool("_async")
 	if rc.NotErrParamNotFound(err) {
@@ -235,7 +197,7 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request, path string)
 	}
 }
 
-func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
+func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
 	fs.Errorf(nil, "rc: received unsupported GET request")
 	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 }
@@ -260,28 +222,6 @@ func validateFsName(in rc.Params) error {
 		}
 	}
 	return nil
-}
-
-func getExclude(in rc.Params) ([]string, error) {
-	exclude, err := in.Get("exclude")
-	if rc.NotErrParamNotFound(err) {
-		return nil, err
-	}
-	var out []string
-	if exclude != nil {
-		e, ok := exclude.([]interface{})
-		if !ok {
-			return nil, errors.New("exclude should be list of strings")
-		}
-		for i := range e {
-			v, ok := e[i].(string)
-			if !ok {
-				return nil, errors.New("exclude should be list of strings")
-			}
-			out = append(out, v)
-		}
-	}
-	return out, nil
 }
 
 type errParamInvalid struct {

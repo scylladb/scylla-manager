@@ -156,9 +156,6 @@ type SyncCopyBody struct {
 	// A remote name string eg. drive: for the destination
 	DstFs string `json:"dstFs,omitempty"`
 
-	// List of filename patterns to exclude from copy
-	Exclude []string `json:"exclude"`
-
 	// A remote name string eg. drive: for the source
 	SrcFs string `json:"srcFs,omitempty"`
 }

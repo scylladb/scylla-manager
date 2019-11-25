@@ -164,15 +164,12 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host string, dstRemotePath,
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
-// To exclude files by filename pattern (just filename without directory path)
-// pass them as variadic arguments.
-func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string, exclude ...string) (int64, error) {
+func (c *Client) RcloneCopyDir(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
 	p := operations.SyncCopyParams{
 		Context: httpmw.ForceHost(ctx, host),
 		Copydir: operations.SyncCopyBody{
-			SrcFs:   srcRemotePath,
-			DstFs:   dstRemotePath,
-			Exclude: exclude,
+			SrcFs: srcRemotePath,
+			DstFs: dstRemotePath,
 		},
 		Async: true,
 	}

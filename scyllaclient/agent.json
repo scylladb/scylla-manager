@@ -532,13 +532,6 @@
                 "dstFs": {
                   "description": "A remote name string eg. drive: for the destination",
                   "type": "string"
-                },
-                "exclude": {
-                  "description": "List of filename patterns to exclude from copy",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
                 }
               }
             }
