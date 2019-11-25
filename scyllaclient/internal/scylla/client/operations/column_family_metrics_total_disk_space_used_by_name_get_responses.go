@@ -44,14 +44,14 @@ func NewColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK() *ColumnFamilyMetricsT
 ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK column family metrics total disk space used by name get o k
 */
 type ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK struct {
-	Payload int32
+	Payload int64
 }
 
 func (o *ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK) Error() string {
 	return fmt.Sprintf("[GET /column_family/metrics/total_disk_space_used/{name}][%d] columnFamilyMetricsTotalDiskSpaceUsedByNameGetOK  %+v", 200, o.Payload)
 }
 
-func (o *ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK) GetPayload() int32 {
+func (o *ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK) GetPayload() int64 {
 	return o.Payload
 }
 

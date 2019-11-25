@@ -368,7 +368,7 @@ func TestClientTableDiskSize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const expected = 149140
+	const expected = 4818909025
 	if size != expected {
 		t.Fatalf("Expected size %d, got %d", expected, size)
 	}

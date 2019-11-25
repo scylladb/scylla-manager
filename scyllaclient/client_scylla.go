@@ -480,5 +480,5 @@ func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string
 	if err != nil {
 		return 0, err
 	}
-	return int64(resp.Payload), nil
+	return resp.Payload, nil
 }

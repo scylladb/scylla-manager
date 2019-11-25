@@ -3141,7 +3141,7 @@
             "description": "",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             },
             "headers": {}
           }
@@ -3164,7 +3164,7 @@
             "description": "",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             },
             "headers": {}
           }
