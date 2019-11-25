@@ -1,18 +1,19 @@
-# termtables
+# Termtables
 
-[![Actions Status](https://github.com/scylladb-fork/termtables/workflows/Go/badge.svg)](https://github.com/scylladb-fork/termtables/actions)
-[![GoDoc](https://godoc.org/github.com/scylladb-fork/termtables?status.svg)](http://godoc.org/github.com/scylladb-fork/termtables)
-[![Go Report Card](https://goreportcard.com/badge/github.com/scylladb-fork/termtables)](https://goreportcard.com/report/github.com/scylladb-fork/termtables)
+[![Build Status](https://travis-ci.org/scylladb/termtables.svg?branch=master)](https://travis-ci.org/scylladb/termtables)
 
-A [Go](http://golang.org) port of the Ruby library [terminal-tables](https://github.com/visionmedia/terminal-table) for fast and simple ASCII table generation. This project was originally created by [Apcera](https://github.com/apcera) and adopted here when they removed it from GitHub.
+A [Go](http://golang.org) port of the Ruby library [terminal-tables](https://github.com/visionmedia/terminal-table) for
+fast and simple ASCII table generation.
 
 ## Installation
 
 ```bash
-go get github.com/scylladb-fork/termtables
+go get github.com/scylladb/termtables
 ```
 
-or add as a Go module
+## Go Style Documentation
+
+[http://godoc.org/github.com/scylladb/termtables](http://godoc.org/github.com/scylladb/termtables)
 
 ## APC Command Line usage
 
@@ -29,7 +30,7 @@ package main
 
 import (
   "fmt"
-  termtables "github.com/scylladb-fork/termtables"
+  "github.com/scylladb/termtables"
 )
 
 func main() {
@@ -46,7 +47,7 @@ func main() {
 
 Result:
 
-```console
+```
 +-------+-------+
 | Name  | Age   |
 +-------+-------+

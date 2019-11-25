@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/scylladb-fork/termtables/term"
+	"github.com/scylladb/termtables/term"
 )
 
 // MaxColumns represents the maximum number of columns that are available for

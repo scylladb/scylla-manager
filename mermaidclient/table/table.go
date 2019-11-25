@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/scylladb-fork/termtables"
+	"github.com/scylladb/termtables"
 )
 
 func init() {

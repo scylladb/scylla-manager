@@ -161,7 +161,7 @@ github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
-# github.com/rclone/rclone v1.50.2 => github.com/scylladb-fork/rclone v1.50.2-memory-fixes
+# github.com/rclone/rclone v1.50.2 => github.com/scylladb/rclone v1.50.2-patched
 github.com/rclone/rclone/backend/crypt
 github.com/rclone/rclone/backend/crypt/pkcs7
 github.com/rclone/rclone/backend/local
@@ -208,9 +208,6 @@ github.com/rclone/rclone/lib/rest
 github.com/rclone/rclone/lib/terminal
 # github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46
 github.com/rfjakob/eme
-# github.com/scylladb-fork/termtables v1.0.0
-github.com/scylladb-fork/termtables
-github.com/scylladb-fork/termtables/term
 # github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
 github.com/scylladb/go-log
 github.com/scylladb/go-log/gocqllog
@@ -225,6 +222,9 @@ github.com/scylladb/gocqlx
 github.com/scylladb/gocqlx/migrate
 github.com/scylladb/gocqlx/qb
 github.com/scylladb/gocqlx/table
+# github.com/scylladb/termtables v0.0.0-20191125135053-b2b40be89112
+github.com/scylladb/termtables
+github.com/scylladb/termtables/term
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/spf13/cobra v0.0.5
