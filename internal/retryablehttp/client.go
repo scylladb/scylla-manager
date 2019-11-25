@@ -92,8 +92,9 @@ func NewTransport(parent http.RoundTripper, logger log.Logger) *Transport {
 	}
 }
 
-// DefaultRetryPolicy provides a default callback for Client.CheckRetry, which
-// will retry on connection errors and server errors.
+// DefaultRetryPolicy provides a default callback for Client.CheckRetry.
+// It will retry on server errors and connection errors that don't include
+// connection resets.
 func DefaultRetryPolicy(req *http.Request, resp *http.Response, err error) (bool, error) {
 	if req != nil {
 		if err := req.Context().Err(); err != nil {
@@ -196,13 +197,18 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Body != nil {
 		r = new(http.Request)
 		*r = *req
-		r.Body = body{req.Body, false}
+		r.Body = &body{req.Body, false}
 	} else {
 		r = req
 	}
 
 loop:
 	for i := 0; ; i++ {
+		// If body was read do not continue.
+		if b, ok := r.Body.(*body); ok && b.read {
+			return resp, err
+		}
+
 		// Attempt the request
 		resp, err = t.parent.RoundTrip(r)
 		if err != nil {
@@ -222,11 +228,6 @@ loop:
 			if checkErr != nil {
 				err = checkErr
 			}
-			return resp, err
-		}
-
-		// If body was read do not continue.
-		if b, ok := r.Body.(body); ok && b.read {
 			return resp, err
 		}
 
@@ -290,7 +291,7 @@ type body struct {
 	read bool
 }
 
-func (c body) Read(bs []byte) (int, error) {
+func (c *body) Read(bs []byte) (int, error) {
 	if !c.read {
 		c.read = true
 	}

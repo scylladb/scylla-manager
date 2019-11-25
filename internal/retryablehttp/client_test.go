@@ -354,7 +354,6 @@ func TestRetryAfterInternalServerError(t *testing.T) {
 	retries := make(chan struct{})
 	requests := make(chan struct{})
 	var fail int64
-	body := ioutil.NopCloser(bytes.NewReader(testBytes))
 
 	ts := http.Server{
 		Addr: testAddr,
@@ -394,7 +393,7 @@ func TestRetryAfterInternalServerError(t *testing.T) {
 			resp *http.Response
 			err  error
 		)
-		resp, err = client.Post(testURL, "application/json", body)
+		resp, err = client.Get(testURL)
 		results <- response{
 			resp: resp,
 			err:  err,
@@ -433,7 +432,6 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 	results := make(chan response)
 	retries := make(chan struct{})
 	requests := make(chan struct{})
-	body := ioutil.NopCloser(bytes.NewReader(testBytes))
 
 	ts := http.Server{
 		Addr: testAddr,
@@ -459,7 +457,7 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 			resp *http.Response
 			err  error
 		)
-		resp, err = client.Post(testURL, "application/json", body)
+		resp, err = client.Get(testURL)
 		results <- response{
 			resp: resp,
 			err:  err,
