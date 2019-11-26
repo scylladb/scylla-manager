@@ -9,7 +9,6 @@ import (
 	"path"
 	"regexp"
 	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -18,26 +17,6 @@ import (
 	"github.com/scylladb/mermaid/uuid"
 	"go.uber.org/multierr"
 )
-
-// used to get groupingKey
-var tableVersionFileNamePattern = regexp.MustCompile("^[a-f0-9]{32}/[a-z]{2}-[0-9]+-big")
-
-func extractGroupingKeys(m remoteManifest) []string {
-	var s []string
-	for _, f := range m.Files {
-		v := path.Join(m.Version, strings.TrimSuffix(f, manifestFileSuffix))
-		s = append(s, v)
-	}
-	return s
-}
-
-func groupingKey(file string) (string, error) {
-	m := tableVersionFileNamePattern.FindStringSubmatch(file)
-	if m == nil {
-		return "", errors.New("file path does not match a pattern")
-	}
-	return m[0], nil
-}
 
 type purger struct {
 	ClusterID uuid.UUID
@@ -258,6 +237,13 @@ func (p *purger) loadManifest(ctx context.Context, h hostInfo, path string) ([]s
 	if err := json.Unmarshal(b, &v); err != nil {
 		return nil, errors.Wrap(err, "parse manifest")
 	}
+
+	p.Logger.Debug(ctx, "Loaded manifest",
+		"host", h.IP,
+		"location", h.Location,
+		"path", path,
+		"files", v.Files,
+	)
 
 	return v.Files, nil
 }

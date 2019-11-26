@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 
@@ -194,9 +195,11 @@ var backupListCmd = &cobra.Command{
 			keyspace    []string
 			minDate     strfmt.DateTime
 			maxDate     strfmt.DateTime
+
+			err error
 		)
 
-		host, err := cmd.Flags().GetString("host")
+		host, err = cmd.Flags().GetString("host")
 		if err != nil {
 			return err
 		}
@@ -262,4 +265,89 @@ func init() {
 		"specifies maximal number of table names printed for a keyspace, use -1 for no limit")
 
 	requireFlags(cmd, "host", "location")
+}
+
+var backupFilesCmd = &cobra.Command{
+	Use:   "files",
+	Short: "Lists files in backup",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var (
+			host        string
+			location    []string
+			allClusters bool
+			keyspace    []string
+			snapshotTag string
+
+			err error
+		)
+
+		host, err = cmd.Flags().GetString("host")
+		if err != nil {
+			return err
+		}
+		location, err = cmd.Flags().GetStringSlice("location")
+		if err != nil {
+			return err
+		}
+		allClusters, err = cmd.Flags().GetBool("all-clusters")
+		if err != nil {
+			return err
+		}
+		keyspace, err = cmd.Flags().GetStringSlice("keyspace")
+		if err != nil {
+			return err
+		}
+		snapshotTag, err = cmd.Flags().GetString("snapshot-tag")
+		if err != nil {
+			return err
+		}
+
+		tables, err := client.ListBackupFiles(ctx, cfgCluster, host, location, allClusters, keyspace, snapshotTag)
+		if err != nil {
+			return err
+		}
+
+		w := cmd.OutOrStdout()
+		d := cmd.Flag("delimiter").Value.String()
+		render := func(location, file, keyspace, table string) {
+			if err != nil {
+				return
+			}
+			_, err = fmt.Fprintln(w,
+				strings.Replace(path.Join(location, file), ":", "://", 1),
+				d,
+				path.Join(keyspace, table),
+			)
+		}
+
+		for _, t := range tables {
+			render(t.Location, t.Manifest, t.Keyspace, t.Table)
+			for _, f := range t.Files {
+				render(t.Location, path.Join(t.Sst, f), t.Keyspace, t.Table)
+			}
+		}
+
+		return err
+	},
+}
+
+func init() {
+	cmd := backupFilesCmd
+	withScyllaDocs(cmd, "/sctool/#backup-files")
+	register(cmd, backupCmd)
+
+	fs := cmd.Flags()
+	fs.String("host", "",
+		"host used to access locations")
+	fs.StringSliceP("location", "L", nil,
+		"a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
+	fs.Bool("all-clusters", false,
+		"show backups for all clusters")
+	fs.StringSliceP("keyspace", "K", nil,
+		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
+
+	fs.StringP("delimiter", "d", "\t", "use `delimiter` instead of TAB for field delimiter")
+
+	requireFlags(cmd, "host", "location", "snapshot-tag")
 }

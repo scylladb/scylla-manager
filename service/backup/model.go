@@ -12,16 +12,18 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid/uuid"
 )
 
 // ListFilter specifies filtering for backup listing.
 type ListFilter struct {
-	ClusterID uuid.UUID `json:"cluster_id"`
-	Keyspace  []string  `json:"keyspace"`
-	MinDate   time.Time `json:"min_date"`
-	MaxDate   time.Time `json:"max_date"`
+	ClusterID   uuid.UUID `json:"cluster_id"`
+	Keyspace    []string  `json:"keyspace"`
+	SnapshotTag string    `json:"snapshot_tag"`
+	MinDate     time.Time `json:"min_date"`
+	MaxDate     time.Time `json:"max_date"`
 }
 
 // ListItem represents contents of a snapshot within list boundaries.
@@ -31,6 +33,32 @@ type ListItem struct {
 	SnapshotTags []string  `json:"snapshot_tags"`
 
 	unitsHash uint64 // Internal usage only
+}
+
+// FilesInfo specifies paths to files backed up for a table (and node) within
+// a location.
+// Note that a backup for a table usually consists of multiple instances of
+// FilesInfo since data is replicated across many nodes.
+type FilesInfo struct {
+	Keyspace string   `json:"keyspace"`
+	Table    string   `json:"table"`
+	Location Location `json:"location"`
+	Manifest string   `json:"manifest"`
+	SST      string   `json:"sst"`
+	Files    []string `json:"files"`
+}
+
+func makeFilesInfo(m remoteManifest) FilesInfo {
+	t := FilesInfo{
+		Keyspace: m.Keyspace,
+		Table:    m.Table,
+		Location: m.Location,
+		Manifest: m.RemoteManifestFile(),
+		SST:      m.RemoteSSTableVersionDir(),
+		Files:    m.FilesExpanded,
+	}
+
+	return t
 }
 
 // Target specifies what should be backed up and where.
@@ -160,7 +188,7 @@ type TableProgress struct {
 // Provider specifies type of remote storage like S3 etc.
 type Provider string
 
-// TokenRangesKind enumeration.
+// Provider enumeration.
 const (
 	S3 = Provider("s3")
 )
@@ -176,22 +204,17 @@ func (p Provider) MarshalText() (text []byte, err error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (p *Provider) UnmarshalText(text []byte) error {
-	switch Provider(text) {
-	case S3:
-		*p = S3
-	default:
+	s := string(text)
+
+	if !supportedProviders.Has(s) {
 		return errors.Errorf("unrecognised provider %q", text)
 	}
+
+	*p = Provider(s)
 	return nil
 }
 
-var (
-	// SupportedProviders contains list of supported backup providers.
-	// Currently only S3 is supported.
-	SupportedProviders = []Provider{
-		S3,
-	}
-)
+var supportedProviders = strset.New(S3.String())
 
 // Location specifies storage provider and container/resource for a DC.
 type Location struct {

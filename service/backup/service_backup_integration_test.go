@@ -595,7 +595,24 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("List() = %v, expected two SnapshotTags", items)
 	}
 
-	Print("Then: transfer statistics are cleared")
+	Print("And: and files")
+	manifests, files := h.listFiles()
+	tables, err := h.service.ListFiles(ctx, h.clusterID, ManagedClusterHost(), []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	if err != nil {
+		t.Fatal("ListFiles() error", err)
+	}
+	if len(tables) != len(manifests){
+		t.Fatalf("len(ListFiles()) = %d, expected %d", len(tables), len(manifests))
+	}
+	sst := 0
+	for _, t := range tables {
+		sst += len(t.Files)
+	}
+	if sst != 2 * len(files){
+		t.Fatalf("len(ListFiles()) = %d, expected %d", sst, 2 * len(files))
+	}
+
+	Print("And: transfer statistics are cleared")
 	for _, host := range ManagedClusterHosts() {
 		s, err := h.client.RcloneTransferred(context.Background(), host, "")
 		if err != nil {
@@ -603,7 +620,10 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		}
 
 		if len(s) > 0 {
-			h.t.Fatalf("Expected empty transfer statistics, got %v", s)
+			for _, v := range s {
+				t.Logf("RcloneTransferred() %+v", *v)
+			}
+			h.t.Fatalf("Expected empty transfer statistics, got %d", len(s))
 		}
 	}
 }

@@ -17,6 +17,10 @@ const (
 	ctxClusterID ctxt = iota
 	ctxCluster
 	ctxTask
+
+	ctxBackupHost
+	ctxBackupLocations
+	ctxBackupListFilter
 )
 
 func mustClusterIDFromCtx(r *http.Request) uuid.UUID {

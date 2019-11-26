@@ -364,6 +364,29 @@ func (c Client) ListBackups(ctx context.Context, clusterID string, host string,
 	return BackupListItems{items: resp.Payload}, nil
 }
 
+// ListBackupFiles returns a listing of available backup files.
+func (c Client) ListBackupFiles(ctx context.Context, clusterID string, host string,
+	locations []string, allClusters bool, keyspace []string, snapshotTag string) ([]*models.BackupFilesInfo, error) {
+	p := &operations.GetClusterClusterIDBackupsFilesParams{
+		Context:     ctx,
+		ClusterID:   clusterID,
+		Host:        host,
+		Locations:   locations,
+		Keyspace:    keyspace,
+		SnapshotTag: snapshotTag,
+	}
+	if !allClusters {
+		p.QueryClusterID = &clusterID
+	}
+
+	resp, err := c.operations.GetClusterClusterIDBackupsFiles(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
 // Version returns server version.
 func (c Client) Version(ctx context.Context) (*models.Version, error) {
 	resp, err := c.operations.GetVersion(&operations.GetVersionParams{

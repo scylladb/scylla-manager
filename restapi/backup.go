@@ -3,6 +3,7 @@
 package restapi
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -21,65 +22,143 @@ func newBackupHandler(s BackupService) *chi.Mux {
 		svc: s,
 	}
 
-	m.Get("/", h.listBackups)
+	m.Use(
+		h.hostCtx,
+		h.locationsCtx,
+		h.listFilterCtx,
+	)
+	m.Get("/", h.list)
+	m.Get("/files", h.listFiles)
 
 	return m
 }
 
-func (h backupHandler) listBackups(w http.ResponseWriter, r *http.Request) {
-	c := mustClusterFromCtx(r)
-
-	var host string
-	if v := r.FormValue("host"); v != "" {
-		host = v
-	} else {
-		respondBadRequest(w, r, errors.New("missing host"))
-		return
-	}
-
-	var locations []backup.Location
-	if v := r.FormValue("locations"); v == "" {
-		respondBadRequest(w, r, errors.New("missing locations"))
-		return
-	}
-	for _, v := range r.Form["locations"] {
-		var l backup.Location
-		if err := l.UnmarshalText([]byte(v)); err != nil {
-			respondBadRequest(w, r, err)
+func (h backupHandler) hostCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var host string
+		if v := r.FormValue("host"); v != "" {
+			host = v
+		} else {
+			respondBadRequest(w, r, errors.New("missing host"))
 			return
 		}
-		locations = append(locations, l)
-	}
 
-	var filter backup.ListFilter
-	if v := r.FormValue("cluster_id"); v != "" {
-		if v == c.Name || v == c.ID.String() {
-			filter.ClusterID = c.ID
-		} else if err := filter.ClusterID.UnmarshalText([]byte(v)); err != nil {
-			respondBadRequest(w, r, errors.Wrap(err, "invalid cluster_id"))
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, ctxBackupHost, host)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (h backupHandler) mustHostFromCtx(r *http.Request) string {
+	v, ok := r.Context().Value(ctxBackupHost).(string)
+	if !ok {
+		panic("missing host in context")
+	}
+	return v
+}
+
+func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var locations []backup.Location
+		if v := r.FormValue("locations"); v == "" {
+			respondBadRequest(w, r, errors.New("missing locations"))
 			return
 		}
-	}
-
-	filter.Keyspace = r.Form["keyspace"]
-	if v := r.FormValue("min_date"); v != "" {
-		if err := filter.MinDate.UnmarshalText([]byte(v)); err != nil {
-			respondBadRequest(w, r, errors.Wrap(err, "invalid min_date"))
-			return
+		for _, v := range r.Form["locations"] {
+			var l backup.Location
+			if err := l.UnmarshalText([]byte(v)); err != nil {
+				respondBadRequest(w, r, err)
+				return
+			}
+			locations = append(locations, l)
 		}
-	}
-	if v := r.FormValue("max_date"); v != "" {
-		if err := filter.MaxDate.UnmarshalText([]byte(v)); err != nil {
-			respondBadRequest(w, r, errors.Wrap(err, "invalid max_date"))
-			return
-		}
-	}
 
-	list, err := h.svc.List(r.Context(), c.ID, host, locations, filter)
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, ctxBackupLocations, locations)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backup.Location {
+	v, ok := r.Context().Value(ctxBackupLocations).([]backup.Location)
+	if !ok {
+		panic("missing locations in context")
+	}
+	return v
+}
+
+func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var filter = backup.ListFilter{
+			Keyspace:    r.Form["keyspace"],
+			SnapshotTag: r.FormValue("snapshot_tag"),
+		}
+
+		c := mustClusterFromCtx(r)
+		if v := r.FormValue("cluster_id"); v != "" {
+			if v == c.Name || v == c.ID.String() {
+				filter.ClusterID = c.ID
+			} else if err := filter.ClusterID.UnmarshalText([]byte(v)); err != nil {
+				respondBadRequest(w, r, errors.Wrap(err, "invalid cluster_id"))
+				return
+			}
+		}
+
+		if v := r.FormValue("min_date"); v != "" {
+			if err := filter.MinDate.UnmarshalText([]byte(v)); err != nil {
+				respondBadRequest(w, r, errors.Wrap(err, "invalid min_date"))
+				return
+			}
+		}
+		if v := r.FormValue("max_date"); v != "" {
+			if err := filter.MaxDate.UnmarshalText([]byte(v)); err != nil {
+				respondBadRequest(w, r, errors.Wrap(err, "invalid max_date"))
+				return
+			}
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, ctxBackupListFilter, filter)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (h backupHandler) mustListFilterFromCtx(r *http.Request) backup.ListFilter {
+	v, ok := r.Context().Value(ctxBackupListFilter).(backup.ListFilter)
+	if !ok {
+		panic("missing filter in context")
+	}
+	return v
+}
+
+func (h backupHandler) list(w http.ResponseWriter, r *http.Request) {
+	v, err := h.svc.List(
+		r.Context(),
+		mustClusterIDFromCtx(r),
+		h.mustHostFromCtx(r),
+		h.mustLocationsFromCtx(r),
+		h.mustListFilterFromCtx(r),
+	)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	render.Respond(w, r, list)
+	render.Respond(w, r, v)
+}
+
+func (h backupHandler) listFiles(w http.ResponseWriter, r *http.Request) {
+	v, err := h.svc.ListFiles(
+		r.Context(),
+		mustClusterIDFromCtx(r),
+		h.mustHostFromCtx(r),
+		h.mustLocationsFromCtx(r),
+		h.mustListFilterFromCtx(r),
+	)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	render.Respond(w, r, v)
 }

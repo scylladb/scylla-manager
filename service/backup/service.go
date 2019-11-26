@@ -336,6 +336,36 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, host string, lo
 		"filter", filter,
 	)
 
+	manifests, err := s.list(ctx, clusterID, host, locations, filter, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return aggregateRemoteManifests(manifests), nil
+}
+
+// ListFiles returns info on available backup files based on filtering criteria.
+func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, host string, locations []Location, filter ListFilter) ([]FilesInfo, error) {
+	s.logger.Info(ctx, "Listing backup files",
+		"cluster_id", clusterID,
+		"host", host,
+		"locations", locations,
+		"filter", filter,
+	)
+
+	manifests, err := s.list(ctx, clusterID, host, locations, filter, true)
+	if err != nil {
+		return nil, err
+	}
+
+	var files = make([]FilesInfo, len(manifests))
+	for i := range manifests {
+		files[i] = makeFilesInfo(manifests[i])
+	}
+	return files, nil
+}
+
+func (s *Service) list(ctx context.Context, clusterID uuid.UUID, host string, locations []Location, filter ListFilter, load bool) ([]remoteManifest, error) {
 	// Validate inputs
 	if len(host) == 0 {
 		return nil, mermaid.ErrValidate(errors.New("empty host"))
@@ -368,7 +398,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, host string, lo
 				"host", host,
 				"location", l,
 			)
-			m, err := listManifests(ctx, client, host, l, filter, s.logger.Named("list"))
+			m, err := listManifests(ctx, client, host, l, filter, load, s.logger.Named("list"))
 			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", host, l)}
 		}(l)
 	}
@@ -382,11 +412,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, host string, lo
 		manifests = append(manifests, r.Manifests...)
 		errs = multierr.Append(errs, r.Err)
 	}
-	if errs != nil {
-		return nil, errs
-	}
-
-	return aggregateRemoteManifests(manifests), nil
+	return manifests, errs
 }
 
 // Backup executes a backup on a given target.

@@ -4,11 +4,13 @@ package backup
 
 import (
 	"context"
+	"encoding/json"
 	"path"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/internal/parallel"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -72,7 +74,7 @@ func extractPaths(baseDir string, items []*scyllaclient.RcloneListDirItem) (path
 	return
 }
 
-func listManifests(ctx context.Context, client *scyllaclient.Client, host string, l Location, filter ListFilter, logger log.Logger) ([]remoteManifest, error) {
+func listManifests(ctx context.Context, client *scyllaclient.Client, host string, l Location, filter ListFilter, load bool, logger log.Logger) ([]remoteManifest, error) {
 	prune, err := makeListFilterPruneFunc(filter)
 	if err != nil {
 		return nil, errors.Wrap(err, "create filter")
@@ -133,9 +135,9 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 				continue
 			}
 
+			var m remoteManifest
 			// It's unlikely but the list may contain manifests and all its
 			// sibling files, we want to clear everything but the manifests.
-			var m remoteManifest
 			if err := m.ParsePartialPath(p); err != nil {
 				logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
 					"host", host,
@@ -143,6 +145,46 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 					"path", p,
 				)
 				continue
+			}
+
+			if load {
+				// Set location
+				m.Location = l
+
+				// Load manifest
+				b, err := client.RcloneCat(ctx, host, l.RemotePath(m.RemoteManifestFile()))
+				if err != nil {
+					return errors.Wrapf(err, "load manifest %s", m.RemoteManifestFile())
+				}
+				var v struct {
+					Files []string `json:"files"`
+				}
+				if err := json.Unmarshal(b, &v); err != nil {
+					return errors.Wrapf(err, "parse manifest %s", m.RemoteManifestFile())
+				}
+				m.Files = v.Files
+				logger.Debug(ctx, "Loaded manifest",
+					"host", host,
+					"location", l,
+					"path", m.RemoteManifestFile(),
+					"files", m.Files,
+				)
+
+				// Filter files based on manifest
+				files, err := client.RcloneListDir(ctx, host, l.RemotePath(m.RemoteSSTableVersionDir()), nil)
+				if err != nil {
+					return errors.Wrap(err, "list sstables")
+				}
+				s := strset.New(extractGroupingKeys(m)...)
+				for _, f := range files {
+					k, err := groupingKey(path.Join(m.Version, f.Path))
+					if err != nil {
+						logger.Debug(ctx, "GroupingKey error", "error", err)
+					}
+					if s.Has(k) {
+						m.FilesExpanded = append(m.FilesExpanded, f.Name)
+					}
+				}
 			}
 
 			manifests = append(manifests, m)
@@ -192,6 +234,9 @@ func makeListFilterPruneFunc(f ListFilter) (func(string) bool, error) {
 		}
 		// Filter snapshot tags
 		if m.SnapshotTag != "" {
+			if f.SnapshotTag != "" {
+				return m.SnapshotTag != f.SnapshotTag
+			}
 			if !f.MinDate.IsZero() && m.SnapshotTag < snapshotTagAt(f.MinDate) {
 				return true
 			}

@@ -407,6 +407,32 @@
         }
       }
     },
+    "BackupFilesInfo": {
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "manifest": {
+          "type": "string"
+        },
+        "sst": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "BackupTarget": {
       "type": "object",
       "properties": {
@@ -1632,6 +1658,88 @@
               "type": "array",
               "items": {
                 "$ref": "#/definitions/BackupListItem"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/backups/files": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "host",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "locations",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "keyspace",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "snapshot_tag",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup list",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/BackupFilesInfo"
               }
             }
           },

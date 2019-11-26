@@ -4,6 +4,7 @@ package backup
 
 import (
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -12,8 +13,6 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/uuid"
 )
-
-const manifestFileSuffix = "-Data.db"
 
 type remoteManifest struct {
 	CleanPath []string
@@ -27,8 +26,10 @@ type remoteManifest struct {
 	SnapshotTag string
 	Version     string
 
-	// Files contained in manifest, requires loading them.
-	Files []string
+	// Location and Files requires loading manifest.
+	Location      Location
+	Files         []string
+	FilesExpanded []string
 }
 
 // ParsePartialPath tries extracting properties from remote path to manifest.
@@ -113,6 +114,10 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 
 func (m remoteManifest) RemoteManifestFile() string {
 	return remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
+}
+
+func (m remoteManifest) RemoteSSTableVersionDir() string {
+	return remoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
 }
 
 func aggregateRemoteManifests(manifests []remoteManifest) []ListItem {
@@ -222,4 +227,26 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 	}
 
 	return h.Sum64()
+}
+
+const manifestFileSuffix = "-Data.db"
+
+// used to get groupingKey
+var tableVersionFileNamePattern = regexp.MustCompile("^[a-f0-9]{32}/[a-z]{2}-[0-9]+-big")
+
+func extractGroupingKeys(m remoteManifest) []string {
+	var s []string
+	for _, f := range m.Files {
+		v := path.Join(m.Version, strings.TrimSuffix(f, manifestFileSuffix))
+		s = append(s, v)
+	}
+	return s
+}
+
+func groupingKey(file string) (string, error) {
+	m := tableVersionFileNamePattern.FindStringSubmatch(file)
+	if m == nil {
+		return "", errors.New("file path does not match a pattern")
+	}
+	return m[0], nil
 }

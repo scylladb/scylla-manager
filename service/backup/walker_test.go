@@ -48,7 +48,7 @@ func TestWalkerDirsAtLevelN(t *testing.T) {
 
 	w := walker{
 		Host:     scyllaclienttest.TestHost,
-		Location: Location{Provider: "walkertest"},
+		Location: Location{Provider: "walker", Path: "simple"},
 		Client:   client,
 	}
 
@@ -79,7 +79,7 @@ func TestWalkerDirsAtLevelNPrune(t *testing.T) {
 
 	w := walker{
 		Host:     scyllaclienttest.TestHost,
-		Location: Location{Provider: "walkertest"},
+		Location: Location{Provider: "walker", Path: "simple"},
 		Client:   client,
 		Prune: func(dir string) bool {
 			return dir == "c"
@@ -103,7 +103,10 @@ func TestWalkerDirsAtLevelNPrune(t *testing.T) {
 func TestListFilterPruneFunc(t *testing.T) {
 	t.Parallel()
 
-	dir := remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID", "keysapce", "table", "version")
+	var (
+		snapshotTag = newSnapshotTag()
+		dir         = remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), snapshotTag, "dc", "nodeID", "keysapce", "table", "version")
+	)
 
 	table := []struct {
 		Name   string
@@ -140,8 +143,20 @@ func TestListFilterPruneFunc(t *testing.T) {
 			Prune:  true,
 		},
 		{
-			Name:   "filter keysapce",
+			Name:   "filter keyspace",
 			Filter: ListFilter{Keyspace: []string{"keysapce.table2"}},
+			Dir:    dir,
+			Prune:  true,
+		},
+		{
+			Name:   "filter snapshot tag",
+			Filter: ListFilter{SnapshotTag: snapshotTag},
+			Dir:    dir,
+			Prune:  false,
+		},
+		{
+			Name:   "filter snapshot tag",
+			Filter: ListFilter{SnapshotTag: "tag"},
 			Dir:    dir,
 			Prune:  true,
 		},
@@ -184,7 +199,16 @@ func TestListManifests(t *testing.T) {
 	client, cl := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/metrics", "testdata/walker/scylla_metrics/metrics"))
 	defer cl()
 
-	manifests, err := listManifests(context.Background(), client, scyllaclienttest.TestHost, Location{Provider: "listtest"}, ListFilter{}, log.NewDevelopment())
+	manifests, err := listManifests(
+		context.Background(),
+		client,
+		scyllaclienttest.TestHost,
+		Location{Provider: "walker", Path: "list"},
+		ListFilter{},
+		true,
+		log.NewDevelopment(),
+	)
+
 	if err != nil {
 		t.Fatal("listManifests() error", err)
 	}
