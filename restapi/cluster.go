@@ -44,16 +44,12 @@ func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
 	})
 }
 
-type clusterHandler struct {
-	clusterFilter
-}
+type clusterHandler clusterFilter
 
 func newClusterHandler(svc ClusterService) *chi.Mux {
 	m := chi.NewMux()
-	h := &clusterHandler{
-		clusterFilter: clusterFilter{
-			svc: svc,
-		},
+	h := clusterHandler{
+		svc: svc,
 	}
 
 	m.Route("/clusters", func(r chi.Router) {
@@ -61,7 +57,7 @@ func newClusterHandler(svc ClusterService) *chi.Mux {
 		r.Post("/", h.createCluster)
 	})
 	m.Route("/cluster/{cluster_id}", func(r chi.Router) {
-		r.Use(h.clusterCtx)
+		r.Use(clusterFilter(h).clusterCtx)
 		r.Get("/", h.loadCluster)
 		r.Put("/", h.updateCluster)
 		r.Delete("/", h.deleteCluster)
@@ -69,7 +65,7 @@ func newClusterHandler(svc ClusterService) *chi.Mux {
 	return m
 }
 
-func (h *clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
+func (h clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 	ids, err := h.svc.ListClusters(r.Context(), &cluster.Filter{})
 	if err != nil {
 		respondError(w, r, errors.Wrap(err, "list clusters"))
@@ -83,7 +79,7 @@ func (h *clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, ids)
 }
 
-func (h *clusterHandler) parseCluster(r *http.Request) (*cluster.Cluster, error) {
+func (h clusterHandler) parseCluster(r *http.Request) (*cluster.Cluster, error) {
 	var c cluster.Cluster
 	if err := render.DecodeJSON(r.Body, &c); err != nil {
 		return nil, err
@@ -91,7 +87,7 @@ func (h *clusterHandler) parseCluster(r *http.Request) (*cluster.Cluster, error)
 	return &c, nil
 }
 
-func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
+func (h clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	newCluster, err := h.parseCluster(r)
 	if err != nil {
 		respondBadRequest(w, r, err)
@@ -110,12 +106,12 @@ func (h *clusterHandler) createCluster(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *clusterHandler) loadCluster(w http.ResponseWriter, r *http.Request) {
+func (h clusterHandler) loadCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 	render.Respond(w, r, c)
 }
 
-func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
+func (h clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 
 	newCluster, err := h.parseCluster(r)
@@ -132,7 +128,7 @@ func (h *clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, newCluster)
 }
 
-func (h *clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
+func (h clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 
 	if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {

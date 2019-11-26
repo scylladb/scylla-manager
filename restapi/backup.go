@@ -17,7 +17,7 @@ type backupHandler struct {
 
 func newBackupHandler(s BackupService) *chi.Mux {
 	m := chi.NewMux()
-	h := &backupHandler{
+	h := backupHandler{
 		svc: s,
 	}
 
@@ -60,6 +60,7 @@ func (h backupHandler) listBackups(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	filter.Keyspace = r.Form["keyspace"]
 	if v := r.FormValue("min_date"); v != "" {
 		if err := filter.MinDate.UnmarshalText([]byte(v)); err != nil {
