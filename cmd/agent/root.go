@@ -14,6 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/internal/cpuset"
 	"github.com/scylladb/mermaid/internal/httppprof"
 	"github.com/scylladb/mermaid/internal/netwait"
 	"github.com/scylladb/mermaid/rclone"
@@ -98,7 +99,7 @@ var rootCmd = &cobra.Command{
 		var cpu = c.CPU
 		if cpu == noCPU {
 			if c, err := findFreeCPU(); err != nil {
-				if errors.Cause(err) == os.ErrNotExist {
+				if cause := errors.Cause(err); os.IsNotExist(cause) || cause == cpuset.ErrNoCPUSetConfig {
 					// Ignore if there is no cpuset file
 					logger.Debug(ctx, "Failed to find CPU to pin to", "error", err)
 				} else {

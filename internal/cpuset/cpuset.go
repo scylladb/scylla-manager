@@ -28,6 +28,9 @@ const (
 	cpuSetPattern = `^\s*CPUSET=\s*\"(?:\s*--cpuset(?:\s*|=)(?P<cpuset>\d+(?:[-,]\d+)*))?(?:\s*--smp(?:\s*|=)(?P<smp>\d+))?"`
 )
 
+// ErrNoCPUSetConfig is returned in presence of an empty cpuset.conf file.
+var ErrNoCPUSetConfig = errors.New("no CPUSET configuration")
+
 // ParseScyllaConfigFile returns a list of busy CPUs based on /etc/scylla.d/cpuset.conf
 // contents.
 func ParseScyllaConfigFile() ([]int, error) {
@@ -53,7 +56,7 @@ func parseConfigFile(name string) ([]int, error) {
 		return nil, err
 	}
 	if groups == nil {
-		return nil, errors.New("no CPUSET configuration")
+		return nil, ErrNoCPUSetConfig
 	}
 
 	idx := 0
