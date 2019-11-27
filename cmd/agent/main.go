@@ -13,7 +13,7 @@ func main() {
 	runtime.GOMAXPROCS(1)
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(rootCmd.OutOrStderr(), "STARTUP ERROR:\n\n%s\n", err)
+		fmt.Fprintf(rootCmd.OutOrStderr(), "\nSTARTUP ERROR: %s\n\n", err)
 		os.Exit(1)
 	}
 
