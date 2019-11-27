@@ -121,7 +121,7 @@ func (h *backupTestHelper) listFiles() (manifests, files []string) {
 	return
 }
 
-func writeAndFlushData(t *testing.T, session *gocql.Session, keyspace string, size int) {
+func writeData(t *testing.T, session *gocql.Session, keyspace string, size int) {
 	t.Helper()
 
 	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
@@ -134,12 +134,6 @@ func writeAndFlushData(t *testing.T, session *gocql.Session, keyspace string, si
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	flushData(t)
-}
-
-func flushData(t *testing.T) {
-	execOnAllHosts(t, "nodetool flush")
 }
 
 func restartAgents(t *testing.T) {
@@ -632,7 +626,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		clusterSession = CreateManagedClusterSession(t)
 	)
 
-	writeAndFlushData(t, clusterSession, testKeyspace, 3*1024*1024)
+	writeData(t, clusterSession, testKeyspace, 3*1024*1024)
 
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -851,7 +845,7 @@ func TestPurgeIntegration(t *testing.T) {
 	Print("When: run backup 3 times")
 	var runID uuid.UUID
 	for i := 0; i < 3; i++ {
-		writeAndFlushData(t, clusterSession, testKeyspace, 3*1024*1024)
+		writeData(t, clusterSession, testKeyspace, 3*1024*1024)
 		runID = uuid.NewTime()
 		if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
 			t.Fatal(err)
