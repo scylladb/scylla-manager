@@ -28,10 +28,6 @@ func setupRclone() {
 	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
 
 	rcserver.MustRegisterInMemoryConf()
-	mustRegisterLocalDirProvider("walker", "", path.Join(rootDir, "testdata", "walker"))
-}
-
-func mustRegisterLocalDirProvider(name, description, rootDir string) {
-	defer supportedProviders.Add(name)
-	rcserver.MustRegisterLocalDirProvider(name, description, rootDir)
+	rcserver.MustRegisterLocalDirProvider("walker", "", path.Join(rootDir, "testdata", "walker"))
+	providers.Add("walker")
 }

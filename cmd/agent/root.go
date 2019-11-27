@@ -131,6 +131,9 @@ var rootCmd = &cobra.Command{
 		if err := rcserver.RegisterLocalDirProvider("data", "Jailed Scylla data", c.Scylla.DataDirectory); err != nil {
 			return err
 		}
+		if err := rcserver.RegisterS3Provider(c.S3); err != nil {
+			return err
+		}
 
 		// Start servers
 		errCh := make(chan error)

@@ -204,17 +204,14 @@ func (p Provider) MarshalText() (text []byte, err error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (p *Provider) UnmarshalText(text []byte) error {
-	s := string(text)
-
-	if !supportedProviders.Has(s) {
+	if s := string(text); !providers.Has(s) {
 		return errors.Errorf("unrecognised provider %q", text)
 	}
-
-	*p = Provider(s)
+	*p = Provider(text)
 	return nil
 }
 
-var supportedProviders = strset.New(S3.String())
+var providers = strset.New(S3.String())
 
 // Location specifies storage provider and container/resource for a DC.
 type Location struct {

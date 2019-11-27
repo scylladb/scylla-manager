@@ -5,25 +5,17 @@ package rcserver
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/mermaid/rclone"
 )
 
-func awsS3Region() string {
-	region := os.Getenv("AWS_S3_REGION")
-	if region != "" {
-		return region
-	}
-	return fetchRegionFromMetadataAPI()
-}
-
-// Uses Instance Metadata API to fetch region of the running instance.
+// awsRegionFromMetadataAPI uses instance metadata API to fetch region of the
+// running instance see
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
 // Returns empty string if region can't be obtained for whatever reason.
-func fetchRegionFromMetadataAPI() string {
+func awsRegionFromMetadataAPI() string {
 	const url = "http://169.254.169.254/latest/dynamic/instance-identity/document"
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)

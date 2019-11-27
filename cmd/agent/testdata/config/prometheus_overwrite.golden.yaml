@@ -16,3 +16,12 @@ scylla:
   prometheusaddress: 192.168.100.11
   prometheusport: "9180"
   datadirectory: /var/lib/scylla/data
+s3:
+  access_key_id: ""
+  secret_access_key: ""
+  region: ""
+  endpoint: ""
+  server_side_encryption: ""
+  sse_kms_key_id: ""
+  upload_concurrency: ""
+  use_accelerate_endpoint: ""

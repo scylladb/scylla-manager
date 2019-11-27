@@ -40,3 +40,64 @@
 #scylla:
 #  api_address: 0.0.0.0
 #  api_port: 10000
+
+# Backup S3 client configuration.
+#
+# Note that when running in AWS Scylla Manger Agent can read hosts IAM role.
+# It's recommended to define access rules based on IAM roles.
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+#
+# To test bucket accessibility use `scylla-manager-agent check-location` command.
+# Example:
+# scylla-manager-agent check-location --location s3:scylla-manager-backup
+#
+# Sample IAM policy for "scylla-manager-backup" bucket:
+#
+# {
+#      "Version": "2012-10-17",
+#      "Statement": [
+#          {
+#              "Effect": "Allow",
+#              "Action": [
+#                  "s3:ListBucket"
+#              ],
+#              "Resource": [
+#                  "arn:aws:s3:::scylla-manager-backup"
+#              ]
+#          },
+#          {
+#              "Effect": "Allow",
+#              "Action": [
+#                  "s3:PutObject",
+#                  "s3:GetObject",
+#                  "s3:DeleteObject",
+#                  "s3:ListObject"
+#              ],
+#              "Resource": [
+#                  "arn:aws:s3:::scylla-manager-backup/*"
+#              ]
+#          }
+#      ]
+#  }
+#
+#s3:
+# S3 credentials, it's recommended to use IAM roles if possible, otherwise set
+# your AWS Access Key ID and AWS Secret Access Key (password) here.
+#  access_key_id:
+#  secret_access_key:
+#
+# Region to connect to, if running in AWS EC2 instance region is set
+# to the local region by default.
+#  region:
+#
+# Endpoint for S3 API, only relevant when using S3 compatible API.
+#  endpoint:
+#
+# The server-side encryption algorithm used when storing this object in S3.
+# If using KMS ID you must provide the ARN of Key.
+#  server_side_encryption:
+#  sse_kms_key_id:
+#
+# AWS S3 Transfer acceleration
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
+#  use_accelerate_endpoint: false

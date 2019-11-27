@@ -7,3 +7,8 @@ debug: :56112
 
 logger:
   level: debug
+
+s3:
+  access_key_id: minio
+  secret_access_key: minio123
+  endpoint: http://192.168.100.99:9000

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
+	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/rclone"
 	"github.com/scylladb/mermaid/rclone/rcserver"
 	"go.uber.org/zap/zapcore"
@@ -31,4 +32,5 @@ func setupRclone() {
 	rcserver.MustRegisterLocalDirProvider("tmp", "", "/tmp")
 	rcserver.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
 	rcserver.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
+	rcserver.MustRegisterS3Provider(S3Credentials())
 }

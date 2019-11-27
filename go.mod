@@ -30,6 +30,7 @@ require (
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rclone/rclone v1.50.2
 	github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
+	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.1
 	github.com/scylladb/gocqlx v1.3.1
 	github.com/scylladb/termtables v0.0.0-20191125135053-b2b40be89112

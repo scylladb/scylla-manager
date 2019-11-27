@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/scylladb/mermaid/scyllaclient"
 	"go.uber.org/multierr"
 	"go.uber.org/zap/zapcore"
@@ -41,15 +42,16 @@ type scyllaConfig struct {
 
 // config specifies the agent and scylla configuration.
 type config struct {
-	AuthToken   string       `yaml:"auth_token"`
-	HTTPS       string       `yaml:"https"`
-	TLSCertFile string       `yaml:"tls_cert_file"`
-	TLSKeyFile  string       `yaml:"tls_key_file"`
-	Prometheus  string       `yaml:"prometheus"`
-	Debug       string       `yaml:"debug"`
-	CPU         int          `yaml:"cpu"`
-	Logger      logConfig    `yaml:"logger"`
-	Scylla      scyllaConfig `yaml:"scylla"`
+	AuthToken   string             `yaml:"auth_token"`
+	HTTPS       string             `yaml:"https"`
+	TLSCertFile string             `yaml:"tls_cert_file"`
+	TLSKeyFile  string             `yaml:"tls_key_file"`
+	Prometheus  string             `yaml:"prometheus"`
+	Debug       string             `yaml:"debug"`
+	CPU         int                `yaml:"cpu"`
+	Logger      logConfig          `yaml:"logger"`
+	Scylla      scyllaConfig       `yaml:"scylla"`
+	S3          rcserver.S3Options `yaml:"s3"`
 }
 
 func defaultConfig() config {

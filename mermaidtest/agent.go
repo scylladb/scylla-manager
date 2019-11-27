@@ -12,5 +12,8 @@ var (
 
 // AgentAuthToken returns token to authenticate with agent.
 func AgentAuthToken() string {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
 	return *flagAgentAuthToken
 }

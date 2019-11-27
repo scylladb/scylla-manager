@@ -93,16 +93,13 @@ integration-test:
 	@$(MAKE) pkg-integration-test PKG=./service/secrets/dbsecrets
 	@$(MAKE) pkg-integration-test PKG=./schema/cql
 
-# Export AWS env variables for rclone integration tests with minio.
+# Load Minio config for INTEGRATION_TEST_ARGS
 include testing/.env
-export AWS_S3_ENDPOINT := $(MINIO_ENDPOINT)
-export AWS_ACCESS_KEY_ID := $(MINIO_ACCESS_KEY)
-export AWS_SECRET_ACCESS_KEY := $(MINIO_SECRET_KEY)
 
 INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
 -managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
 -agent-auth-token token \
--s3-data-dir $(PWD)/testing/minio/data
+-s3-data-dir $(PWD)/testing/minio/data -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_ACCESS_KEY) -s3-secret-access-key $(MINIO_SECRET_KEY)
 
 .PHONY: pkg-integration-test
 pkg-integration-test: ## Run integration tests for a package, requires PKG parameter
