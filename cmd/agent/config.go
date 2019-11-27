@@ -94,10 +94,9 @@ func (c *config) updateWithScyllaConfig(external scyllaConfig) {
 	c.Scylla.PrometheusAddress = external.PrometheusAddress
 	c.Scylla.PrometheusPort = external.PrometheusPort
 
-	if c.HTTPS != "" {
-		return
+	if c.HTTPS == "" {
+		c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, defaultHTTPSPort)
 	}
-	c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, defaultHTTPSPort)
 
 	if external.DataDirectory != "" {
 		c.Scylla.DataDirectory = external.DataDirectory
