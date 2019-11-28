@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/fshttp"
@@ -152,6 +153,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	// Find the call
 	call := rc.Calls.Get(path)
 	if call == nil {
+		agentUnexposedAccess.With(prometheus.Labels{"addr": r.RemoteAddr, "path": path}).Inc()
 		writeError(path, in, w, errors.Errorf("unexposed call from %q to %q", r.RemoteAddr, path), http.StatusNotFound)
 		return
 	}
