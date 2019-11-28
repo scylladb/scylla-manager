@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"time"
 
@@ -101,8 +102,21 @@ func DefaultRetryPolicy(req *http.Request, resp *http.Response, err error) (bool
 	}
 
 	if err != nil {
+		// RoundTripper can't handle connection resets so we are testing for
+		// such errors
+		switch t := err.(type) {
+		case *net.OpError:
+			if t.Op == "read" {
+				return false, err
+			}
+		default:
+			if err == io.EOF {
+				return false, err
+			}
+		}
 		return true, err
 	}
+
 	// Check the response code. We retry on 500-range responses to allow
 	// the server time to recover, as 500's are typically not permanent
 	// errors and may relate to outages on the server side. This will catch
@@ -183,12 +197,18 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Body != nil {
 		r = new(http.Request)
 		*r = *req
-		r.Body = body{req.Body, false}
+		r.Body = &body{req.Body, false}
 	} else {
 		r = req
 	}
 
+loop:
 	for i := 0; ; i++ {
+		// If body was read do not continue.
+		if b, ok := r.Body.(*body); ok && b.read {
+			return resp, err
+		}
+
 		// Attempt the request
 		resp, err = t.parent.RoundTrip(r)
 		if err != nil {
@@ -196,7 +216,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 				"host", r.Host,
 				"method", r.Method,
 				"uri", r.URL.RequestURI(),
-				"error", err,
+				"error", err.Error(),
 			)
 		}
 
@@ -208,11 +228,6 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			if checkErr != nil {
 				err = checkErr
 			}
-			return resp, err
-		}
-
-		// If body was read do not continue.
-		if b, ok := r.Body.(body); ok && b.read {
 			return resp, err
 		}
 
@@ -236,7 +251,18 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			"wait", wait,
 			"left", remain,
 		)
-		time.Sleep(wait)
+
+		if wait > 0 {
+			select {
+			case <-req.Context().Done():
+				// If we hit this point that means we are waiting for another
+				// retry. break allows to preserve previous err after returning.
+				// It was just coincidence that context was canceled while there
+				// were errors.
+				break loop
+			case <-time.After(wait):
+			}
+		}
 	}
 
 	if t.ErrorHandler != nil {
@@ -248,8 +274,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if resp != nil {
 		resp.Body.Close()
 	}
-	return nil, fmt.Errorf("%s %s giving up after %d attempts",
-		req.Method, req.URL, t.RetryMax+1)
+	return nil, fmt.Errorf("giving up after %d attempts: %s", t.RetryMax+1, err)
 }
 
 // Try to read the response body so we can reuse this connection.
@@ -266,7 +291,7 @@ type body struct {
 	read bool
 }
 
-func (c body) Read(bs []byte) (int, error) {
+func (c *body) Read(bs []byte) (int, error) {
 	if !c.read {
 		c.read = true
 	}
