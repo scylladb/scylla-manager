@@ -152,7 +152,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	// Find the call
 	call := rc.Calls.Get(path)
 	if call == nil {
-		writeError(path, in, w, errors.Errorf("couldn't find method %q", path), http.StatusNotFound)
+		writeError(path, in, w, errors.Errorf("unexposed call from %q to %q", r.RemoteAddr, path), http.StatusNotFound)
 		return
 	}
 	fn := call.Fn

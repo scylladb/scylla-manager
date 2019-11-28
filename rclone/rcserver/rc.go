@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 
 	"github.com/rclone/rclone/fs/rc"
+	"github.com/scylladb/mermaid/rclone/internal"
 	"github.com/scylladb/mermaid/rclone/operations"
 )
 
@@ -15,6 +16,17 @@ import (
 const CatLimit = 1024 * 1024
 
 func init() {
+	// Disable all default calls.
+	calls := rc.Calls.List()
+	rc.Calls = rc.NewRegistry()
+
+	// Whitelist only supported calls.
+	for _, c := range calls {
+		if internal.RcloneSupportedCalls.Has(c.Path) {
+			rc.Add(*c)
+		}
+	}
+
 	rc.Add(rc.Call{
 		Path:         "operations/cat",
 		AuthRequired: true,

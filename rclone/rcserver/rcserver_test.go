@@ -35,7 +35,7 @@ func TestRC(t *testing.T) {
 		Method: "POST",
 		Status: http.StatusNotFound,
 		Expected: `{
-	"error": "couldn't find method \"\"",
+	"error": "unexposed call from \"\" to \"\"",
 	"input": {},
 	"path": "",
 	"status": 404
@@ -59,12 +59,6 @@ func TestRC(t *testing.T) {
 	"status": 500
 }
 `,
-	}, {
-		Name:     "core-gc",
-		URL:      "core/gc", // returns nil, nil so check it is made into {}
-		Method:   "POST",
-		Status:   http.StatusOK,
-		Expected: "{}\n",
 	}, {
 		Name:   "url-params",
 		URL:    "rc/noop?param1=potato&param2=sausage",

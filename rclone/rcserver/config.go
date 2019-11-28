@@ -3,13 +3,11 @@
 package rcserver
 
 import (
-	"context"
 	"os"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
-	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/rclone/backend/localdir"
 	"go.uber.org/multierr"
@@ -74,12 +72,6 @@ func RegisterInMemoryConf() error {
 	fs.ConfigFileGet = c.Get
 	fs.ConfigFileSet = c.Set
 	fs.Debugf(nil, "registered in-memory config")
-
-	// Disable config manipulation over remote calls
-	rc.Calls.Get("config/create").Fn = notFoundFn
-	rc.Calls.Get("config/get").Fn = notFoundFn
-	rc.Calls.Get("config/providers").Fn = notFoundFn
-	rc.Calls.Get("config/delete").Fn = notFoundFn
 
 	// Register s3 provider
 	var (
@@ -148,7 +140,3 @@ func (c *inMemoryConf) Set(section, key, value string) (err error) {
 
 // ErrNotFound is returned when remote call is not available.
 var ErrNotFound = errors.New("not found")
-
-func notFoundFn(ctx context.Context, in rc.Params) (rc.Params, error) {
-	return rc.Params{}, ErrNotFound
-}
