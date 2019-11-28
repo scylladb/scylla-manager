@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -31,28 +30,6 @@ func NewClient() (*http.Client, *Transport) {
 }
 
 var NewRequest = http.NewRequest
-
-// Since normal ways we would generate a Reader have special cases, use a
-// custom type here
-type custReader struct {
-	val string
-	pos int
-}
-
-func (c *custReader) Read(p []byte) (n int, err error) {
-	if c.val == "" {
-		c.val = "hello"
-	}
-	if c.pos >= len(c.val) {
-		return 0, io.EOF
-	}
-	var i int
-	for i = 0; i < len(p) && i+c.pos < len(c.val); i++ {
-		p[i] = c.val[i+c.pos]
-	}
-	c.pos += i
-	return i, nil
-}
 
 func TestClient_Do(t *testing.T) {
 	testBytes := []byte("hello")
