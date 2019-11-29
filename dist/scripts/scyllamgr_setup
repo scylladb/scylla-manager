@@ -40,19 +40,61 @@ interactive_ask_service() {
     done
 }
 
-if [[ "$(id -u)" != "0" ]]; then
-    echo "Requires root permission."
-    exit 1
+print_help() {
+  echo "
+Usage: $(basename $0) [OPTIONS]
+
+Options:
+  --enable-scylla          Enable the local ScyllaDB instance as a backend storage
+  --enable-manager         Enable Scylla Manager
+  --enable-updates         Enable Scylla Manager automatic check for updates
+  -h, --help               Print this help
+
+Interactive mode is enabled when no flags are provided.
+"
+}
+
+if [[ $# != 0 ]]; then
+    INTERACTIVE=0
+else
+    INTERACTIVE=1
 fi
 
 ENABLE_SCYLLA=0
 ENABLE_SERVICE=1
 ENABLE_CHECK_FOR_UPDATES=1
 
-if [[ $# != 0 ]]; then
-    INTERACTIVE=0
-else
-    INTERACTIVE=1
+while [[ $# -gt 0 ]]
+do
+
+case $1 in
+    --enable-scylla)
+    ENABLE_SCYLLA=1
+    shift
+    ;;
+    --enable-manager)
+    ENABLE_SERVICE=1
+    shift
+    ;;
+    --enable-updates)
+    ENABLE_CHECK_FOR_UPDATES=1
+    shift
+    ;;
+    -h|--help)
+    print_help
+    exit 0
+    ;;
+
+    *)
+    echo "unknown command $1"
+    exit 1
+    ;;
+esac
+done
+
+if [[ "$(id -u)" != "0" ]]; then
+    echo "Requires root permission."
+    exit 1
 fi
 
 if [[ ${INTERACTIVE} == 1 ]]; then
