@@ -9,7 +9,6 @@ import (
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/rclone"
-	"github.com/scylladb/mermaid/rclone/rcserver"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -24,10 +23,9 @@ func setupRclone() {
 		panic(err)
 	}
 
-	rclone.SetDefaultConfig()
 	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
+	rclone.InitFsConfig()
+	rclone.MustRegisterLocalDirProvider("walker", "", path.Join(rootDir, "testdata", "walker"))
 
-	rcserver.MustRegisterInMemoryConf()
-	rcserver.MustRegisterLocalDirProvider("walker", "", path.Join(rootDir, "testdata", "walker"))
 	providers.Add("walker")
 }

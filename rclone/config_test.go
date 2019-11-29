@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package rcserver
+package rclone
 
 import (
 	"testing"
@@ -33,7 +33,7 @@ func TestInMemoryConfNotExposed(t *testing.T) {
 		},
 	}
 
-	MustRegisterInMemoryConf()
+	initInMemoryConfig()
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {

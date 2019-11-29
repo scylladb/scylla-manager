@@ -3,6 +3,8 @@
 // Package rcserver implements the HTTP endpoint to serve the remote control
 package rcserver
 
+//go:generate ./internalgen.sh
+
 import (
 	"encoding/json"
 	"fmt"
@@ -21,9 +23,13 @@ import (
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
 	"github.com/scylladb/mermaid/internal/timeutc"
+	"github.com/scylladb/mermaid/rclone"
 )
 
 var initOnce sync.Once
+
+// ErrNotFound is returned when remote call is not available.
+var ErrNotFound = errors.New("not found")
 
 // Server implements http.Handler interface.
 type Server struct{}
@@ -223,7 +229,7 @@ func validateFsName(in rc.Params) error {
 		if err != nil {
 			return err
 		}
-		if !providers.Has(remote) {
+		if !rclone.HasProvider(remote) {
 			return errParamInvalid{errors.Errorf("invalid provider %s in %s param", remote, name)}
 		}
 	}

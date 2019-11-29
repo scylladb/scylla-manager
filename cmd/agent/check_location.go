@@ -13,7 +13,6 @@ import (
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/rclone"
-	"github.com/scylladb/mermaid/rclone/rcserver"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -54,15 +53,13 @@ var checkLocationCmd = &cobra.Command{
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
+
 		// Redirect rclone logger to the logger
 		rclone.RedirectLogPrint(logger.Named("rclone"))
 		// Init rclone config options
-		rclone.SetDefaultConfig()
+		rclone.InitFsConfig()
 		// Register rclone providers
-		if err := rcserver.RegisterInMemoryConf(); err != nil {
-			return errors.Wrap(err, "configure agent")
-		}
-		if err := rcserver.RegisterS3Provider(c.S3); err != nil {
+		if err := rclone.RegisterS3Provider(c.S3); err != nil {
 			return err
 		}
 

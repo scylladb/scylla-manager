@@ -8,8 +8,8 @@ import (
 	"encoding/base64"
 
 	"github.com/rclone/rclone/fs/rc"
-	"github.com/scylladb/mermaid/rclone/internal"
 	"github.com/scylladb/mermaid/rclone/operations"
+	"github.com/scylladb/mermaid/rclone/rcserver/internal"
 )
 
 // CatLimit is the maximum amount of bytes that Cat operation can output.

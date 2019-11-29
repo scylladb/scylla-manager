@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package rcserver
+package rclone
 
 import (
 	"encoding/json"
@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/rclone/rclone/fs"
-	"github.com/scylladb/mermaid/rclone"
 )
 
 // awsRegionFromMetadataAPI uses instance metadata API to fetch region of the
@@ -23,7 +22,7 @@ func awsRegionFromMetadataAPI() string {
 		fs.Errorf(nil, "create metadata request: %+v", err)
 		return ""
 	}
-	req.Header.Set("User-Agent", rclone.UserAgent())
+	req.Header.Set("User-Agent", UserAgent())
 
 	metadataClient := http.Client{
 		Timeout: 2 * time.Second,

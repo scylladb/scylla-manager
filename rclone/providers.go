@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package rcserver
+package rclone
 
 import (
 	"os"
@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
@@ -18,79 +17,15 @@ import (
 	"go.uber.org/multierr"
 )
 
-// ErrNotFound is returned when remote call is not available.
-var ErrNotFound = errors.New("not found")
-
-// RegisterInMemoryConf registers global items for configuring backend
-// providers in rclone.
-// Function is idempotent.
-// Has to be called again to refresh AWS_S3_ENDPOINT value.
-func RegisterInMemoryConf() error {
-	c := &inMemoryConf{}
-	// Set inMemoryConf as default handler for rclone/fs configuration.
-	fs.ConfigFileGet = c.Get
-	fs.ConfigFileSet = c.Set
-	fs.Debugf(nil, "registered in-memory config")
-
-	return nil
-}
-
-// MustRegisterInMemoryConf calls RegisterInMemoryConf and panics on error.
-func MustRegisterInMemoryConf() {
-	if err := RegisterInMemoryConf(); err != nil {
-		panic(err)
-	}
-}
-
-// inMemoryConf is in-memory implementation of rclone configuration for remote file
-// systems.
-type inMemoryConf struct {
-	mu       sync.Mutex
-	sections map[string]map[string]string
-}
-
-// Get config key under section returning the the value and true if found or
-// ("", false) otherwise.
-func (c *inMemoryConf) Get(section, key string) (string, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.sections == nil {
-		return "", false
-	}
-	s, ok := c.sections[section]
-	if !ok {
-		return "", false
-	}
-	v, ok := s[key]
-	return v, ok
-}
-
-// Set the key in section to value.
-// It doesn't save the config file.
-func (c *inMemoryConf) Set(section, key, value string) (err error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.sections == nil {
-		c.sections = make(map[string]map[string]string)
-	}
-	s, ok := c.sections[section]
-	if !ok {
-		s = make(map[string]string)
-	}
-	if value == "" {
-		delete(c.sections[section], value)
-	} else {
-		s[key] = value
-		c.sections[section] = s
-	}
-	return
-}
-
 var providers = strset.New()
 
-// RegisterLocalDirProvider must be called before server is started, and after
-// RegisterInMemoryConf is called. It allows for adding dynamically adding
-// localdir providers.
+// HasProvider returns true iff provider was registered.
+func HasProvider(name string) bool {
+	return providers.Has(name)
+}
+
+// RegisterLocalDirProvider must be called before server is started.
+// It allows for adding dynamically adding localdir providers.
 func RegisterLocalDirProvider(name, description, rootDir string) error {
 	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
 		return errors.Wrapf(err, "register local dir provider %s", rootDir)
@@ -133,9 +68,8 @@ type S3Options struct {
 	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
 }
 
-// RegisterS3Provider must be called before server is started, and after
-// RegisterInMemoryConf is called. It allows for adding dynamically adding
-// s3 provider named s3.
+// RegisterS3Provider must be called before server is started.
+// It allows for adding dynamically adding s3 provider named s3.
 func RegisterS3Provider(opts S3Options) error {
 	const name = "s3"
 

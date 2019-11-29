@@ -9,7 +9,6 @@ import (
 	"github.com/scylladb/go-log"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/rclone"
-	"github.com/scylladb/mermaid/rclone/rcserver"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -24,13 +23,11 @@ func setupRclone() {
 		panic(err)
 	}
 
-	rclone.SetDefaultConfig()
 	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
-
-	rcserver.MustRegisterInMemoryConf()
-	rcserver.MustRegisterLocalDirProvider("dev", "", "/dev")
-	rcserver.MustRegisterLocalDirProvider("tmp", "", "/tmp")
-	rcserver.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
-	rcserver.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
-	rcserver.MustRegisterS3Provider(S3Credentials())
+	rclone.InitFsConfig()
+	rclone.MustRegisterLocalDirProvider("dev", "", "/dev")
+	rclone.MustRegisterLocalDirProvider("tmp", "", "/tmp")
+	rclone.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
+	rclone.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
+	rclone.MustRegisterS3Provider(S3Credentials())
 }

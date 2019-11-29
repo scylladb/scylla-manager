@@ -25,7 +25,7 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
-		[[ $$f =~ /rclone/internal/ ]] || \
+		[[ $$f =~ /rclone/rcserver/internal/ ]] || \
 		[[ $$f =~ /mock_.*_test[.]go ]] || \
 		[[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ]] || \
 		(echo $$f; false); \

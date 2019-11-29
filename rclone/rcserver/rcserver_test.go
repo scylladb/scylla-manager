@@ -11,13 +11,15 @@ import (
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/scylladb/mermaid/rclone"
 )
 
 // Run a suite of tests
 func testServer(t *testing.T, tests []httpTest) {
 	t.Helper()
 
-	MustRegisterInMemoryConf()
+	rclone.InitFsConfig()
 	rcServer := New()
 
 	for _, test := range tests {
@@ -235,7 +237,7 @@ func TestRCAsync(t *testing.T) {
 }
 
 func TestRCAsyncSuccessStatus(t *testing.T) {
-	MustRegisterInMemoryConf()
+	rclone.InitFsConfig()
 	rcServer := New()
 
 	body := runHTTPTest(t, rcServer, httpTest{
@@ -261,7 +263,7 @@ func TestRCAsyncSuccessStatus(t *testing.T) {
 }
 
 func TestRCAsyncErrorStatus(t *testing.T) {
-	MustRegisterInMemoryConf()
+	rclone.InitFsConfig()
 	rcServer := New()
 
 	body := runHTTPTest(t, rcServer, httpTest{
@@ -287,7 +289,7 @@ func TestRCAsyncErrorStatus(t *testing.T) {
 }
 
 func TestRCExcludeParams(t *testing.T) {
-	MustRegisterInMemoryConf()
+	rclone.InitFsConfig()
 	rcServer := New()
 
 	runHTTPTest(t, rcServer, httpTest{

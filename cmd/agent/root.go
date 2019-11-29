@@ -120,18 +120,15 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		// Init rclone config options
-		rclone.SetDefaultConfig()
 		// Redirect rclone logger to the logger
 		rclone.RedirectLogPrint(logger.Named("rclone"))
+		// Init rclone config options
+		rclone.InitFsConfig()
 		// Register rclone providers
-		if err := rcserver.RegisterInMemoryConf(); err != nil {
+		if err := rclone.RegisterLocalDirProvider("data", "Jailed Scylla data", c.Scylla.DataDirectory); err != nil {
 			return err
 		}
-		if err := rcserver.RegisterLocalDirProvider("data", "Jailed Scylla data", c.Scylla.DataDirectory); err != nil {
-			return err
-		}
-		if err := rcserver.RegisterS3Provider(c.S3); err != nil {
+		if err := rclone.RegisterS3Provider(c.S3); err != nil {
 			return err
 		}
 

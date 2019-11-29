@@ -5,7 +5,7 @@
 package internal
 
 import (
-    "github.com/scylladb/go-set/strset"
+	"github.com/scylladb/go-set/strset"
 )
 
 var RcloneSupportedCalls = strset.New(
