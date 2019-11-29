@@ -121,7 +121,7 @@ func TestClient_Do(t *testing.T) {
 func TestClient_Do_fails(t *testing.T) {
 	// Mock server which always responds 500.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer ts.Close()
 
@@ -138,9 +138,9 @@ func TestClient_Do_fails(t *testing.T) {
 	}
 
 	// Send the request.
-	_, err = client.Do(req)
-	if err == nil || !strings.Contains(err.Error(), "giving up") {
-		t.Fatalf("Expected giving up error, got: %#v", err)
+	resp, err := client.Do(req)
+	if err != nil || resp == nil || resp.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("Expected 500, got: %+v err: %#v", resp, err)
 	}
 }
 

@@ -5,7 +5,6 @@
 package retryablehttp
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
@@ -14,6 +13,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 )
 
@@ -269,12 +269,7 @@ loop:
 		return t.ErrorHandler(resp, err, t.RetryMax+1)
 	}
 
-	// By default, we close the response body and return an error without
-	// returning the response
-	if resp != nil {
-		resp.Body.Close()
-	}
-	return nil, fmt.Errorf("giving up after %d attempts: %s", t.RetryMax+1, err)
+	return resp, errors.Wrapf(err, "giving up after %d attempts", t.RetryMax+1)
 }
 
 // Try to read the response body so we can reuse this connection.
