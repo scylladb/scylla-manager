@@ -110,7 +110,10 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-const bodySizeLimit int64 = 1024 * 1024
+const (
+	bodySizeLimit int64 = 1024 * 1024
+	notFoundJSON        = `{"error": "Not found", "status": 404}`
+)
 
 func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
 	contentType := r.Header.Get("Content-Type")
@@ -154,7 +157,8 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	call := rc.Calls.Get(path)
 	if call == nil {
 		agentUnexposedAccess.With(prometheus.Labels{"addr": r.RemoteAddr, "path": path}).Inc()
-		writeError(path, in, w, errors.Errorf("unexposed call from %q to %q", r.RemoteAddr, path), http.StatusNotFound)
+		fs.Errorf(nil, "SECURITY call to unexported endpoint [path=%s, ip=%s]", path, r.RemoteAddr)
+		http.Error(w, notFoundJSON, http.StatusNotFound)
 		return
 	}
 	fn := call.Fn
@@ -201,7 +205,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 
 func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
 	fs.Errorf(nil, "rc: received unsupported GET request")
-	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+	http.Error(w, notFoundJSON, http.StatusNotFound)
 }
 
 // validateFsName ensures that only allowed file systems can be used in

@@ -34,12 +34,7 @@ func TestRC(t *testing.T) {
 		URL:    "",
 		Method: "POST",
 		Status: http.StatusNotFound,
-		Expected: `{
-	"error": "unexposed call from \"\" to \"\"",
-	"input": {},
-	"path": "",
-	"status": 404
-}
+		Expected: `{"error": "Not found", "status": 404}
 `,
 	}, {
 		Name:     "rc-noop",
@@ -175,15 +170,17 @@ func TestMethods(t *testing.T) {
 
 func TestNoFiles(t *testing.T) {
 	tests := []httpTest{{
-		Name:     "file",
-		URL:      "file.txt",
-		Status:   http.StatusNotFound,
-		Expected: "Not Found\n",
+		Name:   "file",
+		URL:    "file.txt",
+		Status: http.StatusNotFound,
+		Expected: `{"error": "Not found", "status": 404}
+`,
 	}, {
-		Name:     "dir",
-		URL:      "dir/",
-		Status:   http.StatusNotFound,
-		Expected: "Not Found\n",
+		Name:   "dir",
+		URL:    "dir/",
+		Status: http.StatusNotFound,
+		Expected: `{"error": "Not found", "status": 404}
+`,
 	}}
 
 	testServer(t, tests)
@@ -191,15 +188,17 @@ func TestNoFiles(t *testing.T) {
 
 func TestNoServe(t *testing.T) {
 	tests := []httpTest{{
-		Name:     "file",
-		URL:      "/file.txt",
-		Status:   http.StatusNotFound,
-		Expected: "Not Found\n",
+		Name:   "file",
+		URL:    "/file.txt",
+		Status: http.StatusNotFound,
+		Expected: `{"error": "Not found", "status": 404}
+`,
 	}, {
-		Name:     "dir",
-		URL:      "/dir/",
-		Status:   http.StatusNotFound,
-		Expected: "Not Found\n",
+		Name:   "dir",
+		URL:    "/dir/",
+		Status: http.StatusNotFound,
+		Expected: `{"error": "Not found", "status": 404}
+`,
 	}}
 
 	testServer(t, tests)
