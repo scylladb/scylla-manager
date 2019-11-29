@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // CommitlogSegmentsArchivingGetReader is a Reader for the CommitlogSegmentsArchivingGet structure.
@@ -28,9 +31,15 @@ func (o *CommitlogSegmentsArchivingGetReader) ReadResponse(response runtime.Clie
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCommitlogSegmentsArchivingGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type CommitlogSegmentsArchivingGetOK struct {
 	Payload []string
 }
 
-func (o *CommitlogSegmentsArchivingGetOK) Error() string {
-	return fmt.Sprintf("[GET /commitlog/segments/archiving][%d] commitlogSegmentsArchivingGetOK  %+v", 200, o.Payload)
-}
-
 func (o *CommitlogSegmentsArchivingGetOK) GetPayload() []string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *CommitlogSegmentsArchivingGetOK) readResponse(response runtime.ClientRe
 	}
 
 	return nil
+}
+
+// NewCommitlogSegmentsArchivingGetDefault creates a CommitlogSegmentsArchivingGetDefault with default headers values
+func NewCommitlogSegmentsArchivingGetDefault(code int) *CommitlogSegmentsArchivingGetDefault {
+	return &CommitlogSegmentsArchivingGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CommitlogSegmentsArchivingGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CommitlogSegmentsArchivingGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the commitlog segments archiving get default response
+func (o *CommitlogSegmentsArchivingGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CommitlogSegmentsArchivingGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CommitlogSegmentsArchivingGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CommitlogSegmentsArchivingGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

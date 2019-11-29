@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigSeedProviderOK struct {
 	Payload []string
 }
 
-func (o *FindConfigSeedProviderOK) Error() string {
-	return fmt.Sprintf("[GET /config/seed_provider][%d] findConfigSeedProviderOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigSeedProviderOK) GetPayload() []string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigSeedProviderDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigSeedProviderDefault) Error() string {
-	return fmt.Sprintf("[GET /config/seed_provider][%d] find_config_seed_provider default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigSeedProviderDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigSeedProviderDefault) readResponse(response runtime.ClientResp
 	}
 
 	return nil
+}
+
+func (o *FindConfigSeedProviderDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

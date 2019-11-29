@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigTombstoneWarnThresholdOK struct {
 	Payload int64
 }
 
-func (o *FindConfigTombstoneWarnThresholdOK) Error() string {
-	return fmt.Sprintf("[GET /config/tombstone_warn_threshold][%d] findConfigTombstoneWarnThresholdOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigTombstoneWarnThresholdOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigTombstoneWarnThresholdDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigTombstoneWarnThresholdDefault) Error() string {
-	return fmt.Sprintf("[GET /config/tombstone_warn_threshold][%d] find_config_tombstone_warn_threshold default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigTombstoneWarnThresholdDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigTombstoneWarnThresholdDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigTombstoneWarnThresholdDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

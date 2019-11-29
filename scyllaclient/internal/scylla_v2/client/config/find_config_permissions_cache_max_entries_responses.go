@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigPermissionsCacheMaxEntriesOK struct {
 	Payload int64
 }
 
-func (o *FindConfigPermissionsCacheMaxEntriesOK) Error() string {
-	return fmt.Sprintf("[GET /config/permissions_cache_max_entries][%d] findConfigPermissionsCacheMaxEntriesOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigPermissionsCacheMaxEntriesOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigPermissionsCacheMaxEntriesDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigPermissionsCacheMaxEntriesDefault) Error() string {
-	return fmt.Sprintf("[GET /config/permissions_cache_max_entries][%d] find_config_permissions_cache_max_entries default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigPermissionsCacheMaxEntriesDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigPermissionsCacheMaxEntriesDefault) readResponse(response runt
 	}
 
 	return nil
+}
+
+func (o *FindConfigPermissionsCacheMaxEntriesDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

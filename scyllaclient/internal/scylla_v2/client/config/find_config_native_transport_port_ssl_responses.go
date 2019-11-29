@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigNativeTransportPortSslOK struct {
 	Payload int64
 }
 
-func (o *FindConfigNativeTransportPortSslOK) Error() string {
-	return fmt.Sprintf("[GET /config/native_transport_port_ssl][%d] findConfigNativeTransportPortSslOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigNativeTransportPortSslOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigNativeTransportPortSslDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigNativeTransportPortSslDefault) Error() string {
-	return fmt.Sprintf("[GET /config/native_transport_port_ssl][%d] find_config_native_transport_port_ssl default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigNativeTransportPortSslDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigNativeTransportPortSslDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigNativeTransportPortSslDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

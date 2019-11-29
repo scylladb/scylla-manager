@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigPreheatKernelPageCacheOK struct {
 	Payload bool
 }
 
-func (o *FindConfigPreheatKernelPageCacheOK) Error() string {
-	return fmt.Sprintf("[GET /config/preheat_kernel_page_cache][%d] findConfigPreheatKernelPageCacheOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigPreheatKernelPageCacheOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigPreheatKernelPageCacheDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigPreheatKernelPageCacheDefault) Error() string {
-	return fmt.Sprintf("[GET /config/preheat_kernel_page_cache][%d] find_config_preheat_kernel_page_cache default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigPreheatKernelPageCacheDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigPreheatKernelPageCacheDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigPreheatKernelPageCacheDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

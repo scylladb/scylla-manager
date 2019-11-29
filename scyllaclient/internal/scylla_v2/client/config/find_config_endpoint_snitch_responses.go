@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigEndpointSnitchOK struct {
 	Payload string
 }
 
-func (o *FindConfigEndpointSnitchOK) Error() string {
-	return fmt.Sprintf("[GET /config/endpoint_snitch][%d] findConfigEndpointSnitchOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigEndpointSnitchOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigEndpointSnitchDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigEndpointSnitchDefault) Error() string {
-	return fmt.Sprintf("[GET /config/endpoint_snitch][%d] find_config_endpoint_snitch default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigEndpointSnitchDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigEndpointSnitchDefault) readResponse(response runtime.ClientRe
 	}
 
 	return nil
+}
+
+func (o *FindConfigEndpointSnitchDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

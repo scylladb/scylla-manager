@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // HintedHandoffHintsDeleteReader is a Reader for the HintedHandoffHintsDelete structure.
@@ -27,9 +31,15 @@ func (o *HintedHandoffHintsDeleteReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewHintedHandoffHintsDeleteDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ HintedHandoffHintsDeleteOK hinted handoff hints delete o k
 type HintedHandoffHintsDeleteOK struct {
 }
 
-func (o *HintedHandoffHintsDeleteOK) Error() string {
-	return fmt.Sprintf("[DELETE /hinted_handoff/hints][%d] hintedHandoffHintsDeleteOK ", 200)
-}
-
 func (o *HintedHandoffHintsDeleteOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewHintedHandoffHintsDeleteDefault creates a HintedHandoffHintsDeleteDefault with default headers values
+func NewHintedHandoffHintsDeleteDefault(code int) *HintedHandoffHintsDeleteDefault {
+	return &HintedHandoffHintsDeleteDefault{
+		_statusCode: code,
+	}
+}
+
+/*HintedHandoffHintsDeleteDefault handles this case with default header values.
+
+internal server error
+*/
+type HintedHandoffHintsDeleteDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the hinted handoff hints delete default response
+func (o *HintedHandoffHintsDeleteDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *HintedHandoffHintsDeleteDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *HintedHandoffHintsDeleteDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *HintedHandoffHintsDeleteDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

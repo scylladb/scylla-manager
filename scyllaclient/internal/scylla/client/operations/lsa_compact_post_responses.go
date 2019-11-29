@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // LsaCompactPostReader is a Reader for the LsaCompactPost structure.
@@ -27,9 +31,15 @@ func (o *LsaCompactPostReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewLsaCompactPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ LsaCompactPostOK lsa compact post o k
 type LsaCompactPostOK struct {
 }
 
-func (o *LsaCompactPostOK) Error() string {
-	return fmt.Sprintf("[POST /lsa/compact][%d] lsaCompactPostOK ", 200)
-}
-
 func (o *LsaCompactPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewLsaCompactPostDefault creates a LsaCompactPostDefault with default headers values
+func NewLsaCompactPostDefault(code int) *LsaCompactPostDefault {
+	return &LsaCompactPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*LsaCompactPostDefault handles this case with default header values.
+
+internal server error
+*/
+type LsaCompactPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the lsa compact post default response
+func (o *LsaCompactPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *LsaCompactPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *LsaCompactPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *LsaCompactPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

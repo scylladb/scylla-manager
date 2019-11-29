@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigPrometheusPortOK struct {
 	Payload int64
 }
 
-func (o *FindConfigPrometheusPortOK) Error() string {
-	return fmt.Sprintf("[GET /config/prometheus_port][%d] findConfigPrometheusPortOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigPrometheusPortOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigPrometheusPortDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigPrometheusPortDefault) Error() string {
-	return fmt.Sprintf("[GET /config/prometheus_port][%d] find_config_prometheus_port default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigPrometheusPortDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigPrometheusPortDefault) readResponse(response runtime.ClientRe
 	}
 
 	return nil
+}
+
+func (o *FindConfigPrometheusPortDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

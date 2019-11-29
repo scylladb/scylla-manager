@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *JobStopReader) ReadResponse(response runtime.ClientResponse, consumer r
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewJobStopNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewJobStopInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewJobStopDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -61,10 +56,6 @@ type JobStopOK struct {
 	Payload interface{}
 }
 
-func (o *JobStopOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/job/stop][%d] jobStopOK  %+v", 200, o.Payload)
-}
-
 func (o *JobStopOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -79,61 +70,33 @@ func (o *JobStopOK) readResponse(response runtime.ClientResponse, consumer runti
 	return nil
 }
 
-// NewJobStopNotFound creates a JobStopNotFound with default headers values
-func NewJobStopNotFound() *JobStopNotFound {
-	return &JobStopNotFound{}
-}
-
-/*JobStopNotFound handles this case with default header values.
-
-Not found
-*/
-type JobStopNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *JobStopNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/job/stop][%d] jobStopNotFound  %+v", 404, o.Payload)
-}
-
-func (o *JobStopNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *JobStopNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewJobStopDefault creates a JobStopDefault with default headers values
+func NewJobStopDefault(code int) *JobStopDefault {
+	return &JobStopDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewJobStopInternalServerError creates a JobStopInternalServerError with default headers values
-func NewJobStopInternalServerError() *JobStopInternalServerError {
-	return &JobStopInternalServerError{}
-}
-
-/*JobStopInternalServerError handles this case with default header values.
+/*JobStopDefault handles this case with default header values.
 
 Server error
 */
-type JobStopInternalServerError struct {
+type JobStopDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *JobStopInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/job/stop][%d] jobStopInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the job stop default response
+func (o *JobStopDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *JobStopInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *JobStopDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *JobStopInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *JobStopDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -143,4 +106,8 @@ func (o *JobStopInternalServerError) readResponse(response runtime.ClientRespons
 	}
 
 	return nil
+}
+
+func (o *JobStopDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

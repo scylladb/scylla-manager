@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigStreamThroughputOutboundMegabitsPerSecOK struct {
 	Payload int64
 }
 
-func (o *FindConfigStreamThroughputOutboundMegabitsPerSecOK) Error() string {
-	return fmt.Sprintf("[GET /config/stream_throughput_outbound_megabits_per_sec][%d] findConfigStreamThroughputOutboundMegabitsPerSecOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigStreamThroughputOutboundMegabitsPerSecOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) Error() string {
-	return fmt.Sprintf("[GET /config/stream_throughput_outbound_megabits_per_sec][%d] find_config_stream_throughput_outbound_megabits_per_sec default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) readResponse(r
 	}
 
 	return nil
+}
+
+func (o *FindConfigStreamThroughputOutboundMegabitsPerSecDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

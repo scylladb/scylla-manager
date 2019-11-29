@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyReloadTriggerClassesPostReader is a Reader for the StorageProxyReloadTriggerClassesPost structure.
@@ -27,9 +31,15 @@ func (o *StorageProxyReloadTriggerClassesPostReader) ReadResponse(response runti
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyReloadTriggerClassesPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageProxyReloadTriggerClassesPostOK storage proxy reload trigger classes post
 type StorageProxyReloadTriggerClassesPostOK struct {
 }
 
-func (o *StorageProxyReloadTriggerClassesPostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_proxy/reload_trigger_classes][%d] storageProxyReloadTriggerClassesPostOK ", 200)
-}
-
 func (o *StorageProxyReloadTriggerClassesPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageProxyReloadTriggerClassesPostDefault creates a StorageProxyReloadTriggerClassesPostDefault with default headers values
+func NewStorageProxyReloadTriggerClassesPostDefault(code int) *StorageProxyReloadTriggerClassesPostDefault {
+	return &StorageProxyReloadTriggerClassesPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyReloadTriggerClassesPostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyReloadTriggerClassesPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy reload trigger classes post default response
+func (o *StorageProxyReloadTriggerClassesPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyReloadTriggerClassesPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyReloadTriggerClassesPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyReloadTriggerClassesPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

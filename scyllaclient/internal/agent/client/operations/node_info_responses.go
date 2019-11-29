@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,15 +31,15 @@ func (o *NodeInfoReader) ReadResponse(response runtime.ClientResponse, consumer 
 			return nil, err
 		}
 		return result, nil
-	case 500:
-		result := NewNodeInfoInternalServerError()
+	default:
+		result := NewNodeInfoDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
 		return nil, result
-
-	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
 }
 
@@ -53,10 +54,6 @@ node information
 */
 type NodeInfoOK struct {
 	Payload *models.NodeInfo
-}
-
-func (o *NodeInfoOK) Error() string {
-	return fmt.Sprintf("[GET /node_info][%d] nodeInfoOK  %+v", 200, o.Payload)
 }
 
 func (o *NodeInfoOK) GetPayload() *models.NodeInfo {
@@ -75,28 +72,33 @@ func (o *NodeInfoOK) readResponse(response runtime.ClientResponse, consumer runt
 	return nil
 }
 
-// NewNodeInfoInternalServerError creates a NodeInfoInternalServerError with default headers values
-func NewNodeInfoInternalServerError() *NodeInfoInternalServerError {
-	return &NodeInfoInternalServerError{}
+// NewNodeInfoDefault creates a NodeInfoDefault with default headers values
+func NewNodeInfoDefault(code int) *NodeInfoDefault {
+	return &NodeInfoDefault{
+		_statusCode: code,
+	}
 }
 
-/*NodeInfoInternalServerError handles this case with default header values.
+/*NodeInfoDefault handles this case with default header values.
 
 Server error
 */
-type NodeInfoInternalServerError struct {
+type NodeInfoDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *NodeInfoInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /node_info][%d] nodeInfoInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the node info default response
+func (o *NodeInfoDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *NodeInfoInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *NodeInfoDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *NodeInfoInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *NodeInfoDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -106,4 +108,8 @@ func (o *NodeInfoInternalServerError) readResponse(response runtime.ClientRespon
 	}
 
 	return nil
+}
+
+func (o *NodeInfoDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

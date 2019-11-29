@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // CacheServiceMetricsKeyEntriesGetReader is a Reader for the CacheServiceMetricsKeyEntriesGet structure.
@@ -28,9 +31,15 @@ func (o *CacheServiceMetricsKeyEntriesGetReader) ReadResponse(response runtime.C
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCacheServiceMetricsKeyEntriesGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type CacheServiceMetricsKeyEntriesGetOK struct {
 	Payload int32
 }
 
-func (o *CacheServiceMetricsKeyEntriesGetOK) Error() string {
-	return fmt.Sprintf("[GET /cache_service/metrics/key/entries][%d] cacheServiceMetricsKeyEntriesGetOK  %+v", 200, o.Payload)
-}
-
 func (o *CacheServiceMetricsKeyEntriesGetOK) GetPayload() int32 {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *CacheServiceMetricsKeyEntriesGetOK) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+// NewCacheServiceMetricsKeyEntriesGetDefault creates a CacheServiceMetricsKeyEntriesGetDefault with default headers values
+func NewCacheServiceMetricsKeyEntriesGetDefault(code int) *CacheServiceMetricsKeyEntriesGetDefault {
+	return &CacheServiceMetricsKeyEntriesGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CacheServiceMetricsKeyEntriesGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CacheServiceMetricsKeyEntriesGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the cache service metrics key entries get default response
+func (o *CacheServiceMetricsKeyEntriesGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CacheServiceMetricsKeyEntriesGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CacheServiceMetricsKeyEntriesGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CacheServiceMetricsKeyEntriesGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *StorageProxySchemaVersionsGetReader) ReadResponse(response runtime.Clie
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxySchemaVersionsGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type StorageProxySchemaVersionsGetOK struct {
 	Payload []*models.MapperList
 }
 
-func (o *StorageProxySchemaVersionsGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_proxy/schema_versions][%d] storageProxySchemaVersionsGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageProxySchemaVersionsGetOK) GetPayload() []*models.MapperList {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *StorageProxySchemaVersionsGetOK) readResponse(response runtime.ClientRe
 	}
 
 	return nil
+}
+
+// NewStorageProxySchemaVersionsGetDefault creates a StorageProxySchemaVersionsGetDefault with default headers values
+func NewStorageProxySchemaVersionsGetDefault(code int) *StorageProxySchemaVersionsGetDefault {
+	return &StorageProxySchemaVersionsGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxySchemaVersionsGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxySchemaVersionsGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy schema versions get default response
+func (o *StorageProxySchemaVersionsGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxySchemaVersionsGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxySchemaVersionsGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxySchemaVersionsGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

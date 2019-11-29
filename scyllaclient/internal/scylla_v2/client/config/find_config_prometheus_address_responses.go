@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigPrometheusAddressOK struct {
 	Payload string
 }
 
-func (o *FindConfigPrometheusAddressOK) Error() string {
-	return fmt.Sprintf("[GET /config/prometheus_address][%d] findConfigPrometheusAddressOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigPrometheusAddressOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigPrometheusAddressDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigPrometheusAddressDefault) Error() string {
-	return fmt.Sprintf("[GET /config/prometheus_address][%d] find_config_prometheus_address default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigPrometheusAddressDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigPrometheusAddressDefault) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+func (o *FindConfigPrometheusAddressDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

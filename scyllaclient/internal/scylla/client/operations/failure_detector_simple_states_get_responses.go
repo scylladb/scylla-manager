@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *FailureDetectorSimpleStatesGetReader) ReadResponse(response runtime.Cli
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewFailureDetectorSimpleStatesGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type FailureDetectorSimpleStatesGetOK struct {
 	Payload []*models.Mapper
 }
 
-func (o *FailureDetectorSimpleStatesGetOK) Error() string {
-	return fmt.Sprintf("[GET /failure_detector/simple_states][%d] failureDetectorSimpleStatesGetOK  %+v", 200, o.Payload)
-}
-
 func (o *FailureDetectorSimpleStatesGetOK) GetPayload() []*models.Mapper {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *FailureDetectorSimpleStatesGetOK) readResponse(response runtime.ClientR
 	}
 
 	return nil
+}
+
+// NewFailureDetectorSimpleStatesGetDefault creates a FailureDetectorSimpleStatesGetDefault with default headers values
+func NewFailureDetectorSimpleStatesGetDefault(code int) *FailureDetectorSimpleStatesGetDefault {
+	return &FailureDetectorSimpleStatesGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*FailureDetectorSimpleStatesGetDefault handles this case with default header values.
+
+internal server error
+*/
+type FailureDetectorSimpleStatesGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the failure detector simple states get default response
+func (o *FailureDetectorSimpleStatesGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *FailureDetectorSimpleStatesGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *FailureDetectorSimpleStatesGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *FailureDetectorSimpleStatesGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

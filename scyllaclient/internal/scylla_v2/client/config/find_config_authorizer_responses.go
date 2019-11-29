@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigAuthorizerOK struct {
 	Payload string
 }
 
-func (o *FindConfigAuthorizerOK) Error() string {
-	return fmt.Sprintf("[GET /config/authorizer][%d] findConfigAuthorizerOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigAuthorizerOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigAuthorizerDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigAuthorizerDefault) Error() string {
-	return fmt.Sprintf("[GET /config/authorizer][%d] find_config_authorizer default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigAuthorizerDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigAuthorizerDefault) readResponse(response runtime.ClientRespon
 	}
 
 	return nil
+}
+
+func (o *FindConfigAuthorizerDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

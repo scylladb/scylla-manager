@@ -143,7 +143,7 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 	for i, ff := range ffs {
 		*ff.Field, err = ff.Fetcher(ctx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "fetch Scylla config %d", i)
+			return nil, errors.Wrapf(err, "agent: fetch Scylla config %d", i)
 		}
 	}
 

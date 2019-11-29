@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigSstablePreemptiveOpenIntervalInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigSstablePreemptiveOpenIntervalInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/sstable_preemptive_open_interval_in_mb][%d] findConfigSstablePreemptiveOpenIntervalInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigSstablePreemptiveOpenIntervalInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/sstable_preemptive_open_interval_in_mb][%d] find_config_sstable_preemptive_open_interval_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) readResponse(respon
 	}
 
 	return nil
+}
+
+func (o *FindConfigSstablePreemptiveOpenIntervalInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

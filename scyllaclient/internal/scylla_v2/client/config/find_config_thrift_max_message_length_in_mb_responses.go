@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigThriftMaxMessageLengthInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigThriftMaxMessageLengthInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/thrift_max_message_length_in_mb][%d] findConfigThriftMaxMessageLengthInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigThriftMaxMessageLengthInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigThriftMaxMessageLengthInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigThriftMaxMessageLengthInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/thrift_max_message_length_in_mb][%d] find_config_thrift_max_message_length_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigThriftMaxMessageLengthInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigThriftMaxMessageLengthInMbDefault) readResponse(response runt
 	}
 
 	return nil
+}
+
+func (o *FindConfigThriftMaxMessageLengthInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

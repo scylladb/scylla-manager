@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMurmur3PartitionerIgnoreMsbBitsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsOK) Error() string {
-	return fmt.Sprintf("[GET /config/murmur3_partitioner_ignore_msb_bits][%d] findConfigMurmur3PartitionerIgnoreMsbBitsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/murmur3_partitioner_ignore_msb_bits][%d] find_config_murmur3_partitioner_ignore_msb_bits default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) readResponse(response
 	}
 
 	return nil
+}
+
+func (o *FindConfigMurmur3PartitionerIgnoreMsbBitsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

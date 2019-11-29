@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *OperationsDeletefileReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewOperationsDeletefileNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewOperationsDeletefileInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewOperationsDeletefileDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ Job ID
 */
 type OperationsDeletefileOK struct {
 	Payload *models.Jobid
-}
-
-func (o *OperationsDeletefileOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/deletefile][%d] operationsDeletefileOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsDeletefileOK) GetPayload() *models.Jobid {
@@ -81,61 +72,33 @@ func (o *OperationsDeletefileOK) readResponse(response runtime.ClientResponse, c
 	return nil
 }
 
-// NewOperationsDeletefileNotFound creates a OperationsDeletefileNotFound with default headers values
-func NewOperationsDeletefileNotFound() *OperationsDeletefileNotFound {
-	return &OperationsDeletefileNotFound{}
-}
-
-/*OperationsDeletefileNotFound handles this case with default header values.
-
-Not found
-*/
-type OperationsDeletefileNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *OperationsDeletefileNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/deletefile][%d] operationsDeletefileNotFound  %+v", 404, o.Payload)
-}
-
-func (o *OperationsDeletefileNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *OperationsDeletefileNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewOperationsDeletefileDefault creates a OperationsDeletefileDefault with default headers values
+func NewOperationsDeletefileDefault(code int) *OperationsDeletefileDefault {
+	return &OperationsDeletefileDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewOperationsDeletefileInternalServerError creates a OperationsDeletefileInternalServerError with default headers values
-func NewOperationsDeletefileInternalServerError() *OperationsDeletefileInternalServerError {
-	return &OperationsDeletefileInternalServerError{}
-}
-
-/*OperationsDeletefileInternalServerError handles this case with default header values.
+/*OperationsDeletefileDefault handles this case with default header values.
 
 Server error
 */
-type OperationsDeletefileInternalServerError struct {
+type OperationsDeletefileDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *OperationsDeletefileInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/deletefile][%d] operationsDeletefileInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the operations deletefile default response
+func (o *OperationsDeletefileDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *OperationsDeletefileInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *OperationsDeletefileDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *OperationsDeletefileInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *OperationsDeletefileDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *OperationsDeletefileInternalServerError) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *OperationsDeletefileDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

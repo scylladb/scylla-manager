@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigEnableInMemoryDataStoreOK struct {
 	Payload bool
 }
 
-func (o *FindConfigEnableInMemoryDataStoreOK) Error() string {
-	return fmt.Sprintf("[GET /config/enable_in_memory_data_store][%d] findConfigEnableInMemoryDataStoreOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigEnableInMemoryDataStoreOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigEnableInMemoryDataStoreDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigEnableInMemoryDataStoreDefault) Error() string {
-	return fmt.Sprintf("[GET /config/enable_in_memory_data_store][%d] find_config_enable_in_memory_data_store default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigEnableInMemoryDataStoreDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigEnableInMemoryDataStoreDefault) readResponse(response runtime
 	}
 
 	return nil
+}
+
+func (o *FindConfigEnableInMemoryDataStoreDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

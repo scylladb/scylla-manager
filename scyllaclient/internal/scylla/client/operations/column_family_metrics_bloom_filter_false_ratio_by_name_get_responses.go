@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsBloomFilterFalseRatioByNameGetReader is a Reader for the ColumnFamilyMetricsBloomFilterFalseRatioByNameGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetReader) ReadResponse(r
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK struct {
 	Payload interface{}
 }
 
-func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/bloom_filter_false_ratio/{name}][%d] columnFamilyMetricsBloomFilterFalseRatioByNameGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK) readResponse(respo
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault creates a ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault with default headers values
+func NewColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault(code int) *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault {
+	return &ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics bloom filter false ratio by name get default response
+func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

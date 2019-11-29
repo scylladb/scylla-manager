@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *CoreGroupListReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewCoreGroupListNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewCoreGroupListInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCoreGroupListDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ Current groups
 */
 type CoreGroupListOK struct {
 	Payload *models.GroupList
-}
-
-func (o *CoreGroupListOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/group-list][%d] coreGroupListOK  %+v", 200, o.Payload)
 }
 
 func (o *CoreGroupListOK) GetPayload() *models.GroupList {
@@ -81,61 +72,33 @@ func (o *CoreGroupListOK) readResponse(response runtime.ClientResponse, consumer
 	return nil
 }
 
-// NewCoreGroupListNotFound creates a CoreGroupListNotFound with default headers values
-func NewCoreGroupListNotFound() *CoreGroupListNotFound {
-	return &CoreGroupListNotFound{}
-}
-
-/*CoreGroupListNotFound handles this case with default header values.
-
-Not found
-*/
-type CoreGroupListNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *CoreGroupListNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/group-list][%d] coreGroupListNotFound  %+v", 404, o.Payload)
-}
-
-func (o *CoreGroupListNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *CoreGroupListNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewCoreGroupListDefault creates a CoreGroupListDefault with default headers values
+func NewCoreGroupListDefault(code int) *CoreGroupListDefault {
+	return &CoreGroupListDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewCoreGroupListInternalServerError creates a CoreGroupListInternalServerError with default headers values
-func NewCoreGroupListInternalServerError() *CoreGroupListInternalServerError {
-	return &CoreGroupListInternalServerError{}
-}
-
-/*CoreGroupListInternalServerError handles this case with default header values.
+/*CoreGroupListDefault handles this case with default header values.
 
 Server error
 */
-type CoreGroupListInternalServerError struct {
+type CoreGroupListDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *CoreGroupListInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/group-list][%d] coreGroupListInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the core group list default response
+func (o *CoreGroupListDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *CoreGroupListInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *CoreGroupListDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *CoreGroupListInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CoreGroupListDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *CoreGroupListInternalServerError) readResponse(response runtime.ClientR
 	}
 
 	return nil
+}
+
+func (o *CoreGroupListDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

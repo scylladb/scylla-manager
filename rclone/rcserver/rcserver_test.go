@@ -36,7 +36,7 @@ func TestRC(t *testing.T) {
 		URL:    "",
 		Method: "POST",
 		Status: http.StatusNotFound,
-		Expected: `{"error": "Not found", "status": 404}
+		Expected: `{"message": "Not found", "status": 404}
 `,
 	}, {
 		Name:     "rc-noop",
@@ -50,8 +50,8 @@ func TestRC(t *testing.T) {
 		Method: "POST",
 		Status: http.StatusInternalServerError,
 		Expected: `{
-	"error": "arbitrary error on input map[]",
 	"input": {},
+	"message": "arbitrary error on input map[]",
 	"path": "rc/error",
 	"status": 500
 }
@@ -99,11 +99,11 @@ func TestRC(t *testing.T) {
 		ContentType: "application/json",
 		Status:      http.StatusBadRequest,
 		Expected: `{
-	"error": "read input JSON: invalid character 'p' looking for beginning of object key string",
 	"input": {
 		"param1": "potato",
 		"param2": "sausage"
 	},
+	"message": "read input JSON: invalid character 'p' looking for beginning of object key string",
 	"path": "rc/noop",
 	"status": 400
 }
@@ -141,8 +141,8 @@ func TestRC(t *testing.T) {
 		ContentType: "application/x-www-form-urlencoded",
 		Status:      http.StatusBadRequest,
 		Expected: `{
-	"error": "parse form/URL parameters: invalid URL escape \"%zz\"",
 	"input": null,
+	"message": "parse form/URL parameters: invalid URL escape \"%zz\"",
 	"path": "rc/noop",
 	"status": 400
 }
@@ -159,8 +159,8 @@ func TestMethods(t *testing.T) {
 		Method: "POTATO",
 		Status: http.StatusMethodNotAllowed,
 		Expected: `{
-	"error": "method \"POTATO\" not allowed",
 	"input": null,
+	"message": "method \"POTATO\" not allowed",
 	"path": "",
 	"status": 405
 }
@@ -175,13 +175,13 @@ func TestNoFiles(t *testing.T) {
 		Name:   "file",
 		URL:    "file.txt",
 		Status: http.StatusNotFound,
-		Expected: `{"error": "Not found", "status": 404}
+		Expected: `{"message": "Not found", "status": 404}
 `,
 	}, {
 		Name:   "dir",
 		URL:    "dir/",
 		Status: http.StatusNotFound,
-		Expected: `{"error": "Not found", "status": 404}
+		Expected: `{"message": "Not found", "status": 404}
 `,
 	}}
 
@@ -193,13 +193,13 @@ func TestNoServe(t *testing.T) {
 		Name:   "file",
 		URL:    "/file.txt",
 		Status: http.StatusNotFound,
-		Expected: `{"error": "Not found", "status": 404}
+		Expected: `{"message": "Not found", "status": 404}
 `,
 	}, {
 		Name:   "dir",
 		URL:    "/dir/",
 		Status: http.StatusNotFound,
-		Expected: `{"error": "Not found", "status": 404}
+		Expected: `{"message": "Not found", "status": 404}
 `,
 	}}
 
@@ -223,10 +223,10 @@ func TestRCAsync(t *testing.T) {
 		Body:        `{ "_async":"truthy" }`,
 		Status:      http.StatusBadRequest,
 		Expected: `{
-	"error": "couldn't parse key \"_async\" (truthy) as bool: strconv.ParseBool: parsing \"truthy\": invalid syntax",
 	"input": {
 		"_async": "truthy"
 	},
+	"message": "couldn't parse key \"_async\" (truthy) as bool: strconv.ParseBool: parsing \"truthy\": invalid syntax",
 	"path": "rc/noop",
 	"status": 400
 }

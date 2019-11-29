@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRowCacheKeysToSaveOK struct {
 	Payload int64
 }
 
-func (o *FindConfigRowCacheKeysToSaveOK) Error() string {
-	return fmt.Sprintf("[GET /config/row_cache_keys_to_save][%d] findConfigRowCacheKeysToSaveOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRowCacheKeysToSaveOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRowCacheKeysToSaveDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRowCacheKeysToSaveDefault) Error() string {
-	return fmt.Sprintf("[GET /config/row_cache_keys_to_save][%d] find_config_row_cache_keys_to_save default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRowCacheKeysToSaveDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRowCacheKeysToSaveDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigRowCacheKeysToSaveDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

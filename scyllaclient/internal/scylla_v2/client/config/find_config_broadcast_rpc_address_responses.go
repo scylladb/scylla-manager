@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigBroadcastRPCAddressOK struct {
 	Payload string
 }
 
-func (o *FindConfigBroadcastRPCAddressOK) Error() string {
-	return fmt.Sprintf("[GET /config/broadcast_rpc_address][%d] findConfigBroadcastRpcAddressOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigBroadcastRPCAddressOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigBroadcastRPCAddressDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigBroadcastRPCAddressDefault) Error() string {
-	return fmt.Sprintf("[GET /config/broadcast_rpc_address][%d] find_config_broadcast_rpc_address default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigBroadcastRPCAddressDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigBroadcastRPCAddressDefault) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+func (o *FindConfigBroadcastRPCAddressDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

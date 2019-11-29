@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMemtableOffheapSpaceInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigMemtableOffheapSpaceInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_offheap_space_in_mb][%d] findConfigMemtableOffheapSpaceInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMemtableOffheapSpaceInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMemtableOffheapSpaceInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMemtableOffheapSpaceInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_offheap_space_in_mb][%d] find_config_memtable_offheap_space_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMemtableOffheapSpaceInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMemtableOffheapSpaceInMbDefault) readResponse(response runtim
 	}
 
 	return nil
+}
+
+func (o *FindConfigMemtableOffheapSpaceInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // CommitlogRecoverByPathPostReader is a Reader for the CommitlogRecoverByPathPost structure.
@@ -27,9 +31,15 @@ func (o *CommitlogRecoverByPathPostReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCommitlogRecoverByPathPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ CommitlogRecoverByPathPostOK commitlog recover by path post o k
 type CommitlogRecoverByPathPostOK struct {
 }
 
-func (o *CommitlogRecoverByPathPostOK) Error() string {
-	return fmt.Sprintf("[POST /commitlog/recover/{path}][%d] commitlogRecoverByPathPostOK ", 200)
-}
-
 func (o *CommitlogRecoverByPathPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewCommitlogRecoverByPathPostDefault creates a CommitlogRecoverByPathPostDefault with default headers values
+func NewCommitlogRecoverByPathPostDefault(code int) *CommitlogRecoverByPathPostDefault {
+	return &CommitlogRecoverByPathPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*CommitlogRecoverByPathPostDefault handles this case with default header values.
+
+internal server error
+*/
+type CommitlogRecoverByPathPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the commitlog recover by path post default response
+func (o *CommitlogRecoverByPathPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CommitlogRecoverByPathPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CommitlogRecoverByPathPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CommitlogRecoverByPathPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

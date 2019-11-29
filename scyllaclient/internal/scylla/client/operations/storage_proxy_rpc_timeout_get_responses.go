@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyRPCTimeoutGetReader is a Reader for the StorageProxyRPCTimeoutGet structure.
@@ -28,9 +31,15 @@ func (o *StorageProxyRPCTimeoutGetReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyRPCTimeoutGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageProxyRPCTimeoutGetOK struct {
 	Payload interface{}
 }
 
-func (o *StorageProxyRPCTimeoutGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_proxy/rpc_timeout][%d] storageProxyRpcTimeoutGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageProxyRPCTimeoutGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageProxyRPCTimeoutGetOK) readResponse(response runtime.ClientRespon
 	}
 
 	return nil
+}
+
+// NewStorageProxyRPCTimeoutGetDefault creates a StorageProxyRPCTimeoutGetDefault with default headers values
+func NewStorageProxyRPCTimeoutGetDefault(code int) *StorageProxyRPCTimeoutGetDefault {
+	return &StorageProxyRPCTimeoutGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyRPCTimeoutGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyRPCTimeoutGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy Rpc timeout get default response
+func (o *StorageProxyRPCTimeoutGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyRPCTimeoutGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyRPCTimeoutGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyRPCTimeoutGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

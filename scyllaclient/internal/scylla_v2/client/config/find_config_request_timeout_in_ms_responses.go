@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRequestTimeoutInMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigRequestTimeoutInMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/request_timeout_in_ms][%d] findConfigRequestTimeoutInMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRequestTimeoutInMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRequestTimeoutInMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRequestTimeoutInMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/request_timeout_in_ms][%d] find_config_request_timeout_in_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRequestTimeoutInMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRequestTimeoutInMsDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigRequestTimeoutInMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

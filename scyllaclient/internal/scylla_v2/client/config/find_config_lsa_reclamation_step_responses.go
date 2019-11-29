@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigLsaReclamationStepOK struct {
 	Payload int64
 }
 
-func (o *FindConfigLsaReclamationStepOK) Error() string {
-	return fmt.Sprintf("[GET /config/lsa_reclamation_step][%d] findConfigLsaReclamationStepOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigLsaReclamationStepOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigLsaReclamationStepDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigLsaReclamationStepDefault) Error() string {
-	return fmt.Sprintf("[GET /config/lsa_reclamation_step][%d] find_config_lsa_reclamation_step default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigLsaReclamationStepDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigLsaReclamationStepDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigLsaReclamationStepDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

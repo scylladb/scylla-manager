@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigEnableDangerousDirectImportOfCassandraCountersOK struct {
 	Payload bool
 }
 
-func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersOK) Error() string {
-	return fmt.Sprintf("[GET /config/enable_dangerous_direct_import_of_cassandra_counters][%d] findConfigEnableDangerousDirectImportOfCassandraCountersOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) Code()
 	return o._statusCode
 }
 
-func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) Error() string {
-	return fmt.Sprintf("[GET /config/enable_dangerous_direct_import_of_cassandra_counters][%d] find_config_enable_dangerous_direct_import_of_cassandra_counters default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) readRe
 	}
 
 	return nil
+}
+
+func (o *FindConfigEnableDangerousDirectImportOfCassandraCountersDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *CompactionManagerCompactionInfoGetReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCompactionManagerCompactionInfoGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type CompactionManagerCompactionInfoGetOK struct {
 	Payload []*models.CompactionInfo
 }
 
-func (o *CompactionManagerCompactionInfoGetOK) Error() string {
-	return fmt.Sprintf("[GET /compaction_manager/compaction_info][%d] compactionManagerCompactionInfoGetOK  %+v", 200, o.Payload)
-}
-
 func (o *CompactionManagerCompactionInfoGetOK) GetPayload() []*models.CompactionInfo {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *CompactionManagerCompactionInfoGetOK) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+// NewCompactionManagerCompactionInfoGetDefault creates a CompactionManagerCompactionInfoGetDefault with default headers values
+func NewCompactionManagerCompactionInfoGetDefault(code int) *CompactionManagerCompactionInfoGetDefault {
+	return &CompactionManagerCompactionInfoGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CompactionManagerCompactionInfoGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CompactionManagerCompactionInfoGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the compaction manager compaction info get default response
+func (o *CompactionManagerCompactionInfoGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CompactionManagerCompactionInfoGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CompactionManagerCompactionInfoGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CompactionManagerCompactionInfoGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceStreamThroughputPostReader is a Reader for the StorageServiceStreamThroughputPost structure.
@@ -27,9 +31,15 @@ func (o *StorageServiceStreamThroughputPostReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceStreamThroughputPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageServiceStreamThroughputPostOK storage service stream throughput post o k
 type StorageServiceStreamThroughputPostOK struct {
 }
 
-func (o *StorageServiceStreamThroughputPostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_service/stream_throughput][%d] storageServiceStreamThroughputPostOK ", 200)
-}
-
 func (o *StorageServiceStreamThroughputPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageServiceStreamThroughputPostDefault creates a StorageServiceStreamThroughputPostDefault with default headers values
+func NewStorageServiceStreamThroughputPostDefault(code int) *StorageServiceStreamThroughputPostDefault {
+	return &StorageServiceStreamThroughputPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceStreamThroughputPostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceStreamThroughputPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service stream throughput post default response
+func (o *StorageServiceStreamThroughputPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceStreamThroughputPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceStreamThroughputPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceStreamThroughputPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

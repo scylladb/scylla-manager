@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigDynamicSnitchResetIntervalInMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigDynamicSnitchResetIntervalInMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/dynamic_snitch_reset_interval_in_ms][%d] findConfigDynamicSnitchResetIntervalInMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigDynamicSnitchResetIntervalInMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigDynamicSnitchResetIntervalInMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigDynamicSnitchResetIntervalInMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/dynamic_snitch_reset_interval_in_ms][%d] find_config_dynamic_snitch_reset_interval_in_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigDynamicSnitchResetIntervalInMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigDynamicSnitchResetIntervalInMsDefault) readResponse(response 
 	}
 
 	return nil
+}
+
+func (o *FindConfigDynamicSnitchResetIntervalInMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

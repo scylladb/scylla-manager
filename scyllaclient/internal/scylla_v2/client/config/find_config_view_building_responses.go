@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigViewBuildingOK struct {
 	Payload bool
 }
 
-func (o *FindConfigViewBuildingOK) Error() string {
-	return fmt.Sprintf("[GET /config/view_building][%d] findConfigViewBuildingOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigViewBuildingOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigViewBuildingDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigViewBuildingDefault) Error() string {
-	return fmt.Sprintf("[GET /config/view_building][%d] find_config_view_building default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigViewBuildingDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigViewBuildingDefault) readResponse(response runtime.ClientResp
 	}
 
 	return nil
+}
+
+func (o *FindConfigViewBuildingDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

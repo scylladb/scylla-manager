@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigNativeTransportMaxThreadsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigNativeTransportMaxThreadsOK) Error() string {
-	return fmt.Sprintf("[GET /config/native_transport_max_threads][%d] findConfigNativeTransportMaxThreadsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigNativeTransportMaxThreadsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigNativeTransportMaxThreadsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigNativeTransportMaxThreadsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/native_transport_max_threads][%d] find_config_native_transport_max_threads default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigNativeTransportMaxThreadsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigNativeTransportMaxThreadsDefault) readResponse(response runti
 	}
 
 	return nil
+}
+
+func (o *FindConfigNativeTransportMaxThreadsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

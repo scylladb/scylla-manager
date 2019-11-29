@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigLoggerLogLevelOK struct {
 	Payload []string
 }
 
-func (o *FindConfigLoggerLogLevelOK) Error() string {
-	return fmt.Sprintf("[GET /config/logger_log_level][%d] findConfigLoggerLogLevelOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigLoggerLogLevelOK) GetPayload() []string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigLoggerLogLevelDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigLoggerLogLevelDefault) Error() string {
-	return fmt.Sprintf("[GET /config/logger_log_level][%d] find_config_logger_log_level default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigLoggerLogLevelDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigLoggerLogLevelDefault) readResponse(response runtime.ClientRe
 	}
 
 	return nil
+}
+
+func (o *FindConfigLoggerLogLevelDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

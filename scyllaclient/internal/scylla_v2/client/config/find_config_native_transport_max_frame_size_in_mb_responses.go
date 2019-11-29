@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigNativeTransportMaxFrameSizeInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigNativeTransportMaxFrameSizeInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/native_transport_max_frame_size_in_mb][%d] findConfigNativeTransportMaxFrameSizeInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigNativeTransportMaxFrameSizeInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/native_transport_max_frame_size_in_mb][%d] find_config_native_transport_max_frame_size_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) readResponse(response
 	}
 
 	return nil
+}
+
+func (o *FindConfigNativeTransportMaxFrameSizeInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

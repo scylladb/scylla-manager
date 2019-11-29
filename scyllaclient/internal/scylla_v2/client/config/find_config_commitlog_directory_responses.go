@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCommitlogDirectoryOK struct {
 	Payload string
 }
 
-func (o *FindConfigCommitlogDirectoryOK) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_directory][%d] findConfigCommitlogDirectoryOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCommitlogDirectoryOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCommitlogDirectoryDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitlogDirectoryDefault) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_directory][%d] find_config_commitlog_directory default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCommitlogDirectoryDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCommitlogDirectoryDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigCommitlogDirectoryDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

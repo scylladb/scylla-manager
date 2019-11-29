@@ -4,6 +4,7 @@ package httpmw
 
 import (
 	"crypto/subtle"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -41,9 +42,10 @@ func FixContentType(next http.RoundTripper) http.RoundTripper {
 // ValidateAuthToken is http server middleware that checks if Authorization
 // header contains `Bearer token`.
 // If not the execution would be held for the penalty duration and then 401
-// status code would be returned.
+// status code with provided body would be returned.
 // If token is empty it immediately returns the next handler.
-func ValidateAuthToken(token string, penalty time.Duration) func(http.Handler) http.Handler {
+func ValidateAuthToken(token string, penalty time.Duration,
+	unauthorizedBody json.RawMessage) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		if token == "" {
 			return next
@@ -55,6 +57,7 @@ func ValidateAuthToken(token string, penalty time.Duration) func(http.Handler) h
 					time.Sleep(penalty)
 				}
 				w.WriteHeader(http.StatusUnauthorized)
+				w.Write(unauthorizedBody) // nolint:errcheck
 			} else {
 				next.ServeHTTP(w, r)
 			}

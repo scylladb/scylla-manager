@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigBatchlogReplayThrottleInKbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigBatchlogReplayThrottleInKbOK) Error() string {
-	return fmt.Sprintf("[GET /config/batchlog_replay_throttle_in_kb][%d] findConfigBatchlogReplayThrottleInKbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigBatchlogReplayThrottleInKbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigBatchlogReplayThrottleInKbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigBatchlogReplayThrottleInKbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/batchlog_replay_throttle_in_kb][%d] find_config_batchlog_replay_throttle_in_kb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigBatchlogReplayThrottleInKbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigBatchlogReplayThrottleInKbDefault) readResponse(response runt
 	}
 
 	return nil
+}
+
+func (o *FindConfigBatchlogReplayThrottleInKbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

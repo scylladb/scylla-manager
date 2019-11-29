@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigEnableShardAwareDriversOK struct {
 	Payload bool
 }
 
-func (o *FindConfigEnableShardAwareDriversOK) Error() string {
-	return fmt.Sprintf("[GET /config/enable_shard_aware_drivers][%d] findConfigEnableShardAwareDriversOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigEnableShardAwareDriversOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigEnableShardAwareDriversDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigEnableShardAwareDriversDefault) Error() string {
-	return fmt.Sprintf("[GET /config/enable_shard_aware_drivers][%d] find_config_enable_shard_aware_drivers default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigEnableShardAwareDriversDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigEnableShardAwareDriversDefault) readResponse(response runtime
 	}
 
 	return nil
+}
+
+func (o *FindConfigEnableShardAwareDriversDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

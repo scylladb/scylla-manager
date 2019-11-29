@@ -185,6 +185,20 @@ func FormatMultiHostError(msg, prefix string) string {
 	return r.ReplaceAllString(msg, "\n"+prefix+"${1}: ")
 }
 
+// AddFailedToPrefix adds "failed to" prefix to error message if needed.
+func AddFailedToPrefix(msg string) string {
+	r := regexp.MustCompile(`^(([0-9]{1,3}\.){3}[0-9]{1,3}): `)
+	if r.MatchString(msg) {
+		return msg
+	}
+
+	if strings.HasPrefix(msg, "failed to") {
+		return msg
+	}
+
+	return "failed to " + msg
+}
+
 // FormatTables returns tables listing if number of tables is lower than
 // threshold. It prints (n tables) or (table_a, table_b, ...).
 func FormatTables(threshold int, tables []string, all bool) string {

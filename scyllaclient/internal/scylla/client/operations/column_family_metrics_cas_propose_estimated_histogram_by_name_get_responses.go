@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetReader is a Reader for the ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet structure.
@@ -27,9 +31,15 @@ func (o *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetReader) ReadRes
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK column family metrics
 type ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK struct {
 }
 
-func (o *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/cas_propose/estimated_histogram/{name}][%d] columnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK ", 200)
-}
-
 func (o *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault creates a ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault with default headers values
+func NewColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault(code int) *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault {
+	return &ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics cas propose estimated histogram by name get default response
+func (o *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

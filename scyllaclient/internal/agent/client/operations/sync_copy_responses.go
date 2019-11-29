@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/swag"
@@ -31,21 +32,15 @@ func (o *SyncCopyReader) ReadResponse(response runtime.ClientResponse, consumer 
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewSyncCopyNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewSyncCopyInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewSyncCopyDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -60,10 +55,6 @@ Job ID
 */
 type SyncCopyOK struct {
 	Payload *models.Jobid
-}
-
-func (o *SyncCopyOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/sync/copy][%d] syncCopyOK  %+v", 200, o.Payload)
 }
 
 func (o *SyncCopyOK) GetPayload() *models.Jobid {
@@ -82,61 +73,33 @@ func (o *SyncCopyOK) readResponse(response runtime.ClientResponse, consumer runt
 	return nil
 }
 
-// NewSyncCopyNotFound creates a SyncCopyNotFound with default headers values
-func NewSyncCopyNotFound() *SyncCopyNotFound {
-	return &SyncCopyNotFound{}
-}
-
-/*SyncCopyNotFound handles this case with default header values.
-
-Not found
-*/
-type SyncCopyNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *SyncCopyNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/sync/copy][%d] syncCopyNotFound  %+v", 404, o.Payload)
-}
-
-func (o *SyncCopyNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *SyncCopyNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewSyncCopyDefault creates a SyncCopyDefault with default headers values
+func NewSyncCopyDefault(code int) *SyncCopyDefault {
+	return &SyncCopyDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewSyncCopyInternalServerError creates a SyncCopyInternalServerError with default headers values
-func NewSyncCopyInternalServerError() *SyncCopyInternalServerError {
-	return &SyncCopyInternalServerError{}
-}
-
-/*SyncCopyInternalServerError handles this case with default header values.
+/*SyncCopyDefault handles this case with default header values.
 
 Server error
 */
-type SyncCopyInternalServerError struct {
+type SyncCopyDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *SyncCopyInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/sync/copy][%d] syncCopyInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the sync copy default response
+func (o *SyncCopyDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *SyncCopyInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *SyncCopyDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *SyncCopyInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *SyncCopyDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -146,6 +109,10 @@ func (o *SyncCopyInternalServerError) readResponse(response runtime.ClientRespon
 	}
 
 	return nil
+}
+
+func (o *SyncCopyDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }
 
 /*SyncCopyBody sync copy body

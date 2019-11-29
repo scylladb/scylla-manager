@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *CoreStatsReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewCoreStatsNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewCoreStatsInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCoreStatsDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ Current transfers
 */
 type CoreStatsOK struct {
 	Payload *models.Stats
-}
-
-func (o *CoreStatsOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/stats][%d] coreStatsOK  %+v", 200, o.Payload)
 }
 
 func (o *CoreStatsOK) GetPayload() *models.Stats {
@@ -81,61 +72,33 @@ func (o *CoreStatsOK) readResponse(response runtime.ClientResponse, consumer run
 	return nil
 }
 
-// NewCoreStatsNotFound creates a CoreStatsNotFound with default headers values
-func NewCoreStatsNotFound() *CoreStatsNotFound {
-	return &CoreStatsNotFound{}
-}
-
-/*CoreStatsNotFound handles this case with default header values.
-
-Not found
-*/
-type CoreStatsNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *CoreStatsNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/stats][%d] coreStatsNotFound  %+v", 404, o.Payload)
-}
-
-func (o *CoreStatsNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *CoreStatsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewCoreStatsDefault creates a CoreStatsDefault with default headers values
+func NewCoreStatsDefault(code int) *CoreStatsDefault {
+	return &CoreStatsDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewCoreStatsInternalServerError creates a CoreStatsInternalServerError with default headers values
-func NewCoreStatsInternalServerError() *CoreStatsInternalServerError {
-	return &CoreStatsInternalServerError{}
-}
-
-/*CoreStatsInternalServerError handles this case with default header values.
+/*CoreStatsDefault handles this case with default header values.
 
 Server error
 */
-type CoreStatsInternalServerError struct {
+type CoreStatsDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *CoreStatsInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/stats][%d] coreStatsInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the core stats default response
+func (o *CoreStatsDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *CoreStatsInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *CoreStatsDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *CoreStatsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CoreStatsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *CoreStatsInternalServerError) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+func (o *CoreStatsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

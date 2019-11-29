@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigTrickleFsyncOK struct {
 	Payload bool
 }
 
-func (o *FindConfigTrickleFsyncOK) Error() string {
-	return fmt.Sprintf("[GET /config/trickle_fsync][%d] findConfigTrickleFsyncOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigTrickleFsyncOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigTrickleFsyncDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigTrickleFsyncDefault) Error() string {
-	return fmt.Sprintf("[GET /config/trickle_fsync][%d] find_config_trickle_fsync default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigTrickleFsyncDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigTrickleFsyncDefault) readResponse(response runtime.ClientResp
 	}
 
 	return nil
+}
+
+func (o *FindConfigTrickleFsyncDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

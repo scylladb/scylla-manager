@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigReplaceTokenOK struct {
 	Payload string
 }
 
-func (o *FindConfigReplaceTokenOK) Error() string {
-	return fmt.Sprintf("[GET /config/replace_token][%d] findConfigReplaceTokenOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigReplaceTokenOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigReplaceTokenDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigReplaceTokenDefault) Error() string {
-	return fmt.Sprintf("[GET /config/replace_token][%d] find_config_replace_token default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigReplaceTokenDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigReplaceTokenDefault) readResponse(response runtime.ClientResp
 	}
 
 	return nil
+}
+
+func (o *FindConfigReplaceTokenDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

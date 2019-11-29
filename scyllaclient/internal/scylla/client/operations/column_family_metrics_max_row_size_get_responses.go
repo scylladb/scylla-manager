@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsMaxRowSizeGetReader is a Reader for the ColumnFamilyMetricsMaxRowSizeGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsMaxRowSizeGetReader) ReadResponse(response runtime.C
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsMaxRowSizeGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsMaxRowSizeGetOK struct {
 	Payload interface{}
 }
 
-func (o *ColumnFamilyMetricsMaxRowSizeGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/max_row_size][%d] columnFamilyMetricsMaxRowSizeGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsMaxRowSizeGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsMaxRowSizeGetOK) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsMaxRowSizeGetDefault creates a ColumnFamilyMetricsMaxRowSizeGetDefault with default headers values
+func NewColumnFamilyMetricsMaxRowSizeGetDefault(code int) *ColumnFamilyMetricsMaxRowSizeGetDefault {
+	return &ColumnFamilyMetricsMaxRowSizeGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsMaxRowSizeGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsMaxRowSizeGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics max row size get default response
+func (o *ColumnFamilyMetricsMaxRowSizeGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsMaxRowSizeGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsMaxRowSizeGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsMaxRowSizeGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

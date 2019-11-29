@@ -32,8 +32,12 @@ func printError(w io.Writer, err error) {
 	})
 	if ok {
 		p := v.GetPayload()
-		fmt.Fprintf(w, "Error: failed to %s\n", mermaidclient.FormatMultiHostError(p.Message, " "))
-		fmt.Fprintf(w, "Trace ID: %s (for more info grep logs for this)\n", p.TraceID)
+
+		msg := p.Message
+		msg = mermaidclient.FormatMultiHostError(msg, " ")
+		msg = mermaidclient.AddFailedToPrefix(msg)
+		fmt.Fprintf(w, "Error: %s\n", msg)
+		fmt.Fprintf(w, "(for more info grep logs for trace ID: %s)\n", p.TraceID)
 	} else {
 		fmt.Fprintf(w, "Error: %s\n", err)
 	}

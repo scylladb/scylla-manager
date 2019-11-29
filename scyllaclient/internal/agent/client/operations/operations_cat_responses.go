@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *OperationsCatReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewOperationsCatNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewOperationsCatInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewOperationsCatDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ File system details
 */
 type OperationsCatOK struct {
 	Payload *models.Content
-}
-
-func (o *OperationsCatOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/cat][%d] operationsCatOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsCatOK) GetPayload() *models.Content {
@@ -81,61 +72,33 @@ func (o *OperationsCatOK) readResponse(response runtime.ClientResponse, consumer
 	return nil
 }
 
-// NewOperationsCatNotFound creates a OperationsCatNotFound with default headers values
-func NewOperationsCatNotFound() *OperationsCatNotFound {
-	return &OperationsCatNotFound{}
-}
-
-/*OperationsCatNotFound handles this case with default header values.
-
-Not found
-*/
-type OperationsCatNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *OperationsCatNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/cat][%d] operationsCatNotFound  %+v", 404, o.Payload)
-}
-
-func (o *OperationsCatNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *OperationsCatNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewOperationsCatDefault creates a OperationsCatDefault with default headers values
+func NewOperationsCatDefault(code int) *OperationsCatDefault {
+	return &OperationsCatDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewOperationsCatInternalServerError creates a OperationsCatInternalServerError with default headers values
-func NewOperationsCatInternalServerError() *OperationsCatInternalServerError {
-	return &OperationsCatInternalServerError{}
-}
-
-/*OperationsCatInternalServerError handles this case with default header values.
+/*OperationsCatDefault handles this case with default header values.
 
 Server error
 */
-type OperationsCatInternalServerError struct {
+type OperationsCatDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *OperationsCatInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/cat][%d] operationsCatInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the operations cat default response
+func (o *OperationsCatDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *OperationsCatInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *OperationsCatDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *OperationsCatInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *OperationsCatDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *OperationsCatInternalServerError) readResponse(response runtime.ClientR
 	}
 
 	return nil
+}
+
+func (o *OperationsCatDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

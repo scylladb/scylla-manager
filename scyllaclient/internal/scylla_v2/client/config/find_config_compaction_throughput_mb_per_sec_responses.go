@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCompactionThroughputMbPerSecOK struct {
 	Payload int64
 }
 
-func (o *FindConfigCompactionThroughputMbPerSecOK) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_throughput_mb_per_sec][%d] findConfigCompactionThroughputMbPerSecOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCompactionThroughputMbPerSecOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCompactionThroughputMbPerSecDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCompactionThroughputMbPerSecDefault) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_throughput_mb_per_sec][%d] find_config_compaction_throughput_mb_per_sec default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCompactionThroughputMbPerSecDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCompactionThroughputMbPerSecDefault) readResponse(response ru
 	}
 
 	return nil
+}
+
+func (o *FindConfigCompactionThroughputMbPerSecDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

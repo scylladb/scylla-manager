@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigReduceCacheSizesAtOK struct {
 	Payload float64
 }
 
-func (o *FindConfigReduceCacheSizesAtOK) Error() string {
-	return fmt.Sprintf("[GET /config/reduce_cache_sizes_at][%d] findConfigReduceCacheSizesAtOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigReduceCacheSizesAtOK) GetPayload() float64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigReduceCacheSizesAtDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigReduceCacheSizesAtDefault) Error() string {
-	return fmt.Sprintf("[GET /config/reduce_cache_sizes_at][%d] find_config_reduce_cache_sizes_at default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigReduceCacheSizesAtDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigReduceCacheSizesAtDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigReduceCacheSizesAtDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

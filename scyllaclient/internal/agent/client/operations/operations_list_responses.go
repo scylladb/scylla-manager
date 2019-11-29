@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -33,21 +34,15 @@ func (o *OperationsListReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewOperationsListNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewOperationsListInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewOperationsListDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -62,10 +57,6 @@ List of items
 */
 type OperationsListOK struct {
 	Payload *OperationsListOKBody
-}
-
-func (o *OperationsListOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/list][%d] operationsListOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsListOK) GetPayload() *OperationsListOKBody {
@@ -84,61 +75,33 @@ func (o *OperationsListOK) readResponse(response runtime.ClientResponse, consume
 	return nil
 }
 
-// NewOperationsListNotFound creates a OperationsListNotFound with default headers values
-func NewOperationsListNotFound() *OperationsListNotFound {
-	return &OperationsListNotFound{}
-}
-
-/*OperationsListNotFound handles this case with default header values.
-
-Not found
-*/
-type OperationsListNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *OperationsListNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/list][%d] operationsListNotFound  %+v", 404, o.Payload)
-}
-
-func (o *OperationsListNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *OperationsListNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewOperationsListDefault creates a OperationsListDefault with default headers values
+func NewOperationsListDefault(code int) *OperationsListDefault {
+	return &OperationsListDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewOperationsListInternalServerError creates a OperationsListInternalServerError with default headers values
-func NewOperationsListInternalServerError() *OperationsListInternalServerError {
-	return &OperationsListInternalServerError{}
-}
-
-/*OperationsListInternalServerError handles this case with default header values.
+/*OperationsListDefault handles this case with default header values.
 
 Server error
 */
-type OperationsListInternalServerError struct {
+type OperationsListDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *OperationsListInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/list][%d] operationsListInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the operations list default response
+func (o *OperationsListDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *OperationsListInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *OperationsListDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *OperationsListInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *OperationsListDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -148,6 +111,10 @@ func (o *OperationsListInternalServerError) readResponse(response runtime.Client
 	}
 
 	return nil
+}
+
+func (o *OperationsListDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }
 
 /*OperationsListOKBody operations list o k body

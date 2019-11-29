@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // CommitLogMetricsWaitingOnCommitGetReader is a Reader for the CommitLogMetricsWaitingOnCommitGet structure.
@@ -27,9 +31,15 @@ func (o *CommitLogMetricsWaitingOnCommitGetReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCommitLogMetricsWaitingOnCommitGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ CommitLogMetricsWaitingOnCommitGetOK commit log metrics waiting on commit get o 
 type CommitLogMetricsWaitingOnCommitGetOK struct {
 }
 
-func (o *CommitLogMetricsWaitingOnCommitGetOK) Error() string {
-	return fmt.Sprintf("[GET /commit_log/metrics/waiting_on_commit][%d] commitLogMetricsWaitingOnCommitGetOK ", 200)
-}
-
 func (o *CommitLogMetricsWaitingOnCommitGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewCommitLogMetricsWaitingOnCommitGetDefault creates a CommitLogMetricsWaitingOnCommitGetDefault with default headers values
+func NewCommitLogMetricsWaitingOnCommitGetDefault(code int) *CommitLogMetricsWaitingOnCommitGetDefault {
+	return &CommitLogMetricsWaitingOnCommitGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CommitLogMetricsWaitingOnCommitGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CommitLogMetricsWaitingOnCommitGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the commit log metrics waiting on commit get default response
+func (o *CommitLogMetricsWaitingOnCommitGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CommitLogMetricsWaitingOnCommitGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CommitLogMetricsWaitingOnCommitGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CommitLogMetricsWaitingOnCommitGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

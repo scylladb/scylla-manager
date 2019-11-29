@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *StorageServiceLoadMapGetReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceLoadMapGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type StorageServiceLoadMapGetOK struct {
 	Payload []*models.MapStringDouble
 }
 
-func (o *StorageServiceLoadMapGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_service/load_map][%d] storageServiceLoadMapGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageServiceLoadMapGetOK) GetPayload() []*models.MapStringDouble {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *StorageServiceLoadMapGetOK) readResponse(response runtime.ClientRespons
 	}
 
 	return nil
+}
+
+// NewStorageServiceLoadMapGetDefault creates a StorageServiceLoadMapGetDefault with default headers values
+func NewStorageServiceLoadMapGetDefault(code int) *StorageServiceLoadMapGetDefault {
+	return &StorageServiceLoadMapGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceLoadMapGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceLoadMapGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service load map get default response
+func (o *StorageServiceLoadMapGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceLoadMapGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceLoadMapGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceLoadMapGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

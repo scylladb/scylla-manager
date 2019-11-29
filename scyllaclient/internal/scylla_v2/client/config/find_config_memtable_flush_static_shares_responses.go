@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMemtableFlushStaticSharesOK struct {
 	Payload float64
 }
 
-func (o *FindConfigMemtableFlushStaticSharesOK) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_flush_static_shares][%d] findConfigMemtableFlushStaticSharesOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMemtableFlushStaticSharesOK) GetPayload() float64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMemtableFlushStaticSharesDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMemtableFlushStaticSharesDefault) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_flush_static_shares][%d] find_config_memtable_flush_static_shares default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMemtableFlushStaticSharesDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMemtableFlushStaticSharesDefault) readResponse(response runti
 	}
 
 	return nil
+}
+
+func (o *FindConfigMemtableFlushStaticSharesDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

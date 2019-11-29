@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigVolatileSystemKeyspaceForTestingOK struct {
 	Payload bool
 }
 
-func (o *FindConfigVolatileSystemKeyspaceForTestingOK) Error() string {
-	return fmt.Sprintf("[GET /config/volatile_system_keyspace_for_testing][%d] findConfigVolatileSystemKeyspaceForTestingOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigVolatileSystemKeyspaceForTestingOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) Error() string {
-	return fmt.Sprintf("[GET /config/volatile_system_keyspace_for_testing][%d] find_config_volatile_system_keyspace_for_testing default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) readResponse(respons
 	}
 
 	return nil
+}
+
+func (o *FindConfigVolatileSystemKeyspaceForTestingDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMaxHintWindowInMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigMaxHintWindowInMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/max_hint_window_in_ms][%d] findConfigMaxHintWindowInMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMaxHintWindowInMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMaxHintWindowInMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMaxHintWindowInMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/max_hint_window_in_ms][%d] find_config_max_hint_window_in_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMaxHintWindowInMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMaxHintWindowInMsDefault) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+func (o *FindConfigMaxHintWindowInMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

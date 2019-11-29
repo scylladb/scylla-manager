@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigSnapshotBeforeCompactionOK struct {
 	Payload bool
 }
 
-func (o *FindConfigSnapshotBeforeCompactionOK) Error() string {
-	return fmt.Sprintf("[GET /config/snapshot_before_compaction][%d] findConfigSnapshotBeforeCompactionOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigSnapshotBeforeCompactionOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigSnapshotBeforeCompactionDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigSnapshotBeforeCompactionDefault) Error() string {
-	return fmt.Sprintf("[GET /config/snapshot_before_compaction][%d] find_config_snapshot_before_compaction default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigSnapshotBeforeCompactionDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigSnapshotBeforeCompactionDefault) readResponse(response runtim
 	}
 
 	return nil
+}
+
+func (o *FindConfigSnapshotBeforeCompactionDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

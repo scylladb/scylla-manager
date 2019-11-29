@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigAuthenticatorOK struct {
 	Payload string
 }
 
-func (o *FindConfigAuthenticatorOK) Error() string {
-	return fmt.Sprintf("[GET /config/authenticator][%d] findConfigAuthenticatorOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigAuthenticatorOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigAuthenticatorDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigAuthenticatorDefault) Error() string {
-	return fmt.Sprintf("[GET /config/authenticator][%d] find_config_authenticator default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigAuthenticatorDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigAuthenticatorDefault) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+func (o *FindConfigAuthenticatorDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCompactionStaticSharesOK struct {
 	Payload float64
 }
 
-func (o *FindConfigCompactionStaticSharesOK) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_static_shares][%d] findConfigCompactionStaticSharesOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCompactionStaticSharesOK) GetPayload() float64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCompactionStaticSharesDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCompactionStaticSharesDefault) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_static_shares][%d] find_config_compaction_static_shares default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCompactionStaticSharesDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCompactionStaticSharesDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigCompactionStaticSharesDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyCasContentionTimeoutGetReader is a Reader for the StorageProxyCasContentionTimeoutGet structure.
@@ -28,9 +31,15 @@ func (o *StorageProxyCasContentionTimeoutGetReader) ReadResponse(response runtim
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyCasContentionTimeoutGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageProxyCasContentionTimeoutGetOK struct {
 	Payload interface{}
 }
 
-func (o *StorageProxyCasContentionTimeoutGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_proxy/cas_contention_timeout][%d] storageProxyCasContentionTimeoutGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageProxyCasContentionTimeoutGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageProxyCasContentionTimeoutGetOK) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+// NewStorageProxyCasContentionTimeoutGetDefault creates a StorageProxyCasContentionTimeoutGetDefault with default headers values
+func NewStorageProxyCasContentionTimeoutGetDefault(code int) *StorageProxyCasContentionTimeoutGetDefault {
+	return &StorageProxyCasContentionTimeoutGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyCasContentionTimeoutGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyCasContentionTimeoutGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy cas contention timeout get default response
+func (o *StorageProxyCasContentionTimeoutGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyCasContentionTimeoutGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyCasContentionTimeoutGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyCasContentionTimeoutGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *OperationsPurgeReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewOperationsPurgeNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewOperationsPurgeInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewOperationsPurgeDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ Job ID
 */
 type OperationsPurgeOK struct {
 	Payload *models.Jobid
-}
-
-func (o *OperationsPurgeOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/purge][%d] operationsPurgeOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsPurgeOK) GetPayload() *models.Jobid {
@@ -81,61 +72,33 @@ func (o *OperationsPurgeOK) readResponse(response runtime.ClientResponse, consum
 	return nil
 }
 
-// NewOperationsPurgeNotFound creates a OperationsPurgeNotFound with default headers values
-func NewOperationsPurgeNotFound() *OperationsPurgeNotFound {
-	return &OperationsPurgeNotFound{}
-}
-
-/*OperationsPurgeNotFound handles this case with default header values.
-
-Not found
-*/
-type OperationsPurgeNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *OperationsPurgeNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/purge][%d] operationsPurgeNotFound  %+v", 404, o.Payload)
-}
-
-func (o *OperationsPurgeNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *OperationsPurgeNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewOperationsPurgeDefault creates a OperationsPurgeDefault with default headers values
+func NewOperationsPurgeDefault(code int) *OperationsPurgeDefault {
+	return &OperationsPurgeDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewOperationsPurgeInternalServerError creates a OperationsPurgeInternalServerError with default headers values
-func NewOperationsPurgeInternalServerError() *OperationsPurgeInternalServerError {
-	return &OperationsPurgeInternalServerError{}
-}
-
-/*OperationsPurgeInternalServerError handles this case with default header values.
+/*OperationsPurgeDefault handles this case with default header values.
 
 Server error
 */
-type OperationsPurgeInternalServerError struct {
+type OperationsPurgeDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *OperationsPurgeInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/purge][%d] operationsPurgeInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the operations purge default response
+func (o *OperationsPurgeDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *OperationsPurgeInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *OperationsPurgeDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *OperationsPurgeInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *OperationsPurgeDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *OperationsPurgeInternalServerError) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+func (o *OperationsPurgeDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

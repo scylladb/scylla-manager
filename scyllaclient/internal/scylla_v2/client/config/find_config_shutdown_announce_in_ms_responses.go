@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigShutdownAnnounceInMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigShutdownAnnounceInMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/shutdown_announce_in_ms][%d] findConfigShutdownAnnounceInMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigShutdownAnnounceInMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigShutdownAnnounceInMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigShutdownAnnounceInMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/shutdown_announce_in_ms][%d] find_config_shutdown_announce_in_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigShutdownAnnounceInMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigShutdownAnnounceInMsDefault) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *FindConfigShutdownAnnounceInMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

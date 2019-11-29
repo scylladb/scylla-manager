@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRequestSchedulerOK struct {
 	Payload string
 }
 
-func (o *FindConfigRequestSchedulerOK) Error() string {
-	return fmt.Sprintf("[GET /config/request_scheduler][%d] findConfigRequestSchedulerOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRequestSchedulerOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRequestSchedulerDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRequestSchedulerDefault) Error() string {
-	return fmt.Sprintf("[GET /config/request_scheduler][%d] find_config_request_scheduler default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRequestSchedulerDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRequestSchedulerDefault) readResponse(response runtime.Client
 	}
 
 	return nil
+}
+
+func (o *FindConfigRequestSchedulerDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

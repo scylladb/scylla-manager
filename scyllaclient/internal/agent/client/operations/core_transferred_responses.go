@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -33,21 +34,15 @@ func (o *CoreTransferredReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewCoreTransferredNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewCoreTransferredInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCoreTransferredDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -62,10 +57,6 @@ Completed transfers
 */
 type CoreTransferredOK struct {
 	Payload *CoreTransferredOKBody
-}
-
-func (o *CoreTransferredOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/transferred][%d] coreTransferredOK  %+v", 200, o.Payload)
 }
 
 func (o *CoreTransferredOK) GetPayload() *CoreTransferredOKBody {
@@ -84,61 +75,33 @@ func (o *CoreTransferredOK) readResponse(response runtime.ClientResponse, consum
 	return nil
 }
 
-// NewCoreTransferredNotFound creates a CoreTransferredNotFound with default headers values
-func NewCoreTransferredNotFound() *CoreTransferredNotFound {
-	return &CoreTransferredNotFound{}
-}
-
-/*CoreTransferredNotFound handles this case with default header values.
-
-Not found
-*/
-type CoreTransferredNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *CoreTransferredNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/transferred][%d] coreTransferredNotFound  %+v", 404, o.Payload)
-}
-
-func (o *CoreTransferredNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *CoreTransferredNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewCoreTransferredDefault creates a CoreTransferredDefault with default headers values
+func NewCoreTransferredDefault(code int) *CoreTransferredDefault {
+	return &CoreTransferredDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewCoreTransferredInternalServerError creates a CoreTransferredInternalServerError with default headers values
-func NewCoreTransferredInternalServerError() *CoreTransferredInternalServerError {
-	return &CoreTransferredInternalServerError{}
-}
-
-/*CoreTransferredInternalServerError handles this case with default header values.
+/*CoreTransferredDefault handles this case with default header values.
 
 Server error
 */
-type CoreTransferredInternalServerError struct {
+type CoreTransferredDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *CoreTransferredInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/transferred][%d] coreTransferredInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the core transferred default response
+func (o *CoreTransferredDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *CoreTransferredInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *CoreTransferredDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *CoreTransferredInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CoreTransferredDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -148,6 +111,10 @@ func (o *CoreTransferredInternalServerError) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+func (o *CoreTransferredDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }
 
 /*CoreTransferredOKBody core transferred o k body

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCommitlogTotalSpaceInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigCommitlogTotalSpaceInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_total_space_in_mb][%d] findConfigCommitlogTotalSpaceInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCommitlogTotalSpaceInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCommitlogTotalSpaceInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitlogTotalSpaceInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_total_space_in_mb][%d] find_config_commitlog_total_space_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCommitlogTotalSpaceInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCommitlogTotalSpaceInMbDefault) readResponse(response runtime
 	}
 
 	return nil
+}
+
+func (o *FindConfigCommitlogTotalSpaceInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

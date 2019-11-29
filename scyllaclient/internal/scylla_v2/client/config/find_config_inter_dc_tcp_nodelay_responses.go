@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigInterDcTCPNodelayOK struct {
 	Payload bool
 }
 
-func (o *FindConfigInterDcTCPNodelayOK) Error() string {
-	return fmt.Sprintf("[GET /config/inter_dc_tcp_nodelay][%d] findConfigInterDcTcpNodelayOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigInterDcTCPNodelayOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigInterDcTCPNodelayDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigInterDcTCPNodelayDefault) Error() string {
-	return fmt.Sprintf("[GET /config/inter_dc_tcp_nodelay][%d] find_config_inter_dc_tcp_nodelay default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigInterDcTCPNodelayDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigInterDcTCPNodelayDefault) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+func (o *FindConfigInterDcTCPNodelayDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

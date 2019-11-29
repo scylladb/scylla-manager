@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceNodesJoiningGetReader is a Reader for the StorageServiceNodesJoiningGet structure.
@@ -28,9 +31,15 @@ func (o *StorageServiceNodesJoiningGetReader) ReadResponse(response runtime.Clie
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceNodesJoiningGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageServiceNodesJoiningGetOK struct {
 	Payload []string
 }
 
-func (o *StorageServiceNodesJoiningGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_service/nodes/joining][%d] storageServiceNodesJoiningGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageServiceNodesJoiningGetOK) GetPayload() []string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageServiceNodesJoiningGetOK) readResponse(response runtime.ClientRe
 	}
 
 	return nil
+}
+
+// NewStorageServiceNodesJoiningGetDefault creates a StorageServiceNodesJoiningGetDefault with default headers values
+func NewStorageServiceNodesJoiningGetDefault(code int) *StorageServiceNodesJoiningGetDefault {
+	return &StorageServiceNodesJoiningGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceNodesJoiningGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceNodesJoiningGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service nodes joining get default response
+func (o *StorageServiceNodesJoiningGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceNodesJoiningGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceNodesJoiningGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceNodesJoiningGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

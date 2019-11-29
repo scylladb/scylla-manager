@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMemtableFlushQueueSizeOK struct {
 	Payload int64
 }
 
-func (o *FindConfigMemtableFlushQueueSizeOK) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_flush_queue_size][%d] findConfigMemtableFlushQueueSizeOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMemtableFlushQueueSizeOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMemtableFlushQueueSizeDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMemtableFlushQueueSizeDefault) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_flush_queue_size][%d] find_config_memtable_flush_queue_size default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMemtableFlushQueueSizeDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMemtableFlushQueueSizeDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigMemtableFlushQueueSizeDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

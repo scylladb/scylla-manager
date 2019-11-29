@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMemtableAllocationTypeOK struct {
 	Payload string
 }
 
-func (o *FindConfigMemtableAllocationTypeOK) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_allocation_type][%d] findConfigMemtableAllocationTypeOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMemtableAllocationTypeOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMemtableAllocationTypeDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMemtableAllocationTypeDefault) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_allocation_type][%d] find_config_memtable_allocation_type default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMemtableAllocationTypeDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMemtableAllocationTypeDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigMemtableAllocationTypeDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

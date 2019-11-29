@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRowCacheSizeInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigRowCacheSizeInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/row_cache_size_in_mb][%d] findConfigRowCacheSizeInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRowCacheSizeInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRowCacheSizeInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRowCacheSizeInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/row_cache_size_in_mb][%d] find_config_row_cache_size_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRowCacheSizeInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRowCacheSizeInMbDefault) readResponse(response runtime.Client
 	}
 
 	return nil
+}
+
+func (o *FindConfigRowCacheSizeInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

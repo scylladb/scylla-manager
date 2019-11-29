@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetReader is a Reader for the ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetReader) ReadResponse(resp
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK struct {
 	Payload interface{}
 }
 
-func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/bloom_filter_disk_space_used][%d] columnFamilyMetricsBloomFilterDiskSpaceUsedGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK) readResponse(response
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault creates a ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault with default headers values
+func NewColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault(code int) *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault {
+	return &ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics bloom filter disk space used get default response
+func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

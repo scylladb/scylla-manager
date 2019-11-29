@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *OperationsMovefileReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewOperationsMovefileNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewOperationsMovefileInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewOperationsMovefileDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ Job
 */
 type OperationsMovefileOK struct {
 	Payload *models.Jobid
-}
-
-func (o *OperationsMovefileOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/movefile][%d] operationsMovefileOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsMovefileOK) GetPayload() *models.Jobid {
@@ -81,61 +72,33 @@ func (o *OperationsMovefileOK) readResponse(response runtime.ClientResponse, con
 	return nil
 }
 
-// NewOperationsMovefileNotFound creates a OperationsMovefileNotFound with default headers values
-func NewOperationsMovefileNotFound() *OperationsMovefileNotFound {
-	return &OperationsMovefileNotFound{}
-}
-
-/*OperationsMovefileNotFound handles this case with default header values.
-
-Not found
-*/
-type OperationsMovefileNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *OperationsMovefileNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/movefile][%d] operationsMovefileNotFound  %+v", 404, o.Payload)
-}
-
-func (o *OperationsMovefileNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *OperationsMovefileNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewOperationsMovefileDefault creates a OperationsMovefileDefault with default headers values
+func NewOperationsMovefileDefault(code int) *OperationsMovefileDefault {
+	return &OperationsMovefileDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewOperationsMovefileInternalServerError creates a OperationsMovefileInternalServerError with default headers values
-func NewOperationsMovefileInternalServerError() *OperationsMovefileInternalServerError {
-	return &OperationsMovefileInternalServerError{}
-}
-
-/*OperationsMovefileInternalServerError handles this case with default header values.
+/*OperationsMovefileDefault handles this case with default header values.
 
 Server error
 */
-type OperationsMovefileInternalServerError struct {
+type OperationsMovefileDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *OperationsMovefileInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/movefile][%d] operationsMovefileInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the operations movefile default response
+func (o *OperationsMovefileDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *OperationsMovefileInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *OperationsMovefileDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *OperationsMovefileInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *OperationsMovefileDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *OperationsMovefileInternalServerError) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *OperationsMovefileDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigIndexSummaryResizeIntervalInMinutesOK struct {
 	Payload int64
 }
 
-func (o *FindConfigIndexSummaryResizeIntervalInMinutesOK) Error() string {
-	return fmt.Sprintf("[GET /config/index_summary_resize_interval_in_minutes][%d] findConfigIndexSummaryResizeIntervalInMinutesOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigIndexSummaryResizeIntervalInMinutesOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) Error() string {
-	return fmt.Sprintf("[GET /config/index_summary_resize_interval_in_minutes][%d] find_config_index_summary_resize_interval_in_minutes default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) readResponse(resp
 	}
 
 	return nil
+}
+
+func (o *FindConfigIndexSummaryResizeIntervalInMinutesDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigPartitionerOK struct {
 	Payload string
 }
 
-func (o *FindConfigPartitionerOK) Error() string {
-	return fmt.Sprintf("[GET /config/partitioner][%d] findConfigPartitionerOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigPartitionerOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigPartitionerDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigPartitionerDefault) Error() string {
-	return fmt.Sprintf("[GET /config/partitioner][%d] find_config_partitioner default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigPartitionerDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigPartitionerDefault) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+func (o *FindConfigPartitionerDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

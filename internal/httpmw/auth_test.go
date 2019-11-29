@@ -3,10 +3,14 @@
 package httpmw
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestParseBearerAuth(t *testing.T) {
@@ -59,7 +63,7 @@ func TestValidateAuthTokenMiddlewareNoToken(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 	w := httptest.NewRecorder()
 
-	ValidateAuthToken("", 0)(h).ServeHTTP(w, r)
+	ValidateAuthToken("", 0, nil)(h).ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Error("expected status 200 got", w)
 	}
@@ -74,7 +78,7 @@ func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
 	r.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ValidateAuthToken(token, 0)(h).ServeHTTP(w, r)
+	ValidateAuthToken(token, 0, nil)(h).ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Error("expected status 200 got", w)
 	}
@@ -90,10 +94,19 @@ func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
 	verify := func(t *testing.T, r *http.Request, penalty time.Duration) {
 		t.Helper()
 
+		var bodyError = json.RawMessage(`{"message":"unauthorized","code":401}`)
+
 		w := httptest.NewRecorder()
-		ValidateAuthToken("token", penalty)(h).ServeHTTP(w, r)
+		ValidateAuthToken("token", penalty, bodyError)(h).ServeHTTP(w, r)
 		if w.Code != http.StatusUnauthorized {
 			t.Error("expected status 401 got", w)
+		}
+		responseBody, err := ioutil.ReadAll(ioutil.NopCloser(w.Result().Body))
+		if err != nil {
+			t.Error("expected nil err, got", err)
+		}
+		if cmp.Diff(string(responseBody), string(bodyError)) != "" {
+			t.Error("wrong response body, got", string(responseBody))
 		}
 	}
 
@@ -126,7 +139,7 @@ func TestCrossCheckAuthTokenMiddleware(t *testing.T) {
 
 	var h http.Handler
 	h = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-	h = ValidateAuthToken(token, 0)(h)
+	h = ValidateAuthToken(token, 0, nil)(h)
 
 	var rt http.RoundTripper
 	rt = RoundTripperFunc(func(r *http.Request) (*http.Response, error) {

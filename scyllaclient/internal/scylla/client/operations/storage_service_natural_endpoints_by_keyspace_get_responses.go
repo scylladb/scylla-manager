@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceNaturalEndpointsByKeyspaceGetReader is a Reader for the StorageServiceNaturalEndpointsByKeyspaceGet structure.
@@ -28,9 +31,15 @@ func (o *StorageServiceNaturalEndpointsByKeyspaceGetReader) ReadResponse(respons
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceNaturalEndpointsByKeyspaceGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageServiceNaturalEndpointsByKeyspaceGetOK struct {
 	Payload []string
 }
 
-func (o *StorageServiceNaturalEndpointsByKeyspaceGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_service/natural_endpoints/{keyspace}][%d] storageServiceNaturalEndpointsByKeyspaceGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageServiceNaturalEndpointsByKeyspaceGetOK) GetPayload() []string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageServiceNaturalEndpointsByKeyspaceGetOK) readResponse(response ru
 	}
 
 	return nil
+}
+
+// NewStorageServiceNaturalEndpointsByKeyspaceGetDefault creates a StorageServiceNaturalEndpointsByKeyspaceGetDefault with default headers values
+func NewStorageServiceNaturalEndpointsByKeyspaceGetDefault(code int) *StorageServiceNaturalEndpointsByKeyspaceGetDefault {
+	return &StorageServiceNaturalEndpointsByKeyspaceGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceNaturalEndpointsByKeyspaceGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceNaturalEndpointsByKeyspaceGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service natural endpoints by keyspace get default response
+func (o *StorageServiceNaturalEndpointsByKeyspaceGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceNaturalEndpointsByKeyspaceGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceNaturalEndpointsByKeyspaceGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceNaturalEndpointsByKeyspaceGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCommitlogUseODsyncOK struct {
 	Payload bool
 }
 
-func (o *FindConfigCommitlogUseODsyncOK) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_use_o_dsync][%d] findConfigCommitlogUseODsyncOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCommitlogUseODsyncOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCommitlogUseoDsyncDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitlogUseoDsyncDefault) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_use_o_dsync][%d] find_config_commitlog_use_o_dsync default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCommitlogUseoDsyncDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCommitlogUseoDsyncDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigCommitlogUseoDsyncDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

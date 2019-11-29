@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *OperationsAboutReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewOperationsAboutNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewOperationsAboutInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewOperationsAboutDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ File system details
 */
 type OperationsAboutOK struct {
 	Payload *models.FileSystemDetails
-}
-
-func (o *OperationsAboutOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/about][%d] operationsAboutOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsAboutOK) GetPayload() *models.FileSystemDetails {
@@ -81,61 +72,33 @@ func (o *OperationsAboutOK) readResponse(response runtime.ClientResponse, consum
 	return nil
 }
 
-// NewOperationsAboutNotFound creates a OperationsAboutNotFound with default headers values
-func NewOperationsAboutNotFound() *OperationsAboutNotFound {
-	return &OperationsAboutNotFound{}
-}
-
-/*OperationsAboutNotFound handles this case with default header values.
-
-Not found
-*/
-type OperationsAboutNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *OperationsAboutNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/about][%d] operationsAboutNotFound  %+v", 404, o.Payload)
-}
-
-func (o *OperationsAboutNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *OperationsAboutNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewOperationsAboutDefault creates a OperationsAboutDefault with default headers values
+func NewOperationsAboutDefault(code int) *OperationsAboutDefault {
+	return &OperationsAboutDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewOperationsAboutInternalServerError creates a OperationsAboutInternalServerError with default headers values
-func NewOperationsAboutInternalServerError() *OperationsAboutInternalServerError {
-	return &OperationsAboutInternalServerError{}
-}
-
-/*OperationsAboutInternalServerError handles this case with default header values.
+/*OperationsAboutDefault handles this case with default header values.
 
 Server error
 */
-type OperationsAboutInternalServerError struct {
+type OperationsAboutDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *OperationsAboutInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/about][%d] operationsAboutInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the operations about default response
+func (o *OperationsAboutDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *OperationsAboutInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *OperationsAboutDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *OperationsAboutInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *OperationsAboutDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *OperationsAboutInternalServerError) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+func (o *OperationsAboutDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

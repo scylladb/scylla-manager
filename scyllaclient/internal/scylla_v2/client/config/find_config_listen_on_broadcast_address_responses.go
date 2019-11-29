@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigListenOnBroadcastAddressOK struct {
 	Payload bool
 }
 
-func (o *FindConfigListenOnBroadcastAddressOK) Error() string {
-	return fmt.Sprintf("[GET /config/listen_on_broadcast_address][%d] findConfigListenOnBroadcastAddressOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigListenOnBroadcastAddressOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigListenOnBroadcastAddressDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigListenOnBroadcastAddressDefault) Error() string {
-	return fmt.Sprintf("[GET /config/listen_on_broadcast_address][%d] find_config_listen_on_broadcast_address default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigListenOnBroadcastAddressDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigListenOnBroadcastAddressDefault) readResponse(response runtim
 	}
 
 	return nil
+}
+
+func (o *FindConfigListenOnBroadcastAddressDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

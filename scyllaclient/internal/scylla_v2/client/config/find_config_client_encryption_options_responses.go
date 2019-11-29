@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigClientEncryptionOptionsOK struct {
 	Payload []string
 }
 
-func (o *FindConfigClientEncryptionOptionsOK) Error() string {
-	return fmt.Sprintf("[GET /config/client_encryption_options][%d] findConfigClientEncryptionOptionsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigClientEncryptionOptionsOK) GetPayload() []string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigClientEncryptionOptionsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigClientEncryptionOptionsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/client_encryption_options][%d] find_config_client_encryption_options default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigClientEncryptionOptionsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigClientEncryptionOptionsDefault) readResponse(response runtime
 	}
 
 	return nil
+}
+
+func (o *FindConfigClientEncryptionOptionsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

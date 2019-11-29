@@ -4883,7 +4883,10 @@
     "ErrorModel": {
       "type": "object",
       "properties": {
-        "result": {
+        "message": {
+          "type": "string"
+        },
+        "code": {
           "type": "integer"
         }
       }

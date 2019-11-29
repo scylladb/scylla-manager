@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyReadRepairAttemptedGetReader is a Reader for the StorageProxyReadRepairAttemptedGet structure.
@@ -28,9 +31,15 @@ func (o *StorageProxyReadRepairAttemptedGetReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyReadRepairAttemptedGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageProxyReadRepairAttemptedGetOK struct {
 	Payload interface{}
 }
 
-func (o *StorageProxyReadRepairAttemptedGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_proxy/read_repair_attempted][%d] storageProxyReadRepairAttemptedGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageProxyReadRepairAttemptedGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageProxyReadRepairAttemptedGetOK) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+// NewStorageProxyReadRepairAttemptedGetDefault creates a StorageProxyReadRepairAttemptedGetDefault with default headers values
+func NewStorageProxyReadRepairAttemptedGetDefault(code int) *StorageProxyReadRepairAttemptedGetDefault {
+	return &StorageProxyReadRepairAttemptedGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyReadRepairAttemptedGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyReadRepairAttemptedGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy read repair attempted get default response
+func (o *StorageProxyReadRepairAttemptedGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyReadRepairAttemptedGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyReadRepairAttemptedGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyReadRepairAttemptedGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

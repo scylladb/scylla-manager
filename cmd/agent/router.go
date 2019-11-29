@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -15,6 +16,8 @@ import (
 	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
+
+var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)
 
 func newRouter(config config, rclone http.Handler, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
@@ -29,7 +32,7 @@ func newRouter(config config, rclone http.Handler, logger log.Logger) http.Handl
 
 	// Restricted access endpoints
 	priv := r.With(
-		httpmw.ValidateAuthToken(config.AuthToken, time.Second),
+		httpmw.ValidateAuthToken(config.AuthToken, time.Second, unauthorizedErrorBody),
 	)
 	// Agent specific
 	priv.Get("/agent/node_info", nodeInfo(net.JoinHostPort(config.Scylla.APIAddress, config.Scylla.APIPort)))

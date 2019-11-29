@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyCompactionStrategyByNameGetReader is a Reader for the ColumnFamilyCompactionStrategyByNameGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyCompactionStrategyByNameGetReader) ReadResponse(response ru
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyCompactionStrategyByNameGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyCompactionStrategyByNameGetOK struct {
 	Payload string
 }
 
-func (o *ColumnFamilyCompactionStrategyByNameGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/compaction_strategy/{name}][%d] columnFamilyCompactionStrategyByNameGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyCompactionStrategyByNameGetOK) GetPayload() string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyCompactionStrategyByNameGetOK) readResponse(response runtim
 	}
 
 	return nil
+}
+
+// NewColumnFamilyCompactionStrategyByNameGetDefault creates a ColumnFamilyCompactionStrategyByNameGetDefault with default headers values
+func NewColumnFamilyCompactionStrategyByNameGetDefault(code int) *ColumnFamilyCompactionStrategyByNameGetDefault {
+	return &ColumnFamilyCompactionStrategyByNameGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyCompactionStrategyByNameGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyCompactionStrategyByNameGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family compaction strategy by name get default response
+func (o *ColumnFamilyCompactionStrategyByNameGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyCompactionStrategyByNameGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyCompactionStrategyByNameGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyCompactionStrategyByNameGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

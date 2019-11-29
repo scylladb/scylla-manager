@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigEnableDeprecatedPartitionersOK struct {
 	Payload bool
 }
 
-func (o *FindConfigEnableDeprecatedPartitionersOK) Error() string {
-	return fmt.Sprintf("[GET /config/enable_deprecated_partitioners][%d] findConfigEnableDeprecatedPartitionersOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigEnableDeprecatedPartitionersOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigEnableDeprecatedPartitionersDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigEnableDeprecatedPartitionersDefault) Error() string {
-	return fmt.Sprintf("[GET /config/enable_deprecated_partitioners][%d] find_config_enable_deprecated_partitioners default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigEnableDeprecatedPartitionersDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigEnableDeprecatedPartitionersDefault) readResponse(response ru
 	}
 
 	return nil
+}
+
+func (o *FindConfigEnableDeprecatedPartitionersDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

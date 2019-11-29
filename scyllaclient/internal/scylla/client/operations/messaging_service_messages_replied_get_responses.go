@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *MessagingServiceMessagesRepliedGetReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewMessagingServiceMessagesRepliedGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type MessagingServiceMessagesRepliedGetOK struct {
 	Payload []*models.MessageCounter
 }
 
-func (o *MessagingServiceMessagesRepliedGetOK) Error() string {
-	return fmt.Sprintf("[GET /messaging_service/messages/replied][%d] messagingServiceMessagesRepliedGetOK  %+v", 200, o.Payload)
-}
-
 func (o *MessagingServiceMessagesRepliedGetOK) GetPayload() []*models.MessageCounter {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *MessagingServiceMessagesRepliedGetOK) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+// NewMessagingServiceMessagesRepliedGetDefault creates a MessagingServiceMessagesRepliedGetDefault with default headers values
+func NewMessagingServiceMessagesRepliedGetDefault(code int) *MessagingServiceMessagesRepliedGetDefault {
+	return &MessagingServiceMessagesRepliedGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*MessagingServiceMessagesRepliedGetDefault handles this case with default header values.
+
+internal server error
+*/
+type MessagingServiceMessagesRepliedGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the messaging service messages replied get default response
+func (o *MessagingServiceMessagesRepliedGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *MessagingServiceMessagesRepliedGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *MessagingServiceMessagesRepliedGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *MessagingServiceMessagesRepliedGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

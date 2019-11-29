@@ -297,7 +297,18 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 
 	// Check hosts connectivity.
 	if err := s.validateHostsConnectivity(ctx, c); err != nil {
-		return errors.Wrap(err, "make sure the IP is correct and access to port 10001 is unblocked")
+		var tip string
+		switch scyllaclient.StatusCodeOf(err) {
+		case 0:
+			tip = "make sure the IP is correct and access to port 10001 is unblocked"
+		case 401:
+			tip = "make sure auth_token config option on nodes is set correctly"
+		}
+		if tip != "" {
+			err = errors.Errorf("%s - %s", err, tip)
+		}
+
+		return err
 	}
 
 	// Rollback on error.

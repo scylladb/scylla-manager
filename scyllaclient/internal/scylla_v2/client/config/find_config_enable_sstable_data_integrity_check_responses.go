@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigEnableSstableDataIntegrityCheckOK struct {
 	Payload bool
 }
 
-func (o *FindConfigEnableSstableDataIntegrityCheckOK) Error() string {
-	return fmt.Sprintf("[GET /config/enable_sstable_data_integrity_check][%d] findConfigEnableSstableDataIntegrityCheckOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigEnableSstableDataIntegrityCheckOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigEnableSstableDataIntegrityCheckDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigEnableSstableDataIntegrityCheckDefault) Error() string {
-	return fmt.Sprintf("[GET /config/enable_sstable_data_integrity_check][%d] find_config_enable_sstable_data_integrity_check default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigEnableSstableDataIntegrityCheckDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigEnableSstableDataIntegrityCheckDefault) readResponse(response
 	}
 
 	return nil
+}
+
+func (o *FindConfigEnableSstableDataIntegrityCheckDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

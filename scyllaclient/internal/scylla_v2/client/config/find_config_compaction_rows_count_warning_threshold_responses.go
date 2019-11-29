@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCompactionRowsCountWarningThresholdOK struct {
 	Payload int64
 }
 
-func (o *FindConfigCompactionRowsCountWarningThresholdOK) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_rows_count_warning_threshold][%d] findConfigCompactionRowsCountWarningThresholdOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCompactionRowsCountWarningThresholdOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCompactionRowsCountWarningThresholdDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCompactionRowsCountWarningThresholdDefault) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_rows_count_warning_threshold][%d] find_config_compaction_rows_count_warning_threshold default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCompactionRowsCountWarningThresholdDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCompactionRowsCountWarningThresholdDefault) readResponse(resp
 	}
 
 	return nil
+}
+
+func (o *FindConfigCompactionRowsCountWarningThresholdDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

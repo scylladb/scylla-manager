@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigReplaceAddressFirstBootOK struct {
 	Payload string
 }
 
-func (o *FindConfigReplaceAddressFirstBootOK) Error() string {
-	return fmt.Sprintf("[GET /config/replace_address_first_boot][%d] findConfigReplaceAddressFirstBootOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigReplaceAddressFirstBootOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigReplaceAddressFirstBootDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigReplaceAddressFirstBootDefault) Error() string {
-	return fmt.Sprintf("[GET /config/replace_address_first_boot][%d] find_config_replace_address_first_boot default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigReplaceAddressFirstBootDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigReplaceAddressFirstBootDefault) readResponse(response runtime
 	}
 
 	return nil
+}
+
+func (o *FindConfigReplaceAddressFirstBootDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

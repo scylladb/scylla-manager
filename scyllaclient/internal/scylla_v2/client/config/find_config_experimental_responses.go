@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigExperimentalOK struct {
 	Payload bool
 }
 
-func (o *FindConfigExperimentalOK) Error() string {
-	return fmt.Sprintf("[GET /config/experimental][%d] findConfigExperimentalOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigExperimentalOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigExperimentalDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigExperimentalDefault) Error() string {
-	return fmt.Sprintf("[GET /config/experimental][%d] find_config_experimental default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigExperimentalDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigExperimentalDefault) readResponse(response runtime.ClientResp
 	}
 
 	return nil
+}
+
+func (o *FindConfigExperimentalDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigAbortOnLsaBadAllocOK struct {
 	Payload bool
 }
 
-func (o *FindConfigAbortOnLsaBadAllocOK) Error() string {
-	return fmt.Sprintf("[GET /config/abort_on_lsa_bad_alloc][%d] findConfigAbortOnLsaBadAllocOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigAbortOnLsaBadAllocOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigAbortOnLsaBadAllocDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigAbortOnLsaBadAllocDefault) Error() string {
-	return fmt.Sprintf("[GET /config/abort_on_lsa_bad_alloc][%d] find_config_abort_on_lsa_bad_alloc default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigAbortOnLsaBadAllocDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigAbortOnLsaBadAllocDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigAbortOnLsaBadAllocDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

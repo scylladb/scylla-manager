@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceSnapshotsSizeTrueGetReader is a Reader for the StorageServiceSnapshotsSizeTrueGet structure.
@@ -28,9 +31,15 @@ func (o *StorageServiceSnapshotsSizeTrueGetReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceSnapshotsSizeTrueGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageServiceSnapshotsSizeTrueGetOK struct {
 	Payload interface{}
 }
 
-func (o *StorageServiceSnapshotsSizeTrueGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_service/snapshots/size/true][%d] storageServiceSnapshotsSizeTrueGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageServiceSnapshotsSizeTrueGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageServiceSnapshotsSizeTrueGetOK) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+// NewStorageServiceSnapshotsSizeTrueGetDefault creates a StorageServiceSnapshotsSizeTrueGetDefault with default headers values
+func NewStorageServiceSnapshotsSizeTrueGetDefault(code int) *StorageServiceSnapshotsSizeTrueGetDefault {
+	return &StorageServiceSnapshotsSizeTrueGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceSnapshotsSizeTrueGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceSnapshotsSizeTrueGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service snapshots size true get default response
+func (o *StorageServiceSnapshotsSizeTrueGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceSnapshotsSizeTrueGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceSnapshotsSizeTrueGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceSnapshotsSizeTrueGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

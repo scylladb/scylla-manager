@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCompactionEnforceMinThresholdOK struct {
 	Payload bool
 }
 
-func (o *FindConfigCompactionEnforceMinThresholdOK) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_enforce_min_threshold][%d] findConfigCompactionEnforceMinThresholdOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCompactionEnforceMinThresholdOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCompactionEnforceMinThresholdDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCompactionEnforceMinThresholdDefault) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_enforce_min_threshold][%d] find_config_compaction_enforce_min_threshold default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCompactionEnforceMinThresholdDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCompactionEnforceMinThresholdDefault) readResponse(response r
 	}
 
 	return nil
+}
+
+func (o *FindConfigCompactionEnforceMinThresholdDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

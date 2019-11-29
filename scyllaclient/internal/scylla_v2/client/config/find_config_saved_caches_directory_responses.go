@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigSavedCachesDirectoryOK struct {
 	Payload string
 }
 
-func (o *FindConfigSavedCachesDirectoryOK) Error() string {
-	return fmt.Sprintf("[GET /config/saved_caches_directory][%d] findConfigSavedCachesDirectoryOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigSavedCachesDirectoryOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigSavedCachesDirectoryDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigSavedCachesDirectoryDefault) Error() string {
-	return fmt.Sprintf("[GET /config/saved_caches_directory][%d] find_config_saved_caches_directory default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigSavedCachesDirectoryDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigSavedCachesDirectoryDefault) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *FindConfigSavedCachesDirectoryDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

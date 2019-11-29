@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCommitFailurePolicyOK struct {
 	Payload string
 }
 
-func (o *FindConfigCommitFailurePolicyOK) Error() string {
-	return fmt.Sprintf("[GET /config/commit_failure_policy][%d] findConfigCommitFailurePolicyOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCommitFailurePolicyOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCommitFailurePolicyDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitFailurePolicyDefault) Error() string {
-	return fmt.Sprintf("[GET /config/commit_failure_policy][%d] find_config_commit_failure_policy default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCommitFailurePolicyDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCommitFailurePolicyDefault) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+func (o *FindConfigCommitFailurePolicyDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

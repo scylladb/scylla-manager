@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsMeanRowSizeGetReader is a Reader for the ColumnFamilyMetricsMeanRowSizeGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsMeanRowSizeGetReader) ReadResponse(response runtime.
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsMeanRowSizeGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsMeanRowSizeGetOK struct {
 	Payload interface{}
 }
 
-func (o *ColumnFamilyMetricsMeanRowSizeGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/mean_row_size][%d] columnFamilyMetricsMeanRowSizeGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsMeanRowSizeGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsMeanRowSizeGetOK) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsMeanRowSizeGetDefault creates a ColumnFamilyMetricsMeanRowSizeGetDefault with default headers values
+func NewColumnFamilyMetricsMeanRowSizeGetDefault(code int) *ColumnFamilyMetricsMeanRowSizeGetDefault {
+	return &ColumnFamilyMetricsMeanRowSizeGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsMeanRowSizeGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsMeanRowSizeGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics mean row size get default response
+func (o *ColumnFamilyMetricsMeanRowSizeGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsMeanRowSizeGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsMeanRowSizeGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsMeanRowSizeGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

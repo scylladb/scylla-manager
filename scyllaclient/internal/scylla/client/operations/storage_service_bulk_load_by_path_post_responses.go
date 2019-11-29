@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceBulkLoadByPathPostReader is a Reader for the StorageServiceBulkLoadByPathPost structure.
@@ -27,9 +31,15 @@ func (o *StorageServiceBulkLoadByPathPostReader) ReadResponse(response runtime.C
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceBulkLoadByPathPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageServiceBulkLoadByPathPostOK storage service bulk load by path post o k
 type StorageServiceBulkLoadByPathPostOK struct {
 }
 
-func (o *StorageServiceBulkLoadByPathPostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_service/bulk_load/{path}][%d] storageServiceBulkLoadByPathPostOK ", 200)
-}
-
 func (o *StorageServiceBulkLoadByPathPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageServiceBulkLoadByPathPostDefault creates a StorageServiceBulkLoadByPathPostDefault with default headers values
+func NewStorageServiceBulkLoadByPathPostDefault(code int) *StorageServiceBulkLoadByPathPostDefault {
+	return &StorageServiceBulkLoadByPathPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceBulkLoadByPathPostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceBulkLoadByPathPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service bulk load by path post default response
+func (o *StorageServiceBulkLoadByPathPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceBulkLoadByPathPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceBulkLoadByPathPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceBulkLoadByPathPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

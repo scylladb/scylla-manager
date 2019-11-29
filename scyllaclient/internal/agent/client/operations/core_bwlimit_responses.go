@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *CoreBwlimitReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewCoreBwlimitNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewCoreBwlimitInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCoreBwlimitDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ bandwidth rate
 */
 type CoreBwlimitOK struct {
 	Payload *models.Bandwidth
-}
-
-func (o *CoreBwlimitOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/bwlimit][%d] coreBwlimitOK  %+v", 200, o.Payload)
 }
 
 func (o *CoreBwlimitOK) GetPayload() *models.Bandwidth {
@@ -81,61 +72,33 @@ func (o *CoreBwlimitOK) readResponse(response runtime.ClientResponse, consumer r
 	return nil
 }
 
-// NewCoreBwlimitNotFound creates a CoreBwlimitNotFound with default headers values
-func NewCoreBwlimitNotFound() *CoreBwlimitNotFound {
-	return &CoreBwlimitNotFound{}
-}
-
-/*CoreBwlimitNotFound handles this case with default header values.
-
-Not found
-*/
-type CoreBwlimitNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *CoreBwlimitNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/bwlimit][%d] coreBwlimitNotFound  %+v", 404, o.Payload)
-}
-
-func (o *CoreBwlimitNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *CoreBwlimitNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewCoreBwlimitDefault creates a CoreBwlimitDefault with default headers values
+func NewCoreBwlimitDefault(code int) *CoreBwlimitDefault {
+	return &CoreBwlimitDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewCoreBwlimitInternalServerError creates a CoreBwlimitInternalServerError with default headers values
-func NewCoreBwlimitInternalServerError() *CoreBwlimitInternalServerError {
-	return &CoreBwlimitInternalServerError{}
-}
-
-/*CoreBwlimitInternalServerError handles this case with default header values.
+/*CoreBwlimitDefault handles this case with default header values.
 
 Server error
 */
-type CoreBwlimitInternalServerError struct {
+type CoreBwlimitDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *CoreBwlimitInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/core/bwlimit][%d] coreBwlimitInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the core bwlimit default response
+func (o *CoreBwlimitDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *CoreBwlimitInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *CoreBwlimitDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *CoreBwlimitInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CoreBwlimitDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *CoreBwlimitInternalServerError) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+func (o *CoreBwlimitDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

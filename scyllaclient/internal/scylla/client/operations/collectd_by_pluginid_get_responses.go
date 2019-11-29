@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *CollectdByPluginidGetReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCollectdByPluginidGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type CollectdByPluginidGetOK struct {
 	Payload []*models.CollectdValue
 }
 
-func (o *CollectdByPluginidGetOK) Error() string {
-	return fmt.Sprintf("[GET /collectd/{pluginid}][%d] collectdByPluginidGetOK  %+v", 200, o.Payload)
-}
-
 func (o *CollectdByPluginidGetOK) GetPayload() []*models.CollectdValue {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *CollectdByPluginidGetOK) readResponse(response runtime.ClientResponse, 
 	}
 
 	return nil
+}
+
+// NewCollectdByPluginidGetDefault creates a CollectdByPluginidGetDefault with default headers values
+func NewCollectdByPluginidGetDefault(code int) *CollectdByPluginidGetDefault {
+	return &CollectdByPluginidGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CollectdByPluginidGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CollectdByPluginidGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the collectd by pluginid get default response
+func (o *CollectdByPluginidGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CollectdByPluginidGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CollectdByPluginidGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CollectdByPluginidGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

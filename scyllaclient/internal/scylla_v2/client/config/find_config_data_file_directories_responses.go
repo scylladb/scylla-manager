@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigDataFileDirectoriesOK struct {
 	Payload []string
 }
 
-func (o *FindConfigDataFileDirectoriesOK) Error() string {
-	return fmt.Sprintf("[GET /config/data_file_directories][%d] findConfigDataFileDirectoriesOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigDataFileDirectoriesOK) GetPayload() []string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigDataFileDirectoriesDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigDataFileDirectoriesDefault) Error() string {
-	return fmt.Sprintf("[GET /config/data_file_directories][%d] find_config_data_file_directories default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigDataFileDirectoriesDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigDataFileDirectoriesDefault) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+func (o *FindConfigDataFileDirectoriesDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

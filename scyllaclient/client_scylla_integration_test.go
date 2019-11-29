@@ -7,6 +7,8 @@ package scyllaclient_test
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +17,20 @@ import (
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/scyllaclient"
 )
+
+func TestClientAuthIntegration(t *testing.T) {
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), "wrong auth token"), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.Hosts(context.Background())
+	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusUnauthorized {
+		t.Fatal("expected unauthorized error")
+	}
+	if !strings.Contains(err.Error(), "check if Auth Token is correct") {
+		t.Fatal("expected error about wrong auth token, got", err.Error())
+	}
+}
 
 func TestClientActiveRepairsIntegration(t *testing.T) {
 	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())

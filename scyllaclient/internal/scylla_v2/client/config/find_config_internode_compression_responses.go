@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigInternodeCompressionOK struct {
 	Payload string
 }
 
-func (o *FindConfigInternodeCompressionOK) Error() string {
-	return fmt.Sprintf("[GET /config/internode_compression][%d] findConfigInternodeCompressionOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigInternodeCompressionOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigInternodeCompressionDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigInternodeCompressionDefault) Error() string {
-	return fmt.Sprintf("[GET /config/internode_compression][%d] find_config_internode_compression default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigInternodeCompressionDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigInternodeCompressionDefault) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *FindConfigInternodeCompressionDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

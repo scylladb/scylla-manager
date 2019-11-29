@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceRPCServerDeleteReader is a Reader for the StorageServiceRPCServerDelete structure.
@@ -27,9 +31,15 @@ func (o *StorageServiceRPCServerDeleteReader) ReadResponse(response runtime.Clie
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceRPCServerDeleteDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageServiceRPCServerDeleteOK storage service Rpc server delete o k
 type StorageServiceRPCServerDeleteOK struct {
 }
 
-func (o *StorageServiceRPCServerDeleteOK) Error() string {
-	return fmt.Sprintf("[DELETE /storage_service/rpc_server][%d] storageServiceRpcServerDeleteOK ", 200)
-}
-
 func (o *StorageServiceRPCServerDeleteOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageServiceRPCServerDeleteDefault creates a StorageServiceRPCServerDeleteDefault with default headers values
+func NewStorageServiceRPCServerDeleteDefault(code int) *StorageServiceRPCServerDeleteDefault {
+	return &StorageServiceRPCServerDeleteDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceRPCServerDeleteDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceRPCServerDeleteDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service Rpc server delete default response
+func (o *StorageServiceRPCServerDeleteDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceRPCServerDeleteDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceRPCServerDeleteDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceRPCServerDeleteDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

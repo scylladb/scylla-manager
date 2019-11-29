@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyMetricsRangeHistogramGetReader is a Reader for the StorageProxyMetricsRangeHistogramGet structure.
@@ -27,9 +31,15 @@ func (o *StorageProxyMetricsRangeHistogramGetReader) ReadResponse(response runti
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyMetricsRangeHistogramGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageProxyMetricsRangeHistogramGetOK storage proxy metrics range histogram get
 type StorageProxyMetricsRangeHistogramGetOK struct {
 }
 
-func (o *StorageProxyMetricsRangeHistogramGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_proxy/metrics/range/histogram][%d] storageProxyMetricsRangeHistogramGetOK ", 200)
-}
-
 func (o *StorageProxyMetricsRangeHistogramGetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageProxyMetricsRangeHistogramGetDefault creates a StorageProxyMetricsRangeHistogramGetDefault with default headers values
+func NewStorageProxyMetricsRangeHistogramGetDefault(code int) *StorageProxyMetricsRangeHistogramGetDefault {
+	return &StorageProxyMetricsRangeHistogramGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyMetricsRangeHistogramGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyMetricsRangeHistogramGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy metrics range histogram get default response
+func (o *StorageProxyMetricsRangeHistogramGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyMetricsRangeHistogramGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyMetricsRangeHistogramGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyMetricsRangeHistogramGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

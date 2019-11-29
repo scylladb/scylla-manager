@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigBatchSizeFailThresholdInKbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigBatchSizeFailThresholdInKbOK) Error() string {
-	return fmt.Sprintf("[GET /config/batch_size_fail_threshold_in_kb][%d] findConfigBatchSizeFailThresholdInKbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigBatchSizeFailThresholdInKbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigBatchSizeFailThresholdInKbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigBatchSizeFailThresholdInKbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/batch_size_fail_threshold_in_kb][%d] find_config_batch_size_fail_threshold_in_kb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigBatchSizeFailThresholdInKbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigBatchSizeFailThresholdInKbDefault) readResponse(response runt
 	}
 
 	return nil
+}
+
+func (o *FindConfigBatchSizeFailThresholdInKbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

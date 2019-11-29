@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigStoragePortOK struct {
 	Payload int64
 }
 
-func (o *FindConfigStoragePortOK) Error() string {
-	return fmt.Sprintf("[GET /config/storage_port][%d] findConfigStoragePortOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigStoragePortOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigStoragePortDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigStoragePortDefault) Error() string {
-	return fmt.Sprintf("[GET /config/storage_port][%d] find_config_storage_port default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigStoragePortDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigStoragePortDefault) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+func (o *FindConfigStoragePortDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

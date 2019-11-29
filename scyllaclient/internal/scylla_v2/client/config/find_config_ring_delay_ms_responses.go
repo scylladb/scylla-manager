@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRingDelayMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigRingDelayMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/ring_delay_ms][%d] findConfigRingDelayMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRingDelayMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRingDelayMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRingDelayMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/ring_delay_ms][%d] find_config_ring_delay_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRingDelayMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRingDelayMsDefault) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+func (o *FindConfigRingDelayMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

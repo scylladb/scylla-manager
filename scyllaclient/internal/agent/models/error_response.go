@@ -17,11 +17,11 @@ import (
 // swagger:model ErrorResponse
 type ErrorResponse struct {
 
-	// Error description
-	Error string `json:"error,omitempty"`
-
 	// Map of request parameters
 	Input interface{} `json:"input,omitempty"`
+
+	// Error description
+	Message string `json:"message,omitempty"`
 
 	// Requested path
 	Path string `json:"path,omitempty"`

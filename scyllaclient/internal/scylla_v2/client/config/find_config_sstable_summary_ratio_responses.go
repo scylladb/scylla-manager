@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigSstableSummaryRatioOK struct {
 	Payload float64
 }
 
-func (o *FindConfigSstableSummaryRatioOK) Error() string {
-	return fmt.Sprintf("[GET /config/sstable_summary_ratio][%d] findConfigSstableSummaryRatioOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigSstableSummaryRatioOK) GetPayload() float64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigSstableSummaryRatioDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigSstableSummaryRatioDefault) Error() string {
-	return fmt.Sprintf("[GET /config/sstable_summary_ratio][%d] find_config_sstable_summary_ratio default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigSstableSummaryRatioDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigSstableSummaryRatioDefault) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+func (o *FindConfigSstableSummaryRatioDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

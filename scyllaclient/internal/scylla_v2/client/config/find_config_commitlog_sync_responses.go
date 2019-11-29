@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCommitlogSyncOK struct {
 	Payload string
 }
 
-func (o *FindConfigCommitlogSyncOK) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_sync][%d] findConfigCommitlogSyncOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCommitlogSyncOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCommitlogSyncDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitlogSyncDefault) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_sync][%d] find_config_commitlog_sync default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCommitlogSyncDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCommitlogSyncDefault) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+func (o *FindConfigCommitlogSyncDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

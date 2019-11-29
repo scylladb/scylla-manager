@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *OperationsCopyfileReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewOperationsCopyfileNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewOperationsCopyfileInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewOperationsCopyfileDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ Job
 */
 type OperationsCopyfileOK struct {
 	Payload *models.Jobid
-}
-
-func (o *OperationsCopyfileOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/copyfile][%d] operationsCopyfileOK  %+v", 200, o.Payload)
 }
 
 func (o *OperationsCopyfileOK) GetPayload() *models.Jobid {
@@ -81,61 +72,33 @@ func (o *OperationsCopyfileOK) readResponse(response runtime.ClientResponse, con
 	return nil
 }
 
-// NewOperationsCopyfileNotFound creates a OperationsCopyfileNotFound with default headers values
-func NewOperationsCopyfileNotFound() *OperationsCopyfileNotFound {
-	return &OperationsCopyfileNotFound{}
-}
-
-/*OperationsCopyfileNotFound handles this case with default header values.
-
-Not found
-*/
-type OperationsCopyfileNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *OperationsCopyfileNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/copyfile][%d] operationsCopyfileNotFound  %+v", 404, o.Payload)
-}
-
-func (o *OperationsCopyfileNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *OperationsCopyfileNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewOperationsCopyfileDefault creates a OperationsCopyfileDefault with default headers values
+func NewOperationsCopyfileDefault(code int) *OperationsCopyfileDefault {
+	return &OperationsCopyfileDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewOperationsCopyfileInternalServerError creates a OperationsCopyfileInternalServerError with default headers values
-func NewOperationsCopyfileInternalServerError() *OperationsCopyfileInternalServerError {
-	return &OperationsCopyfileInternalServerError{}
-}
-
-/*OperationsCopyfileInternalServerError handles this case with default header values.
+/*OperationsCopyfileDefault handles this case with default header values.
 
 Server error
 */
-type OperationsCopyfileInternalServerError struct {
+type OperationsCopyfileDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *OperationsCopyfileInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/operations/copyfile][%d] operationsCopyfileInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the operations copyfile default response
+func (o *OperationsCopyfileDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *OperationsCopyfileInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *OperationsCopyfileDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *OperationsCopyfileInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *OperationsCopyfileDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *OperationsCopyfileInternalServerError) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *OperationsCopyfileDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigDefragmentMemoryOnIdleOK struct {
 	Payload bool
 }
 
-func (o *FindConfigDefragmentMemoryOnIdleOK) Error() string {
-	return fmt.Sprintf("[GET /config/defragment_memory_on_idle][%d] findConfigDefragmentMemoryOnIdleOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigDefragmentMemoryOnIdleOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigDefragmentMemoryOnIdleDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigDefragmentMemoryOnIdleDefault) Error() string {
-	return fmt.Sprintf("[GET /config/defragment_memory_on_idle][%d] find_config_defragment_memory_on_idle default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigDefragmentMemoryOnIdleDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigDefragmentMemoryOnIdleDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigDefragmentMemoryOnIdleDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

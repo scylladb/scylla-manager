@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetReader) ReadResponse(r
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCacheServiceMetricsCounterRequestsMovingAvrageGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type CacheServiceMetricsCounterRequestsMovingAvrageGetOK struct {
 	Payload *models.RateMovingAverage
 }
 
-func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetOK) Error() string {
-	return fmt.Sprintf("[GET /cache_service/metrics/counter/requests_moving_avrage][%d] cacheServiceMetricsCounterRequestsMovingAvrageGetOK  %+v", 200, o.Payload)
-}
-
 func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetOK) GetPayload() *models.RateMovingAverage {
 	return o.Payload
 }
@@ -67,4 +70,46 @@ func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetOK) readResponse(respo
 	}
 
 	return nil
+}
+
+// NewCacheServiceMetricsCounterRequestsMovingAvrageGetDefault creates a CacheServiceMetricsCounterRequestsMovingAvrageGetDefault with default headers values
+func NewCacheServiceMetricsCounterRequestsMovingAvrageGetDefault(code int) *CacheServiceMetricsCounterRequestsMovingAvrageGetDefault {
+	return &CacheServiceMetricsCounterRequestsMovingAvrageGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CacheServiceMetricsCounterRequestsMovingAvrageGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CacheServiceMetricsCounterRequestsMovingAvrageGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the cache service metrics counter requests moving avrage get default response
+func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CacheServiceMetricsCounterRequestsMovingAvrageGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

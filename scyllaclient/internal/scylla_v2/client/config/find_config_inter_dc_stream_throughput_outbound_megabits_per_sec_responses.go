@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK struct {
 	Payload int64
 }
 
-func (o *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK) Error() string {
-	return fmt.Sprintf("[GET /config/inter_dc_stream_throughput_outbound_megabits_per_sec][%d] findConfigInterDcStreamThroughputOutboundMegabitsPerSecOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault) Code() 
 	return o._statusCode
 }
 
-func (o *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault) Error() string {
-	return fmt.Sprintf("[GET /config/inter_dc_stream_throughput_outbound_megabits_per_sec][%d] find_config_inter_dc_stream_throughput_outbound_megabits_per_sec default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault) readRes
 	}
 
 	return nil
+}
+
+func (o *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

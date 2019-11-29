@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCommitlogReuseSegmentsOK struct {
 	Payload bool
 }
 
-func (o *FindConfigCommitlogReuseSegmentsOK) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_reuse_segments][%d] findConfigCommitlogReuseSegmentsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCommitlogReuseSegmentsOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCommitlogReuseSegmentsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitlogReuseSegmentsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_reuse_segments][%d] find_config_commitlog_reuse_segments default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCommitlogReuseSegmentsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCommitlogReuseSegmentsDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigCommitlogReuseSegmentsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

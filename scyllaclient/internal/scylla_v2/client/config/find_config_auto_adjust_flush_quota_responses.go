@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigAutoAdjustFlushQuotaOK struct {
 	Payload bool
 }
 
-func (o *FindConfigAutoAdjustFlushQuotaOK) Error() string {
-	return fmt.Sprintf("[GET /config/auto_adjust_flush_quota][%d] findConfigAutoAdjustFlushQuotaOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigAutoAdjustFlushQuotaOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigAutoAdjustFlushQuotaDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigAutoAdjustFlushQuotaDefault) Error() string {
-	return fmt.Sprintf("[GET /config/auto_adjust_flush_quota][%d] find_config_auto_adjust_flush_quota default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigAutoAdjustFlushQuotaDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigAutoAdjustFlushQuotaDefault) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *FindConfigAutoAdjustFlushQuotaDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

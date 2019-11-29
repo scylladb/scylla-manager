@@ -43,14 +43,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -87,14 +80,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -131,14 +117,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -183,14 +162,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -218,14 +190,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -262,14 +227,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -306,14 +264,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -358,14 +309,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -417,14 +361,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -476,14 +413,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -545,14 +475,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -604,14 +527,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -663,14 +579,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -708,14 +617,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -753,14 +655,7 @@
             },
             "headers": {}
           },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -787,7 +682,7 @@
             },
             "headers": {}
           },
-          "500": {
+          "default": {
             "description": "Server error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
@@ -873,7 +768,7 @@
           "description": "HTTP status code",
           "type": "integer"
         },
-        "error": {
+        "message": {
           "description": "Error description",
           "type": "string"
         },

@@ -14,6 +14,10 @@ import (
 func StatusCodeOf(err error) int {
 	err = errors.Cause(err)
 	switch v := err.(type) {
+	case interface {
+		Code() int
+	}:
+		return v.Code()
 	case *runtime.APIError:
 		return v.Code
 	case interface {
@@ -28,7 +32,7 @@ func StatusCodeOf(err error) int {
 	}:
 		p := v.GetPayload()
 		if p != nil {
-			return int(p.Result)
+			return int(p.Code)
 		}
 	}
 	return 0

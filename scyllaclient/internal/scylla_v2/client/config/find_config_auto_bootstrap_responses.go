@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigAutoBootstrapOK struct {
 	Payload bool
 }
 
-func (o *FindConfigAutoBootstrapOK) Error() string {
-	return fmt.Sprintf("[GET /config/auto_bootstrap][%d] findConfigAutoBootstrapOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigAutoBootstrapOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigAutoBootstrapDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigAutoBootstrapDefault) Error() string {
-	return fmt.Sprintf("[GET /config/auto_bootstrap][%d] find_config_auto_bootstrap default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigAutoBootstrapDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigAutoBootstrapDefault) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+func (o *FindConfigAutoBootstrapDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

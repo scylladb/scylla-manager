@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigBackgroundWriterSchedulingQuotaOK struct {
 	Payload float64
 }
 
-func (o *FindConfigBackgroundWriterSchedulingQuotaOK) Error() string {
-	return fmt.Sprintf("[GET /config/background_writer_scheduling_quota][%d] findConfigBackgroundWriterSchedulingQuotaOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigBackgroundWriterSchedulingQuotaOK) GetPayload() float64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) Error() string {
-	return fmt.Sprintf("[GET /config/background_writer_scheduling_quota][%d] find_config_background_writer_scheduling_quota default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) readResponse(response
 	}
 
 	return nil
+}
+
+func (o *FindConfigBackgroundWriterSchedulingQuotaDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

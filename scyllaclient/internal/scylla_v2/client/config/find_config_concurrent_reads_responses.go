@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigConcurrentReadsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigConcurrentReadsOK) Error() string {
-	return fmt.Sprintf("[GET /config/concurrent_reads][%d] findConfigConcurrentReadsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigConcurrentReadsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigConcurrentReadsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigConcurrentReadsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/concurrent_reads][%d] find_config_concurrent_reads default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigConcurrentReadsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigConcurrentReadsDefault) readResponse(response runtime.ClientR
 	}
 
 	return nil
+}
+
+func (o *FindConfigConcurrentReadsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

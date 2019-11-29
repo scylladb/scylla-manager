@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigPermissionsUpdateIntervalInMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigPermissionsUpdateIntervalInMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/permissions_update_interval_in_ms][%d] findConfigPermissionsUpdateIntervalInMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigPermissionsUpdateIntervalInMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigPermissionsUpdateIntervalInMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigPermissionsUpdateIntervalInMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/permissions_update_interval_in_ms][%d] find_config_permissions_update_interval_in_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigPermissionsUpdateIntervalInMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigPermissionsUpdateIntervalInMsDefault) readResponse(response r
 	}
 
 	return nil
+}
+
+func (o *FindConfigPermissionsUpdateIntervalInMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

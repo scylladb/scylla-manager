@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigConsistentRangemovementOK struct {
 	Payload bool
 }
 
-func (o *FindConfigConsistentRangemovementOK) Error() string {
-	return fmt.Sprintf("[GET /config/consistent_rangemovement][%d] findConfigConsistentRangemovementOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigConsistentRangemovementOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigConsistentRangemovementDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigConsistentRangemovementDefault) Error() string {
-	return fmt.Sprintf("[GET /config/consistent_rangemovement][%d] find_config_consistent_rangemovement default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigConsistentRangemovementDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigConsistentRangemovementDefault) readResponse(response runtime
 	}
 
 	return nil
+}
+
+func (o *FindConfigConsistentRangemovementDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

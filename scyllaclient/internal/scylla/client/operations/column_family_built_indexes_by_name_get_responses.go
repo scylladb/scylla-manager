@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyBuiltIndexesByNameGetReader is a Reader for the ColumnFamilyBuiltIndexesByNameGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyBuiltIndexesByNameGetReader) ReadResponse(response runtime.
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyBuiltIndexesByNameGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyBuiltIndexesByNameGetOK struct {
 	Payload []string
 }
 
-func (o *ColumnFamilyBuiltIndexesByNameGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/built_indexes/{name}][%d] columnFamilyBuiltIndexesByNameGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyBuiltIndexesByNameGetOK) GetPayload() []string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyBuiltIndexesByNameGetOK) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+// NewColumnFamilyBuiltIndexesByNameGetDefault creates a ColumnFamilyBuiltIndexesByNameGetDefault with default headers values
+func NewColumnFamilyBuiltIndexesByNameGetDefault(code int) *ColumnFamilyBuiltIndexesByNameGetDefault {
+	return &ColumnFamilyBuiltIndexesByNameGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyBuiltIndexesByNameGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyBuiltIndexesByNameGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family built indexes by name get default response
+func (o *ColumnFamilyBuiltIndexesByNameGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyBuiltIndexesByNameGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyBuiltIndexesByNameGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyBuiltIndexesByNameGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

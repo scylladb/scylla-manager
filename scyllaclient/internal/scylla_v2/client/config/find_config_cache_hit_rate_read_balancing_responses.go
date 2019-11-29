@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCacheHitRateReadBalancingOK struct {
 	Payload bool
 }
 
-func (o *FindConfigCacheHitRateReadBalancingOK) Error() string {
-	return fmt.Sprintf("[GET /config/cache_hit_rate_read_balancing][%d] findConfigCacheHitRateReadBalancingOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCacheHitRateReadBalancingOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCacheHitRateReadBalancingDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCacheHitRateReadBalancingDefault) Error() string {
-	return fmt.Sprintf("[GET /config/cache_hit_rate_read_balancing][%d] find_config_cache_hit_rate_read_balancing default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCacheHitRateReadBalancingDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCacheHitRateReadBalancingDefault) readResponse(response runti
 	}
 
 	return nil
+}
+
+func (o *FindConfigCacheHitRateReadBalancingDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCommitlogSyncBatchWindowInMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigCommitlogSyncBatchWindowInMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_sync_batch_window_in_ms][%d] findConfigCommitlogSyncBatchWindowInMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCommitlogSyncBatchWindowInMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCommitlogSyncBatchWindowInMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCommitlogSyncBatchWindowInMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/commitlog_sync_batch_window_in_ms][%d] find_config_commitlog_sync_batch_window_in_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCommitlogSyncBatchWindowInMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCommitlogSyncBatchWindowInMsDefault) readResponse(response ru
 	}
 
 	return nil
+}
+
+func (o *FindConfigCommitlogSyncBatchWindowInMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

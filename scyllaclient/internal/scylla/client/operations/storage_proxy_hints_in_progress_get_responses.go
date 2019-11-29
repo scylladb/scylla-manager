@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyHintsInProgressGetReader is a Reader for the StorageProxyHintsInProgressGet structure.
@@ -28,9 +31,15 @@ func (o *StorageProxyHintsInProgressGetReader) ReadResponse(response runtime.Cli
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyHintsInProgressGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageProxyHintsInProgressGetOK struct {
 	Payload int32
 }
 
-func (o *StorageProxyHintsInProgressGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_proxy/hints_in_progress][%d] storageProxyHintsInProgressGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageProxyHintsInProgressGetOK) GetPayload() int32 {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageProxyHintsInProgressGetOK) readResponse(response runtime.ClientR
 	}
 
 	return nil
+}
+
+// NewStorageProxyHintsInProgressGetDefault creates a StorageProxyHintsInProgressGetDefault with default headers values
+func NewStorageProxyHintsInProgressGetDefault(code int) *StorageProxyHintsInProgressGetDefault {
+	return &StorageProxyHintsInProgressGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyHintsInProgressGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyHintsInProgressGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy hints in progress get default response
+func (o *StorageProxyHintsInProgressGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyHintsInProgressGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyHintsInProgressGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyHintsInProgressGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

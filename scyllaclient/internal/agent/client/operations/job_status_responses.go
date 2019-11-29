@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,21 +31,15 @@ func (o *JobStatusReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return result, nil
-	case 404:
-		result := NewJobStatusNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewJobStatusInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewJobStatusDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -59,10 +54,6 @@ Job details
 */
 type JobStatusOK struct {
 	Payload *models.Job
-}
-
-func (o *JobStatusOK) Error() string {
-	return fmt.Sprintf("[POST /rclone/job/status][%d] jobStatusOK  %+v", 200, o.Payload)
 }
 
 func (o *JobStatusOK) GetPayload() *models.Job {
@@ -81,61 +72,33 @@ func (o *JobStatusOK) readResponse(response runtime.ClientResponse, consumer run
 	return nil
 }
 
-// NewJobStatusNotFound creates a JobStatusNotFound with default headers values
-func NewJobStatusNotFound() *JobStatusNotFound {
-	return &JobStatusNotFound{}
-}
-
-/*JobStatusNotFound handles this case with default header values.
-
-Not found
-*/
-type JobStatusNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *JobStatusNotFound) Error() string {
-	return fmt.Sprintf("[POST /rclone/job/status][%d] jobStatusNotFound  %+v", 404, o.Payload)
-}
-
-func (o *JobStatusNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *JobStatusNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewJobStatusDefault creates a JobStatusDefault with default headers values
+func NewJobStatusDefault(code int) *JobStatusDefault {
+	return &JobStatusDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewJobStatusInternalServerError creates a JobStatusInternalServerError with default headers values
-func NewJobStatusInternalServerError() *JobStatusInternalServerError {
-	return &JobStatusInternalServerError{}
-}
-
-/*JobStatusInternalServerError handles this case with default header values.
+/*JobStatusDefault handles this case with default header values.
 
 Server error
 */
-type JobStatusInternalServerError struct {
+type JobStatusDefault struct {
+	_statusCode int
+
 	Payload *models.ErrorResponse
 }
 
-func (o *JobStatusInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /rclone/job/status][%d] jobStatusInternalServerError  %+v", 500, o.Payload)
+// Code gets the status code for the job status default response
+func (o *JobStatusDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *JobStatusInternalServerError) GetPayload() *models.ErrorResponse {
+func (o *JobStatusDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *JobStatusInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *JobStatusDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -145,4 +108,8 @@ func (o *JobStatusInternalServerError) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+func (o *JobStatusDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

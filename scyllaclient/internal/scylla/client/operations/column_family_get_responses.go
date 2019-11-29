@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *ColumnFamilyGetReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type ColumnFamilyGetOK struct {
 	Payload []*models.ColumnFamilyInfo
 }
 
-func (o *ColumnFamilyGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/][%d] columnFamilyGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyGetOK) GetPayload() []*models.ColumnFamilyInfo {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *ColumnFamilyGetOK) readResponse(response runtime.ClientResponse, consum
 	}
 
 	return nil
+}
+
+// NewColumnFamilyGetDefault creates a ColumnFamilyGetDefault with default headers values
+func NewColumnFamilyGetDefault(code int) *ColumnFamilyGetDefault {
+	return &ColumnFamilyGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family get default response
+func (o *ColumnFamilyGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigDeveloperModeOK struct {
 	Payload bool
 }
 
-func (o *FindConfigDeveloperModeOK) Error() string {
-	return fmt.Sprintf("[GET /config/developer_mode][%d] findConfigDeveloperModeOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigDeveloperModeOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigDeveloperModeDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigDeveloperModeDefault) Error() string {
-	return fmt.Sprintf("[GET /config/developer_mode][%d] find_config_developer_mode default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigDeveloperModeDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigDeveloperModeDefault) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+func (o *FindConfigDeveloperModeDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

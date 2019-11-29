@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigDynamicSnitchBadnessThresholdOK struct {
 	Payload float64
 }
 
-func (o *FindConfigDynamicSnitchBadnessThresholdOK) Error() string {
-	return fmt.Sprintf("[GET /config/dynamic_snitch_badness_threshold][%d] findConfigDynamicSnitchBadnessThresholdOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigDynamicSnitchBadnessThresholdOK) GetPayload() float64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigDynamicSnitchBadnessThresholdDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigDynamicSnitchBadnessThresholdDefault) Error() string {
-	return fmt.Sprintf("[GET /config/dynamic_snitch_badness_threshold][%d] find_config_dynamic_snitch_badness_threshold default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigDynamicSnitchBadnessThresholdDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigDynamicSnitchBadnessThresholdDefault) readResponse(response r
 	}
 
 	return nil
+}
+
+func (o *FindConfigDynamicSnitchBadnessThresholdDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

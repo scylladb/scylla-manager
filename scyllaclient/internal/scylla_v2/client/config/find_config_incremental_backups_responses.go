@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigIncrementalBackupsOK struct {
 	Payload bool
 }
 
-func (o *FindConfigIncrementalBackupsOK) Error() string {
-	return fmt.Sprintf("[GET /config/incremental_backups][%d] findConfigIncrementalBackupsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigIncrementalBackupsOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigIncrementalBackupsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigIncrementalBackupsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/incremental_backups][%d] find_config_incremental_backups default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigIncrementalBackupsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigIncrementalBackupsDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigIncrementalBackupsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCrossNodeTimeoutOK struct {
 	Payload bool
 }
 
-func (o *FindConfigCrossNodeTimeoutOK) Error() string {
-	return fmt.Sprintf("[GET /config/cross_node_timeout][%d] findConfigCrossNodeTimeoutOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCrossNodeTimeoutOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCrossNodeTimeoutDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCrossNodeTimeoutDefault) Error() string {
-	return fmt.Sprintf("[GET /config/cross_node_timeout][%d] find_config_cross_node_timeout default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCrossNodeTimeoutDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCrossNodeTimeoutDefault) readResponse(response runtime.Client
 	}
 
 	return nil
+}
+
+func (o *FindConfigCrossNodeTimeoutDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigListenInterfaceOK struct {
 	Payload string
 }
 
-func (o *FindConfigListenInterfaceOK) Error() string {
-	return fmt.Sprintf("[GET /config/listen_interface][%d] findConfigListenInterfaceOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigListenInterfaceOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigListenInterfaceDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigListenInterfaceDefault) Error() string {
-	return fmt.Sprintf("[GET /config/listen_interface][%d] find_config_listen_interface default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigListenInterfaceDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigListenInterfaceDefault) readResponse(response runtime.ClientR
 	}
 
 	return nil
+}
+
+func (o *FindConfigListenInterfaceDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

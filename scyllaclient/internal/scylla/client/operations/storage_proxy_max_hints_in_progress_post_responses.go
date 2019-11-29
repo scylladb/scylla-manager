@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyMaxHintsInProgressPostReader is a Reader for the StorageProxyMaxHintsInProgressPost structure.
@@ -27,9 +31,15 @@ func (o *StorageProxyMaxHintsInProgressPostReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyMaxHintsInProgressPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageProxyMaxHintsInProgressPostOK storage proxy max hints in progress post o 
 type StorageProxyMaxHintsInProgressPostOK struct {
 }
 
-func (o *StorageProxyMaxHintsInProgressPostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_proxy/max_hints_in_progress][%d] storageProxyMaxHintsInProgressPostOK ", 200)
-}
-
 func (o *StorageProxyMaxHintsInProgressPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageProxyMaxHintsInProgressPostDefault creates a StorageProxyMaxHintsInProgressPostDefault with default headers values
+func NewStorageProxyMaxHintsInProgressPostDefault(code int) *StorageProxyMaxHintsInProgressPostDefault {
+	return &StorageProxyMaxHintsInProgressPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyMaxHintsInProgressPostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyMaxHintsInProgressPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy max hints in progress post default response
+func (o *StorageProxyMaxHintsInProgressPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyMaxHintsInProgressPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyMaxHintsInProgressPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyMaxHintsInProgressPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

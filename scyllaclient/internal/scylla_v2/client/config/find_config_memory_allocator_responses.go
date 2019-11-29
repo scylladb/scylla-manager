@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMemoryAllocatorOK struct {
 	Payload string
 }
 
-func (o *FindConfigMemoryAllocatorOK) Error() string {
-	return fmt.Sprintf("[GET /config/memory_allocator][%d] findConfigMemoryAllocatorOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMemoryAllocatorOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMemoryAllocatorDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMemoryAllocatorDefault) Error() string {
-	return fmt.Sprintf("[GET /config/memory_allocator][%d] find_config_memory_allocator default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMemoryAllocatorDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMemoryAllocatorDefault) readResponse(response runtime.ClientR
 	}
 
 	return nil
+}
+
+func (o *FindConfigMemoryAllocatorDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

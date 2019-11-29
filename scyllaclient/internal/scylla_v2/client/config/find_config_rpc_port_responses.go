@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRPCPortOK struct {
 	Payload int64
 }
 
-func (o *FindConfigRPCPortOK) Error() string {
-	return fmt.Sprintf("[GET /config/rpc_port][%d] findConfigRpcPortOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRPCPortOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRPCPortDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRPCPortDefault) Error() string {
-	return fmt.Sprintf("[GET /config/rpc_port][%d] find_config_rpc_port default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRPCPortDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRPCPortDefault) readResponse(response runtime.ClientResponse,
 	}
 
 	return nil
+}
+
+func (o *FindConfigRPCPortDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

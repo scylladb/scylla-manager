@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceKeyspaceCompactionByKeyspacePostReader is a Reader for the StorageServiceKeyspaceCompactionByKeyspacePost structure.
@@ -27,9 +31,15 @@ func (o *StorageServiceKeyspaceCompactionByKeyspacePostReader) ReadResponse(resp
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceKeyspaceCompactionByKeyspacePostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageServiceKeyspaceCompactionByKeyspacePostOK storage service keyspace compac
 type StorageServiceKeyspaceCompactionByKeyspacePostOK struct {
 }
 
-func (o *StorageServiceKeyspaceCompactionByKeyspacePostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_service/keyspace_compaction/{keyspace}][%d] storageServiceKeyspaceCompactionByKeyspacePostOK ", 200)
-}
-
 func (o *StorageServiceKeyspaceCompactionByKeyspacePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageServiceKeyspaceCompactionByKeyspacePostDefault creates a StorageServiceKeyspaceCompactionByKeyspacePostDefault with default headers values
+func NewStorageServiceKeyspaceCompactionByKeyspacePostDefault(code int) *StorageServiceKeyspaceCompactionByKeyspacePostDefault {
+	return &StorageServiceKeyspaceCompactionByKeyspacePostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceKeyspaceCompactionByKeyspacePostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceKeyspaceCompactionByKeyspacePostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service keyspace compaction by keyspace post default response
+func (o *StorageServiceKeyspaceCompactionByKeyspacePostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceKeyspaceCompactionByKeyspacePostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceKeyspaceCompactionByKeyspacePostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceKeyspaceCompactionByKeyspacePostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

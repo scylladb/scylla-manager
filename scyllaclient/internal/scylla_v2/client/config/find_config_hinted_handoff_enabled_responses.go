@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigHintedHandoffEnabledOK struct {
 	Payload string
 }
 
-func (o *FindConfigHintedHandoffEnabledOK) Error() string {
-	return fmt.Sprintf("[GET /config/hinted_handoff_enabled][%d] findConfigHintedHandoffEnabledOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigHintedHandoffEnabledOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigHintedHandoffEnabledDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigHintedHandoffEnabledDefault) Error() string {
-	return fmt.Sprintf("[GET /config/hinted_handoff_enabled][%d] find_config_hinted_handoff_enabled default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigHintedHandoffEnabledDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigHintedHandoffEnabledDefault) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *FindConfigHintedHandoffEnabledDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigEnableSstablesMcFormatOK struct {
 	Payload bool
 }
 
-func (o *FindConfigEnableSstablesMcFormatOK) Error() string {
-	return fmt.Sprintf("[GET /config/enable_sstables_mc_format][%d] findConfigEnableSstablesMcFormatOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigEnableSstablesMcFormatOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigEnableSstablesMcFormatDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigEnableSstablesMcFormatDefault) Error() string {
-	return fmt.Sprintf("[GET /config/enable_sstables_mc_format][%d] find_config_enable_sstables_mc_format default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigEnableSstablesMcFormatDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigEnableSstablesMcFormatDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigEnableSstablesMcFormatDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyCompactionStrategyByNamePostReader is a Reader for the ColumnFamilyCompactionStrategyByNamePost structure.
@@ -27,9 +31,15 @@ func (o *ColumnFamilyCompactionStrategyByNamePostReader) ReadResponse(response r
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyCompactionStrategyByNamePostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ ColumnFamilyCompactionStrategyByNamePostOK column family compaction strategy by 
 type ColumnFamilyCompactionStrategyByNamePostOK struct {
 }
 
-func (o *ColumnFamilyCompactionStrategyByNamePostOK) Error() string {
-	return fmt.Sprintf("[POST /column_family/compaction_strategy/{name}][%d] columnFamilyCompactionStrategyByNamePostOK ", 200)
-}
-
 func (o *ColumnFamilyCompactionStrategyByNamePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewColumnFamilyCompactionStrategyByNamePostDefault creates a ColumnFamilyCompactionStrategyByNamePostDefault with default headers values
+func NewColumnFamilyCompactionStrategyByNamePostDefault(code int) *ColumnFamilyCompactionStrategyByNamePostDefault {
+	return &ColumnFamilyCompactionStrategyByNamePostDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyCompactionStrategyByNamePostDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyCompactionStrategyByNamePostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family compaction strategy by name post default response
+func (o *ColumnFamilyCompactionStrategyByNamePostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyCompactionStrategyByNamePostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyCompactionStrategyByNamePostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyCompactionStrategyByNamePostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // CacheServiceMetricsCounterRequestsGetReader is a Reader for the CacheServiceMetricsCounterRequestsGet structure.
@@ -28,9 +31,15 @@ func (o *CacheServiceMetricsCounterRequestsGetReader) ReadResponse(response runt
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCacheServiceMetricsCounterRequestsGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type CacheServiceMetricsCounterRequestsGetOK struct {
 	Payload interface{}
 }
 
-func (o *CacheServiceMetricsCounterRequestsGetOK) Error() string {
-	return fmt.Sprintf("[GET /cache_service/metrics/counter/requests][%d] cacheServiceMetricsCounterRequestsGetOK  %+v", 200, o.Payload)
-}
-
 func (o *CacheServiceMetricsCounterRequestsGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *CacheServiceMetricsCounterRequestsGetOK) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+// NewCacheServiceMetricsCounterRequestsGetDefault creates a CacheServiceMetricsCounterRequestsGetDefault with default headers values
+func NewCacheServiceMetricsCounterRequestsGetDefault(code int) *CacheServiceMetricsCounterRequestsGetDefault {
+	return &CacheServiceMetricsCounterRequestsGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CacheServiceMetricsCounterRequestsGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CacheServiceMetricsCounterRequestsGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the cache service metrics counter requests get default response
+func (o *CacheServiceMetricsCounterRequestsGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CacheServiceMetricsCounterRequestsGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CacheServiceMetricsCounterRequestsGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CacheServiceMetricsCounterRequestsGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

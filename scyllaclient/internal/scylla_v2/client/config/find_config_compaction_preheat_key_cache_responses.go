@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCompactionPreheatKeyCacheOK struct {
 	Payload bool
 }
 
-func (o *FindConfigCompactionPreheatKeyCacheOK) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_preheat_key_cache][%d] findConfigCompactionPreheatKeyCacheOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCompactionPreheatKeyCacheOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCompactionPreheatKeyCacheDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCompactionPreheatKeyCacheDefault) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_preheat_key_cache][%d] find_config_compaction_preheat_key_cache default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCompactionPreheatKeyCacheDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCompactionPreheatKeyCacheDefault) readResponse(response runti
 	}
 
 	return nil
+}
+
+func (o *FindConfigCompactionPreheatKeyCacheDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

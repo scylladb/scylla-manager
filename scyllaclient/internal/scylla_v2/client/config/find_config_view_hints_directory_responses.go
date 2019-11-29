@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigViewHintsDirectoryOK struct {
 	Payload string
 }
 
-func (o *FindConfigViewHintsDirectoryOK) Error() string {
-	return fmt.Sprintf("[GET /config/view_hints_directory][%d] findConfigViewHintsDirectoryOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigViewHintsDirectoryOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigViewHintsDirectoryDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigViewHintsDirectoryDefault) Error() string {
-	return fmt.Sprintf("[GET /config/view_hints_directory][%d] find_config_view_hints_directory default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigViewHintsDirectoryDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigViewHintsDirectoryDefault) readResponse(response runtime.Clie
 	}
 
 	return nil
+}
+
+func (o *FindConfigViewHintsDirectoryDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

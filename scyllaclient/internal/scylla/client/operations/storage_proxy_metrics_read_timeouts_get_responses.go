@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageProxyMetricsReadTimeoutsGetReader is a Reader for the StorageProxyMetricsReadTimeoutsGet structure.
@@ -28,9 +31,15 @@ func (o *StorageProxyMetricsReadTimeoutsGetReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageProxyMetricsReadTimeoutsGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageProxyMetricsReadTimeoutsGetOK struct {
 	Payload int32
 }
 
-func (o *StorageProxyMetricsReadTimeoutsGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_proxy/metrics/read/timeouts][%d] storageProxyMetricsReadTimeoutsGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageProxyMetricsReadTimeoutsGetOK) GetPayload() int32 {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageProxyMetricsReadTimeoutsGetOK) readResponse(response runtime.Cli
 	}
 
 	return nil
+}
+
+// NewStorageProxyMetricsReadTimeoutsGetDefault creates a StorageProxyMetricsReadTimeoutsGetDefault with default headers values
+func NewStorageProxyMetricsReadTimeoutsGetDefault(code int) *StorageProxyMetricsReadTimeoutsGetDefault {
+	return &StorageProxyMetricsReadTimeoutsGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageProxyMetricsReadTimeoutsGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageProxyMetricsReadTimeoutsGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage proxy metrics read timeouts get default response
+func (o *StorageProxyMetricsReadTimeoutsGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageProxyMetricsReadTimeoutsGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageProxyMetricsReadTimeoutsGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageProxyMetricsReadTimeoutsGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

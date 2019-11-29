@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsLiveDiskSpaceUsedGetReader is a Reader for the ColumnFamilyMetricsLiveDiskSpaceUsedGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetReader) ReadResponse(response ru
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsLiveDiskSpaceUsedGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsLiveDiskSpaceUsedGetOK struct {
 	Payload int32
 }
 
-func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/live_disk_space_used][%d] columnFamilyMetricsLiveDiskSpaceUsedGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetOK) GetPayload() int32 {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetOK) readResponse(response runtim
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsLiveDiskSpaceUsedGetDefault creates a ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault with default headers values
+func NewColumnFamilyMetricsLiveDiskSpaceUsedGetDefault(code int) *ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault {
+	return &ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics live disk space used get default response
+func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

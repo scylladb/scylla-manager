@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRPCSendBuffSizeInBytesOK struct {
 	Payload int64
 }
 
-func (o *FindConfigRPCSendBuffSizeInBytesOK) Error() string {
-	return fmt.Sprintf("[GET /config/rpc_send_buff_size_in_bytes][%d] findConfigRpcSendBuffSizeInBytesOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRPCSendBuffSizeInBytesOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRPCSendBuffSizeInBytesDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRPCSendBuffSizeInBytesDefault) Error() string {
-	return fmt.Sprintf("[GET /config/rpc_send_buff_size_in_bytes][%d] find_config_rpc_send_buff_size_in_bytes default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRPCSendBuffSizeInBytesDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRPCSendBuffSizeInBytesDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigRPCSendBuffSizeInBytesDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

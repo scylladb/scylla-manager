@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigDiskFailurePolicyOK struct {
 	Payload string
 }
 
-func (o *FindConfigDiskFailurePolicyOK) Error() string {
-	return fmt.Sprintf("[GET /config/disk_failure_policy][%d] findConfigDiskFailurePolicyOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigDiskFailurePolicyOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigDiskFailurePolicyDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigDiskFailurePolicyDefault) Error() string {
-	return fmt.Sprintf("[GET /config/disk_failure_policy][%d] find_config_disk_failure_policy default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigDiskFailurePolicyDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigDiskFailurePolicyDefault) readResponse(response runtime.Clien
 	}
 
 	return nil
+}
+
+func (o *FindConfigDiskFailurePolicyDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigClusterNameOK struct {
 	Payload string
 }
 
-func (o *FindConfigClusterNameOK) Error() string {
-	return fmt.Sprintf("[GET /config/cluster_name][%d] findConfigClusterNameOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigClusterNameOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigClusterNameDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigClusterNameDefault) Error() string {
-	return fmt.Sprintf("[GET /config/cluster_name][%d] find_config_cluster_name default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigClusterNameDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigClusterNameDefault) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+func (o *FindConfigClusterNameDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

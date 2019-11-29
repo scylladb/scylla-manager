@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigOverrideDecommissionOK struct {
 	Payload bool
 }
 
-func (o *FindConfigOverrideDecommissionOK) Error() string {
-	return fmt.Sprintf("[GET /config/override_decommission][%d] findConfigOverrideDecommissionOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigOverrideDecommissionOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigOverrideDecommissionDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigOverrideDecommissionDefault) Error() string {
-	return fmt.Sprintf("[GET /config/override_decommission][%d] find_config_override_decommission default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigOverrideDecommissionDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigOverrideDecommissionDefault) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *FindConfigOverrideDecommissionDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

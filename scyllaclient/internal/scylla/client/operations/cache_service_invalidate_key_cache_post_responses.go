@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // CacheServiceInvalidateKeyCachePostReader is a Reader for the CacheServiceInvalidateKeyCachePost structure.
@@ -27,9 +31,15 @@ func (o *CacheServiceInvalidateKeyCachePostReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCacheServiceInvalidateKeyCachePostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ CacheServiceInvalidateKeyCachePostOK cache service invalidate key cache post o k
 type CacheServiceInvalidateKeyCachePostOK struct {
 }
 
-func (o *CacheServiceInvalidateKeyCachePostOK) Error() string {
-	return fmt.Sprintf("[POST /cache_service/invalidate_key_cache][%d] cacheServiceInvalidateKeyCachePostOK ", 200)
-}
-
 func (o *CacheServiceInvalidateKeyCachePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewCacheServiceInvalidateKeyCachePostDefault creates a CacheServiceInvalidateKeyCachePostDefault with default headers values
+func NewCacheServiceInvalidateKeyCachePostDefault(code int) *CacheServiceInvalidateKeyCachePostDefault {
+	return &CacheServiceInvalidateKeyCachePostDefault{
+		_statusCode: code,
+	}
+}
+
+/*CacheServiceInvalidateKeyCachePostDefault handles this case with default header values.
+
+internal server error
+*/
+type CacheServiceInvalidateKeyCachePostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the cache service invalidate key cache post default response
+func (o *CacheServiceInvalidateKeyCachePostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CacheServiceInvalidateKeyCachePostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CacheServiceInvalidateKeyCachePostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CacheServiceInvalidateKeyCachePostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

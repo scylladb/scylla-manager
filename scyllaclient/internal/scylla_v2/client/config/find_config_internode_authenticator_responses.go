@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigInternodeAuthenticatorOK struct {
 	Payload string
 }
 
-func (o *FindConfigInternodeAuthenticatorOK) Error() string {
-	return fmt.Sprintf("[GET /config/internode_authenticator][%d] findConfigInternodeAuthenticatorOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigInternodeAuthenticatorOK) GetPayload() string {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigInternodeAuthenticatorDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigInternodeAuthenticatorDefault) Error() string {
-	return fmt.Sprintf("[GET /config/internode_authenticator][%d] find_config_internode_authenticator default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigInternodeAuthenticatorDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigInternodeAuthenticatorDefault) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+func (o *FindConfigInternodeAuthenticatorDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigAutoSnapshotOK struct {
 	Payload bool
 }
 
-func (o *FindConfigAutoSnapshotOK) Error() string {
-	return fmt.Sprintf("[GET /config/auto_snapshot][%d] findConfigAutoSnapshotOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigAutoSnapshotOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigAutoSnapshotDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigAutoSnapshotDefault) Error() string {
-	return fmt.Sprintf("[GET /config/auto_snapshot][%d] find_config_auto_snapshot default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigAutoSnapshotDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigAutoSnapshotDefault) readResponse(response runtime.ClientResp
 	}
 
 	return nil
+}
+
+func (o *FindConfigAutoSnapshotDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

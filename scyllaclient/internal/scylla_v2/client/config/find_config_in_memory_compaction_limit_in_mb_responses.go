@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigInMemoryCompactionLimitInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigInMemoryCompactionLimitInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/in_memory_compaction_limit_in_mb][%d] findConfigInMemoryCompactionLimitInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigInMemoryCompactionLimitInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigInMemoryCompactionLimitInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigInMemoryCompactionLimitInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/in_memory_compaction_limit_in_mb][%d] find_config_in_memory_compaction_limit_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigInMemoryCompactionLimitInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigInMemoryCompactionLimitInMbDefault) readResponse(response run
 	}
 
 	return nil
+}
+
+func (o *FindConfigInMemoryCompactionLimitInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

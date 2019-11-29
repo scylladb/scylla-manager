@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigLoadRingStateOK struct {
 	Payload bool
 }
 
-func (o *FindConfigLoadRingStateOK) Error() string {
-	return fmt.Sprintf("[GET /config/load_ring_state][%d] findConfigLoadRingStateOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigLoadRingStateOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigLoadRingStateDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigLoadRingStateDefault) Error() string {
-	return fmt.Sprintf("[GET /config/load_ring_state][%d] find_config_load_ring_state default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigLoadRingStateDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigLoadRingStateDefault) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+func (o *FindConfigLoadRingStateDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

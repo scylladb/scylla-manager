@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigCompactionLargeRowWarningThresholdMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigCompactionLargeRowWarningThresholdMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_large_row_warning_threshold_mb][%d] findConfigCompactionLargeRowWarningThresholdMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigCompactionLargeRowWarningThresholdMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/compaction_large_row_warning_threshold_mb][%d] find_config_compaction_large_row_warning_threshold_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) readResponse(res
 	}
 
 	return nil
+}
+
+func (o *FindConfigCompactionLargeRowWarningThresholdMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

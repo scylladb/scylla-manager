@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceGossipingPostReader is a Reader for the StorageServiceGossipingPost structure.
@@ -27,9 +31,15 @@ func (o *StorageServiceGossipingPostReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceGossipingPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageServiceGossipingPostOK storage service gossiping post o k
 type StorageServiceGossipingPostOK struct {
 }
 
-func (o *StorageServiceGossipingPostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_service/gossiping][%d] storageServiceGossipingPostOK ", 200)
-}
-
 func (o *StorageServiceGossipingPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageServiceGossipingPostDefault creates a StorageServiceGossipingPostDefault with default headers values
+func NewStorageServiceGossipingPostDefault(code int) *StorageServiceGossipingPostDefault {
+	return &StorageServiceGossipingPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceGossipingPostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceGossipingPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service gossiping post default response
+func (o *StorageServiceGossipingPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceGossipingPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceGossipingPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceGossipingPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

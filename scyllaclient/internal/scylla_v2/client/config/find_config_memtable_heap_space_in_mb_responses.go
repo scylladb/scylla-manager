@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigMemtableHeapSpaceInMbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigMemtableHeapSpaceInMbOK) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_heap_space_in_mb][%d] findConfigMemtableHeapSpaceInMbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigMemtableHeapSpaceInMbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigMemtableHeapSpaceInMbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigMemtableHeapSpaceInMbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/memtable_heap_space_in_mb][%d] find_config_memtable_heap_space_in_mb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigMemtableHeapSpaceInMbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigMemtableHeapSpaceInMbDefault) readResponse(response runtime.C
 	}
 
 	return nil
+}
+
+func (o *FindConfigMemtableHeapSpaceInMbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

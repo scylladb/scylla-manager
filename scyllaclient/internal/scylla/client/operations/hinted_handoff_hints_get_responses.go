@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // HintedHandoffHintsGetReader is a Reader for the HintedHandoffHintsGet structure.
@@ -28,9 +31,15 @@ func (o *HintedHandoffHintsGetReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewHintedHandoffHintsGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type HintedHandoffHintsGetOK struct {
 	Payload []string
 }
 
-func (o *HintedHandoffHintsGetOK) Error() string {
-	return fmt.Sprintf("[GET /hinted_handoff/hints][%d] hintedHandoffHintsGetOK  %+v", 200, o.Payload)
-}
-
 func (o *HintedHandoffHintsGetOK) GetPayload() []string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *HintedHandoffHintsGetOK) readResponse(response runtime.ClientResponse, 
 	}
 
 	return nil
+}
+
+// NewHintedHandoffHintsGetDefault creates a HintedHandoffHintsGetDefault with default headers values
+func NewHintedHandoffHintsGetDefault(code int) *HintedHandoffHintsGetDefault {
+	return &HintedHandoffHintsGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*HintedHandoffHintsGetDefault handles this case with default header values.
+
+internal server error
+*/
+type HintedHandoffHintsGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the hinted handoff hints get default response
+func (o *HintedHandoffHintsGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *HintedHandoffHintsGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *HintedHandoffHintsGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *HintedHandoffHintsGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

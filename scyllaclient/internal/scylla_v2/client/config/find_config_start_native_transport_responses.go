@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigStartNativeTransportOK struct {
 	Payload bool
 }
 
-func (o *FindConfigStartNativeTransportOK) Error() string {
-	return fmt.Sprintf("[GET /config/start_native_transport][%d] findConfigStartNativeTransportOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigStartNativeTransportOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigStartNativeTransportDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigStartNativeTransportDefault) Error() string {
-	return fmt.Sprintf("[GET /config/start_native_transport][%d] find_config_start_native_transport default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigStartNativeTransportDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigStartNativeTransportDefault) readResponse(response runtime.Cl
 	}
 
 	return nil
+}
+
+func (o *FindConfigStartNativeTransportDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

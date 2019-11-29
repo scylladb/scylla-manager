@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceClusterNameGetReader is a Reader for the StorageServiceClusterNameGet structure.
@@ -28,9 +31,15 @@ func (o *StorageServiceClusterNameGetReader) ReadResponse(response runtime.Clien
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceClusterNameGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageServiceClusterNameGetOK struct {
 	Payload string
 }
 
-func (o *StorageServiceClusterNameGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_service/cluster_name][%d] storageServiceClusterNameGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageServiceClusterNameGetOK) GetPayload() string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageServiceClusterNameGetOK) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+// NewStorageServiceClusterNameGetDefault creates a StorageServiceClusterNameGetDefault with default headers values
+func NewStorageServiceClusterNameGetDefault(code int) *StorageServiceClusterNameGetDefault {
+	return &StorageServiceClusterNameGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceClusterNameGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceClusterNameGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service cluster name get default response
+func (o *StorageServiceClusterNameGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceClusterNameGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceClusterNameGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceClusterNameGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

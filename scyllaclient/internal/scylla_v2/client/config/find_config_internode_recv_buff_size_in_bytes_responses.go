@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigInternodeRecvBuffSizeInBytesOK struct {
 	Payload int64
 }
 
-func (o *FindConfigInternodeRecvBuffSizeInBytesOK) Error() string {
-	return fmt.Sprintf("[GET /config/internode_recv_buff_size_in_bytes][%d] findConfigInternodeRecvBuffSizeInBytesOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigInternodeRecvBuffSizeInBytesOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) Error() string {
-	return fmt.Sprintf("[GET /config/internode_recv_buff_size_in_bytes][%d] find_config_internode_recv_buff_size_in_bytes default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) readResponse(response ru
 	}
 
 	return nil
+}
+
+func (o *FindConfigInternodeRecvBuffSizeInBytesDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

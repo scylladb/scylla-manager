@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigShadowRoundMsOK struct {
 	Payload int64
 }
 
-func (o *FindConfigShadowRoundMsOK) Error() string {
-	return fmt.Sprintf("[GET /config/shadow_round_ms][%d] findConfigShadowRoundMsOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigShadowRoundMsOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigShadowRoundMsDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigShadowRoundMsDefault) Error() string {
-	return fmt.Sprintf("[GET /config/shadow_round_ms][%d] find_config_shadow_round_ms default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigShadowRoundMsDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigShadowRoundMsDefault) readResponse(response runtime.ClientRes
 	}
 
 	return nil
+}
+
+func (o *FindConfigShadowRoundMsDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

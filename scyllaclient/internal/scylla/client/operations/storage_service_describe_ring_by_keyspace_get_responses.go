@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *StorageServiceDescribeRingByKeyspaceGetReader) ReadResponse(response ru
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceDescribeRingByKeyspaceGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type StorageServiceDescribeRingByKeyspaceGetOK struct {
 	Payload []*models.TokenRange
 }
 
-func (o *StorageServiceDescribeRingByKeyspaceGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_service/describe_ring/{keyspace}][%d] storageServiceDescribeRingByKeyspaceGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageServiceDescribeRingByKeyspaceGetOK) GetPayload() []*models.TokenRange {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *StorageServiceDescribeRingByKeyspaceGetOK) readResponse(response runtim
 	}
 
 	return nil
+}
+
+// NewStorageServiceDescribeRingByKeyspaceGetDefault creates a StorageServiceDescribeRingByKeyspaceGetDefault with default headers values
+func NewStorageServiceDescribeRingByKeyspaceGetDefault(code int) *StorageServiceDescribeRingByKeyspaceGetDefault {
+	return &StorageServiceDescribeRingByKeyspaceGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceDescribeRingByKeyspaceGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceDescribeRingByKeyspaceGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service describe ring by keyspace get default response
+func (o *StorageServiceDescribeRingByKeyspaceGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceDescribeRingByKeyspaceGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceDescribeRingByKeyspaceGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceDescribeRingByKeyspaceGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

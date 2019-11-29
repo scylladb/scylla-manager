@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigTrickleFsyncIntervalInKbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigTrickleFsyncIntervalInKbOK) Error() string {
-	return fmt.Sprintf("[GET /config/trickle_fsync_interval_in_kb][%d] findConfigTrickleFsyncIntervalInKbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigTrickleFsyncIntervalInKbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigTrickleFsyncIntervalInKbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigTrickleFsyncIntervalInKbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/trickle_fsync_interval_in_kb][%d] find_config_trickle_fsync_interval_in_kb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigTrickleFsyncIntervalInKbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigTrickleFsyncIntervalInKbDefault) readResponse(response runtim
 	}
 
 	return nil
+}
+
+func (o *FindConfigTrickleFsyncIntervalInKbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

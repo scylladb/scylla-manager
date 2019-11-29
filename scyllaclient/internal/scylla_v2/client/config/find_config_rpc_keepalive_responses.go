@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigRPCKeepaliveOK struct {
 	Payload bool
 }
 
-func (o *FindConfigRPCKeepaliveOK) Error() string {
-	return fmt.Sprintf("[GET /config/rpc_keepalive][%d] findConfigRpcKeepaliveOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigRPCKeepaliveOK) GetPayload() bool {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigRPCKeepaliveDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigRPCKeepaliveDefault) Error() string {
-	return fmt.Sprintf("[GET /config/rpc_keepalive][%d] find_config_rpc_keepalive default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigRPCKeepaliveDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigRPCKeepaliveDefault) readResponse(response runtime.ClientResp
 	}
 
 	return nil
+}
+
+func (o *FindConfigRPCKeepaliveDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

@@ -17,9 +17,9 @@ func TestStatusCodeOf(t *testing.T) {
 	t.Parallel()
 
 	configNotFound := scylla2ConfigOperations.NewFindConfigAPIAddressDefault(404)
-	configNotFound.Payload = &scylla2Models.ErrorModel{Result: 404}
+	configNotFound.Payload = &scylla2Models.ErrorModel{Code: 404}
 
-	rcloneNotFound := rcloneOperations.NewOperationsListNotFound()
+	rcloneNotFound := rcloneOperations.NewOperationsListDefault(404)
 	rcloneNotFound.Payload = &agentModels.ErrorResponse{Status: 404}
 
 	table := []struct {

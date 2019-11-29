@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsBloomFilterFalsePositivesGetReader is a Reader for the ColumnFamilyMetricsBloomFilterFalsePositivesGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetReader) ReadResponse(res
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsBloomFilterFalsePositivesGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsBloomFilterFalsePositivesGetOK struct {
 	Payload interface{}
 }
 
-func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/bloom_filter_false_positives][%d] columnFamilyMetricsBloomFilterFalsePositivesGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetOK) readResponse(respons
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsBloomFilterFalsePositivesGetDefault creates a ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault with default headers values
+func NewColumnFamilyMetricsBloomFilterFalsePositivesGetDefault(code int) *ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault {
+	return &ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics bloom filter false positives get default response
+func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsBloomFilterFalsePositivesGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

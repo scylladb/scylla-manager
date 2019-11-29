@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // GossiperEndpointLiveGetReader is a Reader for the GossiperEndpointLiveGet structure.
@@ -28,9 +31,15 @@ func (o *GossiperEndpointLiveGetReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewGossiperEndpointLiveGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type GossiperEndpointLiveGetOK struct {
 	Payload []string
 }
 
-func (o *GossiperEndpointLiveGetOK) Error() string {
-	return fmt.Sprintf("[GET /gossiper/endpoint/live/][%d] gossiperEndpointLiveGetOK  %+v", 200, o.Payload)
-}
-
 func (o *GossiperEndpointLiveGetOK) GetPayload() []string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *GossiperEndpointLiveGetOK) readResponse(response runtime.ClientResponse
 	}
 
 	return nil
+}
+
+// NewGossiperEndpointLiveGetDefault creates a GossiperEndpointLiveGetDefault with default headers values
+func NewGossiperEndpointLiveGetDefault(code int) *GossiperEndpointLiveGetDefault {
+	return &GossiperEndpointLiveGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*GossiperEndpointLiveGetDefault handles this case with default header values.
+
+internal server error
+*/
+type GossiperEndpointLiveGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the gossiper endpoint live get default response
+func (o *GossiperEndpointLiveGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *GossiperEndpointLiveGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *GossiperEndpointLiveGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *GossiperEndpointLiveGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

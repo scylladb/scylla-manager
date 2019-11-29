@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsReadGetReader is a Reader for the ColumnFamilyMetricsReadGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsReadGetReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsReadGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsReadGetOK struct {
 	Payload interface{}
 }
 
-func (o *ColumnFamilyMetricsReadGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/read/][%d] columnFamilyMetricsReadGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsReadGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsReadGetOK) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsReadGetDefault creates a ColumnFamilyMetricsReadGetDefault with default headers values
+func NewColumnFamilyMetricsReadGetDefault(code int) *ColumnFamilyMetricsReadGetDefault {
+	return &ColumnFamilyMetricsReadGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsReadGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsReadGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics read get default response
+func (o *ColumnFamilyMetricsReadGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsReadGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsReadGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsReadGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

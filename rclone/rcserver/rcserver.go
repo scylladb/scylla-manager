@@ -78,10 +78,10 @@ func writeError(path string, in rc.Params, w http.ResponseWriter, err error, sta
 	}
 	w.WriteHeader(status)
 	err = rc.WriteJSON(w, rc.Params{
-		"status": status,
-		"error":  err.Error(),
-		"input":  in,
-		"path":   path,
+		"status":  status,
+		"message": err.Error(),
+		"input":   in,
+		"path":    path,
 	})
 	if err != nil {
 		// can't return the error at this point
@@ -118,7 +118,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 const (
 	bodySizeLimit int64 = 1024 * 1024
-	notFoundJSON        = `{"error": "Not found", "status": 404}`
+	notFoundJSON        = `{"message": "Not found", "status": 404}`
 )
 
 func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {

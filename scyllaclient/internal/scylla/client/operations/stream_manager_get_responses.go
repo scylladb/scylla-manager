@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -30,9 +31,15 @@ func (o *StreamManagerGetReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStreamManagerGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -49,10 +56,6 @@ type StreamManagerGetOK struct {
 	Payload []*models.StreamState
 }
 
-func (o *StreamManagerGetOK) Error() string {
-	return fmt.Sprintf("[GET /stream_manager/][%d] streamManagerGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StreamManagerGetOK) GetPayload() []*models.StreamState {
 	return o.Payload
 }
@@ -65,4 +68,46 @@ func (o *StreamManagerGetOK) readResponse(response runtime.ClientResponse, consu
 	}
 
 	return nil
+}
+
+// NewStreamManagerGetDefault creates a StreamManagerGetDefault with default headers values
+func NewStreamManagerGetDefault(code int) *StreamManagerGetDefault {
+	return &StreamManagerGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StreamManagerGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StreamManagerGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the stream manager get default response
+func (o *StreamManagerGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StreamManagerGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StreamManagerGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StreamManagerGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

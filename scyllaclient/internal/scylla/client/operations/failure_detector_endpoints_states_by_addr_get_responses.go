@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // FailureDetectorEndpointsStatesByAddrGetReader is a Reader for the FailureDetectorEndpointsStatesByAddrGet structure.
@@ -28,9 +31,15 @@ func (o *FailureDetectorEndpointsStatesByAddrGetReader) ReadResponse(response ru
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewFailureDetectorEndpointsStatesByAddrGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type FailureDetectorEndpointsStatesByAddrGetOK struct {
 	Payload string
 }
 
-func (o *FailureDetectorEndpointsStatesByAddrGetOK) Error() string {
-	return fmt.Sprintf("[GET /failure_detector/endpoints/states/{addr}][%d] failureDetectorEndpointsStatesByAddrGetOK  %+v", 200, o.Payload)
-}
-
 func (o *FailureDetectorEndpointsStatesByAddrGetOK) GetPayload() string {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *FailureDetectorEndpointsStatesByAddrGetOK) readResponse(response runtim
 	}
 
 	return nil
+}
+
+// NewFailureDetectorEndpointsStatesByAddrGetDefault creates a FailureDetectorEndpointsStatesByAddrGetDefault with default headers values
+func NewFailureDetectorEndpointsStatesByAddrGetDefault(code int) *FailureDetectorEndpointsStatesByAddrGetDefault {
+	return &FailureDetectorEndpointsStatesByAddrGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*FailureDetectorEndpointsStatesByAddrGetDefault handles this case with default header values.
+
+internal server error
+*/
+type FailureDetectorEndpointsStatesByAddrGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the failure detector endpoints states by addr get default response
+func (o *FailureDetectorEndpointsStatesByAddrGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *FailureDetectorEndpointsStatesByAddrGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *FailureDetectorEndpointsStatesByAddrGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *FailureDetectorEndpointsStatesByAddrGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

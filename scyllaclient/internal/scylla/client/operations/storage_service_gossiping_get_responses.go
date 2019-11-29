@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceGossipingGetReader is a Reader for the StorageServiceGossipingGet structure.
@@ -28,9 +31,15 @@ func (o *StorageServiceGossipingGetReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceGossipingGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type StorageServiceGossipingGetOK struct {
 	Payload bool
 }
 
-func (o *StorageServiceGossipingGetOK) Error() string {
-	return fmt.Sprintf("[GET /storage_service/gossiping][%d] storageServiceGossipingGetOK  %+v", 200, o.Payload)
-}
-
 func (o *StorageServiceGossipingGetOK) GetPayload() bool {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *StorageServiceGossipingGetOK) readResponse(response runtime.ClientRespo
 	}
 
 	return nil
+}
+
+// NewStorageServiceGossipingGetDefault creates a StorageServiceGossipingGetDefault with default headers values
+func NewStorageServiceGossipingGetDefault(code int) *StorageServiceGossipingGetDefault {
+	return &StorageServiceGossipingGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceGossipingGetDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceGossipingGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service gossiping get default response
+func (o *StorageServiceGossipingGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceGossipingGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceGossipingGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceGossipingGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

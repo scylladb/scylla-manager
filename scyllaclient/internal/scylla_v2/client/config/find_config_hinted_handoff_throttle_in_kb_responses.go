@@ -8,6 +8,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -55,10 +56,6 @@ type FindConfigHintedHandoffThrottleInKbOK struct {
 	Payload int64
 }
 
-func (o *FindConfigHintedHandoffThrottleInKbOK) Error() string {
-	return fmt.Sprintf("[GET /config/hinted_handoff_throttle_in_kb][%d] findConfigHintedHandoffThrottleInKbOK  %+v", 200, o.Payload)
-}
-
 func (o *FindConfigHintedHandoffThrottleInKbOK) GetPayload() int64 {
 	return o.Payload
 }
@@ -95,10 +92,6 @@ func (o *FindConfigHintedHandoffThrottleInKbDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *FindConfigHintedHandoffThrottleInKbDefault) Error() string {
-	return fmt.Sprintf("[GET /config/hinted_handoff_throttle_in_kb][%d] find_config_hinted_handoff_throttle_in_kb default  %+v", o._statusCode, o.Payload)
-}
-
 func (o *FindConfigHintedHandoffThrottleInKbDefault) GetPayload() *models.ErrorModel {
 	return o.Payload
 }
@@ -113,4 +106,8 @@ func (o *FindConfigHintedHandoffThrottleInKbDefault) readResponse(response runti
 	}
 
 	return nil
+}
+
+func (o *FindConfigHintedHandoffThrottleInKbDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

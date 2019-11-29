@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // CacheServiceCounterCacheKeysToSaveGetReader is a Reader for the CacheServiceCounterCacheKeysToSaveGet structure.
@@ -28,9 +31,15 @@ func (o *CacheServiceCounterCacheKeysToSaveGetReader) ReadResponse(response runt
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewCacheServiceCounterCacheKeysToSaveGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type CacheServiceCounterCacheKeysToSaveGetOK struct {
 	Payload int32
 }
 
-func (o *CacheServiceCounterCacheKeysToSaveGetOK) Error() string {
-	return fmt.Sprintf("[GET /cache_service/counter_cache_keys_to_save][%d] cacheServiceCounterCacheKeysToSaveGetOK  %+v", 200, o.Payload)
-}
-
 func (o *CacheServiceCounterCacheKeysToSaveGetOK) GetPayload() int32 {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *CacheServiceCounterCacheKeysToSaveGetOK) readResponse(response runtime.
 	}
 
 	return nil
+}
+
+// NewCacheServiceCounterCacheKeysToSaveGetDefault creates a CacheServiceCounterCacheKeysToSaveGetDefault with default headers values
+func NewCacheServiceCounterCacheKeysToSaveGetDefault(code int) *CacheServiceCounterCacheKeysToSaveGetDefault {
+	return &CacheServiceCounterCacheKeysToSaveGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*CacheServiceCounterCacheKeysToSaveGetDefault handles this case with default header values.
+
+internal server error
+*/
+type CacheServiceCounterCacheKeysToSaveGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the cache service counter cache keys to save get default response
+func (o *CacheServiceCounterCacheKeysToSaveGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *CacheServiceCounterCacheKeysToSaveGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *CacheServiceCounterCacheKeysToSaveGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *CacheServiceCounterCacheKeysToSaveGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

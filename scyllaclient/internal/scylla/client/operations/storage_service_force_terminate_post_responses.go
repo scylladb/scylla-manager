@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceForceTerminatePostReader is a Reader for the StorageServiceForceTerminatePost structure.
@@ -27,9 +31,15 @@ func (o *StorageServiceForceTerminatePostReader) ReadResponse(response runtime.C
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceForceTerminatePostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageServiceForceTerminatePostOK storage service force terminate post o k
 type StorageServiceForceTerminatePostOK struct {
 }
 
-func (o *StorageServiceForceTerminatePostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_service/force_terminate][%d] storageServiceForceTerminatePostOK ", 200)
-}
-
 func (o *StorageServiceForceTerminatePostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageServiceForceTerminatePostDefault creates a StorageServiceForceTerminatePostDefault with default headers values
+func NewStorageServiceForceTerminatePostDefault(code int) *StorageServiceForceTerminatePostDefault {
+	return &StorageServiceForceTerminatePostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceForceTerminatePostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceForceTerminatePostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service force terminate post default response
+func (o *StorageServiceForceTerminatePostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceForceTerminatePostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceForceTerminatePostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceForceTerminatePostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

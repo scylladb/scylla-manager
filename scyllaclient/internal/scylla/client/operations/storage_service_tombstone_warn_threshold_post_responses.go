@@ -7,10 +7,14 @@ package operations
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // StorageServiceTombstoneWarnThresholdPostReader is a Reader for the StorageServiceTombstoneWarnThresholdPost structure.
@@ -27,9 +31,15 @@ func (o *StorageServiceTombstoneWarnThresholdPostReader) ReadResponse(response r
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewStorageServiceTombstoneWarnThresholdPostDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -45,11 +55,49 @@ StorageServiceTombstoneWarnThresholdPostOK storage service tombstone warn thresh
 type StorageServiceTombstoneWarnThresholdPostOK struct {
 }
 
-func (o *StorageServiceTombstoneWarnThresholdPostOK) Error() string {
-	return fmt.Sprintf("[POST /storage_service/tombstone_warn_threshold][%d] storageServiceTombstoneWarnThresholdPostOK ", 200)
-}
-
 func (o *StorageServiceTombstoneWarnThresholdPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
+}
+
+// NewStorageServiceTombstoneWarnThresholdPostDefault creates a StorageServiceTombstoneWarnThresholdPostDefault with default headers values
+func NewStorageServiceTombstoneWarnThresholdPostDefault(code int) *StorageServiceTombstoneWarnThresholdPostDefault {
+	return &StorageServiceTombstoneWarnThresholdPostDefault{
+		_statusCode: code,
+	}
+}
+
+/*StorageServiceTombstoneWarnThresholdPostDefault handles this case with default header values.
+
+internal server error
+*/
+type StorageServiceTombstoneWarnThresholdPostDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the storage service tombstone warn threshold post default response
+func (o *StorageServiceTombstoneWarnThresholdPostDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *StorageServiceTombstoneWarnThresholdPostDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *StorageServiceTombstoneWarnThresholdPostDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *StorageServiceTombstoneWarnThresholdPostDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

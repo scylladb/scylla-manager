@@ -8,10 +8,13 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/scylladb/mermaid/scyllaclient/internal/scylla/models"
 )
 
 // ColumnFamilyMetricsCompressionRatioByNameGetReader is a Reader for the ColumnFamilyMetricsCompressionRatioByNameGet structure.
@@ -28,9 +31,15 @@ func (o *ColumnFamilyMetricsCompressionRatioByNameGetReader) ReadResponse(respon
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewColumnFamilyMetricsCompressionRatioByNameGetDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -47,10 +56,6 @@ type ColumnFamilyMetricsCompressionRatioByNameGetOK struct {
 	Payload interface{}
 }
 
-func (o *ColumnFamilyMetricsCompressionRatioByNameGetOK) Error() string {
-	return fmt.Sprintf("[GET /column_family/metrics/compression_ratio/{name}][%d] columnFamilyMetricsCompressionRatioByNameGetOK  %+v", 200, o.Payload)
-}
-
 func (o *ColumnFamilyMetricsCompressionRatioByNameGetOK) GetPayload() interface{} {
 	return o.Payload
 }
@@ -63,4 +68,46 @@ func (o *ColumnFamilyMetricsCompressionRatioByNameGetOK) readResponse(response r
 	}
 
 	return nil
+}
+
+// NewColumnFamilyMetricsCompressionRatioByNameGetDefault creates a ColumnFamilyMetricsCompressionRatioByNameGetDefault with default headers values
+func NewColumnFamilyMetricsCompressionRatioByNameGetDefault(code int) *ColumnFamilyMetricsCompressionRatioByNameGetDefault {
+	return &ColumnFamilyMetricsCompressionRatioByNameGetDefault{
+		_statusCode: code,
+	}
+}
+
+/*ColumnFamilyMetricsCompressionRatioByNameGetDefault handles this case with default header values.
+
+internal server error
+*/
+type ColumnFamilyMetricsCompressionRatioByNameGetDefault struct {
+	_statusCode int
+
+	Payload *models.ErrorModel
+}
+
+// Code gets the status code for the column family metrics compression ratio by name get default response
+func (o *ColumnFamilyMetricsCompressionRatioByNameGetDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *ColumnFamilyMetricsCompressionRatioByNameGetDefault) GetPayload() *models.ErrorModel {
+	return o.Payload
+}
+
+func (o *ColumnFamilyMetricsCompressionRatioByNameGetDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ErrorModel)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ColumnFamilyMetricsCompressionRatioByNameGetDefault) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }
