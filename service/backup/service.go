@@ -504,7 +504,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Start metric updater
-	stopMetricsUpdater := newBackupMetricUpdater(ctx, run, s.getProgress, s.logger.Named("metrics"), mermaid.PrometheusScrapeInterval)
+	stopMetricsUpdater := newBackupMetricUpdater(ctx, run, NewProgressVisitor(run, s.session), s.logger.Named("metrics"), mermaid.PrometheusScrapeInterval)
 	defer stopMetricsUpdater()
 
 	// Take snapshot if needed
@@ -587,11 +587,10 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	}
 
 	for _, r := range runs {
-		prog, err := s.getProgress(r)
+		size, uploaded, skipped, err := runProgress(r, NewProgressVisitor(r, s.session))
 		if err != nil {
 			return nil, err
 		}
-		size, uploaded, skipped := runProgress(r, prog)
 		if size > 0 {
 			if size == uploaded+skipped {
 				break
@@ -603,31 +602,18 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	return nil, mermaid.ErrNotFound
 }
 
-// runProgress returns total size and uploaded bytes for all files belonging to
-// the run.
-func runProgress(run *Run, prog []*RunProgress) (size, uploaded, skipped int64) {
+// runProgress returns total size, uploaded, and skipped bytes for all of the
+// files belonging to the run.
+func runProgress(run *Run, vis ProgressVisitor) (size, uploaded, skipped int64, err error) {
 	if len(run.Units) == 0 {
 		return
 	}
-	for i := range prog {
-		size += prog[i].Size
-		uploaded += prog[i].Uploaded
-		skipped += prog[i].Skipped
-	}
-	return
-}
-
-func (s *Service) getProgress(run *Run) ([]*RunProgress, error) {
-	stmt, names := schema.BackupRunProgress.Select()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
-		"cluster_id": run.ClusterID,
-		"task_id":    run.TaskID,
-		"run_id":     run.ID,
+	err = vis.ForEach(func(r *RunProgress) {
+		size += r.Size
+		uploaded += r.Uploaded
+		skipped += r.Skipped
 	})
-
-	var p []*RunProgress
-	return p, q.SelectRelease(&p)
+	return
 }
 
 // putRun upserts a backup run.
@@ -702,12 +688,6 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	if err != nil {
 		return Progress{}, err
 	}
-	prog, err := s.getProgress(run)
-	if err != nil {
-		return Progress{}, err
-	}
 
-	p := aggregateProgress(run, prog)
-
-	return p, nil
+	return aggregateProgress(run, NewProgressVisitor(run, s.session))
 }

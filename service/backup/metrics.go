@@ -50,10 +50,8 @@ func init() {
 	)
 }
 
-type progressFetcher func(run *Run) ([]*RunProgress, error)
-
-func newBackupMetricUpdater(ctx context.Context, run *Run, prog progressFetcher, logger log.Logger, interval time.Duration) (stop func()) {
-	return tickrun.NewTicker(interval, updateFunc(ctx, run, prog, logger))
+func newBackupMetricUpdater(ctx context.Context, run *Run, vis ProgressVisitor, logger log.Logger, interval time.Duration) (stop func()) {
+	return tickrun.NewTicker(interval, updateFunc(ctx, run, vis, logger))
 }
 
 func saveMetrics(p progress, labels prometheus.Labels) {
@@ -64,15 +62,13 @@ func saveMetrics(p progress, labels prometheus.Labels) {
 	backupAvgUploadBandwidth.With(labels).Set(p.AvgUploadBandwidth())
 }
 
-func updateFunc(ctx context.Context, run *Run, prog progressFetcher, logger log.Logger) func() {
+func updateFunc(ctx context.Context, run *Run, vis ProgressVisitor, logger log.Logger) func() {
 	return func() {
-		prog, err := prog(run)
+		p, err := aggregateProgress(run, vis)
 		if err != nil {
-			logger.Error(ctx, "Failed to get backup progress", "error", err)
+			logger.Error(ctx, "Failed to aggregate backup progress metrics", "error", err)
 			return
 		}
-
-		p := aggregateProgress(run, prog)
 
 		clusterID := run.ClusterID.String()
 		taskID := run.TaskID.String()

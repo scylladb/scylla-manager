@@ -6,8 +6,12 @@ import (
 	"sort"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid/internal/timeutc"
+	"github.com/scylladb/mermaid/schema"
 )
 
 var (
@@ -23,18 +27,25 @@ type tableKey struct {
 
 // aggregateProgress returns progress information classified by host, keyspace,
 // and host tables.
-func aggregateProgress(run *Run, prog []*RunProgress) Progress {
+func aggregateProgress(run *Run, vis ProgressVisitor) (Progress, error) {
 	p := Progress{
 		SnapshotTag: run.SnapshotTag,
 		DC:          run.DC,
 	}
 
-	if len(run.Units) == 0 || len(prog) == 0 {
-		return p
+	if len(run.Units) == 0 {
+		return p, nil
 	}
 
-	tableMap, hosts := aggregateTableProgress(run, prog)
-	for _, h := range hosts {
+	tableMap := make(map[tableKey]*TableProgress)
+	hosts := strset.New()
+	if err := vis.ForEach(aggregateTableProgress(run, tableMap, hosts)); err != nil {
+		return p, err
+	}
+	hostList := hosts.List()
+	sort.Strings(hostList)
+
+	for _, h := range hostList {
 		host := HostProgress{
 			Host: h,
 			progress: progress{
@@ -69,15 +80,13 @@ func aggregateProgress(run *Run, prog []*RunProgress) Progress {
 		p.progress = calcParentProgress(p.progress, host.progress)
 	}
 
-	return p
+	return p, nil
 }
 
 // aggregateTableProgress aggregates provided run progress per host table and
 // returns it along with list of all aggregated hosts.
-func aggregateTableProgress(run *Run, prog []*RunProgress) (map[tableKey]*TableProgress, []string) {
-	hosts := strset.New()
-	tableMap := make(map[tableKey]*TableProgress)
-	for _, pr := range prog {
+func aggregateTableProgress(run *Run, tableMap map[tableKey]*TableProgress, hosts *strset.Set) func(*RunProgress) {
+	return func(pr *RunProgress) {
 		tk := tableKey{pr.Host, run.Units[pr.Unit].Keyspace, pr.TableName}
 		table, ok := tableMap[tk]
 		if !ok {
@@ -95,7 +104,7 @@ func aggregateTableProgress(run *Run, prog []*RunProgress) (map[tableKey]*TableP
 
 		// Don't count metadata as progress.
 		if pr.FileName == manifest {
-			continue
+			return
 		}
 
 		table.Size += pr.Size
@@ -120,11 +129,6 @@ func aggregateTableProgress(run *Run, prog []*RunProgress) (map[tableKey]*TableP
 			}
 		}
 	}
-
-	hs := hosts.List()
-	sort.Strings(hs)
-
-	return tableMap, hs
 }
 
 // extremeToNil converts from temporary extreme time values to nil.
@@ -203,4 +207,42 @@ func (p *progress) AvgUploadBandwidth() float64 {
 
 	uploadDuration := reference.Sub(*p.StartedAt)
 	return float64(p.Uploaded) / uploadDuration.Seconds()
+}
+
+// ProgressVisitor knows how to iterate over list of RunProgress results.
+type ProgressVisitor interface {
+	ForEach(func(*RunProgress)) error
+}
+
+type progressVisitor struct {
+	session *gocql.Session
+	run     *Run
+}
+
+// NewProgressVisitor creates new progress iterator.
+func NewProgressVisitor(run *Run, session *gocql.Session) ProgressVisitor {
+	return &progressVisitor{
+		session: session,
+		run:     run,
+	}
+}
+
+// ForEach iterates over each run progress and runs visit function on it.
+// If visit wants to reuse RunProgress it must copy it because memory is reused
+// between calls.
+func (i *progressVisitor) ForEach(visit func(*RunProgress)) error {
+	stmt, names := schema.BackupRunProgress.Select()
+
+	iter := gocqlx.Query(i.session.Query(stmt), names).BindMap(qb.M{
+		"cluster_id": i.run.ClusterID,
+		"task_id":    i.run.TaskID,
+		"run_id":     i.run.ID,
+	}).Iter()
+
+	pr := &RunProgress{}
+	for iter.StructScan(pr) {
+		visit(pr)
+	}
+
+	return iter.Close()
 }

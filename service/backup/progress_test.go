@@ -367,9 +367,24 @@ func TestAggregateProgress(t *testing.T) {
 				t.Fatal(err)
 			}
 			f.Close()
-			if diff := cmp.Diff(expected, aggregateProgress(test.Run, test.RunProgress), opts); diff != "" {
+			p, err := aggregateProgress(test.Run, &testVisitor{prog: test.RunProgress})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(expected, p, opts); diff != "" {
 				t.Error(diff)
 			}
 		})
 	}
+}
+
+type testVisitor struct {
+	prog []*RunProgress
+}
+
+func (i *testVisitor) ForEach(visit func(*RunProgress)) error {
+	for _, pr := range i.prog {
+		visit(pr)
+	}
+	return nil
 }
