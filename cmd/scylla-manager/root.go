@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-log/gocqllog"
 	"github.com/scylladb/mermaid"
+	"github.com/scylladb/mermaid/callhome"
 	"github.com/scylladb/mermaid/internal/netwait"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -79,8 +80,14 @@ var rootCmd = &cobra.Command{
 			logger.Sync() // nolint
 		}()
 
-		// Log version and config
+		// Log version and check for updates
 		logger.Info(ctx, "Scylla Manager Server", "version", mermaid.Version())
+		if res, err := callhome.NewChecker("", "", callhome.DefaultEnv).CheckForUpdates(ctx, false); err != nil {
+			logger.Error(ctx, "Failed to check for updates", "error", err)
+		} else if res.UpdateAvailable {
+			logger.Info(ctx, "New Scylla Manager version is available", "installed", res.Installed, "available", res.Available)
+		}
+		// Log config
 		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config), "config_files", cfgConfigFile)
 
 		// Redirect standard logger to the logger

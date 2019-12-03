@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/callhome"
 	"github.com/spf13/cobra"
 )
@@ -21,37 +22,7 @@ var checkForUpdatesCmd = &cobra.Command{
 			return err
 		}
 
-		// Reuse configuration loading from root.go to make sure we are using
-		// same logger configuration.
-		config, err := parseConfigFile(cfgConfigFile...)
-		if err != nil {
-			config = defaultConfig()
-		}
-		if err := config.validate(); err != nil {
-			config = defaultConfig()
-		}
-
-		l, err := logger(config)
-		if err != nil {
-			return err
-		}
-
-		ch := callhome.NewChecker("", "", callhome.DefaultEnv)
-		res, err := ch.CheckForUpdates(context.Background(), install)
-		if err != nil {
-			return err
-		}
-		msg := "New Scylla Manager version is available"
-		if res.UpdateAvailable {
-			if install {
-				fmt.Fprintf(cmd.OutOrStderr(), msg+": installed=%s available=%s", res.Installed, res.Available)
-			} else {
-				l.Info(context.Background(), msg,
-					"installed", res.Installed, "available", res.Available)
-			}
-
-		}
-		return nil
+		return checkForUpdate(context.Background(), cmd, install)
 	},
 }
 
@@ -61,4 +32,21 @@ func init() {
 	fs := checkForUpdatesCmd.Flags()
 	fs.Bool("install", false, "use installation status when performing check")
 	fs.MarkHidden("install") // nolint:errcheck
+}
+
+func checkForUpdate(ctx context.Context, cmd *cobra.Command, install bool) error {
+	ch := callhome.NewChecker("", "", callhome.DefaultEnv)
+	res, err := ch.CheckForUpdates(ctx, install)
+	if err != nil {
+		return errors.Wrap(err, "check for updates")
+	}
+
+	if res.UpdateAvailable {
+		msg := "New Scylla Manager version is available"
+		fmt.Fprintf(cmd.OutOrStdout(), msg+": installed=%s available=%s\n", res.Installed, res.Available)
+	} else {
+		msg := "Scylla Manager is up to date"
+		fmt.Fprintf(cmd.OutOrStdout(), msg+": installed=%s\n", res.Installed)
+	}
+	return nil
 }
