@@ -318,8 +318,8 @@ github.com/scylladb/gocqlx v1.3.1 h1:NTiKaSW1RzDxHQIyPE/KubOJCKRG5xXMUG8FKVKR/j0
 github.com/scylladb/gocqlx v1.3.1/go.mod h1:1CisD8Z+VB7ByxGyc3B9OXusRNgWWtCMkO+hNCpgZAc=
 github.com/scylladb/rclone v1.50.2-patched h1:DFWsWICBjJ1W8Pa5dPfkUlQqYiOJhyuz8UJlsulMmZo=
 github.com/scylladb/rclone v1.50.2-patched/go.mod h1:VNSnyymI+2hjJtDMkQyA1dx2TBIjfJ9Uv9T4y1gfAUk=
-github.com/scylladb/termtables v0.0.0-20191125135053-b2b40be89112 h1:BwT6PC/0dulzbM0o0jXdOvGV/s5YVrCiz6shI+SZems=
-github.com/scylladb/termtables v0.0.0-20191125135053-b2b40be89112/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
+github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
+github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
 github.com/sevlyar/go-daemon v0.1.5 h1:Zy/6jLbM8CfqJ4x4RPr7MJlSKt90f00kNM1D401C+Qk=
 github.com/sevlyar/go-daemon v0.1.5/go.mod h1:6dJpPatBT9eUwM5VCw9Bt6CdX9Tk6UWvhW3MebLDRKE=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=

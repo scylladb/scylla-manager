@@ -222,7 +222,7 @@ github.com/scylladb/gocqlx
 github.com/scylladb/gocqlx/migrate
 github.com/scylladb/gocqlx/qb
 github.com/scylladb/gocqlx/table
-# github.com/scylladb/termtables v0.0.0-20191125135053-b2b40be89112
+# github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 github.com/scylladb/termtables
 github.com/scylladb/termtables/term
 # github.com/sirupsen/logrus v1.4.2
