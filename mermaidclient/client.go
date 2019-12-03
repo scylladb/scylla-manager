@@ -37,8 +37,8 @@ var DefaultTLSConfig = func() *tls.Config {
 	}
 }
 
-func NewClient(rawurl string, tlsConfig *tls.Config) (Client, error) {
-	u, err := url.Parse(rawurl)
+func NewClient(rawURL string, transport http.RoundTripper) (Client, error) {
+	u, err := url.Parse(rawURL)
 	if err != nil {
 		return Client{}, err
 	}
@@ -47,14 +47,14 @@ func NewClient(rawurl string, tlsConfig *tls.Config) (Client, error) {
 		middleware.Debug = false
 	})
 
-	if tlsConfig == nil {
-		tlsConfig = DefaultTLSConfig()
+	if transport == nil {
+		transport = &http.Transport{
+			TLSClientConfig: DefaultTLSConfig(),
+		}
 	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
+		Transport: transport,
 	}
 
 	r := api.NewWithClient(u.Host, u.Path, []string{u.Scheme}, httpClient)

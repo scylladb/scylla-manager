@@ -4,6 +4,7 @@ package main
 
 import (
 	"crypto/tls"
+	"net/http"
 	"os"
 
 	"github.com/pkg/errors"
@@ -49,7 +50,7 @@ var rootCmd = &cobra.Command{
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
 
-		c, err := mermaidclient.NewClient(cfgAPIURL, tlsConfig)
+		c, err := mermaidclient.NewClient(cfgAPIURL, &http.Transport{TLSClientConfig: tlsConfig})
 		if err != nil {
 			return err
 		}
