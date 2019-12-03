@@ -368,15 +368,15 @@ func (c Client) ListBackups(ctx context.Context, clusterID string, host string,
 func (c Client) ListBackupFiles(ctx context.Context, clusterID string, host string,
 	locations []string, allClusters bool, keyspace []string, snapshotTag string) ([]*models.BackupFilesInfo, error) {
 	p := &operations.GetClusterClusterIDBackupsFilesParams{
-		Context:     ctx,
-		ClusterID:   clusterID,
-		Host:        host,
-		Locations:   locations,
-		Keyspace:    keyspace,
-		SnapshotTag: snapshotTag,
+		Context:       ctx,
+		PathClusterID: clusterID,
+		Host:          host,
+		Locations:     locations,
+		Keyspace:      keyspace,
+		SnapshotTag:   snapshotTag,
 	}
 	if !allClusters {
-		p.QueryClusterID = &clusterID
+		p.ClusterID = &clusterID
 	}
 
 	resp, err := c.operations.GetClusterClusterIDBackupsFiles(p)
