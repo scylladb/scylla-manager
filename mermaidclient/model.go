@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/mermaid/internal/inexlist"
 	"github.com/scylladb/mermaid/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/mermaidclient/table"
+	"github.com/scylladb/termtables"
 )
 
 // ErrorResponse is returned in case of an error.
@@ -328,6 +329,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	if rp.Progress != nil {
 		t := table.New()
 		rp.addRepairUnitProgress(t)
+		t.SetColumnAlignment(termtables.AlignRight, 1)
 		if _, err := io.WriteString(w, t.String()); err != nil {
 			return err
 		}
@@ -350,6 +352,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 				rp.addRepairUnitDetailedProgress(d, u)
 			}
 		}
+		d.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
 		if _, err := w.Write([]byte(d.String())); err != nil {
 			return err
 		}
@@ -505,6 +508,7 @@ func (bp BackupProgress) addHostProgress(t *table.Table) {
 			ByteCountBinary(h.Failed),
 		)
 	}
+	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
 }
 
 func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
@@ -549,6 +553,7 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 				t.AddRow("-", "-", "-", "-", "-", "-", "-", "-", "-")
 			}
 		}
+		t.SetColumnAlignment(termtables.AlignRight, 2, 3, 4, 5, 6)
 		if _, err := w.Write([]byte(t.String())); err != nil {
 			return err
 		}

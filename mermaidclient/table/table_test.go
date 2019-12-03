@@ -1,19 +1,20 @@
 // Copyright (C) 2017 ScyllaDB
 
-package table
+package table_test
 
 import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/mermaid/mermaidclient/table"
 	"github.com/scylladb/termtables"
 )
 
 func TestTable(t *testing.T) {
 	headers := []interface{}{"system_auth", "segment_success", "cause"}
 	rows := [][]interface{}{
-		[]interface{}{"192.168.100.11", 844, "Cause of the error is something"},
-		[]interface{}{"192.168.100.11", 843, "Cause of the error is something very long to fit into the table"},
+		{"192.168.100.11", 844, "Cause of the error is something"},
+		{"192.168.100.11", 843, "Cause of the error is something very long to fit into the table"},
 	}
 	tbl := []struct {
 		name     string
@@ -32,8 +33,8 @@ func TestTable(t *testing.T) {
 			`╭────────────────┬─────────────────┬─────────────────────────────────────────────────────────────────╮
 │ system_auth    │ segment_success │ cause                                                           │
 ├────────────────┼─────────────────┼─────────────────────────────────────────────────────────────────┤
-│ 192.168.100.11 │ 844             │ Cause of the error is something                                 │
-│ 192.168.100.11 │ 843             │ Cause of the error is something very long to fit into the table │
+│ 192.168.100.11 │             844 │ Cause of the error is something                                 │
+│ 192.168.100.11 │             843 │ Cause of the error is something very long to fit into the table │
 ╰────────────────┴─────────────────┴─────────────────────────────────────────────────────────────────╯
 `,
 		},
@@ -46,8 +47,8 @@ func TestTable(t *testing.T) {
 			`╭────────────────┬─────────────────┬─────────────────────────────────╮
 │ system_auth    │ segment_success │ cause                           │
 ├────────────────┼─────────────────┼─────────────────────────────────┤
-│ 192.168.100.11 │ 844             │ Cause of the error is something │
-│ 192.168.100.11 │ 843             │ Cause of the error is somethin… │
+│ 192.168.100.11 │             844 │ Cause of the error is something │
+│ 192.168.100.11 │             843 │ Cause of the error is somethin… │
 ╰────────────────┴─────────────────┴─────────────────────────────────╯
 `,
 		},
@@ -60,8 +61,8 @@ func TestTable(t *testing.T) {
 			`╭────────────────┬─────────────────┬─────────────────────────────────────────────────────────────────╮
 │ system_auth    │ segment_success │ cause                                                           │
 ├────────────────┼─────────────────┼─────────────────────────────────────────────────────────────────┤
-│ 192.168.100.11 │ 844             │ Cause of the error is something                                 │
-│ 192.168.100.11 │ 843             │ Cause of the error is something very long to fit into the table │
+│ 192.168.100.11 │             844 │ Cause of the error is something                                 │
+│ 192.168.100.11 │             843 │ Cause of the error is something very long to fit into the table │
 ╰────────────────┴─────────────────┴─────────────────────────────────────────────────────────────────╯
 `,
 		},
@@ -74,8 +75,8 @@ func TestTable(t *testing.T) {
 			`╭────────────────┬─────────────────┬───────╮
 │ system_auth    │ segment_success │ cause │
 ├────────────────┼─────────────────┼───────┤
-│ 192.168.100.11 │ 844             │ …     │
-│ 192.168.100.11 │ 843             │ …     │
+│ 192.168.100.11 │             844 │ …     │
+│ 192.168.100.11 │             843 │ …     │
 ╰────────────────┴─────────────────┴───────╯
 `,
 		},
@@ -88,8 +89,8 @@ func TestTable(t *testing.T) {
 			`╭─────────────┬─────────────────┬────────────╮
 │ system_auth │ segment_success │ cause      │
 ├─────────────┼─────────────────┼────────────┤
-│ 192.168.1…  │ 844             │ Cause of … │
-│ 192.168.1…  │ 843             │ Cause of … │
+│ 192.168.1…  │             844 │ Cause of … │
+│ 192.168.1…  │             843 │ Cause of … │
 ╰─────────────┴─────────────────┴────────────╯
 `,
 		},
@@ -98,11 +99,12 @@ func TestTable(t *testing.T) {
 	for _, test := range tbl {
 		t.Run(test.name, func(t *testing.T) {
 			termtables.MaxColumns = test.maxWidth
-			tb := New(test.header...)
+			tb := table.New(test.header...)
 			tb.LimitColumnLength(test.columns...)
 			for i := range test.rows {
 				tb.AddRow(test.rows[i]...)
 			}
+			tb.SetColumnAlignment(termtables.AlignRight, 1)
 			if diff := cmp.Diff(tb.String(), test.expected); diff != "" {
 				t.Log(tb.String())
 				t.Fatal(diff)

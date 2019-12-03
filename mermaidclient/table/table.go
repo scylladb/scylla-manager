@@ -24,8 +24,9 @@ var defaultCellStyle = &termtables.CellStyle{
 }
 
 type colProps struct {
-	limit bool
-	width int
+	limit     bool
+	width     int
+	alignment termtables.TableAlignment
 }
 
 // Table is a helper type to make it easier to draw tables in the terminal.
@@ -114,12 +115,29 @@ func (t *Table) Render() string {
 			row = append(row, item)
 		}
 		tbl.AddRow(row...)
-
 		if t.separator[i] {
 			tbl.AddSeparator()
 		}
 	}
+
+	for i, colProp := range t.colProps {
+		// termtables counts columns from 1, we count from 0.
+		tbl.SetAlign(colProp.alignment, i+1)
+	}
+
 	return tbl.Render()
+}
+
+// SetColumnAlignment changes the alignment for elements in a column of the table;
+// alignments are stored with each cell, so cells added after a call to
+// SetColumnAlignment will not pick up the change.
+// Columns are numbered from 0.
+func (t *Table) SetColumnAlignment(alignment termtables.TableAlignment, cols ...int) {
+	for _, col := range cols {
+		if colProp, ok := t.colProps[col]; ok {
+			colProp.alignment = alignment
+		}
+	}
 }
 
 func (t *Table) widthLimit() int {
