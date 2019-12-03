@@ -583,7 +583,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("Then: there are two backups")
-	items, err := h.service.List(ctx, h.clusterID, ManagedClusterHost(), []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	items, err := h.service.List(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -597,19 +597,19 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: and files")
 	manifests, files := h.listFiles()
-	tables, err := h.service.ListFiles(ctx, h.clusterID, ManagedClusterHost(), []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	tables, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
-	if len(tables) != len(manifests){
+	if len(tables) != len(manifests) {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(tables), len(manifests))
 	}
 	sst := 0
 	for _, t := range tables {
 		sst += len(t.Files)
 	}
-	if sst != 2 * len(files){
-		t.Fatalf("len(ListFiles()) = %d, expected %d", sst, 2 * len(files))
+	if sst != 2*len(files) {
+		t.Fatalf("len(ListFiles()) = %d, expected %d", sst, 2*len(files))
 	}
 
 	Print("And: transfer statistics are cleared")

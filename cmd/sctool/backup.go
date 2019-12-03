@@ -189,7 +189,6 @@ var backupListCmd = &cobra.Command{
 	Short: "Lists available backups",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
-			host        string
 			location    []string
 			allClusters bool
 			keyspace    []string
@@ -199,10 +198,6 @@ var backupListCmd = &cobra.Command{
 			err error
 		)
 
-		host, err = cmd.Flags().GetString("host")
-		if err != nil {
-			return err
-		}
 		location, err = cmd.Flags().GetStringSlice("location")
 		if err != nil {
 			return err
@@ -232,7 +227,7 @@ var backupListCmd = &cobra.Command{
 			return err
 		}
 
-		list, err := client.ListBackups(ctx, cfgCluster, host, location, allClusters, keyspace, minDate, maxDate)
+		list, err := client.ListBackups(ctx, cfgCluster, location, allClusters, keyspace, minDate, maxDate)
 		if err != nil {
 			return err
 		}
@@ -249,8 +244,6 @@ func init() {
 	register(cmd, backupCmd)
 
 	fs := cmd.Flags()
-	fs.String("host", "",
-		"host used to access locations")
 	fs.StringSliceP("location", "L", nil,
 		"a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
 	fs.Bool("all-clusters", false,
@@ -263,8 +256,6 @@ func init() {
 		"specifies maximal snapshot date expressed in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
 	fs.Int("show-tables", 0,
 		"specifies maximal number of table names printed for a keyspace, use -1 for no limit")
-
-	requireFlags(cmd, "host", "location")
 }
 
 var backupFilesCmd = &cobra.Command{
@@ -272,7 +263,6 @@ var backupFilesCmd = &cobra.Command{
 	Short: "Lists files in backup",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
-			host        string
 			location    []string
 			allClusters bool
 			keyspace    []string
@@ -281,10 +271,6 @@ var backupFilesCmd = &cobra.Command{
 			err error
 		)
 
-		host, err = cmd.Flags().GetString("host")
-		if err != nil {
-			return err
-		}
 		location, err = cmd.Flags().GetStringSlice("location")
 		if err != nil {
 			return err
@@ -302,7 +288,7 @@ var backupFilesCmd = &cobra.Command{
 			return err
 		}
 
-		tables, err := client.ListBackupFiles(ctx, cfgCluster, host, location, allClusters, keyspace, snapshotTag)
+		tables, err := client.ListBackupFiles(ctx, cfgCluster, location, allClusters, keyspace, snapshotTag)
 		if err != nil {
 			return err
 		}
@@ -337,8 +323,6 @@ func init() {
 	register(cmd, backupCmd)
 
 	fs := cmd.Flags()
-	fs.String("host", "",
-		"host used to access locations")
 	fs.StringSliceP("location", "L", nil,
 		"a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
 	fs.Bool("all-clusters", false,
@@ -349,5 +333,5 @@ func init() {
 
 	fs.StringP("delimiter", "d", "\t", "use `delimiter` instead of TAB for field delimiter")
 
-	requireFlags(cmd, "host", "location", "snapshot-tag")
+	requireFlags(cmd, "snapshot-tag")
 }

@@ -18,7 +18,6 @@ const (
 	ctxCluster
 	ctxTask
 
-	ctxBackupHost
 	ctxBackupLocations
 	ctxBackupListFilter
 )

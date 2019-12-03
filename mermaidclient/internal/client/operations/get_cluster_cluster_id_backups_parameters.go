@@ -66,8 +66,6 @@ type GetClusterClusterIDBackupsParams struct {
 	ClusterID string
 	/*ClusterID*/
 	QueryClusterID *string
-	/*Host*/
-	Host string
 	/*Keyspace*/
 	Keyspace []string
 	/*Locations*/
@@ -135,17 +133,6 @@ func (o *GetClusterClusterIDBackupsParams) WithQueryClusterID(clusterID *string)
 // SetQueryClusterID adds the clusterId to the get cluster cluster ID backups params
 func (o *GetClusterClusterIDBackupsParams) SetQueryClusterID(clusterID *string) {
 	o.QueryClusterID = clusterID
-}
-
-// WithHost adds the host to the get cluster cluster ID backups params
-func (o *GetClusterClusterIDBackupsParams) WithHost(host string) *GetClusterClusterIDBackupsParams {
-	o.SetHost(host)
-	return o
-}
-
-// SetHost adds the host to the get cluster cluster ID backups params
-func (o *GetClusterClusterIDBackupsParams) SetHost(host string) {
-	o.Host = host
 }
 
 // WithKeyspace adds the keyspace to the get cluster cluster ID backups params
@@ -219,15 +206,6 @@ func (o *GetClusterClusterIDBackupsParams) WriteToRequest(r runtime.ClientReques
 			}
 		}
 
-	}
-
-	// query param host
-	qrHost := o.Host
-	qHost := qrHost
-	if qHost != "" {
-		if err := r.SetQueryParam("host", qHost); err != nil {
-			return err
-		}
 	}
 
 	valuesKeyspace := o.Keyspace

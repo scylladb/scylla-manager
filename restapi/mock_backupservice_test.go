@@ -36,6 +36,20 @@ func (m *MockBackupService) EXPECT() *MockBackupServiceMockRecorder {
 	return m.recorder
 }
 
+// ExtractLocations mocks base method
+func (m *MockBackupService) ExtractLocations(arg0 context.Context, arg1 []json.RawMessage) []backup.Location {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExtractLocations", arg0, arg1)
+	ret0, _ := ret[0].([]backup.Location)
+	return ret0
+}
+
+// ExtractLocations indicates an expected call of ExtractLocations
+func (mr *MockBackupServiceMockRecorder) ExtractLocations(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractLocations", reflect.TypeOf((*MockBackupService)(nil).ExtractLocations), arg0, arg1)
+}
+
 // GetProgress mocks base method
 func (m *MockBackupService) GetProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup.Progress, error) {
 	m.ctrl.T.Helper()
@@ -82,31 +96,31 @@ func (mr *MockBackupServiceMockRecorder) GetTargetSize(arg0, arg1, arg2 interfac
 }
 
 // List mocks base method
-func (m *MockBackupService) List(arg0 context.Context, arg1 uuid.UUID, arg2 string, arg3 []backup.Location, arg4 backup.ListFilter) ([]backup.ListItem, error) {
+func (m *MockBackupService) List(arg0 context.Context, arg1 uuid.UUID, arg2 []backup.Location, arg3 backup.ListFilter) ([]backup.ListItem, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].([]backup.ListItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List
-func (mr *MockBackupServiceMockRecorder) List(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockBackupServiceMockRecorder) List(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockBackupService)(nil).List), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockBackupService)(nil).List), arg0, arg1, arg2, arg3)
 }
 
 // ListFiles mocks base method
-func (m *MockBackupService) ListFiles(arg0 context.Context, arg1 uuid.UUID, arg2 string, arg3 []backup.Location, arg4 backup.ListFilter) ([]backup.FilesInfo, error) {
+func (m *MockBackupService) ListFiles(arg0 context.Context, arg1 uuid.UUID, arg2 []backup.Location, arg3 backup.ListFilter) ([]backup.FilesInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListFiles", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "ListFiles", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].([]backup.FilesInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListFiles indicates an expected call of ListFiles
-func (mr *MockBackupServiceMockRecorder) ListFiles(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockBackupServiceMockRecorder) ListFiles(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFiles", reflect.TypeOf((*MockBackupService)(nil).ListFiles), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFiles", reflect.TypeOf((*MockBackupService)(nil).ListFiles), arg0, arg1, arg2, arg3)
 }

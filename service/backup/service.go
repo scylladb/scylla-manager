@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/mermaid/internal/httpmw"
 	"github.com/scylladb/mermaid/internal/inexlist/dcfilter"
 	"github.com/scylladb/mermaid/internal/inexlist/ksfilter"
+	"github.com/scylladb/mermaid/internal/parallel"
 	"github.com/scylladb/mermaid/internal/timeutc"
 	"github.com/scylladb/mermaid/schema"
 	"github.com/scylladb/mermaid/scyllaclient"
@@ -290,27 +291,6 @@ func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *sc
 	return mermaid.ErrValidate(errs)
 }
 
-func (s *Service) checkLocationsAvailableFromHost(ctx context.Context, client *scyllaclient.Client, locations []Location, host string) error {
-	s.logger.Info(ctx, "Checking accessibility of remote locations")
-
-	var (
-		errs error
-		res  = make(chan error)
-	)
-
-	for _, l := range locations {
-		go func(h string, l Location) {
-			res <- s.checkHostLocation(ctx, client, h, l)
-		}(host, l)
-	}
-
-	for range locations {
-		errs = multierr.Append(errs, <-res)
-	}
-
-	return errs
-}
-
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
 	_, err := client.RcloneListDir(httpmw.DontRetry(ctx), h, l.RemotePath(""), nil)
 	if err != nil {
@@ -327,16 +307,26 @@ func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Cl
 	return nil
 }
 
+// ExtractLocations parses task properties and returns list of locations.
+// Each location is returned once. Same locations with different DCs are
+// assumed equal.
+func (s *Service) ExtractLocations(ctx context.Context, properties []json.RawMessage) []Location {
+	l, err := extractLocations(properties)
+	if err != nil {
+		s.logger.Debug(ctx, "Failed to extract some locations", "error", err)
+	}
+	return l
+}
+
 // List returns available snapshots in remote locations.
-func (s *Service) List(ctx context.Context, clusterID uuid.UUID, host string, locations []Location, filter ListFilter) ([]ListItem, error) {
+func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]ListItem, error) {
 	s.logger.Info(ctx, "Listing backups",
 		"cluster_id", clusterID,
-		"host", host,
 		"locations", locations,
 		"filter", filter,
 	)
 
-	manifests, err := s.list(ctx, clusterID, host, locations, filter, false)
+	manifests, err := s.list(ctx, clusterID, locations, filter, false)
 	if err != nil {
 		return nil, err
 	}
@@ -345,15 +335,14 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, host string, lo
 }
 
 // ListFiles returns info on available backup files based on filtering criteria.
-func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, host string, locations []Location, filter ListFilter) ([]FilesInfo, error) {
+func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]FilesInfo, error) {
 	s.logger.Info(ctx, "Listing backup files",
 		"cluster_id", clusterID,
-		"host", host,
 		"locations", locations,
 		"filter", filter,
 	)
 
-	manifests, err := s.list(ctx, clusterID, host, locations, filter, true)
+	manifests, err := s.list(ctx, clusterID, locations, filter, true)
 	if err != nil {
 		return nil, err
 	}
@@ -365,11 +354,8 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, host strin
 	return files, nil
 }
 
-func (s *Service) list(ctx context.Context, clusterID uuid.UUID, host string, locations []Location, filter ListFilter, load bool) ([]remoteManifest, error) {
+func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, load bool) ([]remoteManifest, error) {
 	// Validate inputs
-	if len(host) == 0 {
-		return nil, mermaid.ErrValidate(errors.New("empty host"))
-	}
 	if len(locations) == 0 {
 		return nil, mermaid.ErrValidate(errors.New("empty locations"))
 	}
@@ -380,9 +366,13 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, host string, lo
 		return nil, errors.Wrap(err, "get client proxy")
 	}
 
-	// Validate that locations are accessible from host
-	if err := s.checkLocationsAvailableFromHost(ctx, client, locations, host); err != nil {
-		return nil, mermaid.ErrValidate(err)
+	// Resolve hosts for locations
+	hosts := make([]hostInfo, len(locations))
+	for i := range locations {
+		hosts[i].Location = locations[i]
+	}
+	if err := s.resolveHosts(ctx, client, hosts); err != nil {
+		return nil, errors.Wrap(err, "resolve hosts")
 	}
 
 	// List manifests
@@ -391,28 +381,83 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, host string, lo
 		Err       error
 	}
 	res := make(chan manifestsError)
-	for _, l := range locations {
-		go func(l Location) {
+	for _, item := range hosts {
+		go func(h string, l Location) {
 			s.logger.Info(ctx, "Listing remote manifests",
 				"cluster_id", clusterID,
-				"host", host,
+				"host", h,
 				"location", l,
 			)
-			m, err := listManifests(ctx, client, host, l, filter, load, s.logger.Named("list"))
-			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", host, l)}
-		}(l)
+			m, err := listManifests(ctx, client, h, l, filter, load, s.logger.Named("list"))
+			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", h, l)}
+		}(item.IP, item.Location)
 	}
 
 	var (
 		manifests []remoteManifest
 		errs      error
 	)
-	for range locations {
+	for range hosts {
 		r := <-res
 		manifests = append(manifests, r.Manifests...)
 		errs = multierr.Append(errs, r.Err)
 	}
 	return manifests, errs
+}
+
+func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo) error {
+	s.logger.Debug(ctx, "Resolving hosts for locations")
+
+	var (
+		dcMap map[string][]string
+		err   error
+	)
+
+	// Check if we need to load DC map
+	hasDC := false
+	for i := range hosts {
+		if hosts[i].Location.DC != "" {
+			hasDC = true
+			break
+		}
+	}
+	// Load DC map if needed
+	if hasDC {
+		dcMap, err = client.Datacenters(ctx)
+		if err != nil {
+			return errors.Wrap(err, "read datacenters")
+		}
+	}
+
+	// Config hosts has nice property that hosts are sorted by closest DC
+	allHosts := client.Config().Hosts
+
+	return parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+		l := hosts[i].Location
+
+		checklist := allHosts
+		if l.DC != "" {
+			checklist = dcMap[l.DC]
+		}
+
+		if len(checklist) == 0 {
+			return errors.Errorf("no matching hosts found for location %s", l)
+		}
+
+		for _, h := range checklist {
+			_, err := client.RcloneListDir(httpmw.DontRetry(ctx), h, l.RemotePath(""), nil)
+			if err != nil {
+				s.logger.Debug(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
+			} else {
+				s.logger.Debug(ctx, "Host location check OK", "host", h, "location", l)
+
+				hosts[i].IP = h
+				return nil
+			}
+		}
+
+		return errors.Errorf("no matching hosts found for location %s", l)
+	})
 }
 
 // Backup executes a backup on a given target.

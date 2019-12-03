@@ -1610,19 +1610,12 @@
             "required": true
           },
           {
-            "type": "string",
-            "name": "host",
-            "in": "query",
-            "required": true
-          },
-          {
             "type": "array",
             "items": {
               "type": "string"
             },
             "name": "locations",
-            "in": "query",
-            "required": true
+            "in": "query"
           },
           {
             "type": "string",
@@ -1698,19 +1691,12 @@
             "required": true
           },
           {
-            "type": "string",
-            "name": "host",
-            "in": "query",
-            "required": true
-          },
-          {
             "type": "array",
             "items": {
               "type": "string"
             },
             "name": "locations",
-            "in": "query",
-            "required": true
+            "in": "query"
           },
           {
             "type": "string",

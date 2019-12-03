@@ -27,9 +27,8 @@ func listBackupFilesRequest(clusterID uuid.UUID) *http.Request {
 	return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/cluster/%s/backups/files", clusterID.String()), nil)
 }
 
-func withForm(r *http.Request, host string, locations []backup.Location, filter backup.ListFilter) *http.Request {
+func withForm(r *http.Request, locations []backup.Location, filter backup.ListFilter) *http.Request {
 	r.Form = url.Values{}
-	r.Form.Add("host", host)
 	for _, l := range locations {
 		r.Form.Add("locations", l.String())
 	}
@@ -62,7 +61,6 @@ func TestBackupList(t *testing.T) {
 	var (
 		cluster = givenCluster()
 
-		host      = "host"
 		locations = []backup.Location{
 			{Provider: backup.S3, Path: "foo"},
 			{Provider: backup.S3, Path: "bar"},
@@ -89,9 +87,9 @@ func TestBackupList(t *testing.T) {
 	)
 
 	cm.EXPECT().GetCluster(gomock.Any(), cluster.ID.String()).Return(cluster, nil)
-	bm.EXPECT().List(gomock.Any(), cluster.ID, host, locations, filter).Return(golden, nil)
+	bm.EXPECT().List(gomock.Any(), cluster.ID, locations, filter).Return(golden, nil)
 
-	r := withForm(listBackupsRequest(cluster.ID), host, locations, filter)
+	r := withForm(listBackupsRequest(cluster.ID), locations, filter)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	assertJsonBody(t, w, golden)
@@ -115,7 +113,6 @@ func TestBackupListFiles(t *testing.T) {
 	var (
 		cluster = givenCluster()
 
-		host      = "host"
 		locations = []backup.Location{
 			{Provider: backup.S3, Path: "foo"},
 			{Provider: backup.S3, Path: "bar"},
@@ -147,9 +144,9 @@ func TestBackupListFiles(t *testing.T) {
 	)
 
 	cm.EXPECT().GetCluster(gomock.Any(), cluster.ID.String()).Return(cluster, nil)
-	bm.EXPECT().ListFiles(gomock.Any(), cluster.ID, host, locations, filter).Return(golden, nil)
+	bm.EXPECT().ListFiles(gomock.Any(), cluster.ID, locations, filter).Return(golden, nil)
 
-	r := withForm(listBackupFilesRequest(cluster.ID), host, locations, filter)
+	r := withForm(listBackupFilesRequest(cluster.ID), locations, filter)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	assertJsonBody(t, w, golden)

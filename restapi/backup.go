@@ -4,26 +4,29 @@ package restapi
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/service/backup"
+	"github.com/scylladb/mermaid/service/scheduler"
 )
 
 type backupHandler struct {
-	svc BackupService
+	svc      BackupService
+	schedSvc SchedService
 }
 
-func newBackupHandler(s BackupService) *chi.Mux {
+func newBackupHandler(services Services) *chi.Mux {
 	m := chi.NewMux()
 	h := backupHandler{
-		svc: s,
+		svc:      services.Backup,
+		schedSvc: services.Scheduler,
 	}
 
 	m.Use(
-		h.hostCtx,
 		h.locationsCtx,
 		h.listFilterCtx,
 	)
@@ -33,50 +36,58 @@ func newBackupHandler(s BackupService) *chi.Mux {
 	return m
 }
 
-func (h backupHandler) hostCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var host string
-		if v := r.FormValue("host"); v != "" {
-			host = v
-		} else {
-			respondBadRequest(w, r, errors.New("missing host"))
-			return
-		}
-
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, ctxBackupHost, host)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func (h backupHandler) mustHostFromCtx(r *http.Request) string {
-	v, ok := r.Context().Value(ctxBackupHost).(string)
-	if !ok {
-		panic("missing host in context")
-	}
-	return v
-}
-
 func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var locations []backup.Location
-		if v := r.FormValue("locations"); v == "" {
-			respondBadRequest(w, r, errors.New("missing locations"))
-			return
+		var (
+			locations []backup.Location
+			err       error
+		)
+
+		// Read locations from the request
+		if v := r.FormValue("locations"); v != "" {
+			for _, v := range r.Form["locations"] {
+				var l backup.Location
+				if err := l.UnmarshalText([]byte(v)); err != nil {
+					respondBadRequest(w, r, err)
+					return
+				}
+				locations = append(locations, l)
+			}
 		}
-		for _, v := range r.Form["locations"] {
-			var l backup.Location
-			if err := l.UnmarshalText([]byte(v)); err != nil {
-				respondBadRequest(w, r, err)
+
+		// Fallback read locations from scheduler
+		if len(locations) == 0 {
+			locations, err = h.extractLocations(r)
+			if err != nil {
+				respondError(w, r, err)
 				return
 			}
-			locations = append(locations, l)
+		}
+
+		// Report error if no locations can be found
+		if len(locations) == 0 {
+			respondBadRequest(w, r, errors.New("missing locations"))
+			return
 		}
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, ctxBackupLocations, locations)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (h backupHandler) extractLocations(r *http.Request) ([]backup.Location, error) {
+	tasks, err := h.schedSvc.ListTasks(r.Context(), mustClusterIDFromCtx(r), scheduler.BackupTask)
+	if err != nil {
+		return nil, err
+	}
+	properties := make([]json.RawMessage, len(tasks))
+	for _, t := range tasks {
+		if t.Enabled {
+			properties = append(properties, t.Properties)
+		}
+	}
+	return h.svc.ExtractLocations(r.Context(), properties), nil
 }
 
 func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backup.Location {
@@ -135,7 +146,6 @@ func (h backupHandler) list(w http.ResponseWriter, r *http.Request) {
 	v, err := h.svc.List(
 		r.Context(),
 		mustClusterIDFromCtx(r),
-		h.mustHostFromCtx(r),
 		h.mustLocationsFromCtx(r),
 		h.mustListFilterFromCtx(r),
 	)
@@ -151,7 +161,6 @@ func (h backupHandler) listFiles(w http.ResponseWriter, r *http.Request) {
 	v, err := h.svc.ListFiles(
 		r.Context(),
 		mustClusterIDFromCtx(r),
-		h.mustHostFromCtx(r),
 		h.mustLocationsFromCtx(r),
 		h.mustListFilterFromCtx(r),
 	)

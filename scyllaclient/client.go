@@ -122,9 +122,9 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	}, nil
 }
 
-// Timeout returns a timeout for a request.
-func (c *Client) Timeout() time.Duration {
-	return c.config.Timeout
+// Config returns a copy of client config.
+func (c *Client) Config() Config {
+	return c.config
 }
 
 // Close closes all the idle connections.

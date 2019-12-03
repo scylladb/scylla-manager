@@ -337,12 +337,11 @@ func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID str
 }
 
 // ListBackups returns listing of available backups.
-func (c Client) ListBackups(ctx context.Context, clusterID string, host string,
+func (c Client) ListBackups(ctx context.Context, clusterID string,
 	locations []string, allClusters bool, keyspace []string, minDate, maxDate strfmt.DateTime) (BackupListItems, error) {
 	p := &operations.GetClusterClusterIDBackupsParams{
 		Context:   ctx,
 		ClusterID: clusterID,
-		Host:      host,
 		Locations: locations,
 		Keyspace:  keyspace,
 	}
@@ -365,18 +364,17 @@ func (c Client) ListBackups(ctx context.Context, clusterID string, host string,
 }
 
 // ListBackupFiles returns a listing of available backup files.
-func (c Client) ListBackupFiles(ctx context.Context, clusterID string, host string,
+func (c Client) ListBackupFiles(ctx context.Context, clusterID string,
 	locations []string, allClusters bool, keyspace []string, snapshotTag string) ([]*models.BackupFilesInfo, error) {
 	p := &operations.GetClusterClusterIDBackupsFilesParams{
-		Context:       ctx,
-		PathClusterID: clusterID,
-		Host:          host,
-		Locations:     locations,
-		Keyspace:      keyspace,
-		SnapshotTag:   snapshotTag,
+		Context:     ctx,
+		ClusterID:   clusterID,
+		Locations:   locations,
+		Keyspace:    keyspace,
+		SnapshotTag: snapshotTag,
 	}
 	if !allClusters {
-		p.ClusterID = &clusterID
+		p.QueryClusterID = &clusterID
 	}
 
 	resp, err := c.operations.GetClusterClusterIDBackupsFiles(p)

@@ -5,6 +5,8 @@
 
 set -eu -o pipefail
 
+echo "Swagger $(swagger version)"
+
 rm -rf internal/scylla/client internal/scylla/models
 swagger generate client -A scylla -T internal/templates -f scylla.json -t ./internal/scylla
 
