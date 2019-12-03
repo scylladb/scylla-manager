@@ -11,12 +11,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/internal/osutil"
 	. "github.com/scylladb/mermaid/mermaidtest"
 	"github.com/scylladb/mermaid/uuid"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest/observer"
 )
 
 type mockEnv struct {
@@ -43,8 +40,6 @@ func (e *mockEnv) Docker() bool {
 }
 
 func TestChecker(t *testing.T) {
-	core, o := observer.New(zap.InfoLevel)
-	l := log.NewLogger(zap.New(core))
 	initVer := "v1.0.0"
 	hs := newMockHomeServer(initVer)
 	defer hs.Close()
@@ -52,177 +47,113 @@ func TestChecker(t *testing.T) {
 	regUUID := uuid.NewTime()
 	dist := string(osutil.Centos)
 	env := &mockEnv{macUUID, regUUID, dist, false}
-	s := NewChecker(hs.ts.URL, initVer, l, env)
+	s := NewChecker(hs.ts.URL, initVer, env)
+	params := map[string]string{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "md", "version": initVer}
 
-	t.Run("daily check", func(t *testing.T) {
-		Print("When: latest version is same as installed version")
-		hs.Reset()
-		hs.Return(initVer)
+	table := []struct {
+		Name    string
+		Version string
+		Install bool
+		Result  Result
+		Status  string
+	}{
+		{
+			Name:    "daily check",
+			Version: initVer,
+			Install: false,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       initVer,
+				Available:       initVer,
+			},
+			Status: "md",
+		}, {
+			Name:    "install check",
+			Version: initVer,
+			Install: true,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       initVer,
+				Available:       initVer,
+			},
+			Status: "mi",
+		}, {
+			Name:    "daily check version outdated",
+			Version: "v1.0.1",
+			Install: false,
+			Result: Result{
+				UpdateAvailable: true,
+				Installed:       initVer,
+				Available:       "v1.0.1",
+			},
+			Status: "md",
+		}, {
+			Name:    "daily check version ahead",
+			Version: "v0.9.1",
+			Install: false,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       initVer,
+				Available:       "v0.9.1",
+			},
+			Status: "md",
+		}, {
+			Name:    "install check version outdated",
+			Version: "v1.0.1",
+			Install: true,
+			Result: Result{
+				UpdateAvailable: true,
+				Installed:       initVer,
+				Available:       "v1.0.1",
+			},
+			Status: "mi",
+		}, {
+			Name:    "daily check docker",
+			Version: initVer,
+			Install: false,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       initVer,
+				Available:       initVer,
+			},
+			Status: "md",
+		}, {
+			Name:    "install check docker",
+			Version: initVer,
+			Install: true,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       initVer,
+				Available:       initVer,
+			},
+			Status: "mi",
+		},
+	}
 
-		Print("When: and daily check is performed")
-		s.CheckForUpdates(context.Background(), false)
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			Print("When: latest: " + test.Version)
+			hs.Reset()
+			hs.Return(test.Version)
 
-		Print("Then: logs should be empty")
-		logs := o.TakeAll()
-		if len(logs) != 0 {
-			t.Errorf("Expected no logs, got %+v", logs)
-		}
+			Print("And: daily check is performed")
+			res, err := s.CheckForUpdates(context.Background(), test.Install)
+			if err != nil {
+				t.Fatal(err)
+			}
+			Print("Then: result should be expected")
+			if diff := cmp.Diff(res, test.Result); diff != "" {
+				t.Error(diff)
+			}
 
-		Print("And: home server should receive proper request params")
-		got := hs.TakeAll()
-		expected := []map[string]string{
-			{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "md", "version": initVer},
-		}
-		if diff := cmp.Diff(got, expected); diff != "" {
-			t.Fatal(diff)
-		}
-	})
-
-	t.Run("install check", func(t *testing.T) {
-		Print("When: latest version is same as installed version")
-		hs.Reset()
-		hs.Return(initVer)
-
-		Print("When: and install check is performed")
-		s.CheckForUpdates(context.Background(), true)
-
-		Print("Then: logs should be empty")
-		logs := o.TakeAll()
-		if len(logs) != 0 {
-			t.Errorf("Expected no logs, got %+v", logs)
-		}
-
-		Print("And: home server should receive proper request params")
-		got := hs.TakeAll()
-		expected := []map[string]string{
-			{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "mi", "version": initVer},
-		}
-		if diff := cmp.Diff(got, expected); diff != "" {
-			t.Fatal(diff)
-		}
-	})
-
-	t.Run("daily check version outdated", func(t *testing.T) {
-		Print("When: latest version is ahead of installed version")
-		hs.Reset()
-		hs.Return("v1.0.1")
-
-		Print("When: and daily check is performed")
-		s.CheckForUpdates(context.Background(), false)
-
-		Print("Then: logs should have an entry about version check")
-		logs := o.TakeAll()
-		if len(logs) != 1 || logs[0].Level != zap.InfoLevel {
-			t.Errorf("Expected warning entry, got %+v", logs)
-		}
-
-		Print("And: home server should receive proper request params")
-		got := hs.TakeAll()
-		expected := []map[string]string{
-			{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "md", "version": initVer},
-		}
-		if diff := cmp.Diff(got, expected); diff != "" {
-			t.Fatal(diff)
-		}
-	})
-
-	t.Run("daily check version ahead", func(t *testing.T) {
-		Print("When: latest version is behind installed version")
-		hs.Reset()
-		hs.Return("v0.9.1")
-
-		Print("When: and daily check is performed")
-		s.CheckForUpdates(context.Background(), false)
-
-		Print("Then: logs should be empty")
-		logs := o.TakeAll()
-		if len(logs) != 0 {
-			t.Errorf("Expected no logs, got %+v", logs)
-		}
-
-		Print("And: home server should receive proper request params")
-		got := hs.TakeAll()
-		expected := []map[string]string{
-			{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "md", "version": initVer},
-		}
-		if diff := cmp.Diff(got, expected); diff != "" {
-			t.Fatal(diff)
-		}
-	})
-
-	t.Run("install check version outdated", func(t *testing.T) {
-		Print("When: latest version ahead of installed version")
-		hs.Reset()
-		hs.Return("v1.0.1")
-
-		Print("When: and install check is performed")
-		s.CheckForUpdates(context.Background(), true)
-
-		Print("Then: logs should have an entry about version check")
-		logs := o.TakeAll()
-		if len(logs) != 1 || logs[0].Level != zap.InfoLevel {
-			t.Errorf("Expected warning entry, got %+v", logs)
-		}
-
-		Print("And: home server should receive proper request params")
-		got := hs.TakeAll()
-		expected := []map[string]string{
-			{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "mi", "version": initVer},
-		}
-		if diff := cmp.Diff(got, expected); diff != "" {
-			t.Fatal(diff)
-		}
-	})
-
-	t.Run("daily check docker", func(t *testing.T) {
-		env.docker = true
-		Print("When: latest version is same as installed version")
-		hs.Reset()
-		hs.Return(initVer)
-
-		Print("When: and daily check is performed")
-		s.CheckForUpdates(context.Background(), false)
-
-		Print("Then: logs should be empty")
-		logs := o.TakeAll()
-		if len(logs) != 0 {
-			t.Errorf("Expected no logs, got %+v", logs)
-		}
-
-		Print("And: home server should receive proper request params")
-		got := hs.TakeAll()
-		expected := []map[string]string{
-			{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "mdd", "version": initVer},
-		}
-		if diff := cmp.Diff(got, expected); diff != "" {
-			t.Fatal(diff)
-		}
-	})
-
-	t.Run("install check docker", func(t *testing.T) {
-		env.docker = true
-		Print("When: latest version is same as installed version")
-		hs.Reset()
-		hs.Return(initVer)
-
-		Print("When: and install check is performed")
-		s.CheckForUpdates(context.Background(), true)
-
-		Print("Then: logs should be empty")
-		logs := o.TakeAll()
-		if len(logs) != 0 {
-			t.Errorf("Expected no logs, got %+v", logs)
-		}
-
-		Print("And: home server should receive proper request params")
-		got := hs.TakeAll()
-		expected := []map[string]string{
-			{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "mdi", "version": initVer},
-		}
-		if diff := cmp.Diff(got, expected); diff != "" {
-			t.Fatal(diff)
-		}
-	})
+			Print("And: home server should receive proper request params")
+			got := hs.TakeAll()
+			params["status"] = test.Status
+			if diff := cmp.Diff(got, []map[string]string{params}); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
 }
 
 type mockHomeServer struct {

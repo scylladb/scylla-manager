@@ -71,7 +71,7 @@ func (e osenv) Docker() bool {
 var DefaultEnv osenv
 
 // NewChecker creates new service.
-func NewChecker(hostURL, version string, l log.Logger, env OSEnv) *Checker {
+func NewChecker(hostURL, version string, env OSEnv) *Checker {
 	if hostURL == "" {
 		hostURL = defaultHostURL
 	}
@@ -82,7 +82,6 @@ func NewChecker(hostURL, version string, l log.Logger, env OSEnv) *Checker {
 	return &Checker{
 		HostURL: hostURL,
 		Version: version,
-		Logger:  l,
 		Client:  http.DefaultClient,
 		Env:     env,
 	}
@@ -93,12 +92,20 @@ type checkResponse struct {
 	Version            string `json:"version"`
 }
 
+// Result contains information about the version check.
+type Result struct {
+	UpdateAvailable bool   // true if new version is available.
+	Installed       string // Installed version.
+	Available       string // Available version.
+}
+
 // CheckForUpdates sends request for comparing current version with installed.
 // If install is true it sends install status.
-func (s *Checker) CheckForUpdates(ctx context.Context, install bool) error {
+func (s *Checker) CheckForUpdates(ctx context.Context, install bool) (Result, error) {
+	res := Result{}
 	u, err := url.Parse(s.HostURL)
 	if err != nil {
-		panic(err.Error())
+		return res, err
 	}
 	q := u.Query()
 	q.Add("system", "scylla-manager")
@@ -122,36 +129,38 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) error {
 	u.RawQuery = q.Encode()
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return err
+		return res, err
 	}
 	req = req.WithContext(ctx)
 	resp, err := s.Client.Do(req)
 	if err != nil {
-		return err
+		return res, err
 	}
 
 	d, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return res, err
 	}
 	resp.Body.Close()
 
 	check := checkResponse{}
 	if err := json.Unmarshal(d, &check); err != nil {
-		return err
+		return res, err
 	}
 
 	available, err := version.NewVersion(check.Version)
 	if err != nil {
-		return err
+		return res, err
 	}
 	installed, err := version.NewVersion(s.Version)
 	if err != nil {
-		return err
+		return res, err
 	}
+	res.Available = available.Original()
+	res.Installed = installed.Original()
+
 	if installed.LessThan(available) {
-		s.Logger.Info(ctx, "New Scylla Manager version is available",
-			"installed", s.Version, "available", check.Version)
+		res.UpdateAvailable = true
 	}
-	return nil
+	return res, nil
 }

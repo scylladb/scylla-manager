@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/scylladb/mermaid/callhome"
 	"github.com/spf13/cobra"
@@ -20,7 +21,7 @@ var checkForUpdatesCmd = &cobra.Command{
 			return err
 		}
 
-		// Reuse configuration loading from root to make sure we are using
+		// Reuse configuration loading from root.go to make sure we are using
 		// same logger configuration.
 		config, err := parseConfigFile(cfgConfigFile...)
 		if err != nil {
@@ -35,8 +36,22 @@ var checkForUpdatesCmd = &cobra.Command{
 			return err
 		}
 
-		ch := callhome.NewChecker("", "", l.Named("callhome"), callhome.DefaultEnv)
-		return ch.CheckForUpdates(context.Background(), install)
+		ch := callhome.NewChecker("", "", callhome.DefaultEnv)
+		res, err := ch.CheckForUpdates(context.Background(), install)
+		if err != nil {
+			return err
+		}
+		msg := "New Scylla Manager version is available"
+		if res.UpdateAvailable {
+			if install {
+				fmt.Fprintf(cmd.OutOrStderr(), msg+": installed=%s available=%s", res.Installed, res.Available)
+			} else {
+				l.Info(context.Background(), msg,
+					"installed", res.Installed, "available", res.Available)
+			}
+
+		}
+		return nil
 	},
 }
 
