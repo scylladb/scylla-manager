@@ -27,8 +27,8 @@ func TestClientAuthIntegration(t *testing.T) {
 	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusUnauthorized {
 		t.Fatal("expected unauthorized error")
 	}
-	if !strings.Contains(err.Error(), "check if Auth Token is correct") {
-		t.Fatal("expected error about wrong auth token, got", err.Error())
+	if !strings.Contains(err.Error(), "agent [HTTP 401] unauthorized") {
+		t.Fatal("expected error about wrong auth token, got", err)
 	}
 }
 
