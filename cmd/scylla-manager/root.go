@@ -82,10 +82,12 @@ var rootCmd = &cobra.Command{
 
 		// Log version and check for updates
 		logger.Info(ctx, "Scylla Manager Server", "version", mermaid.Version())
-		if res, err := callhome.NewChecker("", "", callhome.DefaultEnv).CheckForUpdates(ctx, false); err != nil {
-			logger.Error(ctx, "Failed to check for updates", "error", err)
-		} else if res.UpdateAvailable {
-			logger.Info(ctx, "New Scylla Manager version is available", "installed", res.Installed, "available", res.Available)
+		if mermaid.Version() != "Snapshot" {
+			if res, err := callhome.NewChecker("", "", callhome.DefaultEnv).CheckForUpdates(ctx, false); err != nil {
+				logger.Error(ctx, "Failed to check for updates", "error", err)
+			} else if res.UpdateAvailable {
+				logger.Info(ctx, "New Scylla Manager version is available", "installed", res.Installed, "available", res.Available)
+			}
 		}
 		// Log config
 		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config), "config_files", cfgConfigFile)
