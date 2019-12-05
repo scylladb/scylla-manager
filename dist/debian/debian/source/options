@@ -1,1 +1,1 @@
-extend-diff-ignore = ^build/|^dist/release/
+extend-diff-ignore = ^build/|^dist/release/|^dist/debian|^testing|^.idea
