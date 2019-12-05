@@ -80,7 +80,7 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) err
 
 // snapshotJobID returns the id of the job that was last responsible for
 // uploading the snapshot directory.
-// If it's not available it will return uuid.Nil
+// If it's not available it will return zero.
 func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 	for _, p := range d.Progress {
 		if p.AgentJobID == 0 || p.Size == p.Uploaded {
