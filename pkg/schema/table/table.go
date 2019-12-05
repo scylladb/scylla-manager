@@ -18,6 +18,7 @@ var (
 			"dc",
 			"location",
 			"start_time",
+			"done",
 		},
 		PartKey: []string{"cluster_id", "task_id"},
 		SortKey: []string{"id"},

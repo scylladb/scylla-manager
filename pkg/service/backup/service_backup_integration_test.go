@@ -121,18 +121,25 @@ func (h *backupTestHelper) listFiles() (manifests, files []string) {
 	return
 }
 
-func writeData(t *testing.T, session *gocql.Session, keyspace string, size int) {
+// writeData creates big_table in the provided keyspace with the size in MiB.
+func writeData(t *testing.T, session *gocql.Session, keyspace string, sizeMiB int) {
 	t.Helper()
 
 	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.big_table (id int PRIMARY KEY, data blob)", keyspace))
 
-	cql := fmt.Sprintf("INSERT INTO %s.big_table (id, data) VALUES (?, ?)", keyspace)
-	data := make([]byte, size)
+	stmt := fmt.Sprintf("INSERT INTO %s.big_table (id, data) VALUES (?, ?)", keyspace)
+	q := gocqlx.Query(session.Query(stmt), []string{"id", "data"})
+	defer q.Release()
+
+	bytes := sizeMiB * 1024 * 1024
+	data := make([]byte, 4096)
 	rand.Read(data)
-	err := session.Query(cql, 1, data).Exec()
-	if err != nil {
-		t.Fatal(err)
+
+	for i := 0; i < bytes/4096; i++ {
+		if err := q.Bind(i, data).Exec(); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -476,6 +483,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Done:      true,
 		}
 		putRun(t, r1)
 		putRunProgress(t, r0, 10, 10, 0)
@@ -506,6 +514,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Done:      true,
 		}
 		putRun(t, r1)
 		putRunProgress(t, r0, 10, 0, 10)
@@ -551,27 +560,33 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 }
 
 func TestBackupSmokeIntegration(t *testing.T) {
-	const testBucket = "backuptest-smoke"
+	const (
+		testBucket = "backuptest-smoke"
+		testKeyspace = "backuptest_data"
+	)
 
 	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
 
 	var (
-		session = CreateSession(t)
-		h       = newBackupTestHelper(t, session, config, location)
-		ctx     = context.Background()
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+		h              = newBackupTestHelper(t, session, config, location)
+		ctx            = context.Background()
 	)
 
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
-				Keyspace: "system_auth",
+				Keyspace: testKeyspace,
 			},
 		},
 		DC:        []string{"dc1"},
 		Location:  []backup.Location{location},
 		Retention: 3,
 	}
+
+	writeData(t, clusterSession, testKeyspace, 1)
 
 	Print("When: run backup")
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
@@ -626,6 +641,27 @@ func TestBackupSmokeIntegration(t *testing.T) {
 			h.t.Fatalf("Expected empty transfer statistics, got %d", len(s))
 		}
 	}
+
+	writeData(t, clusterSession, testKeyspace, 1)
+
+	Print("And: run it again")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: there are three backups")
+	items, err = h.service.List(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("List() = %v, expected one item", items)
+	}
+	i = items[0]
+	if len(i.SnapshotTags) != 3 {
+		t.Fatalf("List() = %v, expected three SnapshotTags", items)
+	}
+
 }
 
 var backupTimeout = 10 * time.Second
@@ -646,7 +682,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		clusterSession = CreateManagedClusterSession(t)
 	)
 
-	writeData(t, clusterSession, testKeyspace, 3*1024*1024)
+	writeData(t, clusterSession, testKeyspace, 3)
 
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -865,7 +901,7 @@ func TestPurgeIntegration(t *testing.T) {
 	Print("When: run backup 3 times")
 	var runID uuid.UUID
 	for i := 0; i < 3; i++ {
-		writeData(t, clusterSession, testKeyspace, 3*1024*1024)
+		writeData(t, clusterSession, testKeyspace, 3)
 		runID = uuid.NewTime()
 		if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
 			t.Fatal(err)

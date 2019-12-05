@@ -587,7 +587,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "purge")
 	}
 
-	return nil
+	return errors.Wrap(s.markRunAsDone(run), "mark run as done")
 }
 
 // decorateWithPrevRun gets task previous run and if it can be continued
@@ -629,7 +629,6 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
 	).Limit(20).ToCql()
-
 	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
@@ -640,34 +639,45 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		return nil, err
 	}
 
+	hasProgress := s.hasProgressQuery()
+	defer hasProgress.Release()
+
+	var rp RunProgress
 	for _, r := range runs {
-		size, uploaded, skipped, err := runProgress(r, NewProgressVisitor(r, s.session))
+		if r.Done {
+			break
+		}
+
+		err := hasProgress.BindMap(qb.M{
+			"cluster_id": r.ClusterID,
+			"task_id":    r.TaskID,
+			"run_id":     r.ID,
+		}).Get(&rp)
+
+		if err == gocql.ErrNotFound {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
-		if size > 0 {
-			if size == uploaded+skipped {
-				break
-			}
-			return r, nil
-		}
+
+		return r, nil
 	}
 
 	return nil, service.ErrNotFound
 }
 
-// runProgress returns total size, uploaded, and skipped bytes for all of the
-// files belonging to the run.
-func runProgress(run *Run, vis ProgressVisitor) (size, uploaded, skipped int64, err error) {
-	if len(run.Units) == 0 {
-		return
-	}
-	err = vis.ForEach(func(r *RunProgress) {
-		size += r.Size
-		uploaded += r.Uploaded
-		skipped += r.Skipped
-	})
-	return
+func (s *Service) hasProgressQuery() *gocqlx.Queryx {
+	stmt, names := qb.Select(table.BackupRunProgress.Name()).
+		Columns("run_id").
+		Where(
+			qb.Eq("cluster_id"),
+			qb.Eq("task_id"),
+			qb.Eq("run_id"),
+		).
+		Limit(1).
+		ToCql()
+	return gocqlx.Query(s.session.Query(stmt), names)
 }
 
 // putRun upserts a backup run.
@@ -685,6 +695,14 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 			"error", err,
 		)
 	}
+}
+
+// markRunAsDone updates and persists done value.
+func (s *Service) markRunAsDone(run *Run) error {
+	run.Done = true
+
+	stmt, names := table.BackupRun.Update("done")
+	return gocqlx.Query(s.session.Query(stmt), names).BindStruct(run).ExecRelease()
 }
 
 // putRunProgress upserts a backup run progress.

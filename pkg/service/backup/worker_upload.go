@@ -136,10 +136,8 @@ func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotD
 
 	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
 	for _, p := range d.Progress {
-		if p.FileName != manifest {
-			p.AgentJobID = id
-			w.onRunProgress(ctx, p)
-		}
+		p.AgentJobID = id
+		w.onRunProgress(ctx, p)
 	}
 	return w.waitJob(ctx, id, d)
 }

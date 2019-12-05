@@ -102,6 +102,7 @@ type Run struct {
 	DC          []string
 	Location    []Location
 	StartTime   time.Time
+	Done        bool
 }
 
 // RunProgress describes backup progress on per file basis.

@@ -180,6 +180,11 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 			)
 
 			for _, f := range files {
+				if f.Name == manifest {
+					// Manifest is metadata so we are excluding it from the
+					// total progress of the upload.
+					continue
+				}
 				p := &RunProgress{
 					ClusterID: w.ClusterID,
 					TaskID:    w.TaskID,

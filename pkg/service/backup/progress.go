@@ -102,11 +102,6 @@ func aggregateTableProgress(run *Run, tableMap map[tableKey]*TableProgress, host
 			hosts.Add(pr.Host)
 		}
 
-		// Don't count metadata as progress.
-		if pr.FileName == manifest {
-			return
-		}
-
 		table.Size += pr.Size
 		table.Uploaded += pr.Uploaded
 		table.Skipped += pr.Skipped

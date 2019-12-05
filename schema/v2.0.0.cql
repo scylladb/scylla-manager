@@ -20,6 +20,7 @@ CREATE TABLE backup_run (
     dc list<text>,
     location list<text>,
     start_time timestamp,
+    done boolean,
     PRIMARY KEY ((cluster_id, task_id), id)
 ) WITH CLUSTERING ORDER BY (id DESC) AND default_time_to_live = 15552000;
 
