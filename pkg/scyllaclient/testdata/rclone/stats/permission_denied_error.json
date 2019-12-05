@@ -1,0 +1,1 @@
+{"errors": 1, "last_error":  "failed to open directory \\\"\\\": open /var/lib/scylla/data/system_auth: permission denied"}

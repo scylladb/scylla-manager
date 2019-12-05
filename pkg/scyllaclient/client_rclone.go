@@ -280,6 +280,17 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	if err != nil {
 		return nil, err
 	}
+
+	if resp.JobID != 0 {
+		stats, err := c.RcloneStats(ctx, host, RcloneDefaultGroup(resp.JobID))
+		if err != nil {
+			return nil, err
+		}
+		if stats.Errors != 0 {
+			return resp.Payload.List, errors.New(stats.LastError)
+		}
+	}
+
 	return resp.Payload.List, nil
 }
 

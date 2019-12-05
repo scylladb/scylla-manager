@@ -7,6 +7,7 @@ package scyllaclient_test
 import (
 	"context"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -144,5 +145,19 @@ func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 	}
 	if len(d) > 0 {
 		t.Errorf("Expected bucket to be empty, got: len(files)=%d", len(d))
+	}
+}
+
+func TestRcloneDirectoryListingCheckStatistics(t *testing.T) {
+	S3InitBucket(t, testBucket)
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/agent/rclone/core/stats", "testdata/rclone/stats/permission_denied_error.json"))
+	defer cl()
+
+	ctx := context.Background()
+
+	_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, remotePath("/"), nil)
+	if err == nil || strings.Contains(err.Error(), "permission denied") {
+		t.Fatal("expected error about permission denied, got", err)
 	}
 }
