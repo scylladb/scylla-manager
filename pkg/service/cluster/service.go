@@ -1,0 +1,513 @@
+// Copyright (C) 2017 ScyllaDB
+
+package cluster
+
+import (
+	"bytes"
+	"context"
+	"sort"
+
+	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/mermaid/pkg/schema/table"
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/service"
+	"github.com/scylladb/mermaid/pkg/service/secrets"
+	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"go.uber.org/multierr"
+)
+
+// ChangeType specifies type on Change.
+type ChangeType int8
+
+// ChangeType enumeration
+const (
+	Create ChangeType = iota
+	Update
+	Delete
+)
+
+// Change specifies cluster modification.
+type Change struct {
+	ID            uuid.UUID
+	Type          ChangeType
+	WithoutRepair bool
+}
+
+// Service manages cluster configurations.
+type Service struct {
+	session          *gocql.Session
+	secretsStore     secrets.Store
+	clientCache      *scyllaclient.CachedProvider
+	logger           log.Logger
+	onChangeListener func(ctx context.Context, c Change) error
+}
+
+func NewService(session *gocql.Session, secretsStore secrets.Store, l log.Logger) (*Service, error) {
+	if session == nil || session.Closed() {
+		return nil, errors.New("invalid session")
+	}
+
+	s := &Service{
+		session:      session,
+		secretsStore: secretsStore,
+		logger:       l,
+	}
+	s.clientCache = scyllaclient.NewCachedProvider(s.client)
+
+	return s, nil
+}
+
+// SetOnChangeListener sets a function that would be invoked when a cluster
+// changes.
+func (s *Service) SetOnChangeListener(f func(ctx context.Context, c Change) error) {
+	s.onChangeListener = f
+}
+
+// Client is cluster client provider.
+func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	s.logger.Debug(ctx, "Client", "cluster_id", clusterID)
+	return s.clientCache.Client(ctx, clusterID)
+}
+
+func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	c, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := s.createClient(c)
+	if err != nil {
+		return nil, errors.Wrap(err, "create client")
+	}
+	defer client.Close()
+
+	hosts, err := s.discoverHosts(ctx, client)
+	if err != nil {
+		return nil, errors.Wrap(err, "discover cluster topology")
+	}
+	if err := s.setKnownHosts(c, hosts); err != nil {
+		return nil, errors.Wrap(err, "update cluster")
+	}
+
+	s.logger.Info(ctx, "New Scylla REST client", "cluster_id", clusterID)
+
+	return s.createClient(c)
+}
+
+func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
+	config := scyllaclient.DefaultConfig()
+	config.Hosts = c.KnownHosts
+	config.AuthToken = c.AuthToken
+
+	return scyllaclient.NewClient(config, s.logger.Named("client"))
+}
+
+// discoverHosts returns a list of all hosts sorted by DC speed. This is
+// an optimisation for Epsilon-Greedy host pool used internally by
+// scyllaclient.Client that makes it use supposedly faster hosts first.
+func (s *Service) discoverHosts(ctx context.Context, client *scyllaclient.Client) (hosts []string, err error) {
+	dcs, err := client.Datacenters(ctx)
+	if err != nil {
+		return nil, err
+	}
+	closest, err := client.ClosestDC(ctx, dcs)
+	if err != nil {
+		return nil, err
+	}
+	for _, dc := range closest {
+		hosts = append(hosts, dcs[dc]...)
+	}
+	return hosts, nil
+}
+
+func (s *Service) loadKnownHosts(c *Cluster) error {
+	stmt, names := table.Cluster.Get("known_hosts")
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
+	return q.GetRelease(c)
+}
+
+func (s *Service) setKnownHosts(c *Cluster, hosts []string) error {
+	c.KnownHosts = hosts
+
+	stmt, names := table.Cluster.Update("known_hosts")
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
+	return q.ExecRelease()
+}
+
+// ListClusters returns all the clusters for a given filtering criteria.
+func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, error) {
+	s.logger.Debug(ctx, "ListClusters", "filter", f)
+
+	// Validate the filter
+	if err := f.Validate(); err != nil {
+		return nil, err
+	}
+
+	stmt, _ := qb.Select(table.Cluster.Name()).ToCql()
+
+	q := s.session.Query(stmt)
+	defer q.Release()
+
+	var clusters []*Cluster
+	if err := gocqlx.Select(&clusters, q); err != nil {
+		return nil, err
+	}
+
+	sort.Slice(clusters, func(i, j int) bool {
+		return bytes.Compare(clusters[i].ID.Bytes(), clusters[j].ID.Bytes()) < 0
+	})
+
+	// Nothing to filter
+	if f.Name == "" {
+		return clusters, nil
+	}
+
+	filtered := clusters[:0]
+	for _, u := range clusters {
+		if u.Name == f.Name {
+			filtered = append(filtered, u)
+		}
+	}
+
+	return filtered, nil
+}
+
+// GetCluster returns cluster based on ID or name. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetCluster(ctx context.Context, idOrName string) (*Cluster, error) {
+	if id, err := uuid.Parse(idOrName); err == nil {
+		return s.GetClusterByID(ctx, id)
+	}
+
+	return s.GetClusterByName(ctx, idOrName)
+}
+
+// GetClusterByID returns cluster based on ID. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, error) {
+	s.logger.Debug(ctx, "GetClusterByID", "id", id)
+
+	stmt, names := table.Cluster.Get()
+
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+		"id": id,
+	})
+	defer q.Release()
+
+	if q.Err() != nil {
+		return nil, q.Err()
+	}
+
+	var c Cluster
+	if err := gocqlx.Get(&c, q.Query); err != nil {
+		return nil, err
+	}
+
+	return &c, nil
+}
+
+// GetClusterByName returns cluster based on name. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, error) {
+	s.logger.Debug(ctx, "GetClusterByName", "name", name)
+
+	clusters, err := s.ListClusters(ctx, &Filter{Name: name})
+	if err != nil {
+		return nil, err
+	}
+
+	switch len(clusters) {
+	case 0:
+		return nil, service.ErrNotFound
+	case 1:
+		return clusters[0], nil
+	default:
+		return nil, errors.Errorf("multiple clusters share the same name %q", name)
+	}
+}
+
+// GetClusterName returns cluster name for a given ID. If nothing was found
+// mermaid.ErrNotFound is returned.
+func (s *Service) GetClusterName(ctx context.Context, id uuid.UUID) (string, error) {
+	s.logger.Debug(ctx, "GetClusterName", "id", id)
+
+	c, err := s.GetClusterByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	return c.String(), nil
+}
+
+// PutCluster upserts a cluster, cluster instance must pass Validate() checks.
+// If u.ID == uuid.Nil a new one is generated.
+func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
+	s.logger.Debug(ctx, "PutCluster", "cluster", c)
+	if c == nil {
+		return service.ErrNilPtr
+	}
+
+	t := Update
+	if c.ID == uuid.Nil {
+		t = Create
+
+		var err error
+		if c.ID, err = uuid.NewRandom(); err != nil {
+			return errors.Wrap(err, "couldn't generate random UUID for Cluster")
+		}
+	} else {
+		// User may set ID on his own
+		_, err := s.GetClusterByID(ctx, c.ID)
+		if err != nil {
+			if err != service.ErrNotFound {
+				return err
+			}
+			t = Create
+		}
+	}
+
+	if t == Create {
+		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
+	} else {
+		s.logger.Info(ctx, "Updating cluster", "cluster_id", c.ID)
+	}
+
+	// Validate cluster model.
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
+	// Check for conflicting cluster names.
+	if c.Name != "" {
+		conflict, err := s.GetClusterByName(ctx, c.Name)
+		if err != service.ErrNotFound {
+			if err != nil {
+				return err
+			}
+			if conflict.ID != c.ID {
+				return service.ErrValidate(errors.Errorf("name %q is already taken", c.Name))
+			}
+		}
+	}
+
+	// Check hosts connectivity.
+	if err := s.validateHostsConnectivity(ctx, c); err != nil {
+		var tip string
+		switch scyllaclient.StatusCodeOf(err) {
+		case 0:
+			tip = "make sure the IP is correct and access to port 10001 is unblocked"
+		case 401:
+			tip = "make sure auth_token config option on nodes is set correctly"
+		}
+		if tip != "" {
+			err = errors.Errorf("%s - %s", err, tip)
+		}
+
+		return err
+	}
+
+	// Rollback on error.
+	var rollback []func()
+	defer func() {
+		if err != nil {
+			for _, r := range rollback {
+				if r != nil {
+					r()
+				}
+			}
+		}
+	}()
+
+	if len(c.SSLUserCertFile) != 0 && len(c.SSLUserKeyFile) != 0 {
+		r, err := s.saveTLSIdentityWithRollback(c.ID, c.SSLUserCertFile, c.SSLUserKeyFile)
+		rollback = append(rollback, r)
+		if err != nil {
+			return errors.Wrap(err, "save SSL cert file")
+		}
+	}
+
+	stmt, names := table.Cluster.Insert()
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
+
+	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	if c.AuthToken == "" {
+		s.logger.Info(ctx, "WARNING! Scylla data is exposed on hosts, "+
+			"protect it by specifying auth_token in Scylla Manager Agent config file on Scylla nodes",
+			"cluster_id", c.ID,
+			"hosts", c.KnownHosts,
+		)
+	}
+
+	switch t {
+	case Create:
+		s.logger.Info(ctx, "Cluster added", "cluster_id", c.ID)
+	case Update:
+		s.logger.Info(ctx, "Cluster updated", "cluster_id", c.ID)
+		s.clientCache.Invalidate(c.ID)
+	}
+
+	changeEvent := Change{
+		ID:            c.ID,
+		Type:          t,
+		WithoutRepair: c.WithoutRepair,
+	}
+	return s.notifyChangeListener(ctx, changeEvent)
+}
+
+func (s *Service) saveTLSIdentityWithRollback(clusterID uuid.UUID, cert, key []byte) (func(), error) {
+	oldIdentity := &secrets.TLSIdentity{
+		ClusterID: clusterID,
+	}
+	err := s.secretsStore.Get(oldIdentity)
+	if err != nil && err != service.ErrNotFound {
+		return nil, errors.Wrap(err, "read old tls identity")
+	}
+
+	if oldIdentity.PrivateKey != nil && oldIdentity.Cert != nil {
+		if err := s.secretsStore.Delete(oldIdentity); err != nil {
+			return nil, errors.Wrap(err, "delete old tls identity")
+		}
+	}
+
+	identity := secrets.MakeTLSIdentity(clusterID, cert, key)
+	if err := s.secretsStore.Put(identity); err != nil {
+		return nil, errors.Wrap(err, "put tls identity")
+	}
+
+	return func() {
+		s.secretsStore.Delete(identity) // nolint:errcheck
+		if oldIdentity.PrivateKey != nil && oldIdentity.Cert != nil {
+			s.secretsStore.Put(oldIdentity) // nolint:errcheck
+		}
+	}, nil
+}
+
+func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
+	// Do not retry in validate
+	ctx = httpmw.DontRetry(ctx)
+
+	// If host changes ignore old known hosts.
+	if c.Host != "" {
+		c.KnownHosts = []string{c.Host}
+	} else if err := s.loadKnownHosts(c); err != nil {
+		return errors.Wrap(err, "load known hosts")
+	}
+
+	client, err := s.createClient(c)
+	if err != nil {
+		return errors.Wrap(err, "create client")
+	}
+	defer client.Close()
+
+	hosts, err := client.Hosts(ctx)
+	if err != nil {
+		return errors.Wrap(err, "discover cluster topology")
+	}
+
+	// For every reachable host check that there are not HTTP errors
+	var (
+		errs  error
+		alive int
+		abort bool
+	)
+	for i, err := range client.CheckHostsConnectivity(ctx, hosts) {
+		errs = multierr.Append(errs, errors.Wrap(err, hosts[i]))
+		if scyllaclient.StatusCodeOf(err) > 0 {
+			abort = true
+		}
+		if err == nil {
+			alive++
+		}
+	}
+	if alive < len(hosts)/2 {
+		abort = true
+	}
+	if abort {
+		return service.ErrValidate(errors.Wrap(errs, "connectivity check failed"))
+	}
+
+	// Update known hosts.
+	c.KnownHosts = hosts
+
+	return nil
+}
+
+// DeleteCluster removes cluster based on ID.
+func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error {
+	s.logger.Debug(ctx, "DeleteCluster", "cluster_id", clusterID)
+
+	stmt, names := table.Cluster.Delete()
+	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+		"id": clusterID,
+	})
+
+	if err := q.ExecRelease(); err != nil {
+		return err
+	}
+
+	if err := s.secretsStore.DeleteAll(clusterID); err != nil {
+		s.logger.Error(ctx, "Failed to delete cluster secrets",
+			"cluster_id", clusterID,
+			"error", err,
+		)
+		return errors.Wrap(err, "delete cluster secrets")
+	}
+
+	s.clientCache.Invalidate(clusterID)
+
+	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
+}
+
+// ListNodes returns information about all the nodes in the cluster.
+// Address will be set as node name if it's not resolvable.
+func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, error) {
+	s.logger.Debug(ctx, "ListNodes", "cluster_id", clusterID)
+
+	var nodes []Node
+
+	client, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	dcs, err := client.Datacenters(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get hosts for cluster with id %s", clusterID)
+	}
+
+	for dc, hosts := range dcs {
+		for _, h := range hosts {
+			sh, err := client.ShardCount(ctx, h)
+			if err != nil {
+				s.logger.Error(ctx, "Failed to get number of shards", "error", err)
+			}
+			nodes = append(nodes, Node{
+				Datacenter: dc,
+				Address:    h,
+				ShardNum:   sh,
+			})
+		}
+	}
+
+	return nodes, nil
+}
+
+func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {
+	if s.onChangeListener == nil {
+		return nil
+	}
+	return s.onChangeListener(ctx, c)
+}
+
+// Close closes all connections to cluster.
+func (s *Service) Close() {
+	s.clientCache.Close()
+}

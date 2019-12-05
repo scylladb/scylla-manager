@@ -1,15 +1,13 @@
 #!/usr/bin/make -f
 
-import_path := github.com/scylladb/mermaid
-builddir    := /tmp/mermaid_deb
+import_path := github.com/scylladb/mermaid/pkg
 
 GO_VERSION := 1.13.4
 GO_HASH    := 692d17071736f74be04a72a06dab9cac1cd759377bd85316e52b2227604c004c
 GO_URL     := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
-GO_BUNDLE  := /tmp/go$(GO_VERSION).linux-amd64.tar.gz
+GO_BUNDLE  := ./go$(GO_VERSION).linux-amd64.tar.gz
 
-GOROOT     := /tmp/go
-GOPATH     := $(builddir)/_build
+GOROOT     := ./go
 GOGCFLAGS  := all=-trimpath=$(GOPATH)
 GOLDFLAGS  := -w -extldflags '-static' -X $(import_path).version=$(shell dpkg-parsechangelog --show-field Version)
 
@@ -18,16 +16,10 @@ GO := $(GOROOT)/bin/go
 %:
 	dh $@ --with=systemd
 
-override_dh_auto_clean:
-	rm -Rf $(builddir)
-
 override_dh_auto_build:
 	curl -sSq $(GO_URL) -o $(GO_BUNDLE)
 	[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "$(GO_HASH)" ]
-	tar -zxf $(GO_BUNDLE) -C /tmp
-
-	mkdir -p $(builddir)/_build/src/github.com/scylladb
-	ln -s `pwd` $(builddir)/_build/src/$(import_path)
+	tar -zxf $(GO_BUNDLE)
 
 	CGO_ENABLED=0 $(GO) build -a -mod vendor \
 	-gcflags "$(GOGCFLAGS)" -ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \

@@ -8,7 +8,7 @@ logger:
 database:
   hosts:
     - 192.168.100.100
-  migrate_dir: schema/cql
+  migrate_dir: schema
   timeout: 1s
 
 backup:

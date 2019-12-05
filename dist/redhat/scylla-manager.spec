@@ -1,4 +1,4 @@
-%global import_path     github.com/scylladb/mermaid
+%global import_path     github.com/scylladb/mermaid/pkg
 %global user            scylla-manager
 %global debug_package   %{nil}
 
@@ -24,11 +24,7 @@ Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla
 %setup -q -n %{name}-%{version}-%{release}
 
 %build
-mkdir -p ./_build/src/github.com/scylladb
-ln -s $(pwd) ./_build/src/%{import_path}
-
 GOROOT="$(pwd)/../go/"
-GOPATH="$(pwd)/_build"
 GOGCFLAGS="all=-trimpath=${GOPATH}"
 GOLDFLAGS="-w -extldflags '-static' -X %{import_path}.version=%{version}-%{release}"
 
@@ -70,7 +66,7 @@ install -m644 dist/etc/%{name}-agent/* %{buildroot}%{_sysconfdir}/%{name}-agent/
 install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/%{name}/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
-install -m644 schema/cql/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
+install -m644 schema/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_auth_token_gen %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
