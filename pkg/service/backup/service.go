@@ -21,6 +21,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"go.uber.org/atomic"
 	"go.uber.org/multierr"
 )
 
@@ -186,14 +187,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	return t, nil
 }
 
-type diskSize struct {
-	Size  int64
-	Error error
-}
-
 // GetTargetSize calculates total size of the backup for the provided target.
 func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target Target) (int64, error) {
 	s.logger.Info(ctx, "Calculating target size")
+
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrapf(err, "get client")
@@ -209,43 +206,54 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 		return 0, errors.New("no matching hosts found")
 	}
 
-	results := make(chan diskSize)
-
-	for _, h := range hosts {
-		go func(h string) {
-			for _, u := range target.Units {
-				for _, t := range u.Tables {
-					size, err := client.TableDiskSize(ctx, h, u.Keyspace, t)
-					if err != nil {
-						err = errors.Wrapf(err, "get size of %s.%s on %s", u.Keyspace, t, h)
-					}
-					results <- diskSize{size, err}
-				}
-			}
-		}(h)
+	// Create index of all call parameters
+	type hut struct {
+		Host  int
+		Unit  int
+		Table int
 	}
-
-	var (
-		total int64
-		errs  error
-	)
-
-	for range hosts {
-		for _, u := range target.Units {
-			for range u.Tables {
-				result := <-results
-				if result.Error != nil {
-					errs = multierr.Append(errs, err)
-				}
-				total += result.Size
+	var idx []hut
+	for u, v := range target.Units {
+		for t := range v.Tables {
+			// Put hosts last to distribute load on hosts evenly
+			for h := range hosts {
+				idx = append(idx, hut{h, u, t})
 			}
 		}
 	}
-	if errs != nil {
-		total = 0
+
+	// Get shard count of a first node to estimate parallelism limit
+	shards, err := client.ShardCount(ctx, hosts[0])
+	if err != nil {
+		return 0, errors.Wrapf(err, "%s: shard count", hosts[0])
 	}
 
-	return total, errs
+	var (
+		limit = len(hosts) * int(shards)
+		total atomic.Int64
+	)
+	err = parallel.Run(len(idx), limit, func(i int) error {
+		v := idx[i]
+		h := hosts[v.Host]
+		k := target.Units[v.Unit].Keyspace
+		t := target.Units[v.Unit].Tables[v.Table]
+
+		size, err := client.TableDiskSize(ctx, h, k, t)
+		if err != nil {
+			return parallel.Abort(errors.Wrapf(err, h))
+		}
+		s.logger.Debug(ctx, "Table disk size",
+			"host", h,
+			"keyspace", k,
+			"table", t,
+			"size", size,
+		)
+		total.Add(size)
+
+		return nil
+	})
+
+	return total.Load(), err
 }
 
 // checkLocationsAvailableFromDCs checks if each node in every DC has access to
