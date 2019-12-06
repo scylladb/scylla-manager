@@ -252,6 +252,7 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 // location assigned to that DC.
 func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *scyllaclient.Client, locations []Location, dcs []string, dcMap map[string][]string) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
+	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
 
 	// Get hosts of the target DCs
 	hosts := dcHosts(dcMap, dcs)

@@ -26,6 +26,7 @@ import (
 // corresponds to host at position i.
 func (c *Client) CheckHostsConnectivity(ctx context.Context, hosts []string) []error {
 	c.logger.Info(ctx, "Checking hosts connectivity", "hosts", hosts)
+	defer c.logger.Info(ctx, "Done checking hosts connectivity")
 
 	size := len(hosts)
 
