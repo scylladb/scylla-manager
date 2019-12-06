@@ -152,6 +152,8 @@ Keyspaces:
   - {{ .Keyspace }} {{ FormatTables .Tables .AllTables }}
 {{- end }}
 
+Disk size: ~{{ ByteCountBinary .Size }}
+
 Locations:
 {{- range .Location }}
   - {{ . }}
@@ -181,7 +183,6 @@ Upload Parallel Limits:
   - All hosts in parallel
 {{- end }}
 
-Estimated Size: {{ ByteCountBinary .Size }}
 Retention: Last {{ .Retention }} backups
 `
 
