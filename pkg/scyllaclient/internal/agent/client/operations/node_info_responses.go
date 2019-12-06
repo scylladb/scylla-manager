@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -54,6 +55,7 @@ node information
 */
 type NodeInfoOK struct {
 	Payload *models.NodeInfo
+	JobID   int64
 }
 
 func (o *NodeInfoOK) GetPayload() *models.NodeInfo {
@@ -69,6 +71,14 @@ func (o *NodeInfoOK) readResponse(response runtime.ClientResponse, consumer runt
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -87,6 +97,7 @@ type NodeInfoDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the node info default response
@@ -107,6 +118,14 @@ func (o *NodeInfoDefault) readResponse(response runtime.ClientResponse, consumer
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

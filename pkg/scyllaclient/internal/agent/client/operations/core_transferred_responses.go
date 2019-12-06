@@ -57,6 +57,7 @@ Completed transfers
 */
 type CoreTransferredOK struct {
 	Payload *CoreTransferredOKBody
+	JobID   int64
 }
 
 func (o *CoreTransferredOK) GetPayload() *CoreTransferredOKBody {
@@ -72,6 +73,14 @@ func (o *CoreTransferredOK) readResponse(response runtime.ClientResponse, consum
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -90,6 +99,7 @@ type CoreTransferredDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the core transferred default response
@@ -110,6 +120,14 @@ func (o *CoreTransferredDefault) readResponse(response runtime.ClientResponse, c
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

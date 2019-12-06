@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -54,6 +55,7 @@ bandwidth rate
 */
 type CoreBwlimitOK struct {
 	Payload *models.Bandwidth
+	JobID   int64
 }
 
 func (o *CoreBwlimitOK) GetPayload() *models.Bandwidth {
@@ -69,6 +71,14 @@ func (o *CoreBwlimitOK) readResponse(response runtime.ClientResponse, consumer r
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -87,6 +97,7 @@ type CoreBwlimitDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the core bwlimit default response
@@ -107,6 +118,14 @@ func (o *CoreBwlimitDefault) readResponse(response runtime.ClientResponse, consu
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

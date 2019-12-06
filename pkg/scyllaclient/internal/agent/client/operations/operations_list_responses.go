@@ -57,6 +57,7 @@ List of items
 */
 type OperationsListOK struct {
 	Payload *OperationsListOKBody
+	JobID   int64
 }
 
 func (o *OperationsListOK) GetPayload() *OperationsListOKBody {
@@ -72,6 +73,14 @@ func (o *OperationsListOK) readResponse(response runtime.ClientResponse, consume
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -90,6 +99,7 @@ type OperationsListDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the operations list default response
@@ -110,6 +120,14 @@ func (o *OperationsListDefault) readResponse(response runtime.ClientResponse, co
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

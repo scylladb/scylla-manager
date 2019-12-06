@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -54,6 +55,7 @@ Current transfers
 */
 type CoreStatsOK struct {
 	Payload *models.Stats
+	JobID   int64
 }
 
 func (o *CoreStatsOK) GetPayload() *models.Stats {
@@ -69,6 +71,14 @@ func (o *CoreStatsOK) readResponse(response runtime.ClientResponse, consumer run
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -87,6 +97,7 @@ type CoreStatsDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the core stats default response
@@ -107,6 +118,14 @@ func (o *CoreStatsDefault) readResponse(response runtime.ClientResponse, consume
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

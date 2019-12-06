@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -54,6 +55,7 @@ File system details
 */
 type OperationsCatOK struct {
 	Payload *models.Content
+	JobID   int64
 }
 
 func (o *OperationsCatOK) GetPayload() *models.Content {
@@ -69,6 +71,14 @@ func (o *OperationsCatOK) readResponse(response runtime.ClientResponse, consumer
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -87,6 +97,7 @@ type OperationsCatDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the operations cat default response
@@ -107,6 +118,14 @@ func (o *OperationsCatDefault) readResponse(response runtime.ClientResponse, con
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

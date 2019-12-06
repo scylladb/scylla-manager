@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -54,6 +55,7 @@ Empty object
 */
 type CoreStatsResetOK struct {
 	Payload interface{}
+	JobID   int64
 }
 
 func (o *CoreStatsResetOK) GetPayload() interface{} {
@@ -67,6 +69,14 @@ func (o *CoreStatsResetOK) readResponse(response runtime.ClientResponse, consume
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -85,6 +95,7 @@ type CoreStatsResetDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the core stats reset default response
@@ -105,6 +116,14 @@ func (o *CoreStatsResetDefault) readResponse(response runtime.ClientResponse, co
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

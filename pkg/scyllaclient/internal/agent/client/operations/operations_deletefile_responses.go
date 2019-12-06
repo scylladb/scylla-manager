@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -54,6 +55,7 @@ Job ID
 */
 type OperationsDeletefileOK struct {
 	Payload *models.Jobid
+	JobID   int64
 }
 
 func (o *OperationsDeletefileOK) GetPayload() *models.Jobid {
@@ -69,6 +71,14 @@ func (o *OperationsDeletefileOK) readResponse(response runtime.ClientResponse, c
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -87,6 +97,7 @@ type OperationsDeletefileDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the operations deletefile default response
@@ -107,6 +118,14 @@ func (o *OperationsDeletefileDefault) readResponse(response runtime.ClientRespon
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 

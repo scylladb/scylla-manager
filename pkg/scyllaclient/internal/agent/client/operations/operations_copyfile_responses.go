@@ -8,6 +8,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -54,6 +55,7 @@ Job
 */
 type OperationsCopyfileOK struct {
 	Payload *models.Jobid
+	JobID   int64
 }
 
 func (o *OperationsCopyfileOK) GetPayload() *models.Jobid {
@@ -69,6 +71,14 @@ func (o *OperationsCopyfileOK) readResponse(response runtime.ClientResponse, con
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
@@ -87,6 +97,7 @@ type OperationsCopyfileDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
+	JobID   int64
 }
 
 // Code gets the status code for the operations copyfile default response
@@ -107,6 +118,14 @@ func (o *OperationsCopyfileDefault) readResponse(response runtime.ClientResponse
 		return err
 	}
 
+	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
+		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		o.JobID = jobID
+	}
 	return nil
 }
 
