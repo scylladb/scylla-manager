@@ -3,6 +3,7 @@
 package parallel
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -74,4 +75,44 @@ func TestRun(t *testing.T) {
 func epsilonRange(d time.Duration) (time.Duration, time.Duration) {
 	e := time.Duration(float64(d) * 1.05)
 	return d - e, d + e
+}
+
+func TestIsErrAbort(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil", func(t *testing.T) {
+		t.Parallel()
+
+		if ok, err := isErrAbort(Abort(nil)); !ok || err != nil {
+			t.Errorf("isErrAbort() = (%v, %v), expected (%v, %v))", ok, err, true, nil)
+		}
+	})
+
+	t.Run("not nil", func(t *testing.T) {
+		t.Parallel()
+
+		err := errors.New("too")
+
+		if ok, inner := isErrAbort(Abort(err)); !ok || inner != err {
+			t.Errorf("isErrAbort() = (%v, %v), expected (%v, %v))", ok, inner, true, err)
+		}
+	})
+}
+
+func TestAbort(t *testing.T) {
+	t.Parallel()
+
+	called := atomic.NewInt32(0)
+	f := func(i int) error {
+		called.Inc()
+		return Abort(errors.New("boo"))
+	}
+
+	if err := Run(10, 1, f); err == nil {
+		t.Error("Run() expected error")
+	}
+
+	if c := called.Load(); c != 1 {
+		t.Errorf("Called %d times expected 1", c)
+	}
 }
