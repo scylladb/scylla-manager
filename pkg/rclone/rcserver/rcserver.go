@@ -182,13 +182,15 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	}
 
 	fs.Debugf(nil, "rc: %q: with parameters %+v", path, in)
-	var out rc.Params
+	var (
+		out   rc.Params
+		jobID int64
+	)
 	if isAsync {
 		out, err = jobs.StartAsyncJob(fn, in)
+		jobID = out["jobid"].(int64)
 	} else {
-		var jobID int64
 		out, jobID, err = jobs.ExecuteJob(r.Context(), fn, in)
-		w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 	}
 	if rc.IsErrParamNotFound(err) || err == ErrNotFound {
 		writeError(path, in, w, err, http.StatusNotFound)
@@ -202,6 +204,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	}
 
 	fs.Debugf(nil, "rc: %q: reply %+v: %v", path, out, err)
+	w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 	err = rc.WriteJSON(w, out)
 	if err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)
