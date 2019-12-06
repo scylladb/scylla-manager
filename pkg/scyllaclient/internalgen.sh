@@ -14,4 +14,4 @@ rm -rf internal/scylla_v2/client internal/scylla_v2/models
 swagger generate client -A scylla2 -T internal/templates -f scylla_v2.json -t ./internal/scylla_v2
 
 rm -rf internal/agent/client internal/agent/models
-swagger generate client -A agent -T internal/templates -f agent.json -t ./internal/agent
+swagger generate client -A agent -T internal/agent/templates -f agent.json -t ./internal/agent
