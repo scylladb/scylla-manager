@@ -29,6 +29,7 @@ func TestBackupMetricUpdater(t *testing.T) {
 		Units: []Unit{
 			{Keyspace: "keyspace", Tables: []string{"table1"}},
 		},
+		clusterName: "my-cluster",
 	}
 	p1 := &RunProgress{
 		RunID:     runID,
@@ -64,7 +65,7 @@ func TestBackupMetricUpdater(t *testing.T) {
 		scylla_manager_backup_bytes_left{cluster="%s",host="",keyspace="",task="%s"} %d
         scylla_manager_backup_bytes_left{cluster="%s",host="host",keyspace="",task="%s"} %d
         scylla_manager_backup_bytes_left{cluster="%s",host="host",keyspace="keyspace",task="%s"} %d
-`, clusterID, taskID, p1.Size-p1.Uploaded, clusterID, taskID, p1.Size-p1.Uploaded, clusterID, taskID, p1.Size-p1.Uploaded)
+`, run.clusterName, taskID, p1.Size-p1.Uploaded, run.clusterName, taskID, p1.Size-p1.Uploaded, run.clusterName, taskID, p1.Size-p1.Uploaded)
 	if err := testutil.CollectAndCompare(backupBytesLeft, bytes.NewBufferString(expected)); err != nil {
 		t.Fatal(err)
 	}

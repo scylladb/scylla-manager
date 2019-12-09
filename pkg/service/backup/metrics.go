@@ -70,12 +70,11 @@ func updateFunc(ctx context.Context, run *Run, vis ProgressVisitor, logger log.L
 			return
 		}
 
-		clusterID := run.ClusterID.String()
 		taskID := run.TaskID.String()
 
 		// Aggregated total progress
 		totalLabels := prometheus.Labels{
-			"cluster":  clusterID,
+			"cluster":  run.clusterName,
 			"task":     taskID,
 			"host":     "",
 			"keyspace": "",
@@ -86,7 +85,7 @@ func updateFunc(ctx context.Context, run *Run, vis ProgressVisitor, logger log.L
 			// Aggregated keyspace progress
 			for _, keyspace := range host.Keyspaces {
 				keyspaceLabels := prometheus.Labels{
-					"cluster":  clusterID,
+					"cluster":  run.clusterName,
 					"task":     taskID,
 					"host":     host.Host,
 					"keyspace": keyspace.Keyspace,
@@ -96,7 +95,7 @@ func updateFunc(ctx context.Context, run *Run, vis ProgressVisitor, logger log.L
 
 			// Aggregated host progress
 			hostLabels := prometheus.Labels{
-				"cluster":  clusterID,
+				"cluster":  run.clusterName,
 				"task":     taskID,
 				"host":     host.Host,
 				"keyspace": "",

@@ -488,6 +488,13 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		StartTime: timeutc.Now().UTC(),
 	}
 
+	// Get cluster name
+	clusterName, err := s.clusterName(ctx, run.ClusterID)
+	if err != nil {
+		return errors.Wrap(err, "invalid cluster")
+	}
+	run.clusterName = clusterName
+
 	s.logger.Info(ctx, "Initializing backup",
 		"cluster_id", run.ClusterID,
 		"task_id", run.TaskID,
