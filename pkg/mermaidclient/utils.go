@@ -178,25 +178,26 @@ func isZero(t strfmt.DateTime) bool {
 	return time.Time(t).IsZero()
 }
 
-// FormatMultiHostError formats messages created by using multierror with
+// FormatError formats messages created by using multierror with
 // errors wrapped with host IP so that each host error is in it's own line.
-func FormatMultiHostError(msg, prefix string) string {
-	r := regexp.MustCompile(`[:;] (([0-9]{1,3}\.){3}[0-9]{1,3}): `)
-	return r.ReplaceAllString(msg, "\n"+prefix+"${1}: ")
-}
+// It also adds "failed to" prefix if needed.
+func FormatError(msg string) string {
+	const prefix = " "
 
-// AddFailedToPrefix adds "failed to" prefix to error message if needed.
-func AddFailedToPrefix(msg string) string {
-	r := regexp.MustCompile(`^(([0-9]{1,3}\.){3}[0-9]{1,3}): `)
-	if r.MatchString(msg) {
-		return msg
+	// Fairly relaxed IPv4 and IPv6 heuristic pattern, a proper pattern can
+	// be very complex
+	const ipRegex = `([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(\d{1,3}\.){3}\d{1,3}`
+
+	// Move host errors to newline
+	r := regexp.MustCompile(`(^|: |; )(` + ipRegex + `): `)
+	msg = r.ReplaceAllString(msg, "\n"+prefix+"${2}: ")
+
+	// Add "failed to" prefix if needed
+	if !strings.HasPrefix(msg, "failed to") && !strings.HasPrefix(msg, "\n") {
+		msg = "failed to " + msg
 	}
 
-	if strings.HasPrefix(msg, "failed to") {
-		return msg
-	}
-
-	return "failed to " + msg
+	return msg
 }
 
 // FormatTables returns tables listing if number of tables is lower than

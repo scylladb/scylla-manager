@@ -365,7 +365,7 @@ var repairProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
 {{ with .Run }}Status:		{{ .Status }}
 {{- if .Cause }}
-Cause:		{{ .Cause }}
+Cause:		{{ FormatError .Cause }}
 {{- end }}
 {{- if not (isZero .StartTime) }}
 Start time:	{{ FormatTime .StartTime }}
@@ -392,6 +392,7 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"isZero":         isZero,
 		"FormatTime":     FormatTime,
 		"FormatDuration": FormatDuration,
+		"FormatError":    FormatError,
 		"FormatProgress": FormatProgress,
 		"arguments":      rp.arguments,
 	}).Parse(repairProgressTemplate))
@@ -580,7 +581,7 @@ var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
 {{ with .Run }}Status:		{{ .Status }}
 {{- if .Cause }}
-Cause:		{{ .Cause }}
+Cause:		{{ FormatError .Cause }}
 {{- end }}
 {{- if not (isZero .StartTime) }}
 Start time:	{{ FormatTime .StartTime }}
@@ -613,6 +614,7 @@ func (bp BackupProgress) addHeader(w io.Writer) error {
 		"isZero":               isZero,
 		"FormatTime":           FormatTime,
 		"FormatDuration":       FormatDuration,
+		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
 		"arguments":            bp.arguments,
 	}).Parse(backupProgressTemplate))
