@@ -141,7 +141,7 @@ dev-env-status:  ## Checks status of docker containers and cluster nodes
 .PHONY: dev-agent
 dev-agent: ## Build development agent binary and deploy it to testing containers
 	@echo "==> Building agent"
-	@go build -mod=vendor -race -o ./agent.dev ./pkg/cmd/agent
+	@go build -mod=vendor -race -o ./scylla-manager-agent.dev ./pkg/cmd/agent
 	@echo "==> Deploying agent to testing containers"
 	@make -C testing deploy-agent restart-agent
 
