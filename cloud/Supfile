@@ -1,0 +1,67 @@
+---
+
+version: 0.4
+
+networks:
+  agent:
+    inventory: cat networks/agent.hosts
+    env:
+      SERVICE: scylla-manager-agent
+      PKG: scylla-manager-agent
+      BIN_PKG: /usr/bin/scylla-manager-agent
+      BIN_DEV: ../scylla-manager-agent.dev
+
+  server:
+    inventory: cat networks/server.host
+    env:
+      SERVICE: scylla-manager
+      PKG: scylla-manager-server scylla-manager-client
+      BIN_PKG: /usr/bin/scylla-manager
+      BIN_DEV: ../scylla-manager.dev
+
+commands:
+  upload repo:
+    upload:
+      - src: scylla-manager.repo
+        dst: /tmp/
+    run: sudo mv /tmp/scylla-manager.repo /etc/yum.repos.d/
+
+  upload dev:
+    upload:
+      - src: ${BIN_DEV}
+        dst: /tmp/
+    run: sudo mv /tmp/$(basename ${BIN_DEV}) ${BIN_PKG} && md5sum ${BIN_PKG}
+
+  install pkg:
+    run: sudo yum install -y ${PKG}
+
+  start service:
+    run: sudo systemctl start ${SERVICE}
+
+  stop service:
+    run: sudo systemctl stop ${SERVICE}
+
+  enable service:
+    run: sudo systemctl enable ${SERVICE}
+
+  service status:
+    run: sudo systemctl status ${SERVICE}
+
+  logs:
+    run: sudo journalctl --no-pager -f -l -u ${SERVICE} | cut -d ' ' -f 6-
+
+targets:
+  install:
+    - upload repo
+    - install pkg
+
+  start:
+    - stop service
+    - start service
+    - service status
+
+  update:
+    - stop service
+    - upload dev
+    - start service
+    - service status
