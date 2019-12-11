@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -161,7 +162,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
 		}
 		if ring.Replication == scyllaclient.LocalStrategy {
-			continue
+			if strings.HasPrefix(keyspace, "system") && keyspace != "system_schema" {
+				continue
+			}
 		}
 
 		// Add to the filter
