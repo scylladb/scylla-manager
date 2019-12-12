@@ -110,17 +110,21 @@ const repairTargetTemplate = `{{ if ne .TokenRanges "dcpr" -}}
 Token Ranges: {{ .TokenRanges }}
 {{ end -}}
 {{ if .Host -}}
+
 Host: {{ .Host }}
 {{ end -}}
 {{ if .WithHosts -}}
+
 With Hosts:
 {{ range .WithHosts -}}
   - {{ . }}
 {{ end -}}
 {{ end -}}
+
 Data Centers:
 {{ range .Dc }}  - {{ . }}
 {{ end -}}
+
 Keyspaces:
 {{- range .Units }}
   - {{ .Keyspace }} {{ FormatTables .Tables .AllTables -}}
@@ -158,6 +162,7 @@ Locations:
 {{- range .Location }}
   - {{ . }}
 {{- end }}
+
 Bandwidth Limits:
 {{- if .RateLimit -}}
 {{ range .RateLimit }}
@@ -166,6 +171,7 @@ Bandwidth Limits:
 {{- else }}
   - Unlimited
 {{- end }}
+
 Snapshot Parallel Limits:
 {{- if .SnapshotParallel -}}
 {{- range .SnapshotParallel }}
@@ -174,6 +180,7 @@ Snapshot Parallel Limits:
 {{- else }}
   - All hosts in parallel
 {{- end }}
+
 Upload Parallel Limits:
 {{- if .UploadParallel -}}
 {{- range .UploadParallel }}
@@ -366,6 +373,7 @@ var repairProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ with .Run }}Status:		{{ .Status }}
 {{- if .Cause }}
 Cause:		{{ FormatError .Cause }}
+
 {{- end }}
 {{- if not (isZero .StartTime) }}
 Start time:	{{ FormatTime .StartTime }}
@@ -582,6 +590,7 @@ var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ with .Run }}Status:		{{ .Status }}
 {{- if .Cause }}
 Cause:		{{ FormatError .Cause }}
+
 {{- end }}
 {{- if not (isZero .StartTime) }}
 Start time:	{{ FormatTime .StartTime }}
