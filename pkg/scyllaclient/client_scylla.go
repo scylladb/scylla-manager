@@ -369,7 +369,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 // KillAllRepairs forces a termination of all repairs running on a host, the
 // operation is not retried to avoid side effects of a deferred kill.
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
-	ctx = httpmw.DontRetry(ctx)
+	ctx = httpmw.NoRetry(ctx)
 
 	_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
 		Context: httpmw.ForceHost(ctx, host),
@@ -379,6 +379,8 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 
 // Snapshots lists available snapshots.
 func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
+	ctx = httpmw.NoTimeout(ctx)
+
 	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
 		Context: httpmw.ForceHost(ctx, host),
 	})
@@ -397,6 +399,8 @@ func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 // SnapshotDetails returns an index of keyspaces and tables present in the given
 // snapshot.
 func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit, error) {
+	ctx = httpmw.NoTimeout(ctx)
+
 	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
 		Context: httpmw.ForceHost(ctx, host),
 	})
@@ -435,6 +439,8 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 // TakeSnapshot flushes and takes a snapshot of a keyspace.
 // Multiple keyspaces may have the same tag.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
+	ctx = httpmw.NoTimeout(ctx)
+
 	var cfPtr *string
 
 	if len(tables) > 0 {

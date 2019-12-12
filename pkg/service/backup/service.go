@@ -304,7 +304,7 @@ func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *sc
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
-	_, err := client.RcloneListDir(httpmw.DontRetry(ctx), h, l.RemotePath(""), nil)
+	_, err := client.RcloneListDir(httpmw.NoRetry(ctx), h, l.RemotePath(""), nil)
 	if err != nil {
 		s.logger.Info(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
 		var e error
@@ -457,7 +457,7 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 		}
 
 		for _, h := range checklist {
-			_, err := client.RcloneListDir(httpmw.DontRetry(ctx), h, l.RemotePath(""), nil)
+			_, err := client.RcloneListDir(httpmw.NoRetry(ctx), h, l.RemotePath(""), nil)
 			if err != nil {
 				s.logger.Debug(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
 			} else {

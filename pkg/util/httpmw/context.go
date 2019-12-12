@@ -10,7 +10,8 @@ type ctxt byte
 // ctxt enumeration.
 const (
 	ctxHost ctxt = iota
-	ctxDontRetry
+	ctxNoRetry
+	ctxNoTimeout
 )
 
 // ForceHost makes HostPool middleware use the given host instead of selecting
@@ -19,7 +20,12 @@ func ForceHost(ctx context.Context, host string) context.Context {
 	return context.WithValue(ctx, ctxHost, host)
 }
 
-// DontRetry disables Retry middleware.
-func DontRetry(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ctxDontRetry, true)
+// NoRetry disables Retry middleware.
+func NoRetry(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxNoRetry, true)
+}
+
+// NoTimeout disables Timeout middleware.
+func NoTimeout(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxNoTimeout, true)
 }

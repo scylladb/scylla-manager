@@ -40,8 +40,8 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Scheme:            "https",
-		Timeout:           30 * time.Second,
-		RequestTimeout:    5 * time.Second,
+		Timeout:           90 * time.Second,
+		RequestTimeout:    15 * time.Second,
 		PoolDecayDuration: 30 * time.Minute,
 
 		AgentPort: "10001",
