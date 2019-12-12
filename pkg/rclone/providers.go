@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-reflectx"
@@ -82,10 +83,11 @@ func RegisterS3Provider(opts S3Options) error {
 	// more RAM and fast network cards and so we can increase the number of
 	// streams in multipart upload.
 	if opts.UploadConcurrency == "" {
-		cpus := runtime.NumCPU()
-		if cpus > 4 {
-			opts.UploadConcurrency = strconv.Itoa(cpus)
+		c := runtime.NumCPU() / 2
+		if c < s3manager.DefaultUploadConcurrency {
+			c = s3manager.DefaultUploadConcurrency
 		}
+		opts.UploadConcurrency = strconv.Itoa(c)
 	}
 
 	// Set common properties

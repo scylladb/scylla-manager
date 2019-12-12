@@ -98,6 +98,9 @@
 #  server_side_encryption:
 #  sse_kms_key_id:
 #
+# Number of files uploaded concurrently, by default it's max(nr. CPUs/2, 5).
+#  upload_concurrency:
+#
 # AWS S3 Transfer acceleration
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
 #  use_accelerate_endpoint: false
