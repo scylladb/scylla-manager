@@ -4,9 +4,11 @@ package backup
 
 import (
 	"context"
+	"math/rand"
 	"net/http"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
@@ -77,14 +79,51 @@ func (w *worker) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
 }
 
 func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
-	for _, u := range w.Units {
-		w.Logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", w.SnapshotTag)
-		var tables []string
-		if !u.AllTables {
-			tables = u.Tables
-		}
-		if err := w.Client.TakeSnapshot(ctx, h.IP, w.SnapshotTag, u.Keyspace, tables...); err != nil {
-			return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
+	// Double check that the snapshot does not exist on host.
+	units, err := w.Client.SnapshotDetails(ctx, h.IP, w.SnapshotTag)
+	if err != nil {
+		return errors.Wrapf(err, "check snapshot exists")
+	}
+	if len(units) != 0 {
+		w.Logger.Debug(ctx, "Snapshot already exists",
+			"host", h.IP,
+			"tag", w.SnapshotTag,
+			"units", units,
+		)
+		return errors.Errorf("snapshot %s already exists", w.SnapshotTag)
+	}
+
+	// Taking a snapshot can be a costly operation. To optimise that clusterwise
+	// we randomise order of taking snapshots (kesypace and tables) on different
+	// hosts. This jitter prevents form flushing a single table on all nodes
+	// at the same time.
+	for _, uPos := range rand.Perm(len(w.Units)) {
+		u := w.Units[uPos]
+
+		for _, tPos := range rand.Perm(len(u.Tables)) {
+			t := u.Tables[tPos]
+
+			w.Logger.Info(ctx, "Taking snapshot",
+				"host", h.IP,
+				"keyspace", u.Keyspace,
+				"table", t,
+			)
+
+			if err := w.Client.TakeSnapshot(ctx, h.IP, w.SnapshotTag, u.Keyspace, t); err != nil {
+				w.Logger.Debug(ctx, "Snapshot error",
+					"keyspace", u.Keyspace,
+					"table", u.Tables[tPos],
+					"tag", w.SnapshotTag,
+					"error", err,
+				)
+
+				// Ignore snapshot already exists error.
+				// We checked that it did not exist before...
+				// It must have taken long time to execute and failed on retry.
+				if !strings.Contains(err.Error(), "snapshot "+w.SnapshotTag+" already exists") {
+					return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
+				}
+			}
 		}
 	}
 	return nil
@@ -99,12 +138,12 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	var deleted []string
 	defer func() {
 		if len(deleted) > 0 {
-			w.Logger.Info(ctx, "Deleted stale local snapshots",
+			w.Logger.Info(ctx, "Deleted old snapshots",
 				"host", h.IP,
 				"tags", deleted,
 			)
 		} else {
-			w.Logger.Debug(ctx, "No stale local snapshots to delete", "host", h.IP)
+			w.Logger.Info(ctx, "No old snapshots to delete", "host", h.IP)
 		}
 	}()
 

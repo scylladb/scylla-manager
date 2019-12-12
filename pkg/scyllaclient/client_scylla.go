@@ -438,20 +438,13 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 
 // TakeSnapshot flushes and takes a snapshot of a keyspace.
 // Multiple keyspaces may have the same tag.
-func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
+func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace, table string) error {
 	ctx = httpmw.NoTimeout(ctx)
-
-	var cfPtr *string
-
-	if len(tables) > 0 {
-		v := strings.Join(tables, ",")
-		cfPtr = &v
-	}
 
 	if _, err := c.scyllaOps.StorageServiceKeyspaceFlushByKeyspacePost(&operations.StorageServiceKeyspaceFlushByKeyspacePostParams{ // nolint: errcheck
 		Context:  httpmw.ForceHost(ctx, host),
 		Keyspace: keyspace,
-		Cf:       cfPtr,
+		Cf:       &table,
 	}); err != nil {
 		return err
 	}
@@ -460,7 +453,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 		Context: httpmw.ForceHost(ctx, host),
 		Tag:     &tag,
 		Kn:      &keyspace,
-		Cf:      cfPtr,
+		Cf:      &table,
 	}); err != nil {
 		return err
 	}

@@ -561,7 +561,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 
 func TestBackupSmokeIntegration(t *testing.T) {
 	const (
-		testBucket = "backuptest-smoke"
+		testBucket   = "backuptest-smoke"
 		testKeyspace = "backuptest_data"
 	)
 
@@ -578,7 +578,9 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
-				Keyspace: testKeyspace,
+				Keyspace:  testKeyspace,
+				Tables:    []string{"big_table"},
+				AllTables: true,
 			},
 		},
 		DC:        []string{"dc1"},
@@ -688,6 +690,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 		Units: []backup.Unit{
 			{
 				Keyspace: testKeyspace,
+				Tables:    []string{"big_table"},
+				AllTables: true,
 			},
 		},
 		DC:        []string{"dc1"},
@@ -891,6 +895,8 @@ func TestPurgeIntegration(t *testing.T) {
 		Units: []backup.Unit{
 			{
 				Keyspace: testKeyspace,
+				Tables:    []string{"big_table"},
+				AllTables: true,
 			},
 		},
 		DC:        []string{"dc1"},

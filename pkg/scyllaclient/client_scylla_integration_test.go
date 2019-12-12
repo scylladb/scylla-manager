@@ -14,8 +14,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
 func TestClientAuthIntegration(t *testing.T) {
@@ -84,7 +84,7 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	tag := fmt.Sprint("test_snap_", time.Now().Unix())
 
 	Print("When: snapshot is taken")
-	if err := client.TakeSnapshot(ctx, host, tag, "system_auth"); err != nil {
+	if err := client.TakeSnapshot(ctx, host, tag, "system_auth", "roles"); err != nil {
 		t.Fatal(err)
 	}
 
