@@ -105,7 +105,7 @@ var backupCmd = &cobra.Command{
 			return err
 		}
 		if dryRun {
-			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, backup is not scheduled\n\n")
+			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, backup is not scheduled and this may take a while, we are performing disk size calculations on the nodes\n\n")
 			res, err := client.GetBackupTarget(ctx, cfgCluster, t)
 			if err != nil {
 				return err
