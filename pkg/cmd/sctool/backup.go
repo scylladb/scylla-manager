@@ -247,7 +247,7 @@ func init() {
 	fs.StringSliceP("location", "L", nil,
 		"a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
 	fs.Bool("all-clusters", false,
-		"show backups for all clusters")
+		"show backups of all clusters stored in location")
 	fs.StringSliceP("keyspace", "K", nil,
 		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
 	fs.String("min-date", "",
@@ -326,7 +326,7 @@ func init() {
 	fs.StringSliceP("location", "L", nil,
 		"a comma-separated `list` of backup locations in the format <dc>:<provider>:<path>. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
 	fs.Bool("all-clusters", false,
-		"show backups for all clusters")
+		"show backups of all clusters stored in location")
 	fs.StringSliceP("keyspace", "K", nil,
 		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
 	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
