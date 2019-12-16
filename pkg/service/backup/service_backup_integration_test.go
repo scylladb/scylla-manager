@@ -561,7 +561,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 
 func TestBackupSmokeIntegration(t *testing.T) {
 	const (
-		testBucket = "backuptest-smoke"
+		testBucket   = "backuptest-smoke"
 		testKeyspace = "backuptest_data"
 	)
 
@@ -747,6 +747,13 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 		if len(files) == 0 {
 			t.Fatal("Expected data to be uploaded")
+		}
+
+		Print("Then: manifests are in metadata directory")
+		for _, m := range manifests {
+			if err := backup.ParsePartialPath(m); err != nil {
+				t.Fatal("manifest file in wrong path", m)
+			}
 		}
 
 		Print("And: nothing is transferring")

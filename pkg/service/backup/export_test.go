@@ -15,3 +15,8 @@ func SnapshotTagFromManifestPath(t *testing.T, s string) string {
 	}
 	return m.SnapshotTag
 }
+
+func ParsePartialPath(s string) error {
+	var m remoteManifest
+	return m.ParsePartialPath(s)
+}

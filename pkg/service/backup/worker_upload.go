@@ -48,6 +48,7 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 		if err != nil {
 			return errors.Wrap(err, "list snapshot dirs")
 		}
+		w.setHostSnapshotDirs(h, dirs)
 	}
 
 	for _, d := range dirs {

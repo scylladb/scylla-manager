@@ -36,8 +36,13 @@ func (w *worker) MoveManifests(ctx context.Context, hosts []hostInfo) (err error
 
 func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
-
 	for _, d := range dirs {
+		w.Logger.Info(ctx, "Moving table manifest",
+			"host", h.IP,
+			"keyspace", d.Keyspace,
+			"table", d.Table,
+			"location", h.Location,
+		)
 		var (
 			manifestDst = h.Location.RemotePath(w.remoteManifestFile(h, d))
 			manifestSrc = h.Location.RemotePath(path.Join(w.remoteSSTableDir(h, d), manifest))
