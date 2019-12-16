@@ -5,11 +5,9 @@ package main
 import (
 	"fmt"
 	"path"
-	"regexp"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/mermaidclient"
 	"github.com/scylladb/mermaid/pkg/util/duration"
 	"github.com/spf13/cobra"
@@ -69,9 +67,6 @@ var backupCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := validateLocations(locations); err != nil {
-			return err
-		}
 		props["location"] = locations
 
 		if f = cmd.Flag("retention"); f.Changed {
@@ -86,9 +81,6 @@ var backupCmd = &cobra.Command{
 			if f = cmd.Flag(name); f.Changed {
 				v, err := cmd.Flags().GetStringSlice(name)
 				if err != nil {
-					return err
-				}
-				if err := validateDCLimits(v); err != nil {
 					return err
 				}
 				props[strings.Replace(name, "-", "_", 1)] = v
@@ -126,31 +118,6 @@ var backupCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func validateLocations(locations []string) error {
-	// Providers require that resource names are DNS compliant.
-	// The following is a super simplified DNS (plus provider prefix)
-	// matching regexp.
-	providerDNSPattern := regexp.MustCompile(`^([a-z0-9\-\.]+:)?(s3):([a-z0-9\-\.]+)$`)
-
-	for _, l := range locations {
-		if !providerDNSPattern.MatchString(l) {
-			return errors.Errorf("invalid location %s", l)
-		}
-	}
-	return nil
-}
-
-func validateDCLimits(rateLimits []string) error {
-	rateLimitPattern := regexp.MustCompile(`^([a-z0-9\-\.]+:)?([0-9]+)$`)
-
-	for _, r := range rateLimits {
-		if !rateLimitPattern.MatchString(r) {
-			return errors.Errorf("invalid rate-limit %s", r)
-		}
-	}
-	return nil
 }
 
 func init() {

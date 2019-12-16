@@ -236,6 +236,9 @@ func (l Location) MarshalText() (text []byte, err error) {
 }
 
 func (l *Location) UnmarshalText(text []byte) error {
+	// Providers require that resource names are DNS compliant.
+	// The following is a super simplified DNS (plus provider prefix)
+	// matching regexp.
 	pattern := regexp.MustCompile(`^(([a-z0-9\-\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
 
 	m := pattern.FindSubmatch(text)
@@ -295,7 +298,7 @@ func (l DCLimit) MarshalText() (text []byte, err error) {
 }
 
 func (l *DCLimit) UnmarshalText(text []byte) error {
-	pattern := regexp.MustCompile(`^(([a-z0-9\-\.]+):)?([0-9]+)$`)
+	pattern := regexp.MustCompile(`^(([a-z0-9\-\_\.]+):)?([0-9]+)$`)
 
 	m := pattern.FindSubmatch(text)
 	if m == nil {
