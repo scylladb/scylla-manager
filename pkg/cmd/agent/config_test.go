@@ -83,7 +83,7 @@ func TestParsingConfig(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			c, err := parseConfigFile(test.Input)
+			c, err := parseAndValidateConfigFile(test.Input)
 			if err != nil {
 				t.Fatal(err)
 			}

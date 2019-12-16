@@ -84,6 +84,15 @@ func parseConfigFile(file string) (config, error) {
 	if err := yaml.Unmarshal(b, &c); err != nil {
 		return c, errors.Wrapf(err, "parse config file %s", file)
 	}
+
+	return c, nil
+}
+
+func parseAndValidateConfigFile(file string) (config, error) {
+	c, err := parseConfigFile(file)
+	if err != nil {
+		return c, err
+	}
 	if err := c.validate(); err != nil {
 		return c, errors.Wrapf(err, "invalid config file %s", file)
 	}

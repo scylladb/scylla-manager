@@ -42,7 +42,7 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
-		c, err := parseConfigFile(rootArgs.configFile)
+		c, err := parseAndValidateConfigFile(rootArgs.configFile)
 		if err != nil {
 			return err
 		}
