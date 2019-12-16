@@ -312,8 +312,6 @@ github.com/scylladb/go-reflectx v1.0.1 h1:b917wZM7189pZdlND9PbIJ6NQxfDPfBvUaQ7cj
 github.com/scylladb/go-reflectx v1.0.1/go.mod h1:rWnOfDIRWBGN0miMLIcoPt/Dhi2doCMZqwMCJ3KupFc=
 github.com/scylladb/go-set v1.0.1 h1:pAr18FZAQgXTEVRaKH5nV0/v362d0dCAvl0Ng1D6K5g=
 github.com/scylladb/go-set v1.0.1/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
-github.com/scylladb/gocql v1.3.0 h1:wh/3go2IP0Wt+RCOy5zSt7DzqqnpJ/ntKsOtSfaiQcY=
-github.com/scylladb/gocql v1.3.0/go.mod h1:DL0ekTmBSTdlNF25Orwt/JMzqIq3EJ4MVa/J/uK64OY=
 github.com/scylladb/gocql v1.3.1 h1:LkK3OXns6QaMTJrMlWTCGroSnrt/7u1UfBcDzEeU6u0=
 github.com/scylladb/gocql v1.3.1/go.mod h1:DL0ekTmBSTdlNF25Orwt/JMzqIq3EJ4MVa/J/uK64OY=
 github.com/scylladb/gocqlx v1.3.1 h1:NTiKaSW1RzDxHQIyPE/KubOJCKRG5xXMUG8FKVKR/j0=

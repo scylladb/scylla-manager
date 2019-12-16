@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
+	github.com/aws/aws-sdk-go v1.23.8
 	github.com/cespare/xxhash v1.0.0
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-chi/render v1.0.0
