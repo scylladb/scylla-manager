@@ -49,9 +49,9 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 		w.Logger.Error(ctx, "Failed to delete old snapshots", "error", err)
 	}
 
-	dirs, err := w.findSnapshotDirs(ctx, h)
+	dirs, err := w.indexSnapshotDirs(ctx, h)
 	if err != nil {
-		return errors.Wrap(err, "list snapshot dirs")
+		return errors.Wrap(err, "index snapshot dirs")
 	}
 	w.setHostSnapshotDirs(h, dirs)
 
@@ -152,7 +152,9 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	return nil
 }
 
-func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDir, error) {
+func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDir, error) {
+	w.Logger.Info(ctx, "Indexing snapshot directories", "host", h.IP)
+
 	var dirs []snapshotDir
 
 	r := regexp.MustCompile("^([A-Za-z0-9_]+)-([a-f0-9]{32})$")
@@ -203,7 +205,7 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 				return nil, errors.Wrap(err, "list table")
 			}
 
-			w.Logger.Debug(ctx, "Found snapshot table directory",
+			w.Logger.Debug(ctx, "Found snapshot directory",
 				"host", h.IP,
 				"tag", w.SnapshotTag,
 				"keyspace", d.Keyspace,
@@ -234,6 +236,8 @@ func (w *worker) findSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDi
 			dirs = append(dirs, d)
 		}
 	}
+
+	w.Logger.Info(ctx, "Done indexing snapshot directories", "host", h.IP, "count", len(dirs))
 
 	return dirs, nil
 }

@@ -44,9 +44,9 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
 	if len(dirs) == 0 {
 		var err error
-		dirs, err = w.findSnapshotDirs(ctx, h)
+		dirs, err = w.indexSnapshotDirs(ctx, h)
 		if err != nil {
-			return errors.Wrap(err, "list snapshot dirs")
+			return errors.Wrap(err, "index snapshot dirs")
 		}
 		w.setHostSnapshotDirs(h, dirs)
 	}
