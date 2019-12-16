@@ -1,5 +1,4 @@
 http: ':56080'
-https: ':56443'
 
 database:
   hosts:

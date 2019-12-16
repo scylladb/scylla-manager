@@ -1,0 +1,6 @@
+auth_token: token
+
+s3:
+  access_key_id: minio
+  secret_access_key: minio123
+  endpoint: http://minio:9000

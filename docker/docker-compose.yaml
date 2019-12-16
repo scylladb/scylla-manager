@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  scylla-manager:
+    image: scylladb/scylla-manager:latest
+    depends_on:
+      - scylla-manager-db
+
+  scylla-manager-db:
+    image: scylladb/scylla:latest
+    volumes:
+      - scylla_manager_data:/var/lib/scylla
+    command: --smp 1 --memory 1G
+
+  scylla:
+    build:
+      context: ./scylla
+    image: scylladb/scylla-with-agent
+    volumes:
+      - type: bind
+        source: ./scylla/scylla-manager-agent.yaml
+        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
+      - scylla_data:/var/lib/scylla
+    command: --smp 1
+
+  minio:
+    image: minio/minio:latest
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9001:9000"
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    command: server /data
+
+volumes:
+  minio_data:
+  scylla_data:
+  scylla_manager_data:
