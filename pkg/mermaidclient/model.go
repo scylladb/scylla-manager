@@ -526,7 +526,7 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 		if bp.hideHost(h.Host) {
 			continue
 		}
-		fmt.Fprintf(w, "\nHost:		%s\n", h.Host)
+		fmt.Fprintf(w, "\nHost: %s\n", h.Host)
 		t := table.New()
 		addSeparator := false
 		for _, ks := range h.Keyspaces {
