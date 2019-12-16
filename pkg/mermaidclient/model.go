@@ -501,7 +501,7 @@ func (bp BackupProgress) Render(w io.Writer) error {
 }
 
 func (bp BackupProgress) addHostProgress(t *table.Table) {
-	t.AddRow("host", "progress", "size", "uploaded", "skipped", "failed")
+	t.AddRow("host", "progress", "size", "success", "deduplicated", "failed")
 	t.AddSeparator()
 	for _, h := range bp.Progress.Hosts {
 		if bp.hideHost(h.Host) {
@@ -511,9 +511,10 @@ func (bp BackupProgress) addHostProgress(t *table.Table) {
 		if len(h.Keyspaces) > 0 {
 			p = FormatUploadProgress(h.Size, h.Uploaded, h.Skipped, h.Failed)
 		}
+		success := h.Uploaded + h.Skipped
 		t.AddRow(h.Host, p,
 			ByteCountBinary(h.Size),
-			ByteCountBinary(h.Uploaded),
+			ByteCountBinary(success),
 			ByteCountBinary(h.Skipped),
 			ByteCountBinary(h.Failed),
 		)
@@ -538,10 +539,11 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 			}
 			addSeparator = true
 
-			t.AddRow("keyspace", "table", "progress", "size", "uploaded", "skipped", "failed", "started at", "completed at")
+			t.AddRow("keyspace", "table", "progress", "size", "success", "deduplicated", "failed", "started at", "completed at")
 			t.AddSeparator()
 			rowAdded := false
 			for _, tbl := range ks.Tables {
+				success := tbl.Uploaded + tbl.Skipped
 				t.AddRow(
 					ks.Keyspace,
 					tbl.Table,
@@ -550,7 +552,7 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 						tbl.Skipped,
 						tbl.Failed),
 					ByteCountBinary(tbl.Size),
-					ByteCountBinary(tbl.Uploaded),
+					ByteCountBinary(success),
 					ByteCountBinary(tbl.Skipped),
 					ByteCountBinary(tbl.Failed),
 					tbl.StartedAt,
