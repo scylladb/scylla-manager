@@ -239,11 +239,11 @@ func (l *Location) UnmarshalText(text []byte) error {
 	// Providers require that resource names are DNS compliant.
 	// The following is a super simplified DNS (plus provider prefix)
 	// matching regexp.
-	pattern := regexp.MustCompile(`^(([a-z0-9\-\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
+	pattern := regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
 
 	m := pattern.FindSubmatch(text)
 	if m == nil {
-		return errors.Errorf("invalid location format")
+		return errors.Errorf("invalid location, the format is [dc:]<provider>:<path> ex. s3:my-bucket, the path must be DNS compliant")
 	}
 
 	if err := l.Provider.UnmarshalText(m[3]); err != nil {

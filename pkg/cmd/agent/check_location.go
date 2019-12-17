@@ -80,7 +80,7 @@ func init() {
 
 	f := cmd.Flags()
 	f.StringVarP(&checkLocationArgs.configFile, "config-file", "c", "/etc/scylla-manager-agent/scylla-manager-agent.yaml", "configuration file `path`")
-	f.StringVarP(&checkLocationArgs.location, "location", "L", "", "path to the backup location in provider format e.g. s3:backup-bucket")
+	f.StringVarP(&checkLocationArgs.location, "location", "L", "", "backup location in the format <provider>:<path> ex. s3:my-bucket. The supported providers are: s3")
 	f.BoolVar(&checkLocationArgs.debug, "debug", false, "enable debug logs")
 
 	if err := cmd.MarkFlagRequired("location"); err != nil {
