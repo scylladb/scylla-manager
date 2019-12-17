@@ -10,7 +10,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -18,7 +17,6 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/scyllaclienttest"
-	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
 func TestRcloneSplitRemotePath(t *testing.T) {
@@ -346,18 +344,32 @@ func TestRcloneMoveFile(t *testing.T) {
 		return "tmp:" + path.Join(strings.TrimPrefix(dir, "/tmp/"), file)
 	}
 
-	if _, err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("b"), tmpRemotePath("a")); err != nil {
+	if err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("b"), tmpRemotePath("a")); err != nil {
 		t.Fatal("RcloneMoveFile() error", err)
 	}
-	WaitCond(t, func() bool {
-		if _, err := os.Stat(path.Join(dir, "a")); !os.IsNotExist(err) {
-			t.Log("File a Stat() error", err)
-			return false
-		}
-		if _, err := os.Stat(path.Join(dir, "b")); err != nil {
-			t.Log("File b Stat() error", err)
-			return false
-		}
-		return true
-	}, 50*time.Millisecond, time.Second)
+
+	if _, err := os.Stat(path.Join(dir, "a")); !os.IsNotExist(err) {
+		t.Error("File a should not exist", err)
+	}
+	if _, err := os.Stat(path.Join(dir, "b")); err != nil {
+		t.Error("File b should exist", err)
+	}
+}
+
+func TestRcloneMoveNotExistingFile(t *testing.T) {
+	t.Parallel()
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t)
+	defer cl()
+
+	ctx := context.Background()
+
+	tmpRemotePath := func(file string) string {
+		return "tmp:" + path.Join("/tmp", file)
+	}
+
+	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("d"), tmpRemotePath("c"))
+	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
+		t.Fatal("RcloneMoveFile() expected 404 error, got", err)
+	}
 }

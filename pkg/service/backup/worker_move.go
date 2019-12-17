@@ -5,11 +5,8 @@ package backup
 import (
 	"context"
 	"path"
-	"time"
 
-	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
-	"go.uber.org/multierr"
 )
 
 func (w *worker) MoveManifests(ctx context.Context, hosts []hostInfo) (err error) {
@@ -47,55 +44,11 @@ func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 			manifestDst = h.Location.RemotePath(w.remoteManifestFile(h, d))
 			manifestSrc = h.Location.RemotePath(path.Join(w.remoteSSTableDir(h, d), manifest))
 		)
-		id, err := w.Client.RcloneMoveFile(ctx, d.Host, manifestDst, manifestSrc)
-		if err != nil {
-			return err
-		}
-		if err := w.waitMove(ctx, id, d); err != nil {
+
+		if err := w.Client.RcloneMoveFile(ctx, d.Host, manifestDst, manifestSrc); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func (w *worker) waitMove(ctx context.Context, id int64, d snapshotDir) (err error) {
-	defer func() {
-		err = multierr.Combine(
-			err,
-			w.clearJobStats(ctx, id, d.Host),
-		)
-	}()
-
-	t := time.NewTicker(w.Config.PollInterval)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			err := w.Client.RcloneJobStop(context.Background(), d.Host, id)
-			if err != nil {
-				w.Logger.Error(ctx, "Failed to stop rclone job",
-					"error", err,
-					"host", d.Host,
-					"unit", d.Unit,
-					"job_id", id,
-					"table", d.Table,
-				)
-			}
-			return ctx.Err()
-		case <-t.C:
-			status, err := w.getJobStatus(ctx, id, d)
-			switch status {
-			case jobError:
-				return err
-			case jobNotFound:
-				return errors.Errorf("job not found (%d)", id)
-			case jobSuccess:
-				return nil
-			case jobRunning:
-				// Continue
-			}
-		}
-	}
 }
