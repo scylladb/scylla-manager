@@ -23,6 +23,7 @@ import (
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
 	"github.com/scylladb/mermaid/pkg/rclone"
+	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
@@ -71,11 +72,14 @@ func writeError(path string, in rc.Params, w http.ResponseWriter, err error, sta
 	// Adjust the error return for some well known errors
 	errOrig := errors.Cause(err)
 	switch {
-	case errOrig == fs.ErrorDirNotFound || errOrig == fs.ErrorObjectNotFound:
+	case errOrig == fs.ErrorDirNotFound || errOrig == fs.ErrorObjectNotFound || errOrig == fs.ErrorNotFoundInConfigFile:
 		status = http.StatusNotFound
 	case isBadRequestErr(err):
 		status = http.StatusBadRequest
+	case isCheckError(err):
+		status = http.StatusNotFound
 	}
+
 	w.WriteHeader(status)
 	err = rc.WriteJSON(w, rc.Params{
 		"status":  status,
@@ -99,6 +103,11 @@ func isBadRequestErr(err error) bool {
 		errOrig == fs.ErrorDirectoryNotEmpty ||
 		errOrig == fs.ErrorDirExists ||
 		errOrig == fs.ErrorListBucketRequired
+}
+
+func isCheckError(err error) bool {
+	_, ok := err.(operations.PermissionError)
+	return ok
 }
 
 // ServeHTTP implements http.Handler interface.

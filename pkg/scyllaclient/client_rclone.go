@@ -292,6 +292,20 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	return resp.Payload.List, nil
 }
 
+// RcloneCheckPermissions checks if location is available for listing, getting,
+// creating, and deleting objects.
+func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath string) error {
+	p := operations.OperationsCheckPermissionsParams{
+		Context: httpmw.ForceHost(ctx, host),
+		Fs: &models.RemotePath{
+			Fs:     remotePath,
+			Remote: "",
+		},
+	}
+	_, err := c.agentOps.OperationsCheckPermissions(&p)
+	return err
+}
+
 // FileTransfers returns map from file name to transfer entries.
 func FileTransfers(transferred []*models.Transfer) map[string][]*models.Transfer {
 	m := make(map[string][]*models.Transfer, len(transferred))

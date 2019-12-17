@@ -579,6 +579,43 @@
         "security": []
       }
     },
+    "/rclone/operations/check-permissions": {
+      "post": {
+        "description": "Check if the fs is fully accessible",
+        "summary": "Check fs",
+        "operationId": "OperationsCheckPermissions",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "fs",
+            "description": "FS to check",
+            "schema": {
+              "$ref": "#/definitions/RemotePath"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/job/status": {
       "post": {
         "description": "Reads the status of the job ID",

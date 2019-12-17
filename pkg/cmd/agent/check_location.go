@@ -5,14 +5,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"regexp"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
-	"github.com/rclone/rclone/fs/operations"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/rclone"
+	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -22,6 +22,8 @@ var checkLocationArgs = struct {
 	location   string
 	debug      bool
 }{}
+
+var errInvalidLocation = errors.Errorf("invalid location, the format is [dc:]<provider>:<path> ex. s3:my-bucket, the path must be DNS compliant")
 
 var checkLocationCmd = &cobra.Command{
 	Use:   "check-location",
@@ -39,7 +41,7 @@ var checkLocationCmd = &cobra.Command{
 			return err
 		}
 
-		l := zap.ErrorLevel
+		l := zap.FatalLevel
 		if checkLocationArgs.debug {
 			l = zap.DebugLevel
 		}
@@ -63,15 +65,25 @@ var checkLocationCmd = &cobra.Command{
 			return err
 		}
 
-		f, err := fs.NewFs(checkLocationArgs.location)
-		if err != nil {
-			return errors.Wrap(err, "initialize location")
-		}
-		if err := operations.List(context.Background(), f, ioutil.Discard); err != nil {
-			return errors.Wrap(err, "access location")
+		// Providers require that resource names are DNS compliant.
+		// The following is a super simplified DNS (plus provider prefix)
+		// matching regexp.
+		pattern := regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
+
+		m := pattern.FindStringSubmatch(checkLocationArgs.location)
+		if m == nil {
+			return errInvalidLocation
 		}
 
-		return nil
+		f, err := fs.NewFs(m[3] + ":" + m[4])
+		if err != nil {
+			if errors.Cause(err) == fs.ErrorNotFoundInConfigFile {
+				return errInvalidLocation
+			}
+			return errors.Wrap(err, "init fs")
+		}
+
+		return operations.CheckPermissions(context.Background(), f)
 	},
 }
 
@@ -80,7 +92,7 @@ func init() {
 
 	f := cmd.Flags()
 	f.StringVarP(&checkLocationArgs.configFile, "config-file", "c", "/etc/scylla-manager-agent/scylla-manager-agent.yaml", "configuration file `path`")
-	f.StringVarP(&checkLocationArgs.location, "location", "L", "", "backup location in the format <provider>:<path> ex. s3:my-bucket. The supported providers are: s3")
+	f.StringVarP(&checkLocationArgs.location, "location", "L", "", "backup location in the format [dc:]<provider>:<path> ex. s3:my-bucket. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint:lll
 	f.BoolVar(&checkLocationArgs.debug, "debug", false, "enable debug logs")
 
 	if err := cmd.MarkFlagRequired("location"); err != nil {

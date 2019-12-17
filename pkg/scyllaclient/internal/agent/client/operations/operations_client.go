@@ -407,6 +407,44 @@ func (a *Client) OperationsCat(params *OperationsCatParams) (*OperationsCatOK, e
 }
 
 /*
+OperationsCheckPermissions checks fs
+
+Check if the fs is fully accessible
+*/
+func (a *Client) OperationsCheckPermissions(params *OperationsCheckPermissionsParams) (*OperationsCheckPermissionsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewOperationsCheckPermissionsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "OperationsCheckPermissions",
+		Method:             "POST",
+		PathPattern:        "/rclone/operations/check-permissions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &OperationsCheckPermissionsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
+		return nil, err
+	}
+	success, ok := result.(*OperationsCheckPermissionsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*OperationsCheckPermissionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 OperationsCopyfile copies a file
 
 Copy a file from source remote to destination remote

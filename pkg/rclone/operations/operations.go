@@ -4,9 +4,16 @@ package operations
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/operations"
+	"github.com/rclone/rclone/fs/sync"
 )
 
 // wrap a Reader and a Closer together into a ReadCloser
@@ -36,5 +43,95 @@ func Cat(ctx context.Context, o fs.Object, w io.Writer, limit int64) error {
 		fs.Errorf(o, "Failed to send to output: %v", err)
 		return err
 	}
+	return nil
+}
+
+// PermissionError wraps remote fs errors returned by CheckPermissions function
+// and allows to set a custom message returned to user.
+type PermissionError struct {
+	cause error
+	op    string
+}
+
+func (e PermissionError) Error() string {
+	return "no " + e.op + " permission"
+}
+
+func (e PermissionError) String() string {
+	return e.Error() + ": " + e.cause.Error()
+}
+
+// Cause implements errors.Causer.
+func (e PermissionError) Cause() error {
+	return e.cause
+}
+
+// CheckPermissions checks if file system is available for listing, getting,
+// creating, and deleting objects.
+func CheckPermissions(ctx context.Context, l fs.Fs) error {
+	// Create temp dir.
+	tmpDir, err := ioutil.TempDir("", "check-fs-permissions")
+	if err != nil {
+		return errors.Wrap(err, "create local tmp directory")
+	}
+	defer os.RemoveAll(tmpDir) //nolint: errcheck
+
+	// We need sub dir because sync.CopyDir is syncing contents of the dirs.
+	// It's same as tmpDir base because we need unique name.
+	subDirName := filepath.Base(tmpDir)
+	if err := os.Mkdir(filepath.Join(tmpDir, subDirName), os.ModePerm); err != nil {
+		return errors.Wrap(err, "create local tmp subdirectory")
+	}
+	tmpFile := filepath.Join(subDirName, "scylla-manager-test")
+	// Touch tmpFile.
+	if err := ioutil.WriteFile(filepath.Join(tmpDir, tmpFile), []byte{0}, os.ModePerm); err != nil {
+		return errors.Wrap(err, "create local tmp file")
+	}
+
+	// Copy local tmp dir contents to the destination.
+	{
+		rd, err := fs.NewFs(tmpDir)
+		if err != nil {
+			return PermissionError{err, "init temp dir"}
+		}
+		if err := sync.CopyDir(ctx, l, rd, true); err != nil {
+			return PermissionError{err, "put"}
+		}
+	}
+
+	// List directory.
+	{
+		opts := operations.ListJSONOpt{
+			Recurse: false,
+		}
+		if err := operations.ListJSON(ctx, l, subDirName, &opts, func(item *operations.ListJSONItem) error {
+			return nil
+		}); err != nil {
+			return PermissionError{err, "list"}
+		}
+	}
+
+	// Cat remote file.
+	{
+		rf, err := l.NewObject(ctx, tmpFile)
+		if err != nil {
+			return PermissionError{err, "init temp file object"}
+		}
+		if err := Cat(ctx, rf, ioutil.Discard, 1); err != nil {
+			return PermissionError{err, "get"}
+		}
+	}
+
+	// Remove tmp dir structure.
+	{
+		remoteD, err := fs.NewFs(fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), subDirName))
+		if err != nil {
+			return PermissionError{err, "init temp dir fs"}
+		}
+		if err := operations.Delete(ctx, remoteD); err != nil {
+			return PermissionError{err, "delete"}
+		}
+	}
+
 	return nil
 }
