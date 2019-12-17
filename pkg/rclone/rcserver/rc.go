@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/base64"
 
+	"github.com/pkg/errors"
+	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
@@ -26,26 +28,9 @@ func init() {
 			rc.Add(*c)
 		}
 	}
-
-	rc.Add(rc.Call{
-		Path:         "operations/cat",
-		AuthRequired: true,
-		Fn:           rcCat,
-		Title:        "Concatenate any files and send them in response",
-		Help: `This takes the following parameters
-
-- fs - a remote name string eg "drive:path/to/dir"
-
-Returns
-
-- content - base64 encoded file content
-
-See the [cat command](/commands/rclone_cat/) command for more information on the above.
-`,
-	})
 }
 
-// Cat a remote
+// Cat a remote object.
 func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(in)
 	if err != nil {
@@ -66,4 +51,52 @@ func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	out = make(rc.Params)
 	out["Content"] = buf.String()
 	return out, nil
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "operations/cat",
+		AuthRequired: true,
+		Fn:           rcCat,
+		Title:        "Concatenate any files and send them in response",
+		Help: `This takes the following parameters
+
+- fs - a remote name string eg "drive:path/to/dir"
+
+Returns
+
+- content - base64 encoded file content
+`,
+	})
+}
+
+// rcCheckPermissions checks if location is available for listing, getting,
+// creating, and deleting objects.
+func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	l, err := rc.GetFs(in)
+	if err != nil {
+		return nil, errors.Wrap(err, "init location")
+	}
+
+	if err := operations.CheckPermissions(ctx, l); err != nil {
+		fs.Errorf(nil, "Location check: error=%+v", err)
+		return nil, err
+	}
+
+	fs.Infof(nil, "Location check done")
+	return rc.Params{}, nil
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "operations/check-permissions",
+		AuthRequired: true,
+		Fn:           rcCheckPermissions,
+		Title:        "Checks listing, getting, creating, and deleting objects",
+		Help: `This takes the following parameters
+
+- fs - a remote name string eg "s3:repository"
+
+`,
+	})
 }
