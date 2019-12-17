@@ -124,8 +124,8 @@ type RunProgress struct {
 	Host      string
 	Unit      int64
 	TableName string
-	FileName  string
 
+	Files       []string
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string

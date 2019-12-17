@@ -16,19 +16,25 @@ import (
 
 func TestRunProgressIteratorIntegration(t *testing.T) {
 	expected := 100
-	clusterID := uuid.NewTime()
-	taskID := uuid.NewTime()
-	runID := uuid.NewTime()
+
+	var (
+		clusterID = uuid.NewTime()
+		taskID    = uuid.NewTime()
+		runID     = uuid.NewTime()
+	)
+
 	run := &Run{
 		ID:        runID,
 		ClusterID: clusterID,
 		TaskID:    taskID,
 	}
+
 	p := &RunProgress{
 		RunID:     runID,
 		ClusterID: clusterID,
 		TaskID:    taskID,
 	}
+
 	var prog []RunProgress
 	session := CreateSession(t)
 
@@ -36,8 +42,7 @@ func TestRunProgressIteratorIntegration(t *testing.T) {
 	for i := 0; i < expected; i++ {
 		p.Host = "host"
 		p.Unit = int64(i)
-		p.TableName = "table"
-		p.FileName = fmt.Sprintf("file%d", i)
+		p.TableName = fmt.Sprintf("table_%d", i)
 		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
@@ -57,7 +62,7 @@ func TestRunProgressIteratorIntegration(t *testing.T) {
 	}
 	for i := 0; i < len(prog); i++ {
 		if prog[i].Unit != int64(i) {
-			t.Log(prog[i].FileName)
+			t.Log(prog[i].TableName)
 			t.Errorf("Expected Unit = %d, got %d", i, prog[i].Unit)
 		}
 	}

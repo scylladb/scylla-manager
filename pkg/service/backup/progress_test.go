@@ -20,12 +20,15 @@ const (
 func TestAggregateProgress(t *testing.T) {
 	t.Parallel()
 
-	host1 := "host1"
-	host2 := "host2"
-	time1 := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Add(-time.Hour)
-	time2 := time1.Add(time.Minute)
-	time3 := time2.Add(time.Minute)
-	time4 := time1.Add(5 * time.Minute)
+	var (
+		host1 = "host1"
+		host2 = "host2"
+		time1 = time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Add(-time.Hour)
+		time2 = time1.Add(time.Minute)
+		time3 = time2.Add(time.Minute)
+		time4 = time1.Add(5 * time.Minute)
+	)
+
 	run1 := &Run{
 		SnapshotTag: testSnapshotTag,
 		Units: []Unit{
@@ -37,6 +40,7 @@ func TestAggregateProgress(t *testing.T) {
 		DC:        []string{"dc1", "dc2"},
 		StartTime: time1,
 	}
+
 	run2 := &Run{
 		SnapshotTag: testSnapshotTag,
 		Units: []Unit{
@@ -48,11 +52,13 @@ func TestAggregateProgress(t *testing.T) {
 		DC:        []string{"dc1", "dc2"},
 		StartTime: time1,
 	}
+
 	runNoUnits := &Run{
 		SnapshotTag: testSnapshotTag,
 		DC:          []string{"dc3"},
 		StartTime:   time1,
 	}
+
 	table := []struct {
 		Name        string
 		Run         *Run
@@ -81,29 +87,19 @@ func TestAggregateProgress(t *testing.T) {
 					Host:        host1,
 					Unit:        0,
 					TableName:   "table1",
-					FileName:    "file1.f",
+					Files:       []string{"file1.f", "file12.f"},
 					StartedAt:   &time1,
-					CompletedAt: &time2,
-					Error:       "",
-					Size:        10,
-					Skipped:     10,
-				},
-				{
-					Host:        host1,
-					Unit:        0,
-					TableName:   "table1",
-					FileName:    "file12.f",
-					StartedAt:   &time2,
 					CompletedAt: &time3,
 					Error:       "",
-					Size:        7,
+					Size:        17,
+					Skipped:     10,
 					Uploaded:    7,
 				},
 				{
 					Host:      host1,
 					Unit:      0,
 					TableName: "table2",
-					FileName:  "file2.f",
+					Files:     []string{"file2.f"},
 					StartedAt: &time1,
 					Error:     "",
 					Size:      10,
@@ -113,7 +109,7 @@ func TestAggregateProgress(t *testing.T) {
 					Host:        host2,
 					Unit:        0,
 					TableName:   "table1",
-					FileName:    "file1.f",
+					Files:       []string{"file1.f"},
 					StartedAt:   &time1,
 					CompletedAt: &time4,
 					Error:       "",
@@ -124,22 +120,11 @@ func TestAggregateProgress(t *testing.T) {
 					Host:      host2,
 					Unit:      0,
 					TableName: "table2",
-					FileName:  "file2.f",
+					Files:     []string{"file2.f", "file21.f"},
 					StartedAt: &time1,
 					Error:     "",
-					Size:      10,
-					Uploaded:  3,
-				},
-				{
-					Host:        host2,
-					Unit:        0,
-					TableName:   "table2",
-					FileName:    "file21.f",
-					StartedAt:   &time2,
-					CompletedAt: &time3,
-					Error:       "",
-					Size:        10,
-					Uploaded:    10,
+					Size:      20,
+					Uploaded:  13,
 				},
 			},
 			Golden: "on_success.golden.json",
@@ -152,29 +137,19 @@ func TestAggregateProgress(t *testing.T) {
 					Host:        host1,
 					Unit:        0,
 					TableName:   "table1",
-					FileName:    "file1.f",
+					Files:       []string{"file1.f", "file12.f"},
 					StartedAt:   &time1,
-					CompletedAt: &time2,
-					Error:       "",
-					Size:        10,
-					Skipped:     10,
-				},
-				{
-					Host:        host1,
-					Unit:        0,
-					TableName:   "table1",
-					FileName:    "file12.f",
-					StartedAt:   &time2,
 					CompletedAt: &time3,
 					Error:       "",
-					Size:        7,
+					Size:        17,
+					Skipped:     10,
 					Uploaded:    7,
 				},
 				{
 					Host:      host1,
 					Unit:      0,
 					TableName: "table2",
-					FileName:  "file2.f",
+					Files:     []string{"file2.f"},
 					StartedAt: &time1,
 					Error:     "",
 					Size:      10,
@@ -184,7 +159,7 @@ func TestAggregateProgress(t *testing.T) {
 					Host:        host2,
 					Unit:        0,
 					TableName:   "table1",
-					FileName:    "file1.f",
+					Files:       []string{"file1.f"},
 					StartedAt:   &time1,
 					CompletedAt: &time4,
 					Error:       "",
@@ -195,22 +170,11 @@ func TestAggregateProgress(t *testing.T) {
 					Host:      host2,
 					Unit:      0,
 					TableName: "table2",
-					FileName:  "file2.f",
+					Files:     []string{"file2.f", "file21.f"},
 					StartedAt: &time1,
 					Error:     "",
-					Size:      10,
-					Uploaded:  3,
-				},
-				{
-					Host:        host2,
-					Unit:        0,
-					TableName:   "table2",
-					FileName:    "file21.f",
-					StartedAt:   &time2,
-					CompletedAt: &time3,
-					Error:       "",
-					Size:        10,
-					Uploaded:    10,
+					Size:      20,
+					Uploaded:  13,
 				},
 			},
 			Golden: "on_success_not_started.golden.json",
@@ -223,7 +187,7 @@ func TestAggregateProgress(t *testing.T) {
 					Host:        host1,
 					Unit:        0,
 					TableName:   "table1",
-					FileName:    "file1.f",
+					Files:       []string{"file1.f"},
 					StartedAt:   &time1,
 					CompletedAt: &time2,
 					Error:       "",
@@ -234,31 +198,19 @@ func TestAggregateProgress(t *testing.T) {
 					Host:        host1,
 					Unit:        0,
 					TableName:   "table2",
-					FileName:    "file2.f",
+					Files:       []string{"file2.f", "file21.f"},
 					StartedAt:   &time1,
 					CompletedAt: &time2,
-					Error:       "error1",
-					Size:        10,
-					Uploaded:    5,
-					Failed:      5,
-				},
-				{
-					Host:        host1,
-					Unit:        0,
-					TableName:   "table2",
-					FileName:    "file21.f",
-					StartedAt:   &time1,
-					CompletedAt: &time2,
-					Error:       "error2",
-					Size:        10,
-					Uploaded:    5,
-					Failed:      5,
+					Error:       "error1, error2",
+					Size:        20,
+					Uploaded:    10,
+					Failed:      10,
 				},
 				{
 					Host:        host2,
 					Unit:        0,
 					TableName:   "table1",
-					FileName:    "file1.f",
+					Files:       []string{"file1.f"},
 					StartedAt:   &time1,
 					CompletedAt: &time4,
 					Error:       "",
@@ -269,7 +221,7 @@ func TestAggregateProgress(t *testing.T) {
 					Host:      host2,
 					Unit:      0,
 					TableName: "table2",
-					FileName:  "file2.f",
+					Files:     []string{"file2.f"},
 					StartedAt: &time1,
 					Error:     "",
 					Size:      10,

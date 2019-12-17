@@ -87,42 +87,28 @@ func aggregateProgress(run *Run, vis ProgressVisitor) (Progress, error) {
 // returns it along with list of all aggregated hosts.
 func aggregateTableProgress(run *Run, tableMap map[tableKey]*TableProgress, hosts *strset.Set) func(*RunProgress) {
 	return func(pr *RunProgress) {
-		tk := tableKey{pr.Host, run.Units[pr.Unit].Keyspace, pr.TableName}
-		table, ok := tableMap[tk]
-		if !ok {
-			table = &TableProgress{
-				Table: pr.TableName,
-				// To distinguish between set and not set dates.
-				progress: progress{
-					StartedAt:   &maxTime,
-					CompletedAt: &zeroTime,
-				},
-			}
-			tableMap[tk] = table
-			hosts.Add(pr.Host)
-		}
+		table := &TableProgress{}
 
-		table.Size += pr.Size
-		table.Uploaded += pr.Uploaded
-		table.Skipped += pr.Skipped
-		table.Failed += pr.Failed
-		if pr.StartedAt != nil && pr.StartedAt.Before(*table.StartedAt) {
+		table.Table = pr.TableName
+		table.Size = pr.Size
+		table.Uploaded = pr.Uploaded
+		table.Skipped = pr.Skipped
+		table.Failed = pr.Failed
+		if pr.StartedAt != nil {
 			table.StartedAt = pr.StartedAt
+		} else {
+			table.StartedAt = &maxTime
 		}
 		if pr.CompletedAt != nil {
-			if table.CompletedAt != nil && pr.CompletedAt.After(*table.CompletedAt) {
-				table.CompletedAt = pr.CompletedAt
-			}
+			table.CompletedAt = pr.CompletedAt
 		} else {
-			table.CompletedAt = nil
+			table.CompletedAt = &zeroTime
 		}
-		if pr.Error != "" {
-			if table.Error == "" {
-				table.Error = pr.Error
-			} else {
-				table.Error += ", " + pr.Error
-			}
-		}
+		table.Error = pr.Error
+
+		tableMap[tableKey{pr.Host, run.Units[pr.Unit].Keyspace, pr.TableName}] = table
+
+		hosts.Add(pr.Host)
 	}
 }
 
