@@ -32,7 +32,7 @@ type snapshotDir struct {
 	Keyspace string
 	Table    string
 	Version  string
-	Progress []*RunProgress
+	Progress *RunProgress
 }
 
 type worker struct {

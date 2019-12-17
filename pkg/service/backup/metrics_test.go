@@ -38,7 +38,7 @@ func TestBackupMetricUpdater(t *testing.T) {
 		Host:      "host",
 		Unit:      0,
 		TableName: "table1",
-		FileName:  "file1",
+		Files:     []string{"file1"},
 		Size:      100,
 	}
 	p2 := &RunProgress{
@@ -48,7 +48,7 @@ func TestBackupMetricUpdater(t *testing.T) {
 		Host:      "host",
 		Unit:      0,
 		TableName: "table2",
-		FileName:  "file1",
+		Files:     []string{"file1"},
 		Size:      100,
 	}
 

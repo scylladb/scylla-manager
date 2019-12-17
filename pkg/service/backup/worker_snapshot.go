@@ -213,25 +213,25 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				"dir", d.Path,
 			)
 
+			var (
+				fileNames []string
+				size      int64
+			)
 			for _, f := range files {
-				if f.Name == manifest {
-					// Manifest is metadata so we are excluding it from the
-					// total progress of the upload.
-					continue
-				}
-				p := &RunProgress{
-					ClusterID: w.ClusterID,
-					TaskID:    w.TaskID,
-					RunID:     w.RunID,
-					Host:      d.Host,
-					Unit:      d.Unit,
-					TableName: d.Table,
-					FileName:  f.Name,
-					Size:      f.Size,
-				}
-				d.Progress = append(d.Progress, p)
-				w.onRunProgress(ctx, p)
+				fileNames = append(fileNames, f.Name)
+				size += f.Size
 			}
+			d.Progress = &RunProgress{
+				ClusterID: w.ClusterID,
+				TaskID:    w.TaskID,
+				RunID:     w.RunID,
+				Host:      d.Host,
+				Unit:      d.Unit,
+				TableName: d.Table,
+				Files:     fileNames,
+				Size:      size,
+			}
+			w.onRunProgress(ctx, d.Progress)
 
 			dirs = append(dirs, d)
 		}

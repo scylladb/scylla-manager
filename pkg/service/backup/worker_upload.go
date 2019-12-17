@@ -4,7 +4,6 @@ package backup
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -83,21 +82,22 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) err
 // uploading the snapshot directory.
 // If it's not available it will return zero.
 func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
-	for _, p := range d.Progress {
-		if p.AgentJobID == 0 || p.Size == p.Uploaded {
-			continue
-		}
-		status, _ := w.getJobStatus(ctx, p.AgentJobID, d) //nolint:errcheck
-		switch status {
-		case jobError:
-			return 0
-		case jobNotFound:
-			return 0
-		case jobSuccess:
-			return p.AgentJobID
-		case jobRunning:
-			return p.AgentJobID
-		}
+	p := d.Progress
+
+	if p.AgentJobID == 0 || p.Size == p.Uploaded {
+		return 0
+	}
+
+	status, _ := w.getJobStatus(ctx, p.AgentJobID, d) //nolint:errcheck
+	switch status {
+	case jobError:
+		return 0
+	case jobNotFound:
+		return 0
+	case jobSuccess:
+		return p.AgentJobID
+	case jobRunning:
+		return p.AgentJobID
 	}
 
 	return 0
@@ -136,10 +136,9 @@ func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotD
 	}
 
 	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
-	for _, p := range d.Progress {
-		p.AgentJobID = id
-		w.onRunProgress(ctx, p)
-	}
+	d.Progress.AgentJobID = id
+	w.onRunProgress(ctx, d.Progress)
+
 	return w.waitJob(ctx, id, d)
 }
 
@@ -237,86 +236,126 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 		)
 		return
 	}
+	p := d.Progress
 
-	for _, p := range d.Progress {
-		if p.AgentJobID != jobID || (p.CompletedAt != nil && !p.CompletedAt.IsZero()) {
-			continue
+	// Build mapping for files in progress to bytes uploaded
+	var transferringBytes = make(map[string]int64, len(stats.Transferring))
+	for _, tr := range stats.Transferring {
+		transferringBytes[tr.Name] = tr.Bytes
+	}
+	// Build mapping from file name to transfer entries
+	fileTransfers := scyllaclient.FileTransfers(transferred)
+
+	// Clear values
+	p.StartedAt = nil
+	p.CompletedAt = nil
+	p.Error = ""
+	p.Uploaded = 0
+	p.Skipped = 0
+	p.Failed = 0
+
+	// Group errors and timings...
+	var (
+		errs        error
+		startedAt   = maxTime
+		completedAt = zeroTime
+		completed   = true
+	)
+
+	updateStartedAt := func(s string) {
+		t, err := timeutc.Parse(time.RFC3339, s)
+		if err != nil {
+			w.Logger.Error(ctx, "Failed to parse start time",
+				"error", err,
+				"host", d.Host,
+				"job_id", jobID,
+				"value", s,
+			)
 		}
-		trs := scyllaclient.TransferredByFilename(p.FileName, transferred)
-		switch len(trs) {
+		if !t.IsZero() && t.Before(startedAt) {
+			startedAt = t
+		}
+	}
+
+	updateCompletedAt := func(s string) {
+		t, err := timeutc.Parse(time.RFC3339, s)
+		if err != nil {
+			w.Logger.Error(ctx, "Failed to parse complete time",
+				"error", err,
+				"host", d.Host,
+				"job_id", jobID,
+				"value", s,
+			)
+		}
+		if t.IsZero() {
+			completed = false
+		}
+		if t.After(completedAt) {
+			completedAt = t
+		}
+	}
+
+	for _, f := range p.Files {
+		ft := fileTransfers[f]
+
+		switch len(ft) {
 		case 0:
-			// Nothing in transferred so inspect transfers in progress.
-			for _, tr := range stats.Transferring {
-				if tr.Name == p.FileName {
-					p.Uploaded = tr.Bytes
-					w.onRunProgress(ctx, p)
-					break
-				}
-			}
+			// Nothing in transferred so inspect transfers in progress
+			p.Uploaded += transferringBytes[f]
 		case 1:
 			// Only one transfer or one check.
-			w.setProgressDates(ctx, p, d, jobID, trs[0].StartedAt, trs[0].CompletedAt)
-			if trs[0].Error != "" {
-				p.Error = trs[0].Error
-				p.Failed = trs[0].Size - trs[0].Bytes
+			updateStartedAt(ft[0].StartedAt)
+			updateCompletedAt(ft[0].CompletedAt)
+
+			if ft[0].Error != "" {
+				p.Failed += ft[0].Size - ft[0].Bytes
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
 			}
-			if trs[0].Checked {
+			if ft[0].Checked {
 				// File is already uploaded we just checked.
-				p.Skipped = trs[0].Size
+				p.Skipped += ft[0].Size
 			} else {
-				p.Uploaded = trs[0].Bytes
+				p.Uploaded += ft[0].Bytes
 			}
-			w.onRunProgress(ctx, p)
 		case 2:
 			// File is found and updated on remote (check plus transfer).
 			// Order Check > Transfer is expected.
 			// Taking start time from the check.
-			w.setProgressDates(ctx, p, d, jobID, trs[0].StartedAt, trs[1].CompletedAt)
-			if trs[0].Error != "" {
-				p.Error = trs[0].Error
+			updateStartedAt(ft[0].StartedAt)
+			updateCompletedAt(ft[1].CompletedAt)
+
+			failed := false
+			if ft[0].Error != "" {
+				failed = true
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
 			}
-			if trs[1].Error != "" {
-				p.Error = fmt.Sprintf("%s %s", p.Error, trs[1].Error)
+			if ft[1].Error != "" {
+				failed = true
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[1].Error))
 			}
-			if p.Error != "" {
-				p.Failed = trs[1].Size - trs[1].Bytes
+			if failed {
+				p.Failed += ft[1].Size - ft[1].Bytes
 			}
-			p.Uploaded = trs[1].Bytes
-			w.onRunProgress(ctx, p)
+			p.Uploaded += ft[1].Bytes
 		}
 	}
+
+	if errs != nil {
+		p.Error = errs.Error()
+	}
+	if startedAt != maxTime {
+		p.StartedAt = &startedAt
+	}
+	if completed {
+		p.CompletedAt = &completedAt
+	}
+
+	w.onRunProgress(ctx, p)
 }
 
 func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
 	if w.OnRunProgress != nil {
 		w.OnRunProgress(ctx, p)
-	}
-}
-
-func (w *worker) setProgressDates(ctx context.Context, p *RunProgress, d snapshotDir, jobID int64, start, end string) {
-	startedAt, err := timeutc.Parse(time.RFC3339, start)
-	if err != nil {
-		w.Logger.Error(ctx, "Failed to parse start time",
-			"error", err,
-			"host", d.Host,
-			"job_id", jobID,
-			"value", start,
-		)
-	}
-	if !startedAt.IsZero() {
-		p.StartedAt = &startedAt
-	}
-	completedAt, err := timeutc.Parse(time.RFC3339, end)
-	if err != nil {
-		w.Logger.Error(ctx, "Failed to parse complete time",
-			"error", err,
-			"host", d.Host,
-			"job_id", jobID,
-			"value", end,
-		)
-	}
-	if !completedAt.IsZero() {
-		p.CompletedAt = &completedAt
 	}
 }
 

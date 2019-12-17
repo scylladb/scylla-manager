@@ -32,7 +32,7 @@ CREATE TABLE backup_run_progress (
     host text,
     unit int,
     table_name text,
-    file_name text,
+    files list<text>,
     started_at timestamp,
     completed_at timestamp,
     error text,
@@ -40,7 +40,7 @@ CREATE TABLE backup_run_progress (
     uploaded bigint,
     skipped bigint,
     failed bigint,
-    PRIMARY KEY ((cluster_id, task_id, run_id), host, unit, table_name, file_name)
+    PRIMARY KEY ((cluster_id, task_id, run_id), host, unit, table_name)
 ) WITH default_time_to_live = 15552000;
 
 -- Scheduler & Repair adjust TTLs
