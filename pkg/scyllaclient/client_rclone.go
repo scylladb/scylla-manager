@@ -99,17 +99,16 @@ func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string
 
 // RcloneMoveFile moves file from srcRemotePath to dstRemotePath.
 // Remotes need to be registered with the server first.
-// Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 // Both dstRemotePath and srRemotePath must point to a file.
-func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
+func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) error {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	srcFs, srcRemote, err := rcloneSplitRemotePath(srcRemotePath)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	p := operations.OperationsMovefileParams{
 		Context: httpmw.ForceHost(ctx, host),
@@ -119,13 +118,13 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath,
 			SrcFs:     srcFs,
 			SrcRemote: srcRemote,
 		},
-		Async: true,
+		Async: false,
 	}
-	resp, err := c.agentOps.OperationsMovefile(&p)
+	_, err = c.agentOps.OperationsMovefile(&p)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return resp.Payload.Jobid, nil
+	return nil
 }
 
 // RcloneCopyFile copies file from srcRemotePath to dstRemotePath.
