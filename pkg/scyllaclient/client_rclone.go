@@ -101,14 +101,14 @@ func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string
 // Remotes need to be registered with the server first.
 // Remote path format is "name:bucket/path".
 // Both dstRemotePath and srRemotePath must point to a file.
-func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) error {
+func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	srcFs, srcRemote, err := rcloneSplitRemotePath(srcRemotePath)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	p := operations.OperationsMovefileParams{
 		Context: httpmw.ForceHost(ctx, host),
@@ -119,11 +119,11 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath,
 			SrcRemote: srcRemote,
 		},
 	}
-	_, err = c.agentOps.OperationsMovefile(&p)
+	resp, err := c.agentOps.OperationsMovefile(&p)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return resp.JobID, nil
 }
 
 // RcloneCopyFile copies file from srcRemotePath to dstRemotePath.

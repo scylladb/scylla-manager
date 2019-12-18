@@ -344,7 +344,8 @@ func TestRcloneMoveFile(t *testing.T) {
 		return "tmp:" + path.Join(strings.TrimPrefix(dir, "/tmp/"), file)
 	}
 
-	if err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("b"), tmpRemotePath("a")); err != nil {
+	id, err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("b"), tmpRemotePath("a"))
+	if err != nil {
 		t.Fatal("RcloneMoveFile() error", err)
 	}
 
@@ -353,6 +354,14 @@ func TestRcloneMoveFile(t *testing.T) {
 	}
 	if _, err := os.Stat(path.Join(dir, "b")); err != nil {
 		t.Error("File b should exist", err)
+	}
+
+	stats, err := client.RcloneStats(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats.Transfers != 0 {
+		t.Error("expected stats to be cleared, got", stats)
 	}
 }
 
@@ -368,7 +377,7 @@ func TestRcloneMoveNotExistingFile(t *testing.T) {
 		return "tmp:" + path.Join("/tmp", file)
 	}
 
-	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("d"), tmpRemotePath("c"))
+	_, err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("d"), tmpRemotePath("c"))
 	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 		t.Fatal("RcloneMoveFile() expected 404 error, got", err)
 	}
