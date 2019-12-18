@@ -123,12 +123,12 @@ With Hosts:
 
 Data Centers:
 {{ range .Dc }}  - {{ . }}
-{{ end -}}
-
+{{ end }}
 Keyspaces:
 {{- range .Units }}
   - {{ .Keyspace }} {{ FormatTables .Tables .AllTables -}}
 {{ end }}
+
 `
 
 // Render implements Renderer interface.
@@ -149,8 +149,7 @@ type BackupTarget struct {
 
 const backupTargetTemplate = `Data Centers:
 {{ range .Dc }}  - {{ . }}
-{{ end -}}
-
+{{ end }}
 Keyspaces:
 {{- range .Units }}
   - {{ .Keyspace }} {{ FormatTables .Tables .AllTables }}
@@ -191,6 +190,7 @@ Upload Parallel Limits:
 {{- end }}
 
 Retention: Last {{ .Retention }} backups
+
 `
 
 // Render implements Renderer interface.
