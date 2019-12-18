@@ -13,7 +13,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 
@@ -23,11 +22,8 @@ import (
 // NewOperationsMovefileParams creates a new OperationsMovefileParams object
 // with the default values initialized.
 func NewOperationsMovefileParams() *OperationsMovefileParams {
-	var (
-		asyncDefault = bool(true)
-	)
+	var ()
 	return &OperationsMovefileParams{
-		Async: asyncDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -36,11 +32,8 @@ func NewOperationsMovefileParams() *OperationsMovefileParams {
 // NewOperationsMovefileParamsWithTimeout creates a new OperationsMovefileParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewOperationsMovefileParamsWithTimeout(timeout time.Duration) *OperationsMovefileParams {
-	var (
-		asyncDefault = bool(true)
-	)
+	var ()
 	return &OperationsMovefileParams{
-		Async: asyncDefault,
 
 		timeout: timeout,
 	}
@@ -49,11 +42,8 @@ func NewOperationsMovefileParamsWithTimeout(timeout time.Duration) *OperationsMo
 // NewOperationsMovefileParamsWithContext creates a new OperationsMovefileParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewOperationsMovefileParamsWithContext(ctx context.Context) *OperationsMovefileParams {
-	var (
-		asyncDefault = bool(true)
-	)
+	var ()
 	return &OperationsMovefileParams{
-		Async: asyncDefault,
 
 		Context: ctx,
 	}
@@ -62,11 +52,8 @@ func NewOperationsMovefileParamsWithContext(ctx context.Context) *OperationsMove
 // NewOperationsMovefileParamsWithHTTPClient creates a new OperationsMovefileParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewOperationsMovefileParamsWithHTTPClient(client *http.Client) *OperationsMovefileParams {
-	var (
-		asyncDefault = bool(true)
-	)
+	var ()
 	return &OperationsMovefileParams{
-		Async:      asyncDefault,
 		HTTPClient: client,
 	}
 }
@@ -76,11 +63,6 @@ for the operations movefile operation typically these are written to a http.Requ
 */
 type OperationsMovefileParams struct {
 
-	/*Async
-	  Async request
-
-	*/
-	Async bool
 	/*Group
 	  Place this operation under this stat group
 
@@ -130,17 +112,6 @@ func (o *OperationsMovefileParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAsync adds the async to the operations movefile params
-func (o *OperationsMovefileParams) WithAsync(async bool) *OperationsMovefileParams {
-	o.SetAsync(async)
-	return o
-}
-
-// SetAsync adds the async to the operations movefile params
-func (o *OperationsMovefileParams) SetAsync(async bool) {
-	o.Async = async
-}
-
 // WithGroup adds the group to the operations movefile params
 func (o *OperationsMovefileParams) WithGroup(group string) *OperationsMovefileParams {
 	o.SetGroup(group)
@@ -170,15 +141,6 @@ func (o *OperationsMovefileParams) WriteToRequest(r runtime.ClientRequest, reg s
 		return err
 	}
 	var res []error
-
-	// query param _async
-	qrAsync := o.Async
-	qAsync := swag.FormatBool(qrAsync)
-	if qAsync != "" {
-		if err := r.SetQueryParam("_async", qAsync); err != nil {
-			return err
-		}
-	}
 
 	// query param _group
 	qrGroup := o.Group

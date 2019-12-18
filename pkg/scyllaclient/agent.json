@@ -331,14 +331,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "_async",
-            "description": "Async request",
-            "type": "boolean",
-            "required": true,
-            "default": true
-          },
-          {
-            "in": "query",
             "name": "_group",
             "description": "Place this operation under this stat group",
             "type": "string",
@@ -355,10 +347,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Job",
-            "schema": {
-              "$ref": "#/definitions/Jobid"
-            },
+            "description": "Empty object",
             "headers": {}
           },
           "default": {
