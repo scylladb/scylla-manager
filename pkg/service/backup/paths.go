@@ -31,10 +31,10 @@ func remoteMetaClusterDCDir(clusterID uuid.UUID) string {
 	)
 }
 
-func remoteMetaKeyspaceLevel(baseDir string) int {
+func remoteMetaTableLevel(baseDir string) int {
 	a := len(strings.Split(remoteBaseDir(metaDirKind, uuid.Nil, "a", "b", "c", "d"), sep))
 	b := len(strings.Split(baseDir, sep))
-	return a - b - 2
+	return a - b
 }
 
 func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table, version string) string {
