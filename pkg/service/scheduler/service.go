@@ -375,29 +375,31 @@ func (s *Service) run(t *Task, tg *cancelableTrigger) {
 wait:
 	select {
 	case <-taskStop:
-		// cancel the context
+		// Cancel the context
 		cancel()
-		// set wait timer
+		// Set wait timer
 		taskStopTimeout = time.After(stopTaskWait)
-		// skip this branch
+		// Skip this branch
 		taskStop = nil
+		// Re-enter select
 		goto wait
+	case err = <-result:
+		// Continue to error handling
 	case <-taskStopTimeout:
-		// check if we got a valid result
+		// Check if we got a valid result
 		select {
 		case err = <-result:
-			// continue
+			// Race won by task, continue to error handling
 		default:
-			s.logger.Error(ctx, "Task stop failed, detaching from task run...",
+			s.logger.Error(ctx, "Task did not stop in time",
 				"cluster_id", t.ClusterID,
 				"task_type", t.Type,
 				"task_id", t.ID,
 				"run_id", run.ID,
+				"wait", stopTaskWait,
 			)
-			err = errors.New("detached from run")
+			err = errors.Errorf("stop task in %s", stopTaskWait)
 		}
-	case err = <-result:
-		// continue
 	}
 
 	now := timeutc.Now()
