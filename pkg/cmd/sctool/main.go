@@ -33,7 +33,7 @@ func printError(w io.Writer, err error) {
 	if ok {
 		p := v.GetPayload()
 
-		fmt.Fprintf(w, "Error: %s\n", mermaidclient.FormatError(p.Message))
+		fmt.Fprintf(w, "Error: %s\n\n", mermaidclient.FormatError(p.Message))
 		fmt.Fprintf(w, "(for more info grep logs for trace ID: %s)\n", p.TraceID)
 	} else {
 		fmt.Fprintf(w, "Error: %s\n", err)
