@@ -205,11 +205,6 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 loop:
 	for i := 0; ; i++ {
-		// If body was read do not continue.
-		if b, ok := r.Body.(*body); ok && b.read {
-			return resp, err
-		}
-
 		// Attempt the request
 		resp, err = t.parent.RoundTrip(r)
 		if err != nil {
@@ -219,6 +214,11 @@ loop:
 				"uri", r.URL.RequestURI(),
 				"error", err.Error(),
 			)
+		}
+
+		// If body was read do not continue.
+		if b, ok := r.Body.(*body); ok && b.read {
+			return resp, err
 		}
 
 		// Check if we should continue with retries.
