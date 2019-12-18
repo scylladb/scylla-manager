@@ -118,7 +118,6 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath,
 			SrcFs:     srcFs,
 			SrcRemote: srcRemote,
 		},
-		Async: false,
 	}
 	_, err = c.agentOps.OperationsMovefile(&p)
 	if err != nil {

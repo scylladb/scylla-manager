@@ -51,25 +51,13 @@ func NewOperationsMovefileOK() *OperationsMovefileOK {
 
 /*OperationsMovefileOK handles this case with default header values.
 
-Job
+Empty object
 */
 type OperationsMovefileOK struct {
-	Payload *models.Jobid
-	JobID   int64
-}
-
-func (o *OperationsMovefileOK) GetPayload() *models.Jobid {
-	return o.Payload
+	JobID int64
 }
 
 func (o *OperationsMovefileOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Jobid)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
 
 	if jobIDHeader := response.GetHeader("x-rclone-jobid"); jobIDHeader != "" {
 		jobID, err := strconv.ParseInt(jobIDHeader, 10, 64)
