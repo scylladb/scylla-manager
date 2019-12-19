@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/mermaid/pkg/mermaidclient"
 	"github.com/scylladb/mermaid/pkg/util/duration"
 	"github.com/spf13/cobra"
+	"go.uber.org/atomic"
 )
 
 var backupCmd = &cobra.Command{
@@ -97,16 +99,26 @@ var backupCmd = &cobra.Command{
 			return err
 		}
 		if dryRun {
-			res, err := client.GetBackupTarget(ctx, cfgCluster, t)
-			if err != nil {
-				return err
-			}
-			res.ShowTables, err = cmd.Flags().GetInt("show-tables")
+			showTables, err := cmd.Flags().GetInt("show-tables")
 			if err != nil {
 				return err
 			}
 
-			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, backup is not scheduled and this may take a while, we are performing disk size calculations on the nodes\n\n")
+			stillWaiting := atomic.NewBool(true)
+			time.AfterFunc(5*time.Second, func() {
+				if stillWaiting.Load() {
+					fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: this may take a while, we are performing disk size calculations on the nodes\n")
+				}
+			})
+
+			res, err := client.GetBackupTarget(ctx, cfgCluster, t)
+			if err != nil {
+				return err
+			}
+			stillWaiting.Store(false)
+
+			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, backup is not scheduled\n\n")
+			res.ShowTables = showTables
 			return res.Render(cmd.OutOrStdout())
 		}
 
