@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/operations"
@@ -70,21 +71,22 @@ func (e PermissionError) Cause() error {
 // creating, and deleting objects.
 func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	// Create temp dir.
-	tmpDir, err := ioutil.TempDir("", "check-fs-permissions")
+	tmpDir, err := ioutil.TempDir("", "scylla-manager-agent-")
 	if err != nil {
 		return errors.Wrap(err, "create local tmp directory")
 	}
 	defer os.RemoveAll(tmpDir) //nolint: errcheck
 
-	// We need sub dir because sync.CopyDir is syncing contents of the dirs.
-	// It's same as tmpDir base because we need unique name.
-	subDirName := filepath.Base(tmpDir)
-	if err := os.Mkdir(filepath.Join(tmpDir, subDirName), os.ModePerm); err != nil {
+	// Create tmp file.
+	var (
+		testDirName  = filepath.Base(tmpDir)
+		testFileName = "test"
+	)
+	if err := os.Mkdir(filepath.Join(tmpDir, testDirName), os.ModePerm); err != nil {
 		return errors.Wrap(err, "create local tmp subdirectory")
 	}
-	tmpFile := filepath.Join(subDirName, "scylla-manager-test")
-	// Touch tmpFile.
-	if err := ioutil.WriteFile(filepath.Join(tmpDir, tmpFile), []byte{0}, os.ModePerm); err != nil {
+	tmpFile := filepath.Join(tmpDir, testDirName, testFileName)
+	if err := ioutil.WriteFile(tmpFile, []byte{0}, os.ModePerm); err != nil {
 		return errors.Wrap(err, "create local tmp file")
 	}
 
@@ -95,6 +97,10 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 			return PermissionError{err, "init temp dir"}
 		}
 		if err := sync.CopyDir(ctx, l, rd, true); err != nil {
+			// Special handling of permissions errors
+			if errors.Cause(err) == credentials.ErrNoValidProvidersFoundInChain {
+				return errors.New("no providers - attach IAM Role to EC2 instance or put your access keys to s3 section of /etc/scylla-manager-agent/scylla-manager-agent.yaml and restart agent") //nolint:lll
+			}
 			return PermissionError{err, "put"}
 		}
 	}
@@ -102,9 +108,10 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	// List directory.
 	{
 		opts := operations.ListJSONOpt{
-			Recurse: false,
+			Recurse:   false,
+			NoModTime: true,
 		}
-		if err := operations.ListJSON(ctx, l, subDirName, &opts, func(item *operations.ListJSONItem) error {
+		if err := operations.ListJSON(ctx, l, testDirName, &opts, func(item *operations.ListJSONItem) error {
 			return nil
 		}); err != nil {
 			return PermissionError{err, "list"}
@@ -113,22 +120,22 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 
 	// Cat remote file.
 	{
-		rf, err := l.NewObject(ctx, tmpFile)
+		rf, err := l.NewObject(ctx, filepath.Join(testDirName, testFileName))
 		if err != nil {
-			return PermissionError{err, "init temp file object"}
+			return errors.Wrap(err, "init remote temp file object")
 		}
 		if err := Cat(ctx, rf, ioutil.Discard, 1); err != nil {
 			return PermissionError{err, "get"}
 		}
 	}
 
-	// Remove tmp dir structure.
+	// Remove remote dir.
 	{
-		remoteD, err := fs.NewFs(fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), subDirName))
+		rd, err := fs.NewFs(fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), testDirName))
 		if err != nil {
-			return PermissionError{err, "init temp dir fs"}
+			return errors.Wrap(err, "init remote temp dir")
 		}
-		if err := operations.Delete(ctx, remoteD); err != nil {
+		if err := operations.Delete(ctx, rd); err != nil {
 			return PermissionError{err, "delete"}
 		}
 	}
