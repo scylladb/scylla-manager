@@ -9,14 +9,10 @@ import (
 )
 
 var RcloneSupportedCalls = strset.New(
-	"rc/noop",
-	"rc/error",
 	"core/bwlimit",
 	"core/group-list",
-	"core/stats",
 	"core/stats-reset",
-	"core/transferred",
-	"job/status",
+	"job/info",
 	"job/stop",
 	"operations/about",
 	"operations/cat",

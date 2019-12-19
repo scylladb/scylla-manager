@@ -216,6 +216,21 @@ func TestRcloneListDirNotFound(t *testing.T) {
 	}
 }
 
+func TestRcloneListDirPermissionDenied(t *testing.T) {
+	t.Skip("Temporary disabled due to #1477")
+	t.Parallel()
+
+	client, cl := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/agent/rclone/core/stats", "testdata/rclone/stats/permission_denied_error.json"))
+	defer cl()
+
+	ctx := context.Background()
+
+	_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", nil)
+	if err == nil || strings.Contains(err.Error(), "permission denied") {
+		t.Fatal("expected error about permission denied, got", err)
+	}
+}
+
 func TestRcloneListDirEscapeJail(t *testing.T) {
 	t.Parallel()
 
@@ -356,12 +371,12 @@ func TestRcloneMoveFile(t *testing.T) {
 		t.Error("File b should exist", err)
 	}
 
-	stats, err := client.RcloneStats(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
+	job, err := client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stats.Transfers != 0 {
-		t.Error("expected stats to be cleared, got", stats)
+	if job.Stats.Transfers != 0 {
+		t.Error("expected stats to be cleared, got", job)
 	}
 }
 

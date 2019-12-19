@@ -6,28 +6,47 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
+	"go.uber.org/multierr"
 )
 
 // CatLimit is the maximum amount of bytes that Cat operation can output.
 const CatLimit = 1024 * 1024
 
-func init() {
-	// Disable all default calls.
-	calls := rc.Calls.List()
-	rc.Calls = rc.NewRegistry()
-
-	// Whitelist only supported calls.
-	for _, c := range calls {
-		if internal.RcloneSupportedCalls.Has(c.Path) {
-			rc.Add(*c)
-		}
+// rcJobInfo aggregates core, transferred, and job stats into a single call.
+func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	// Load Job status only if jobid is explicitly set.
+	var (
+		jobOut rc.Params
+		jobErr error
+	)
+	if jobid, err := in.GetInt64("jobid"); err == nil {
+		jobOut, jobErr = rcCalls.Get("job/status").Fn(ctx, in)
+		in["group"] = fmt.Sprintf("job/%d", jobid)
 	}
+
+	statsOut, statsErr := rcCalls.Get("core/stats").Fn(ctx, in)
+	transOut, transErr := rcCalls.Get("core/transferred").Fn(ctx, in)
+
+	return rc.Params{
+		"job":         jobOut,
+		"stats":       statsOut,
+		"transferred": transOut["transferred"],
+	}, multierr.Combine(jobErr, statsErr, transErr)
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "job/info",
+		AuthRequired: true,
+		Fn:           rcJobInfo,
+	})
 }
 
 // Cat a remote object.
@@ -99,4 +118,24 @@ func init() {
 
 `,
 	})
+}
+
+// rcCalls contains the original rc.Calls before filtering with all the added
+// custom calls in this file.
+var rcCalls *rc.Registry
+
+func init() {
+	rcCalls = rc.Calls
+	filterRcCalls()
+}
+
+// filterRcCalls disables all default calls and whitelists only supported calls.
+func filterRcCalls() {
+	rc.Calls = rc.NewRegistry()
+
+	for _, c := range rcCalls.List() {
+		if internal.RcloneSupportedCalls.Has(c.Path) {
+			rc.Add(*c)
+		}
+	}
 }

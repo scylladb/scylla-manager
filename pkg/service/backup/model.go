@@ -137,15 +137,6 @@ type RunProgress struct {
 	Failed int64
 }
 
-type jobStatus string
-
-const (
-	jobRunning  jobStatus = "running"
-	jobError    jobStatus = "error"
-	jobNotFound jobStatus = "not_found"
-	jobSuccess  jobStatus = "success"
-)
-
 type progress struct {
 	Size        int64      `json:"size"`
 	Uploaded    int64      `json:"uploaded"`

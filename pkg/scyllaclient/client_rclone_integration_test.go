@@ -7,14 +7,12 @@ package scyllaclient_test
 import (
 	"context"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
-	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/scyllaclienttest"
+	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
 var listRecursively = &scyllaclient.RcloneListDirOpts{Recurse: true}
@@ -41,29 +39,27 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var transferred []*models.Transfer
+	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
-		var err error
-		transferred, err = client.RcloneTransferred(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
+		job, err = client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return len(transferred) == 2
+		return len(job.Transferred) == 2
 	}, 50*time.Millisecond, time.Second)
 
-	for _, r := range transferred {
+	for _, r := range job.Transferred {
 		if r.Error != "" {
 			t.Errorf("Expected no error got: %s, %v", r.Error, r)
 		}
 	}
 
-	status, err := client.RcloneJobStatus(ctx, scyllaclienttest.TestHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !status.Finished || !status.Success {
-		t.Log(status)
+	if !job.Job.Finished || !job.Job.Success {
+		t.Log(job.Job)
 		t.Errorf("Expected copy dir job to finish successfully")
 	}
 
@@ -101,29 +97,23 @@ func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var transferred []*models.Transfer
+	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
-		var err error
-		transferred, err = client.RcloneTransferred(ctx, scyllaclienttest.TestHost, scyllaclient.RcloneDefaultGroup(id))
+		job, err = client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return len(transferred) == 1
+		return len(job.Transferred) == 1
 	}, 50*time.Millisecond, time.Second)
 
-	for _, r := range transferred {
+	for _, r := range job.Transferred {
 		if r.Error != "" {
 			t.Errorf("Expected no error got: %s, %v", r.Error, r)
 		}
 	}
 
-	status, err := client.RcloneJobStatus(ctx, scyllaclienttest.TestHost, id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !status.Finished || !status.Success {
-		t.Log(status)
+	if !job.Job.Finished || !job.Job.Success {
+		t.Log(job.Job)
 		t.Errorf("Expected copy file job to finish successfully")
 	}
 
@@ -145,19 +135,5 @@ func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 	}
 	if len(d) > 0 {
 		t.Errorf("Expected bucket to be empty, got: len(files)=%d", len(d))
-	}
-}
-
-func TestRcloneDirectoryListingCheckStatistics(t *testing.T) {
-	S3InitBucket(t, testBucket)
-
-	client, cl := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/agent/rclone/core/stats", "testdata/rclone/stats/permission_denied_error.json"))
-	defer cl()
-
-	ctx := context.Background()
-
-	_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, remotePath("/"), nil)
-	if err == nil || strings.Contains(err.Error(), "permission denied") {
-		t.Fatal("expected error about permission denied, got", err)
 	}
 }

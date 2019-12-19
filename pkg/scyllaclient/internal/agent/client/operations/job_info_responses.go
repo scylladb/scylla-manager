@@ -18,22 +18,22 @@ import (
 	models "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
 )
 
-// CoreStatsReader is a Reader for the CoreStats structure.
-type CoreStatsReader struct {
+// JobInfoReader is a Reader for the JobInfo structure.
+type JobInfoReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *CoreStatsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *JobInfoReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
-		result := NewCoreStatsOK()
+		result := NewJobInfoOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 	default:
-		result := NewCoreStatsDefault(response.Code())
+		result := NewJobInfoDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -44,27 +44,27 @@ func (o *CoreStatsReader) ReadResponse(response runtime.ClientResponse, consumer
 	}
 }
 
-// NewCoreStatsOK creates a CoreStatsOK with default headers values
-func NewCoreStatsOK() *CoreStatsOK {
-	return &CoreStatsOK{}
+// NewJobInfoOK creates a JobInfoOK with default headers values
+func NewJobInfoOK() *JobInfoOK {
+	return &JobInfoOK{}
 }
 
-/*CoreStatsOK handles this case with default header values.
+/*JobInfoOK handles this case with default header values.
 
-Current transfers
+Aggregated info about job transfers
 */
-type CoreStatsOK struct {
-	Payload *models.Stats
+type JobInfoOK struct {
+	Payload *models.JobInfo
 	JobID   int64
 }
 
-func (o *CoreStatsOK) GetPayload() *models.Stats {
+func (o *JobInfoOK) GetPayload() *models.JobInfo {
 	return o.Payload
 }
 
-func (o *CoreStatsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *JobInfoOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Stats)
+	o.Payload = new(models.JobInfo)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -82,34 +82,34 @@ func (o *CoreStatsOK) readResponse(response runtime.ClientResponse, consumer run
 	return nil
 }
 
-// NewCoreStatsDefault creates a CoreStatsDefault with default headers values
-func NewCoreStatsDefault(code int) *CoreStatsDefault {
-	return &CoreStatsDefault{
+// NewJobInfoDefault creates a JobInfoDefault with default headers values
+func NewJobInfoDefault(code int) *JobInfoDefault {
+	return &JobInfoDefault{
 		_statusCode: code,
 	}
 }
 
-/*CoreStatsDefault handles this case with default header values.
+/*JobInfoDefault handles this case with default header values.
 
 Server error
 */
-type CoreStatsDefault struct {
+type JobInfoDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
 	JobID   int64
 }
 
-// Code gets the status code for the core stats default response
-func (o *CoreStatsDefault) Code() int {
+// Code gets the status code for the job info default response
+func (o *JobInfoDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *CoreStatsDefault) GetPayload() *models.ErrorResponse {
+func (o *JobInfoDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *CoreStatsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *JobInfoDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -129,6 +129,6 @@ func (o *CoreStatsDefault) readResponse(response runtime.ClientResponse, consume
 	return nil
 }
 
-func (o *CoreStatsDefault) Error() string {
+func (o *JobInfoDefault) Error() string {
 	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

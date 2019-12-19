@@ -27,57 +27,68 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 	return err
 }
 
-// RcloneJobStatus fetches information about the created job.
-func (c *Client) RcloneJobStatus(ctx context.Context, host string, id int64) (*models.Job, error) {
-	p := operations.JobStatusParams{
-		Context: httpmw.ForceHost(ctx, host),
-		Jobid:   &models.Jobid{Jobid: id},
-	}
-	resp, err := c.agentOps.JobStatus(&p)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Payload, nil
-}
-
 // RcloneJobStop stops running job.
-func (c *Client) RcloneJobStop(ctx context.Context, host string, id int64) error {
+func (c *Client) RcloneJobStop(ctx context.Context, host string, jobID int64) error {
 	p := operations.JobStopParams{
 		Context: httpmw.ForceHost(ctx, host),
-		Jobid:   &models.Jobid{Jobid: id},
+		Jobid:   &models.Jobid{Jobid: jobID},
 	}
 	_, err := c.agentOps.JobStop(&p) //nolint:errcheck
 	return err
 }
 
-// RcloneTransferred fetches information about all completed transfers.
-func (c *Client) RcloneTransferred(ctx context.Context, host string, group string) ([]*models.Transfer, error) {
-	p := operations.CoreTransferredParams{
-		Context: httpmw.ForceHost(ctx, host),
-		StatsParams: &models.StatsParams{
-			Group: group,
-		},
-	}
-	resp, err := c.agentOps.CoreTransferred(&p)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Payload.Transferred, nil
-}
+// RcloneJobInfo aggregates current, transferred and job statuses.
+type RcloneJobInfo = models.JobInfo
 
-// RcloneStats fetches stats about current transfers.
-func (c *Client) RcloneStats(ctx context.Context, host string, group string) (*models.Stats, error) {
-	p := operations.CoreStatsParams{
+// RcloneJobInfo returns aggregated stats for the job along with job status.
+func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*RcloneJobInfo, error) {
+	p := operations.JobInfoParams{
 		Context: httpmw.ForceHost(ctx, host),
-		StatsParams: &models.StatsParams{
-			Group: group,
-		},
+		Jobid:   &models.Jobid{Jobid: jobID},
 	}
-	resp, err := c.agentOps.CoreStats(&p)
+	resp, err := c.agentOps.JobInfo(&p)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Payload, nil
+}
+
+// RcloneJobStatus returns status of the job.
+// There is one running state and three completed states error, not_found, and
+// success.
+type RcloneJobStatus string
+
+// RcloneJobStatus enumeration.
+const (
+	JobError    RcloneJobStatus = "error"
+	JobSuccess  RcloneJobStatus = "success"
+	JobRunning  RcloneJobStatus = "running"
+	JobNotFound RcloneJobStatus = "not_found"
+)
+
+// RcloneStatusOfJob extracts simple status from rclone job.
+func (c *Client) RcloneStatusOfJob(job *models.Job) (status RcloneJobStatus) {
+	status = JobRunning
+
+	switch {
+	case job == nil:
+		status = JobNotFound
+	case job.Finished && job.Success:
+		status = JobSuccess
+	case job.Finished && !job.Success:
+		status = JobError
+	}
+
+	return
+}
+
+// RcloneFileTransfers returns map from file name to transfer entries.
+func (c *Client) RcloneFileTransfers(transferred []*models.Transfer) map[string][]*models.Transfer {
+	m := make(map[string][]*models.Transfer, len(transferred))
+	for _, tr := range transferred {
+		m[tr.Name] = append(m[tr.Name], tr)
+	}
+	return m
 }
 
 // RcloneDefaultGroup returns default group name based on job id.
@@ -279,16 +290,6 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 		return nil, err
 	}
 
-	if resp.JobID != 0 {
-		stats, err := c.RcloneStats(ctx, host, RcloneDefaultGroup(resp.JobID))
-		if err != nil {
-			return nil, err
-		}
-		if stats.Errors != 0 {
-			return resp.Payload.List, errors.New(stats.LastError)
-		}
-	}
-
 	return resp.Payload.List, nil
 }
 
@@ -304,15 +305,6 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 	}
 	_, err := c.agentOps.OperationsCheckPermissions(&p)
 	return err
-}
-
-// FileTransfers returns map from file name to transfer entries.
-func FileTransfers(transferred []*models.Transfer) map[string][]*models.Transfer {
-	m := make(map[string][]*models.Transfer, len(transferred))
-	for _, tr := range transferred {
-		m[tr.Name] = append(m[tr.Name], tr)
-	}
-	return m
 }
 
 // rcloneSplitRemotePath splits string path into file system and file path.

@@ -172,11 +172,11 @@ func (h *backupTestHelper) waitTransfersStarted() {
 	h.waitCond(func() bool {
 		h.t.Helper()
 		for _, host := range ManagedClusterHosts() {
-			s, err := h.client.RcloneStats(context.Background(), host, "")
+			job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
 			if err != nil {
 				h.t.Fatal(err)
 			}
-			for _, tr := range s.Transferring {
+			for _, tr := range job.Stats.Transferring {
 				if tr.Name != "manifest.json" {
 					Print("And: upload is underway")
 					return true
@@ -199,11 +199,11 @@ func (h *backupTestHelper) waitNoTransfers() {
 	h.waitCond(func() bool {
 		h.t.Helper()
 		for _, host := range ManagedClusterHosts() {
-			s, err := h.client.RcloneStats(context.Background(), host, "")
+			job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
 			if err != nil {
 				h.t.Fatal(err)
 			}
-			if len(s.Transferring) > 0 {
+			if len(job.Stats.Transferring) > 0 {
 				return false
 			}
 		}
@@ -630,16 +630,16 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: transfer statistics are cleared")
 	for _, host := range ManagedClusterHosts() {
-		s, err := h.client.RcloneTransferred(context.Background(), host, "")
+		job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
 		if err != nil {
 			h.t.Fatal(err)
 		}
 
-		if len(s) > 0 {
-			for _, v := range s {
+		if len(job.Transferred) > 0 {
+			for _, v := range job.Transferred {
 				t.Logf("RcloneTransferred() %+v", *v)
 			}
-			h.t.Fatalf("Expected empty transfer statistics, got %d", len(s))
+			h.t.Fatalf("Expected empty transfer statistics, got %d", len(job.Transferred))
 		}
 	}
 

@@ -54,43 +54,6 @@
         "security": []
       }
     },
-    "/rclone/core/stats": {
-      "post": {
-        "description": "Returns stats about current transfers",
-        "summary": "Stats about transfers",
-        "operationId": "CoreStats",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "StatsParams",
-            "description": "Stats parameters",
-            "schema": {
-              "$ref": "#/definitions/StatsParams"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Current transfers",
-            "schema": {
-              "$ref": "#/definitions/Stats"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
     "/rclone/core/stats-reset": {
       "post": {
         "description": "Resets stats",
@@ -114,51 +77,6 @@
             "description": "Empty object",
             "schema": {
               "type": "object"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
-    "/rclone/core/transferred": {
-      "post": {
-        "description": "Returns stats about completed transfers",
-        "summary": "Completed transfers",
-        "operationId": "CoreTransferred",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "StatsParams",
-            "description": "Stats parameters",
-            "schema": {
-              "$ref": "#/definitions/StatsParams"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Completed transfers",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "transferred": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Transfer"
-                  }
-                }
-              }
             },
             "headers": {}
           },
@@ -616,44 +534,6 @@
         "security": []
       }
     },
-    "/rclone/job/status": {
-      "post": {
-        "description": "Reads the status of the job ID",
-        "summary": "Job status",
-        "operationId": "JobStatus",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "jobid",
-            "required": true,
-            "description": "jobid",
-            "schema": {
-              "$ref": "#/definitions/Jobid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Job details",
-            "schema": {
-              "$ref": "#/definitions/Job"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
     "/rclone/job/stop": {
       "post": {
         "description": "Stops job with provided ID",
@@ -678,6 +558,43 @@
             "description": "Empty object",
             "schema": {
               "type": "object"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/rclone/job/info": {
+      "post": {
+        "description": "Returns current, completed transfers and job stats",
+        "summary": "Transfer stats about the job",
+        "operationId": "JobInfo",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "jobid",
+            "description": "jobid",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated info about job transfers",
+            "schema": {
+              "$ref": "#/definitions/JobInfo"
             },
             "headers": {}
           },
@@ -765,11 +682,13 @@
         },
         "startTime": {
           "description": "Time the job started (eg 2018-10-26T18:50:20.528746884+01:00)",
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         },
         "endTime": {
           "description": "Time the job finished (eg 2018-10-26T18:50:20.528746884+01:00)",
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         },
         "error": {
           "description": "Error from the job or empty string for no error",
@@ -920,7 +839,8 @@
         },
         "ModTime": {
           "description": "Modification time",
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         },
         "Name": {
           "description": "Name of the item",
@@ -999,11 +919,13 @@
         },
         "started_at": {
           "description": "time at which transfer started",
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         },
         "completed_at": {
           "description": "time at which transfer completed ",
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         },
         "error": {
           "description": "string description of the error (empty if successful)",
@@ -1029,6 +951,29 @@
         "group": {
           "description": "group name",
           "type": "string"
+        }
+      }
+    },
+    "JobInfo": {
+      "type": "object",
+      "properties": {
+        "job": {
+          "description": "job",
+          "type": "object",
+          "$ref": "#/definitions/Job"
+        },
+        "stats": {
+          "description": "Core status",
+          "type": "object",
+          "$ref": "#/definitions/Stats"
+        },
+        "transferred": {
+          "description": "Completed transfers",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/Transfer"
+          }
         }
       }
     },

@@ -9,8 +9,6 @@ import (
 )
 
 var RcloneSupportedCalls = strset.New(
-	"rc/noop",
-	"rc/error",
 {{ range . }}	"{{ . }}",
 {{ end -}}
 )
