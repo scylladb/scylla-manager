@@ -4,6 +4,8 @@ package rcserver
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/mermaid/pkg/rclone"
 )
 
@@ -300,6 +303,38 @@ func TestRCExcludeParams(t *testing.T) {
 		Body:        `{ "exclude": ["test1", "test2"] }`,
 		Status:      http.StatusOK,
 	})
+}
+
+func TestLongBodyReturnsContentLengthHeader(t *testing.T) {
+	rcServer := New()
+
+	calls := rc.Calls.List()
+	defer func() {
+		rc.Calls = rc.NewRegistry()
+		for _, c := range calls {
+			rc.Calls.Add(*c)
+		}
+	}()
+
+	rc.Calls = rc.NewRegistry()
+	rc.Add(rc.Call{
+		Path: "long/body",
+		Fn: func(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+			out = make(rc.Params)
+			lorem := `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec tincidunt posuere elit et faucibus.`
+			for i := 0; i < 1000; i++ {
+				out[fmt.Sprintf("%d", i)] = lorem
+			}
+			return out, nil
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "http://1.2.3.4/long/body", nil)
+	w := httptest.NewRecorder()
+	rcServer.ServeHTTP(w, req)
+	if w.Header().Get("Content-Length") == "" {
+		t.Fatal("expected to have Content-Length header, got", w.Header())
+	}
 }
 
 // httpTest specifies expected request response cycle behavior needed to test
