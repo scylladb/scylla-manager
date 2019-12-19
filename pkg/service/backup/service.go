@@ -292,28 +292,33 @@ func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *sc
 
 		for _, h := range lh {
 			go func(h string, l Location) {
-				err := client.RcloneCheckPermissions(ctx, h, l.String())
-				if err != nil {
-					tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run 'scylla-manager-agent check-location -L %s --debug'", h, l)
-					if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
-						err = errors.Errorf("%s: %s - %s", h, err, tip)
-					} else {
-						err = errors.Errorf("%s: %s", h, err)
-					}
-					s.logger.Info(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
-				} else {
-					s.logger.Info(ctx, "Host location check OK", "host", h, "location", l)
-				}
-				res <- err
+				res <- s.checkHostLocation(ctx, client, h, l)
 			}(h, l)
 		}
-
 		for range lh {
 			errs = multierr.Append(errs, <-res)
 		}
 	}
 
 	return service.ErrValidate(errs)
+}
+
+func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
+	err := client.RcloneCheckPermissions(httpmw.NoRetry(ctx), h, l.RemotePath(""))
+
+	if err != nil {
+		s.logger.Info(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
+		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+			tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run 'scylla-manager-agent check-location -L %s --debug'", h, l)
+			err = errors.Errorf("%s: %s - %s", h, err, tip)
+		} else {
+			err = errors.Errorf("%s: %s", h, err)
+		}
+		return err
+	}
+
+	s.logger.Info(ctx, "Host location check OK", "host", h, "location", l)
+	return nil
 }
 
 // ExtractLocations parses task properties and returns list of locations.
