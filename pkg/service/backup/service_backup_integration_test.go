@@ -340,7 +340,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "invalid location dc",
 			JSON:  `{"location": ["foobar:s3:backuptest-get-target"]}`,
-			Error: "invalid location: no such datacenter",
+			Error: `invalid location: "foobar:s3:backuptest-get-target" no such datacenter foobar`,
 		},
 		{
 			Name:  "no location for dc",
@@ -360,17 +360,17 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "invalid rate limit dc",
 			JSON:  `{"rate_limit": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
-			Error: "invalid rate-limit: no such datacenter",
+			Error: `invalid rate-limit: "foobar:100" no such datacenter foobar`,
 		},
 		{
 			Name:  "invalid snapshot parallel dc",
 			JSON:  `{"snapshot_parallel": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
-			Error: "invalid snapshot-parallel: no such datacenter",
+			Error: `invalid snapshot-parallel: "foobar:100" no such datacenter foobar`,
 		},
 		{
 			Name:  "invalid upload parallel dc",
 			JSON:  `{"upload_parallel": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
-			Error: "invalid upload-parallel: no such datacenter",
+			Error: `invalid upload-parallel: "foobar:100" no such datacenter foobar`,
 		},
 	}
 
@@ -391,9 +391,10 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 				t.Fatal("GetTarget() expected error")
 			}
 
-			t.Log("GetTarget():", err)
 			if !strings.Contains(err.Error(), test.Error) {
 				t.Fatalf("GetTarget() = %v, expected %v", err, test.Error)
+			} else {
+				t.Log("GetTarget():", err)
 			}
 		})
 	}

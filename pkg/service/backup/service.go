@@ -79,7 +79,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	t := Target{}
 
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return t, service.ErrValidate(errors.Wrapf(err, "parse runner properties: %s", properties))
+		return t, service.ErrValidate(err)
 	}
 
 	if p.Location == nil {
@@ -309,7 +309,7 @@ func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Cl
 	if err != nil {
 		s.logger.Info(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
 		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
-			tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run 'scylla-manager-agent check-location -L %s --debug'", h, l)
+			tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run \"scylla-manager-agent check-location -L %s --debug\"", h, l)
 			err = errors.Errorf("%s: %s - %s", h, err, tip)
 		} else {
 			err = errors.Errorf("%s: %s", h, err)

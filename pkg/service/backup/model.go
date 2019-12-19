@@ -243,11 +243,11 @@ func (l *Location) UnmarshalText(text []byte) error {
 
 	m := pattern.FindSubmatch(text)
 	if m == nil {
-		return errors.Errorf("invalid location, the format is [dc:]<provider>:<path> ex. s3:my-bucket, the path must be DNS compliant")
+		return errors.Errorf("invalid location %q, the format is [dc:]<provider>:<path> ex. s3:my-bucket, the path must be DNS compliant", string(text))
 	}
 
 	if err := l.Provider.UnmarshalText(m[3]); err != nil {
-		return errors.Wrap(err, "invalid location")
+		return errors.Wrapf(err, "invalid location %q", string(text))
 	}
 
 	l.DC = string(m[2])
@@ -298,16 +298,16 @@ func (l DCLimit) MarshalText() (text []byte, err error) {
 }
 
 func (l *DCLimit) UnmarshalText(text []byte) error {
-	pattern := regexp.MustCompile(`^(([a-z0-9\-\_\.]+):)?([0-9]+)$`)
+	pattern := regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([0-9]+)$`)
 
 	m := pattern.FindSubmatch(text)
 	if m == nil {
-		return errors.Errorf("invalid format")
+		return errors.Errorf("invalid limit %q, the format is [dc:]<number>", string(text))
 	}
 
 	limit, err := strconv.ParseInt(string(m[3]), 10, 64)
 	if err != nil {
-		return errors.Wrap(err, "invalid limit")
+		return errors.Wrap(err, "invalid limit value")
 	}
 
 	l.DC = string(m[2])
