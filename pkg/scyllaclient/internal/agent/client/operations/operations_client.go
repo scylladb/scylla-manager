@@ -103,44 +103,6 @@ func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, e
 }
 
 /*
-CoreStats stats about transfers
-
-Returns stats about current transfers
-*/
-func (a *Client) CoreStats(params *CoreStatsParams) (*CoreStatsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCoreStatsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CoreStats",
-		Method:             "POST",
-		PathPattern:        "/rclone/core/stats",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &CoreStatsReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		if e, ok := err.(*url.Error); ok {
-			err = e.Err
-		}
-		return nil, err
-	}
-	success, ok := result.(*CoreStatsOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*CoreStatsDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
 CoreStatsReset resets all or specific stats group
 
 Resets stats
@@ -179,25 +141,25 @@ func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK
 }
 
 /*
-CoreTransferred completeds transfers
+JobInfo transfers stats about the job
 
-Returns stats about completed transfers
+Returns current, completed transfers and job stats
 */
-func (a *Client) CoreTransferred(params *CoreTransferredParams) (*CoreTransferredOK, error) {
+func (a *Client) JobInfo(params *JobInfoParams) (*JobInfoOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCoreTransferredParams()
+		params = NewJobInfoParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CoreTransferred",
+		ID:                 "JobInfo",
 		Method:             "POST",
-		PathPattern:        "/rclone/core/transferred",
+		PathPattern:        "/rclone/job/info",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &CoreTransferredReader{formats: a.formats},
+		Reader:             &JobInfoReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -207,50 +169,12 @@ func (a *Client) CoreTransferred(params *CoreTransferredParams) (*CoreTransferre
 		}
 		return nil, err
 	}
-	success, ok := result.(*CoreTransferredOK)
+	success, ok := result.(*JobInfoOK)
 	if ok {
 		return success, nil
 	}
 	// unexpected success response
-	unexpectedSuccess := result.(*CoreTransferredDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-JobStatus jobs status
-
-Reads the status of the job ID
-*/
-func (a *Client) JobStatus(params *JobStatusParams) (*JobStatusOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewJobStatusParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "JobStatus",
-		Method:             "POST",
-		PathPattern:        "/rclone/job/status",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &JobStatusReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		if e, ok := err.(*url.Error); ok {
-			err = e.Err
-		}
-		return nil, err
-	}
-	success, ok := result.(*JobStatusOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*JobStatusDefault)
+	unexpectedSuccess := result.(*JobInfoDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

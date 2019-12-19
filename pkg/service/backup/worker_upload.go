@@ -4,12 +4,10 @@ package backup
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
 
@@ -88,15 +86,17 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 		return 0
 	}
 
-	status, _ := w.getJobStatus(ctx, p.AgentJobID, d) //nolint:errcheck
-	switch status {
-	case jobError:
+	job, err := w.Client.RcloneJobInfo(ctx, d.Host, p.AgentJobID)
+	if err != nil {
+		w.Logger.Error(ctx, "Failed to fetch job info",
+			"host", d.Host,
+			"job_id", p.AgentJobID,
+			"error", err,
+		)
 		return 0
-	case jobNotFound:
-		return 0
-	case jobSuccess:
-		return p.AgentJobID
-	case jobRunning:
+	}
+
+	if s := w.Client.RcloneStatusOfJob(job.Job); s == scyllaclient.JobSuccess || s == scyllaclient.JobRunning {
 		return p.AgentJobID
 	}
 
@@ -159,27 +159,49 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			err := w.Client.RcloneJobStop(context.Background(), d.Host, id)
 			if err != nil {
 				w.Logger.Error(ctx, "Failed to stop rclone job",
-					"error", err,
 					"host", d.Host,
-					"unit", d.Unit,
-					"job_id", id,
+					"keyspace", d.Keyspace,
 					"table", d.Table,
+					"job_id", id,
+					"error", err,
 				)
 			}
-			w.updateProgress(ctx, id, d)
+			job, err := w.Client.RcloneJobInfo(ctx, d.Host, id)
+			if err != nil {
+				w.Logger.Error(ctx, "Failed to fetch job info",
+					"host", d.Host,
+					"keyspace", d.Keyspace,
+					"table", d.Table,
+					"job_id", id,
+					"error", err,
+				)
+				return err
+			}
+			w.updateProgress(ctx, d, job)
 			return ctx.Err()
 		case <-t.C:
-			status, err := w.getJobStatus(ctx, id, d)
-			switch status {
-			case jobError:
+			job, err := w.Client.RcloneJobInfo(ctx, d.Host, id)
+			if err != nil {
+				w.Logger.Error(ctx, "Failed to fetch job info",
+					"host", d.Host,
+					"keyspace", d.Keyspace,
+					"table", d.Table,
+					"job_id", id,
+					"error", err,
+				)
 				return err
-			case jobNotFound:
-				return errors.Errorf("job not found (%d)", id)
-			case jobSuccess:
-				w.updateProgress(ctx, id, d)
+			}
+
+			switch w.Client.RcloneStatusOfJob(job.Job) {
+			case scyllaclient.JobError:
+				return errors.Errorf("job error (%d): %s", id, job.Job.Error)
+			case scyllaclient.JobSuccess:
+				w.updateProgress(ctx, d, job)
 				return nil
-			case jobRunning:
-				w.updateProgress(ctx, id, d)
+			case scyllaclient.JobRunning:
+				w.updateProgress(ctx, d, job)
+			case scyllaclient.JobNotFound:
+				return errors.Errorf("job not found (%d)", id)
 			}
 		}
 	}
@@ -190,61 +212,16 @@ func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) er
 	return errors.Wrap(w.Client.RcloneStatsReset(ctx, host, scyllaclient.RcloneDefaultGroup(jobID)), "clear job stats")
 }
 
-func (w *worker) getJobStatus(ctx context.Context, jobID int64, d snapshotDir) (jobStatus, error) {
-	s, err := w.Client.RcloneJobStatus(ctx, d.Host, jobID)
-	if err != nil {
-		w.Logger.Error(ctx, "Failed to fetch job status",
-			"error", err,
-			"host", d.Host,
-			"unit", d.Unit,
-			"job_id", jobID,
-			"table", d.Table,
-		)
-		if strings.Contains(err.Error(), "job not found") {
-			// If job is no longer available fail.
-			return jobNotFound, nil
-		}
-		return jobError, err
-	}
-	if s.Finished {
-		if s.Success {
-			return jobSuccess, nil
-		}
-		return jobError, errors.New(s.Error)
-	}
-	return jobRunning, nil
-}
-
-func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir) {
-	group := scyllaclient.RcloneDefaultGroup(jobID)
-
-	transferred, err := w.Client.RcloneTransferred(ctx, d.Host, group)
-	if err != nil {
-		w.Logger.Error(ctx, "Failed to get transferred files",
-			"error", err,
-			"host", d.Host,
-			"job_id", jobID,
-		)
-		return
-	}
-	stats, err := w.Client.RcloneStats(ctx, d.Host, group)
-	if err != nil {
-		w.Logger.Error(ctx, "Failed to get transfer stats",
-			"error", err,
-			"host", d.Host,
-			"job_id", jobID,
-		)
-		return
-	}
+func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllaclient.RcloneJobInfo) {
 	p := d.Progress
 
 	// Build mapping for files in progress to bytes uploaded
-	var transferringBytes = make(map[string]int64, len(stats.Transferring))
-	for _, tr := range stats.Transferring {
+	var transferringBytes = make(map[string]int64, len(job.Stats.Transferring))
+	for _, tr := range job.Stats.Transferring {
 		transferringBytes[tr.Name] = tr.Bytes
 	}
 	// Build mapping from file name to transfer entries
-	fileTransfers := scyllaclient.FileTransfers(transferred)
+	fileTransfers := w.Client.RcloneFileTransfers(job.Transferred)
 
 	// Clear values
 	p.StartedAt = nil
@@ -254,47 +231,15 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 	p.Skipped = 0
 	p.Failed = 0
 
-	// Group errors and timings...
-	var (
-		errs        error
-		startedAt   = maxTime
-		completedAt = zeroTime
-		completed   = true
-	)
-
-	updateStartedAt := func(s string) {
-		t, err := timeutc.Parse(time.RFC3339, s)
-		if err != nil {
-			w.Logger.Error(ctx, "Failed to parse start time",
-				"error", err,
-				"host", d.Host,
-				"job_id", jobID,
-				"value", s,
-			)
-		}
-		if !t.IsZero() && t.Before(startedAt) {
-			startedAt = t
-		}
+	// Set StartedAt and CompletedAt based on Job
+	if t := time.Time(job.Job.StartTime); !t.IsZero() {
+		p.StartedAt = &t
+	}
+	if t := time.Time(job.Job.EndTime); !t.IsZero() {
+		p.CompletedAt = &t
 	}
 
-	updateCompletedAt := func(s string) {
-		t, err := timeutc.Parse(time.RFC3339, s)
-		if err != nil {
-			w.Logger.Error(ctx, "Failed to parse complete time",
-				"error", err,
-				"host", d.Host,
-				"job_id", jobID,
-				"value", s,
-			)
-		}
-		if t.IsZero() {
-			completed = false
-		}
-		if t.After(completedAt) {
-			completedAt = t
-		}
-	}
-
+	var errs error
 	for _, f := range p.Files {
 		ft := fileTransfers[f]
 
@@ -303,10 +248,6 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 			// Nothing in transferred so inspect transfers in progress
 			p.Uploaded += transferringBytes[f]
 		case 1:
-			// Only one transfer or one check.
-			updateStartedAt(ft[0].StartedAt)
-			updateCompletedAt(ft[0].CompletedAt)
-
 			if ft[0].Error != "" {
 				p.Failed += ft[0].Size - ft[0].Bytes
 				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
@@ -320,10 +261,6 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 		case 2:
 			// File is found and updated on remote (check plus transfer).
 			// Order Check > Transfer is expected.
-			// Taking start time from the check.
-			updateStartedAt(ft[0].StartedAt)
-			updateCompletedAt(ft[1].CompletedAt)
-
 			failed := false
 			if ft[0].Error != "" {
 				failed = true
@@ -342,12 +279,6 @@ func (w *worker) updateProgress(ctx context.Context, jobID int64, d snapshotDir)
 
 	if errs != nil {
 		p.Error = errs.Error()
-	}
-	if startedAt != maxTime {
-		p.StartedAt = &startedAt
-	}
-	if completed {
-		p.CompletedAt = &completedAt
 	}
 
 	w.onRunProgress(ctx, p)

@@ -8,7 +8,9 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Job job
@@ -21,7 +23,8 @@ type Job struct {
 	Duration float64 `json:"duration,omitempty"`
 
 	// Time the job finished (eg 2018-10-26T18:50:20.528746884+01:00)
-	EndTime string `json:"endTime,omitempty"`
+	// Format: date-time
+	EndTime strfmt.DateTime `json:"endTime,omitempty"`
 
 	// Error from the job or empty string for no error
 	Error string `json:"error,omitempty"`
@@ -36,7 +39,8 @@ type Job struct {
 	Output interface{} `json:"output,omitempty"`
 
 	// Time the job started (eg 2018-10-26T18:50:20.528746884+01:00)
-	StartTime string `json:"startTime,omitempty"`
+	// Format: date-time
+	StartTime strfmt.DateTime `json:"startTime,omitempty"`
 
 	// True for success false otherwise
 	Success bool `json:"success,omitempty"`
@@ -44,6 +48,45 @@ type Job struct {
 
 // Validate validates this job
 func (m *Job) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateEndTime(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStartTime(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Job) validateEndTime(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.EndTime) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("endTime", "body", "date-time", m.EndTime.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Job) validateStartTime(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartTime) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("startTime", "body", "date-time", m.StartTime.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

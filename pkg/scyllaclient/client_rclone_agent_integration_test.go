@@ -12,9 +12,8 @@ import (
 	"time"
 
 	"github.com/scylladb/go-log"
-	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
+	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
 func TestRcloneS3ListDirAgentIntegration(t *testing.T) {
@@ -62,17 +61,16 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var transferred []*models.Transfer
+	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
-		var err error
-		transferred, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		job, err = client.RcloneJobInfo(ctx, testHost, id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return len(transferred) == 2
+		return len(job.Transferred) == 2
 	}, 50*time.Millisecond, time.Second)
 
-	for _, r := range transferred {
+	for _, r := range job.Transferred {
 		if r.Checked == true {
 			t.Errorf("Expected transferred files to not be checked")
 		}
@@ -87,15 +85,14 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 	}
 
 	WaitCond(t, func() bool {
-		var err error
-		transferred, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		job, err = client.RcloneJobInfo(ctx, testHost, id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return len(transferred) == 2
+		return len(job.Transferred) == 2
 	}, 50*time.Millisecond, time.Second)
 
-	for _, r := range transferred {
+	for _, r := range job.Transferred {
 		if r.Checked == false {
 			t.Errorf("Expected transferred files to be checked")
 		}
@@ -139,11 +136,11 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	}
 
 	WaitCond(t, func() bool {
-		stats, err := client.RcloneStats(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		job, err := client.RcloneJobInfo(ctx, testHost, id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return len(stats.Transferring) > 0
+		return len(job.Stats.Transferring) > 0
 	}, 50*time.Millisecond, time.Second)
 
 	err = client.RcloneJobStop(ctx, testHost, id)
@@ -151,17 +148,16 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var transferred []*models.Transfer
+	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
-		var err error
-		transferred, err = client.RcloneTransferred(ctx, testHost, scyllaclient.RcloneDefaultGroup(id))
+		job, err = client.RcloneJobInfo(ctx, testHost, id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return len(transferred) > 0
+		return len(job.Transferred) > 0
 	}, 50*time.Millisecond, time.Second)
 
-	if transferred[0].Error == "" {
+	if job.Transferred[0].Error == "" {
 		t.Fatal("Expected error but got empty")
 	}
 }

@@ -18,12 +18,17 @@ import (
 	"github.com/scylladb/mermaid/pkg/rclone"
 )
 
+func newTestServer() Server {
+	rclone.InitFsConfig()
+	filterRcCallsForTests()
+	return New()
+}
+
 // Run a suite of tests
 func testServer(t *testing.T, tests []httpTest) {
 	t.Helper()
 
-	rclone.InitFsConfig()
-	rcServer := New()
+	rcServer := newTestServer()
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
@@ -239,9 +244,8 @@ func TestRCAsync(t *testing.T) {
 	testServer(t, tests)
 }
 
-func TestRCAsyncSuccessStatus(t *testing.T) {
-	rclone.InitFsConfig()
-	rcServer := New()
+func TestRCAsyncSuccessJobInfo(t *testing.T) {
+	rcServer := newTestServer()
 
 	body := runHTTPTest(t, rcServer, httpTest{
 		Name:        "ok",
@@ -256,18 +260,27 @@ func TestRCAsyncSuccessStatus(t *testing.T) {
 
 	runHTTPTest(t, rcServer, httpTest{
 		Name:        "error_status",
-		URL:         "job/status",
+		URL:         "job/info",
 		Method:      "POST",
 		ContentType: "application/json",
 		Body:        body,
 		Status:      http.StatusOK,
 		Contains:    regexp.MustCompile("(?si).*\"finished\": true.*\"success\": true.*"),
 	})
+
+	runHTTPTest(t, rcServer, httpTest{
+		Name:        "error_status",
+		URL:         "job/info",
+		Method:      "POST",
+		ContentType: "application/json",
+		Body:        `{}`,
+		Status:      http.StatusOK,
+		Contains:    regexp.MustCompile("(?si).*\"transfers\": 0.*"),
+	})
 }
 
-func TestRCAsyncErrorStatus(t *testing.T) {
-	rclone.InitFsConfig()
-	rcServer := New()
+func TestRCAsyncErrorJobInfo(t *testing.T) {
+	rcServer := newTestServer()
 
 	body := runHTTPTest(t, rcServer, httpTest{
 		Name:        "ok",
@@ -282,26 +295,57 @@ func TestRCAsyncErrorStatus(t *testing.T) {
 
 	runHTTPTest(t, rcServer, httpTest{
 		Name:        "error_status",
-		URL:         "job/status",
+		URL:         "job/info",
 		Method:      "POST",
 		ContentType: "application/json",
 		Body:        body,
 		Status:      http.StatusOK,
 		Contains:    regexp.MustCompile("(?si).*\"finished\": true.*\"success\": false.*"),
 	})
-}
-
-func TestRCExcludeParams(t *testing.T) {
-	rclone.InitFsConfig()
-	rcServer := New()
 
 	runHTTPTest(t, rcServer, httpTest{
+		Name:        "error_status",
+		URL:         "job/info",
+		Method:      "POST",
+		ContentType: "application/json",
+		Body:        `{}`,
+		Status:      http.StatusOK,
+		Contains:    regexp.MustCompile("(?si).*\"job\": null.*\"transfers\": 0.*"),
+	})
+}
+
+func TestRCAsyncSuccessJobInfoStatus(t *testing.T) {
+	rcServer := newTestServer()
+
+	body := runHTTPTest(t, rcServer, httpTest{
 		Name:        "ok",
 		URL:         "rc/noop",
 		Method:      "POST",
 		ContentType: "application/json",
-		Body:        `{ "exclude": ["test1", "test2"] }`,
+		Body:        `{ "_async":true }`,
 		Status:      http.StatusOK,
+	})
+
+	time.Sleep(10 * time.Millisecond)
+
+	runHTTPTest(t, rcServer, httpTest{
+		Name:        "error_status",
+		URL:         "job/info",
+		Method:      "POST",
+		ContentType: "application/json",
+		Body:        body,
+		Status:      http.StatusOK,
+		Contains:    regexp.MustCompile("(?si).*\"finished\": true.*\"success\": true.*"),
+	})
+
+	runHTTPTest(t, rcServer, httpTest{
+		Name:        "error_status",
+		URL:         "job/info",
+		Method:      "POST",
+		ContentType: "application/json",
+		Body:        `{}`,
+		Status:      http.StatusOK,
+		Contains:    regexp.MustCompile("(?si).*\"job\": null.*\"transfers\": 0.*"),
 	})
 }
 
