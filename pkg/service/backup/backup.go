@@ -32,7 +32,7 @@ func checkDCs(dcAtPos func(int) (string, string), n int, dcMap map[string][]stri
 			continue
 		}
 		if !allDCs.Has(dc) {
-			err = multierr.Append(err, errors.Errorf("no such datacenter %s in %s", dc, str))
+			err = multierr.Append(err, errors.Errorf("%q no such datacenter %s", str, dc))
 		}
 	}
 	return
