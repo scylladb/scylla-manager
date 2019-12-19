@@ -6,6 +6,7 @@ package rcserver
 //go:generate ./internalgen.sh
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -214,11 +215,23 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 
 	fs.Debugf(nil, "rc: %q: reply %+v: %v", path, out, err)
 	w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
-	err = rc.WriteJSON(w, out)
-	if err != nil {
+
+	if err := writeJSON(w, out); err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)
 		return
 	}
+}
+
+func writeJSON(w http.ResponseWriter, out rc.Params) error {
+	buf := &bytes.Buffer{}
+	err := rc.WriteJSON(buf, out)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Length", fmt.Sprint(buf.Len()))
+	_, err = io.Copy(w, buf)
+	return err
 }
 
 func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
