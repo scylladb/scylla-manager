@@ -1,5 +1,7 @@
 all: help
 
+SHELL := /bin/bash
+
 # Prevent invoking make with a package specific test without a constraining a
 # package.
 ifneq "$(filter pkg-%,$(MAKECMDGOALS))" ""
@@ -47,7 +49,7 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 		[[ $$f =~ _string\.go ]] || \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
-		! e=`pcregrep -noM '$$\n\n\s+//\s*[a-z].*' $$f` || \
+		! e=`grep -Pzo '\n\n\s+//\s*[a-z].*' $$f` || \
 		(echo $$f $$e; false); \
 	done
 
@@ -128,7 +130,7 @@ pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect
 
 .PHONY: start-dev-env
 start-dev-env: ## Start testing containers and run server
-start-dev-env: .testing-up dev-agent dev-cli dev-server
+start-dev-env: .testing-up deploy-agent build-cli run-server
 
 .PHONY: .testing-up
 .testing-up:
@@ -138,24 +140,32 @@ start-dev-env: .testing-up dev-agent dev-cli dev-server
 dev-env-status:  ## Checks status of docker containers and cluster nodes
 	@make -C testing status
 
-.PHONY: dev-agent
-dev-agent: ## Build development agent binary and deploy it to testing containers
+.PHONY: build-agent
+build-agent: ## Build development agent binary
 	@echo "==> Building agent"
 	@go build -mod=vendor -race -o ./scylla-manager-agent.dev ./pkg/cmd/agent
+	
+.PHONY: deploy-agent
+deploy-agent: build-agent ## Deploy it to testing containers
 	@echo "==> Deploying agent to testing containers"
 	@make -C testing deploy-agent restart-agent
 
-.PHONY: dev-cli
-dev-cli: ## Build development cli binary
+.PHONY: build-cli
+build-cli: ## Build development cli binary
 	@echo "==> Building sctool"
 	@go build -mod=vendor -o ./sctool.dev ./pkg/cmd/sctool
 
-.PHONY: dev-server
-dev-server: ## Build and run development server
+.PHONY: build-server
+build-server: ## Build development server
 	@echo "==> Building scylla-manager"
 	@go build -mod=vendor -race -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
-	@echo
+	
+.PHONY: run-server
+run-server: build-server ## Build and run development server
 	@./scylla-manager.dev -c testing/scylla-manager/scylla-manager.yaml; rm -f ./scylla-manager.dev
+
+.PHONY: build
+build: build-cli build-agent build-server ## Build all project binaries
 
 .PHONY: clean
 clean: ## Remove dev build artifacts (*.dev files)

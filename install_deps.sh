@@ -2,8 +2,8 @@
 
 set -u -o pipefail
 
-FEDORA_PKGS="jq make moreutils sshpass pcre-tools python python-pip rpm-build"
-UBUNTU_PKGS="jq make moreutils sshpass pcregrep   python python-pip"
+FEDORA_PKGS="jq make moreutils sshpass python python-pip rpm-build"
+UBUNTU_PKGS="jq make moreutils sshpass python python-pip"
 
 PYTHON_PKGS="cqlsh"
 

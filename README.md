@@ -94,9 +94,14 @@ If everything worked correctly you should see the output similar to [this](https
 ## Development
 To test new features during development, developers might use following commands:
 ```bash
-make dev-server # compiles and run new `scylla-manager` server
-make dev-cli    # compiles new version of `sctool`
-make dev-agent  # compiles and deploys new version of agent to all cluster nodes
+
+make build        # compiles all project binaries
+make build-server # compiles new version of `scylla-manager` server
+make build-cli    # compiles new version of `sctool`
+make build-agent  # compiles new version of `scylla-manager-agent`
+
+make deploy-agent # deploys new version of agent to all cluster nodes
+make run-server   # run `scylla-manager`
 ``` 
 
 More Makefile targets are available in `testing` directory.
