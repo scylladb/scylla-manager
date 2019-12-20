@@ -93,11 +93,11 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 		baseDir = remoteMetaClusterDCDir(filter.ClusterID)
 	}
 
-	tableDirs, err := w.DirsAtLevelN(ctx, baseDir, remoteMetaTableLevel(baseDir))
+	keyspaceDirs, err := w.DirsAtLevelN(ctx, baseDir, remoteMetaKeyspaceLevel(baseDir))
 	if err != nil {
 		return nil, errors.Wrapf(err, "%s", host)
 	}
-	logger.Debug(ctx, "Table dirs", "size", len(tableDirs), "dirs", tableDirs)
+	logger.Debug(ctx, "Keyspace dirs", "size", len(keyspaceDirs), "dirs", keyspaceDirs)
 
 	var (
 		allManifests []remoteManifest
@@ -118,8 +118,8 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 		Recurse:   true,
 	}
 
-	err = parallel.Run(len(tableDirs), parallelLimit, func(i int) error {
-		baseDir := tableDirs[i]
+	err = parallel.Run(len(keyspaceDirs), parallelLimit, func(i int) error {
+		baseDir := keyspaceDirs[i]
 
 		files, err := client.RcloneListDir(ctx, host, l.RemotePath(baseDir), opts)
 		if err != nil {
