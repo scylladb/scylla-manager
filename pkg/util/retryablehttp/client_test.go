@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -407,25 +408,34 @@ func TestRetryAfterInternalServerError(t *testing.T) {
 }
 
 func TestRetryAfterConnectionReset(t *testing.T) {
-	results := make(chan response)
-	retries := make(chan struct{})
-	requests := make(chan struct{})
+	var (
+		once       sync.Once
+		results    = make(chan response)
+		retries    = make(chan struct{}, 100)
+		requests   = make(chan struct{})
+		serverDown = make(chan struct{})
+	)
 
 	ts := http.Server{
 		Addr: testAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requests <- struct{}{}
-			<-retries
+			<-serverDown
 		}),
 	}
-	go ts.ListenAndServe()
+	go func() {
+		ts.ListenAndServe()
+		close(serverDown)
+	}()
 
 	// Create the client. Use short retry windows.
 	client, transport := NewClient()
 	transport.NewBackoff = fastBackoff
 	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
-		close(retries)
 		retry, err := DefaultRetryPolicy(req, resp, err)
+		once.Do(func() {
+			close(retries)
+		})
 		return retry, err
 	}
 	sendRequest := func() {
@@ -446,9 +456,14 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 	case <-requests:
 		// Bring down server in the middle of a request.
 		ts.Close()
-		time.Sleep(100 * time.Millisecond)
 	case <-time.After(testTimeout):
 		t.Fatal("time out receiving first request")
+	}
+
+	select {
+	case <-serverDown:
+	case <-time.After(testTimeout):
+		t.Fatal("time out waiting for server to shut down")
 	}
 
 	select {
@@ -456,6 +471,7 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 	case <-time.After(testTimeout):
 		t.Fatal("time out waiting for retry check")
 	}
+
 	select {
 	case res := <-results:
 		// Response should fail because of network error.
