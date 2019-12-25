@@ -13,7 +13,15 @@ const globalStats = "global_stats"
 
 var groups *statsGroups
 
-func listStats(ctx context.Context, in rc.Params) (rc.Params, error) {
+func init() {
+	// Init stats container
+	groups = newStatsGroups()
+
+	// Set the function pointer up in fs
+	fs.CountError = GlobalStats().Error
+}
+
+func rcListStats(ctx context.Context, in rc.Params) (rc.Params, error) {
 	out := make(rc.Params)
 
 	out["groups"] = groups.names()
@@ -21,7 +29,30 @@ func listStats(ctx context.Context, in rc.Params) (rc.Params, error) {
 	return out, nil
 }
 
-func remoteStats(ctx context.Context, in rc.Params) (rc.Params, error) {
+func init() {
+	rc.Add(rc.Call{
+		Path:  "core/group-list",
+		Fn:    rcListStats,
+		Title: "Returns list of stats.",
+		Help: `
+This returns list of stats groups currently in memory. 
+
+Returns the following values:
+` + "```" + `
+{
+	"groups":  an array of group names:
+		[
+			"group1",
+			"group2",
+			...
+		]
+}
+` + "```" + `
+`,
+	})
+}
+
+func rcRemoteStats(ctx context.Context, in rc.Params) (rc.Params, error) {
 	// Check to see if we should filter by group.
 	group, err := in.GetString("group")
 	if rc.NotErrParamNotFound(err) {
@@ -34,52 +65,10 @@ func remoteStats(ctx context.Context, in rc.Params) (rc.Params, error) {
 	return groups.sum().RemoteStats()
 }
 
-func transferredStats(ctx context.Context, in rc.Params) (rc.Params, error) {
-	// Check to see if we should filter by group.
-	group, err := in.GetString("group")
-	if rc.NotErrParamNotFound(err) {
-		return rc.Params{}, err
-	}
-
-	out := make(rc.Params)
-	if group != "" {
-		out["transferred"] = StatsGroup(group).Transferred()
-	} else {
-		out["transferred"] = groups.sum().Transferred()
-	}
-
-	return out, nil
-}
-
-func resetStats(ctx context.Context, in rc.Params) (rc.Params, error) {
-	// Check to see if we should filter by group.
-	group, err := in.GetString("group")
-	if rc.NotErrParamNotFound(err) {
-		return rc.Params{}, err
-	}
-
-	if group != "" {
-		stats := groups.get(group)
-		stats.ResetCounters()
-		stats.ResetErrors()
-		stats.PruneAllTransfers()
-	} else {
-		groups.clear()
-	}
-
-	return rc.Params{}, nil
-}
-
 func init() {
-	// Init stats container
-	groups = newStatsGroups()
-
-	// Set the function pointer up in fs
-	fs.CountError = GlobalStats().Error
-
 	rc.Add(rc.Call{
 		Path:  "core/stats",
-		Fn:    remoteStats,
+		Fn:    rcRemoteStats,
 		Title: "Returns stats about current transfers.",
 		Help: `
 This returns all available stats:
@@ -127,10 +116,29 @@ Values for "transferring", "checking" and "lastError" are only assigned if data 
 The value for "eta" is null if an eta cannot be determined.
 `,
 	})
+}
 
+func rcTransferredStats(ctx context.Context, in rc.Params) (rc.Params, error) {
+	// Check to see if we should filter by group.
+	group, err := in.GetString("group")
+	if rc.NotErrParamNotFound(err) {
+		return rc.Params{}, err
+	}
+
+	out := make(rc.Params)
+	if group != "" {
+		out["transferred"] = StatsGroup(group).Transferred()
+	} else {
+		out["transferred"] = groups.sum().Transferred()
+	}
+
+	return out, nil
+}
+
+func init() {
 	rc.Add(rc.Call{
 		Path:  "core/transferred",
-		Fn:    transferredStats,
+		Fn:    rcTransferredStats,
 		Title: "Returns stats about completed transfers.",
 		Help: `
 This returns stats about completed transfers:
@@ -165,35 +173,63 @@ Returns the following values:
 ` + "```" + `
 `,
 	})
-
-	rc.Add(rc.Call{
-		Path:  "core/group-list",
-		Fn:    listStats,
-		Title: "Returns list of stats.",
-		Help: `
-This returns list of stats groups currently in memory. 
-
-Returns the following values:
-` + "```" + `
-{
-	"groups":  an array of group names:
-		[
-			"group1",
-			"group2",
-			...
-		]
 }
-` + "```" + `
-`,
-	})
 
+func rcResetStats(ctx context.Context, in rc.Params) (rc.Params, error) {
+	// Check to see if we should filter by group.
+	group, err := in.GetString("group")
+	if rc.NotErrParamNotFound(err) {
+		return rc.Params{}, err
+	}
+
+	if group != "" {
+		stats := groups.get(group)
+		stats.ResetErrors()
+		stats.ResetCounters()
+	} else {
+		groups.reset()
+	}
+
+	return rc.Params{}, nil
+}
+
+func init() {
 	rc.Add(rc.Call{
 		Path:  "core/stats-reset",
-		Fn:    resetStats,
+		Fn:    rcResetStats,
 		Title: "Reset stats.",
 		Help: `
 This clears counters, errors and finished transfers for all stats or specific 
 stats group if group is provided.
+
+Parameters
+
+- group - name of the stats group (string)
+`,
+	})
+}
+
+func rcDeleteStats(ctx context.Context, in rc.Params) (rc.Params, error) {
+	// Group name required because we only do single group.
+	group, err := in.GetString("group")
+	if rc.NotErrParamNotFound(err) {
+		return rc.Params{}, err
+	}
+
+	if group != "" {
+		groups.delete(group)
+	}
+
+	return rc.Params{}, nil
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:  "core/stats-delete",
+		Fn:    rcDeleteStats,
+		Title: "Delete stats group.",
+		Help: `
+This deletes entire stats group
 
 Parameters
 
@@ -273,13 +309,13 @@ func (sg *statsGroups) set(group string, stats *StatsInfo) {
 	// Limit number of groups kept in memory.
 	if len(sg.order) >= fs.Config.MaxStatsGroups {
 		group := sg.order[0]
-		fs.LogPrintf(fs.LogLevelInfo, nil, "Max number of stats groups reached removing %s", group)
+		//fs.LogPrintf(fs.LogLevelInfo, nil, "Max number of stats groups reached removing %s", group)
 		delete(sg.m, group)
 		r := (len(sg.order) - fs.Config.MaxStatsGroups) + 1
 		sg.order = sg.order[r:]
 	}
 
-	// Exclude global stats from
+	// Exclude global stats from listing
 	if group != globalStats {
 		sg.order = append(sg.order, group)
 	}
@@ -303,7 +339,7 @@ func (sg *statsGroups) names() []string {
 	return sg.order
 }
 
-// get gets the stats for group, or nil if not found
+// sum returns aggregate stats that contains summation of all groups.
 func (sg *statsGroups) sum() *StatsInfo {
 	sg.mu.Lock()
 	defer sg.mu.Unlock()
@@ -327,16 +363,37 @@ func (sg *statsGroups) sum() *StatsInfo {
 	return sum
 }
 
-func (sg *statsGroups) clear() {
+func (sg *statsGroups) reset() {
 	sg.mu.Lock()
 	defer sg.mu.Unlock()
 
 	for _, stats := range sg.m {
 		stats.ResetErrors()
 		stats.ResetCounters()
-		stats.PruneAllTransfers()
 	}
 
 	sg.m = make(map[string]*StatsInfo)
 	sg.order = nil
+}
+
+// delete removes all references to the group.
+func (sg *statsGroups) delete(group string) {
+	sg.mu.Lock()
+	defer sg.mu.Unlock()
+	stats := sg.m[group]
+	if stats == nil {
+		return
+	}
+	stats.ResetErrors()
+	stats.ResetCounters()
+	delete(sg.m, group)
+
+	// Remove group reference from the ordering slice.
+	tmp := sg.order[:0]
+	for _, g := range sg.order {
+		if g != group {
+			tmp = append(tmp, g)
+		}
+	}
+	sg.order = tmp
 }

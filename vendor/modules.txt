@@ -162,7 +162,7 @@ github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
-# github.com/rclone/rclone v1.50.2 => github.com/scylladb/rclone v1.50.2-patched-2
+# github.com/rclone/rclone v1.50.2 => github.com/scylladb/rclone v1.50.2-patched-6
 github.com/rclone/rclone/backend/crypt
 github.com/rclone/rclone/backend/crypt/pkcs7
 github.com/rclone/rclone/backend/local
