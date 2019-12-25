@@ -11,6 +11,7 @@ import (
 var RcloneSupportedCalls = strset.New(
 	"core/bwlimit",
 	"core/group-list",
+	"core/stats-delete",
 	"core/stats-reset",
 	"job/info",
 	"job/stop",

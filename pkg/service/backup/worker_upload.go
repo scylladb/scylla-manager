@@ -209,7 +209,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 
 func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) error {
 	w.Logger.Debug(ctx, "Clearing job stats", "host", host, "job_id", jobID)
-	return errors.Wrap(w.Client.RcloneStatsReset(ctx, host, scyllaclient.RcloneDefaultGroup(jobID)), "clear job stats")
+	return errors.Wrap(w.Client.RcloneDeleteJobStats(ctx, host, jobID), "clear job stats")
 }
 
 func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllaclient.RcloneJobInfo) {
