@@ -6,7 +6,6 @@ import (
 	"context"
 	"path"
 
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
 )
 
@@ -46,11 +45,7 @@ func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 			manifestSrc = h.Location.RemotePath(path.Join(w.remoteSSTableDir(h, d), manifest))
 		)
 
-		id, err := w.Client.RcloneMoveFile(ctx, d.Host, manifestDst, manifestSrc)
-		if err != nil {
-			return err
-		}
-		if err := w.Client.RcloneStatsReset(ctx, d.Host, scyllaclient.RcloneDefaultGroup(id)); err != nil {
+		if err := w.Client.RcloneMoveFile(ctx, d.Host, manifestDst, manifestSrc); err != nil {
 			return err
 		}
 	}

@@ -103,6 +103,44 @@ func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, e
 }
 
 /*
+CoreStatsDelete deletes specific stats group
+
+Delete stats
+*/
+func (a *Client) CoreStatsDelete(params *CoreStatsDeleteParams) (*CoreStatsDeleteOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCoreStatsDeleteParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CoreStatsDelete",
+		Method:             "POST",
+		PathPattern:        "/rclone/core/stats-delete",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CoreStatsDeleteReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		if e, ok := err.(*url.Error); ok {
+			err = e.Err
+		}
+		return nil, err
+	}
+	success, ok := result.(*CoreStatsDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CoreStatsDeleteDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 CoreStatsReset resets all or specific stats group
 
 Resets stats

@@ -52,7 +52,7 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 	service := newTestService(t, session, client, config, logger)
 
 	for _, ip := range ManagedClusterHosts() {
-		if err := client.RcloneStatsReset(context.Background(), ip, ""); err != nil {
+		if err := client.RcloneResetStats(context.Background(), ip); err != nil {
 			t.Error("Couldn't reset stats", ip, err)
 		}
 	}
@@ -634,12 +634,14 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		if err != nil {
 			h.t.Fatal(err)
 		}
-
-		if len(job.Transferred) > 0 {
-			for _, v := range job.Transferred {
-				t.Logf("RcloneTransferred() %+v", *v)
+		if job.Stats.Transfers != 0 {
+			t.Errorf("Expected empty transfer statistics, got %d", job.Stats.Transfers)
+		}
+		if len(job.Transferred) != 0 {
+			for i, v := range job.Transferred {
+				t.Logf("job.Transferred[%d]=%+v", i, *v)
 			}
-			h.t.Fatalf("Expected empty transfer statistics, got %d", len(job.Transferred))
+			t.Errorf("Expected empty transfers, got %d", len(job.Transferred))
 		}
 	}
 

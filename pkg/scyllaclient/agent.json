@@ -91,6 +91,43 @@
         "security": []
       }
     },
+    "/rclone/core/stats-delete": {
+      "post": {
+        "description": "Delete stats",
+        "summary": "Deletes specific stats group",
+        "operationId": "CoreStatsDelete",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "StatsParams",
+            "description": "Stats parameters",
+            "schema": {
+              "$ref": "#/definitions/StatsParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/core/group-list": {
       "post": {
         "description": "Returns list of group names",

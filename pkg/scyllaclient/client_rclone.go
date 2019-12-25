@@ -85,35 +85,44 @@ func (c *Client) RcloneStatusOfJob(job *models.Job) (status RcloneJobStatus) {
 // RcloneTransfer represents a single file transfer in RcloneJobInfo Transferred.
 type RcloneTransfer = models.Transfer
 
-// RcloneDefaultGroup returns default group name based on job id.
-func RcloneDefaultGroup(jobID int64) string {
-	return fmt.Sprintf("job/%d", jobID)
-}
-
-// RcloneStatsReset resets stats.
-func (c *Client) RcloneStatsReset(ctx context.Context, host string, group string) error {
-	p := operations.CoreStatsResetParams{
+// RcloneDeleteJobStats deletes job stats group.
+func (c *Client) RcloneDeleteJobStats(ctx context.Context, host string, jobID int64) error {
+	p := operations.CoreStatsDeleteParams{
 		Context: httpmw.ForceHost(ctx, host),
 		StatsParams: &models.StatsParams{
-			Group: group,
+			Group: rcloneDefaultGroup(jobID),
 		},
+	}
+	_, err := c.agentOps.CoreStatsDelete(&p) //nolint:errcheck
+	return err
+}
+
+// RcloneResetStats resets stats.
+func (c *Client) RcloneResetStats(ctx context.Context, host string) error {
+	p := operations.CoreStatsResetParams{
+		Context: httpmw.ForceHost(ctx, host),
 	}
 	_, err := c.agentOps.CoreStatsReset(&p) //nolint:errcheck
 	return err
+}
+
+// RcloneDefaultGroup returns default group name based on job id.
+func rcloneDefaultGroup(jobID int64) string {
+	return fmt.Sprintf("job/%d", jobID)
 }
 
 // RcloneMoveFile moves file from srcRemotePath to dstRemotePath.
 // Remotes need to be registered with the server first.
 // Remote path format is "name:bucket/path".
 // Both dstRemotePath and srRemotePath must point to a file.
-func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) (int64, error) {
+func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath, srcRemotePath string) error {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	srcFs, srcRemote, err := rcloneSplitRemotePath(srcRemotePath)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	p := operations.OperationsMovefileParams{
 		Context: httpmw.ForceHost(ctx, host),
@@ -124,11 +133,8 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host string, dstRemotePath,
 			SrcRemote: srcRemote,
 		},
 	}
-	resp, err := c.agentOps.OperationsMovefile(&p)
-	if err != nil {
-		return 0, err
-	}
-	return resp.JobID, nil
+	_, err = c.agentOps.OperationsMovefile(&p)
+	return err
 }
 
 // RcloneCopyFile copies file from srcRemotePath to dstRemotePath.

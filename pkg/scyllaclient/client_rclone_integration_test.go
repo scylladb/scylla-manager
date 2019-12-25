@@ -38,6 +38,7 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer client.RcloneDeleteJobStats(ctx, scyllaclienttest.TestHost, id)
 
 	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
@@ -96,6 +97,7 @@ func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer client.RcloneDeleteJobStats(ctx, scyllaclienttest.TestHost, id)
 
 	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
