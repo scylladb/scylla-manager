@@ -22,6 +22,8 @@ up: ## Start docker containers
 	@$(CQLSH) 192.168.100.11 -f init.cql
 	@echo "==> Installing root SSH key"
 	@./install_root_key
+	@echo "==> Adding Minio user"
+	@./minio/add_user.sh
 
 .PHONY: down
 down: ## Stop docker containers

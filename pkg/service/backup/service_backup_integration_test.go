@@ -390,7 +390,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		},
 	}
 
-	const testBucket = "backuptest-get-target"
+	const testBucket = "backuptest-get-target-error"
 
 	var (
 		session = CreateSessionWithoutMigration(t)
