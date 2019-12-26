@@ -109,10 +109,11 @@ services:
     network_mode: host
 
   minio:
-    image: minio/minio
+    image: minio/minio:${MINIO_VERSION}
     user: ${MINIO_USER}
     command: server /data
     environment:
+      MINIO_REGION: ${MINIO_REGION}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
     volumes:

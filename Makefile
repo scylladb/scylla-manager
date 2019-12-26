@@ -111,7 +111,7 @@ INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
 -managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
 -schema-dir $(PWD)/schema \
 -agent-auth-token token \
--s3-data-dir $(PWD)/testing/minio/data -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_ACCESS_KEY) -s3-secret-access-key $(MINIO_SECRET_KEY)
+-s3-data-dir $(PWD)/testing/minio/data -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
 
 .PHONY: pkg-integration-test
 pkg-integration-test: ## Run integration tests for a package, requires PKG parameter
