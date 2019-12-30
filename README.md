@@ -7,9 +7,9 @@ Mermaid repository provides tools for managing clusters of Scylla servers. It co
 
 ## Setting up development environment
 
-* Install Go, make sure that `GOPATH` environment variable is properly set.
-* Install and Docker.
-* Run installation script `install_deps.sh`.
+* Install Go
+* Install Docker and docker-compose
+* Run installation script `install_deps.sh`
 
 If using GoLand update import grouping policy:
 
