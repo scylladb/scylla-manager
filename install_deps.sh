@@ -2,10 +2,10 @@
 
 set -u -o pipefail
 
-FEDORA_PKGS="jq make moreutils sshpass pcre-tools python2   python2-pip rpm-build"
-UBUNTU_PKGS="jq make moreutils sshpass pcregrep   python2.7 python-pip"
+FEDORA_PKGS="jq make moreutils sshpass pcre-tools python python-pip rpm-build"
+UBUNTU_PKGS="jq make moreutils sshpass pcregrep   python python-pip"
 
-PYTHON_PKGS="cqlsh docker-compose"
+PYTHON_PKGS="cqlsh"
 
 GO_PKGS="
 golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.21.0/golangci-lint-1.21.0-linux-amd64.tar.gz \
