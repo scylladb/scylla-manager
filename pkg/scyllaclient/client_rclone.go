@@ -82,14 +82,8 @@ func (c *Client) RcloneStatusOfJob(job *models.Job) (status RcloneJobStatus) {
 	return
 }
 
-// RcloneFileTransfers returns map from file name to transfer entries.
-func (c *Client) RcloneFileTransfers(transferred []*models.Transfer) map[string][]*models.Transfer {
-	m := make(map[string][]*models.Transfer, len(transferred))
-	for _, tr := range transferred {
-		m[tr.Name] = append(m[tr.Name], tr)
-	}
-	return m
-}
+// RcloneTransfer represents a single file transfer in RcloneJobInfo Transferred.
+type RcloneTransfer = models.Transfer
 
 // RcloneDefaultGroup returns default group name based on job id.
 func RcloneDefaultGroup(jobID int64) string {
