@@ -220,8 +220,12 @@ func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllac
 	for _, tr := range job.Stats.Transferring {
 		transferringBytes[tr.Name] = tr.Bytes
 	}
+
 	// Build mapping from file name to transfer entries
-	fileTransfers := w.Client.RcloneFileTransfers(job.Transferred)
+	var fileTransfers = make(map[string][]*scyllaclient.RcloneTransfer, len(job.Transferred))
+	for _, tr := range job.Transferred {
+		fileTransfers[tr.Name] = append(fileTransfers[tr.Name], tr)
+	}
 
 	// Clear values
 	p.StartedAt = nil
