@@ -266,41 +266,28 @@ func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *sc
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
 	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
 
-	// Get hosts of the target DCs
-	hosts := dcHosts(dcMap, dcs)
-	if len(hosts) == 0 {
-		return errors.New("no matching hosts found")
-	}
-
-	var (
-		errs error
-		res  = make(chan error)
-	)
-
+	// DC location index
+	dcl := map[string]Location{}
 	for _, l := range locations {
-		if l.DC != "" && !sliceContains(l.DC, dcs) {
-			continue
-		}
-		lh := hosts
-		if l.DC != "" {
-			lh = dcHosts(dcMap, []string{l.DC})
-			if len(lh) == 0 {
-				s.logger.Error(ctx, "No matching hosts found", "location", l)
-				continue
-			}
-		}
+		dcl[l.DC] = l
+	}
 
-		for _, h := range lh {
-			go func(h string, l Location) {
-				res <- s.checkHostLocation(ctx, client, h, l)
-			}(h, l)
+	// Create partial hostInfo
+	var hi []hostInfo
+	for _, dc := range dcs {
+		l, ok := dcl[dc]
+		if !ok {
+			l = dcl[""]
 		}
-		for range lh {
-			errs = multierr.Append(errs, <-res)
+		for _, h := range dcMap[dc] {
+			hi = append(hi, hostInfo{IP: h, Location: l})
 		}
 	}
 
-	return service.ErrValidate(errs)
+	// Run checkHostLocation in parallel
+	return service.ErrValidate(parallel.Run(len(hi), parallel.NoLimit, func(i int) error {
+		return s.checkHostLocation(ctx, client, hi[i].IP, hi[i].Location)
+	}))
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
