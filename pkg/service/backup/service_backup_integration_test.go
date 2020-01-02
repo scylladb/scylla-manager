@@ -18,6 +18,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid/pkg/schema/table"
@@ -306,7 +307,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				t.Error(err)
 			}
 
-			if diff := cmp.Diff(golden, v); diff != "" {
+			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
 				t.Fatal(diff)
 			}
 		})
