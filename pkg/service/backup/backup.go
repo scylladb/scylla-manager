@@ -128,7 +128,7 @@ func sliceContains(str string, items []string) bool {
 }
 
 // filterDCLocations takes list of locations and returns only locations that
-// belong the provided list of data centers.
+// belong to the provided list of datacenters.
 func filterDCLocations(locations []Location, dcs []string) []Location {
 	var filtered []Location
 	for _, l := range locations {
@@ -141,7 +141,7 @@ func filterDCLocations(locations []Location, dcs []string) []Location {
 }
 
 // filterDCLimits takes list of DCLimits and returns only locations that belong
-// the provided list of data centers.
+// the provided list of datacenters.
 func filterDCLimits(limits []DCLimit, dcs []string) []DCLimit {
 	var filtered []DCLimit
 	for _, l := range limits {
