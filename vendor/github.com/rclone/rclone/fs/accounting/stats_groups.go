@@ -309,7 +309,7 @@ func (sg *statsGroups) set(group string, stats *StatsInfo) {
 	// Limit number of groups kept in memory.
 	if len(sg.order) >= fs.Config.MaxStatsGroups {
 		group := sg.order[0]
-		//fs.LogPrintf(fs.LogLevelInfo, nil, "Max number of stats groups reached removing %s", group)
+		fs.LogPrintf(fs.LogLevelInfo, nil, "Max number of stats groups reached removing %s", group)
 		delete(sg.m, group)
 		r := (len(sg.order) - fs.Config.MaxStatsGroups) + 1
 		sg.order = sg.order[r:]
@@ -343,22 +343,27 @@ func (sg *statsGroups) names() []string {
 func (sg *statsGroups) sum() *StatsInfo {
 	sg.mu.Lock()
 	defer sg.mu.Unlock()
+
 	sum := NewStats()
 	for _, stats := range sg.m {
-		sum.bytes += stats.bytes
-		sum.errors += stats.errors
-		sum.fatalError = sum.fatalError || stats.fatalError
-		sum.retryError = sum.retryError || stats.retryError
-		sum.checks += stats.checks
-		sum.transfers += stats.transfers
-		sum.deletes += stats.deletes
-		sum.checking.merge(stats.checking)
-		sum.transferring.merge(stats.transferring)
-		sum.inProgress.merge(stats.inProgress)
-		if sum.lastError == nil && stats.lastError != nil {
-			sum.lastError = stats.lastError
+		stats.mu.RLock()
+		{
+			sum.bytes += stats.bytes
+			sum.errors += stats.errors
+			sum.fatalError = sum.fatalError || stats.fatalError
+			sum.retryError = sum.retryError || stats.retryError
+			sum.checks += stats.checks
+			sum.transfers += stats.transfers
+			sum.deletes += stats.deletes
+			sum.checking.merge(stats.checking)
+			sum.transferring.merge(stats.transferring)
+			sum.inProgress.merge(stats.inProgress)
+			if sum.lastError == nil && stats.lastError != nil {
+				sum.lastError = stats.lastError
+			}
+			sum.startedTransfers = append(sum.startedTransfers, stats.startedTransfers...)
 		}
-		sum.startedTransfers = append(sum.startedTransfers, stats.startedTransfers...)
+		stats.mu.RUnlock()
 	}
 	return sum
 }
