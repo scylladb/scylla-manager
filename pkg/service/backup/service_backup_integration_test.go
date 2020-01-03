@@ -807,7 +807,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		h.waitNoTransfers()
 	})
 
-	t.Run("resume after agent restart", func(t *testing.T) {
+	t.Run("survive agent restart", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -817,8 +817,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 		go func() {
 			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
-			if err == nil {
-				t.Error("Expected error on run but got nil")
+			if err != nil {
+				t.Error("Expected no error on run but got", err)
 			}
 			close(done)
 		}()
@@ -838,17 +838,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
 
-		Print("When: backup is resumed with new RunID")
-		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
-		if err != nil {
-			t.Error("Unexpected error", err)
-		}
-
 		Print("Then: data is uploaded")
 		assertDataUploded(t, h)
-
-		Print("And: nothing is transferring")
-		h.waitNoTransfers()
 	})
 
 	t.Run("resume after snapshot failed", func(t *testing.T) {
