@@ -14,23 +14,23 @@ import (
 )
 
 func (w *worker) Index(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
-	w.Logger.Info(ctx, "Starting index procedure")
+	w.Logger.Info(ctx, "Indexing snapshot files...")
 	defer func() {
 		if err != nil {
-			w.Logger.Error(ctx, "Index procedure completed with error(s) see exact errors above")
+			w.Logger.Error(ctx, "Indexing snapshot files failed see exact errors above")
 		} else {
-			w.Logger.Info(ctx, "Index procedure completed")
+			w.Logger.Info(ctx, "Done indexing snapshot files")
 		}
 	}()
 
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
-		w.Logger.Info(ctx, "Executing index procedure on host", "host", h.IP)
+		w.Logger.Info(ctx, "Indexing snapshot files on host", "host", h.IP)
 
 		dirs, err := w.indexSnapshotDirs(ctx, h)
 		if err != nil {
-			w.Logger.Error(ctx, "Index procedure failed on host", "host", h.IP, "error", err)
+			w.Logger.Error(ctx, "Indexing snapshot files failed on host", "host", h.IP, "error", err)
 		} else {
-			w.Logger.Info(ctx, "Done executing index procedure on host", "host", h.IP)
+			w.Logger.Info(ctx, "Done indexing snapshot files on host", "host", h.IP)
 		}
 		w.setHostSnapshotDirs(h, dirs)
 

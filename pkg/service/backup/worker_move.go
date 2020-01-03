@@ -10,22 +10,22 @@ import (
 )
 
 func (w *worker) MoveManifests(ctx context.Context, hosts []hostInfo) (err error) {
-	w.Logger.Info(ctx, "Starting move manifests procedure")
+	w.Logger.Info(ctx, "Moving manifests...")
 	defer func() {
 		if err != nil {
-			w.Logger.Error(ctx, "Move manifests procedure completed with error(s) see exact errors above")
+			w.Logger.Error(ctx, "Moving manifests failed see exact errors above")
 		} else {
-			w.Logger.Info(ctx, "Move manifests procedure completed")
+			w.Logger.Info(ctx, "Done moving manifests")
 		}
 	}()
 
 	return inParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
-		w.Logger.Info(ctx, "Executing move manifests procedure on host", "host", h.IP)
+		w.Logger.Info(ctx, "Moving manifests on host", "host", h.IP)
 		err := w.moveManifestsHost(ctx, h)
 		if err != nil {
-			w.Logger.Error(ctx, "Move manifests procedure failed on host", "host", h.IP, "error", err)
+			w.Logger.Error(ctx, "Moving manifests failed on host", "host", h.IP, "error", err)
 		} else {
-			w.Logger.Info(ctx, "Done executing move manifests on host", "host", h.IP)
+			w.Logger.Info(ctx, "Done moving manifests on host", "host", h.IP)
 		}
 		return err
 	})
@@ -35,7 +35,7 @@ func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
 
 	for _, d := range dirs {
-		w.Logger.Info(ctx, "Moving table manifest",
+		w.Logger.Info(ctx, "Moving manifest",
 			"host", h.IP,
 			"keyspace", d.Keyspace,
 			"table", d.Table,

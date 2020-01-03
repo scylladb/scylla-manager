@@ -10,22 +10,22 @@ import (
 )
 
 func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
-	w.Logger.Info(ctx, "Starting snapshot procedure")
+	w.Logger.Info(ctx, "Taking snapshots...")
 	defer func() {
 		if err != nil {
-			w.Logger.Error(ctx, "Snapshot procedure completed with error(s) see exact errors above")
+			w.Logger.Error(ctx, "Taking snapshots failed see exact errors above")
 		} else {
-			w.Logger.Info(ctx, "Snapshot procedure completed")
+			w.Logger.Info(ctx, "Done taking snapshots")
 		}
 	}()
 
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
-		w.Logger.Info(ctx, "Executing snapshot procedure on host", "host", h.IP)
+		w.Logger.Info(ctx, "Taking snapshots on host", "host", h.IP)
 		err := w.snapshotHost(ctx, h)
 		if err != nil {
-			w.Logger.Error(ctx, "Snapshot procedure failed on host", "host", h.IP, "error", err)
+			w.Logger.Error(ctx, "Taking snapshots failed on host", "host", h.IP, "error", err)
 		} else {
-			w.Logger.Info(ctx, "Done executing snapshot procedure on host", "host", h.IP)
+			w.Logger.Info(ctx, "Done taking snapshots on host", "host", h.IP)
 		}
 		return err
 	})

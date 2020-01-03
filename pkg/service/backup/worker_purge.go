@@ -9,22 +9,22 @@ import (
 )
 
 func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy int) (err error) {
-	w.Logger.Info(ctx, "Starting purge procedure")
+	w.Logger.Info(ctx, "Purging old data...")
 	defer func() {
 		if err != nil {
-			w.Logger.Error(ctx, "Purge procedure completed with error(s) see exact errors above")
+			w.Logger.Error(ctx, "Purging old data failed see exact errors above")
 		} else {
-			w.Logger.Info(ctx, "Purge procedure completed")
+			w.Logger.Info(ctx, "Done purging old data")
 		}
 	}()
 
 	return inParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
-		w.Logger.Info(ctx, "Executing purge procedure on host", "host", h.IP)
+		w.Logger.Info(ctx, "Purging old data on host", "host", h.IP)
 		err := w.purgeHost(ctx, h, policy)
 		if err != nil {
-			w.Logger.Error(ctx, "Purge procedure failed on host", "host", h.IP, "error", err)
+			w.Logger.Error(ctx, "Purging old data failed on host", "host", h.IP, "error", err)
 		} else {
-			w.Logger.Info(ctx, "Done executing purge procedure on host", "host", h.IP)
+			w.Logger.Info(ctx, "Done purging old data on host", "host", h.IP)
 		}
 		return err
 	})
