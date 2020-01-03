@@ -7,15 +7,13 @@ package retryablehttp
 import (
 	"io"
 	"io/ioutil"
-	"math"
-	"math/rand"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
+	"github.com/scylladb/mermaid/pkg/util/retry"
 )
 
 var (
@@ -48,11 +46,6 @@ type LenReader interface {
 // response body before returning.
 type CheckRetry func(req *http.Request, resp *http.Response, err error) (bool, error)
 
-// Backoff specifies a policy for how long to wait between retries.
-// It is called after a failing request to determine the amount of time
-// that should pass before trying again.
-type Backoff func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration
-
 // ErrorHandler is called if retries are expired, containing the last status
 // from the http library. If not specified, default behavior for the library is
 // to close the body and return an error indicating how many tries were
@@ -65,16 +58,14 @@ type Transport struct {
 	parent http.RoundTripper
 	logger log.Logger
 
-	RetryWaitMin time.Duration // Minimum time to wait
-	RetryWaitMax time.Duration // Maximum time to wait
-	RetryMax     int           // Maximum number of retries
-
 	// CheckRetry specifies the policy for handling retries, and is called
 	// after each request. The default policy is DefaultRetryPolicy.
 	CheckRetry CheckRetry
 
-	// Backoff specifies the policy for how long to wait between retries
-	Backoff Backoff
+	// NewBackoff returns policy for how long to wait between retries.
+	// It's needed because strategy is shared between requests, but state
+	// is not.
+	NewBackoff func() retry.Backoff
 
 	// ErrorHandler specifies the custom error handler to use, if any
 	ErrorHandler ErrorHandler
@@ -83,14 +74,27 @@ type Transport struct {
 // NewTransport creates a new Transport with default settings.
 func NewTransport(parent http.RoundTripper, logger log.Logger) *Transport {
 	return &Transport{
-		parent:       parent,
-		logger:       logger,
-		RetryWaitMin: defaultRetryWaitMin,
-		RetryWaitMax: defaultRetryWaitMax,
-		RetryMax:     defaultRetryMax,
-		CheckRetry:   DefaultRetryPolicy,
-		Backoff:      DefaultBackoff,
+		parent:     parent,
+		logger:     logger,
+		CheckRetry: DefaultRetryPolicy,
+		NewBackoff: func() retry.Backoff {
+			return DefaultBackoff(defaultRetryWaitMin, defaultRetryWaitMax, defaultRetryMax)
+		},
 	}
+}
+
+// DefaultBackoff provides a default backoff strategy that
+// will perform exponential backoff with limited number of retries.
+// Minimum and maximum durations are limited by provided parameters.
+func DefaultBackoff(waitMin, waitMax time.Duration, retryMax int) retry.Backoff {
+	maxElapsedTime := time.Duration(retryMax) * waitMax
+	multiplier := 2.0
+	randomFactor := 0.0
+
+	return retry.WithMaxRetries(
+		retry.NewExponentialBackoff(waitMin, maxElapsedTime, waitMax, multiplier, randomFactor),
+		uint64(retryMax),
+	)
 }
 
 // DefaultRetryPolicy provides a default callback for Client.CheckRetry.
@@ -129,69 +133,13 @@ func DefaultRetryPolicy(req *http.Request, resp *http.Response, err error) (bool
 	return false, nil
 }
 
-// DefaultBackoff provides a default callback for Client.Backoff which
-// will perform exponential backoff based on the attempt number and limited
-// by the provided minimum and maximum durations.
-func DefaultBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
-	mult := math.Pow(2, float64(attemptNum)) * float64(min)
-	sleep := time.Duration(mult)
-	if float64(sleep) != mult || sleep > max {
-		sleep = max
-	}
-	return sleep
-}
-
-// LinearJitterBackoff provides a callback for Client.Backoff which will
-// perform linear backoff based on the attempt number and with jitter to
-// prevent a thundering herd.
-//
-// min and max here are *not* absolute values. The number to be multiplied by
-// the attempt number will be chosen at random from between them, thus they are
-// bounding the jitter.
-//
-// For instance:
-// * To get strictly linear backoff of one second increasing each retry, set
-// both to one second (1s, 2s, 3s, 4s, ...)
-// * To get a small amount of jitter centered around one second increasing each
-// retry, set to around one second, such as a min of 800ms and max of 1200ms
-// (892ms, 2102ms, 2945ms, 4312ms, ...)
-// * To get extreme jitter, set to a very wide spread, such as a min of 100ms
-// and a max of 20s (15382ms, 292ms, 51321ms, 35234ms, ...)
-func LinearJitterBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
-	// attemptNum always starts at zero but we want to start at 1 for multiplication
-	attemptNum++
-
-	if max <= min {
-		// Unclear what to do here, or they are the same, so return min *
-		// attemptNum
-		return min * time.Duration(attemptNum)
-	}
-
-	// Seed rand; doing this every time is fine
-	rand := rand.New(rand.NewSource(int64(timeutc.Now().Nanosecond())))
-
-	// Pick a random number that lies somewhere between the min and max and
-	// multiply by the attemptNum. attemptNum starts at zero so we always
-	// increment here. We first get a random percentage, then apply that to the
-	// difference between min and max, and add to min.
-	jitter := rand.Float64() * float64(max-min)
-	jitterMin := int64(jitter) + int64(min)
-	return time.Duration(jitterMin * int64(attemptNum))
-}
-
-// PassthroughErrorHandler is an ErrorHandler that directly passes through the
-// values from the net/http library for the final request. The body is not
-// closed.
-func PassthroughErrorHandler(resp *http.Response, err error, _ int) (*http.Response, error) {
-	return resp, err
-}
-
 // RoundTrip wraps calling parent RoundTrip method with retries.
 func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var (
-		r    *http.Request
-		resp *http.Response
-		err  error
+		r       *http.Request
+		resp    *http.Response
+		err     error
+		retries = -1
 	)
 
 	// Copy the request if contains body
@@ -203,10 +151,33 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		r = req
 	}
 
-loop:
-	for i := 0; ; i++ {
-		// Attempt the request
-		resp, err = t.parent.RoundTrip(r)
+	// Because backoff is set per RoundTripper, and each RT handles multiple
+	// requests concurrently, same object can not be used due to internal backoff
+	// state.
+	backoff := t.NewBackoff()
+
+	notify := func(e error, wait time.Duration) {
+		t.logger.Info(r.Context(), "retrying",
+			"host", r.Host,
+			"method", r.Method,
+			"uri", r.URL.RequestURI(),
+			"wait", wait,
+			"error", e,
+		)
+
+		// We're going to retry, consume any response to reuse the connection.
+		if err == nil && resp != nil {
+			t.drainBody(resp)
+		}
+	}
+
+	op := func() error {
+		retries++
+		// Attempt the request.
+		// Body is closed in notify function which isn't called after last retry.
+		// This property allows to return non-consumed body back to user, and
+		// consume it only when next retry happens.
+		resp, err = t.parent.RoundTrip(r) //nolint: bodyclose
 		if err != nil {
 			t.logger.Info(r.Context(), "request failed",
 				"host", r.Host,
@@ -218,7 +189,7 @@ loop:
 
 		// If body was read do not continue.
 		if b, ok := r.Body.(*body); ok && b.read {
-			return resp, err
+			return retry.Permanent(err)
 		}
 
 		// Check if we should continue with retries.
@@ -229,48 +200,18 @@ loop:
 			if checkErr != nil {
 				err = checkErr
 			}
-			return resp, err
+			return retry.Permanent(err)
 		}
 
-		// We do this before drainBody because there's no need for the I/O if
-		// we're breaking out
-		remain := t.RetryMax - i
-		if remain <= 0 {
-			break
+		if err != nil {
+			return err
 		}
-
-		// We're going to retry, consume any response to reuse the connection.
-		if err == nil && resp != nil {
-			t.drainBody(resp)
-		}
-
-		wait := t.Backoff(t.RetryWaitMin, t.RetryWaitMax, i, resp)
-		t.logger.Info(r.Context(), "retrying",
-			"host", r.Host,
-			"method", r.Method,
-			"uri", r.URL.RequestURI(),
-			"wait", wait,
-			"left", remain,
-		)
-
-		if wait > 0 {
-			select {
-			case <-req.Context().Done():
-				// If we hit this point that means we are waiting for another
-				// retry. break allows to preserve previous err after returning.
-				// It was just coincidence that context was canceled while there
-				// were errors.
-				break loop
-			case <-time.After(wait):
-			}
-		}
+		return errors.Errorf("unexpected response code: %d", resp.StatusCode)
 	}
 
-	if t.ErrorHandler != nil {
-		return t.ErrorHandler(resp, err, t.RetryMax+1)
-	}
-
-	return resp, errors.Wrapf(err, "giving up after %d attempts", t.RetryMax+1)
+	// Error is handled by operation
+	_ = retry.WithNotify(req.Context(), op, backoff, notify) //nolint:errcheck
+	return resp, errors.Wrapf(err, "giving up after %d retries", retries)
 }
 
 // Try to read the response body so we can reuse this connection.

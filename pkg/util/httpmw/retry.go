@@ -10,6 +10,7 @@ import (
 
 	"github.com/hailocab/go-hostpool"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/util/retry"
 	"github.com/scylladb/mermaid/pkg/util/retryablehttp"
 )
 
@@ -21,7 +22,6 @@ func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTr
 	// Retry policy while using host pool, no backoff wait time, switch host as
 	// fast as possible.
 	poolRetry := retryablehttp.NewTransport(next, logger)
-	poolRetry.RetryMax = poolSize
 	// DefaultRetryPolicy uses special logic not to retry on broken connections,
 	// here as we switch hosts we want to always retry.
 	poolRetry.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
@@ -38,8 +38,10 @@ func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTr
 		}
 		return false, nil
 	}
-	poolRetry.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
-		return 0
+	poolRetry.NewBackoff = func() retry.Backoff {
+		return retry.WithMaxRetries(retry.BackoffFunc(func() time.Duration {
+			return 0
+		}), uint64(poolSize))
 	}
 
 	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
