@@ -11,14 +11,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid/pkg/schema/table"
@@ -26,12 +29,14 @@ import (
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/mermaid/pkg/util/httpmw"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
 
 type backupTestHelper struct {
 	session  *gocql.Session
+	hrt      *HackableRoundTripper
 	client   *scyllaclient.Client
 	service  *backup.Service
 	location backup.Location
@@ -49,7 +54,8 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 	S3InitBucket(t, location.Path)
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
-	client := newTestClient(t, logger.Named("client"))
+	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
+	client := newTestClient(t, hrt, logger.Named("client"))
 	service := newTestService(t, session, client, config, logger)
 
 	for _, ip := range ManagedClusterHosts() {
@@ -60,6 +66,7 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 
 	return &backupTestHelper{
 		session:  session,
+		hrt:      hrt,
 		client:   client,
 		service:  service,
 		location: location,
@@ -72,10 +79,13 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 	}
 }
 
-func newTestClient(t *testing.T, logger log.Logger) *scyllaclient.Client {
+func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
 	t.Helper()
 
-	c, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), logger.Named("scylla"))
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	config.Transport = hrt
+
+	c, err := scyllaclient.NewClient(config, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -375,7 +385,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		},
 	}
 
-	const testBucket = "backupbackuptest-get-target"
+	const testBucket = "backuptest-get-target"
 
 	var (
 		session = CreateSessionWithoutMigration(t)
@@ -710,6 +720,45 @@ func TestBackupResumeIntegration(t *testing.T) {
 		Continue: true,
 	}
 
+	assertDataUploded := func(t *testing.T, h *backupTestHelper) {
+		t.Helper()
+
+		manifests, files := h.listFiles()
+		if len(manifests) != 3 {
+			t.Fatalf("Expected 3 manifests got %s", manifests)
+		}
+		if len(files) == 0 {
+			t.Fatal("Expected data to be uploaded")
+		}
+	}
+
+	assertDataUplodedAfterTag := func(t *testing.T, h *backupTestHelper, tag string) {
+		t.Helper()
+
+		manifests, files := h.listFiles()
+		c := 0
+		for _, m := range manifests {
+			if backup.SnapshotTagFromManifestPath(t, m) > tag {
+				c += 1
+			}
+		}
+		if c != 3 {
+			t.Fatalf("Expected 3 new manifests got %d from %s", c, manifests)
+		}
+		if len(files) == 0 {
+			t.Fatal("Expected data to be uploaded")
+		}
+	}
+
+	getTagAndWait := func() string {
+		tag := backup.NewSnapshotTag()
+
+		// Wait for new tag as they have a second resolution
+		time.Sleep(time.Second)
+
+		return tag
+	}
+
 	t.Run("resume after stop", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location)
 
@@ -752,13 +801,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		manifests, files := h.listFiles()
-		if len(manifests) != 3 {
-			t.Fatalf("Expected 3 manifests got %s", manifests)
-		}
-		if len(files) == 0 {
-			t.Fatal("Expected data to be uploaded")
-		}
+		assertDataUploded(t, h)
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
@@ -802,13 +845,60 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		manifests, files := h.listFiles()
-		if len(manifests) != 3 {
-			t.Fatalf("Expected 3 manifests got %s", manifests)
+		assertDataUploded(t, h)
+
+		Print("And: nothing is transferring")
+		h.waitNoTransfers()
+	})
+
+	t.Run("resume after snapshot failed", func(t *testing.T) {
+		h := newBackupTestHelper(t, session, config, location)
+
+		Print("Given: snapshot fails on a host")
+		var (
+			brokenHost string
+			mu         sync.Mutex
+		)
+		h.hrt.SetInterceptor(httpmw.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method == http.MethodPost && req.URL.Path == "/storage_service/snapshots" {
+				mu.Lock()
+				if brokenHost == "" {
+					t.Log("Setting broken host", req.Host)
+					brokenHost = req.Host
+				}
+				mu.Unlock()
+
+				if brokenHost == req.Host {
+					return nil, errors.New("dial error on snapshot")
+				}
+			}
+			return nil, nil
+		}))
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run backup")
+		err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
+
+		Print("Then: it fails")
+		if err == nil {
+			t.Error("Expected error on run but got nil")
 		}
-		if len(files) == 0 {
-			t.Fatal("Expected data to be uploaded")
+		t.Log("Backup() error", err)
+
+		Print("Given: snapshot not longer fails on a host")
+		h.hrt.SetInterceptor(nil)
+
+		Print("When: backup is resumed with new RunID")
+		tag := getTagAndWait()
+		err = h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
+		if err != nil {
+			t.Error("Unexpected error", err)
 		}
+
+		Print("Then: data is uploaded")
+		assertDataUplodedAfterTag(t, h, tag)
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
@@ -851,29 +941,16 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
-		tagAfterRun := backup.NewSnapshotTag()
 
 		Print("When: backup is resumed with new RunID")
-		time.Sleep(time.Second) // wait for new tag
+		tag := getTagAndWait()
 		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
 		if err != nil {
 			t.Error("Unexpected error", err)
 		}
 
 		Print("Then: data is uploaded")
-		manifests, files := h.listFiles()
-		c := 0
-		for _, m := range manifests {
-			if backup.SnapshotTagFromManifestPath(t, m) > tagAfterRun {
-				c += 1
-			}
-		}
-		if c != 3 {
-			t.Fatalf("Expected 3 new manifests got %d from %s", c, manifests)
-		}
-		if len(files) == 0 {
-			t.Fatal("Expected data to be uploaded")
-		}
+		assertDataUplodedAfterTag(t, h, tag)
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
