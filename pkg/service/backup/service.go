@@ -568,6 +568,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	// Index files
+	w = w.WithLogger(s.logger.Named("index"))
+	if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
+		return errors.Wrap(err, "index")
+	}
+
 	// Upload files
 	w = w.WithLogger(s.logger.Named("upload"))
 	if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {

@@ -612,7 +612,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("List() = %v, expected two SnapshotTags", items)
 	}
 
-	Print("And: and files")
+	Print("And: files")
 	manifests, files := h.listFiles()
 	tables, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
@@ -629,23 +629,14 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", sst, 2*len(files))
 	}
 
-	Print("And: transfer statistics are cleared")
-	for _, host := range ManagedClusterHosts() {
-		job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
-		if err != nil {
-			h.t.Fatal(err)
-		}
-		if job.Stats.Transfers != 0 {
-			t.Errorf("Expected empty transfer statistics, got %d", job.Stats.Transfers)
-		}
-		if len(job.Transferred) != 0 {
-			for i, v := range job.Transferred {
-				t.Logf("job.Transferred[%d]=%+v", i, *v)
-			}
-			t.Errorf("Expected empty transfers, got %d", len(job.Transferred))
+	Print("And: manifests are in metadata directory")
+	for _, m := range manifests {
+		if err := backup.ParsePartialPath(m); err != nil {
+			t.Fatal("manifest file in wrong path", m)
 		}
 	}
 
+	Print("When: write new data")
 	writeData(t, clusterSession, testKeyspace, 1)
 
 	Print("And: run it again")
@@ -666,6 +657,22 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("List() = %v, expected three SnapshotTags", items)
 	}
 
+	Print("And: transfer statistics are cleared")
+	for _, host := range ManagedClusterHosts() {
+		job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if job.Stats.Transfers != 0 {
+			t.Errorf("Expected empty transfer statistics, got %d", job.Stats.Transfers)
+		}
+		if len(job.Transferred) != 0 {
+			for i, v := range job.Transferred {
+				t.Logf("job.Transferred[%d]=%+v", i, *v)
+			}
+			t.Errorf("Expected empty transfers, got %d", len(job.Transferred))
+		}
+	}
 }
 
 var backupTimeout = 10 * time.Second
@@ -751,13 +758,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 		if len(files) == 0 {
 			t.Fatal("Expected data to be uploaded")
-		}
-
-		Print("Then: manifests are in metadata directory")
-		for _, m := range manifests {
-			if err := backup.ParsePartialPath(m); err != nil {
-				t.Fatal("manifest file in wrong path", m)
-			}
 		}
 
 		Print("And: nothing is transferring")

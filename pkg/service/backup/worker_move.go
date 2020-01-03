@@ -33,6 +33,7 @@ func (w *worker) MoveManifests(ctx context.Context, hosts []hostInfo) (err error
 
 func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
+
 	for _, d := range dirs {
 		w.Logger.Info(ctx, "Moving table manifest",
 			"host", h.IP,
