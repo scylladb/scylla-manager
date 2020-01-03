@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/util/retry"
 )
 
 // Testing helpers
@@ -30,6 +31,10 @@ func NewClient() (*http.Client, *Transport) {
 }
 
 var NewRequest = http.NewRequest
+
+func fastBackoff() retry.Backoff {
+	return DefaultBackoff(10*time.Millisecond, 50*time.Millisecond, 20)
+}
 
 func TestClient_Do(t *testing.T) {
 	testBytes := []byte("hello")
@@ -44,9 +49,7 @@ func TestClient_Do(t *testing.T) {
 
 	// Create the client. Use short retry windows.
 	client, transport := NewClient()
-	transport.RetryWaitMin = 10 * time.Millisecond
-	transport.RetryWaitMax = 50 * time.Millisecond
-	transport.RetryMax = 50
+	transport.NewBackoff = fastBackoff
 
 	// Send the request
 	var resp *http.Response
@@ -127,9 +130,11 @@ func TestClient_Do_fails(t *testing.T) {
 
 	// Create the client. Use short retry windows so we fail faster.
 	client, transport := NewClient()
-	transport.RetryWaitMin = 10 * time.Millisecond
-	transport.RetryWaitMax = 10 * time.Millisecond
-	transport.RetryMax = 2
+	transport.NewBackoff = func() retry.Backoff {
+		return retry.WithMaxRetries(retry.BackoffFunc(func() time.Duration {
+			return 10 * time.Millisecond
+		}), 2)
+	}
 
 	// Create the request
 	req, err := NewRequest("POST", ts.URL, nil)
@@ -260,9 +265,7 @@ func TestRetryAfterNoConnection(t *testing.T) {
 
 	// Create the client. Use short retry windows.
 	client, transport := NewClient()
-	transport.RetryWaitMin = 10 * time.Millisecond
-	transport.RetryWaitMax = 50 * time.Millisecond
-	transport.RetryMax = 20
+	transport.NewBackoff = fastBackoff
 	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
 		retry, err := DefaultRetryPolicy(req, resp, err)
 		if retry {
@@ -352,9 +355,7 @@ func TestRetryAfterInternalServerError(t *testing.T) {
 
 	// Create the client. Use short retry windows.
 	client, transport := NewClient()
-	transport.RetryWaitMin = 10 * time.Millisecond
-	transport.RetryWaitMax = 50 * time.Millisecond
-	transport.RetryMax = 20
+	transport.NewBackoff = fastBackoff
 	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
 		retry, err := DefaultRetryPolicy(req, resp, err)
 		if retry {
@@ -421,9 +422,7 @@ func TestRetryAfterConnectionReset(t *testing.T) {
 
 	// Create the client. Use short retry windows.
 	client, transport := NewClient()
-	transport.RetryWaitMin = 10 * time.Millisecond
-	transport.RetryWaitMax = 50 * time.Millisecond
-	transport.RetryMax = 50
+	transport.NewBackoff = fastBackoff
 	transport.CheckRetry = func(req *http.Request, resp *http.Response, err error) (bool, error) {
 		close(retries)
 		retry, err := DefaultRetryPolicy(req, resp, err)
@@ -475,7 +474,7 @@ func TestBackoff(t *testing.T) {
 		i      int
 		expect time.Duration
 	}
-	cases := []tcase{
+	tcs := []tcase{
 		{
 			time.Second,
 			5 * time.Minute,
@@ -514,24 +513,37 @@ func TestBackoff(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		if v := DefaultBackoff(tc.min, tc.max, tc.i, nil); v != tc.expect {
-			t.Fatalf("Bad: %#v -> %s", tc, v)
-		}
+	for i := range tcs {
+		tc := tcs[i]
+		t.Run(fmt.Sprintf("min_%s_max_%s_iterations_%d", tc.min, tc.max, tc.i), func(t *testing.T) {
+			t.Parallel()
+			b := DefaultBackoff(tc.min, tc.max, tc.i+1)
+			for i := 0; i < tc.i; i++ {
+				b.NextBackOff()
+			}
+			if v := b.NextBackOff(); v != tc.expect {
+				t.Fatalf("Bad: expected: %s, got %s", tc.expect, v)
+			}
+			if v := b.NextBackOff(); v != retry.Stop {
+				t.Fatalf("Bad: expected stop value, got %s", v)
+			}
+		})
 	}
 }
 
 func TestClient_BackoffCustom(t *testing.T) {
 	var retries int32
-
+	const maxRetries = 20
 	client, transport := NewClient()
-	transport.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
-		atomic.AddInt32(&retries, 1)
-		return time.Millisecond * 1
+	transport.NewBackoff = func() retry.Backoff {
+		return retry.WithMaxRetries(retry.BackoffFunc(func() time.Duration {
+			atomic.AddInt32(&retries, 1)
+			return time.Millisecond * 1
+		}), maxRetries)
 	}
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if atomic.LoadInt32(&retries) == int32(transport.RetryMax) {
+		if atomic.LoadInt32(&retries) == int32(maxRetries) {
 			w.WriteHeader(200)
 			return
 		}
@@ -545,7 +557,7 @@ func TestClient_BackoffCustom(t *testing.T) {
 		t.Fatalf("Err: %v", err)
 	}
 	resp.Body.Close()
-	if retries != int32(transport.RetryMax) {
-		t.Fatalf("Expected retries: %d != %d", transport.RetryMax, retries)
+	if retries != int32(maxRetries) {
+		t.Fatalf("Expected retries: %d != %d", maxRetries, retries)
 	}
 }
