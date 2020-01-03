@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"path"
 	"regexp"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
@@ -79,20 +78,6 @@ func (w *worker) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
 }
 
 func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
-	// Double check that the snapshot does not exist on host.
-	units, err := w.Client.SnapshotDetails(ctx, h.IP, w.SnapshotTag)
-	if err != nil {
-		return errors.Wrapf(err, "check snapshot exists")
-	}
-	if len(units) != 0 {
-		w.Logger.Debug(ctx, "Snapshot already exists",
-			"host", h.IP,
-			"tag", w.SnapshotTag,
-			"units", units,
-		)
-		return errors.Errorf("snapshot %s already exists", w.SnapshotTag)
-	}
-
 	// Taking a snapshot can be a costly operation. To optimise that clusterwise
 	// we randomise order of taking snapshots (kesypace only!) on different
 	// hosts.
@@ -105,18 +90,7 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 			tables = u.Tables
 		}
 		if err := w.Client.TakeSnapshot(ctx, h.IP, w.SnapshotTag, u.Keyspace, tables...); err != nil {
-			w.Logger.Debug(ctx, "Snapshot error",
-				"keyspace", u.Keyspace,
-				"tag", w.SnapshotTag,
-				"error", err,
-			)
-
-			// Ignore snapshot already exists error.
-			// We checked that it did not exist before...
-			// It must have taken long time to execute and failed on retry.
-			if !strings.Contains(err.Error(), "snapshot "+w.SnapshotTag+" already exists") {
-				return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
-			}
+			return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
 		}
 	}
 	return nil
