@@ -15,13 +15,12 @@ type Config struct {
 	// Hosts specifies all the cluster hosts that for a pool of hosts for the
 	// client.
 	Hosts []string
-	// AuthToken specifies the authentication token.
-	AuthToken string
+	// Port specifies the default Scylla Manager agent port.
+	Port string
 	// Transport scheme HTTP or HTTPS.
 	Scheme string
-	// Transport allows for setting a custom round tripper to send HTTP requests
-	// over not standard connections i.e. over SSH tunnel.
-	Transport http.RoundTripper
+	// AuthToken specifies the authentication token.
+	AuthToken string
 	// Timeout specifies end-to-end time to complete Scylla REST API request
 	// including retries.
 	Timeout time.Duration
@@ -32,19 +31,19 @@ type Config struct {
 	// request time in Epsilon-Greedy host pool.
 	PoolDecayDuration time.Duration
 
-	// AgentPort specifies the default Scylla Manager agent port.
-	AgentPort string
+	// Transport allows for setting a custom round tripper to send HTTP requests
+	// over not standard connections i.e. over SSH tunnel.
+	Transport http.RoundTripper
 }
 
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
+		Port:              "10001",
 		Scheme:            "https",
 		Timeout:           90 * time.Second,
 		RequestTimeout:    15 * time.Second,
 		PoolDecayDuration: 30 * time.Minute,
-
-		AgentPort: "10001",
 	}
 }
 
@@ -63,8 +62,8 @@ func (c Config) Validate() error {
 	if len(c.Hosts) == 0 {
 		err = multierr.Append(err, errors.New("missing hosts"))
 	}
-	if c.AgentPort == "" {
-		err = multierr.Append(err, errors.New("missing agent_port"))
+	if c.Port == "" {
+		err = multierr.Append(err, errors.New("missing port"))
 	}
 
 	return err

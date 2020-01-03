@@ -92,7 +92,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	transport := config.Transport
 	transport = httpmw.Timeout(transport, config.RequestTimeout, logger)
 	transport = httpmw.Logger(transport, logger)
-	transport = httpmw.HostPool(transport, pool, config.AgentPort)
+	transport = httpmw.HostPool(transport, pool, config.Port)
 	transport = httpmw.Retry(transport, len(config.Hosts), logger)
 	transport = httpmw.AuthToken(transport, config.AuthToken)
 	transport = httpmw.FixContentType(transport)

@@ -36,8 +36,8 @@ func client(t *testing.T, host, port string) *scyllaclient.Client {
 
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = []string{host}
+	config.Port = port
 	config.Scheme = "http"
-	config.AgentPort = port
 
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
