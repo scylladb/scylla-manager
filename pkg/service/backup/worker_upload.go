@@ -39,14 +39,6 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	}
 
 	dirs := w.hostSnapshotDirs(h)
-	if len(dirs) == 0 {
-		var err error
-		dirs, err = w.indexSnapshotDirs(ctx, h)
-		if err != nil {
-			return errors.Wrap(err, "index snapshot dirs")
-		}
-		w.setHostSnapshotDirs(h, dirs)
-	}
 
 	for _, d := range dirs {
 		// Check if we should attach to a previous job and wait for it to complete.
