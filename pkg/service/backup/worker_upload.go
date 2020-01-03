@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/util/retry"
 	"go.uber.org/multierr"
 )
 
@@ -122,16 +123,35 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 }
 
 func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotDir) error {
-	id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src)
-	if err != nil {
-		return err
+	// We set longer exponential backoff for upload due to chance that upload
+	// might be throttled by storage service providers or temporary
+	// network failures can occur.
+	b := uploadBackoff()
+	notify := func(err error, wait time.Duration) {
+		w.Logger.Info(ctx, "Upload failed, retrying", "host", d.Host, "from", src, "to", dst, "error", err, "wait", wait)
 	}
 
-	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
-	d.Progress.AgentJobID = id
-	w.onRunProgress(ctx, d.Progress)
+	return retry.WithNotify(ctx, func() error {
+		id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src)
+		if err != nil {
+			return err
+		}
 
-	return w.waitJob(ctx, id, d)
+		w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
+		d.Progress.AgentJobID = id
+		w.onRunProgress(ctx, d.Progress)
+
+		return w.waitJob(ctx, id, d)
+	}, b, notify)
+}
+
+func uploadBackoff() retry.Backoff {
+	initialInterval := 30 * time.Second
+	maxElapsedTime := 20 * time.Minute
+	maxInterval := 5 * time.Minute
+	multiplier := 2.0
+	randomFactor := 0.5
+	return retry.NewExponentialBackoff(initialInterval, maxElapsedTime, maxInterval, multiplier, randomFactor)
 }
 
 func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err error) {
@@ -183,7 +203,6 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 				)
 				return err
 			}
-
 			switch w.Client.RcloneStatusOfJob(job.Job) {
 			case scyllaclient.JobError:
 				return errors.Errorf("job error (%d): %s", id, job.Job.Error)
