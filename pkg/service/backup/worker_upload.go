@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/retry"
 	"go.uber.org/multierr"
@@ -129,6 +130,13 @@ func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotD
 	b := uploadBackoff()
 	notify := func(err error, wait time.Duration) {
 		w.Logger.Info(ctx, "Upload failed, retrying", "host", d.Host, "from", src, "to", dst, "error", err, "wait", wait)
+
+		backupUploadRetries.With(prometheus.Labels{
+			"cluster":  w.ClusterName,
+			"task":     w.TaskID.String(),
+			"host":     d.Host,
+			"keyspace": d.Keyspace,
+		}).Inc()
 	}
 
 	return retry.WithNotify(ctx, func() error {

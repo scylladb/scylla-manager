@@ -37,6 +37,7 @@ type snapshotDir struct {
 
 type worker struct {
 	ClusterID     uuid.UUID
+	ClusterName   string
 	TaskID        uuid.UUID
 	RunID         uuid.UUID
 	SnapshotTag   string
