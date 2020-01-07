@@ -1,5 +1,6 @@
 This product includes software from github.com/asaskevich/govalidator licensed under MIT license.
 This product includes software from github.com/beorn7/perks licensed under MIT license.
+This product includes software from github.com/cenkalti/backoff licensed under null license.
 This product includes software from github.com/cespare/xxhash licensed under MIT license.
 This product includes software from github.com/globalsign/mgo licensed under BSD-2-Clause license.
 This product includes software from github.com/gobwas/glob licensed under MIT license.
@@ -19,7 +20,7 @@ This product includes software from github.com/go-openapi/strfmt licensed under 
 This product includes software from github.com/go-openapi/swag licensed under Apache-2.0 license.
 This product includes software from github.com/go-openapi/validate licensed under Apache-2.0 license.
 This product includes software from github.com/hailocab/go-hostpool licensed under MIT license.
-This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0 license.
+This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0-no-copyleft-exception license.
 This product includes software from github.com/mailru/easyjson licensed under MIT license.
 This product includes software from github.com/matttproud/golang_protobuf_extensions licensed under Apache-2.0 license.
 This product includes software from github.com/mitchellh/mapstructure licensed under MIT license.
