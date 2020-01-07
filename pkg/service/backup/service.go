@@ -547,6 +547,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Create a worker
 	w := &worker{
 		ClusterID:     clusterID,
+		ClusterName:   clusterName,
 		TaskID:        taskID,
 		RunID:         runID,
 		SnapshotTag:   run.SnapshotTag,
