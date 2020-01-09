@@ -9,7 +9,7 @@ Standards-Version: 3.9.5
 Package: scylla-manager-server
 Architecture: amd64
 Section: databases
-Depends: bash
+Depends: bash, openssl
 Description: Scylla Manager Server
  Scylla is a highly scalable, eventually consistent, distributed, partitioned row database. This package provides the Scylla Manager server that manages maintenance tasks for Scylla database clusters.
 
@@ -23,6 +23,7 @@ Description: Scylla Manager Client
 Package: scylla-manager-agent
 Architecture: amd64
 Section: databases
+Depends: openssl
 Description: Scylla Manager Agent
  Scylla is a highly scalable, eventually consistent, distributed, partitioned row database. This package provides the Scylla Manager Agent installed alongside Scylla database server.
 
