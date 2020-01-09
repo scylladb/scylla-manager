@@ -27,6 +27,8 @@ import (
 	"go.uber.org/multierr"
 )
 
+const defaultRateLimit = 100 // 100MiB
+
 // ClusterNameFunc returns name for a given ID.
 type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
 
@@ -129,6 +131,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Filter out properties of not used DCs
 	t.Location = filterDCLocations(p.Location, t.DC)
 	t.RateLimit = filterDCLimits(p.RateLimit, t.DC)
+	if len(t.RateLimit) == 0 {
+		t.RateLimit = []DCLimit{{Limit: defaultRateLimit}}
+	}
 	t.SnapshotParallel = filterDCLimits(p.SnapshotParallel, t.DC)
 	t.UploadParallel = filterDCLimits(p.UploadParallel, t.DC)
 

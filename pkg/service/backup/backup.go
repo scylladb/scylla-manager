@@ -141,7 +141,7 @@ func filterDCLocations(locations []Location, dcs []string) []Location {
 }
 
 // filterDCLimits takes list of DCLimits and returns only locations that belong
-// the provided list of datacenters.
+// to the provided list of datacenters.
 func filterDCLimits(limits []DCLimit, dcs []string) []DCLimit {
 	var filtered []DCLimit
 	for _, l := range limits {

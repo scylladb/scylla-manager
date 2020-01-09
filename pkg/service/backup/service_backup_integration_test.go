@@ -259,6 +259,11 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			Golden: "testdata/get_target/dc_locations.golden.json",
 		},
 		{
+			Name:   "dc default rate limit",
+			Input:  "testdata/get_target/dc_no_rate_limit.input.json",
+			Golden: "testdata/get_target/dc_no_rate_limit.golden.json",
+		},
+		{
 			Name:   "dc rate limit",
 			Input:  "testdata/get_target/dc_rate_limit.input.json",
 			Golden: "testdata/get_target/dc_rate_limit.golden.json",

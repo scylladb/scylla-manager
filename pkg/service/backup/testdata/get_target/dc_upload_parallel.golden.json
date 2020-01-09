@@ -53,7 +53,7 @@
     "s3:backuptest-get-target"
   ],
   "retention": 3,
-  "rate_limit": null,
+  "rate_limit": ["100"],
   "snapshot_parallel": null,
   "upload_parallel": [
     "10",

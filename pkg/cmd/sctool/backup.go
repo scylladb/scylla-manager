@@ -148,7 +148,7 @@ func init() {
 	fs.Int("retention", 3,
 		"The number of backups which are to be stored")
 	fs.StringSlice("rate-limit", nil,
-		"a comma-separated `list` of megabytes (MiB) per second rate limits expressed in the format <dc>:<limit>. The dc flag is optional and only needed when different datacenters need different upload limits") //nolint: lll
+		"a comma-separated `list` of megabytes (MiB) per second rate limits expressed in the format <dc>:<limit>. The dc flag is optional and only needed when different datacenters need different upload limits. Set to 0 for no limit (default 100)") //nolint: lll
 	fs.StringSlice("snapshot-parallel", nil,
 		"a comma-separated `list` of snapshot parallelism limits in the format <dc>:<limit>. The dc flag is optional and allows for specifying different limits in selected datacenters. If the dc flag is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") //nolint: lll
 	fs.StringSlice("upload-parallel", nil,
