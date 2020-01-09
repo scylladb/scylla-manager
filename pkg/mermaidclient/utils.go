@@ -147,7 +147,15 @@ func ByteCountBinary(b int64) string {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.1f%ciB", float64(b)/float64(div), "KMGTPE"[exp])
+	// One decimal by default, two decimals for GiB and three for more than
+	// that.
+	format := "%.0f%ciB"
+	if exp == 2 {
+		format = "%.2f%ciB"
+	} else if exp > 2 {
+		format = "%.3f%ciB"
+	}
+	return fmt.Sprintf(format, float64(b)/float64(div), "KMGTPE"[exp])
 }
 
 // FormatTime formats the supplied DateTime in `02 Jan 06 15:04:05 MST` format.
