@@ -13,23 +13,23 @@ interactive_ask_service() {
     echo $1
     echo $2
     while true; do
-        if [ "$3" == "yes" ]; then
+        if [[ "$3" == "yes" ]]; then
         prompt="[YES/no]"
-        elif [ "$3" == "no" ]; then
+        elif [[ "$3" == "no" ]]; then
         prompt="[yes/NO]"
         else
         prompt="[yes/no]"
         fi
         result=""
-        while [ x == x"$result" ]; do
-            read -p $prompt ans
-            if [ x == x"$ans" ]; then
+        while [[ x == x"${result}" ]]; do
+            read -p ${prompt} ans
+            if [[ x == x"${ans}" ]]; then
                 result="$3"
             else
-                result="$ans"
+                result="${ans}"
             fi
         done
-        case $(echo $result | tr '[:upper:]' '[:lower:]') in
+        case $(echo ${result} | tr '[:upper:]' '[:lower:]') in
             "y" | "yes")
                 return 1
                 ;;
@@ -41,14 +41,14 @@ interactive_ask_service() {
 }
 
 print_help() {
-  echo "
-Usage: $(basename $0) [OPTIONS]
+  echo "Usage: $(basename $0) [-y][--no-scylla-setup][--no-enable-service][--no-check-for-updates]
 
 Options:
-  --enable-scylla          Enable the local ScyllaDB instance as a backend storage
-  --enable-manager         Enable Scylla Manager
-  --enable-updates         Enable Scylla Manager automatic check for updates
-  -h, --help               Print this help
+  -y, --assume-yes          assume that the answer to any question which would be asked is yes
+  --no-scylla-setup         skip setting up and enabling local Scylla instance as a storage backend for Scylla Manager
+  --no-enable-service       skip enabling service
+  --no-check-for-updates    skip enabling periodic check for updates
+  -h, --help                print this help
 
 Interactive mode is enabled when no flags are provided.
 "
@@ -60,24 +60,27 @@ else
     INTERACTIVE=1
 fi
 
-ENABLE_SCYLLA=0
+SETUP_SCYLLA=1
 ENABLE_SERVICE=1
-ENABLE_CHECK_FOR_UPDATES=1
+CHECK_FOR_UPDATES=1
 
 while [[ $# -gt 0 ]]
 do
 
 case $1 in
-    --enable-scylla)
-    ENABLE_SCYLLA=1
+    -y|--assume-yes)
     shift
     ;;
-    --enable-manager)
-    ENABLE_SERVICE=1
+    --no-scylla-setup)
+    SETUP_SCYLLA=0
     shift
     ;;
-    --enable-updates)
-    ENABLE_CHECK_FOR_UPDATES=1
+    --no-enable-service)
+    ENABLE_SERVICE=0
+    shift
+    ;;
+    --no-check-for-updates)
+    CHECK_FOR_UPDATES=0
     shift
     ;;
     -h|--help)
@@ -98,21 +101,23 @@ if [[ "$(id -u)" != "0" ]]; then
 fi
 
 if [[ ${INTERACTIVE} == 1 ]]; then
-    if [[ -f /usr/lib/scylla/scylla_setup ]]; then
-        interactive_ask_service "Do you want to configure and enable the local ScyllaDB instance as a backend storage for this Scylla Manager installation?" "Answer yes to configure and automatically start ScyllaDB when the node boots; answer no to skip this step." "yes" &&:
-        ENABLE_SCYLLA=$?
-    fi
-    interactive_ask_service "Do you want to enable Scylla Manager?" "Answer yes to automatically start Scylla Manager when the node boots; answer no to skip this step." "yes" &&:
+    interactive_ask_service "Do you want to setup and enable local Scylla instance as a storage backend for the Scylla Manager installation?" "Yes - setup and automatically start Scylla server when the node boots. No - skip this step." "yes" &&:
+    interactive_ask_service "Do you want the Scylla Manager service to automatically start when the node boots?" "Yes - automatically start Scylla Manager when the node boots. No - skip this step." "yes" &&:
     ENABLE_SERVICE=$?
-    interactive_ask_service "Do you want to enable Scylla Manager to automatically check for updates?" "Yes - start the Scylla Manager housekeeping service to check for a newer version. This check runs periodically. No - skips this step." "yes" &&:
-    ENABLE_CHECK_FOR_UPDATES=$?
+    interactive_ask_service "Do you want to enable Scylla Manger to check if there is a newer version of Scylla Manager available?" "Yes - start the Scylla Manager housekeeping service to check for a newer version. This check runs periodically. No - skips this step." "yes" &&:
+    CHECK_FOR_UPDATES=$?
 fi
 
-if [[ ${ENABLE_SCYLLA} == 1 ]]; then
-    /usr/lib/scylla/scylla_dev_mode_setup --developer-mode 1
-    if is_systemd; then
-        systemctl enable scylla-server.service
+if command -v scylla_setup > /dev/null && [[ ${SETUP_SCYLLA} == 1 ]]; then
+    scylla_setup --no-raid-setup --no-ec2-check --no-selinux-setup --no-node-exporter --no-cpuscaling-setup --no-fstrim-setup
+    scylla_cpuset_setup --smp 1
+    f=""
+    if [[ -f /etc/default/scylla-server ]]; then
+        f=/etc/default/scylla-server
+    elif [[ -f /etc/sysconfig/scylla-server ]]; then
+        f=/etc/sysconfig/scylla-server
     fi
+    sed -i -e 's/SCYLLA_ARGS="/SCYLLA_ARGS="--memory 2G /g' ${f}
 fi
 
 if [[ ${ENABLE_SERVICE} == 1 ]]; then
@@ -121,7 +126,7 @@ if [[ ${ENABLE_SERVICE} == 1 ]]; then
     fi
 fi
 
-if [[ ${ENABLE_CHECK_FOR_UPDATES} == 1 ]]; then
+if [[ ${CHECK_FOR_UPDATES} == 1 ]]; then
     if is_systemd; then
         systemctl enable scylla-manager-check-for-updates.timer
         systemctl start scylla-manager-check-for-updates.timer

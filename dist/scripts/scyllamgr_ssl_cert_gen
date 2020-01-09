@@ -10,10 +10,10 @@ declare -r KEY_FILE="/var/lib/scylla-manager/scylla_manager.key"
 declare -r SUBJECT="/C=US/ST=Scylla/L=Scylla/O=Scylla/OU=Scylla/CN=scylla.com"
 
 print_usage() {
-    echo "scyllamgr_ssl_cert_gen [--key <file>][--cert <file>][--subject <certificate subject>]"
-    echo "  --cert	path to certificate to be generated, default ${CRT_FILE}"
-    echo "  --key		path to key to the certificate, default ${KEY_FILE}"
-    echo "  --subject	subject of the certificate, default ${SUBJECT}"
+    echo "Usage: scyllamgr_ssl_cert_gen [--key <file>][--cert <file>][--subject <certificate subject>]"
+    echo "  --cert      path to certificate to be generated, default ${CRT_FILE}"
+    echo "  --key       path to key to the certificate, default ${KEY_FILE}"
+    echo "  --subject   subject of the certificate, default ${SUBJECT}"
 }
 
 die() {
