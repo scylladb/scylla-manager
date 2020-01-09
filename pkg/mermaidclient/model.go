@@ -528,19 +528,16 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 			continue
 		}
 		fmt.Fprintf(w, "\nHost: %s\n", h.Host)
-		t := table.New()
-		addSeparator := false
-		for _, ks := range h.Keyspaces {
+
+		t := table.New("keyspace", "table", "progress", "size", "success", "deduplicated", "failed", "started at", "completed at")
+		for i, ks := range h.Keyspaces {
 			if bp.hideKeyspace(ks.Keyspace) {
 				break
 			}
-			if addSeparator {
+			if i > 0 {
 				t.AddSeparator()
 			}
-			addSeparator = true
 
-			t.AddRow("keyspace", "table", "progress", "size", "success", "deduplicated", "failed", "started at", "completed at")
-			t.AddSeparator()
 			rowAdded := false
 			for _, tbl := range ks.Tables {
 				success := tbl.Uploaded + tbl.Skipped
