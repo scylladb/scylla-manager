@@ -161,10 +161,10 @@ Requires: openssl
 %attr(0700, %{user}, %{user}) %{_sharedstatedir}/%{user}
 
 %pre agent
-getent group  scylla || /usr/sbin/groupadd scylla 2> /dev/null
-getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r -d %{_sharedstatedir}/scylla scylla 2> /dev/null
-getent group  %{user} || /usr/sbin/groupadd -r %{user} > /dev/null
-getent passwd %{user} || /usr/sbin/useradd -g %{user} -d %{_sharedstatedir}/%{user} -m -s /sbin/nologin -r %{user} > /dev/null
+getent group  scylla || /usr/sbin/groupadd scylla 2> /dev/null ||:
+getent passwd scylla || /usr/sbin/useradd -g scylla -s /sbin/nologin -r -d %{_sharedstatedir}/scylla scylla 2> /dev/null ||:
+getent group  %{user} || /usr/sbin/groupadd -r %{user} > /dev/null ||:
+getent passwd %{user} || /usr/sbin/useradd -g %{user} -d %{_sharedstatedir}/%{user} -m -s /sbin/nologin -r %{user} > /dev/null ||:
 usermod -ou $(id -u scylla) %{user}
 
 %post agent
