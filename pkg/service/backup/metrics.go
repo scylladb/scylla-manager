@@ -46,6 +46,13 @@ var (
 		Name:      "upload_retries",
 		Help:      "Number of upload retries",
 	}, []string{"cluster", "task", "host", "keyspace"})
+
+	backupMoveManifestRetries = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "backup",
+		Name:      "move_manifest_retries",
+		Help:      "Number of move manifest retries",
+	}, []string{"cluster", "task", "host", "keyspace"})
 )
 
 func init() {
@@ -55,6 +62,7 @@ func init() {
 		backupBytesLeft,
 		backupAvgUploadBandwidth,
 		backupUploadRetries,
+		backupMoveManifestRetries,
 	)
 }
 
