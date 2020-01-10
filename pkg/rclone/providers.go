@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-reflectx"
@@ -69,6 +68,9 @@ type S3Options struct {
 	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
 }
 
+// Copy of s3manager.DefaultUploadConcurrency.
+const defaultUploadConcurrency = 5
+
 // RegisterS3Provider must be called before server is started.
 // It allows for adding dynamically adding s3 provider named s3.
 func RegisterS3Provider(opts S3Options) error {
@@ -84,8 +86,8 @@ func RegisterS3Provider(opts S3Options) error {
 	// streams in multipart upload.
 	if opts.UploadConcurrency == "" {
 		c := runtime.NumCPU() / 2
-		if c < s3manager.DefaultUploadConcurrency {
-			c = s3manager.DefaultUploadConcurrency
+		if c < defaultUploadConcurrency {
+			c = defaultUploadConcurrency
 		}
 		opts.UploadConcurrency = strconv.Itoa(c)
 	}
