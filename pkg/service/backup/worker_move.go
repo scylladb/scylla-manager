@@ -60,7 +60,7 @@ func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 func (w *worker) moveManifestFile(ctx context.Context, manifestDst, manifestSrc string, d snapshotDir) error {
 	b := moveManifestBackoff()
 	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Moving manifest failed, retrying", "host", d.Host, "from", manifestSrc, "to", manifestDst, "error", err, "wait", wait)
+		w.Logger.Error(ctx, "Moving manifest failed, retrying", "host", d.Host, "from", manifestSrc, "to", manifestDst, "error", err, "wait", wait)
 
 		backupMoveManifestRetries.With(prometheus.Labels{
 			"cluster":  w.ClusterName,
