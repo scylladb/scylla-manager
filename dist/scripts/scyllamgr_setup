@@ -108,16 +108,18 @@ if [[ ${INTERACTIVE} == 1 ]]; then
     CHECK_FOR_UPDATES=$?
 fi
 
-if [[ ${SETUP_SCYLLA} == 1 ]]; then
+if command -v scylla_setup > /dev/null && [[ ${SETUP_SCYLLA} == 1 ]]; then
+    scylla_dev_mode_setup --developer-mode 1
+    scylla_cpuset_setup --smp 0
+
     f=""
     if [[ -f /etc/default/scylla-server ]]; then
         f=/etc/default/scylla-server
     elif [[ -f /etc/sysconfig/scylla-server ]]; then
         f=/etc/sysconfig/scylla-server
     fi
-
     if [[ f != "" ]]; then
-        sed -i -e 's/SCYLLA_ARGS="/SCYLLA_ARGS="--developer-mode 1 --smp 1 --memory 2G /g' ${f}
+        sed -i -e 's/SCYLLA_ARGS="/SCYLLA_ARGS="--memory 1G /g' ${f}
     fi
 fi
 
