@@ -35,7 +35,9 @@ var initOnce sync.Once
 var ErrNotFound = errors.New("not found")
 
 // Server implements http.Handler interface.
-type Server struct{}
+type Server struct {
+	memoryPool *sync.Pool
+}
 
 // New creates new rclone server.
 // Since we are overriding default behavior of saving remote configuration to
@@ -65,7 +67,13 @@ func New() Server {
 		// Rewind job ID to new values
 		jobs.SetInitialJobID(timeutc.Now().Unix())
 	})
-	return Server{}
+	return Server{
+		memoryPool: &sync.Pool{
+			New: func() interface{} {
+				return &bytes.Buffer{}
+			},
+		},
+	}
 }
 
 // writeError writes a formatted error to the output.
@@ -222,14 +230,19 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	fs.Debugf(nil, "rc: %q: reply %+v: %v", path, out, err)
 	w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 
-	if err := writeJSON(w, out); err != nil {
+	buf := s.memoryPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		s.memoryPool.Put(buf)
+	}()
+
+	if err := writeJSON(buf, w, out); err != nil {
 		writeError(path, in, w, err, http.StatusInternalServerError)
 		return
 	}
 }
 
-func writeJSON(w http.ResponseWriter, out rc.Params) error {
-	buf := &bytes.Buffer{}
+func writeJSON(buf *bytes.Buffer, w http.ResponseWriter, out rc.Params) error {
 	err := rc.WriteJSON(buf, out)
 	if err != nil {
 		return err
