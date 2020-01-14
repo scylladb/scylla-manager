@@ -24,14 +24,14 @@ type BackupFilesInfo struct {
 	// location
 	Location string `json:"location,omitempty"`
 
-	// manifest
-	Manifest string `json:"manifest,omitempty"`
-
 	// sst
 	Sst string `json:"sst,omitempty"`
 
 	// table
 	Table string `json:"table,omitempty"`
+
+	// version
+	Version string `json:"version,omitempty"`
 }
 
 // Validate validates this backup files info

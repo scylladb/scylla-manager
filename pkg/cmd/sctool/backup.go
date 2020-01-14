@@ -243,10 +243,11 @@ var backupFilesCmd = &cobra.Command{
 	Short: "Lists files in backup",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
-			location    []string
-			allClusters bool
-			keyspace    []string
-			snapshotTag string
+			location      []string
+			allClusters   bool
+			keyspace      []string
+			snapshotTag   string
+			withUploadDir bool
 
 			err error
 		)
@@ -267,6 +268,10 @@ var backupFilesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		withUploadDir, err = cmd.Flags().GetBool("with-upload-dir")
+		if err != nil {
+			return err
+		}
 
 		tables, err := client.ListBackupFiles(ctx, cfgCluster, location, allClusters, keyspace, snapshotTag)
 		if err != nil {
@@ -275,25 +280,24 @@ var backupFilesCmd = &cobra.Command{
 
 		w := cmd.OutOrStdout()
 		d := cmd.Flag("delimiter").Value.String()
-		render := func(location, file, keyspace, table string) {
-			if err != nil {
-				return
-			}
-			_, err = fmt.Fprintln(w,
-				strings.Replace(path.Join(location, file), ":", "://", 1),
-				d,
-				path.Join(keyspace, table),
-			)
-		}
-
 		for _, t := range tables {
-			render(t.Location, t.Manifest, t.Keyspace, t.Table)
 			for _, f := range t.Files {
-				render(t.Location, path.Join(t.Sst, f), t.Keyspace, t.Table)
+				var dir string
+				if withUploadDir {
+					dir = path.Join(t.Keyspace, t.Table+"-"+t.Version, "upload")
+				} else {
+					dir = path.Join(t.Keyspace, t.Table)
+				}
+				var filePath = strings.Replace(path.Join(t.Location, t.Sst, f), ":", "://", 1)
+
+				_, err = fmt.Fprintln(w, filePath, d, dir)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
-		return err
+		return nil
 	},
 }
 
@@ -312,6 +316,7 @@ func init() {
 	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
 
 	fs.StringP("delimiter", "d", "\t", "use `delimiter` instead of TAB for field delimiter")
+	fs.Bool("with-upload-dir", false, "render paths to table upload dir")
 
 	requireFlags(cmd, "snapshot-tag")
 }
