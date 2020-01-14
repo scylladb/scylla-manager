@@ -416,10 +416,10 @@
         "table": {
           "type": "string"
         },
-        "location": {
+        "version": {
           "type": "string"
         },
-        "manifest": {
+        "location": {
           "type": "string"
         },
         "sst": {

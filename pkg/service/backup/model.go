@@ -42,8 +42,8 @@ type ListItem struct {
 type FilesInfo struct {
 	Keyspace string   `json:"keyspace"`
 	Table    string   `json:"table"`
+	Version  string   `json:"version"`
 	Location Location `json:"location"`
-	Manifest string   `json:"manifest"`
 	SST      string   `json:"sst"`
 	Files    []string `json:"files"`
 }
@@ -52,8 +52,8 @@ func makeFilesInfo(m remoteManifest) FilesInfo {
 	t := FilesInfo{
 		Keyspace: m.Keyspace,
 		Table:    m.Table,
+		Version:  m.Version,
 		Location: m.Location,
-		Manifest: m.RemoteManifestFile(),
 		SST:      m.RemoteSSTableVersionDir(),
 		Files:    m.FilesExpanded,
 	}
