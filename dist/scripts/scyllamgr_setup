@@ -110,7 +110,7 @@ fi
 
 if command -v scylla_setup > /dev/null && [[ ${SETUP_SCYLLA} == 1 ]]; then
     scylla_dev_mode_setup --developer-mode 1
-    scylla_cpuset_setup --smp 0
+    scylla_cpuset_setup --smp 1
 
     f=""
     if [[ -f /etc/default/scylla-server ]]; then
