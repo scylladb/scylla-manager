@@ -1,6 +1,6 @@
 FROM scylladb/scylla:latest
 
-COPY scylla-manager-agent-docker-entrypoint.sh /usr/bin/scylla-manager-agent-docker-entrypoint.sh
+COPY scylla-manager-agent-docker-entrypoint.sh /scylla-manager-agent-docker-entrypoint.sh
 COPY scylla-manager.repo /etc/yum.repos.d/
 COPY scylla-manager-agent.conf /etc/supervisord.conf.d
 
@@ -13,4 +13,4 @@ RUN yum -y install epel-release && \
 
 RUN rm -f /var/lib/scylla-manager/scylla_manager.crt && \
     rm -f /var/lib/scylla-manager/scylla_manager.key && \
-    chmod --reference=/usr/bin/scylla-manager-agent /usr/bin/scylla-manager-agent-docker-entrypoint.sh
+    chmod --reference=/usr/bin/scylla-manager-agent /scylla-manager-agent-docker-entrypoint.sh
