@@ -119,7 +119,7 @@ if command -v scylla_setup > /dev/null && [[ ${SETUP_SCYLLA} == 1 ]]; then
         f=/etc/sysconfig/scylla-server
     fi
     if [[ f != "" ]]; then
-        sed -i -e 's/SCYLLA_ARGS="/SCYLLA_ARGS="--memory 1G /g' ${f}
+         grep -q '^SCYLLA_ARGS="--memory 1G' ${f} || sed -i -e 's/^SCYLLA_ARGS="/SCYLLA_ARGS="--memory 1G /g' ${f}
     fi
 fi
 
