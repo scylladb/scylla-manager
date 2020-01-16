@@ -112,10 +112,10 @@ var backupCmd = &cobra.Command{
 			})
 
 			res, err := client.GetBackupTarget(ctx, cfgCluster, t)
+			stillWaiting.Store(false)
 			if err != nil {
 				return err
 			}
-			stillWaiting.Store(false)
 
 			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, backup is not scheduled\n\n")
 			res.ShowTables = showTables
@@ -207,7 +207,15 @@ var backupListCmd = &cobra.Command{
 			return err
 		}
 
+		stillWaiting := atomic.NewBool(true)
+		time.AfterFunc(5*time.Second, func() {
+			if stillWaiting.Load() {
+				fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: this may take a while, we are reading metadata from backup location(s)\n")
+			}
+		})
+
 		list, err := client.ListBackups(ctx, cfgCluster, location, allClusters, keyspace, minDate, maxDate)
+		stillWaiting.Store(false)
 		if err != nil {
 			return err
 		}
@@ -273,7 +281,15 @@ var backupFilesCmd = &cobra.Command{
 			return err
 		}
 
+		stillWaiting := atomic.NewBool(true)
+		time.AfterFunc(5*time.Second, func() {
+			if stillWaiting.Load() {
+				fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: this may take a while, we are reading metadata from backup location(s)\n")
+			}
+		})
+
 		tables, err := client.ListBackupFiles(ctx, cfgCluster, location, allClusters, keyspace, snapshotTag)
+		stillWaiting.Store(false)
 		if err != nil {
 			return err
 		}
