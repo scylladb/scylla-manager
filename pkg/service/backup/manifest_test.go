@@ -227,3 +227,48 @@ func TestAggregateRemoteManifests(t *testing.T) {
 		t.Error("AggregateRemoteManifests() diff", diff)
 	}
 }
+
+func TestGroupingKey(t *testing.T) {
+	table := []struct {
+		Name     string
+		FilePath string
+		Golden   string
+		Error    bool
+	}{
+		{
+			Name:     "valid mc path",
+			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/mc-20-big-Summary.db",
+			Golden:   "24101c25a2ae3af787c1b40ee1aca33f/mc-20-big",
+		},
+		{
+			Name:     "valid la path",
+			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/la-111-big-TOC.db",
+			Golden:   "24101c25a2ae3af787c1b40ee1aca33f/la-111-big",
+		},
+		{
+			Name:     "valid ka path",
+			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516-Scylla.db",
+			Golden:   "24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516",
+		},
+		{
+			Name:     "invalid path",
+			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/invalid-123-file.txt",
+			Error:    true,
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+		t.Run(test.Name, func(t *testing.T) {
+			key, err := groupingKey(test.FilePath)
+			if test.Error && err == nil {
+				t.Fatal("groupingKey()=nil, expected error")
+			} else if !test.Error && err != nil {
+				t.Fatalf("groupingKey()= %+v", err)
+			}
+			if key != test.Golden {
+				t.Fatalf("groupingKey()=%v, expected %v", key, test.Golden)
+			}
+		})
+	}
+}

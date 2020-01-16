@@ -231,9 +231,6 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 
 const manifestFileSuffix = "-Data.db"
 
-// used to get groupingKey
-var tableVersionFileNamePattern = regexp.MustCompile("^[a-f0-9]{32}/[a-z]{2}-[0-9]+-big")
-
 func extractGroupingKeys(m remoteManifest) []string {
 	var s []string
 	for _, f := range m.Files {
@@ -243,10 +240,22 @@ func extractGroupingKeys(m remoteManifest) []string {
 	return s
 }
 
+// Adapted from Scylla's sstable detection code
+// https://github.com/scylladb/scylla/blob/bb2e04cc8b8152bbe11749d79f0f136335c77602/sstables/sstables.cc#L2724
+var (
+	laMcFileNamePattern = regexp.MustCompile(`^[a-f0-9]{32}/(?:la|mc)-\d+-\w+(-.*)`)
+	kaFileNamePattern   = regexp.MustCompile(`^[a-f0-9]{32}/\w+-\w+-ka-\d+(-.*)`)
+)
+
 func groupingKey(file string) (string, error) {
-	m := tableVersionFileNamePattern.FindStringSubmatch(file)
-	if m == nil {
-		return "", errors.New("file path does not match a pattern")
+	m := laMcFileNamePattern.FindStringSubmatch(file)
+	if m != nil {
+		return strings.TrimSuffix(file, m[1]), nil
 	}
-	return m[0], nil
+	m = kaFileNamePattern.FindStringSubmatch(file)
+	if m != nil {
+		return strings.TrimSuffix(file, m[1]), nil
+	}
+
+	return "", errors.New("file path does not match sstable patterns")
 }
