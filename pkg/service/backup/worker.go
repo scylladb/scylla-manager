@@ -4,6 +4,7 @@ package backup
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/scylladb/go-log"
@@ -33,6 +34,10 @@ type snapshotDir struct {
 	Table    string
 	Version  string
 	Progress *RunProgress
+}
+
+func (sd snapshotDir) String() string {
+	return fmt.Sprintf("%s: %s/%s", sd.Host, sd.Keyspace, sd.Table)
 }
 
 type worker struct {
