@@ -105,7 +105,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			client, closeServer :=scyllaclienttest.NewFakeScyllaV2Server(t, test.ResponseFilePath)
+			client, closeServer := scyllaclienttest.NewFakeScyllaV2Server(t, test.ResponseFilePath)
 			defer closeServer()
 
 			testFunc := test.BindClientFunc(client)
@@ -121,7 +121,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 }
 
 func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
-	client, closeServer :=scyllaclienttest.NewFakeScyllaV2ServerMatching(t,
+	client, closeServer := scyllaclienttest.NewFakeScyllaV2ServerMatching(t,
 		scyllaclienttest.MultiPathFileMatcher(
 			scyllaclienttest.PathFileMatcher("/v2/config/broadcast_address", "testdata/scylla_api/v2_config_broadcast_address.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/broadcast_rpc_address", "testdata/scylla_api/v2_config_broadcast_rpc_address.json"),

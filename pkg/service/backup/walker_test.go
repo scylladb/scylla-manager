@@ -43,7 +43,7 @@ func TestWalkerDirsAtLevelN(t *testing.T) {
 		},
 	}
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	w := walker{
@@ -74,7 +74,7 @@ func TestWalkerDirsAtLevelN(t *testing.T) {
 func TestWalkerDirsAtLevelNPrune(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	w := walker{
@@ -196,7 +196,7 @@ func TestListManifests(t *testing.T) {
 
 	const goldenFile = "testdata/walker/list/golden.json"
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/metrics", "testdata/walker/scylla_metrics/metrics"))
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/metrics", "testdata/walker/scylla_metrics/metrics"))
 	defer closeServer()
 
 	manifests, err := listManifests(

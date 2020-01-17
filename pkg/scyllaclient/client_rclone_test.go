@@ -102,7 +102,7 @@ func TestRcloneCat(t *testing.T) {
 		},
 	}
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	t.Run("group", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestRcloneCat(t *testing.T) {
 func TestRcloneCatLimit(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	got, err := client.RcloneCat(context.Background(), scyllaclienttest.TestHost, "dev:zero")
@@ -184,7 +184,7 @@ func TestRcloneListDir(t *testing.T) {
 		},
 	}
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	t.Run("group", func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestRcloneListDir(t *testing.T) {
 func TestRcloneListDirNotFound(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()
@@ -226,7 +226,7 @@ func TestRcloneListDirPermissionDenied(t *testing.T) {
 	t.Skip("Temporary disabled due to #1477")
 	t.Parallel()
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/agent/rclone/core/stats", "testdata/rclone/stats/permission_denied_error.json"))
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/agent/rclone/core/stats", "testdata/rclone/stats/permission_denied_error.json"))
 	defer closeServer()
 
 	ctx := context.Background()
@@ -297,7 +297,7 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 		},
 	}
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	t.Run("group", func(t *testing.T) {
@@ -330,7 +330,7 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 func TestRcloneDiskUsage(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()
@@ -360,7 +360,7 @@ func TestRcloneMoveFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()
@@ -386,7 +386,7 @@ func TestRcloneMoveFile(t *testing.T) {
 func TestRcloneMoveNotExistingFile(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()
