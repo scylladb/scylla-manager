@@ -64,7 +64,7 @@ func inParallelWithLimits(hosts []hostInfo, limits []DCLimit, f func(h hostInfo)
 	out := make(chan error)
 	for _, hl := range m {
 		go func(hl hostsLimit) {
-			out <- inParallel(hl.hosts, hl.limit, f)
+			out <- hostsInParallel(hl.hosts, hl.limit, f)
 		}(hl)
 	}
 
@@ -75,8 +75,22 @@ func inParallelWithLimits(hosts []hostInfo, limits []DCLimit, f func(h hostInfo)
 	return errs
 }
 
-func inParallel(hosts []hostInfo, limit int, f func(h hostInfo) error) error {
+func hostsInParallel(hosts []hostInfo, limit int, f func(h hostInfo) error) error {
 	return parallel.Run(len(hosts), limit, func(i int) error {
 		return errors.Wrapf(f(hosts[i]), "%s", hosts[i])
+	})
+}
+
+const dirsInParallelLimit = 10
+
+func dirsInParallel(dirs []snapshotDir, abortOnError bool, f func(h snapshotDir) error) error {
+	return parallel.Run(len(dirs), dirsInParallelLimit, func(i int) error {
+		if err := errors.Wrapf(f(dirs[i]), "%s", dirs[i]); err != nil {
+			if abortOnError {
+				return parallel.Abort(err)
+			}
+			return err
+		}
+		return nil
 	})
 }

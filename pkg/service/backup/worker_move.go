@@ -23,7 +23,7 @@ func (w *worker) MoveManifests(ctx context.Context, hosts []hostInfo) (err error
 		}
 	}()
 
-	return inParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+	return hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
 		w.Logger.Info(ctx, "Moving manifests on host", "host", h.IP)
 		err := w.moveManifestsHost(ctx, h)
 		if err != nil {
@@ -38,7 +38,7 @@ func (w *worker) MoveManifests(ctx context.Context, hosts []hostInfo) (err error
 func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
 
-	for _, d := range dirs {
+	return dirsInParallel(dirs, true, func(d snapshotDir) error {
 		w.Logger.Info(ctx, "Moving manifest",
 			"host", h.IP,
 			"keyspace", d.Keyspace,
@@ -52,9 +52,8 @@ func (w *worker) moveManifestsHost(ctx context.Context, h hostInfo) error {
 		if err := w.moveManifestFile(ctx, manifestDst, manifestSrc, d); err != nil {
 			return errors.Wrapf(err, "move %q to %q", manifestSrc, manifestDst)
 		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (w *worker) moveManifestFile(ctx context.Context, manifestDst, manifestSrc string, d snapshotDir) error {
