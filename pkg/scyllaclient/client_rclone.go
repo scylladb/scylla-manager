@@ -5,10 +5,13 @@ package scyllaclient
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
+	agentClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
 	"github.com/scylladb/mermaid/pkg/util/httpmw"
@@ -305,6 +308,41 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 	}
 	_, err := c.agentOps.OperationsCheckPermissions(&p)
 	return err
+}
+
+// RclonePut uploads file with provided content under remotePath.
+func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content io.Reader, size int64) error {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return err
+	}
+
+	// Due to missing generator for Swagger 3.0, and poor implementation of 2.0 file upload
+	// we are uploading manually.
+	u := c.newURL(host, agentClient.DefaultBasePath+"/rclone/operations/put")
+	req, err := http.NewRequestWithContext(httpmw.ForceHost(ctx, host), http.MethodPost, u.String(), content)
+	if err != nil {
+		return err
+	}
+
+	q := req.URL.Query()
+	q.Add("fs", fs)
+	q.Add("remote", remote)
+	req.URL.RawQuery = q.Encode()
+
+	req.Header.Add("Content-Type", "application/octet-stream")
+	req.Header.Add("Content-Length", fmt.Sprint(size))
+
+	resp, err := c.transport.RoundTrip(req)
+	if err != nil {
+		return errors.Wrap(err, "put file round trip")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(err, "unexpected code")
+	}
+
+	return nil
 }
 
 // rcloneSplitRemotePath splits string path into file system and file path.

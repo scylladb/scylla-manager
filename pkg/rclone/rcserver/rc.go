@@ -7,12 +7,15 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/object"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
+	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
 
@@ -87,6 +90,40 @@ Returns
 - content - base64 encoded file content
 `,
 	})
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "operations/put",
+		Fn:           rcPut,
+		Title:        "Save provided content as file",
+		AuthRequired: true,
+		Help: `This takes the following parameters:
+
+- fs - a remote name string eg "s3:path/to/file"
+- body - file content`,
+	})
+}
+
+func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	fs, remote, err := rc.GetFsAndRemote(in)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := in.Get("body")
+	if err != nil {
+		return nil, err
+	}
+
+	size, err := in.GetInt64("size")
+	if err != nil {
+		return nil, err
+	}
+
+	src := object.NewStaticObjectInfo(remote, timeutc.Now(), size, true, nil, nil)
+	_, err = fs.Put(ctx, body.(io.Reader), src)
+	return rc.Params{}, err
 }
 
 // rcCheckPermissions checks if location is available for listing, getting,

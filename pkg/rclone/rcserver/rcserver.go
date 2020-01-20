@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -145,7 +146,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	w.Header().Set("Content-Type", "application/json")
 
 	values := r.URL.Query()
-	if contentType == "application/x-www-form-urlencoded" {
+	if contentType == "application/x-www-form-urlencoded" || contentType == "application/octet-stream" {
 		// Parse the POST and URL parameters into r.Form, for others r.Form will be empty value
 		err := r.ParseForm()
 		if err != nil {
@@ -175,6 +176,21 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 				writeError(path, in, w, errors.Wrap(err, "read input JSON"), http.StatusBadRequest)
 				return
 			}
+		}
+	}
+
+	if contentType == "application/octet-stream" {
+		in["body"] = r.Body
+		defer r.Body.Close()
+
+		in["size"] = int64(-1)
+		if r.Header.Get("Content-Length") != "" {
+			size, err := strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
+			if err != nil {
+				writeError(path, in, w, errors.Wrap(err, "cannot parse Content-Size header"), http.StatusBadRequest)
+				return
+			}
+			in["size"] = size
 		}
 	}
 

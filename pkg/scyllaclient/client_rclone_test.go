@@ -3,6 +3,7 @@
 package scyllaclient_test
 
 import (
+	"bytes"
 	"context"
 	"io/ioutil"
 	"net/http"
@@ -398,6 +399,30 @@ func TestRcloneMoveNotExistingFile(t *testing.T) {
 	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("d"), tmpRemotePath("c"))
 	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 		t.Fatal("RcloneMoveFile() expected 404 error, got", err)
+	}
+}
+
+func TestRcloneUploadFile(t *testing.T) {
+	t.Parallel()
+
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
+	defer closeServer()
+
+	ctx := context.Background()
+	content := []byte("hello")
+	path := "tmp:put"
+
+	if err := client.RclonePut(ctx, scyllaclienttest.TestHost, path, bytes.NewReader(content), int64(len(content))); err != nil {
+		t.Fatal(err)
+	}
+
+	buf, err := client.RcloneCat(ctx, scyllaclienttest.TestHost, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cmp.Diff(string(content), string(buf)) != "" {
+		t.Fatalf("Expected file content to equal '%s' got '%s'", string(content), string(buf))
 	}
 }
 
