@@ -3,13 +3,20 @@
 package backup
 
 import (
+	"context"
+	"encoding/json"
+	"io/ioutil"
 	"math/rand"
+	"path"
+	"sort"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/scyllaclient/scyllaclienttest"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
@@ -20,18 +27,16 @@ func TestRemoteManifestParsePath(t *testing.T) {
 
 	var cmpOpts = cmp.Options{
 		UUIDComparer(),
-		cmpopts.IgnoreFields(remoteManifest{}, "CleanPath", "Files"),
+		cmpopts.IgnoreFields(remoteManifest{}, "CleanPath"),
+		cmpopts.IgnoreUnexported(remoteManifest{}),
 	}
 
 	golden := remoteManifest{
 		ClusterID:   uuid.MustRandom(),
 		DC:          "a",
 		NodeID:      "b",
-		Keyspace:    "c",
-		Table:       "d",
 		TaskID:      uuid.MustRandom(),
 		SnapshotTag: newSnapshotTag(),
-		Version:     "f",
 	}
 
 	var m remoteManifest
@@ -102,12 +107,12 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		},
 		{
 			Name:  "not a manifest file",
-			Path:  remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID", "keysapce", "table", "version") + ".old",
+			Path:  remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID") + ".old",
 			Error: "expected manifest.json",
 		},
 		{
 			Name:  "sSTable dir",
-			Path:  remoteSSTableDir(uuid.MustRandom(), "dc", "nodeID", "keysapce", "table"),
+			Path:  remoteSSTableVersionDir(uuid.MustRandom(), "dc", "nodeID", "keyspace", "table", "version"),
 			Error: "expected meta",
 		},
 	}
@@ -157,7 +162,7 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	tb0 := "table0"
 	tb1 := "table1"
 
-	var input []remoteManifest
+	var input []*remoteManifest
 
 	// Add product of all the possibilities 2^5 items
 	for _, c := range []uuid.UUID{c0, c1} {
@@ -165,12 +170,19 @@ func TestAggregateRemoteManifests(t *testing.T) {
 			for _, s := range []string{s0, s1} {
 				for _, ks := range []string{ks0, ks1} {
 					for _, tb := range []string{tb0, tb1} {
-						m := remoteManifest{
+						m := &remoteManifest{
 							ClusterID:   c,
 							NodeID:      n,
 							SnapshotTag: s,
-							Keyspace:    ks,
-							Table:       tb,
+							Content: manifestContent{
+								Version: "v2",
+								Index: []filesInfo{
+									{
+										Keyspace: ks,
+										Table:    tb,
+									},
+								},
+							},
 						}
 						input = append(input, m)
 					}
@@ -179,11 +191,18 @@ func TestAggregateRemoteManifests(t *testing.T) {
 		}
 	}
 	// Add extra items
-	input = append(input, remoteManifest{
+	input = append(input, &remoteManifest{
 		ClusterID:   c0,
 		SnapshotTag: s3,
-		Keyspace:    ks0,
-		Table:       tb0,
+		Content: manifestContent{
+			Version: "v2",
+			Index: []filesInfo{
+				{
+					Keyspace: ks0,
+					Table:    tb0,
+				},
+			},
+		},
 	})
 	// Shuffle items
 	rand.Shuffle(len(input), func(i, j int) {
@@ -222,7 +241,6 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	}
 
 	v := aggregateRemoteManifests(input)
-
 	if diff := cmp.Diff(v, golden, listItemCmpOpts); diff != "" {
 		t.Error("AggregateRemoteManifests() diff", diff)
 	}
@@ -237,22 +255,32 @@ func TestGroupingKey(t *testing.T) {
 	}{
 		{
 			Name:     "valid mc path",
-			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/mc-20-big-Summary.db",
-			Golden:   "24101c25a2ae3af787c1b40ee1aca33f/mc-20-big",
+			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big-Summary.db",
+			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big",
+		},
+		{
+			Name:     "valid crc32 path",
+			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big-Digest.crc32",
+			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big",
 		},
 		{
 			Name:     "valid la path",
-			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/la-111-big-TOC.db",
-			Golden:   "24101c25a2ae3af787c1b40ee1aca33f/la-111-big",
+			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/la-111-big-TOC.db",
+			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/la-111-big",
 		},
 		{
 			Name:     "valid ka path",
-			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516-Scylla.db",
-			Golden:   "24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516",
+			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516-Scylla.db",
+			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516",
+		},
+		{
+			Name:     "valid manifest path",
+			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/manifest.json",
+			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/manifest.json",
 		},
 		{
 			Name:     "invalid path",
-			FilePath: "24101c25a2ae3af787c1b40ee1aca33f/invalid-123-file.txt",
+			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/invalid-123-file.txt",
 			Error:    true,
 		},
 	}
@@ -268,6 +296,75 @@ func TestGroupingKey(t *testing.T) {
 			}
 			if key != test.Golden {
 				t.Fatalf("groupingKey()=%v, expected %v", key, test.Golden)
+			}
+		})
+	}
+}
+
+func TestListManifests(t *testing.T) {
+	t.Parallel()
+
+	ts := []struct {
+		Name       string
+		Location   Location
+		GoldenFile string
+	}{
+		{
+			Name:       "Smoke manifest listing",
+			Location:   Location{Provider: "walker", Path: "list"},
+			GoldenFile: "testdata/walker/list/golden.json",
+		},
+		{
+			Name:       "Support for v1 and v2 manifest at once",
+			Location:   Location{Provider: "walker", Path: "v1-support"},
+			GoldenFile: "testdata/walker/v1-support/golden.json",
+		},
+	}
+
+	for i := range ts {
+		test := ts[i]
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
+			client, closeServer := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/metrics", "testdata/walker/scylla_metrics/metrics"))
+			defer closeServer()
+
+			mr := newMultiManifestHelper(scyllaclienttest.TestHost, test.Location, client, log.NewDevelopment())
+
+			manifests, err := mr.ListManifests(context.Background(), ListFilter{})
+			if err != nil {
+				t.Fatal("listManifests() error", err)
+			}
+
+			// Sort for repeatable runs
+			sort.Slice(manifests, func(i, j int) bool {
+				return path.Join(manifests[i].CleanPath...) < path.Join(manifests[j].CleanPath...)
+			})
+
+			if UpdateGoldenFiles() {
+				b, err := json.Marshal(manifests)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := ioutil.WriteFile(test.GoldenFile, b, 0666); err != nil {
+					t.Error(err)
+				}
+			}
+
+			b, err := ioutil.ReadFile(test.GoldenFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var golden []*remoteManifest
+			if err := json.Unmarshal(b, &golden); err != nil {
+				t.Fatal(err)
+			}
+
+			opts := []cmp.Option{
+				UUIDComparer(), cmpopts.IgnoreUnexported(remoteManifest{}),
+			}
+			if diff := cmp.Diff(manifests, golden, opts...); diff != "" {
+				t.Fatalf("listManifests() = %v, diff %s", manifests, diff)
 			}
 		})
 	}

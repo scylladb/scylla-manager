@@ -23,7 +23,12 @@ import (
 )
 
 // CatLimit is the maximum amount of bytes that Cat operation can output.
-const CatLimit = 1024 * 1024
+// Cat is used for manifest file reading. 4MB value was chosen based on
+// generated manifest consisting of 2 keyspaces having 8000 tables each, where
+// each table consisted of 250 sstable files. Such manifest file, after
+// compression took 1.7MB of space. Doubling and rounding this value reserves
+// some space for future manifest extensions.
+const CatLimit = 4 * 1024 * 1024
 
 // rcJobInfo aggregates core, transferred, and job stats into a single call.
 func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {

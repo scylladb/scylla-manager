@@ -3,33 +3,83 @@
 package backup
 
 import (
+	"compress/gzip"
+	"context"
+	"encoding/json"
+	"io"
 	"path"
-	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/cespare/xxhash"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/util/pathparser"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
+
+type filesInfo struct {
+	Keyspace string   `json:"keyspace"`
+	Table    string   `json:"table"`
+	Version  string   `json:"version"`
+	Files    []string `json:"files"`
+}
+
+type manifestContent struct {
+	Version string      `json:"version"`
+	Index   []filesInfo `json:"index"`
+}
+
+func (m *manifestContent) Read(r io.Reader) error {
+	gr, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+
+	if err := json.NewDecoder(gr).Decode(m); err != nil {
+		return err
+	}
+	return gr.Close()
+}
+
+func (m *manifestContent) Write(w io.Writer) error {
+	gw := gzip.NewWriter(w)
+
+	if err := json.NewEncoder(gw).Encode(m); err != nil {
+		return err
+	}
+
+	return gw.Close()
+}
 
 type remoteManifest struct {
 	CleanPath []string
 
-	ClusterID   uuid.UUID
+	Location    Location
 	DC          string
+	ClusterID   uuid.UUID
 	NodeID      string
-	Keyspace    string
-	Table       string
 	TaskID      uuid.UUID
 	SnapshotTag string
-	Version     string
+	Content     manifestContent
+}
 
-	// Location and Files requires loading manifest.
-	Location      Location
-	Files         []string
-	FilesExpanded []string
+func (m *remoteManifest) RemoteManifestFile() string {
+	return remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
+}
+
+func (m *remoteManifest) RemoteSSTableVersionDir(keyspace, table, version string) string {
+	return remoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version)
+}
+
+func (m *remoteManifest) ReadContent(r io.Reader) error {
+	return m.Content.Read(r)
+}
+
+func (m *remoteManifest) DumpContent(w io.Writer) error {
+	return m.Content.Write(w)
 }
 
 // ParsePartialPath tries extracting properties from remote path to manifest.
@@ -45,82 +95,52 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 		return nil
 	}
 
-	static := func(s string) func(v string) error {
-		return func(v string) error {
-			if v != s {
-				return errors.Errorf("expected %s got %s", s, v)
-			}
-			return nil
-		}
-	}
-
-	id := func(ptr *uuid.UUID) func(v string) error {
-		return func(v string) error {
-			return ptr.UnmarshalText([]byte(v))
-		}
-	}
-
-	str := func(ptr *string) func(v string) error {
-		return func(v string) error {
-			*ptr = v
-			return nil
-		}
-	}
-
-	parsers := []func(v string) error{
-		static("backup"),
-		static("meta"),
-		static("cluster"),
-		id(&m.ClusterID),
-		static("dc"),
-		str(&m.DC),
-		static("node"),
-		str(&m.NodeID),
-		static("keyspace"),
-		str(&m.Keyspace),
-		static("table"),
-		str(&m.Table),
-		static("task"),
-		id(&m.TaskID),
-		static("tag"),
-		func(v string) error {
-			if !isSnapshotTag(v) {
-				return errors.Errorf("invalid snapshot tag %s", v)
-			}
-			m.SnapshotTag = v
-			return nil
-		},
-		str(&m.Version),
-		static(manifest),
-	}
-
 	// Clean path for usage with strings.Split
 	s = strings.TrimPrefix(path.Clean(s), sep)
+
 	// Set partial clean path
 	m.CleanPath = strings.Split(s, sep)
 
-	// Parse fields
-	for i, v := range m.CleanPath {
-		if i >= len(parsers) {
-			return nil
-		}
-		if err := parsers[i](v); err != nil {
-			return errors.Wrapf(err, "invalid path element at position %d", i)
-		}
+	flatParser := func(v string) error {
+		p := pathparser.New(v, "_")
+
+		return p.Parse(
+			pathparser.Static("task"),
+			pathparser.ID(&m.TaskID),
+			pathparser.Static("tag"),
+			pathparser.Static("sm"),
+			func(v string) error {
+				tag := "sm_" + v
+				if !isSnapshotTag(tag) {
+					return errors.Errorf("invalid snapshot tag %s", tag)
+				}
+				m.SnapshotTag = tag
+				return nil
+			},
+			pathparser.Static(manifest),
+		)
+	}
+
+	p := pathparser.New(s, sep)
+	err := p.Parse(
+		pathparser.Static("backup"),
+		pathparser.Static("meta"),
+		pathparser.Static("cluster"),
+		pathparser.ID(&m.ClusterID),
+		pathparser.Static("dc"),
+		pathparser.String(&m.DC),
+		pathparser.Static("node"),
+		pathparser.String(&m.NodeID),
+		flatParser,
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (m remoteManifest) RemoteManifestFile() string {
-	return remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
-}
-
-func (m remoteManifest) RemoteSSTableVersionDir() string {
-	return remoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
-}
-
-func aggregateRemoteManifests(manifests []remoteManifest) []ListItem {
+func aggregateRemoteManifests(manifests []*remoteManifest) []ListItem {
 	// Group by Snapshot tag
 	type key struct {
 		ClusterID   uuid.UUID
@@ -133,20 +153,33 @@ func aggregateRemoteManifests(manifests []remoteManifest) []ListItem {
 	kv := make(map[key][]value)
 
 	for i := range manifests {
-		m := &manifests[i]
-		v, ok := kv[key{m.ClusterID, m.SnapshotTag}]
+		m := manifests[i]
+		k := key{m.ClusterID, m.SnapshotTag}
+		v, ok := kv[k]
 		if ok {
 			ok = false
 			for _, u := range v {
-				if u.Keyspace == m.Keyspace {
-					u.Tables.Add(m.Table)
-					ok = true
-					break
+				for _, fi := range m.Content.Index {
+					if fi.Keyspace == u.Keyspace {
+						u.Tables.Add(fi.Table)
+						ok = true
+					}
 				}
 			}
 		}
 		if !ok {
-			kv[key{m.ClusterID, m.SnapshotTag}] = append(v, value{m.Keyspace, strset.New(m.Table)})
+			kt := map[string]*strset.Set{}
+			for _, fi := range m.Content.Index {
+				_, ok := kt[fi.Keyspace]
+				if ok {
+					kt[fi.Keyspace].Add(fi.Table)
+				} else {
+					kt[fi.Keyspace] = strset.New(fi.Table)
+				}
+			}
+			for ks, tb := range kt {
+				kv[k] = append(kv[k], value{ks, tb})
+			}
 		}
 	}
 
@@ -175,8 +208,8 @@ func aggregateRemoteManifests(manifests []remoteManifest) []ListItem {
 			l := &ListItem{
 				ClusterID:    k.ClusterID,
 				Units:        units,
-				unitsHash:    h,
 				SnapshotTags: []string{k.SnapshotTag},
+				unitsHash:    h,
 			}
 			items[h] = l
 		} else if !sliceContains(k.SnapshotTag, l.SnapshotTags) {
@@ -232,31 +265,40 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 
 const manifestFileSuffix = "-Data.db"
 
-func extractGroupingKeys(m remoteManifest) []string {
-	var s []string
-	for _, f := range m.Files {
-		v := path.Join(m.Version, strings.TrimSuffix(f, manifestFileSuffix))
-		s = append(s, v)
-	}
-	return s
+type manifestHelper interface {
+	ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error)
+	DeleteManifest(ctx context.Context, m *remoteManifest) error
 }
 
-// Adapted from Scylla's sstable detection code
-// https://github.com/scylladb/scylla/blob/bb2e04cc8b8152bbe11749d79f0f136335c77602/sstables/sstables.cc#L2724
-var (
-	laMcFileNamePattern = regexp.MustCompile(`^[a-f0-9]{32}/(?:la|mc)-\d+-\w+(-.*)`)
-	kaFileNamePattern   = regexp.MustCompile(`^[a-f0-9]{32}/\w+-\w+-ka-\d+(-.*)`)
-)
+type multiManifestHelper struct {
+	helpers map[string]manifestHelper
+}
 
-func groupingKey(file string) (string, error) {
-	m := laMcFileNamePattern.FindStringSubmatch(file)
-	if m != nil {
-		return strings.TrimSuffix(file, m[1]), nil
-	}
-	m = kaFileNamePattern.FindStringSubmatch(file)
-	if m != nil {
-		return strings.TrimSuffix(file, m[1]), nil
-	}
+func newMultiManifestHelper(host string, location Location, client *scyllaclient.Client,
+	logger log.Logger) manifestHelper {
+	return &multiManifestHelper{
+		helpers: map[string]manifestHelper{
+			"v1": newManifestV1Helper(host, location, client, logger.Named("v1")),
+			"v2": newManifestV2Helper(host, location, client, logger.Named("v2")),
+		}}
+}
 
-	return "", errors.New("file path does not match sstable patterns")
+func (m *multiManifestHelper) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+	var manifests []*remoteManifest
+	for _, hl := range m.helpers {
+		m, err := hl.ListManifests(ctx, f)
+		if err != nil {
+			return nil, err
+		}
+		manifests = append(manifests, m...)
+	}
+	return manifests, nil
+}
+
+func (m *multiManifestHelper) DeleteManifest(ctx context.Context, rm *remoteManifest) error {
+	h, ok := m.helpers[rm.Content.Version]
+	if !ok {
+		return errors.Errorf("unsupported manifest version: %s", rm.Content.Version)
+	}
+	return h.DeleteManifest(ctx, rm)
 }

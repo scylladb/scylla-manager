@@ -125,18 +125,12 @@ func TestBackupListFiles(t *testing.T) {
 
 		golden = []backup.FilesInfo{
 			{
-				Keyspace: "keyspace1",
-				Table:    "table1",
 				Location: locations[0],
 				SST:      "sst",
-				Files:    []string{"file"},
 			},
 			{
-				Keyspace: "keyspace2",
-				Table:    "table1",
 				Location: locations[1],
 				SST:      "sst",
-				Files:    []string{"file"},
 			},
 		}
 	)

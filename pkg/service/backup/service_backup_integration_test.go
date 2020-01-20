@@ -12,7 +12,9 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -33,6 +35,7 @@ import (
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/httpx"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -55,7 +58,7 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 
 	S3InitBucket(t, location.Path)
 
-	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+	logger := log.NewDevelopmentWithLevel(zapcore.DebugLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"))
 	service := newTestService(t, session, client, config, logger)
@@ -125,7 +128,7 @@ func (h *backupTestHelper) listS3Files() (manifests, files []string) {
 		h.t.Fatal(err)
 	}
 	for _, f := range allFiles {
-		if strings.HasSuffix(f.Name, "manifest.json") {
+		if strings.HasPrefix(f.Path, "backup/meta") {
 			manifests = append(manifests, f.Path)
 		} else {
 			files = append(files, f.Path)
@@ -160,14 +163,16 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 	return files
 }
 
+const bigTableName = "big_table"
+
 // writeData creates big_table in the provided keyspace with the size in MiB.
 func writeData(t *testing.T, session *gocql.Session, keyspace string, sizeMiB int) {
 	t.Helper()
 
 	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
-	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.big_table (id int PRIMARY KEY, data blob)", keyspace))
+	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, bigTableName))
 
-	stmt := fmt.Sprintf("INSERT INTO %s.big_table (id, data) VALUES (?, ?)", keyspace)
+	stmt := fmt.Sprintf("INSERT INTO %s.%s (id, data) VALUES (?, ?)", keyspace, bigTableName)
 	q := gocqlx.Query(session.Query(stmt), []string{"id", "data"})
 	defer q.Release()
 
@@ -657,20 +662,34 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: files")
-	manifests, files := h.listS3Files()
+	manifests, _ := h.listS3Files()
+	// Manifest meta per host per snapshot
+	expectedNumberOfManifests := 3 * 2
+	if len(manifests) != expectedNumberOfManifests {
+		t.Fatalf("expected %d manifests, got %d", 6, len(manifests))
+	}
+
 	tables, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
-	if len(tables) != len(manifests) {
+	if len(tables) != 6 {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(tables), len(manifests))
 	}
-	sst := 0
-	for _, t := range tables {
-		sst += len(t.Files)
-	}
-	if sst != 2*len(files) {
-		t.Fatalf("len(ListFiles()) = %d, expected %d", sst, 2*len(files))
+	for _, tbl := range tables {
+		remoteFiles, err := h.client.RcloneListDir(ctx, ManagedClusterHosts()[0], h.location.RemotePath(tbl.SST), nil)
+		if err != nil {
+			t.Fatal("RcloneListDir() error", err)
+		}
+
+		var remoteFileNames []string
+		for _, f := range remoteFiles {
+			remoteFileNames = append(remoteFileNames, f.Name)
+		}
+		opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
+		if !cmp.Equal(tbl.Files, remoteFileNames, opts...) {
+			t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(tbl.Files, remoteFileNames, opts...))
+		}
 	}
 
 	Print("And: manifests are in metadata directory")
@@ -717,6 +736,25 @@ func TestBackupSmokeIntegration(t *testing.T) {
 			}
 			t.Errorf("Expected empty transfers, got %d", len(job.Transferred))
 		}
+	}
+
+	Print("And: user is able to list backup files using filters")
+	files, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{"some-other-keyspace"}})
+	if err != nil {
+		t.Fatal("ListFiles() error", err)
+	}
+	if len(files) != 0 {
+		t.Fatalf("len(ListFiles()) = %d, expected %d", len(files), 0)
+	}
+
+	files, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{testKeyspace}})
+	if err != nil {
+		t.Fatal("ListFiles() error", err)
+	}
+
+	// 3 backups * 3 nodes
+	if len(files) != 3*3 {
+		t.Fatalf("len(ListFiles()) = %d, expected %d", len(files), 3*3)
 	}
 }
 
@@ -955,6 +993,15 @@ func TestBackupResumeIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 
+		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") {
+				Print("And: context is canceled")
+				cancel()
+			}
+
+			return nil, nil
+		}))
+
 		target := target
 		target.Continue = false
 
@@ -971,10 +1018,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 			}
 		}()
 
-		h.waitManifestUploaded()
-
-		Print("And: context is canceled")
-		cancel()
 		<-ctx.Done()
 
 		select {
@@ -1059,14 +1102,16 @@ func TestPurgeIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var v struct {
-			Files []string `json:"files"`
-		}
-		if err := json.Unmarshal(b, &v); err != nil {
+
+		rm := backup.RemoteManifest{}
+		if err := rm.ReadContent(bytes.NewReader(b)); err != nil {
 			t.Fatal(err)
 		}
-		for _, f := range v.Files {
-			sstPfx = append(sstPfx, strings.TrimSuffix(f, "-Data.db"))
+
+		for _, fi := range rm.Content.Index {
+			for _, f := range fi.Files {
+				sstPfx = append(sstPfx, strings.TrimSuffix(f, "-Data.db"))
+			}
 		}
 	}
 
@@ -1082,4 +1127,266 @@ func TestPurgeIntegration(t *testing.T) {
 			t.Errorf("Unexpected file %s", f)
 		}
 	}
+}
+
+func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-rollback"
+		testKeyspace = "backuptest_rollback"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+	)
+
+	writeData(t, clusterSession, testKeyspace, 3)
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 3,
+	}
+
+	h := newBackupTestHelper(t, session, config, location)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+
+	putCounter := atomic.NewInt64(0)
+
+	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") {
+			if putCounter.Load() >= 1 {
+				h.waitCond(func() bool {
+					manifests, _ := h.listS3Files()
+					return len(manifests) > 0
+				})
+				Print("And: context is canceled")
+				cancel()
+			}
+			putCounter.Inc()
+		}
+
+		return nil, nil
+	}))
+
+	go func() {
+		defer close(done)
+		Print("When: backup is running")
+		err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
+		if err == nil {
+			t.Error("Expected error on run but got nil")
+		} else {
+			if !strings.Contains(err.Error(), "context") {
+				t.Errorf("Expected context error but got: %+v", err)
+			}
+		}
+	}()
+
+	<-ctx.Done()
+
+	select {
+	case <-time.After(backupTimeout):
+		t.Fatalf("Backup failed to complete in under %s", backupTimeout)
+	case <-done:
+		Print("Then: backup completed execution")
+	}
+
+	manifests, _ := h.listS3Files()
+
+	if len(manifests) != 0 {
+		t.Fatalf("Expected to have 0 manifests, found %d", len(manifests))
+	}
+}
+
+func TestPurgeOfV1BackupIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-purge-v1"
+		testKeyspace = "backuptest_purge_v1"
+
+		tablesNum = 10
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+
+		h   = newBackupTestHelper(t, session, config, location)
+		ctx = context.Background()
+	)
+
+	// Test cluster nodes has different node IDs then prepared test data.
+	// Fake mapping in order to make test data visible to backup logic.
+	testDataNodesIDs := []string{
+		"8bf49512-e550-4c3f-a3e4-8add7e3da20c",
+		"99a9e3c8-9d9d-4f24-9094-54ea5e9af41a",
+		"92567557-babc-46e9-a169-cd17b60fa78d",
+	}
+
+	overwriteClusterIDs(t, "dc1", testDataNodesIDs, h)
+	h.clusterID = uuid.MustParse("6a14ea0a-0f7c-4d39-84bf-06413188b029")
+	h.taskID = uuid.MustParse("ea986c36-9c97-4f7d-ac49-ec0166f0c8ca")
+
+	Print("Given: backup using v1 manifests")
+
+	uploadedFiles := uploadV1Backup(t, ctx, "testdata/v1-support", location, h)
+
+	Print("Given: retention policy 1")
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 1,
+	}
+
+	Print("When: backup is run")
+	var runID uuid.UUID
+
+	writeData(t, clusterSession, testKeyspace, 3)
+	runID = uuid.NewTime()
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: only the last task run is preserved")
+	manifests, _ := h.listS3Files()
+	for _, m := range manifests {
+		if !strings.Contains(m, h.taskID.String()) {
+			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
+		}
+	}
+	if len(manifests) != 3 {
+		t.Fatalf("Expected 3 manifests got %d", len(manifests))
+	}
+
+	Print("Then: old files are removed")
+
+	for _, filePath := range uploadedFiles {
+		files, err := h.client.RcloneListDir(ctx, ManagedClusterHost(), filepath.Dir(filePath), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(files) != 0 {
+			t.Fatalf("expected to find 0 files, got %d", len(files))
+		}
+	}
+
+	Print("Then: V1 directory structure is removed at node level")
+
+	opts := &scyllaclient.RcloneListDirOpts{
+		DirsOnly:  true,
+		NoModTime: true,
+	}
+
+	for _, nodeID := range testDataNodesIDs {
+		manifestDir := h.location.RemotePath(backup.RemoteManifestDir(h.clusterID, "dc1", nodeID))
+		dirs, err := h.client.RcloneListDir(ctx, ManagedClusterHost(), manifestDir, opts)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(dirs) != 0 {
+			t.Fatalf("Expected to not have any directories at %s path, got %v", manifestDir, dirs)
+		}
+	}
+}
+
+func overwriteClusterIDs(t *testing.T, dc string, nodeIDs []string, h *backupTestHelper) {
+	nodeMapping, err := h.client.HostIDs(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodeIPToID := map[string]string{}
+	for nodeIP, nodeID := range nodeMapping {
+		nodeIPToID[nodeIP] = nodeID
+	}
+	dcMap, err := h.client.Datacenters(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fakeMapping []map[string]string
+	for d, nodeIps := range dcMap {
+		var k, v string
+		for _, nodeIP := range nodeIps {
+			k = nodeIP
+			if d == dc {
+				v = nodeIDs[0]
+				nodeIDs = nodeIDs[1:]
+			} else {
+				v = nodeIPToID[nodeIP]
+			}
+			fakeMapping = append(fakeMapping, map[string]string{
+				"key":   k,
+				"value": v,
+			})
+		}
+	}
+
+	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Path == "/storage_service/host_id" {
+			resp := &http.Response{
+				Status:     "200 OK",
+				StatusCode: 200,
+				Proto:      "HTTP/1.1",
+				ProtoMajor: 1,
+				ProtoMinor: 1,
+				Request:    req,
+				Header:     make(http.Header, 0),
+			}
+
+			buf, err := json.Marshal(fakeMapping)
+			if err != nil {
+				return nil, err
+			}
+
+			resp.Body = ioutil.NopCloser(bytes.NewReader(buf))
+			return resp, nil
+		}
+		return nil, nil
+	}))
+}
+
+func uploadV1Backup(t *testing.T, ctx context.Context, localPath string, location backup.Location, h *backupTestHelper) []string {
+	var uploadedFiles []string
+	root := localPath
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		remotePath := location.RemotePath(strings.TrimPrefix(path, root))
+		content, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := h.client.RclonePut(ctx, ManagedClusterHost(), remotePath, bytes.NewReader(content), info.Size()); err != nil {
+			return err
+		}
+		uploadedFiles = append(uploadedFiles, remotePath)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return uploadedFiles
 }

@@ -3,11 +3,13 @@
 package backup
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -331,11 +333,10 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 		"filter", filter,
 	)
 
-	manifests, err := s.list(ctx, clusterID, locations, filter, false)
+	manifests, err := s.list(ctx, clusterID, locations, filter)
 	if err != nil {
 		return nil, err
 	}
-
 	return aggregateRemoteManifests(manifests), nil
 }
 
@@ -347,19 +348,24 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 		"filter", filter,
 	)
 
-	manifests, err := s.list(ctx, clusterID, locations, filter, true)
+	ksf, err := ksfilter.NewFilter(filter.Keyspace)
+	if err != nil {
+		return nil, errors.Wrap(err, "keyspace filter")
+	}
+
+	manifests, err := s.list(ctx, clusterID, locations, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	var files = make([]FilesInfo, len(manifests))
+	var files []FilesInfo
 	for i := range manifests {
-		files[i] = makeFilesInfo(manifests[i])
+		files = append(files, makeFilesInfo(manifests[i], ksf)...)
 	}
 	return files, nil
 }
 
-func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, load bool) ([]remoteManifest, error) {
+func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]*remoteManifest, error) {
 	// Validate inputs
 	if len(locations) == 0 {
 		return nil, service.ErrValidate(errors.New("empty locations"))
@@ -382,7 +388,7 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 
 	// List manifests
 	type manifestsError struct {
-		Manifests []remoteManifest
+		Manifests []*remoteManifest
 		Err       error
 	}
 	res := make(chan manifestsError)
@@ -393,13 +399,15 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 				"host", h,
 				"location", l,
 			)
-			m, err := listManifests(ctx, client, h, l, filter, load, s.logger.Named("list"))
+
+			mh := newMultiManifestHelper(h, l, client, s.logger.Named("list"))
+			m, err := mh.ListManifests(ctx, filter)
 			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", h, l)}
 		}(item.IP, item.Location)
 	}
 
 	var (
-		manifests []remoteManifest
+		manifests []*remoteManifest
 		errs      error
 	)
 	for range hosts {
@@ -559,6 +567,11 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Units:         run.Units,
 		Client:        client,
 		OnRunProgress: s.putRunProgressLogError,
+		memoryPool: &sync.Pool{
+			New: func() interface{} {
+				return &bytes.Buffer{}
+			},
+		},
 	}
 
 	// Start metric updater
@@ -589,10 +602,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	w.cleanup(ctx, hi)
 
-	// Move manifests
-	w = w.WithLogger(s.logger.Named("move"))
-	if err := w.MoveManifests(ctx, hi); err != nil {
-		return errors.Wrap(err, "move manifests")
+	// Aggregate and upload manifests
+	w = w.WithLogger(s.logger.Named("manifest"))
+	if err := w.AggregateManifests(ctx, hi, target.UploadParallel); err != nil {
+		return errors.Wrap(err, "aggregate manifest")
 	}
 
 	w.cleanup(ctx, hi)

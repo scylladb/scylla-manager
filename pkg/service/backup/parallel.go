@@ -80,17 +80,3 @@ func hostsInParallel(hosts []hostInfo, limit int, f func(h hostInfo) error) erro
 		return errors.Wrapf(f(hosts[i]), "%s", hosts[i])
 	})
 }
-
-const dirsInParallelLimit = 5
-
-func dirsInParallel(dirs []snapshotDir, abortOnError bool, f func(h snapshotDir) error) error {
-	return parallel.Run(len(dirs), dirsInParallelLimit, func(i int) error {
-		if err := errors.Wrapf(f(dirs[i]), "%s", dirs[i]); err != nil {
-			if abortOnError {
-				return parallel.Abort(err)
-			}
-			return err
-		}
-		return nil
-	})
-}

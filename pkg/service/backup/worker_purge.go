@@ -4,19 +4,21 @@ package backup
 
 import (
 	"context"
+	"time"
 
 	"github.com/scylladb/mermaid/pkg/util/parallel"
+	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
 func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy int) (err error) {
 	w.Logger.Info(ctx, "Purging old data...")
-	defer func() {
+	defer func(start time.Time) {
 		if err != nil {
-			w.Logger.Error(ctx, "Purging old data failed see exact errors above")
+			w.Logger.Error(ctx, "Purging old data failed see exact errors above", "duration", timeutc.Since(start))
 		} else {
-			w.Logger.Info(ctx, "Done purging old data")
+			w.Logger.Info(ctx, "Done purging old data", "duration", timeutc.Since(start))
 		}
-	}()
+	}(timeutc.Now())
 
 	return hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
 		w.Logger.Info(ctx, "Purging old data on host", "host", h.IP)
@@ -31,8 +33,6 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy int) (err e
 }
 
 func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
-	dirs := w.hostSnapshotDirs(h)
-
 	if err := w.Client.DeleteSnapshot(ctx, h.IP, w.SnapshotTag); err != nil {
 		w.Logger.Error(ctx, "Failed to delete uploaded snapshot",
 			"host", h.IP,
@@ -46,33 +46,25 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 		)
 	}
 
-	if err := dirsInParallel(dirs, false, func(d snapshotDir) error {
-		p := &purger{
-			ClusterID: w.ClusterID,
-			TaskID:    w.TaskID,
-			Keyspace:  d.Keyspace,
-			Table:     d.Table,
-			Policy:    policy,
-			Client:    w.Client,
-			Logger:    w.Logger,
-		}
+	dirs := w.hostSnapshotDirs(h)
+	p := &purger{
+		ClusterID:      w.ClusterID,
+		TaskID:         w.TaskID,
+		SnapshotDirs:   dirs,
+		HostInfo:       h,
+		Policy:         policy,
+		Client:         w.Client,
+		ManifestHelper: newMultiManifestHelper(h.IP, h.Location, w.Client, w.Logger),
+		Logger:         w.Logger,
+	}
 
-		if err := p.purge(ctx, h); err != nil {
-			w.Logger.Error(ctx, "Failed to delete remote stale snapshots",
-				"host", d.Host,
-				"keyspace", p.Keyspace,
-				"table", p.Table,
-				"location", h.Location,
-				"error", err,
-			)
-			return err
-		}
-		return nil
-	}); err != nil {
-		w.Logger.Error(ctx, "Failed to purge snapshots",
+	if err := p.purge(ctx); err != nil {
+		w.Logger.Error(ctx, "Failed to delete remote stale snapshots",
+			"host", h.IP,
 			"location", h.Location,
 			"error", err,
 		)
+		return err
 	}
 
 	return nil

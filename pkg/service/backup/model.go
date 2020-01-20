@@ -14,12 +14,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
 // ListFilter specifies filtering for backup listing.
 type ListFilter struct {
 	ClusterID   uuid.UUID `json:"cluster_id"`
+	DC          string    `json:"dc"`
+	NodeID      string    `json:"node_id"`
 	Keyspace    []string  `json:"keyspace"`
 	SnapshotTag string    `json:"snapshot_tag"`
 	MinDate     time.Time `json:"min_date"`
@@ -40,25 +43,26 @@ type ListItem struct {
 // Note that a backup for a table usually consists of multiple instances of
 // FilesInfo since data is replicated across many nodes.
 type FilesInfo struct {
-	Keyspace string   `json:"keyspace"`
-	Table    string   `json:"table"`
-	Version  string   `json:"version"`
+	filesInfo
 	Location Location `json:"location"`
 	SST      string   `json:"sst"`
-	Files    []string `json:"files"`
 }
 
-func makeFilesInfo(m remoteManifest) FilesInfo {
-	t := FilesInfo{
-		Keyspace: m.Keyspace,
-		Table:    m.Table,
-		Version:  m.Version,
-		Location: m.Location,
-		SST:      m.RemoteSSTableVersionDir(),
-		Files:    m.FilesExpanded,
+func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) []FilesInfo {
+	var filesInfo []FilesInfo
+	for _, fi := range m.Content.Index {
+		if !filter.Check(fi.Keyspace, fi.Table) {
+			continue
+		}
+		fi := FilesInfo{
+			Location:  m.Location,
+			SST:       m.RemoteSSTableVersionDir(fi.Keyspace, fi.Table, fi.Version),
+			filesInfo: fi,
+		}
+		filesInfo = append(filesInfo, fi)
 	}
 
-	return t
+	return filesInfo
 }
 
 // Target specifies what should be backed up and where.

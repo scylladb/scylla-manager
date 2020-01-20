@@ -5,19 +5,21 @@ package backup
 import (
 	"context"
 	"math/rand"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
 func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
 	w.Logger.Info(ctx, "Taking snapshots...")
-	defer func() {
+	defer func(start time.Time) {
 		if err != nil {
-			w.Logger.Error(ctx, "Taking snapshots failed see exact errors above")
+			w.Logger.Error(ctx, "Taking snapshots failed see exact errors above", "duration", timeutc.Since(start))
 		} else {
-			w.Logger.Info(ctx, "Done taking snapshots")
+			w.Logger.Info(ctx, "Done taking snapshots", "duration", timeutc.Since(start))
 		}
-	}()
+	}(timeutc.Now())
 
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
 		w.Logger.Info(ctx, "Taking snapshots on host", "host", h.IP)

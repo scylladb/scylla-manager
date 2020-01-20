@@ -56,6 +56,8 @@ type worker struct {
 	// Cache for host snapshotDirs
 	dirs   map[string][]snapshotDir
 	dirsMu sync.Mutex
+
+	memoryPool *sync.Pool
 }
 
 func (w *worker) WithLogger(logger log.Logger) *worker {

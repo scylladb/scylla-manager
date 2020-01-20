@@ -7,10 +7,11 @@ package restapi
 import (
 	context "context"
 	json "encoding/json"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	backup "github.com/scylladb/mermaid/pkg/service/backup"
 	uuid "github.com/scylladb/mermaid/pkg/util/uuid"
-	reflect "reflect"
 )
 
 // MockBackupService is a mock of BackupService interface

@@ -4,10 +4,8 @@ package backup
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"path"
-	"regexp"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -19,28 +17,33 @@ import (
 )
 
 type purger struct {
-	ClusterID uuid.UUID
-	TaskID    uuid.UUID
-	Keyspace  string
-	Table     string
-	Policy    int
-	Client    *scyllaclient.Client
-	Logger    log.Logger
+	ClusterID      uuid.UUID
+	TaskID         uuid.UUID
+	Policy         int
+	Client         *scyllaclient.Client
+	SnapshotDirs   []snapshotDir
+	HostInfo       hostInfo
+	ManifestHelper manifestHelper
+	Logger         log.Logger
 }
 
-func (p *purger) purge(ctx context.Context, h hostInfo) error {
+func (p *purger) purge(ctx context.Context) error {
 	p.Logger.Info(ctx, "Analysing",
-		"host", h.IP,
-		"keyspace", p.Keyspace,
-		"table", p.Table,
-		"location", h.Location,
+		"host", p.HostInfo.IP,
+		"location", p.HostInfo.Location,
 	)
 
-	// Get list of stale tags that need to be deleted
-	tags, err := p.listTaskTags(ctx, h)
+	// Load all manifests
+	manifests, err := p.loadAllManifests(ctx)
 	if err != nil {
-		return errors.Wrap(err, "list remote task tags")
+		return errors.Wrap(err, "find and load remote manifests")
 	}
+
+	manifestTags := strset.New()
+	for _, m := range manifests {
+		manifestTags.Add(m.SnapshotTag)
+	}
+	tags := manifestTags.List()
 
 	// Exit if there no tags to delete
 	if len(tags) <= p.Policy {
@@ -48,34 +51,42 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 		return nil
 	}
 
+	// Sort by date ascending
+	sort.Strings(tags)
+
 	// Select tags to delete
 	staleTags := tags[:len(tags)-p.Policy]
 
-	// Load all manifests for the table
-	manifests, err := p.loadAllManifests(ctx, h)
-	if err != nil {
-		return errors.Wrap(err, "find and load remote manifests")
+	staleTagsSet := strset.New()
+	for _, t := range staleTags {
+		staleTagsSet.Add(t)
 	}
 
-	// Select live sst files in the form version/la-xx-big
-	idx := strset.New()
-	for _, t := range staleTags {
-		idx.Add(t)
+	isStaleManifest := func(m *remoteManifest) bool {
+		return m.TaskID == p.TaskID && staleTagsSet.Has(m.SnapshotTag)
 	}
-	aliveFiles := strset.New()
+
+	// Select stale sst files in the form keyspace/<keyspace_name>/table/<table_name>/<version>
 	staleFiles := strset.New()
 	for i := range manifests {
-		var s *strset.Set
-		if manifests[i].TaskID == p.TaskID && idx.Has(manifests[i].SnapshotTag) {
-			s = staleFiles
-		} else {
-			s = aliveFiles
+		if isStaleManifest(manifests[i]) {
+			for _, fi := range manifests[i].Content.Index {
+				for _, f := range fi.Files {
+					staleFiles.Add(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
+				}
+			}
 		}
-		s.Add(extractGroupingKeys(manifests[i])...)
 	}
-
-	// Remove alive files from stale files laving only the orphans
-	staleFiles.Separate(aliveFiles)
+	// Remove alive files from staleFiles
+	for i := range manifests {
+		if !isStaleManifest(manifests[i]) {
+			for _, fi := range manifests[i].Content.Index {
+				for _, f := range fi.Files {
+					staleFiles.Remove(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
+				}
+			}
+		}
+	}
 
 	// Exit if there are no orphan files
 	if staleFiles.IsEmpty() {
@@ -84,271 +95,75 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 	}
 
 	// Delete stale tags
-	if err := p.deleteTags(ctx, h, staleTags); err != nil {
-		return errors.Wrap(err, "delete stale tags")
+	for _, m := range manifests {
+		if staleTagsSet.Has(m.SnapshotTag) {
+			if err := p.ManifestHelper.DeleteManifest(ctx, m); err != nil {
+				return errors.Wrap(err, "delete stale tag")
+			}
+
+			p.Logger.Info(ctx, "Deleted metadata according to retention policy",
+				"host", p.HostInfo.IP,
+				"location", p.HostInfo.Location,
+				"tags", m.SnapshotTag,
+				"policy", p.Policy,
+			)
+		}
 	}
 
-	// Delete sstables that are not alive (by grouping key)
-	p.Logger.Debug(ctx, "Alive files are", "files", aliveFiles)
-
-	isNotAlive := func(key string) bool {
-		return !aliveFiles.Has(key)
-	}
-	if err := p.deleteSSTables(ctx, h, isNotAlive); err != nil {
+	// Delete sstables that are not alive
+	p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
+	if err := p.deleteSSTables(ctx, staleFiles); err != nil {
 		return errors.Wrap(err, "delete stale data")
 	}
 
 	return nil
 }
 
-// listTaskTags returns a sorted list of tags for the task being purged.
-// The old tags are at the beginning of the returned slice.
-func (p *purger) listTaskTags(ctx context.Context, h hostInfo) ([]string, error) {
-	baseDir := remoteTagsDir(p.ClusterID, p.TaskID, h.DC, h.ID, p.Keyspace, p.Table)
-
-	p.Logger.Debug(ctx, "Listing tags",
-		"host", h.IP,
-		"location", h.Location,
-		"path", baseDir,
-	)
-
-	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), nil)
-	if err != nil {
-		return nil, err
+func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error) {
+	filter := ListFilter{
+		ClusterID: p.ClusterID,
+		NodeID:    p.HostInfo.ID,
+		DC:        p.HostInfo.DC,
 	}
-
-	var tags []string
-	for _, f := range files {
-		if !f.IsDir {
-			p.Logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
-				"host", h.IP,
-				"location", h.Location,
-				"path", path.Join(baseDir, f.Path),
-				"size", f.Size,
-			)
-			continue
-		}
-
-		tag := f.Name
-		if !isSnapshotTag(tag) {
-			p.Logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
-				"host", h.IP,
-				"location", h.Location,
-				"path", path.Join(baseDir, f.Path),
-				"size", f.Size,
-			)
-			continue
-		}
-		tags = append(tags, tag)
-	}
-
-	// Sort tags by date ascending
-	sort.Strings(tags)
-
-	return tags, nil
+	return p.ManifestHelper.ListManifests(ctx, filter)
 }
 
-var taskTagVersionManifestRegexp = regexp.MustCompile("/([a-f0-9\\-]{36})/tag/(sm_[0-9]{14}UTC)/([a-f0-9]{32})/" + manifest + "$")
-
-// loadAllManifests returns manifests for all the tasks and tags for the given
-// kayspace and table.
-func (p *purger) loadAllManifests(ctx context.Context, h hostInfo) ([]remoteManifest, error) {
-	baseDir := remoteTasksDir(p.ClusterID, h.DC, h.ID, p.Keyspace, p.Table)
-
-	p.Logger.Debug(ctx, "Loading all manifests",
-		"host", h.IP,
-		"location", h.Location,
-		"path", baseDir,
-	)
-
-	opts := &scyllaclient.RcloneListDirOpts{
-		Recurse: true,
-	}
-	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), opts)
-	if err != nil {
-		return nil, err
-	}
-
-	var manifests []remoteManifest
-	for _, f := range files {
-		m := taskTagVersionManifestRegexp.FindStringSubmatch("/" + f.Path)
-		if m == nil {
-			// Report any unexpected files
-			if !f.IsDir {
-				p.Logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
-					"host", h.IP,
-					"location", h.Location,
-					"path", path.Join(baseDir, f.Path),
-					"size", f.Size,
-				)
-			}
-			continue
-		}
-
-		var taskID uuid.UUID
-		if err := taskID.UnmarshalText([]byte(m[1])); err != nil {
-			p.Logger.Error(ctx, "Failed to parse task ID, ignoring file",
-				"host", h.IP,
-				"location", h.Location,
-				"path", path.Join(baseDir, f.Path),
-				"error", err,
-			)
-			continue
-		}
-
-		v := remoteManifest{
-			TaskID:      taskID,
-			SnapshotTag: m[2],
-			Version:     m[3],
-		}
-
-		p.Logger.Debug(ctx, "Found manifest",
-			"host", h.IP,
-			"location", h.Location,
-			"path", path.Join(baseDir, f.Path),
-		)
-
-		v.Files, err = p.loadManifest(ctx, h, path.Join(baseDir, f.Path))
-		if err != nil {
-			return nil, errors.Wrap(err, "load manifest")
-		}
-
-		manifests = append(manifests, v)
-	}
-
-	return manifests, nil
-}
-
-func (p *purger) loadManifest(ctx context.Context, h hostInfo, path string) ([]string, error) {
-	p.Logger.Debug(ctx, "Loading manifest",
-		"host", h.IP,
-		"location", h.Location,
-		"path", path,
-	)
-
-	b, err := p.Client.RcloneCat(ctx, h.IP, h.Location.RemotePath(path))
-	if err != nil {
-		return nil, err
-	}
-
-	var v struct {
-		Files []string `json:"files"`
-	}
-	if err := json.Unmarshal(b, &v); err != nil {
-		return nil, errors.Wrap(err, "parse manifest")
-	}
-
-	p.Logger.Debug(ctx, "Loaded manifest",
-		"host", h.IP,
-		"location", h.Location,
-		"path", path,
-		"files", v.Files,
-	)
-
-	return v.Files, nil
-}
-
-func (p *purger) deleteSSTables(ctx context.Context, h hostInfo, filter func(key string) bool) error {
-	baseDir := remoteSSTableDir(p.ClusterID, h.DC, h.ID, p.Keyspace, p.Table)
+func (p *purger) deleteSSTables(ctx context.Context, filePaths *strset.Set) error {
+	baseDir := remoteSSTableBaseDir(p.ClusterID, p.HostInfo.DC, p.HostInfo.ID)
 
 	p.Logger.Debug(ctx, "Listing sstables",
-		"host", h.IP,
-		"location", h.Location,
+		"host", p.HostInfo.IP,
+		"location", p.HostInfo.Location,
 		"path", baseDir,
 	)
 
-	opts := &scyllaclient.RcloneListDirOpts{
-		Recurse:   true,
-		FilesOnly: true,
-	}
-	files, err := p.Client.RcloneListDir(ctx, h.IP, h.Location.RemotePath(baseDir), opts)
-	if err != nil {
-		return err
-	}
-
-	var (
-		errs        error
-		deleted     int
-		deletedSize int64
-	)
-	for _, f := range files {
-		if f.IsDir {
-			continue
-		}
-		key, err := groupingKey(f.Path)
-		if err != nil {
-			p.Logger.Error(ctx, "Detected unexpected file, it does not belong to Scylla",
-				"host", h.IP,
-				"location", h.Location,
-				"path", path.Join(baseDir, f.Path),
-				"size", f.Size,
-			)
-			continue
-		}
-		if !filter(key) {
-			continue
-		}
-
-		l := h.Location.RemotePath(path.Join(baseDir, f.Path))
-		if err := p.deleteFile(ctx, h.IP, l); err != nil {
-			errs = multierr.Append(errs, errors.Wrapf(err, "delete file %s", l))
-		} else {
-			deleted++
-			deletedSize += f.Size
-		}
-	}
-
-	p.Logger.Info(ctx, "Deleted orphaned data files",
-		"host", h.IP,
-		"keyspace", p.Keyspace,
-		"table", p.Table,
-		"location", h.Location,
-		"files", deleted,
-		"size", deletedSize,
-	)
-
-	return errs
-}
-
-func (p *purger) deleteTags(ctx context.Context, h hostInfo, tags []string) error {
 	var (
 		errs    error
 		deleted int
 	)
-	for _, t := range tags {
-		dir := remoteTagDir(p.ClusterID, p.TaskID, t, h.DC, h.ID, p.Keyspace, p.Table)
-		l := h.Location.RemotePath(dir)
-		if err := p.deleteDir(ctx, h.IP, l); err != nil {
-			errs = multierr.Append(errs, errors.Wrapf(err, "delete directory %s", l))
+
+	filePaths.Each(func(filePath string) bool {
+		l := p.HostInfo.Location.RemotePath(path.Join(baseDir, filePath))
+		if err := p.deleteFile(ctx, l); err != nil {
+			errs = multierr.Append(errs, errors.Wrapf(err, "delete file %s", l))
 		} else {
 			deleted++
 		}
-	}
+		return true
+	})
 
-	p.Logger.Info(ctx, "Deleted metadata according to retention policy",
-		"host", h.IP,
-		"keyspace", p.Keyspace,
-		"table", p.Table,
-		"location", h.Location,
-		"tags", deleted,
-		"policy", p.Policy,
+	p.Logger.Info(ctx, "Deleted orphaned data files",
+		"host", p.HostInfo.IP,
+		"location", p.HostInfo.Location,
+		"files", deleted,
 	)
 
 	return errs
 }
 
-func (p *purger) deleteFile(ctx context.Context, ip, path string) error {
-	p.Logger.Debug(ctx, "Deleting file", "host", ip, "path", path)
-	err := p.Client.RcloneDeleteFile(ctx, ip, path)
-	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
-		err = nil
-	}
-	return err
-}
-
-func (p *purger) deleteDir(ctx context.Context, ip, path string) error {
-	p.Logger.Debug(ctx, "Deleting directory", "host", ip, "path", path)
-	err := p.Client.RcloneDeleteDir(ctx, ip, path)
+func (p *purger) deleteFile(ctx context.Context, path string) error {
+	p.Logger.Debug(ctx, "Deleting file", "host", p.HostInfo.IP, "path", path)
+	err := p.Client.RcloneDeleteFile(ctx, p.HostInfo.IP, path)
 	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 		err = nil
 	}

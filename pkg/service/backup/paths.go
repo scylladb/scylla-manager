@@ -5,8 +5,10 @@ package backup
 import (
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -17,7 +19,7 @@ func keyspaceDir(keyspace string) string {
 }
 
 const (
-	manifest = "manifest.json"
+	manifest = "manifest.json.gz"
 	sep      = string(os.PathSeparator)
 )
 
@@ -31,59 +33,32 @@ func remoteMetaClusterDCDir(clusterID uuid.UUID) string {
 	)
 }
 
-func remoteMetaKeyspaceLevel(baseDir string) int {
-	a := len(strings.Split(remoteBaseDir(metaDirKind, uuid.Nil, "a", "b", "c", "d"), sep))
+func remoteManifestLevel(baseDir string) int {
+	a := len(strings.Split(remoteManifestDir(uuid.Nil, "a", "b"), sep))
 	b := len(strings.Split(baseDir, sep))
-	return a - b - 2
+	return a - b
 }
 
-func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table, version string) string {
-	return path.Join(
-		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
+func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID string) string {
+	manifestName := strings.Join([]string{
 		"task",
 		taskID.String(),
 		"tag",
 		snapshotTag,
-		version,
 		manifest,
-	)
-}
+	}, "_")
 
-func remoteTagDir(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID, keyspace, table string) string {
 	return path.Join(
-		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
-		"task",
-		taskID.String(),
-		"tag",
-		snapshotTag,
-	)
-}
-
-func remoteTagsDir(clusterID, taskID uuid.UUID, dc, nodeID, keyspace, table string) string {
-	return path.Join(
-		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
-		"task",
-		taskID.String(),
-		"tag",
-	)
-}
-
-func remoteTasksDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
-	return path.Join(
-		remoteBaseDir(metaDirKind, clusterID, dc, nodeID, keyspace, table),
-		"task",
+		remoteManifestDir(clusterID, dc, nodeID),
+		manifestName,
 	)
 }
 
 func remoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
-		remoteBaseDir(sstDirKind, clusterID, dc, nodeID, keyspace, table),
+		remoteSSTableDir(clusterID, dc, nodeID, keyspace, table),
 		version,
 	)
-}
-
-func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
-	return remoteBaseDir(sstDirKind, clusterID, dc, nodeID, keyspace, table)
 }
 
 type dirKind string
@@ -93,19 +68,81 @@ const (
 	metaDirKind = dirKind("meta")
 )
 
-func remoteBaseDir(kind dirKind, clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
+func remoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return path.Join(
 		"backup",
-		string(kind),
+		string(sstDirKind),
 		"cluster",
 		clusterID.String(),
 		"dc",
 		dc,
 		"node",
 		nodeID,
+	)
+}
+
+func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
+	return path.Join(
+		remoteSSTableBaseDir(clusterID, dc, nodeID),
 		"keyspace",
 		keyspace,
 		"table",
 		table,
+	)
+}
+
+func remoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
+	return path.Join(
+		"backup",
+		string(metaDirKind),
+		"cluster",
+		clusterID.String(),
+		"dc",
+		dc,
+		"node",
+		nodeID,
+	)
+}
+
+// Adapted from Scylla's sstable detection code
+// https://github.com/scylladb/scylla/blob/bb2e04cc8b8152bbe11749d79f0f136335c77602/sstables/sstables.cc#L2724
+var (
+	laMcFileNameRe                = `(?:la|mc)-\d+-\w+(-.*)`
+	kaFileNameRe                  = `\w+-\w+-ka-\d+(-.*)`
+	keyspaceTableNameRe           = `[a-zA-Z0-9_]+`
+	tableVersionRe                = `[a-f0-9]{32}`
+	keyspaceTableVersionPatternRe = `^keyspace/` + keyspaceTableNameRe + `/table/` + keyspaceTableNameRe + `/` + tableVersionRe + `/`
+
+	keyspaceTableVersionLaMcRe     = regexp.MustCompile(keyspaceTableVersionPatternRe + laMcFileNameRe)
+	keyspaceTableVersionKaRe       = regexp.MustCompile(keyspaceTableVersionPatternRe + kaFileNameRe)
+	keyspaceTableVersionManifestRe = regexp.MustCompile(keyspaceTableVersionPatternRe + "manifest.json")
+)
+
+// groupingKey returns key which can be used for grouping SSTable files.
+// SSTable representation in snapshot consists of few files sharing same prefix,
+// this key allows to group these files.
+func groupingKey(path string) (string, error) {
+	m := keyspaceTableVersionLaMcRe.FindStringSubmatch(path)
+	if m != nil {
+		return strings.TrimSuffix(path, m[1]), nil
+	}
+	m = keyspaceTableVersionKaRe.FindStringSubmatch(path)
+	if m != nil {
+		return strings.TrimSuffix(path, m[1]), nil
+	}
+	m = keyspaceTableVersionManifestRe.FindStringSubmatch(path)
+	if m != nil {
+		return path, nil
+	}
+
+	return "", errors.New("file path does not match sstable patterns")
+}
+
+func ssTablePathWithKeyspacePrefix(keyspace, table, version, name string) string {
+	return path.Join(
+		"keyspace", keyspace,
+		"table", table,
+		version,
+		name,
 	)
 }

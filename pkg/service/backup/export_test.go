@@ -2,7 +2,11 @@
 
 package backup
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/scylladb/mermaid/pkg/util/uuid"
+)
 
 func NewSnapshotTag() string {
 	return newSnapshotTag()
@@ -19,4 +23,11 @@ func SnapshotTagFromManifestPath(t *testing.T, s string) string {
 func ParsePartialPath(s string) error {
 	var m remoteManifest
 	return m.ParsePartialPath(s)
+}
+
+type RemoteManifest = remoteManifest
+type LegacyManifest = manifestV1
+
+func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
+	return remoteManifestDir(clusterID, dc, nodeID)
 }

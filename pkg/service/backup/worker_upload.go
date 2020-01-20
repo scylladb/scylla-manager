@@ -8,28 +8,29 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
 
 func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
 	w.Logger.Info(ctx, "Uploading snapshot files...")
-	defer func() {
+	defer func(start time.Time) {
 		if err != nil {
-			w.Logger.Error(ctx, "Uploading snapshot files failed see exact errors above")
+			w.Logger.Error(ctx, "Uploading snapshot files failed see exact errors above", "duration", timeutc.Since(start))
 		} else {
-			w.Logger.Info(ctx, "Done uploading snapshot files")
+			w.Logger.Info(ctx, "Done uploading snapshot files", "duration", timeutc.Since(start))
 		}
-	}()
+	}(timeutc.Now())
 
 	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
 		w.Logger.Info(ctx, "Uploading snapshot files on host", "host", h.IP)
-		err := w.uploadHost(ctx, h)
-		if err != nil {
+		if err := w.uploadHost(ctx, h); err != nil {
 			w.Logger.Error(ctx, "Uploading snapshot files failed on host", "host", h.IP, "error", err)
-		} else {
-			w.Logger.Info(ctx, "Done uploading snapshot files on host", "host", h.IP)
+			return err
 		}
-		return err
+
+		w.Logger.Info(ctx, "Done uploading snapshot files on host", "host", h.IP)
+		return nil
 	})
 }
 
@@ -50,6 +51,7 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			return errors.Wrap(err, "upload snapshot")
 		}
 	}
+
 	return nil
 }
 
@@ -293,10 +295,6 @@ func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
 	if w.OnRunProgress != nil {
 		w.OnRunProgress(ctx, p)
 	}
-}
-
-func (w *worker) remoteManifestFile(h hostInfo, d snapshotDir) string {
-	return remoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
 }
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
