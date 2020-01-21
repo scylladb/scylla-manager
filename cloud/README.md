@@ -18,9 +18,9 @@ If you dislike the `id_` prefix or would like to keep the key elsewhere you can 
 Example:
 
 ```bash
-$ eval `ssh-agent`
+eval `ssh-agent`
 Agent pid 16210
-$ ssh-add ~/.ssh/scylla-lab-support.pem 
+ssh-add ~/.ssh/scylla-lab-support.pem 
 Identity added: /home/michal/.ssh/scylla-lab-support.pem (/home/michal/.ssh/scylla-lab-support.pem)
 ```
 
@@ -46,3 +46,17 @@ When you have a cluster up and running and you can SSH to any node, it's time to
 
 1. Build agent or server binaries with `make dev-agent` or `make dev-server` in the root of the project
 1. Run `sup agent update` or `sup server update` this will upload dev binary and restart service
+
+# Changing sstable file names for testing purge
+
+In order to activate purge of the backup files should no longer be needed once the retention policy is activated.
+To simulate file change you can run the script that will change sstable file names without corrupting the database.
+
+```bash
+rename-sstable-files.sh <directory>
+```  
+
+Script will recursively scan provided directory and rename any sstable files that it finds but ignoring other files.
+Because rename adds content to the file name script can be run only several times until the Scylla imposed limits are reached.
+This depends on the initial file name structure.
+  
