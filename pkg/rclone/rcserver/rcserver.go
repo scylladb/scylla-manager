@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -142,7 +143,12 @@ const (
 )
 
 func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
-	contentType := r.Header.Get("Content-Type")
+	contentType, err := parseContentType(r.Header)
+	if err != nil {
+		writeError(path, nil, w, errors.Wrap(err, "parse Content-Type header"), http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	values := r.URL.Query()
@@ -256,6 +262,19 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		writeError(path, in, w, err, http.StatusInternalServerError)
 		return
 	}
+}
+
+func parseContentType(headers http.Header) (string, error) {
+	if headers.Get("Content-Type") == "" {
+		return "", nil
+	}
+
+	contentType, _, err := mime.ParseMediaType(headers.Get("Content-Type"))
+	if err != nil {
+		return "", err
+	}
+
+	return contentType, nil
 }
 
 func writeJSON(buf *bytes.Buffer, w http.ResponseWriter, out rc.Params) error {
