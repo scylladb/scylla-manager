@@ -310,6 +310,8 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 	return err
 }
 
+const rcloneOperationPutPath = agentClient.DefaultBasePath + "/rclone/operations/put"
+
 // RclonePut uploads file with provided content under remotePath.
 func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content io.Reader, size int64) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
@@ -319,7 +321,7 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 
 	// Due to missing generator for Swagger 3.0, and poor implementation of 2.0 file upload
 	// we are uploading manually.
-	u := c.newURL(host, agentClient.DefaultBasePath+"/rclone/operations/put")
+	u := c.newURL(host, rcloneOperationPutPath)
 	req, err := http.NewRequestWithContext(httpmw.ForceHost(ctx, host), http.MethodPost, u.String(), content)
 	if err != nil {
 		return err
