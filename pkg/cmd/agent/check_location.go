@@ -92,7 +92,7 @@ func init() {
 
 	f := cmd.Flags()
 	f.StringVarP(&checkLocationArgs.configFile, "config-file", "c", "/etc/scylla-manager-agent/scylla-manager-agent.yaml", "configuration file `path`")
-	f.StringVarP(&checkLocationArgs.location, "location", "L", "", "backup location in the format [dc:]<provider>:<path> ex. s3:my-bucket. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint:lll
+	f.StringVarP(&checkLocationArgs.location, "location", "L", "", "backup location in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The dc flag is optional and is only needed when different datacenters are being used to upload data to different locations. <name> must be an alphanumeric string and may contain a dash and or a dot, but other characters are forbidden. The only supported storage <provider> at the moment is s3") //nolint:lll
 	f.BoolVar(&checkLocationArgs.debug, "debug", false, "enable debug logs")
 
 	if err := cmd.MarkFlagRequired("location"); err != nil {
