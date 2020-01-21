@@ -3,13 +3,13 @@
 package restapi
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/util/httpmw"
 )
 
@@ -40,7 +40,12 @@ func New(services Services, logger log.Logger) http.Handler {
 
 	// NotFound registered last due to https://github.com/go-chi/chi/issues/297
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		respondError(w, r, service.ErrNotFound)
+		logger.Info(r.Context(), "Request path not found", "path", r.URL.Path)
+		render.Respond(w, r, &httpError{
+			StatusCode: http.StatusNotFound,
+			Message:    fmt.Sprintf("find endpoint for path %s - make sure api-url is correct", r.URL.Path),
+			TraceID:    log.TraceID(r.Context()),
+		})
 	})
 
 	return r
