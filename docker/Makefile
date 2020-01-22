@@ -16,6 +16,13 @@ scylla-manager: ## Build Scylla Manager docker image
 	@echo "==> Building Scylla Manager docker image..."
 	docker build scylla-manager -t "scylladb/scylla-manager:${SCYLLA_MANAGER_VERSION}"
 
+README.md: README.in Dockerfile docker-compose.yaml
+	cp README.in README.md
+	sed -i -e '/COMPOSE_FILE/r docker-compose.yaml' README.md
+	sed -i -e '/COMPOSE_FILE/d' README.md
+	sed -i -e '/DOCKER_FILE/r Dockerfile' README.md
+	sed -i -e '/DOCKER_FILE/d' README.md
+
 .PHONY: help
 help:
 	@awk -F ':|##' '/^[^\t].+?:.*?##/ {printf "\033[36m%-25s\033[0m %s\n", $$1, $$NF}' $(MAKEFILE_LIST)

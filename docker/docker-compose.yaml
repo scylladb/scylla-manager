@@ -18,12 +18,9 @@ services:
 
   scylla:
     build:
-      context: ./scylla
+      context: .
     image: scylladb/scylla-with-agent
     volumes:
-      - type: bind
-        source: ./scylla/scylla-manager-agent.yaml
-        target: /etc/scylla-manager-agent/scylla-manager-agent.yaml
       - scylla_data:/var/lib/scylla
     networks:
       public:
