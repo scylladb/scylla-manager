@@ -620,10 +620,10 @@
         "parameters": [
           {
             "in": "body",
-            "name": "jobid",
-            "description": "jobid",
+            "name": "jobinfo",
+            "description": "Job info params with id and long polling",
             "schema": {
-              "$ref": "#/definitions/Jobid"
+              "$ref": "#/definitions/JobInfoParams"
             }
           }
         ],
@@ -691,6 +691,19 @@
       "properties": {
         "jobid": {
           "description": "ID of the job",
+          "type": "integer"
+        }
+      }
+    },
+    "JobInfoParams": {
+      "type": "object",
+      "properties": {
+        "jobid": {
+          "description": "ID of the job",
+          "type": "integer"
+        },
+        "wait": {
+          "description": "Duration in seconds",
           "type": "integer"
         }
       }

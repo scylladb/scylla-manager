@@ -170,9 +170,6 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 		)
 	}()
 
-	t := time.NewTicker(w.Config.PollInterval)
-	defer t.Stop()
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -199,7 +196,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			}
 			w.updateProgress(ctx, d, job)
 			return ctx.Err()
-		case <-t.C:
+		default:
 			job, err := w.Client.RcloneJobInfo(ctx, d.Host, id)
 			if err != nil {
 				w.Logger.Error(ctx, "Failed to fetch job info",

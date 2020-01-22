@@ -43,11 +43,16 @@ func (c *Client) RcloneJobStop(ctx context.Context, host string, jobID int64) er
 // RcloneJobInfo aggregates current, transferred and job statuses.
 type RcloneJobInfo = models.JobInfo
 
+const defaultLongPollingSeconds = 10
+
 // RcloneJobInfo returns aggregated stats for the job along with job status.
 func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*RcloneJobInfo, error) {
 	p := operations.JobInfoParams{
 		Context: httpmw.ForceHost(ctx, host),
-		Jobid:   &models.Jobid{Jobid: jobID},
+		Jobinfo: &models.JobInfoParams{
+			Jobid: jobID,
+			Wait:  defaultLongPollingSeconds,
+		},
 	}
 	resp, err := c.agentOps.JobInfo(&p)
 	if err != nil {

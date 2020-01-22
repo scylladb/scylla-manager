@@ -63,11 +63,11 @@ for the job info operation typically these are written to a http.Request
 */
 type JobInfoParams struct {
 
-	/*Jobid
-	  jobid
+	/*Jobinfo
+	  Job info params with id and long polling
 
 	*/
-	Jobid *models.Jobid
+	Jobinfo *models.JobInfoParams
 
 	timeout    time.Duration
 	Context    context.Context
@@ -107,15 +107,15 @@ func (o *JobInfoParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithJobid adds the jobid to the job info params
-func (o *JobInfoParams) WithJobid(jobid *models.Jobid) *JobInfoParams {
-	o.SetJobid(jobid)
+// WithJobinfo adds the jobinfo to the job info params
+func (o *JobInfoParams) WithJobinfo(jobinfo *models.JobInfoParams) *JobInfoParams {
+	o.SetJobinfo(jobinfo)
 	return o
 }
 
-// SetJobid adds the jobid to the job info params
-func (o *JobInfoParams) SetJobid(jobid *models.Jobid) {
-	o.Jobid = jobid
+// SetJobinfo adds the jobinfo to the job info params
+func (o *JobInfoParams) SetJobinfo(jobinfo *models.JobInfoParams) {
+	o.Jobinfo = jobinfo
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -126,8 +126,8 @@ func (o *JobInfoParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regis
 	}
 	var res []error
 
-	if o.Jobid != nil {
-		if err := r.SetBodyParam(o.Jobid); err != nil {
+	if o.Jobinfo != nil {
+		if err := r.SetBodyParam(o.Jobinfo); err != nil {
 			return err
 		}
 	}

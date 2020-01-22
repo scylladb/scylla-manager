@@ -8,11 +8,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/object"
 	"github.com/rclone/rclone/fs/rc"
+	"github.com/rclone/rclone/fs/rc/jobs"
 	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
@@ -30,6 +32,16 @@ func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 		jobErr error
 	)
 	if jobid, err := in.GetInt64("jobid"); err == nil {
+		wait, err := in.GetInt64("wait")
+		if err != nil && !rc.IsErrParamNotFound(err) {
+			return rc.Params{}, err
+		}
+		if wait > 0 {
+			if err := waitForJobFinish(ctx, jobid, wait); err != nil {
+				return rc.Params{}, err
+			}
+		}
+
 		jobOut, jobErr = rcCalls.Get("job/status").Fn(ctx, in)
 		in["group"] = fmt.Sprintf("job/%d", jobid)
 	}
@@ -44,11 +56,46 @@ func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	}, multierr.Combine(jobErr, statsErr, transErr)
 }
 
+func waitForJobFinish(ctx context.Context, jobid, wait int64) error {
+	w := time.Second * time.Duration(wait)
+	done := make(chan struct{})
+
+	if err := jobs.OnFinish(jobid, func() {
+		close(done)
+	}); err != nil {
+		return err
+	}
+
+	timer := time.NewTimer(w)
+	defer timer.Stop()
+
+	select {
+	case <-done:
+		return nil
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func init() {
 	rc.Add(rc.Call{
 		Path:         "job/info",
 		AuthRequired: true,
 		Fn:           rcJobInfo,
+		Title:        "Group all status calls into one",
+		Help: `This takes the following parameters
+
+- jobid - id of the job to get status of 
+- wait  - seconds to wait for job operation to complete
+
+Returns
+
+job: job status
+stats: running stats
+transferred: transferred stats
+`,
 	})
 }
 
