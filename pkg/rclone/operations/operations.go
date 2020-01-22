@@ -37,6 +37,7 @@ func Cat(ctx context.Context, o fs.Object, w io.Writer, limit int64) error {
 		fs.Errorf(o, "Failed to open: %v", err)
 		return err
 	}
+	defer in.Close()
 	if limit >= 0 {
 		in = &readCloser{Reader: &io.LimitedReader{R: in, N: limit}, Closer: in}
 	}
