@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/secrets"
+	"github.com/scylladb/mermaid/pkg/util/httpmw"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -288,7 +289,7 @@ func (s *Service) fetchNodeInfo(ctx context.Context, cidHost clusterIDHost) (*sc
 		return nil, errors.Wrap(err, "create scylla client")
 	}
 
-	ni, err := client.NodeInfo(ctx, cidHost.Host)
+	ni, err := client.NodeInfo(httpmw.NoRetry(ctx), cidHost.Host)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch node info")
 	}
