@@ -170,11 +170,13 @@ func (f *MultiFiller) fill(i int) error {
 		t := time.NewTicker(5 * time.Second)
 		defer t.Stop()
 
-		select {
-		case <-done:
-			return
-		case <-t.C:
-			f.logger.Info(f.ctx, "Remaining", "worker", i, "bytes", f.size.Load())
+		for {
+			select {
+			case <-done:
+				return
+			case <-t.C:
+				f.logger.Info(f.ctx, "Remaining", "worker", i, "bytes", f.size.Load())
+			}
 		}
 	}()
 
