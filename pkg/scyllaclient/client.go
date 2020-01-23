@@ -71,6 +71,9 @@ type Client struct {
 	agentOps  *agentOperations.Client
 
 	transport http.RoundTripper
+
+	mu      sync.RWMutex
+	dcCache map[string]string
 }
 
 // NewClient creates new scylla HTTP client.
@@ -119,6 +122,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		scyllaOps: scyllaOperations.New(scyllaRuntime, strfmt.Default),
 		agentOps:  agentOperations.New(agentRuntime, strfmt.Default),
 		transport: transport,
+		dcCache:   make(map[string]string),
 	}, nil
 }
 

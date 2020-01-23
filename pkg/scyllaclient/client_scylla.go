@@ -54,7 +54,15 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 }
 
 // HostDatacenter looks up the datacenter that the given host belongs to.
-func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error) {
+func (c *Client) HostDatacenter(ctx context.Context, host string) (dc string, err error) {
+	// Try reading from cache
+	c.mu.RLock()
+	dc = c.dcCache[host]
+	c.mu.RUnlock()
+	if dc != "" {
+		return
+	}
+
 	resp, err := c.scyllaOps.SnitchDatacenterGet(&operations.SnitchDatacenterGetParams{
 		Context: ctx,
 		Host:    &host,
@@ -62,7 +70,14 @@ func (c *Client) HostDatacenter(ctx context.Context, host string) (string, error
 	if err != nil {
 		return "", err
 	}
-	return resp.Payload, nil
+	dc = resp.Payload
+
+	// Update cache
+	c.mu.Lock()
+	c.dcCache[host] = dc
+	c.mu.Unlock()
+
+	return
 }
 
 // Hosts returns a list of all hosts in a cluster.
