@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hailocab/go-hostpool"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/util/retry"
 	"github.com/scylladb/mermaid/pkg/util/retryablehttp"
@@ -57,6 +58,8 @@ func Retry(next http.RoundTripper, poolSize int, logger log.Logger) http.RoundTr
 	})
 }
 
+var errPoolServerError = errors.New("server error")
+
 // HostPool sets request host from a pool.
 func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
 	return RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -95,7 +98,14 @@ func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 
 		// Mark response
 		if hpr != nil {
-			hpr.Mark(err)
+			switch {
+			case err != nil:
+				hpr.Mark(err)
+			case resp.StatusCode >= 500:
+				hpr.Mark(errPoolServerError)
+			default:
+				hpr.Mark(nil)
+			}
 		}
 
 		return resp, err
