@@ -240,22 +240,18 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 
 	// In case any network error try to pull NodeInfo and use configured address and port.
 	if _, ok := errors.Cause(err).(*net.OpError); ok {
-		ni, niErr := s.fetchNodeInfo(ctx, cidHost)
-		if niErr != nil {
-			s.logger.Error(ctx, "Failed to fetch node info", "error", niErr)
-			return 0, err
-		}
+		if ni := s.updateNodeInfo(ctx, cidHost); ni != nil {
+			if addr = ni.CQLAddr(host); addr != config.Addr {
+				s.logger.Info(ctx, "Changing CQL IP/port based on information from Scylla API",
+					"cluster_id", cidHost.ClusterID,
+					"host", cidHost.Host,
+					"from", config.Addr,
+					"to", addr,
+				)
 
-		if addr := ni.CQLAddr(host); addr != config.Addr {
-			s.logger.Info(ctx, "Changing CQL IP/port based on information from Scylla API",
-				"cluster_id", cidHost.ClusterID,
-				"host", cidHost.Host,
-				"from", config.Addr,
-				"to", addr,
-			)
-
-			config.Addr = addr
-			rtt, err = cqlping.Ping(ctx, config)
+				config.Addr = addr
+				rtt, err = cqlping.Ping(ctx, config)
+			}
 		}
 	}
 
@@ -281,24 +277,26 @@ func (s *Service) hasNodeInfo(cidHost clusterIDHost) (*scyllaclient.NodeInfo, bo
 	return nil, false
 }
 
-func (s *Service) fetchNodeInfo(ctx context.Context, cidHost clusterIDHost) (*scyllaclient.NodeInfo, error) {
+func (s *Service) updateNodeInfo(ctx context.Context, cidHost clusterIDHost) *scyllaclient.NodeInfo {
 	s.invalidateHostNodeInfoCache(cidHost)
 
 	client, err := s.scyllaClient(ctx, cidHost.ClusterID)
 	if err != nil {
-		return nil, errors.Wrap(err, "create scylla client")
+		s.logger.Error(ctx, "Failed to create scylla client", "error", err)
+		return nil
 	}
 
 	ni, err := client.NodeInfo(httpmw.NoRetry(ctx), cidHost.Host)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetch node info")
+		s.logger.Error(ctx, "Failed to fetch node info", "error", err)
+		return nil
 	}
 
 	s.cacheMu.Lock()
 	s.nodeInfoCache[cidHost] = ni
 	s.cacheMu.Unlock()
 
-	return ni, nil
+	return ni
 }
 
 func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Config, error) {
