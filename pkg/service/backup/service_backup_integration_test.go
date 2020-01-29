@@ -420,7 +420,6 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	const testBucket = "backuptest-void"
 
 	config := backup.DefaultConfig()
-	config.PollInterval = time.Second
 
 	var (
 		session = CreateSession(t)
@@ -701,7 +700,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	location := s3Location(testBucket)
 	config := backup.DefaultConfig()
-	config.PollInterval = time.Second
 
 	var (
 		session        = CreateSession(t)

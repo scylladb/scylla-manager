@@ -37,7 +37,6 @@ healthcheck:
 
 backup:
   disk_space_free_min_percent: 1
-  poll_interval: 5s
   age_max: 12h
 
 repair:

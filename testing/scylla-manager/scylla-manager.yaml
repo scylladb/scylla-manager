@@ -12,7 +12,6 @@ database:
   timeout: 1s
 
 backup:
-  poll_interval: 50ms
   test_s3_endpoint: http://192.168.100.99:9000
 
 repair:
