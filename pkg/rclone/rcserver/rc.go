@@ -150,6 +150,10 @@ func init() {
 - fs - a remote name string eg "s3:path/to/file"
 - body - file content`,
 	})
+
+	// Adding it here because it is not part of the agent.js.
+	// It should be removed once we are able to generate client for this call.
+	internal.RcloneSupportedCalls.Add("operations/put")
 }
 
 func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {

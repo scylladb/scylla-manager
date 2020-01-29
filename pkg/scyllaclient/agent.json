@@ -17,6 +17,34 @@
     "application/json"
   ],
   "paths": {
+    "/rclone/core/gc": {
+      "post": {
+        "description": "Run garbage collector on the agent",
+        "summary": "Run garbage collector",
+        "operationId": "CoreGC",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/core/bwlimit": {
       "post": {
         "description": "This sets the bandwidth limit to that passed in",
@@ -114,34 +142,6 @@
             "description": "Empty object",
             "schema": {
               "type": "object"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
-    "/rclone/core/group-list": {
-      "post": {
-        "description": "Returns list of group names",
-        "summary": "Group names",
-        "operationId": "CoreGroupList",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Current groups",
-            "schema": {
-              "$ref": "#/definitions/GroupList"
             },
             "headers": {}
           },

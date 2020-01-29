@@ -18,22 +18,22 @@ import (
 	models "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
 )
 
-// CoreGroupListReader is a Reader for the CoreGroupList structure.
-type CoreGroupListReader struct {
+// CoreGCReader is a Reader for the CoreGC structure.
+type CoreGCReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *CoreGroupListReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *CoreGCReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
-		result := NewCoreGroupListOK()
+		result := NewCoreGCOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 	default:
-		result := NewCoreGroupListDefault(response.Code())
+		result := NewCoreGCDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -44,30 +44,28 @@ func (o *CoreGroupListReader) ReadResponse(response runtime.ClientResponse, cons
 	}
 }
 
-// NewCoreGroupListOK creates a CoreGroupListOK with default headers values
-func NewCoreGroupListOK() *CoreGroupListOK {
-	return &CoreGroupListOK{}
+// NewCoreGCOK creates a CoreGCOK with default headers values
+func NewCoreGCOK() *CoreGCOK {
+	return &CoreGCOK{}
 }
 
-/*CoreGroupListOK handles this case with default header values.
+/*CoreGCOK handles this case with default header values.
 
-Current groups
+Empty object
 */
-type CoreGroupListOK struct {
-	Payload *models.GroupList
+type CoreGCOK struct {
+	Payload interface{}
 	JobID   int64
 }
 
-func (o *CoreGroupListOK) GetPayload() *models.GroupList {
+func (o *CoreGCOK) GetPayload() interface{} {
 	return o.Payload
 }
 
-func (o *CoreGroupListOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.GroupList)
+func (o *CoreGCOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -82,34 +80,34 @@ func (o *CoreGroupListOK) readResponse(response runtime.ClientResponse, consumer
 	return nil
 }
 
-// NewCoreGroupListDefault creates a CoreGroupListDefault with default headers values
-func NewCoreGroupListDefault(code int) *CoreGroupListDefault {
-	return &CoreGroupListDefault{
+// NewCoreGCDefault creates a CoreGCDefault with default headers values
+func NewCoreGCDefault(code int) *CoreGCDefault {
+	return &CoreGCDefault{
 		_statusCode: code,
 	}
 }
 
-/*CoreGroupListDefault handles this case with default header values.
+/*CoreGCDefault handles this case with default header values.
 
 Server error
 */
-type CoreGroupListDefault struct {
+type CoreGCDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
 	JobID   int64
 }
 
-// Code gets the status code for the core group list default response
-func (o *CoreGroupListDefault) Code() int {
+// Code gets the status code for the core g c default response
+func (o *CoreGCDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *CoreGroupListDefault) GetPayload() *models.ErrorResponse {
+func (o *CoreGCDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *CoreGroupListDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CoreGCDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -129,6 +127,6 @@ func (o *CoreGroupListDefault) readResponse(response runtime.ClientResponse, con
 	return nil
 }
 
-func (o *CoreGroupListDefault) Error() string {
+func (o *CoreGCDefault) Error() string {
 	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }

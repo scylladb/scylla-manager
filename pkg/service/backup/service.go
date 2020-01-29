@@ -598,6 +598,15 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "purge")
 	}
 
+	// After the backup is complete run GC for each agent.
+	defer func() {
+		if err := hostsInParallel(hi, parallel.NoLimit, func(h hostInfo) error {
+			return client.RcloneGC(context.Background(), h.IP)
+		}); err != nil {
+			s.logger.Error(context.Background(), "Failed to run GC", "error", err)
+		}
+	}()
+
 	return errors.Wrap(s.markRunAsDone(run), "mark run as done")
 }
 

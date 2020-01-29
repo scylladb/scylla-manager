@@ -65,25 +65,25 @@ func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) 
 }
 
 /*
-CoreGroupList groups names
+CoreGC runs garbage collector
 
-Returns list of group names
+Run garbage collector on the agent
 */
-func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, error) {
+func (a *Client) CoreGC(params *CoreGCParams) (*CoreGCOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCoreGroupListParams()
+		params = NewCoreGCParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CoreGroupList",
+		ID:                 "CoreGC",
 		Method:             "POST",
-		PathPattern:        "/rclone/core/group-list",
+		PathPattern:        "/rclone/core/gc",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &CoreGroupListReader{formats: a.formats},
+		Reader:             &CoreGCReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -93,12 +93,12 @@ func (a *Client) CoreGroupList(params *CoreGroupListParams) (*CoreGroupListOK, e
 		}
 		return nil, err
 	}
-	success, ok := result.(*CoreGroupListOK)
+	success, ok := result.(*CoreGCOK)
 	if ok {
 		return success, nil
 	}
 	// unexpected success response
-	unexpectedSuccess := result.(*CoreGroupListDefault)
+	unexpectedSuccess := result.(*CoreGCDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
