@@ -88,7 +88,10 @@ http: 127.0.0.1:56080
 #
 # Frequency Scylla Manager poll Scylla node for backup upload status.
 #  poll_interval: 1s
-#  max_age: 12h
+#
+# Maximal time for backup run to be considered fresh and can be continued from
+# the same snapshot. If exceeded, new run with new snapshot will be created.
+#  age_max: 12h
 
 # Repair service configuration.
 #repair:
