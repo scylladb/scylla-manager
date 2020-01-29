@@ -7,7 +7,6 @@ package rcserver
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -227,17 +226,14 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		out   rc.Params
 		jobID int64
 	)
+
 	if isAsync {
 		out, err = jobs.StartAsyncJob(fn, in)
 		jobID = out["jobid"].(int64)
 	} else {
-		// Delete stats group for every sync job.
-		group := getGroup(in)
-		out, jobID, err = jobs.ExecuteJob(r.Context(), fn, in)
-		if group == "" {
-			defer deleteStatsGroup(fmt.Sprintf("job/%d", jobID))
-		}
+		out, err = fn(r.Context(), in)
 	}
+
 	if rc.IsErrParamNotFound(err) || err == ErrNotFound {
 		writeError(path, in, w, err, http.StatusNotFound)
 		return
@@ -291,31 +287,6 @@ func writeJSON(buf *bytes.Buffer, w http.ResponseWriter, out rc.Params) error {
 func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
 	fs.Errorf(nil, "rc: received unsupported GET request")
 	http.Error(w, notFoundJSON, http.StatusNotFound)
-}
-
-func getGroup(in rc.Params) string {
-	group, err := in.GetString("_group")
-	if err != nil {
-		return ""
-	}
-	return group
-}
-
-func deleteStatsGroup(group string) {
-	if group == "" {
-		return
-	}
-	const path = "core/stats-delete"
-	call := rc.Calls.Get(path)
-	if call == nil {
-		fs.Errorf(nil, "rc: call %s doesn't exist", path)
-		return
-	}
-	out, err := call.Fn(context.Background(), rc.Params{"group": group})
-	if err != nil {
-		fs.Errorf(nil, "rc: %s delete failure: %+v params: %v", path, err, out)
-		return
-	}
 }
 
 // validateFsName ensures that only allowed file systems can be used in

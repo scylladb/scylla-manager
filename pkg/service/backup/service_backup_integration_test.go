@@ -608,6 +608,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)
 	}
+	// Sleep to avoid tag collision.
+	time.Sleep(time.Second)
 	Print("And: run it again")
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)

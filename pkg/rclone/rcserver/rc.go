@@ -151,7 +151,7 @@ func init() {
 - body - file content`,
 	})
 
-	// Adding it here because it is not part of the agent.js.
+	// Adding it here because it is not part of the agent.json.
 	// It should be removed once we are able to generate client for this call.
 	internal.RcloneSupportedCalls.Add("operations/put")
 }
