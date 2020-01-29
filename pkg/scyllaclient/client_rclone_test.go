@@ -127,8 +127,6 @@ func TestRcloneCat(t *testing.T) {
 			})
 		}
 	})
-
-	assertStatsCleared(t, client)
 }
 
 func TestRcloneCatLimit(t *testing.T) {
@@ -204,8 +202,6 @@ func TestRcloneListDir(t *testing.T) {
 			})
 		}
 	})
-
-	assertStatsCleared(t, client)
 }
 
 func TestRcloneListDirNotFound(t *testing.T) {
@@ -323,8 +319,6 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 			})
 		}
 	})
-
-	assertStatsCleared(t, client)
 }
 
 func TestRcloneDiskUsage(t *testing.T) {
@@ -343,8 +337,6 @@ func TestRcloneDiskUsage(t *testing.T) {
 	if got.Total <= 0 || got.Free <= 0 || got.Used <= 0 {
 		t.Errorf("Expected usage bigger than zero, got: %+v", got)
 	}
-
-	assertStatsCleared(t, client)
 }
 
 func TestRcloneMoveFile(t *testing.T) {
@@ -379,8 +371,6 @@ func TestRcloneMoveFile(t *testing.T) {
 	if _, err := os.Stat(path.Join(dir, "b")); err != nil {
 		t.Error("File b should exist", err)
 	}
-
-	assertStatsCleared(t, client)
 }
 
 func TestRcloneMoveNotExistingFile(t *testing.T) {
@@ -398,24 +388,5 @@ func TestRcloneMoveNotExistingFile(t *testing.T) {
 	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("d"), tmpRemotePath("c"))
 	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 		t.Fatal("RcloneMoveFile() expected 404 error, got", err)
-	}
-}
-
-func assertStatsCleared(t *testing.T, client *scyllaclient.Client) {
-	t.Helper()
-
-	ctx := context.Background()
-	job, err := client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if job.Stats.Transfers != 0 {
-		t.Errorf("Expected empty transfer statistics, got %d", job.Stats.Transfers)
-	}
-	if len(job.Transferred) != 0 {
-		for i, v := range job.Transferred {
-			t.Logf("job.Transferred[%d]=%+v", i, *v)
-		}
-		t.Errorf("Expected empty transfers, got %d", len(job.Transferred))
 	}
 }

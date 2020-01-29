@@ -574,11 +574,15 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	w.Cleanup(ctx, hi)
+
 	// Index files
 	w = w.WithLogger(s.logger.Named("index"))
 	if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "index")
 	}
+
+	w.Cleanup(ctx, hi)
 
 	// Upload files
 	w = w.WithLogger(s.logger.Named("upload"))
@@ -586,11 +590,15 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "upload")
 	}
 
+	w.Cleanup(ctx, hi)
+
 	// Move manifests
 	w = w.WithLogger(s.logger.Named("move"))
 	if err := w.MoveManifests(ctx, hi); err != nil {
 		return errors.Wrap(err, "move manifests")
 	}
+
+	w.Cleanup(ctx, hi)
 
 	// Purge remote data
 	w = w.WithLogger(s.logger.Named("purge"))
@@ -598,7 +606,11 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "purge")
 	}
 
-	return errors.Wrap(s.markRunAsDone(run), "mark run as done")
+	err = errors.Wrap(s.markRunAsDone(run), "mark run as done")
+
+	w.Cleanup(ctx, hi)
+
+	return err
 }
 
 // decorateWithPrevRun gets task previous run and if it can be continued
