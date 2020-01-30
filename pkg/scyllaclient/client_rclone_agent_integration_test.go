@@ -104,6 +104,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	config.LongPollingSeconds = 1
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
@@ -114,6 +115,15 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	S3InitBucket(t, testBucket)
 
 	ctx := context.Background()
+
+	if err := client.RcloneSetBandwidthLimit(ctx, testHost, 1); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := client.RcloneSetBandwidthLimit(ctx, testHost, 0); err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	// Create big enough file on the test host to keep running for long enough.
 	// 1024*102400
@@ -141,21 +151,17 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		return len(job.Stats.Transferring) > 0
-	}, 50*time.Millisecond, time.Second)
+	}, time.Second, 3*time.Second)
 
 	err = client.RcloneJobStop(ctx, testHost, id)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var job *scyllaclient.RcloneJobInfo
-	WaitCond(t, func() bool {
-		job, err = client.RcloneJobInfo(ctx, testHost, id)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return len(job.Transferred) > 0
-	}, 50*time.Millisecond, time.Second)
+	job, err := client.RcloneJobInfo(ctx, testHost, id)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if job.Transferred[0].Error == "" {
 		t.Fatal("Expected error but got empty")

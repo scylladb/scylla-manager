@@ -19,7 +19,7 @@ var listRecursively = &scyllaclient.RcloneListDirOpts{Recurse: true}
 
 const (
 	testRemote = "s3"
-	testBucket = "rclonetest"
+	testBucket = "backuptest-rclone"
 )
 
 func remotePath(p string) string {
@@ -29,7 +29,7 @@ func remotePath(p string) string {
 func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	S3InitBucket(t, testBucket)
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()
@@ -88,7 +88,7 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 	S3InitBucket(t, testBucket)
 
-	client, closeServer :=scyllaclienttest.NewFakeRcloneServer(t)
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()

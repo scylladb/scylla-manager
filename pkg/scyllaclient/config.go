@@ -27,23 +27,27 @@ type Config struct {
 	// RequestTimeout specifies time to complete a single request to Scylla
 	// REST API possibly including opening a TCP connection.
 	RequestTimeout time.Duration
+	// How many seconds to wait for the job to finish before returning
+	// the info response.
+	LongPollingSeconds int64
 	// PoolDecayDuration specifies size of time window to measure average
 	// request time in Epsilon-Greedy host pool.
 	PoolDecayDuration time.Duration
 
-	// Transport allows for setting a custom round tripper to send HTTP requests
-	// over not standard connections i.e. over SSH tunnel.
+	// Transport allows for setting a custom round tripper to send HTTP
+	// requests over not standard connections i.e. over SSH tunnel.
 	Transport http.RoundTripper
 }
 
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		Port:              "10001",
-		Scheme:            "https",
-		Timeout:           15 * time.Minute,
-		RequestTimeout:    15 * time.Second,
-		PoolDecayDuration: 30 * time.Minute,
+		Port:               "10001",
+		Scheme:             "https",
+		Timeout:            15 * time.Minute,
+		RequestTimeout:     15 * time.Second,
+		LongPollingSeconds: 10,
+		PoolDecayDuration:  30 * time.Minute,
 	}
 }
 
