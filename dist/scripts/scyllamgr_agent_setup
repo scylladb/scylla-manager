@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+#
+# Copyright (C) 2017 ScyllaDB
+#
+
+set -eu -o pipefail
+
+is_systemd() {
+    grep -q '^systemd$' /proc/1/comm
+}
+
+interactive_ask_service() {
+    echo $1
+    echo $2
+    while true; do
+        if [[ "$3" == "yes" ]]; then
+        prompt="[YES/no]"
+        elif [[ "$3" == "no" ]]; then
+        prompt="[yes/NO]"
+        else
+        prompt="[yes/no]"
+        fi
+        result=""
+        while [[ x == x"${result}" ]]; do
+            read -p ${prompt} ans
+            if [[ x == x"${ans}" ]]; then
+                result="$3"
+            else
+                result="${ans}"
+            fi
+        done
+        case $(echo ${result} | tr '[:upper:]' '[:lower:]') in
+            "y" | "yes")
+                return 1
+                ;;
+            "n" | "no")
+                return 0
+                ;;
+        esac
+    done
+}
+
+print_help() {
+  echo "Usage: $(basename $0) [-y][--no-scylla-helper-slice]
+
+Options:
+  -y, --assume-yes          assume that the answer to any question which would be asked is yes
+  --no-scylla-helper-slice  skip configuring systemd scylla-helper.slice
+  --no-enable-service       skip enabling service
+  -h, --help                print this help
+
+Interactive mode is enabled when no flags are provided.
+"
+}
+
+if [[ $# != 0 ]]; then
+    INTERACTIVE=0
+else
+    INTERACTIVE=1
+fi
+
+SCYLLA_HELPER_SLICE=1
+ENABLE_SERVICE=1
+CHECK_FOR_UPDATES=1
+
+while [[ $# -gt 0 ]]
+do
+
+case $1 in
+    -y|--assume-yes)
+    shift
+    ;;
+    --no-scylla-helper-slice)
+    SCYLLA_HELPER_SLICE=0
+    shift
+    ;;
+    --no-enable-service)
+    ENABLE_SERVICE=0
+    shift
+    ;;
+    -h|--help)
+    print_help
+    exit 0
+    ;;
+
+    *)
+    echo "unknown command $1"
+    exit 1
+    ;;
+esac
+done
+
+if [[ "$(id -u)" != "0" ]]; then
+    echo "Requires root permission."
+    exit 1
+fi
+
+if [[ ${INTERACTIVE} == 1 ]]; then
+    interactive_ask_service "Do you want to create scylla-helper.slice if it does not exist?" "Yes - limit Scylla Manager Agent and other helper programs memory. No - skip this step." "yes" &&:
+    SCYLLA_HELPER_SLICE=$?
+    interactive_ask_service "Do you want the Scylla Manager Agent service to automatically start when the node boots?" "Yes - automatically start Scylla Manager Agent when the node boots. No - skip this step." "yes" &&:
+    ENABLE_SERVICE=$?
+fi
+
+if [[ ${SCYLLA_HELPER_SLICE} == 1 && ! -f /etc/systemd/system/scylla-helper.slice.d/memory.conf ]]; then
+    mkdir -p /etc/systemd/system/scylla-helper.slice.d/
+    cat << EOS > /etc/systemd/system/scylla-helper.slice.d/memory.conf
+[Slice]
+MemoryHigh=1200M
+MemoryMax=1400M
+MemoryLimit=1400M
+EOS
+fi
+
+if [[ ${ENABLE_SERVICE} == 1 ]]; then
+    if is_systemd; then
+        systemctl enable scylla-manager-agent.service
+    fi
+fi
+
+systemctl daemon-reload
+
+echo "Scylla Manager Agent setup finished."
