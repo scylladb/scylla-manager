@@ -1,6 +1,7 @@
 [Unit]
 Description=Scylla Manager Agent
 Wants=scylla-server.service
+Wants=scylla-helper.slice
 After=scylla-server.service
 After=network-online.target
 
@@ -12,7 +13,7 @@ ExecStart=/usr/bin/scylla-manager-agent
 TimeoutStartSec=900
 KillMode=process
 Restart=on-failure
-Slice=scylla-helper
+Slice=scylla-helper.slice
 
 [Install]
 WantedBy=multi-user.target
