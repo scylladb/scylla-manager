@@ -102,14 +102,48 @@ if [[ ${INTERACTIVE} == 1 ]]; then
     ENABLE_SERVICE=$?
 fi
 
-if [[ ${SCYLLA_HELPER_SLICE} == 1 && ! -f /etc/systemd/system/scylla-helper.slice.d/memory.conf ]]; then
-    mkdir -p /etc/systemd/system/scylla-helper.slice.d/
-    cat << EOS > /etc/systemd/system/scylla-helper.slice.d/memory.conf
+if [[ ${SCYLLA_HELPER_SLICE} == 1 && ! -f /etc/systemd/system/scylla-helper.slice ]]; then
+    cat << EOS > /etc/systemd/system/scylla-helper.slice
+[Unit]
+Description=Slice used to run companion programs to Scylla. Memory, CPU and IO restricted
+Before=slices.target
+
+[Slice]
+MemoryAccounting=true
+IOAccounting=true
+CPUAccounting=true
+
+CPUWeight=10
+IOWeight=10
+
+# MemoryHigh is the throttle point
+MemoryHigh=4%
+# MemoryMax is the OOM point. As Scylla reserves 7% by default, the other two percent goes to
+# the kernel and other non contained processes
+MemoryMax=5%
+# Systemd deprecated settings BlockIOWeight, MemoryLimit and CPUShares. But they are still the ones used in RHEL7
+# Newer SystemD wants MemoryHigh/MemoryMax, IOWeight and CPUWeight instead. Luckily both newer and older SystemD seem to
+# ignore the unwanted option so safest to get both. Using just the old versions would work too but
+# seems less future proof. Using just the new versions does not work at all for RHEL7/
+MemoryLimit=5%
+CPUShares=10
+BlockIOWeight=10
+EOS
+
+    # For systems with not a lot of memory, override default reservations for the slices
+    # seastar has a minimum reservation of 1.5GB that kicks in, and 21GB * 0.07 = 1.5GB.
+    # So for anything smaller than that we will not use percentages in the helper slice
+    MEMTOTAL=$(cat /proc/meminfo |grep -e "^MemTotal:"|sed -s 's/^MemTotal:\s*\([0-9]*\) kB$/\1/')
+    MEMTOTAL_BYTES=$(($MEMTOTAL * 1024))
+    if [ $MEMTOTAL_BYTES -lt 23008753371 ]; then
+        mkdir -p /etc/systemd/system/scylla-helper.slice.d/
+        cat << EOS > /etc/systemd/system/scylla-helper.slice.d/memory.conf
 [Slice]
 MemoryHigh=1200M
 MemoryMax=1400M
 MemoryLimit=1400M
 EOS
+    fi
 fi
 
 if [[ ${ENABLE_SERVICE} == 1 ]]; then
