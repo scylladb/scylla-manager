@@ -24,15 +24,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	cfgConfigFile []string
-	cfgVersion    bool
-)
-
-func init() {
-	rootCmd.Flags().StringSliceVarP(&cfgConfigFile, "config-file", "c", []string{"/etc/scylla-manager/scylla-manager.yaml"}, "configuration file `path`")
-	rootCmd.Flags().BoolVar(&cfgVersion, "version", false, "print product version and exit")
-}
+var rootArgs = struct {
+	configFiles []string
+	version     bool
+}{}
 
 var rootCmd = &cobra.Command{
 	Use:           "scylla-manager",
@@ -43,20 +38,20 @@ var rootCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) (runError error) {
 		// Print version and return
-		if cfgVersion {
+		if rootArgs.version {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", pkg.Version())
 			return
 		}
 
 		// Read configuration
-		config, err := parseConfigFile(cfgConfigFile...)
+		config, err := parseConfigFile(rootArgs.configFiles)
 		if err != nil {
-			runError = errors.Wrapf(err, "configuration %q", cfgConfigFile)
+			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
 		if err := config.validate(); err != nil {
-			runError = errors.Wrapf(err, "configuration %q", cfgConfigFile)
+			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
@@ -91,7 +86,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		// Log config
-		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config), "config_files", cfgConfigFile)
+		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config), "config_files", rootArgs.configFiles)
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
@@ -111,7 +106,7 @@ var rootCmd = &cobra.Command{
 			return errors.Wrapf(
 				err,
 				"no connection to database, make sure Scylla server is running and that database section in config file(s) %s is set correctly",
-				strings.Join(cfgConfigFile, ", "),
+				strings.Join(rootArgs.configFiles, ", "),
 			)
 		}
 		config.Database.initAddr = net.JoinHostPort(initHost, "9042")
@@ -183,4 +178,12 @@ func obfuscatePasswords(config *serverConfig) serverConfig {
 	cfg := *config
 	cfg.Database.Password = strings.Repeat("*", len(cfg.Database.Password))
 	return cfg
+}
+
+func init() {
+	f := rootCmd.Flags()
+	f.StringSliceVarP(&rootArgs.configFiles, "config-file", "c",
+		[]string{"/etc/scylla-manager/scylla-manager.yaml"},
+		"repeatable argument to supply one or more configuration file `paths`")
+	f.BoolVar(&rootArgs.version, "version", false, "print product version and exit")
 }

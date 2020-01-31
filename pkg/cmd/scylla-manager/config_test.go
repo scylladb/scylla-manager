@@ -24,7 +24,7 @@ var serverConfigCmpOpts = cmp.Options{
 func TestConfigModification(t *testing.T) {
 	t.Parallel()
 
-	c, err := parseConfigFile("testdata/scylla-manager.yaml")
+	c, err := parseConfigFile([]string{"testdata/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestConfigModification(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := parseConfigFile("../../../dist/etc/scylla-manager/scylla-manager.yaml")
+	c, err := parseConfigFile([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}

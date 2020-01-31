@@ -3,7 +3,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"time"
 
 	"github.com/pkg/errors"
@@ -11,8 +10,8 @@ import (
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	"github.com/scylladb/mermaid/pkg/service/healthcheck"
 	"github.com/scylladb/mermaid/pkg/service/repair"
+	"github.com/scylladb/mermaid/pkg/util/cfgutil"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v2"
 )
 
 type logConfig struct {
@@ -95,19 +94,9 @@ func defaultConfig() *serverConfig {
 	return config
 }
 
-func parseConfigFile(filename ...string) (*serverConfig, error) {
-	config := defaultConfig()
-
-	for _, f := range filename {
-		b, err := ioutil.ReadFile(f)
-		if err != nil {
-			return nil, errors.Wrapf(err, "read file %q", f)
-		}
-		if err := yaml.Unmarshal(b, config); err != nil {
-			return nil, errors.Wrapf(err, "parse file %q", f)
-		}
-	}
-	return config, nil
+func parseConfigFile(files []string) (*serverConfig, error) {
+	c := defaultConfig()
+	return c, cfgutil.ParseYAML(c, files...)
 }
 
 func (c *serverConfig) validate() error {

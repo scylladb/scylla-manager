@@ -24,8 +24,8 @@ import (
 )
 
 var rootArgs = struct {
-	configFile string
-	version    bool
+	configFiles []string
+	version     bool
 }{}
 
 var rootCmd = &cobra.Command{
@@ -42,7 +42,7 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
-		c, err := parseAndValidateConfigFile(rootArgs.configFile)
+		c, err := parseAndValidateConfigFile(rootArgs.configFiles)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ var rootCmd = &cobra.Command{
 			return errors.Wrapf(
 				err,
 				"no connection to Scylla API, make sure that Scylla server is running and api_address and api_port are set correctly in config file %s",
-				rootArgs.configFile,
+				rootArgs.configFiles,
 			)
 		}
 
@@ -85,13 +85,13 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		logger.Info(ctx, "Using config", "config", obfuscateSecrets(c), "config_file", rootArgs.configFile)
+		logger.Info(ctx, "Using config", "config", obfuscateSecrets(c), "config_file", rootArgs.configFiles)
 
 		// Instruct users to set auth token
 		if c.AuthToken == "" {
 			ip, _, _ := net.SplitHostPort(c.HTTPS)
 			logger.Info(ctx, "WARNING! Scylla data may be exposed on IP "+ip+", "+
-				"protect it by specifying auth_token in config file", "config_file", rootArgs.configFile,
+				"protect it by specifying auth_token in config file", "config_file", rootArgs.configFiles,
 			)
 		}
 
@@ -191,6 +191,8 @@ func obfuscateSecrets(c config) config {
 
 func init() {
 	f := rootCmd.Flags()
-	f.StringVarP(&rootArgs.configFile, "config-file", "c", "/etc/scylla-manager-agent/scylla-manager-agent.yaml", "configuration file `path`")
+	f.StringSliceVarP(&rootArgs.configFiles, "config-file", "c",
+		[]string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"},
+		"repeatable argument to supply one or more configuration file `paths`")
 	f.BoolVar(&rootArgs.version, "version", false, "print product version and exit")
 }
