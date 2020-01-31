@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"net"
 	"os"
 
@@ -12,9 +11,9 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/rclone"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/util/cfgutil"
 	"go.uber.org/multierr"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -75,29 +74,19 @@ func defaultConfig() config {
 	}
 }
 
-func parseConfigFile(file string) (config, error) {
+func parseConfigFile(files []string) (config, error) {
 	c := defaultConfig()
-
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return c, errors.Wrapf(err, "read config file %s", file)
-	}
-	if err := yaml.Unmarshal(b, &c); err != nil {
-		return c, errors.Wrapf(err, "parse config file %s", file)
-	}
-
-	return c, nil
+	return c, cfgutil.ParseYAML(&c, files...)
 }
 
-func parseAndValidateConfigFile(file string) (config, error) {
-	c, err := parseConfigFile(file)
+func parseAndValidateConfigFile(files []string) (config, error) {
+	c, err := parseConfigFile(files)
 	if err != nil {
 		return c, err
 	}
 	if err := c.validate(); err != nil {
-		return c, errors.Wrapf(err, "invalid config file %s", file)
+		return c, errors.Wrap(err, "invalid config")
 	}
-
 	return c, nil
 }
 

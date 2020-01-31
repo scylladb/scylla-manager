@@ -39,13 +39,14 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
-	go.uber.org/atomic v1.3.2
-	go.uber.org/multierr v1.1.0
+	go.uber.org/atomic v1.5.0
+	go.uber.org/config v1.4.0
+	go.uber.org/multierr v1.4.0
 	go.uber.org/zap v1.9.1
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/sys v0.0.0-20190826163724-acd9dae8e8cc
-	golang.org/x/tools v0.0.0-20191010201905-e5ffc44a6fee
-	gopkg.in/yaml.v2 v2.2.4
+	golang.org/x/tools v0.0.0-20191104232314-dc038396d1f0
+	gopkg.in/yaml.v2 v2.2.5
 )
 
 replace (

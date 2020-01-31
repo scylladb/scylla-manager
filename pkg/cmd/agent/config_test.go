@@ -23,37 +23,42 @@ var update = flag.Bool("update", false, "update .golden files")
 func TestParsingConfig(t *testing.T) {
 	table := []struct {
 		Name   string
-		Input  string
+		Input  []string
 		Golden string
 	}{
 		{
 			Name:   "basic",
-			Input:  "./testdata/config/basic.input.yaml",
+			Input:  []string{"./testdata/config/basic.input.yaml"},
 			Golden: "./testdata/config/basic.golden.yaml",
 		},
 		{
 			Name:   "scylla overwrite",
-			Input:  "./testdata/config/scylla_overwrite.input.yaml",
+			Input:  []string{"./testdata/config/scylla_overwrite.input.yaml"},
+			Golden: "./testdata/config/scylla_overwrite.golden.yaml",
+		},
+		{
+			Name:   "scylla overwrite multiple files",
+			Input:  []string{"./testdata/config/basic.input.yaml", "./testdata/config/scylla_overwrite.input.yaml"},
 			Golden: "./testdata/config/scylla_overwrite.golden.yaml",
 		},
 		{
 			Name:   "auth token overwrite",
-			Input:  "./testdata/config/auth_token_overwrite.input.yaml",
+			Input:  []string{"./testdata/config/auth_token_overwrite.input.yaml"},
 			Golden: "./testdata/config/auth_token_overwrite.golden.yaml",
 		},
 		{
 			Name:   "https overwrite",
-			Input:  "./testdata/config/https_overwrite.input.yaml",
+			Input:  []string{"./testdata/config/https_overwrite.input.yaml"},
 			Golden: "./testdata/config/https_overwrite.golden.yaml",
 		},
 		{
 			Name:   "debug overwrite",
-			Input:  "./testdata/config/debug_overwrite.input.yaml",
+			Input:  []string{"./testdata/config/debug_overwrite.input.yaml"},
 			Golden: "./testdata/config/debug_overwrite.golden.yaml",
 		},
 		{
 			Name:   "prometheus overwrite",
-			Input:  "./testdata/config/prometheus_overwrite.input.yaml",
+			Input:  []string{"./testdata/config/prometheus_overwrite.input.yaml"},
 			Golden: "./testdata/config/prometheus_overwrite.golden.yaml",
 		},
 	}
