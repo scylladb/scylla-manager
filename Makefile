@@ -39,7 +39,7 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 		[[ $$f =~ /mermaidclient/internal/ ]] || \
 		[[ $$f =~ /rclone/rcserver/internal/ ]] || \
 		[[ $$f =~ /mock_.*_test[.]go ]] || \
-		[[ "`head -n 1 $$f`" == "// Copyright (C) 2017 ScyllaDB" ]] || \
+		[[ `head -n 1 $$f` =~ '// Copyright (C) ' ]] || \
 		(echo $$f; false); \
 	done
 
