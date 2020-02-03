@@ -61,7 +61,7 @@ func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	}
 
 	var buf bytes.Buffer
-	w := base64.NewEncoder(base64.URLEncoding, &buf)
+	w := base64.NewEncoder(base64.StdEncoding, &buf)
 	if err := operations.Cat(ctx, o, w, CatLimit); err != nil {
 		return nil, err
 	}
