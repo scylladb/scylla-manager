@@ -2,8 +2,8 @@
 
 import_path := github.com/scylladb/mermaid/pkg
 
-GO_VERSION := 1.13.5
-GO_HASH    := 512103d7ad296467814a6e3f635631bd35574cab3369a97a323c9a585ccaa569
+GO_VERSION := 1.13.7
+GO_HASH    := b3dd4bd781a0271b33168e627f7f43886b4c5d1c794a4015abf34e99c6526ca3
 GO_URL     := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
 GO_BUNDLE  := ./go$(GO_VERSION).linux-amd64.tar.gz
 
