@@ -81,7 +81,7 @@ func hostsInParallel(hosts []hostInfo, limit int, f func(h hostInfo) error) erro
 	})
 }
 
-const dirsInParallelLimit = 10
+const dirsInParallelLimit = 5
 
 func dirsInParallel(dirs []snapshotDir, abortOnError bool, f func(h snapshotDir) error) error {
 	return parallel.Run(len(dirs), dirsInParallelLimit, func(i int) error {
