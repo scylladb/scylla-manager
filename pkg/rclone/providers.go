@@ -5,7 +5,6 @@ package rclone
 import (
 	"os"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -69,7 +68,7 @@ type S3Options struct {
 }
 
 // Copy of s3manager.DefaultUploadConcurrency.
-const defaultUploadConcurrency = 5
+const defaultUploadConcurrency = 2
 
 // RegisterS3Provider must be called before server is started.
 // It allows for adding dynamically adding s3 provider named s3.
@@ -85,11 +84,7 @@ func RegisterS3Provider(opts S3Options) error {
 	// more RAM and fast network cards and so we can increase the number of
 	// streams in multipart upload.
 	if opts.UploadConcurrency == "" {
-		c := runtime.NumCPU() / 2
-		if c < defaultUploadConcurrency {
-			c = defaultUploadConcurrency
-		}
-		opts.UploadConcurrency = strconv.Itoa(c)
+		opts.UploadConcurrency = strconv.Itoa(defaultUploadConcurrency)
 	}
 
 	// Set common properties
