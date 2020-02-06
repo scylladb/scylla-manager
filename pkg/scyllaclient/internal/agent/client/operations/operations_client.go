@@ -60,41 +60,6 @@ func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) 
 }
 
 /*
-CoreGC runs garbage collector
-
-Run garbage collector on the agent
-*/
-func (a *Client) CoreGC(params *CoreGCParams) (*CoreGCOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCoreGCParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CoreGC",
-		Method:             "POST",
-		PathPattern:        "/rclone/core/gc",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &CoreGCReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*CoreGCOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*CoreGCDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
 CoreStatsDelete deletes specific stats group
 
 Delete stats
@@ -161,6 +126,41 @@ func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*CoreStatsResetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FreeOSMemory returns memory to o s
+
+Run debug.FreeOSMemory on the agent
+*/
+func (a *Client) FreeOSMemory(params *FreeOSMemoryParams) (*FreeOSMemoryOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFreeOSMemoryParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "FreeOSMemory",
+		Method:             "POST",
+		PathPattern:        "/free_os_memory",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FreeOSMemoryReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FreeOSMemoryOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FreeOSMemoryDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

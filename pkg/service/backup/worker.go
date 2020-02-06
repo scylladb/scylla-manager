@@ -9,6 +9,7 @@ import (
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -76,4 +77,13 @@ func (w *worker) setHostSnapshotDirs(h hostInfo, dirs []snapshotDir) {
 	}
 
 	w.dirs[h.IP] = dirs
+}
+
+// cleanup resets global stats for each agent.
+func (w *worker) cleanup(ctx context.Context, hi []hostInfo) {
+	if err := hostsInParallel(hi, parallel.NoLimit, func(h hostInfo) error {
+		return w.Client.RcloneResetStats(context.Background(), h.IP)
+	}); err != nil {
+		w.Logger.Error(ctx, "Failed to reset stats", "error", err)
+	}
 }

@@ -17,34 +17,6 @@
     "application/json"
   ],
   "paths": {
-    "/rclone/core/gc": {
-      "post": {
-        "description": "Run garbage collector on the agent",
-        "summary": "Run garbage collector",
-        "operationId": "CoreGC",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Empty object",
-            "schema": {
-              "type": "object"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
     "/rclone/core/bwlimit": {
       "post": {
         "description": "This sets the bandwidth limit to that passed in",
@@ -659,6 +631,34 @@
             "description": "node information",
             "schema": {
               "$ref": "#/definitions/NodeInfo"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/free_os_memory": {
+      "post": {
+        "description": "Run debug.FreeOSMemory on the agent",
+        "summary": "Return memory to OS",
+        "operationId": "FreeOSMemory",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
             },
             "headers": {}
           },

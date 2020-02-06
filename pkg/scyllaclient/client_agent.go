@@ -48,3 +48,12 @@ func (ni *NodeInfo) CQLAddr(fallback string) string {
 
 	return net.JoinHostPort(ni.ListenAddress, ni.NativeTransportPort)
 }
+
+// FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
+func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
+	p := operations.FreeOSMemoryParams{
+		Context: forceHost(ctx, host),
+	}
+	_, err := c.agentOps.FreeOSMemory(&p)
+	return err
+}

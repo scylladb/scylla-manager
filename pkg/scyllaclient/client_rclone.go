@@ -111,15 +111,6 @@ func (c *Client) RcloneResetStats(ctx context.Context, host string) error {
 	return err
 }
 
-// RcloneGC run garbage collector on the agent.
-func (c *Client) RcloneGC(ctx context.Context, host string) error {
-	p := operations.CoreGCParams{
-		Context: forceHost(ctx, host),
-	}
-	_, err := c.agentOps.CoreGC(&p) //nolint:errcheck
-	return err
-}
-
 // RcloneDefaultGroup returns default group name based on job id.
 func rcloneDefaultGroup(jobID int64) string {
 	return fmt.Sprintf("job/%d", jobID)

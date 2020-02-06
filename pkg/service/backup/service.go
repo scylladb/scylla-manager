@@ -573,15 +573,13 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	w.Cleanup(ctx, hi)
-
 	// Index files
 	w = w.WithLogger(s.logger.Named("index"))
 	if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "index")
 	}
 
-	w.Cleanup(ctx, hi)
+	w.cleanup(ctx, hi)
 
 	// Upload files
 	w = w.WithLogger(s.logger.Named("upload"))
@@ -589,7 +587,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "upload")
 	}
 
-	w.Cleanup(ctx, hi)
+	w.cleanup(ctx, hi)
 
 	// Move manifests
 	w = w.WithLogger(s.logger.Named("move"))
@@ -597,7 +595,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "move manifests")
 	}
 
-	w.Cleanup(ctx, hi)
+	w.cleanup(ctx, hi)
 
 	// Purge remote data
 	w = w.WithLogger(s.logger.Named("purge"))
@@ -607,7 +605,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	err = errors.Wrap(s.markRunAsDone(run), "mark run as done")
 
-	w.Cleanup(ctx, hi)
+	w.cleanup(ctx, hi)
 
 	return err
 }

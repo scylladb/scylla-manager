@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"runtime/debug"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -38,6 +39,9 @@ func newRouter(config config, rclone http.Handler, logger log.Logger) http.Handl
 	)
 	// Agent specific
 	priv.Get("/agent/node_info", nodeInfo(net.JoinHostPort(config.Scylla.APIAddress, config.Scylla.APIPort)))
+	priv.Post("/agent/free_os_memory", func(writer http.ResponseWriter, request *http.Request) {
+		debug.FreeOSMemory()
+	})
 	// Rclone server
 	priv.Mount("/agent/rclone", http.StripPrefix("/agent/rclone", rclone))
 	// Scylla prometheus proxy

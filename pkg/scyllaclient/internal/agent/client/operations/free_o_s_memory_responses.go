@@ -18,22 +18,22 @@ import (
 	models "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
 )
 
-// CoreGCReader is a Reader for the CoreGC structure.
-type CoreGCReader struct {
+// FreeOSMemoryReader is a Reader for the FreeOSMemory structure.
+type FreeOSMemoryReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *CoreGCReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *FreeOSMemoryReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
-		result := NewCoreGCOK()
+		result := NewFreeOSMemoryOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 	default:
-		result := NewCoreGCDefault(response.Code())
+		result := NewFreeOSMemoryDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -44,25 +44,25 @@ func (o *CoreGCReader) ReadResponse(response runtime.ClientResponse, consumer ru
 	}
 }
 
-// NewCoreGCOK creates a CoreGCOK with default headers values
-func NewCoreGCOK() *CoreGCOK {
-	return &CoreGCOK{}
+// NewFreeOSMemoryOK creates a FreeOSMemoryOK with default headers values
+func NewFreeOSMemoryOK() *FreeOSMemoryOK {
+	return &FreeOSMemoryOK{}
 }
 
-/*CoreGCOK handles this case with default header values.
+/*FreeOSMemoryOK handles this case with default header values.
 
 Empty object
 */
-type CoreGCOK struct {
+type FreeOSMemoryOK struct {
 	Payload interface{}
 	JobID   int64
 }
 
-func (o *CoreGCOK) GetPayload() interface{} {
+func (o *FreeOSMemoryOK) GetPayload() interface{} {
 	return o.Payload
 }
 
-func (o *CoreGCOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *FreeOSMemoryOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
@@ -80,34 +80,34 @@ func (o *CoreGCOK) readResponse(response runtime.ClientResponse, consumer runtim
 	return nil
 }
 
-// NewCoreGCDefault creates a CoreGCDefault with default headers values
-func NewCoreGCDefault(code int) *CoreGCDefault {
-	return &CoreGCDefault{
+// NewFreeOSMemoryDefault creates a FreeOSMemoryDefault with default headers values
+func NewFreeOSMemoryDefault(code int) *FreeOSMemoryDefault {
+	return &FreeOSMemoryDefault{
 		_statusCode: code,
 	}
 }
 
-/*CoreGCDefault handles this case with default header values.
+/*FreeOSMemoryDefault handles this case with default header values.
 
 Server error
 */
-type CoreGCDefault struct {
+type FreeOSMemoryDefault struct {
 	_statusCode int
 
 	Payload *models.ErrorResponse
 	JobID   int64
 }
 
-// Code gets the status code for the core g c default response
-func (o *CoreGCDefault) Code() int {
+// Code gets the status code for the free o s memory default response
+func (o *FreeOSMemoryDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *CoreGCDefault) GetPayload() *models.ErrorResponse {
+func (o *FreeOSMemoryDefault) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
-func (o *CoreGCDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *FreeOSMemoryDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ErrorResponse)
 
@@ -127,6 +127,6 @@ func (o *CoreGCDefault) readResponse(response runtime.ClientResponse, consumer r
 	return nil
 }
 
-func (o *CoreGCDefault) Error() string {
+func (o *FreeOSMemoryDefault) Error() string {
 	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }
