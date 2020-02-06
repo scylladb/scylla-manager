@@ -193,7 +193,7 @@ func (c *Client) PingN(ctx context.Context, host string, n int, timeout time.Dur
 // Ping checks if host is available using HTTP ping and returns RTT.
 // Ping requests are not retried, use this function with caution.
 func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
-	ctx = httpmw.NoRetry(ctx)
+	ctx = NoRetry(ctx)
 
 	t := timeutc.Now()
 	err := c.ping(ctx, host)

@@ -19,7 +19,6 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/secrets"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -286,7 +285,7 @@ func (s *Service) updateNodeInfo(ctx context.Context, cidHost clusterIDHost) *sc
 		return nil
 	}
 
-	ni, err := client.NodeInfo(httpmw.NoRetry(ctx), cidHost.Host)
+	ni, err := client.NodeInfo(scyllaclient.NoRetry(ctx), cidHost.Host)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to fetch node info", "error", err)
 		return nil

@@ -27,6 +27,9 @@ type Config struct {
 	// RequestTimeout specifies time to complete a single request to Scylla
 	// REST API possibly including opening a TCP connection.
 	RequestTimeout time.Duration
+	// Backoff specifies parameters of exponential backoff used when requests
+	// from Scylla Manager to Scylla Agent fail.
+	Backoff BackoffConfig
 	// How many seconds to wait for the job to finish before returning
 	// the info response.
 	LongPollingSeconds int64
@@ -39,13 +42,29 @@ type Config struct {
 	Transport http.RoundTripper
 }
 
+// BackoffConfig specifies request exponential backoff parameters.
+type BackoffConfig struct {
+	WaitMin    time.Duration
+	WaitMax    time.Duration
+	MaxRetries uint64
+	Multiplier float64
+	Jitter     float64
+}
+
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		Port:               "10001",
-		Scheme:             "https",
-		Timeout:            15 * time.Minute,
-		RequestTimeout:     15 * time.Second,
+		Port:           "10001",
+		Scheme:         "https",
+		Timeout:        15 * time.Minute,
+		RequestTimeout: 15 * time.Second,
+		Backoff: BackoffConfig{
+			WaitMin:    1 * time.Second,
+			WaitMax:    30 * time.Second,
+			MaxRetries: 10,
+			Multiplier: 2,
+			Jitter:     0.2,
+		},
 		LongPollingSeconds: 10,
 		PoolDecayDuration:  30 * time.Minute,
 	}

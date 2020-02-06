@@ -10,7 +10,6 @@ type ctxt byte
 // ctxt enumeration.
 const (
 	ctxHost ctxt = iota
-	ctxNoRetry
 	ctxNoTimeout
 )
 
@@ -20,9 +19,10 @@ func ForceHost(ctx context.Context, host string) context.Context {
 	return context.WithValue(ctx, ctxHost, host)
 }
 
-// NoRetry disables Retry middleware.
-func NoRetry(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ctxNoRetry, true)
+// IsForceHost checks that ForceHost was applied to the context.
+func IsForceHost(ctx context.Context) bool {
+	_, ok := ctx.Value(ctxHost).(string)
+	return ok
 }
 
 // NoTimeout disables Timeout middleware.

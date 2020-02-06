@@ -69,7 +69,6 @@ type Client struct {
 
 	scyllaOps *scyllaOperations.Client
 	agentOps  *agentOperations.Client
-
 	transport http.RoundTripper
 
 	mu      sync.RWMutex
@@ -96,7 +95,6 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	transport = httpmw.Timeout(transport, config.RequestTimeout, logger)
 	transport = httpmw.Logger(transport, logger)
 	transport = httpmw.HostPool(transport, pool, config.Port)
-	transport = httpmw.Retry(transport, len(config.Hosts), logger)
 	transport = httpmw.AuthToken(transport, config.AuthToken)
 	transport = httpmw.FixContentType(transport)
 
@@ -116,11 +114,14 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	scyllaRuntime.Debug = false
 	agentRuntime.Debug = false
 
+	scyllaOps := scyllaOperations.New(retryable(scyllaRuntime, config.Backoff, len(config.Hosts), logger), strfmt.Default)
+	agentOps := agentOperations.New(retryable(agentRuntime, config.Backoff, len(config.Hosts), logger), strfmt.Default)
+
 	return &Client{
 		config:    config,
 		logger:    logger,
-		scyllaOps: scyllaOperations.New(scyllaRuntime, strfmt.Default),
-		agentOps:  agentOperations.New(agentRuntime, strfmt.Default),
+		scyllaOps: scyllaOps,
+		agentOps:  agentOps,
 		transport: transport,
 		dcCache:   make(map[string]string),
 	}, nil

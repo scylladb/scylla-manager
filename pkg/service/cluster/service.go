@@ -16,7 +16,6 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/secrets"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -392,7 +391,7 @@ func (s *Service) saveTLSIdentityWithRollback(clusterID uuid.UUID, cert, key []b
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
 	// Do not retry in validate
-	ctx = httpmw.NoRetry(ctx)
+	ctx = scyllaclient.NoRetry(ctx)
 
 	// If host changes ignore old known hosts.
 	if c.Host != "" {
