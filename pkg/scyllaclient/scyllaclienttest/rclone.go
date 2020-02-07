@@ -18,7 +18,7 @@ func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (client *scyllaclien
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, m := range matchers {
 			if m(r) != "" {
-				sendFile(t, w, m(r))
+				SendFile(t, w, m(r))
 				return
 			}
 		}
@@ -31,7 +31,7 @@ func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (client *scyllaclien
 		}
 	})
 
-	host, port, closeServer := makeServer(t, h)
-	client = makeClient(t, host, port)
+	host, port, closeServer := MakeServer(t, h)
+	client = MakeClient(t, host, port)
 	return
 }

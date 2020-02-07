@@ -21,11 +21,11 @@ func NewFakeScyllaServerMatching(t *testing.T, m Matcher) (client *scyllaclient.
 		}
 		// Emulate ScyllaDB bug
 		r.Header.Set("Content-Type", "text/plain")
-		sendFile(t, w, m(r))
+		SendFile(t, w, m(r))
 	})
 
-	host, port, closeServer := makeServer(t, h)
-	client = makeClient(t, host, port)
+	host, port, closeServer := MakeServer(t, h)
+	client = MakeClient(t, host, port)
 	return
 }
 
@@ -36,10 +36,10 @@ func NewFakeScyllaV2Server(t *testing.T, file string) (client *scyllaclient.Conf
 func NewFakeScyllaV2ServerMatching(t *testing.T, m Matcher) (client *scyllaclient.ConfigClient, closeServer func()) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		sendFile(t, w, m(r))
+		SendFile(t, w, m(r))
 	})
 
-	host, port, closeServer := makeServer(t, h)
+	host, port, closeServer := MakeServer(t, h)
 	client = scyllaclient.NewConfigClient(net.JoinHostPort(host, port))
 	return
 }

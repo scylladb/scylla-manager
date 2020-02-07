@@ -17,7 +17,8 @@ import (
 // TestHost should be used if a function in test requires host parameter.
 const TestHost = "127.0.0.1"
 
-func makeServer(t *testing.T, h http.Handler) (host, port string, closeServer func()) {
+// MakeServer creates a new server running a http.Handler.
+func MakeServer(t *testing.T, h http.Handler) (host, port string, closeServer func()) {
 	t.Helper()
 
 	server := httptest.NewServer(h)
@@ -31,7 +32,9 @@ func makeServer(t *testing.T, h http.Handler) (host, port string, closeServer fu
 	return
 }
 
-func makeClient(t *testing.T, host, port string) *scyllaclient.Client {
+// MakeClient creates a Client for testing. Typically host and port are set
+// based on MakeServer result.
+func MakeClient(t *testing.T, host, port string) *scyllaclient.Client {
 	t.Helper()
 
 	config := scyllaclient.DefaultConfig()
@@ -46,7 +49,8 @@ func makeClient(t *testing.T, host, port string) *scyllaclient.Client {
 	return client
 }
 
-func sendFile(t *testing.T, w http.ResponseWriter, file string) {
+// SendFile streams a file given by name to HTTP response.
+func SendFile(t *testing.T, w http.ResponseWriter, file string) {
 	f, err := os.Open(file)
 	if err != nil {
 		t.Error(err)
