@@ -10,43 +10,48 @@ import (
 	"os"
 	"testing"
 
-	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"go.uber.org/atomic"
 )
 
-// TestHost should be used if a function in test requires host parameter.
-const TestHost = "127.0.0.1"
+// ServerOption allows to modify test Server before it's started.
+type ServerOption func(*httptest.Server)
+
+// ServerListenOnAddr is ServerOption that allows to specify listen address
+// (host and/or port).
+func ServerListenOnAddr(t *testing.T, addr string) ServerOption {
+	return func(server *httptest.Server) {
+		t.Helper()
+
+		if l := server.Listener; l != nil {
+			l.Close()
+		}
+
+		l, err := net.Listen("tcp", addr)
+		if err != nil {
+			t.Fatal("net.Listen() error", err)
+		}
+		server.Listener = l
+	}
+}
 
 // MakeServer creates a new server running a http.Handler.
-func MakeServer(t *testing.T, h http.Handler) (host, port string, closeServer func()) {
+func MakeServer(t *testing.T, h http.Handler, opts ...ServerOption) (host, port string, closeServer func()) {
 	t.Helper()
 
-	server := httptest.NewServer(h)
+	server := httptest.NewUnstartedServer(h)
+	for i := range opts {
+		opts[i](server)
+	}
 
 	host, port, err := net.SplitHostPort(server.Listener.Addr().String())
 	if err != nil {
 		t.Fatal(err)
 	}
-	closeServer = func() { server.Close() }
+	closeServer = server.Close
+
+	server.Start()
 
 	return
-}
-
-// MakeClient creates a Client for testing. Typically host and port are set
-// based on MakeServer result.
-func MakeClient(t *testing.T, host, port string) *scyllaclient.Client {
-	t.Helper()
-
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = []string{host}
-	config.Port = port
-	config.Scheme = "http"
-
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return client
 }
 
 // SendFile streams a file given by name to HTTP response.
@@ -60,4 +65,28 @@ func SendFile(t *testing.T, w http.ResponseWriter, file string) {
 	if _, err := io.Copy(w, f); err != nil {
 		t.Error("Copy() error", err)
 	}
+}
+
+// RespondStatus returns statusCodes in subsequent calls.
+func RespondStatus(t *testing.T, statusCodes ...int) http.Handler {
+	calls := atomic.NewInt32(-1)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idx := int(calls.Inc())
+		if idx >= len(statusCodes) {
+			t.Fatal("Too many requests statusCodes out of range")
+		}
+		w.WriteHeader(statusCodes[idx])
+	})
+}
+
+// RespondHostStatus returns a fixed status based on target host.
+func RespondHostStatus(t *testing.T, statusCode map[string]int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, _, _ := net.SplitHostPort(r.Host)
+		c, ok := statusCode[host]
+		if !ok {
+			t.Fatalf("Unexpected host %s", host)
+		}
+		w.WriteHeader(c)
+	})
 }
