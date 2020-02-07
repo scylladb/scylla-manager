@@ -14,7 +14,6 @@ import (
 	agentClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
 )
 
 // RcloneSetBandwidthLimit sets bandwidth limit of all the current and future
@@ -23,7 +22,7 @@ import (
 // To turn off limitation set it to 0.
 func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit int) error {
 	p := operations.CoreBwlimitParams{
-		Context:       httpmw.ForceHost(ctx, host),
+		Context:       forceHost(ctx, host),
 		BandwidthRate: &models.Bandwidth{Rate: fmt.Sprintf("%dM", limit)},
 	}
 	_, err := c.agentOps.CoreBwlimit(&p) //nolint:errcheck
@@ -33,7 +32,7 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 // RcloneJobStop stops running job.
 func (c *Client) RcloneJobStop(ctx context.Context, host string, jobID int64) error {
 	p := operations.JobStopParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Jobid:   &models.Jobid{Jobid: jobID},
 	}
 	_, err := c.agentOps.JobStop(&p) //nolint:errcheck
@@ -46,7 +45,7 @@ type RcloneJobInfo = models.JobInfo
 // RcloneJobInfo returns aggregated stats for the job along with job status.
 func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*RcloneJobInfo, error) {
 	p := operations.JobInfoParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Jobinfo: &models.JobInfoParams{
 			Jobid: jobID,
 			Wait:  c.config.LongPollingSeconds,
@@ -94,7 +93,7 @@ type RcloneTransfer = models.Transfer
 // RcloneDeleteJobStats deletes job stats group.
 func (c *Client) RcloneDeleteJobStats(ctx context.Context, host string, jobID int64) error {
 	p := operations.CoreStatsDeleteParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		StatsParams: &models.StatsParams{
 			Group: rcloneDefaultGroup(jobID),
 		},
@@ -106,7 +105,7 @@ func (c *Client) RcloneDeleteJobStats(ctx context.Context, host string, jobID in
 // RcloneResetStats resets stats.
 func (c *Client) RcloneResetStats(ctx context.Context, host string) error {
 	p := operations.CoreStatsResetParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 	}
 	_, err := c.agentOps.CoreStatsReset(&p) //nolint:errcheck
 	return err
@@ -115,7 +114,7 @@ func (c *Client) RcloneResetStats(ctx context.Context, host string) error {
 // RcloneGC run garbage collector on the agent.
 func (c *Client) RcloneGC(ctx context.Context, host string) error {
 	p := operations.CoreGCParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 	}
 	_, err := c.agentOps.CoreGC(&p) //nolint:errcheck
 	return err
@@ -140,7 +139,7 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRem
 		return err
 	}
 	p := operations.OperationsMovefileParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Copyfile: &models.MoveOrCopyFileOptions{
 			DstFs:     dstFs,
 			DstRemote: dstRemote,
@@ -167,7 +166,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host, dstRemotePath, srcRem
 		return 0, err
 	}
 	p := operations.OperationsCopyfileParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Copyfile: &models.MoveOrCopyFileOptions{
 			DstFs:     dstFs,
 			DstRemote: dstRemote,
@@ -190,7 +189,7 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host, dstRemotePath, srcRem
 // Remote path format is "name:bucket/path".
 func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
 	p := operations.SyncCopyParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Copydir: operations.SyncCopyBody{
 			SrcFs: srcRemotePath,
 			DstFs: dstRemotePath,
@@ -213,7 +212,7 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host, remotePath string) e
 		return err
 	}
 	p := operations.OperationsPurgeParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Purge: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
@@ -232,7 +231,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host, remotePath string) 
 		return err
 	}
 	p := operations.OperationsDeletefileParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Deletefile: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
@@ -247,7 +246,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host, remotePath string) 
 // Remote path format is "name:bucket/path".
 func (c *Client) RcloneDiskUsage(ctx context.Context, host, remotePath string) (*models.FileSystemDetails, error) {
 	p := operations.OperationsAboutParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		About: &models.RemotePath{
 			Fs: remotePath,
 		},
@@ -268,7 +267,7 @@ func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte
 		return nil, err
 	}
 	p := operations.OperationsCatParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Cat: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
@@ -293,7 +292,7 @@ type RcloneListDirItem = models.ListItem
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*models.ListItem, error) {
 	empty := ""
 	p := operations.OperationsListParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		ListOpts: &models.ListOptions{
 			Fs:     &remotePath,
 			Remote: &empty,
@@ -312,7 +311,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 // creating, and deleting objects.
 func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath string) error {
 	p := operations.OperationsCheckPermissionsParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 		Fs: &models.RemotePath{
 			Fs:     remotePath,
 			Remote: "",
@@ -334,7 +333,7 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 	// Due to missing generator for Swagger 3.0, and poor implementation of 2.0 file upload
 	// we are uploading manually.
 	u := c.newURL(host, rcloneOperationPutPath)
-	req, err := http.NewRequestWithContext(httpmw.ForceHost(ctx, host), http.MethodPost, u.String(), content)
+	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodPost, u.String(), content)
 	if err != nil {
 		return err
 	}

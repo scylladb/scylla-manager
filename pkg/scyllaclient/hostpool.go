@@ -1,21 +1,21 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package scyllaclient
 
 import (
 	"net"
 	"net/http"
-	"net/url"
 
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 )
 
 var errPoolServerError = errors.New("server error")
 
-// HostPool sets request host from a pool.
-func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
-	return RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+// hostPool sets request host from a pool.
+func hostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		ctx := req.Context()
 
 		var (
@@ -33,7 +33,7 @@ func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 		}
 
 		// Clone request
-		r := cloneRequest(req)
+		r := httpx.CloneRequest(req)
 
 		// Set host and port
 		hp := net.JoinHostPort(h, port)
@@ -63,36 +63,4 @@ func HostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 
 		return resp, err
 	})
-}
-
-// cloneRequest creates a shallow copy of the request along with a deep copy
-// of the Headers and URL.
-func cloneRequest(req *http.Request) *http.Request {
-	r := new(http.Request)
-
-	// Shallow clone
-	*r = *req
-
-	// Copy ctx
-	r = r.WithContext(req.Context())
-
-	// Deep copy headers
-	r.Header = cloneHeader(req.Header)
-
-	// Deep copy URL
-	r.URL = new(url.URL)
-	*r.URL = *req.URL
-
-	return r
-}
-
-// cloneHeader creates a deep copy of an http.Header.
-func cloneHeader(in http.Header) http.Header {
-	out := make(http.Header, len(in))
-	for key, values := range in {
-		newValues := make([]string, len(values))
-		copy(newValues, values)
-		out[key] = newValues
-	}
-	return out
 }

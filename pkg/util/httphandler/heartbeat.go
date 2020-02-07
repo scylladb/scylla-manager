@@ -1,11 +1,11 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package httphandler
 
 import "net/http"
 
-// HeartbeatHandler responds with status 204.
-func HeartbeatHandler() http.HandlerFunc {
+// Heartbeat responds with status 204.
+func Heartbeat() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}

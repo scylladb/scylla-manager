@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package scyllaclient
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 )
 
 // body defers context cancellation until response body is closed.
@@ -23,9 +23,9 @@ func (b body) Close() error {
 	return b.ReadCloser.Close()
 }
 
-// Timeout sets request context timeout for individual requests.
-func Timeout(next http.RoundTripper, timeout time.Duration, logger log.Logger) http.RoundTripper {
-	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+// timeout sets request context timeout for individual requests.
+func timeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		if _, ok := req.Context().Value(ctxNoTimeout).(bool); ok {
 			return next.RoundTrip(req)
 		}

@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package auth
 
 import (
 	"encoding/json"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
@@ -57,20 +58,20 @@ func TestParseBearerAuth(t *testing.T) {
 	}
 }
 
-func TestValidateAuthTokenMiddlewareNoToken(t *testing.T) {
+func TestValidateTokenNoToken(t *testing.T) {
 	t.Parallel()
 
 	h := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 	r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 	w := httptest.NewRecorder()
 
-	ValidateAuthToken("", 0, nil)(h).ServeHTTP(w, r)
+	ValidateToken("", 0, nil)(h).ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Error("expected status 200 got", w)
 	}
 }
 
-func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
+func TestValidateTokenSuccess(t *testing.T) {
 	t.Parallel()
 
 	const token = "token"
@@ -79,13 +80,13 @@ func TestValidateAuthTokenMiddlewareSuccess(t *testing.T) {
 	r.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ValidateAuthToken(token, 0, nil)(h).ServeHTTP(w, r)
+	ValidateToken(token, 0, nil)(h).ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Error("expected status 200 got", w)
 	}
 }
 
-func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
+func TestValidateTokenFailure(t *testing.T) {
 	t.Parallel()
 
 	h := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
@@ -98,7 +99,7 @@ func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
 		var bodyError = json.RawMessage(`{"message":"unauthorized","code":401}`)
 
 		w := httptest.NewRecorder()
-		ValidateAuthToken("token", penalty, bodyError)(h).ServeHTTP(w, r)
+		ValidateToken("token", penalty, bodyError)(h).ServeHTTP(w, r)
 		if w.Code != http.StatusUnauthorized {
 			t.Error("expected status 401 got", w)
 		}
@@ -133,22 +134,22 @@ func TestValidateAuthTokenMiddlewareFailure(t *testing.T) {
 	})
 }
 
-func TestCrossCheckAuthTokenMiddleware(t *testing.T) {
+func TestCrossCheckAddValidateToken(t *testing.T) {
 	t.Parallel()
 
 	const token = "token"
 
 	var h http.Handler
 	h = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-	h = ValidateAuthToken(token, 0, nil)(h)
+	h = ValidateToken(token, 0, nil)(h)
 
 	var rt http.RoundTripper
-	rt = RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
+	rt = httpx.RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
 		return w.Result(), nil
 	})
-	rt = AuthToken(rt, token)
+	rt = AddToken(rt, token)
 
 	req := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 	resp, _ := rt.RoundTrip(req)

@@ -13,8 +13,10 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/auth"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/httphandler"
+	"github.com/scylladb/mermaid/pkg/util/httplog"
 )
 
 var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)
@@ -24,15 +26,15 @@ func newRouter(config config, rclone http.Handler, logger log.Logger) http.Handl
 
 	// Common middleware
 	r.Use(
-		httpmw.RequestLogger(logger),
+		httplog.RequestLogger(logger),
 	)
 	// Common endpoints
-	r.Get("/ping", httpmw.HeartbeatHandler())
-	r.Get("/version", httpmw.VersionHandler())
+	r.Get("/ping", httphandler.Heartbeat())
+	r.Get("/version", httphandler.Version())
 
 	// Restricted access endpoints
 	priv := r.With(
-		httpmw.ValidateAuthToken(config.AuthToken, time.Second, unauthorizedErrorBody),
+		auth.ValidateToken(config.AuthToken, time.Second, unauthorizedErrorBody),
 	)
 	// Agent specific
 	priv.Get("/agent/node_info", nodeInfo(net.JoinHostPort(config.Scylla.APIAddress, config.Scylla.APIPort)))

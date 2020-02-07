@@ -18,7 +18,6 @@ import (
 
 	apiRuntime "github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
@@ -219,7 +218,7 @@ func (c *Client) ping(ctx context.Context, host string) error {
 	if err != nil {
 		return errors.Wrap(err, "create http request")
 	}
-	r = r.WithContext(httpmw.ForceHost(ctx, host))
+	r = r.WithContext(forceHost(ctx, host))
 
 	resp, err := c.transport.RoundTrip(r)
 	if resp != nil {

@@ -9,7 +9,6 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
 	"github.com/scylladb/mermaid/pkg/util/retry"
 )
 
@@ -69,7 +68,7 @@ func (o *retryableOperation) op() (err error) {
 }
 
 func (o *retryableOperation) backoff() retry.Backoff {
-	if httpmw.IsForceHost(o.operation.Context) {
+	if isForceHost(o.operation.Context) {
 		return backoff(o.config)
 	}
 
@@ -95,7 +94,7 @@ func (o *retryableOperation) shouldRetry(err error) bool {
 
 	// Additionally if request can be resent to a different host retry
 	// on Unauthorized or Forbidden.
-	if !httpmw.IsForceHost(o.operation.Context) {
+	if !isForceHost(o.operation.Context) {
 		if c == 401 || c == 403 {
 			return true
 		}

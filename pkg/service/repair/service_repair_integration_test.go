@@ -24,7 +24,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/repair"
 	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
@@ -288,7 +288,7 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 var commandCounter int32
 
 func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
-	return httpmw.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
 			return nil, nil
 		}
@@ -318,7 +318,7 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 func unstableRepairInterceptor() http.RoundTripper {
 	failRi := repairInterceptor(scyllaclient.CommandFailed)
 	successRi := repairInterceptor(scyllaclient.CommandSuccessful)
-	return httpmw.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		id := atomic.LoadInt32(&commandCounter)
 		if id != 0 && id%20 == 0 {
 			return failRi.RoundTrip(req)
@@ -328,7 +328,7 @@ func unstableRepairInterceptor() http.RoundTripper {
 }
 
 func dialErrorInterceptor() http.RoundTripper {
-	return httpmw.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		return nil, errors.New("mock dial error")
 	})
 }
@@ -954,12 +954,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: no network for 5s with 1s backoff")
 		h.hrt.SetInterceptor(dialErrorInterceptor())
-		time.AfterFunc(3*h.client.Config().Timeout, func() {
+		time.AfterFunc(3*h.client.Config().RequestTimeout, func() {
 			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 		})
 
 		Print("Then: node1 repair continues")
-		h.assertProgress(0, node1, 60, 3*h.client.Config().Timeout+longWait)
+		h.assertProgress(0, node1, 60, 3*h.client.Config().RequestTimeout+longWait)
 
 		Print("When: node1 is 95% repaired")
 		h.assertProgress(0, node1, 95, longWait)
@@ -1033,7 +1033,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			mu sync.Mutex
 			ic = repairInterceptor(scyllaclient.CommandFailed)
 		)
-		h.hrt.SetInterceptor(httpmw.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 			if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
 				return nil, nil
 			}

@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package httphandler
 
 import (
 	"encoding/json"
@@ -11,10 +11,10 @@ import (
 	"github.com/scylladb/mermaid/pkg"
 )
 
-func TestVersionHandler(t *testing.T) {
+func TestVersion(t *testing.T) {
 	t.Parallel()
 
-	h := VersionHandler()
+	h := Version()
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

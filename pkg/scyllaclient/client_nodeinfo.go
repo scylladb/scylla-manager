@@ -8,7 +8,6 @@ import (
 
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
 )
 
 // NodeInfo provides basic information about Scylla node.
@@ -17,7 +16,7 @@ type NodeInfo models.NodeInfo
 // NodeInfo returns basic information about `host` node
 func (c *Client) NodeInfo(ctx context.Context, host string) (*NodeInfo, error) {
 	p := operations.NodeInfoParams{
-		Context: httpmw.ForceHost(ctx, host),
+		Context: forceHost(ctx, host),
 	}
 	resp, err := c.agentOps.NodeInfo(&p)
 	if err != nil {

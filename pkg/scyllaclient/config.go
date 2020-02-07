@@ -21,9 +21,6 @@ type Config struct {
 	Scheme string
 	// AuthToken specifies the authentication token.
 	AuthToken string
-	// Timeout specifies end-to-end time to complete Scylla REST API request
-	// including retries.
-	Timeout time.Duration
 	// RequestTimeout specifies time to complete a single request to Scylla
 	// REST API possibly including opening a TCP connection.
 	RequestTimeout time.Duration
@@ -56,7 +53,6 @@ func DefaultConfig() Config {
 	return Config{
 		Port:           "10001",
 		Scheme:         "https",
-		Timeout:        15 * time.Minute,
 		RequestTimeout: 15 * time.Second,
 		Backoff: BackoffConfig{
 			WaitMin:    1 * time.Second,

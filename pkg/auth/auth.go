@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package auth
 
 import (
 	"crypto/subtle"
@@ -8,43 +8,30 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 )
 
-// AuthToken sets authorization header. If token is empty it immediately returns
+// AddToken sets authorization header. If token is empty it immediately returns
 // the next handler.
-func AuthToken(next http.RoundTripper, token string) http.RoundTripper {
+func AddToken(next http.RoundTripper, token string) http.RoundTripper {
 	if token == "" {
 		return next
 	}
 
-	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
-		r := cloneRequest(req)
+	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		r := httpx.CloneRequest(req)
 		r.Header.Set("Authorization", "Bearer "+token)
 		return next.RoundTrip(r)
 	})
 }
 
-// FixContentType adjusts Scylla REST API response so that it can be consumed
-// by Open API.
-func FixContentType(next http.RoundTripper) http.RoundTripper {
-	return RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
-		defer func() {
-			if resp != nil {
-				// Force JSON, Scylla returns "text/plain" that misleads the
-				// unmarshaller and breaks processing.
-				resp.Header.Set("Content-Type", "application/json")
-			}
-		}()
-		return next.RoundTrip(req)
-	})
-}
-
-// ValidateAuthToken is http server middleware that checks if Authorization
-// header contains `Bearer token`.
+// ValidateToken is http server middleware that checks if Authorization header
+// contains `Bearer token`.
 // If not the execution would be held for the penalty duration and then 401
 // status code with provided body would be returned.
 // If token is empty it immediately returns the next handler.
-func ValidateAuthToken(token string, penalty time.Duration,
+func ValidateToken(token string, penalty time.Duration,
 	unauthorizedBody json.RawMessage) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		if token == "" {

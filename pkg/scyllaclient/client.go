@@ -16,11 +16,12 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/auth"
 	agentClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client"
 	agentOperations "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	scyllaClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client"
 	scyllaOperations "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client/operations"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 )
 
 var setOpenAPIGlobalsOnce sync.Once
@@ -92,16 +93,13 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		config.Transport = DefaultTransport()
 	}
 	transport := config.Transport
-	transport = httpmw.Timeout(transport, config.RequestTimeout, logger)
-	transport = httpmw.Logger(transport, logger)
-	transport = httpmw.HostPool(transport, pool, config.Port)
-	transport = httpmw.AuthToken(transport, config.AuthToken)
-	transport = httpmw.FixContentType(transport)
+	transport = timeout(transport, config.RequestTimeout)
+	transport = requestLogger(transport, logger)
+	transport = hostPool(transport, pool, config.Port)
+	transport = auth.AddToken(transport, config.AuthToken)
+	transport = fixContentType(transport)
 
-	c := &http.Client{
-		Timeout:   config.Timeout,
-		Transport: transport,
-	}
+	c := &http.Client{Transport: transport}
 
 	scyllaRuntime := api.NewWithClient(
 		scyllaClient.DefaultHost, scyllaClient.DefaultBasePath, []string{config.Scheme}, c,
@@ -138,4 +136,19 @@ func (c *Client) Close() error {
 		t.CloseIdleConnections()
 	}
 	return nil
+}
+
+// fixContentType adjusts Scylla REST API response so that it can be consumed
+// by Open API.
+func fixContentType(next http.RoundTripper) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		defer func() {
+			if resp != nil {
+				// Force JSON, Scylla returns "text/plain" that misleads the
+				// unmarshaller and breaks processing.
+				resp.Header.Set("Content-Type", "application/json")
+			}
+		}()
+		return next.RoundTrip(req)
+	})
 }

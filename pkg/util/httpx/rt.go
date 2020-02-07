@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package httpx
 
 import "net/http"
 

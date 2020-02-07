@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/httplog"
 )
 
 func responder(w http.ResponseWriter, r *http.Request, v interface{}) {
@@ -29,7 +29,7 @@ func responder(w http.ResponseWriter, r *http.Request, v interface{}) {
 		}
 	}
 
-	httpmw.RequestLoggerSetRequestError(r, err)
+	httplog.RequestLoggerSetRequestError(r, err)
 	render.Status(r, herr.StatusCode)
 	render.DefaultResponder(w, r, herr)
 }

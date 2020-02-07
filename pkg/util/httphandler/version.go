@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httpmw
+package httphandler
 
 import (
 	"net/http"
@@ -13,8 +13,8 @@ type version struct {
 	Version string `json:"version"`
 }
 
-// VersionHandler responds with application version.
-func VersionHandler() http.HandlerFunc {
+// Version responds with application version.
+func Version() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		render.Respond(w, r, version{Version: pkg.Version()})
 	}

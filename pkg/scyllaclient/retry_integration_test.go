@@ -16,7 +16,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 )
 
 func TestRetryWithTimeoutIntegration(t *testing.T) {
@@ -134,7 +134,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 }
 
 func hostRecorder(parent http.RoundTripper, triedHosts map[string]int) http.RoundTripper {
-	return httpmw.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
 		if _, ok := triedHosts[req.Host]; !ok {
 			triedHosts[req.Host] = 1
 		} else {

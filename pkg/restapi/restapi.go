@@ -10,7 +10,8 @@ import (
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/httphandler"
+	"github.com/scylladb/mermaid/pkg/util/httplog"
 )
 
 func init() {
@@ -22,14 +23,14 @@ func New(services Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(
-		httpmw.RequestTraceID,
-		httpmw.RequestLogger(logger),
+		httplog.TraceID,
+		httplog.RequestLogger(logger),
 		render.SetContentType(render.ContentTypeJSON),
 	)
 
-	r.Get("/ping", httpmw.HeartbeatHandler())
-	r.Get("/version", httpmw.VersionHandler())
-	r.Get("/api/v1/version", httpmw.VersionHandler()) // For backwards compatibility
+	r.Get("/ping", httphandler.Heartbeat())
+	r.Get("/version", httphandler.Version())
+	r.Get("/api/v1/version", httphandler.Version()) // For backwards compatibility
 
 	r.Mount("/api/v1/", newClusterHandler(services.Cluster))
 	f := clusterFilter{svc: services.Cluster}.clusterCtx

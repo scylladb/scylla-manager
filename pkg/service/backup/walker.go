@@ -12,7 +12,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
 	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
@@ -113,7 +112,7 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 	parallelLimit := int(s/2 + 1)
 	logger.Debug(ctx, "Parallel limit", "limit", parallelLimit)
 
-	ctx = httpmw.NoTimeout(ctx)
+	ctx = scyllaclient.NoTimeout(ctx)
 
 	opts := &scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,

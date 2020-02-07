@@ -29,7 +29,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/httpmw"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
@@ -855,7 +855,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 			brokenHost string
 			mu         sync.Mutex
 		)
-		h.hrt.SetInterceptor(httpmw.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if req.Method == http.MethodPost && req.URL.Path == "/storage_service/snapshots" {
 				mu.Lock()
 				if brokenHost == "" {
