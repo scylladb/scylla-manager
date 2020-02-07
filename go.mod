@@ -22,14 +22,12 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163
 	github.com/golang/mock v1.3.1
-	github.com/google/go-cmp v0.3.1
+	github.com/google/go-cmp v0.4.0
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.1.0
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v1.0.0
-	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
-	github.com/prometheus/common v0.6.0 // indirect
-	github.com/prometheus/procfs v0.0.3 // indirect
+	github.com/prometheus/client_golang v1.4.0
+	github.com/prometheus/client_model v0.2.0
 	github.com/rclone/rclone v1.50.2
 	github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
 	github.com/scylladb/go-reflectx v1.0.1
@@ -44,7 +42,7 @@ require (
 	go.uber.org/multierr v1.4.0
 	go.uber.org/zap v1.9.1
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
-	golang.org/x/sys v0.0.0-20190826163724-acd9dae8e8cc
+	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82
 	golang.org/x/tools v0.0.0-20191104232314-dc038396d1f0
 	gopkg.in/yaml.v2 v2.2.5
 )
