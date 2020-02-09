@@ -3,6 +3,7 @@
 package backup
 
 import (
+	"os"
 	"path"
 	"strings"
 
@@ -16,6 +17,10 @@ const (
 	Manifest = "manifest.json.gz"
 	// Schema is the name of the schema file.
 	Schema = "schema.tar.gz"
+	// TempFileExt is suffix for the temporary files.
+	TempFileExt = ".tmp"
+
+	sep = string(os.PathSeparator)
 )
 
 // RemoteManifestFile returns path to the manifest file.
@@ -131,4 +136,9 @@ func RemoteMetaVersionFile(clusterID uuid.UUID, dc, nodeID string) string {
 		RemoteManifestDir(clusterID, dc, nodeID),
 		MetadataVersion,
 	)
+}
+
+// TempFile returns temporary path for the provided file.
+func TempFile(f string) string {
+	return f + TempFileExt
 }

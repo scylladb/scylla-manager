@@ -23,18 +23,13 @@ const (
 	scyllaManifest = "manifest.json"
 	scyllaSchema   = "schema.cql"
 
-	sep         = string(os.PathSeparator)
-	tempFileExt = ".tmp"
+	sep = string(os.PathSeparator)
 )
 
 func remoteManifestLevel(baseDir string) int {
 	a := len(strings.Split(backup.RemoteManifestDir(uuid.Nil, "a", "b"), sep))
 	b := len(strings.Split(baseDir, sep))
 	return a - b
-}
-
-func tempFile(f string) string {
-	return f + tempFileExt
 }
 
 // Adapted from Scylla's sstable detection code

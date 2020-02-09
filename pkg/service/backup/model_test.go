@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -59,7 +60,7 @@ func TestDCLimitMarshalUnmarshalText(t *testing.T) {
 }
 
 func TestCatLimitIsEnoughToDownloadManifest(t *testing.T) {
-	var manifest manifestContent
+	var manifest backup.ManifestContent
 
 	const (
 		keyspaces     = 2
@@ -82,13 +83,13 @@ func TestCatLimitIsEnoughToDownloadManifest(t *testing.T) {
 	totalFiles := keyspaces * tables * filesPerTable
 	Printf("Given: manifest with %d keyspaces each having %d tables, each having %d SST files, %d files in total", keyspaces, tables, filesPerTable, totalFiles)
 
-	manifest.Index = make([]filesInfo, 0, tables)
+	manifest.Index = make([]backup.FilesMeta, 0, tables)
 
 	for k := 0; k < keyspaces; k++ {
 		keyspaceName := uuid.MustRandom()
 		for t := 0; t < tables; t++ {
 			tableName := uuid.MustRandom()
-			idx := filesInfo{
+			idx := backup.FilesMeta{
 				Keyspace: keyspaceName.String(),
 				Table:    tableName.String(),
 				Version:  strings.ReplaceAll(uuid.MustRandom().String(), "-", ""),

@@ -44,7 +44,7 @@ func newManifestV1Helper(host string, location backup.Location, client *scyllacl
 
 // ListManifests return list of manifests present under provided location.
 // Manifests are being read in order to collect information about backups.
-func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error) {
 	h.logger.Info(ctx, "Listing manifests")
 
 	manifestsPaths, err := h.listPaths(ctx, f)
@@ -53,7 +53,7 @@ func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	}
 	h.logger.Debug(ctx, "Found manifests", "manifests", manifestsPaths)
 
-	manifests := make([]*remoteManifest, len(manifestsPaths))
+	manifests := make([]*backup.RemoteManifest, len(manifestsPaths))
 	for i, mp := range manifestsPaths {
 		var err error
 		manifests[i], err = h.readManifest(ctx, mp)
@@ -170,7 +170,7 @@ func (h *manifestV1Helper) skipLoadingFiles(ctx context.Context) bool {
 	return ok
 }
 
-func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteManifest, error) {
+func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*backup.RemoteManifest, error) {
 	m := manifestV1{}
 	if err := m.ParsePartialPath(p); err != nil {
 		return nil, err
@@ -217,7 +217,7 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 		}
 	}
 
-	return &remoteManifest{
+	return &backup.RemoteManifest{
 		CleanPath:   m.CleanPath,
 		Location:    h.location,
 		ClusterID:   m.ClusterID,
@@ -225,9 +225,9 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 		NodeID:      m.NodeID,
 		TaskID:      m.TaskID,
 		SnapshotTag: m.SnapshotTag,
-		Content: manifestContent{
+		Content: backup.ManifestContent{
 			Version: "v1",
-			Index: []filesInfo{
+			Index: []backup.FilesMeta{
 				{
 					Keyspace: m.Keyspace,
 					Table:    m.Table,
@@ -240,7 +240,7 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 	}, nil
 }
 
-func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
+func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *backup.RemoteManifest) error {
 	h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
 
 	for _, idx := range m.Content.Index {

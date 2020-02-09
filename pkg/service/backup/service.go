@@ -373,7 +373,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []bac
 }
 
 // ListFiles returns info on available backup files based on filtering criteria.
-func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter ListFilter) ([]FilesInfo, error) {
+func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter ListFilter) ([]backup.FilesInfo, error) {
 	s.logger.Info(ctx, "Listing backup files",
 		"cluster_id", clusterID,
 		"locations", locations,
@@ -390,14 +390,14 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 		return nil, err
 	}
 
-	var files []FilesInfo
+	var files []backup.FilesInfo
 	for i := range manifests {
-		files = append(files, makeFilesInfo(manifests[i], ksf))
+		files = append(files, backup.MakeFilesInfo(manifests[i], ksf))
 	}
 	return files, nil
 }
 
-func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter ListFilter) ([]*remoteManifest, error) {
+func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter ListFilter) ([]*backup.RemoteManifest, error) {
 	// Validate inputs
 	if len(locations) == 0 {
 		return nil, service.ErrValidate(errors.New("empty locations"))
@@ -420,7 +420,7 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []bac
 
 	// List manifests
 	type manifestsError struct {
-		Manifests []*remoteManifest
+		Manifests []*backup.RemoteManifest
 		Err       error
 	}
 	res := make(chan manifestsError)
@@ -433,7 +433,7 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []bac
 	}
 
 	var (
-		manifests []*remoteManifest
+		manifests []*backup.RemoteManifest
 		errs      error
 	)
 	for range hosts {

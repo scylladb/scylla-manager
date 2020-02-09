@@ -6,12 +6,12 @@ import (
 	"testing"
 )
 
-func TestSplit(t *testing.T) {
+func TestNewLocation(t *testing.T) {
 	table := []struct {
 		Name     string
 		Location string
 		DC       string
-		Provider string
+		Provider Provider
 		Bucket   string
 		Err      string
 	}{
@@ -28,39 +28,39 @@ func TestSplit(t *testing.T) {
 			Name:     "Valid with prefix",
 			Location: "dc1:s3:bucket",
 			DC:       "dc1",
-			Provider: "s3",
+			Provider: S3,
 			Bucket:   "bucket",
 		},
 		{
 			Name:     "Valid without prefix",
 			Location: "s3:bucket",
 			DC:       "",
-			Provider: "s3",
+			Provider: S3,
 			Bucket:   "bucket",
 		},
 	}
 
 	for i := 0; i < len(table); i++ {
 		t.Run(table[i].Name, func(t *testing.T) {
-			dc, provider, bucket, err := Split(table[i].Location)
+			l, err := NewLocation(table[i].Location)
 			if err != nil {
 				if table[i].Err == "" {
-					t.Fatalf("Split unexpected error: %+v", err)
+					t.Fatalf("NewLocation unexpected error: %+v", err)
 				}
 				if err.Error() != table[i].Err {
-					t.Fatalf("Split expected %s, got: %+v", table[i].Err, err)
+					t.Fatalf("NewLocation expected %s, got: %+v", table[i].Err, err)
 				}
 			} else if table[i].Err != "" {
-				t.Fatal("Split expected error got nil")
+				t.Fatal("NewLocation expected error got nil")
 			}
-			if dc != table[i].DC {
-				t.Errorf("DC = %s, expected %s", dc, table[i].DC)
+			if l.DC != table[i].DC {
+				t.Errorf("DC = %s, expected %s", l.DC, table[i].DC)
 			}
-			if provider != table[i].Provider {
-				t.Errorf("Provider = %s, expected %s", provider, table[i].Provider)
+			if l.Provider != table[i].Provider {
+				t.Errorf("Provider = %s, expected %s", l.Provider, table[i].Provider)
 			}
-			if bucket != table[i].Bucket {
-				t.Errorf("Bucket = %s, expected %s", bucket, table[i].Bucket)
+			if l.Path != table[i].Bucket {
+				t.Errorf("Bucket = %s, expected %s", l.Path, table[i].Bucket)
 			}
 		})
 	}
@@ -162,10 +162,6 @@ func TestInvalidLocationUnmarshalText(t *testing.T) {
 		{
 			Name:     "invalid dc",
 			Location: "dc aaa:foo:bar",
-		},
-		{
-			Name:     "invalid provider",
-			Location: "foo:bar",
 		},
 		{
 			Name:     "invalid path",

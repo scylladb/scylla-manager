@@ -14,7 +14,6 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -56,44 +55,6 @@ func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
 		}
 	}
 	return false
-}
-
-// FilesInfo specifies paths to files backed up for a table (and node) within
-// a location.
-// Note that a backup for a table usually consists of multiple instances of
-// FilesInfo since data is replicated across many nodes.
-type FilesInfo struct {
-	Location backup.Location `json:"location"`
-	Schema   string          `json:"schema"`
-	Files    []filesInfo     `json:"files"`
-}
-
-// filesInfo contains information about SST files of particular keyspace/table.
-type filesInfo struct {
-	Keyspace string   `json:"keyspace"`
-	Table    string   `json:"table"`
-	Version  string   `json:"version"`
-	Files    []string `json:"files"`
-	Size     int64    `json:"size"`
-
-	Path string `json:"path,omitempty"`
-}
-
-func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) FilesInfo {
-	fi := FilesInfo{
-		Location: m.Location,
-		Schema:   m.Content.Schema,
-	}
-
-	for _, idx := range m.Content.Index {
-		if !filter.Check(idx.Keyspace, idx.Table) {
-			continue
-		}
-		idx.Path = m.RemoteSSTableVersionDir(idx.Keyspace, idx.Table, idx.Version)
-		fi.Files = append(fi.Files, idx)
-	}
-
-	return fi
 }
 
 // Target specifies what should be backed up and where.

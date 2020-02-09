@@ -54,7 +54,7 @@ func (p *purger) PurgeSnapshot(ctx context.Context, snapshotTag string) error {
 		return service.ErrNotFound
 	}
 
-	isStaleManifest := func(m *remoteManifest) bool {
+	isStaleManifest := func(m *backup.RemoteManifest) bool {
 		return m.SnapshotTag == snapshotTag
 	}
 
@@ -98,7 +98,7 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 	)
 
 	staleTagsSet := strset.New(staleTags...)
-	isStaleManifest := func(m *remoteManifest) bool {
+	isStaleManifest := func(m *backup.RemoteManifest) bool {
 		return m.Temporary || staleTagsSet.Has(m.SnapshotTag)
 	}
 
@@ -106,14 +106,14 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 }
 
 // loadAllManifests loads manifests belonging to all tasks.
-func (p *purger) loadAllManifests(ctx context.Context, temporary bool) ([]*remoteManifest, error) {
+func (p *purger) loadAllManifests(ctx context.Context, temporary bool) ([]*backup.RemoteManifest, error) {
 	f := p.Filter
 	f.TaskID = uuid.Nil
 	f.Temporary = temporary
 	return p.ManifestHelper.ListManifests(ctx, f)
 }
 
-func (p *purger) purge(ctx context.Context, manifests []*remoteManifest, isStaleManifest func(*remoteManifest) bool) error {
+func (p *purger) purge(ctx context.Context, manifests []*backup.RemoteManifest, isStaleManifest func(*backup.RemoteManifest) bool) error {
 	// Select stale sst files in the form of full path to file.
 	staleFiles := strset.New()
 
@@ -122,7 +122,7 @@ func (p *purger) purge(ctx context.Context, manifests []*remoteManifest, isStale
 		staleFiles.Add(path)
 	})
 	// From that remove files from active manifests.
-	isActiveManifest := func(m *remoteManifest) bool {
+	isActiveManifest := func(m *backup.RemoteManifest) bool {
 		return !isStaleManifest(m)
 	}
 	p.forEachFile(p.filterManifests(manifests, isActiveManifest), func(path string) {
@@ -149,7 +149,7 @@ func (p *purger) purge(ctx context.Context, manifests []*remoteManifest, isStale
 	return nil
 }
 
-func (p *purger) filterManifests(manifests []*remoteManifest, filter func(*remoteManifest) bool) (out []*remoteManifest) {
+func (p *purger) filterManifests(manifests []*backup.RemoteManifest, filter func(*backup.RemoteManifest) bool) (out []*backup.RemoteManifest) {
 	for _, m := range manifests {
 		if filter(m) {
 			out = append(out, m)
@@ -158,7 +158,7 @@ func (p *purger) filterManifests(manifests []*remoteManifest, filter func(*remot
 	return
 }
 
-func (p *purger) forEachFile(manifests []*remoteManifest, callback func(path string)) {
+func (p *purger) forEachFile(manifests []*backup.RemoteManifest, callback func(path string)) {
 	for _, m := range manifests {
 		baseDir := backup.RemoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
 		for _, fi := range m.Content.Index {

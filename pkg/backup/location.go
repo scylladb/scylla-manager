@@ -8,39 +8,16 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/rclone"
 )
-
-// ErrInvalid means that location is not adhering to scylla manager required
-// [dc:]<provider>:<bucket> format.
-var ErrInvalid = errors.Errorf("invalid location, the format is [dc:]<provider>:<bucket> ex. s3:my-bucket, the bucket name must be DNS compliant")
-
-// Providers require that resource names are DNS compliant.
-// The following is a super simplified DNS (plus provider prefix)
-// matching regexp.
-var pattern = regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
-
-// Split first checks if location string conforms to valid pattern.
-// It then returns the location split into three components dc, remote, and
-// bucket.
-func Split(location string) (dc, provider, bucket string, err error) {
-	m := pattern.FindStringSubmatch(location)
-	if m == nil {
-		return "", "", "", ErrInvalid
-	}
-
-	return m[2], m[3], m[4], nil
-}
 
 // StripDC returns valid location string after stripping the dc prefix.
 func StripDC(location string) (string, error) {
-	_, provider, bucket, err := Split(location)
+	l, err := NewLocation(location)
 	if err != nil {
 		return "", err
 	}
 
-	return provider + ":" + bucket, nil
+	return l.RemotePath(""), nil
 }
 
 // Provider specifies type of remote storage like S3 etc.
@@ -64,20 +41,40 @@ func (p Provider) MarshalText() (text []byte, err error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (p *Provider) UnmarshalText(text []byte) error {
-	if s := string(text); !providers.Has(s) && !rclone.HasProvider(s) {
-		return errors.Errorf("unrecognised provider %q", text)
-	}
 	*p = Provider(text)
 	return nil
 }
-
-var providers = strset.New(S3.String(), GCS.String(), Azure.String())
 
 // Location specifies storage provider and container/resource for a DC.
 type Location struct {
 	DC       string   `json:"dc"`
 	Provider Provider `json:"provider"`
 	Path     string   `json:"path"`
+}
+
+// ErrInvalid means that location is not adhering to scylla manager required
+// [dc:]<provider>:<bucket> format.
+var ErrInvalid = errors.Errorf("invalid location, the format is [dc:]<provider>:<bucket> ex. s3:my-bucket, the bucket name must be DNS compliant")
+
+// Providers require that resource names are DNS compliant.
+// The following is a super simplified DNS (plus provider prefix)
+// matching regexp.
+var pattern = regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
+
+// NewLocation first checks if location string conforms to valid pattern.
+// It then returns the location split into three components dc, remote, and
+// bucket.
+func NewLocation(location string) (l Location, err error) {
+	m := pattern.FindStringSubmatch(location)
+	if m == nil {
+		return Location{}, ErrInvalid
+	}
+
+	return Location{
+		DC:       m[2],
+		Provider: Provider(m[3]),
+		Path:     m[4],
+	}, nil
 }
 
 func (l Location) String() string {

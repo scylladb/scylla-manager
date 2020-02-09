@@ -53,14 +53,14 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 	return w.uploadHostManifest(ctx, h, w.createTemporaryManifest(h, tokens))
 }
 
-func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *remoteManifest {
+func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *backup.RemoteManifest {
 	dirs := w.hostSnapshotDirs(h)
 
-	content := manifestContent{
+	content := backup.ManifestContent{
 		Version:     "v2",
 		ClusterName: w.ClusterName,
 		IP:          h.IP,
-		Index:       make([]filesInfo, len(dirs)),
+		Index:       make([]backup.FilesMeta, len(dirs)),
 		Tokens:      tokens,
 	}
 	if w.Schema != nil {
@@ -80,7 +80,7 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *remoteMani
 		content.Size += d.Progress.Size
 	}
 
-	m := &remoteManifest{
+	m := &backup.RemoteManifest{
 		Location:    h.Location,
 		DC:          h.DC,
 		ClusterID:   w.ClusterID,
@@ -94,7 +94,7 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *remoteMani
 	return m
 }
 
-func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *remoteManifest) error {
+func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *backup.RemoteManifest) error {
 	// Get memory buffer for gzip compressed output
 	buf := w.memoryPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -132,7 +132,7 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 
 		w.Logger.Info(ctx, "Moving manifest file on host", "host", h.IP)
 		dst := h.Location.RemotePath(backup.RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
-		src := tempFile(dst)
+		src := backup.TempFile(dst)
 
 		// Register rollback
 		rollbacks[i] = func(ctx context.Context) error { return w.Client.RcloneMoveFile(ctx, h.IP, src, dst) }

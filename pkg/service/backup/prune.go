@@ -61,7 +61,7 @@ func pruneSnapshotTag(snapshotTag string, f ListFilter) bool {
 
 func makeListFilterPruneDirFunc(f ListFilter) func(string) bool {
 	return func(dir string) bool {
-		var m remoteManifest
+		var m backup.RemoteManifest
 
 		// Discard invalid paths
 		if err := m.ParsePartialPath(dir); err != nil {

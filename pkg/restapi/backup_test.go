@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/restapi"
-	backup_service "github.com/scylladb/scylla-manager/pkg/service/backup"
+	backupservice "github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -28,7 +28,7 @@ func listBackupFilesRequest(clusterID uuid.UUID) *http.Request {
 	return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/cluster/%s/backups/files", clusterID.String()), nil)
 }
 
-func withForm(r *http.Request, locations []backup.Location, filter backup_service.ListFilter, query string) *http.Request {
+func withForm(r *http.Request, locations []backup.Location, filter backupservice.ListFilter, query string) *http.Request {
 	r.Form = url.Values{}
 	for _, l := range locations {
 		r.Form.Add("locations", l.String())
@@ -67,23 +67,23 @@ func TestBackupList(t *testing.T) {
 			{Provider: backup.S3, Path: "foo"},
 			{Provider: backup.S3, Path: "bar"},
 		}
-		filter = backup_service.ListFilter{
+		filter = backupservice.ListFilter{
 			ClusterID: cluster.ID,
 			Keyspace:  []string{"keyspace1", "keyspace2"},
 			MinDate:   timeutc.Now(),
 			MaxDate:   timeutc.Now(),
 		}
 
-		golden = []backup_service.ListItem{
+		golden = []backupservice.ListItem{
 			{
 				ClusterID: filter.ClusterID,
-				Units: []backup_service.Unit{
+				Units: []backupservice.Unit{
 					{
 						Keyspace: "keyspace1",
 						Tables:   []string{"table1"},
 					},
 				},
-				SnapshotInfo: []backup_service.SnapshotInfo{{SnapshotTag: "tag1"}},
+				SnapshotInfo: []backupservice.SnapshotInfo{{SnapshotTag: "tag1"}},
 			},
 		}
 	)
@@ -119,22 +119,22 @@ func TestBackupListAllClusters(t *testing.T) {
 			{Provider: backup.S3, Path: "foo"},
 			{Provider: backup.S3, Path: "bar"},
 		}
-		filter = backup_service.ListFilter{
+		filter = backupservice.ListFilter{
 			Keyspace: []string{"keyspace1", "keyspace2"},
 			MinDate:  timeutc.Now(),
 			MaxDate:  timeutc.Now(),
 		}
 
-		golden = []backup_service.ListItem{
+		golden = []backupservice.ListItem{
 			{
 				ClusterID: cluster.ID,
-				Units: []backup_service.Unit{
+				Units: []backupservice.Unit{
 					{
 						Keyspace: "keyspace1",
 						Tables:   []string{"table1"},
 					},
 				},
-				SnapshotInfo: []backup_service.SnapshotInfo{{SnapshotTag: "tag1"}},
+				SnapshotInfo: []backupservice.SnapshotInfo{{SnapshotTag: "tag1"}},
 			},
 		}
 	)
@@ -170,13 +170,13 @@ func TestBackupListFiles(t *testing.T) {
 			{Provider: backup.S3, Path: "foo"},
 			{Provider: backup.S3, Path: "bar"},
 		}
-		filter = backup_service.ListFilter{
+		filter = backupservice.ListFilter{
 			ClusterID:   cluster.ID,
 			Keyspace:    []string{"keyspace1", "keyspace2"},
 			SnapshotTag: "tag",
 		}
 
-		golden = []backup_service.FilesInfo{
+		golden = []backup.FilesInfo{
 			{
 				Location: locations[0],
 				Schema:   "schema",

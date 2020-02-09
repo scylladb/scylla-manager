@@ -98,17 +98,17 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 		return err
 	}
 
-	snapshotMapping := make(map[string]*remoteManifest)
+	snapshotMapping := make(map[string]*backup.RemoteManifest)
 	for _, m := range manifests {
 		if _, ok := snapshotMapping[m.SnapshotTag]; !ok {
-			snapshotMapping[m.SnapshotTag] = &remoteManifest{
+			snapshotMapping[m.SnapshotTag] = &backup.RemoteManifest{
 				Location:    m.Location,
 				DC:          m.DC,
 				ClusterID:   m.ClusterID,
 				NodeID:      m.NodeID,
 				TaskID:      m.TaskID,
 				SnapshotTag: m.SnapshotTag,
-				Content: manifestContent{
+				Content: backup.ManifestContent{
 					Version: "v2",
 				},
 			}

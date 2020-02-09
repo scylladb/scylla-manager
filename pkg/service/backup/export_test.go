@@ -17,27 +17,24 @@ func NewSnapshotTag() string {
 }
 
 func SnapshotTagFromManifestPath(t *testing.T, s string) string {
-	var m remoteManifest
+	var m backup.RemoteManifest
 	if err := m.ParsePartialPath(s); err != nil {
 		t.Fatal(t)
 	}
 	return m.SnapshotTag
 }
 
-func ParsePartialPath(s string) (remoteManifest, error) {
-	var m remoteManifest
+func ParsePartialPath(s string) (backup.RemoteManifest, error) {
+	var m backup.RemoteManifest
 	return m, m.ParsePartialPath(s)
 }
 
 type (
-	RemoteManifest  = remoteManifest
-	ManifestContent = manifestContent
-	FileInfo        = fileInfo
+	FileInfo = fileInfo
 )
 
 const (
 	ScyllaManifest = scyllaManifest
-	TempFileExt    = tempFileExt
 )
 
 func (p *RunProgress) Files() []FileInfo {

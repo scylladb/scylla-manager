@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
@@ -22,125 +21,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
-
-func TestRemoteManifestParsePath(t *testing.T) {
-	t.Parallel()
-
-	opts := cmp.Options{
-		UUIDComparer(),
-		cmpopts.IgnoreFields(remoteManifest{}, "CleanPath"),
-		cmpopts.IgnoreUnexported(remoteManifest{}),
-	}
-
-	golden := remoteManifest{
-		ClusterID:   uuid.MustRandom(),
-		DC:          "a",
-		NodeID:      "b",
-		TaskID:      uuid.MustRandom(),
-		SnapshotTag: backup.NewSnapshotTag(),
-	}
-
-	for _, temporary := range []bool{false, true} {
-		golden.Temporary = temporary
-
-		var m remoteManifest
-		if err := m.ParsePartialPath(golden.RemoteManifestFile()); err != nil {
-			t.Fatal("ParsePartialPath() error", err)
-		}
-		if diff := cmp.Diff(m, golden, opts); diff != "" {
-			t.Fatal("ParsePartialPath() diff", diff)
-		}
-	}
-}
-
-func TestRemoteManifestParsePathEmpty(t *testing.T) {
-	t.Parallel()
-
-	table := []struct {
-		Name string
-		Path string
-	}{
-		{
-			Name: "empty",
-			Path: "",
-		},
-		{
-			Name: "backup prefix",
-			Path: "backup",
-		},
-		{
-			Name: "backup prefix with slash",
-			Path: "/backup",
-		},
-	}
-
-	for i := range table {
-		test := table[i]
-
-		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-			var p remoteManifest
-			if err := p.ParsePartialPath(test.Path); err != nil {
-				t.Fatal("ParsePartialPath() error", err)
-			}
-		})
-	}
-}
-
-func TestRemoteManifestParsePathErrors(t *testing.T) {
-	t.Parallel()
-
-	table := []struct {
-		Name  string
-		Path  string
-		Error string
-	}{
-		{
-			Name:  "invalid prefix",
-			Path:  "foobar",
-			Error: "expected backup",
-		},
-		{
-			Name:  "invalid cluster ID",
-			Path:  "backup/meta/cluster/bla",
-			Error: "invalid UUID",
-		},
-		{
-			Name:  "invalid static DC",
-			Path:  "backup/meta/cluster/" + uuid.MustRandom().String() + "/bla",
-			Error: "expected dc",
-		},
-		{
-			Name:  "not a manifest file",
-			Path:  backup.RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), backup.NewSnapshotTag(), "dc", "nodeID") + ".old",
-			Error: "expected one of [manifest.json.gz manifest.json.gz.tmp]",
-		},
-		{
-			Name:  "sSTable dir",
-			Path:  backup.RemoteSSTableVersionDir(uuid.MustRandom(), "dc", "nodeID", "keyspace", "table", "version"),
-			Error: "expected meta",
-		},
-	}
-
-	for i := range table {
-		test := table[i]
-
-		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-
-			var m remoteManifest
-			err := m.ParsePartialPath(test.Path)
-			if err == nil {
-				t.Fatal("ParsePartialPath() expected error")
-			}
-
-			t.Log("ParsePartialPath():", err)
-			if !strings.Contains(err.Error(), test.Error) {
-				t.Fatalf("ParsePartialPath() = %v, expected %v", err, test.Error)
-			}
-		})
-	}
-}
 
 var listItemCmpOpts = cmp.Options{
 	UUIDComparer(),
@@ -170,27 +50,27 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	manifestSize := int64(1024)
 	nodeCount := int64(2)
 
-	var input []*remoteManifest
+	var input []*backup.RemoteManifest
 
 	// Add product of all the possibilities 2^5 items
 	for _, c := range []uuid.UUID{c0, c1} {
 		for _, n := range []string{n0, n1} {
 			for _, s := range []string{s0, s1} {
-				var idx []filesInfo
+				var idx []backup.FilesMeta
 				for _, ks := range []string{ks0, ks1} {
 					for _, tb := range []string{tb0, tb1} {
-						idx = append(idx, filesInfo{
+						idx = append(idx, backup.FilesMeta{
 							Keyspace: ks,
 							Table:    tb,
 						})
 					}
 				}
 
-				m := &remoteManifest{
+				m := &backup.RemoteManifest{
 					ClusterID:   c,
 					NodeID:      n,
 					SnapshotTag: s,
-					Content: manifestContent{
+					Content: backup.ManifestContent{
 						Version: "v2",
 						Index:   idx,
 						Size:    manifestSize,
@@ -201,12 +81,12 @@ func TestAggregateRemoteManifests(t *testing.T) {
 		}
 	}
 	// Add extra items
-	input = append(input, &remoteManifest{
+	input = append(input, &backup.RemoteManifest{
 		ClusterID:   c0,
 		SnapshotTag: s3,
-		Content: manifestContent{
+		Content: backup.ManifestContent{
 			Version: "v2",
-			Index: []filesInfo{
+			Index: []backup.FilesMeta{
 				{
 					Keyspace: ks0,
 					Table:    tb0,

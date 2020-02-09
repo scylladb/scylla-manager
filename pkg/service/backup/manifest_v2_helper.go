@@ -39,7 +39,7 @@ func newManifestV2Helper(host string, location backup.Location, client *scyllacl
 	}
 }
 
-func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error) {
 	h.logger.Info(ctx, "Listing manifests")
 
 	manifestsPaths, err := h.listPaths(ctx, f)
@@ -48,7 +48,7 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	}
 	h.logger.Debug(ctx, "Found manifests", "manifests", manifestsPaths)
 
-	manifests := make([]*remoteManifest, len(manifestsPaths))
+	manifests := make([]*backup.RemoteManifest, len(manifestsPaths))
 	for i, mp := range manifestsPaths {
 		manifests[i], err = h.readManifest(ctx, mp)
 		if err != nil {
@@ -59,7 +59,7 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	return manifests, nil
 }
 
-func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
+func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *backup.RemoteManifest) error {
 	if !m.Temporary {
 		h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
 	} else {
@@ -85,8 +85,8 @@ func (h *manifestV2Helper) deleteFile(ctx context.Context, path string) error {
 	return err
 }
 
-func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string) (*remoteManifest, error) {
-	m := &remoteManifest{}
+func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string) (*backup.RemoteManifest, error) {
+	m := &backup.RemoteManifest{}
 	if err := m.ParsePartialPath(manifestPath); err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (h manifestV2Helper) listPaths(ctx context.Context, f ListFilter) ([]string
 			if dirPrune(p) {
 				continue
 			}
-			m := &remoteManifest{}
+			m := &backup.RemoteManifest{}
 
 			// It's unlikely but the list may contain manifests and all its
 			// sibling files, we want to clear everything but the manifests.

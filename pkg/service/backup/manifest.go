@@ -3,14 +3,11 @@
 package backup
 
 import (
-	"compress/gzip"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"path"
 	"sort"
-	"strings"
 
 	"github.com/cespare/xxhash"
 	"github.com/pkg/errors"
@@ -18,7 +15,6 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -27,136 +23,7 @@ type fileInfo struct {
 	Size int64  `json:"size"`
 }
 
-type manifestContent struct {
-	Version     string      `json:"version"`
-	ClusterName string      `json:"cluster_name"`
-	IP          string      `json:"ip"`
-	Index       []filesInfo `json:"index"`
-	Size        int64       `json:"size"`
-	Tokens      []int64     `json:"tokens"`
-	Schema      string      `json:"schema"`
-}
-
-func (m *manifestContent) Read(r io.Reader) error {
-	gr, err := gzip.NewReader(r)
-	if err != nil {
-		return err
-	}
-
-	if err := json.NewDecoder(gr).Decode(m); err != nil {
-		return err
-	}
-	return gr.Close()
-}
-
-func (m *manifestContent) Write(w io.Writer) error {
-	gw := gzip.NewWriter(w)
-
-	if err := json.NewEncoder(gw).Encode(m); err != nil {
-		return err
-	}
-
-	return gw.Close()
-}
-
-type remoteManifest struct {
-	CleanPath []string
-
-	Location    backup.Location
-	DC          string
-	ClusterID   uuid.UUID
-	NodeID      string
-	TaskID      uuid.UUID
-	SnapshotTag string
-	Content     manifestContent
-	Temporary   bool
-}
-
-func (m *remoteManifest) RemoteManifestFile() string {
-	f := backup.RemoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
-	if m.Temporary {
-		f = tempFile(f)
-	}
-	return f
-}
-
-func (m *remoteManifest) RemoteSchemaFile() string {
-	return backup.RemoteSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
-}
-
-func (m *remoteManifest) RemoteSSTableVersionDir(keyspace, table, version string) string {
-	return backup.RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version)
-}
-
-func (m *remoteManifest) ReadContent(r io.Reader) error {
-	return m.Content.Read(r)
-}
-
-func (m *remoteManifest) DumpContent(w io.Writer) error {
-	return m.Content.Write(w)
-}
-
-// ParsePartialPath tries extracting properties from remote path to manifest.
-// This is a reverse process to calling RemoteManifestFile function.
-// It supports path prefixes i.e. paths that may lead to a manifest file,
-// in that case no error is returned but only some fields will be set.
-func (m *remoteManifest) ParsePartialPath(s string) error {
-	// Clear values
-	*m = remoteManifest{}
-
-	// Ignore empty strings
-	if s == "" {
-		return nil
-	}
-
-	// Clean path for usage with strings.Split
-	s = strings.TrimPrefix(path.Clean(s), sep)
-
-	// Set partial clean path
-	m.CleanPath = strings.Split(s, sep)
-
-	flatParser := func(v string) error {
-		p := pathparser.New(v, "_")
-
-		return p.Parse(
-			pathparser.Static("task"),
-			pathparser.ID(&m.TaskID),
-			pathparser.Static("tag"),
-			pathparser.Static("sm"),
-			func(v string) error {
-				tag := "sm_" + v
-				if !backup.IsSnapshotTag(tag) {
-					return errors.Errorf("invalid snapshot tag %s", tag)
-				}
-				m.SnapshotTag = tag
-				return nil
-			},
-			pathparser.Static(backup.Manifest, tempFile(backup.Manifest)),
-		)
-	}
-
-	p := pathparser.New(s, sep)
-	err := p.Parse(
-		pathparser.Static("backup"),
-		pathparser.Static(string(backup.MetaDirKind)),
-		pathparser.Static("cluster"),
-		pathparser.ID(&m.ClusterID),
-		pathparser.Static("dc"),
-		pathparser.String(&m.DC),
-		pathparser.Static("node"),
-		pathparser.String(&m.NodeID),
-		flatParser,
-	)
-	if err != nil {
-		return err
-	}
-
-	m.Temporary = strings.HasSuffix(s, tempFileExt)
-
-	return nil
-}
-
-func aggregateRemoteManifests(manifests []*remoteManifest) []ListItem {
+func aggregateRemoteManifests(manifests []*backup.RemoteManifest) []ListItem {
 	// Group by Snapshot tag
 	type key struct {
 		ClusterID   uuid.UUID
@@ -300,8 +167,8 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 const manifestFileSuffix = "-Data.db"
 
 type manifestHelper interface {
-	ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error)
-	DeleteManifest(ctx context.Context, m *remoteManifest) error
+	ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error)
+	DeleteManifest(ctx context.Context, m *backup.RemoteManifest) error
 }
 
 // multiVersionManifestLister allows to list manifests depending on bucket metadata
@@ -328,7 +195,7 @@ func newMultiVersionManifestLister(host string, location backup.Location, client
 	}
 }
 
-func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error) {
 	if f.ClusterID != uuid.Nil && f.DC != "" && f.NodeID != "" {
 		version, err := getMetadataVersion(ctx, l.host, l.location, l.client, f.ClusterID, f.DC, f.NodeID)
 		if err != nil {
@@ -351,7 +218,7 @@ func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFi
 		SnapshotTag string
 	}
 
-	manifests := make(map[key][]*remoteManifest)
+	manifests := make(map[key][]*backup.RemoteManifest)
 
 	for _, lister := range l.helpers {
 		ms, err := lister.ListManifests(ctx, f)
@@ -365,7 +232,7 @@ func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFi
 		}
 	}
 
-	var out []*remoteManifest
+	var out []*backup.RemoteManifest
 	for k := range manifests {
 		out = append(out, l.removeDuplicates(manifests[k])...)
 	}
@@ -381,7 +248,7 @@ func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFi
 // removeDuplicates scans list of manifests and returns only manifests of the
 // single version with preference for v2.
 // Only manifests from the same node should be provided.
-func (l *multiVersionManifestLister) removeDuplicates(ms []*remoteManifest) []*remoteManifest {
+func (l *multiVersionManifestLister) removeDuplicates(ms []*backup.RemoteManifest) []*backup.RemoteManifest {
 	if len(ms) <= 1 {
 		return ms
 	}
@@ -400,7 +267,7 @@ func (l *multiVersionManifestLister) removeDuplicates(ms []*remoteManifest) []*r
 			for j := range ms {
 				if len(ms[j].CleanPath) == v2CleanPathLength {
 					// There should be only one manifest per node in v2.
-					return []*remoteManifest{ms[j]}
+					return []*backup.RemoteManifest{ms[j]}
 				}
 			}
 		}
@@ -412,7 +279,7 @@ func (l *multiVersionManifestLister) removeDuplicates(ms []*remoteManifest) []*r
 // v2CleanPathLength uses dummy data to parse v2 path and return length of the
 // clean path for the v2 manifest.
 func v2CleanPathLength() int {
-	m := remoteManifest{}
+	m := backup.RemoteManifest{}
 	if err := m.ParsePartialPath(backup.RemoteManifestFile(
 		uuid.NewTime(), uuid.NewTime(), "sm_20091110230000UTC", "b", "c",
 	)); err != nil {
