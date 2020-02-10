@@ -214,6 +214,12 @@ func RegisterAzureProvider(opts AzureOptions) error {
 
 	err := multierr.Combine(
 		fs.ConfigFileSet(name, "type", "azureblob"),
+		func() error {
+			if opts.Account != "" {
+				return nil
+			}
+			return fs.ConfigFileSet(name, "use_msi", "true")
+		}(),
 
 		registerProvider(name, opts),
 	)
