@@ -72,6 +72,11 @@ func TestConfig(hosts []string, token string) Config {
 	config := DefaultConfig()
 	config.Hosts = hosts
 	config.AuthToken = token
+
+	config.RequestTimeout = 5 * time.Second
+	config.Backoff.MaxRetries = 2
+	config.Backoff.WaitMin = 200 * time.Millisecond
+
 	return config
 }
 
