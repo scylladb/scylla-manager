@@ -462,9 +462,11 @@ func (bp *BackupProgress) SetKeyspaceFilter(filters []string) (err error) {
 	return
 }
 
+const runStatusError = "ERROR"
+
 // AggregateErrors collects all errors from the table progress.
 func (bp *BackupProgress) AggregateErrors() {
-	if bp.Progress == nil {
+	if bp.Progress == nil || bp.Run.Status != runStatusError {
 		return
 	}
 	for i := range bp.Progress.Hosts {
