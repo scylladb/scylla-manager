@@ -11,7 +11,6 @@ package {{ .Name }}
 
 import (
   "net/http"
-  "net/url"
   "github.com/go-openapi/errors"
   "github.com/go-openapi/swag"
   "github.com/go-openapi/runtime"
@@ -66,9 +65,6 @@ func (a *Client) {{ pascalize .Name }}(params *{{ pascalize .Name }}Params{{ if 
     Client: params.HTTPClient,
   })
   if err != nil {
-    if e, ok := err.(*url.Error); ok {
-      err = e.Err
-    }
     return {{ if .SuccessResponse }}{{ padSurround "nil" "nil" 0 $length }}, {{ end }}err
   }
   {{- if .SuccessResponse }}

@@ -39,7 +39,8 @@ func retryable(transport runtime.ClientTransport, config BackoffConfig, poolSize
 
 func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interface{}, error) {
 	if _, ok := operation.Context.Value(ctxNoRetry).(bool); ok {
-		return t.transport.Submit(operation)
+		v, err := t.transport.Submit(operation)
+		return v, unpackURLError(err)
 	}
 
 	o := retryableOperation{
@@ -50,7 +51,8 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 }
 
 func (o *retryableOperation) submit() (interface{}, error) {
-	if err := retry.WithNotify(o.operation.Context, o.op, o.backoff(), o.notify); err != nil {
+	err := retry.WithNotify(o.operation.Context, o.op, o.backoff(), o.notify)
+	if err != nil {
 		return nil, errors.Wrapf(unpackURLError(err), "giving up after %d attempts", o.attempts)
 	}
 	return o.result, nil
