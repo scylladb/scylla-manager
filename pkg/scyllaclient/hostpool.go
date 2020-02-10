@@ -54,7 +54,7 @@ func hostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 			switch {
 			case err != nil:
 				hpr.Mark(err)
-			case resp.StatusCode >= 500:
+			case resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode >= 500:
 				hpr.Mark(errPoolServerError)
 			default:
 				hpr.Mark(nil)
