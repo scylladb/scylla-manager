@@ -104,6 +104,12 @@
 # Number of files uploaded concurrently, by default it's 2.
 #  upload_concurrency: 2
 #
+# Maximum size (in bytes) of body of single request to S3 when uploading big files.
+# Big files are cut into chunks, this value allows to specify how much data
+# single request to S3 can carry. Bigger value allows to reduce number of requests
+# needed to upload files, increasing it may help with 5xx responses returned by S3.
+#  chunk_size: 52428800
+#
 # AWS S3 Transfer acceleration
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
 #  use_accelerate_endpoint: false
