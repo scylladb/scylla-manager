@@ -24,4 +24,5 @@ s3:
   server_side_encryption: ""
   sse_kms_key_id: ""
   upload_concurrency: ""
+  chunk_size: ""
   use_accelerate_endpoint: ""

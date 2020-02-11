@@ -64,11 +64,21 @@ type S3Options struct {
 	ServerSideEncryption  string `yaml:"server_side_encryption"`
 	SSEKMSKeyID           string `yaml:"sse_kms_key_id"`
 	UploadConcurrency     string `yaml:"upload_concurrency"`
+	ChunkSize             string `yaml:"chunk_size"`
 	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
 }
 
-// Copy of s3manager.DefaultUploadConcurrency.
-const defaultUploadConcurrency = 2
+const (
+	// In order to reduce memory footprint, by default we allow at most 2 concurrent
+	// requests. upload_concurrency * chunk_size gives rough estimate how much
+	// upload buffers will be allocated.
+	defaultUploadConcurrency = 2
+
+	// Default value of 5MB caused that we encountered problems with S3 returning 5xx.
+	// In order to reduce number of requests to S3, we are increasing chunk size
+	// by 10, which should decrease number of requests by 10.
+	defaultChunkSize = 50 * 1024 * 1024
+)
 
 // RegisterS3Provider must be called before server is started.
 // It allows for adding dynamically adding s3 provider named s3.
@@ -80,11 +90,12 @@ func RegisterS3Provider(opts S3Options) error {
 		opts.Region = awsRegionFromMetadataAPI()
 	}
 
-	// Auto set upload concurrency, we assume here that with big nodes comes
-	// more RAM and fast network cards and so we can increase the number of
-	// streams in multipart upload.
 	if opts.UploadConcurrency == "" {
 		opts.UploadConcurrency = strconv.Itoa(defaultUploadConcurrency)
+	}
+
+	if opts.ChunkSize == "" {
+		opts.ChunkSize = strconv.Itoa(defaultChunkSize)
 	}
 
 	// Set common properties
