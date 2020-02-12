@@ -65,6 +65,7 @@ type S3Options struct {
 	SSEKMSKeyID           string `yaml:"sse_kms_key_id"`
 	UploadConcurrency     string `yaml:"upload_concurrency"`
 	ChunkSize             string `yaml:"chunk_size"`
+	MaxRetries            string `yaml:"max_retries"`
 	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
 }
 
@@ -78,6 +79,11 @@ const (
 	// In order to reduce number of requests to S3, we are increasing chunk size
 	// by 10, which should decrease number of requests by 10.
 	defaultChunkSize = 50 * 1024 * 1024
+
+	// Default value of 10 was not enough for problems with S3 returning 5xx.
+	// We want to be more persistent in retries and wait until service is
+	// available.
+	defaultMaxRetries = 20
 )
 
 // RegisterS3Provider must be called before server is started.
@@ -96,6 +102,10 @@ func RegisterS3Provider(opts S3Options) error {
 
 	if opts.ChunkSize == "" {
 		opts.ChunkSize = strconv.Itoa(defaultChunkSize)
+	}
+
+	if opts.MaxRetries == "" {
+		opts.MaxRetries = strconv.Itoa(defaultMaxRetries)
 	}
 
 	// Set common properties
