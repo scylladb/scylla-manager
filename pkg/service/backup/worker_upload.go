@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/retry"
 	"go.uber.org/multierr"
 )
 
@@ -124,42 +122,20 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 }
 
 func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotDir) error {
-	// We set longer exponential backoff for upload due to chance that upload
-	// might be throttled by storage service providers or temporary
-	// network failures can occur.
-	b := uploadBackoff()
-	notify := func(err error, wait time.Duration) {
-		w.Logger.Error(ctx, "Upload failed, retrying", "host", d.Host, "from", src, "to", dst, "error", err, "wait", wait)
-
-		backupUploadRetries.With(prometheus.Labels{
-			"cluster":  w.ClusterName,
-			"task":     w.TaskID.String(),
-			"host":     d.Host,
-			"keyspace": d.Keyspace,
-		}).Inc()
+	id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src)
+	if err != nil {
+		return err
 	}
 
-	return retry.WithNotify(ctx, func() error {
-		id, err := w.Client.RcloneCopyDir(ctx, d.Host, dst, src)
-		if err != nil {
-			return err
-		}
+	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
+	d.Progress.AgentJobID = id
+	w.onRunProgress(ctx, d.Progress)
 
-		w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
-		d.Progress.AgentJobID = id
-		w.onRunProgress(ctx, d.Progress)
-
-		return w.waitJob(ctx, id, d)
-	}, b, notify)
-}
-
-func uploadBackoff() retry.Backoff {
-	initialInterval := 30 * time.Second
-	maxElapsedTime := 20 * time.Minute
-	maxInterval := 5 * time.Minute
-	multiplier := 2.0
-	randomFactor := 0.5
-	return retry.NewExponentialBackoff(initialInterval, maxElapsedTime, maxInterval, multiplier, randomFactor)
+	if err := w.waitJob(ctx, id, d); err != nil {
+		w.Logger.Error(ctx, "Upload dir failed", "host", d.Host, "from", src, "to", dst, "error", err)
+		return err
+	}
+	return nil
 }
 
 func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err error) {
