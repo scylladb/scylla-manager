@@ -792,7 +792,17 @@ WARNING: Storing parts of an incomplete multipart upload counts towards space us
 `,
 			Default:  false,
 			Advanced: true,
-		}},
+		}, {
+			Name: "max_retries",
+			Help: `Maximum number of retries.
+
+The maximum number of times that a request will be retried for failures.
+Defaults to 10. Setting it to -1 defers the max retry setting to the service
+specific configuration.`,
+			Default:  10,
+			Advanced: true,
+		},
+		},
 	})
 }
 
@@ -801,7 +811,6 @@ const (
 	metaMtime           = "Mtime"                // the meta key to store mtime in - eg X-Amz-Meta-Mtime
 	metaMD5Hash         = "Md5chksum"            // the meta key to store md5hash in
 	listChunkSize       = 1000                   // number of items to read at once
-	maxRetries          = 10                     // number of retries to make of operations
 	maxSizeForCopy      = 5 * 1024 * 1024 * 1024 // The maximum size of object we can COPY
 	maxUploadParts      = 10000                  // maximum allowed number of parts in a multi-part upload
 	minChunkSize        = fs.SizeSuffix(1024 * 1024 * 5)
@@ -834,6 +843,7 @@ type Options struct {
 	V2Auth                bool          `config:"v2_auth"`
 	UseAccelerateEndpoint bool          `config:"use_accelerate_endpoint"`
 	LeavePartsOnError     bool          `config:"leave_parts_on_error"`
+	MaxRetries            int           `config:"max_retries"`
 }
 
 // Fs represents a remote s3 server
@@ -898,7 +908,7 @@ func (f *Fs) Features() *fs.Features {
 // retryErrorCodes is a slice of error codes that we will retry
 // See: https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
 var retryErrorCodes = []int{
-	// 409, // Conflict - various states that could be resolved on a retry
+	500, // Internal Server Error - "We encountered an internal error. Please try again."
 	503, // Service Unavailable/Slow Down - "Reduce your request rate"
 }
 
@@ -1021,7 +1031,7 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 		opt.ForcePathStyle = false
 	}
 	awsConfig := aws.NewConfig().
-		WithMaxRetries(maxRetries).
+		WithMaxRetries(opt.MaxRetries).
 		WithCredentials(cred).
 		WithHTTPClient(fshttp.NewClient(fs.Config)).
 		WithS3ForcePathStyle(opt.ForcePathStyle).
@@ -2105,6 +2115,12 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 		buf := <-bufs
 		if buf == nil {
 			buf = make([]byte, partSize)
+		}
+
+		// Fail fast, in case an errgroup managed function returns an error
+		// gCtx is cancelled. There is no point in uploading all the other parts.
+		if gCtx.Err() != nil {
+			break
 		}
 
 		// Read the chunk
