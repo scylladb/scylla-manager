@@ -110,6 +110,11 @@
 # needed to upload files, increasing it may help with 5xx responses returned by S3.
 #  chunk_size: 52428800
 #
+# The maximum number of times that S3 request will be retried for failures.
+# Defaults to 20. Setting it to -1 defers the max retry setting to the service
+# specific configuration.
+#  max_retries: 20
+#
 # AWS S3 Transfer acceleration
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
 #  use_accelerate_endpoint: false

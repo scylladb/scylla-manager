@@ -25,4 +25,5 @@ s3:
   sse_kms_key_id: ""
   upload_concurrency: ""
   chunk_size: ""
+  max_retries: ""
   use_accelerate_endpoint: ""
