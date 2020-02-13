@@ -50,5 +50,5 @@ require (
 
 replace (
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.3.2
-	github.com/rclone/rclone => github.com/scylladb/rclone v1.50.2-patched-19
+	github.com/rclone/rclone => github.com/scylladb/rclone v1.50.2-patched-20
 )
