@@ -1137,12 +1137,18 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize pacer to 0 retries because we are relying on SDK with
+	// MaxRetries for that
+	pc := fs.NewPacer(pacer.NewS3(pacer.MinSleep(minSleep)))
+	pc.SetRetries(0)
+
 	f := &Fs{
 		name:  name,
 		opt:   *opt,
 		c:     c,
 		ses:   ses,
-		pacer: fs.NewPacer(pacer.NewS3(pacer.MinSleep(minSleep))),
+		pacer: pc,
 		cache: bucket.NewCache(),
 		srv:   fshttp.NewClient(fs.Config),
 	}
