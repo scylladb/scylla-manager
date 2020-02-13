@@ -15,9 +15,7 @@ if [[ $1 == "" ]]; then
     exit 1
 fi
 
-#for f in $(find "$1" -regextype posix-extended -regex '.*/[:alnum:]+\-([0-9]+)\-.*\-.*\..*$' -type f)
-#do
-#    mv "$f" $(sed -rn 's|-([[:digit:]]+)-|-\10-|p' <<< "$f")
-#done
-
-echo "test"
+for f in $(find "$1" -regextype posix-extended -regex '.*/[:alnum:]+\-([0-9]+)\-.*\-.*\..*$' -type f)
+do
+    mv "$f" $(sed -rn 's|-([[:digit:]]+)-|-\10-|p' <<< "$f")
+done
