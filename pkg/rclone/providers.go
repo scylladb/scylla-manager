@@ -70,15 +70,17 @@ type S3Options struct {
 }
 
 const (
-	// In order to reduce memory footprint, by default we allow at most 2 concurrent
-	// requests. upload_concurrency * chunk_size gives rough estimate how much
-	// upload buffers will be allocated.
+	// In order to reduce memory footprint, by default we allow at most two
+	// concurrent requests.
+	// upload_concurrency * chunk_size gives rough estimate how much upload
+	// buffers will be allocated.
 	defaultUploadConcurrency = 2
 
-	// Default value of 5MB caused that we encountered problems with S3 returning 5xx.
-	// In order to reduce number of requests to S3, we are increasing chunk size
-	// by 10, which should decrease number of requests by 10.
-	defaultChunkSize = 50 * 1024 * 1024
+	// Default value of 5MB caused that we encountered problems with S3
+	// returning 5xx. In order to reduce number of requests to S3, we are
+	// increasing chunk size by ten times, which should decrease number of
+	// requests by ten times.
+	defaultChunkSize = "50M"
 
 	// Default value of 10 was not enough for problems with S3 returning 5xx.
 	// We want to be more persistent in retries and wait until service is
@@ -101,7 +103,7 @@ func RegisterS3Provider(opts S3Options) error {
 	}
 
 	if opts.ChunkSize == "" {
-		opts.ChunkSize = strconv.Itoa(defaultChunkSize)
+		opts.ChunkSize = defaultChunkSize
 	}
 
 	if opts.MaxRetries == "" {

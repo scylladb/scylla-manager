@@ -108,7 +108,9 @@
 # Big files are cut into chunks, this value allows to specify how much data
 # single request to S3 can carry. Bigger value allows to reduce number of requests
 # needed to upload files, increasing it may help with 5xx responses returned by S3.
-#  chunk_size: 52428800
+# Default value is 50M and string representation of the value can be provided, for
+# e.g. 1M, 1G, off.
+#  chunk_size: 50M
 #
 # The maximum number of times that S3 request will be retried for failures.
 # Defaults to 20. Setting it to -1 defers the max retry setting to the service

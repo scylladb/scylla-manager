@@ -653,7 +653,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("When: write new data")
-	writeData(t, clusterSession, testKeyspace, 1)
+	// 200M is the multipart threshold we want to trigger it in the smoke test.
+	writeData(t, clusterSession, testKeyspace, 210)
 
 	Print("And: run it again")
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
