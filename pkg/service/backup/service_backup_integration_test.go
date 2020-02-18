@@ -23,7 +23,9 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -112,7 +114,7 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 	return s
 }
 
-func (h *backupTestHelper) listFiles() (manifests, files []string) {
+func (h *backupTestHelper) listBackupFiles() (manifests, files []string) {
 	h.t.Helper()
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
@@ -130,6 +132,32 @@ func (h *backupTestHelper) listFiles() (manifests, files []string) {
 		}
 	}
 	return
+}
+
+func (h *backupTestHelper) snapshotFileSet() *strset.Set {
+	h.t.Helper()
+
+	files := strset.New()
+
+	stmt, names := table.BackupRunProgress.Select()
+	iter := gocqlx.Query(h.session.Query(stmt), names).BindMap(qb.M{
+		"cluster_id": h.clusterID,
+		"task_id":    h.taskID,
+		"run_id":     h.runID,
+	}).Iter()
+	defer iter.Close()
+
+	pr := &backup.RunProgress{}
+	for iter.StructScan(pr) {
+		for i := range pr.Files {
+			if strings.Contains(pr.Files[i], "manifest.json") {
+				continue
+			}
+			files.Add(pr.Files[i])
+		}
+	}
+
+	return files
 }
 
 // writeData creates big_table in the provided keyspace with the size in MiB.
@@ -201,7 +229,7 @@ func (h *backupTestHelper) waitTransfersStarted() {
 func (h *backupTestHelper) waitManifestUploaded() {
 	h.waitCond(func() bool {
 		h.t.Helper()
-		m, _ := h.listFiles()
+		m, _ := h.listBackupFiles()
 		return len(m) > 0
 	})
 }
@@ -220,6 +248,21 @@ func (h *backupTestHelper) waitNoTransfers() {
 		}
 		return true
 	})
+}
+
+func (h *backupTestHelper) snapshotIsPartiallyUploaded() {
+	h.t.Helper()
+	_, bFiles := h.listBackupFiles()
+	s := h.snapshotFileSet()
+
+	b := strset.New()
+	for i := range bFiles {
+		b.Add(path.Base(bFiles[i]))
+	}
+
+	if b.IsEqual(s) {
+		h.t.Fatalf("Expected partial upload, got\n%v,\n%v", s, b)
+	}
 }
 
 func s3Location(bucket string) backup.Location {
@@ -630,7 +673,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: files")
-	manifests, files := h.listFiles()
+	manifests, files := h.listBackupFiles()
 	tables, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
@@ -731,7 +774,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	assertDataUploded := func(t *testing.T, h *backupTestHelper) {
 		t.Helper()
 
-		manifests, files := h.listFiles()
+		manifests, files := h.listBackupFiles()
 		if len(manifests) != 3 {
 			t.Fatalf("Expected 3 manifests got %s", manifests)
 		}
@@ -743,7 +786,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	assertDataUplodedAfterTag := func(t *testing.T, h *backupTestHelper, tag string) {
 		t.Helper()
 
-		manifests, files := h.listFiles()
+		manifests, files := h.listBackupFiles()
 		c := 0
 		for _, m := range manifests {
 			if backup.SnapshotTagFromManifestPath(t, m) > tag {
@@ -801,6 +844,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
+
+		Print("And: snapshot is partially uploaded")
+		h.snapshotIsPartiallyUploaded()
 
 		Print("When: backup is resumed with new RunID")
 		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
@@ -996,7 +1042,7 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 
 	Print("Then: only the last task run is preserved")
-	manifests, files := h.listFiles()
+	manifests, files := h.listBackupFiles()
 	for _, m := range manifests {
 		if !strings.Contains(m, h.taskID.String()) {
 			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
