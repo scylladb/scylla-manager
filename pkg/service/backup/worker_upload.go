@@ -149,7 +149,11 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 	for {
 		select {
 		case <-ctx.Done():
-			err := w.Client.RcloneJobStop(context.Background(), d.Host, id)
+			// Running stop procedure in different context because original
+			// is canceled.
+			stopCtx := context.Background()
+
+			err := w.Client.RcloneJobStop(stopCtx, d.Host, id)
 			if err != nil {
 				w.Logger.Error(ctx, "Failed to stop rclone job",
 					"host", d.Host,
@@ -159,7 +163,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 					"error", err,
 				)
 			}
-			job, err := w.Client.RcloneJobInfo(ctx, d.Host, id)
+			job, err := w.Client.RcloneJobInfo(stopCtx, d.Host, id)
 			if err != nil {
 				w.Logger.Error(ctx, "Failed to fetch job info",
 					"host", d.Host,
@@ -170,7 +174,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 				)
 				return err
 			}
-			w.updateProgress(ctx, d, job)
+			w.updateProgress(stopCtx, d, job)
 			return ctx.Err()
 		default:
 			job, err := w.Client.RcloneJobInfo(ctx, d.Host, id)
@@ -182,6 +186,11 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 					"job_id", id,
 					"error", err,
 				)
+				// If context is canceled loop once again to select job
+				// stopping procedure.
+				if ctx.Err() == context.Canceled {
+					continue
+				}
 				return err
 			}
 			switch w.Client.RcloneStatusOfJob(job.Job) {
