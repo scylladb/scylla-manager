@@ -33,6 +33,19 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy int) (err e
 func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 	dirs := w.hostSnapshotDirs(h)
 
+	if err := w.Client.DeleteSnapshot(ctx, h.IP, w.SnapshotTag); err != nil {
+		w.Logger.Error(ctx, "Failed to delete uploaded snapshot",
+			"host", h.IP,
+			"tag", w.SnapshotTag,
+			"error", err,
+		)
+	} else {
+		w.Logger.Info(ctx, "Deleted uploaded snapshot",
+			"host", h.IP,
+			"tag", w.SnapshotTag,
+		)
+	}
+
 	if err := dirsInParallel(dirs, false, func(d snapshotDir) error {
 		p := &purger{
 			ClusterID: w.ClusterID,
@@ -59,19 +72,6 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 		w.Logger.Error(ctx, "Failed to purge snapshots",
 			"location", h.Location,
 			"error", err,
-		)
-	}
-
-	if err := w.Client.DeleteSnapshot(ctx, h.IP, w.SnapshotTag); err != nil {
-		w.Logger.Error(ctx, "Failed to delete uploaded snapshot",
-			"host", h.IP,
-			"tag", w.SnapshotTag,
-			"error", err,
-		)
-	} else {
-		w.Logger.Info(ctx, "Deleted uploaded snapshot",
-			"host", h.IP,
-			"tag", w.SnapshotTag,
 		)
 	}
 
