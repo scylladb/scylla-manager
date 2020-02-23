@@ -32,20 +32,19 @@ Automatic service account authorization
 #. Make sure that each of service account has read/write `access scope <https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam>`_ to Cloud Storage.
 #. For each service account from the list, add `Storage Object Admin role <https://cloud.google.com/storage/docs/access-control/iam-roles>`_ in bucket permissions settings.
 
-Config file
------------
-
-Use `this instruction <https://cloud.google.com/docs/authentication/production#manually>`_ to get the service account file.
+Service account file
+--------------------
 
 Note that this procedure needs to be repeated for each Scylla node.
 
+**Prerequisites**
+
+Use `this instruction <https://cloud.google.com/docs/authentication/production#manually>`_ to get the service account file.
+
 **Procedure**
 
-Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
-
-#. Uncomment the ``gcs:`` line, for parameters note the two spaces in front, it's a yaml file.
-#. Uncomment and set ``service_account_file`` with the path to the service account credentials file.
-#. For each service account used by the nodes, add `Storage Object Admin role <https://cloud.google.com/storage/docs/access-control/iam-roles>`_ in the bucket permissions settings.
+#. Upload service account file to ``/etc/scylla-manager-agent/gcs-service-account.json``.
+   If you want to use different path change service_account_file parameter in ``gcs`` section in :doc:`Scylla Manager Agent Config file <../config/scylla-manager-agent-config>`.
 #. Validate that the manager has access to the backup location.
    If there is no response, the bucket is accessible. If not, you will see an error.
 

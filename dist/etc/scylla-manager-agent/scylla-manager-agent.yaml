@@ -138,7 +138,7 @@
 #gcs:
 # GCS credentials, it's recommended to use Service Account authentication
 # if possible, otherwise set path to credentials here.
-#  service_account_file:
+#  service_account_file: /etc/scylla-manager-agent/gcs-service-account.json
 #
 # Maximum size (in bytes) of body of single request to GCS when uploading files.
 # Files are cut into chunks, this value allows to specify how much data

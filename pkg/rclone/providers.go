@@ -171,10 +171,19 @@ type GCSOptions struct {
 // RegisterGCSProvider must be called before server is started.
 // It allows for adding dynamically adding gcs provider named gcs.
 func RegisterGCSProvider(opts GCSOptions) error {
-	const name = "gcs"
+	const (
+		name               = "gcs"
+		serviceAccountPath = "/etc/scylla-manager-agent/gcs-service-account.json"
+	)
 
 	if opts.ChunkSize == "" {
 		opts.ChunkSize = defaultChunkSize
+	}
+
+	if opts.ServiceAccountFile == "" {
+		if _, err := os.Stat(serviceAccountPath); err == nil {
+			opts.ServiceAccountFile = serviceAccountPath
+		}
 	}
 
 	err := multierr.Combine(
