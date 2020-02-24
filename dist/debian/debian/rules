@@ -8,7 +8,6 @@ GO_URL     := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.
 GO_BUNDLE  := ./go$(GO_VERSION).linux-amd64.tar.gz
 
 GOROOT     := ./go
-GOGCFLAGS  := all=-trimpath=$(GOPATH)
 GOLDFLAGS  := -w -extldflags '-static' -X $(import_path).version=$(shell dpkg-parsechangelog --show-field Version)
 
 GO := $(GOROOT)/bin/go
@@ -21,16 +20,16 @@ override_dh_auto_build:
 	[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "$(GO_HASH)" ]
 	tar -zxf $(GO_BUNDLE)
 
-	CGO_ENABLED=0 $(GO) build -a -mod vendor \
-	-gcflags "$(GOGCFLAGS)" -ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+	CGO_ENABLED=0 $(GO) build -a -trimpath -mod vendor \
+	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
 	-o release/linux_amd64/scylla-manager $(import_path)/cmd/scylla-manager
 
-	CGO_ENABLED=0 $(GO) build -a -mod vendor \
-	-gcflags "$(GOGCFLAGS)" -ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+	CGO_ENABLED=0 $(GO) build -a -trimpath -mod vendor \
+	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
 	-o release/linux_amd64/sctool $(import_path)/cmd/sctool
 
-	CGO_ENABLED=0 $(GO) build -a -mod vendor \
-	-gcflags "$(GOGCFLAGS)" -ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+	CGO_ENABLED=0 $(GO) build -a -trimpath -mod vendor \
+	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
 	-o release/linux_amd64/scylla-manager-agent $(import_path)/cmd/agent
 
 	mkdir -p release/bash_completion

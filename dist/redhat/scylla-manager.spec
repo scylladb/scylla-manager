@@ -25,21 +25,20 @@ Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla
 
 %build
 GOROOT="$(pwd)/../go/"
-GOGCFLAGS="all=-trimpath=${GOPATH}"
 GOLDFLAGS="-w -extldflags '-static' -X %{import_path}.version=%{version}-%{release}"
 
 GO="${GOROOT}/bin/go"
 
-CGO_ENABLED=0 ${GO} build -a -mod vendor \
--gcflags "${GOGCFLAGS}" -ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+CGO_ENABLED=0 ${GO} build -a -trimpath -mod vendor \
+-ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
 -o release/linux_amd64/%{name} %{import_path}/cmd/%{name}
 
-CGO_ENABLED=0 ${GO} build -a -mod vendor \
--gcflags "${GOGCFLAGS}" -ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+CGO_ENABLED=0 ${GO} build -a -trimpath -mod vendor \
+-ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
 -o release/linux_amd64/sctool %{import_path}/cmd/sctool
 
-CGO_ENABLED=0 ${GO} build -a -mod vendor \
--gcflags "${GOGCFLAGS}" -ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
+CGO_ENABLED=0 ${GO} build -a -trimpath -mod vendor \
+-ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
 -o release/linux_amd64/%{name}-agent %{import_path}/cmd/agent
 
 mkdir -p release/bash_completion
