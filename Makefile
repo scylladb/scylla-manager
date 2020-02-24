@@ -143,7 +143,7 @@ dev-env-status:  ## Checks status of docker containers and cluster nodes
 .PHONY: build-agent
 build-agent: ## Build development agent binary
 	@echo "==> Building agent"
-	@go build -mod=vendor -race -o ./scylla-manager-agent.dev ./pkg/cmd/agent
+	@go build -trimpath -mod=vendor -race -o ./scylla-manager-agent.dev ./pkg/cmd/agent
 	
 .PHONY: deploy-agent
 deploy-agent: build-agent ## Deploy it to testing containers
@@ -153,12 +153,12 @@ deploy-agent: build-agent ## Deploy it to testing containers
 .PHONY: build-cli
 build-cli: ## Build development cli binary
 	@echo "==> Building sctool"
-	@go build -mod=vendor -o ./sctool.dev ./pkg/cmd/sctool
+	@go build -trimpath -mod=vendor -o ./sctool.dev ./pkg/cmd/sctool
 
 .PHONY: build-server
 build-server: ## Build development server
 	@echo "==> Building scylla-manager"
-	@go build -mod=vendor -race -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
+	@go build -trimpath -mod=vendor -race -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
 	
 .PHONY: run-server
 run-server: build-server ## Build and run development server
