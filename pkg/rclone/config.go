@@ -19,10 +19,6 @@ func InitFsConfig() {
 	fs.Config.UseJSONLog = false
 	// Pass all logs, our logger decides which one to print.
 	fs.Config.LogLevel = fs.LogLevelDebug
-	// Don't use readahead buffering in accounting. We enable readahead in
-	// kernel with SEQENTIAL read mode, adding this makes things slower and
-	// consumes more memory.
-	fs.Config.BufferSize = 0
 	// Delete even if there are I/O errors.
 	fs.Config.IgnoreErrors = true
 	// Do not compare hash post upload, prevents from calculating hashes in
