@@ -56,17 +56,13 @@ func (m *Mode) UnmarshalText(text []byte) error {
 
 // Config specifies log mode and level.
 type Config struct {
-	Mode  Mode          `yaml:"mode"`
-	Level zapcore.Level `yaml:"level"`
+	Mode  Mode                 `yaml:"mode"`
+	Level zapcore.LevelEnabler `yaml:"level"`
 }
 
 // NewProduction builds a production Logger based on the configuration.
 func NewProduction(c Config, opts ...zap.Option) (Logger, error) {
-	opts = append([]zap.Option{
-		zap.ErrorOutput(os.Stderr),
-		zap.AddStacktrace(zapcore.ErrorLevel),
-		zap.AddCallerSkip(2),
-	}, opts...)
+	opts = append([]zap.Option{zap.ErrorOutput(os.Stderr)}, opts...)
 
 	cfg := zapcore.EncoderConfig{
 		// Keys can be anything except the empty string.

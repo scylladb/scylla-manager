@@ -154,7 +154,7 @@ github.com/mitchellh/go-homedir
 github.com/mitchellh/mapstructure
 # github.com/ncw/swift v1.0.49
 github.com/ncw/swift
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/prometheus/client_golang v1.4.0
 github.com/prometheus/client_golang/prometheus
@@ -218,7 +218,7 @@ github.com/rclone/rclone/lib/rest
 github.com/rclone/rclone/lib/terminal
 # github.com/rfjakob/eme v0.0.0-20171028163933-2222dbd4ba46
 github.com/rfjakob/eme
-# github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
+# github.com/scylladb/go-log v0.0.4
 github.com/scylladb/go-log
 github.com/scylladb/go-log/gocqllog
 # github.com/scylladb/go-reflectx v1.0.1
@@ -251,7 +251,7 @@ go.uber.org/config/internal/unreachable
 go.uber.org/multierr
 # go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 go.uber.org/tools/update-license
-# go.uber.org/zap v1.9.1
+# go.uber.org/zap v1.14.0
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
