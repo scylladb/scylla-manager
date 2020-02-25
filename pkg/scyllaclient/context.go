@@ -31,11 +31,11 @@ func NoRetry(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxNoRetry, true)
 }
 
-// NoTimeout disables Timeout middleware.
+// noTimeout disables Timeout middleware.
 //
 // WARNING: Usually this is a workaround for Scylla or other API slowness
 // in field condition i.e. with tons of data. This is the last resort of
 // defense please use with care.
-func NoTimeout(ctx context.Context) context.Context {
+func noTimeout(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxNoTimeout, true)
 }
