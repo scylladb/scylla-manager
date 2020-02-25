@@ -68,7 +68,7 @@ func defaultConfig() *serverConfig {
 		TLSKeyFile:               "/var/lib/scylla-manager/scylla_manager.key",
 		Prometheus:               ":56090",
 		PrometheusScrapeInterval: 5 * time.Second,
-		Debug:                    "",
+		Debug:                    "127.0.0.1:56112",
 		Logger: logConfig{
 			Mode:        log.StderrMode,
 			Level:       zapcore.InfoLevel,

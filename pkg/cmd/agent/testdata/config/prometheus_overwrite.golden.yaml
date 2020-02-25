@@ -3,7 +3,7 @@ https: 192.168.100.11:10001
 tls_cert_file: ./testdata/auth/scylla_manager.crt
 tls_key_file: ./testdata/auth/scylla_manager.key
 prometheus: :1234
-debug: ""
+debug: 127.0.0.1:56112
 cpu: -1
 logger:
   mode: stderr

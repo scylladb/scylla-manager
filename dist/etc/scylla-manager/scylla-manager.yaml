@@ -27,8 +27,7 @@ http: 127.0.0.1:56080
 # at just right pace for Prometheus to consume them.
 #prometheus_scrape_interval: 5s
 
-# Start a debug server that allows to run pporf profiling on demand on a live
-# system, by default the server is not running.
+# Debug server that allows to run pporf profiling on demand on a live system.
 #debug: 127.0.0.1:56112
 
 # Logging configuration.
