@@ -99,6 +99,7 @@ type ConnConfig struct {
 	CQLVersion     string
 	Timeout        time.Duration
 	ConnectTimeout time.Duration
+	Dialer         Dialer
 	Compressor     Compressor
 	Authenticator  Authenticator
 	AuthProvider   func(h *HostInfo) (Authenticator, error)
@@ -201,12 +202,17 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 		panic(fmt.Sprintf("host missing port: %v", port))
 	}
 
-	dialer := &net.Dialer{
-		Timeout: cfg.ConnectTimeout,
+	dialer := cfg.Dialer
+	if dialer == nil {
+		d := &net.Dialer{
+			Timeout: cfg.ConnectTimeout,
+		}
+		if cfg.Keepalive > 0 {
+			d.KeepAlive = cfg.Keepalive
+		}
+		dialer = d
 	}
-	if cfg.Keepalive > 0 {
-		dialer.KeepAlive = cfg.Keepalive
-	}
+
 
 	conn, err := dialer.DialContext(ctx, "tcp", host.HostnameAndPort())
 	if err != nil {
@@ -1199,11 +1205,8 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) *Iter {
 		return iter
 	case *RequestErrUnprepared:
 		stmtCacheKey := c.session.stmtsLRU.keyFor(c.addr, c.currentKeyspace, qry.stmt)
-		if c.session.stmtsLRU.remove(stmtCacheKey) {
-			return c.executeQuery(ctx, qry)
-		}
-
-		return &Iter{err: x, framer: framer}
+		c.session.stmtsLRU.evictPreparedID(stmtCacheKey, x.StatementId)
+		return c.executeQuery(ctx, qry)
 	case error:
 		return &Iter{err: x, framer: framer}
 	default:
@@ -1343,14 +1346,9 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) *Iter {
 		stmt, found := stmts[string(x.StatementId)]
 		if found {
 			key := c.session.stmtsLRU.keyFor(c.addr, c.currentKeyspace, stmt)
-			c.session.stmtsLRU.remove(key)
+			c.session.stmtsLRU.evictPreparedID(key, x.StatementId)
 		}
-
-		if found {
-			return c.executeBatch(ctx, batch)
-		} else {
-			return &Iter{err: x, framer: framer}
-		}
+		return c.executeBatch(ctx, batch)
 	case *resultRowsFrame:
 		iter := &Iter{
 			meta:    x.meta,

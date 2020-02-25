@@ -100,7 +100,7 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163 => github.com/scylladb/gocql v1.3.2
+# github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537 => github.com/scylladb/gocql v1.3.3
 github.com/gocql/gocql
 github.com/gocql/gocql/internal/lru
 github.com/gocql/gocql/internal/murmur
@@ -227,7 +227,7 @@ github.com/scylladb/go-reflectx
 github.com/scylladb/go-set/i64set
 github.com/scylladb/go-set/iset
 github.com/scylladb/go-set/strset
-# github.com/scylladb/gocqlx v1.3.2
+# github.com/scylladb/gocqlx v1.4.0
 github.com/scylladb/gocqlx
 github.com/scylladb/gocqlx/migrate
 github.com/scylladb/gocqlx/qb

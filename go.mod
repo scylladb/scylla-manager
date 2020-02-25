@@ -20,7 +20,7 @@ require (
 	github.com/go-openapi/swag v0.19.2
 	github.com/go-openapi/validate v0.19.2
 	github.com/gobwas/glob v0.2.3
-	github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163
+	github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537
 	github.com/golang/mock v1.3.1
 	github.com/google/go-cmp v0.4.0
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
@@ -32,7 +32,7 @@ require (
 	github.com/scylladb/go-log v0.0.4
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.1
-	github.com/scylladb/gocqlx v1.3.2
+	github.com/scylladb/gocqlx v1.4.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.5
@@ -48,6 +48,6 @@ require (
 )
 
 replace (
-	github.com/gocql/gocql => github.com/scylladb/gocql v1.3.2
+	github.com/gocql/gocql => github.com/scylladb/gocql v1.3.3
 	github.com/rclone/rclone => github.com/scylladb/rclone v1.50.2-patched-20
 )
