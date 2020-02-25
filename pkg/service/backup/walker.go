@@ -112,8 +112,6 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 	parallelLimit := int(s/2 + 1)
 	logger.Debug(ctx, "Parallel limit", "limit", parallelLimit)
 
-	ctx = scyllaclient.NoTimeout(ctx)
-
 	opts := &scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
 		NoModTime: true,

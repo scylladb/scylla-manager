@@ -281,6 +281,11 @@ type RcloneListDirItem = models.ListItem
 // Remote path format is "name:bucket/path".
 // Listed item path is relative to the remote path root directory.
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*models.ListItem, error) {
+	// Response contains all files available in directory without paging,
+	// default request constraints might be not sufficient to list thousands
+	// of files, which may be a case for SSTable directories.
+	ctx = NoTimeout(ctx)
+
 	empty := ""
 	p := operations.OperationsListParams{
 		Context: forceHost(ctx, host),
