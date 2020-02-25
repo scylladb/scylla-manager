@@ -58,6 +58,7 @@ func defaultConfig() config {
 		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
 		Prometheus:  ":56090",
+		Debug:       "127.0.0.1:56112",
 		CPU:         noCPU,
 		Logger: logConfig{
 			Mode:        log.StderrMode,

@@ -21,8 +21,7 @@
 # of ip and port.
 #prometheus: ':56090'
 
-# Start a debug server that allows to run pporf profiling on demand on a live
-# system, by default the server is not running.
+# Debug server that allows to run pporf profiling on demand on a live system.
 #debug: 127.0.0.1:56112
 
 # CPU to run Scylla Manager Agent on. By default the agent would read Scylla
