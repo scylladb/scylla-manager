@@ -141,6 +141,17 @@ type RunProgress struct {
 	Failed int64
 }
 
+// TotalUploaded returns total amount of uploaded bytes including skipped
+// bytes.
+func (p *RunProgress) TotalUploaded() int64 {
+	return p.Uploaded + p.Skipped
+}
+
+// IsUploaded returns true if entire snapshot is uploaded.
+func (p *RunProgress) IsUploaded() bool {
+	return p.Size == p.TotalUploaded()
+}
+
 type progress struct {
 	Size        int64      `json:"size"`
 	Uploaded    int64      `json:"uploaded"`

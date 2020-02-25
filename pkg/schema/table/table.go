@@ -44,7 +44,7 @@ var (
 			"failed",
 		},
 		PartKey: []string{"cluster_id", "task_id", "run_id"},
-		SortKey: []string{"host", "unit", "table_name", "file_name"},
+		SortKey: []string{"host", "unit", "table_name"},
 	})
 
 	Cluster = table.New(table.Metadata{

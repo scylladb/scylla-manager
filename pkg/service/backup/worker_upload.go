@@ -42,6 +42,11 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
 
 	for _, d := range dirs {
+		// Skip snapshots that are already uploaded.
+		if d.Progress.IsUploaded() {
+			w.Logger.Info(ctx, "Snapshot already uploaded skipping", "host", h.IP, "table", d.Table)
+			continue
+		}
 		// Check if we should attach to a previous job and wait for it to complete.
 		if err := w.attachToJob(ctx, h, d); err != nil {
 			return errors.Wrap(err, "attach to the agent job")

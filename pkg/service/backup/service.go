@@ -558,15 +558,16 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Create a worker
 	w := &worker{
-		ClusterID:     clusterID,
-		ClusterName:   clusterName,
-		TaskID:        taskID,
-		RunID:         runID,
-		SnapshotTag:   run.SnapshotTag,
-		Config:        s.config,
-		Units:         run.Units,
-		Client:        client,
-		OnRunProgress: s.putRunProgressLogError,
+		ClusterID:            clusterID,
+		ClusterName:          clusterName,
+		TaskID:               taskID,
+		RunID:                runID,
+		SnapshotTag:          run.SnapshotTag,
+		Config:               s.config,
+		Units:                run.Units,
+		Client:               client,
+		OnRunProgress:        s.putRunProgressLogError,
+		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
 		memoryPool: &sync.Pool{
 			New: func() interface{} {
 				return &bytes.Buffer{}
@@ -755,6 +756,38 @@ func (s *Service) putRunProgressLogError(ctx context.Context, p *RunProgress) {
 			"progress", p,
 			"error", err,
 		)
+	}
+}
+
+func (s *Service) resumeUploadProgress(prevRunID uuid.UUID) func(context.Context, *RunProgress) {
+	return func(ctx context.Context, p *RunProgress) {
+		if prevRunID == uuid.Nil {
+			return
+		}
+		prev := *p
+		prev.RunID = prevRunID
+		stmt, names := table.BackupRunProgress.Get()
+
+		if err := gocqlx.Query(s.session.Query(stmt), names).
+			BindStruct(prev).
+			GetRelease(&prev); err != nil {
+			s.logger.Error(ctx, "Failed to get previous progress",
+				"cluster_id", p.ClusterID,
+				"task_id", p.TaskID,
+				"run_id", p.RunID,
+				"prev_run_id", prevRunID,
+				"table", p.TableName,
+				"error", err,
+			)
+			return
+		}
+
+		// Only 100% completed tables can be resumed because incomplete ones
+		// will be retried with deduplication which will change the stats.
+		if prev.IsUploaded() {
+			p.Uploaded = prev.Uploaded
+			p.Skipped = prev.Skipped
+		}
 	}
 }
 

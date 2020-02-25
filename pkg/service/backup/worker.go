@@ -52,6 +52,10 @@ type worker struct {
 	Client        *scyllaclient.Client
 	Logger        log.Logger
 	OnRunProgress func(ctx context.Context, p *RunProgress)
+	// ResumeUploadProgress populates upload stats of the provided run progress
+	// with previous run progress.
+	// If there is no previous run there should be no update.
+	ResumeUploadProgress func(ctx context.Context, p *RunProgress)
 
 	// Cache for host snapshotDirs
 	dirs   map[string][]snapshotDir

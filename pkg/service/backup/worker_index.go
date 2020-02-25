@@ -117,12 +117,13 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				Files:     fileNames,
 				Size:      size,
 			}
+			w.ResumeUploadProgress(ctx, d.Progress)
+
 			w.onRunProgress(ctx, d.Progress)
 
 			dirs = append(dirs, d)
 		}
 	}
 	w.Logger.Debug(ctx, "Found snapshot directories", "host", h.IP, "count", len(dirs))
-
 	return dirs, nil
 }
