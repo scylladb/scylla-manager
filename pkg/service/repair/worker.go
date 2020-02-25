@@ -57,7 +57,7 @@ func (w *hostWorker) init(ctx context.Context) error {
 	// Check if savepoint can be used
 	if err := validateShardProgress(shards, prog); err != nil {
 		if len(prog) > 1 {
-			w.Logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err.Error(), "progress", prog)
+			w.Logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err, "progress", prog)
 		}
 		prog = nil
 	}
