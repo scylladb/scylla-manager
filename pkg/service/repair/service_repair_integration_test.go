@@ -954,12 +954,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: no network for 5s with 1s backoff")
 		h.hrt.SetInterceptor(dialErrorInterceptor())
-		time.AfterFunc(3*h.client.Config().RequestTimeout, func() {
+		time.AfterFunc(3*h.client.Config().Timeout, func() {
 			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 		})
 
 		Print("Then: node1 repair continues")
-		h.assertProgress(0, node1, 60, 3*h.client.Config().RequestTimeout+longWait)
+		h.assertProgress(0, node1, 60, 3*h.client.Config().Timeout+longWait)
 
 		Print("When: node1 is 95% repaired")
 		h.assertProgress(0, node1, 95, longWait)

@@ -93,7 +93,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		config.Transport = DefaultTransport()
 	}
 	transport := config.Transport
-	transport = timeout(transport, config.RequestTimeout)
+	transport = timeout(transport, config.Timeout)
 	transport = requestLogger(transport, logger)
 	transport = hostPool(transport, pool, config.Port)
 	transport = auth.AddToken(transport, config.AuthToken)

@@ -95,7 +95,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 	config := scyllaclient.TestConfig(hosts, AgentAuthToken())
 	config.Transport = hostRecorder(scyllaclient.DefaultTransport(), triedHosts)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*config.Timeout)
 	defer cancel()
 	defer unblock(context.Background())
 
@@ -110,7 +110,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	if _, err = client.Hosts(ctx); err != nil {
 		if shouldTimeout {
-			if !strings.HasSuffix(err.Error(), fmt.Sprintf("timeout after %s", client.Config().RequestTimeout)) {
+			if !strings.HasSuffix(err.Error(), fmt.Sprintf("timeout after %s", client.Config().Timeout)) {
 				return errors.Errorf("call error %s, expected timeout", err)
 			}
 		} else {

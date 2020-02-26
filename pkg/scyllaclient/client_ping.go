@@ -170,7 +170,7 @@ func (c *Client) PingN(ctx context.Context, host string, n int, timeout time.Dur
 
 	// Limit the running time of many loops to timeout
 	if timeout == 0 {
-		timeout = c.config.RequestTimeout
+		timeout = c.config.Timeout
 	}
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
