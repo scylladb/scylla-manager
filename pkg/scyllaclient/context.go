@@ -2,7 +2,10 @@
 
 package scyllaclient
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // ctxt is a context key type.
 type ctxt byte
@@ -12,7 +15,7 @@ const (
 	ctxInteractive ctxt = iota
 	ctxHost
 	ctxNoRetry
-	ctxNoTimeout
+	ctxCustomTimeout
 )
 
 // Interactive context means that it should be processed fast without too much
@@ -42,11 +45,11 @@ func noRetry(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxNoRetry, true)
 }
 
-// noTimeout disables Timeout middleware.
+// customTimeout allows to pass a custom timeout to timeout middleware.
 //
 // WARNING: Usually this is a workaround for Scylla or other API slowness
 // in field condition i.e. with tons of data. This is the last resort of
 // defense please use with care.
-func noTimeout(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ctxNoTimeout, true)
+func customTimeout(ctx context.Context, d time.Duration) context.Context {
+	return context.WithValue(ctx, ctxCustomTimeout, d)
 }

@@ -54,9 +54,9 @@ type BackoffConfig struct {
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		Port:        "10001",
-		Scheme:      "https",
-		Timeout:     15 * time.Second,
+		Port:    "10001",
+		Scheme:  "https",
+		Timeout: 15 * time.Second,
 		Backoff: BackoffConfig{
 			WaitMin:    1 * time.Second,
 			WaitMax:    30 * time.Second,

@@ -404,9 +404,11 @@ func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
 	return err
 }
 
+const snapshotTimeout = 5 * time.Minute
+
 // Snapshots lists available snapshots.
 func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
-	ctx = noTimeout(ctx)
+	ctx = customTimeout(ctx, snapshotTimeout)
 
 	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
 		Context: forceHost(ctx, host),
@@ -426,7 +428,7 @@ func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
 // SnapshotDetails returns an index of keyspaces and tables present in the given
 // snapshot.
 func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit, error) {
-	ctx = noTimeout(ctx)
+	ctx = customTimeout(ctx, snapshotTimeout)
 
 	resp, err := c.scyllaOps.StorageServiceSnapshotsGet(&operations.StorageServiceSnapshotsGetParams{
 		Context: forceHost(ctx, host),
@@ -466,7 +468,7 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 // TakeSnapshot flushes and takes a snapshot of a keyspace.
 // Multiple keyspaces may have the same tag.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
-	ctx = noTimeout(ctx)
+	ctx = customTimeout(ctx, snapshotTimeout)
 
 	var cfPtr *string
 
@@ -497,7 +499,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 
 // DeleteSnapshot removes a snapshot with a given tag.
 func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
-	ctx = noTimeout(ctx)
+	ctx = customTimeout(ctx, snapshotTimeout)
 
 	_, err := c.scyllaOps.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
 		Context: forceHost(ctx, host),

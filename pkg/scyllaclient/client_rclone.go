@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	agentClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client"
@@ -284,7 +285,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	// Response contains all files available in directory without paging,
 	// default request constraints might be not sufficient to list thousands
 	// of files, which may be a case for SSTable directories.
-	ctx = noTimeout(ctx)
+	ctx = customTimeout(ctx, 5 * time.Minute)
 
 	empty := ""
 	p := operations.OperationsListParams{
