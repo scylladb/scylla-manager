@@ -32,15 +32,14 @@ func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimi
 }
 
 func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
+	if err := w.deleteOldSnapshots(ctx, h); err != nil {
+		return errors.Wrap(err, "delete old snapshots")
+	}
 	if err := w.checkAvailableDiskSpace(ctx, h); err != nil {
 		return err
 	}
 	if err := w.takeSnapshot(ctx, h); err != nil {
 		return err
-	}
-	if err := w.deleteOldSnapshots(ctx, h); err != nil {
-		// Not a fatal error we can continue, just log the error
-		w.Logger.Error(ctx, "Failed to delete old snapshots", "error", err)
 	}
 	return nil
 }
