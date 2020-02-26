@@ -484,6 +484,8 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 
 // DeleteSnapshot removes a snapshot with a given tag.
 func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
+	ctx = noTimeout(ctx)
+
 	_, err := c.scyllaOps.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
 		Context: forceHost(ctx, host),
 		Tag:     &tag,
