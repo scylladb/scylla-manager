@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
+	rcops "github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
@@ -118,6 +119,41 @@ func init() {
 
 `,
 	})
+}
+
+// rcChunkedList supports streaming output of the listing.
+func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	f, remote, err := rc.GetFsAndRemote(in)
+	if err != nil {
+		return rc.Params{}, err
+	}
+	var opt rcops.ListJSONOpt
+	err = in.GetStruct("opt", &opt)
+	if rc.NotErrParamNotFound(err) {
+		return rc.Params{}, err
+	}
+	v, err := in.Get("response-writer")
+	if err != nil {
+		return rc.Params{}, err
+	}
+	wf, ok := v.(writerFlusher)
+	if !ok {
+		panic("Invalid response writer type")
+	}
+
+	enc := newListJSONEncoder(wf, defaultListEncoderMaxItems)
+	err = rcops.ListJSON(ctx, f, remote, &opt, enc.Callback)
+	if err != nil {
+		return enc.Result(err)
+	}
+
+	enc.Close()
+
+	return enc.Result(nil)
+}
+
+func init() {
+	rc.Calls.Get("operations/list").Fn = rcChunkedList
 }
 
 // rcCalls contains the original rc.Calls before filtering with all the added
