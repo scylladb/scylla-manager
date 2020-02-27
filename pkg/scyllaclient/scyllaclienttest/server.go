@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
+	"strconv"
+	"strings"
 	"testing"
 
 	"go.uber.org/atomic"
@@ -62,9 +65,28 @@ func SendFile(t *testing.T, w http.ResponseWriter, file string) {
 		return
 	}
 	defer f.Close()
+
+	statusCode := statusCodeFromFile(file)
+	if statusCode != 0 {
+		w.WriteHeader(statusCode)
+	}
+
 	if _, err := io.Copy(w, f); err != nil {
 		t.Error("Copy() error", err)
 	}
+}
+
+func statusCodeFromFile(file string) (statusCode int) {
+	s := strings.Split(path.Base(file), ".")
+	if len(s) != 3 {
+		return
+	}
+	i, err := strconv.Atoi(s[1])
+	if err != nil {
+		return
+	}
+	statusCode = i
+	return
 }
 
 // RespondStatus returns statusCodes in subsequent calls.

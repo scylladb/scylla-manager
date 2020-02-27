@@ -295,7 +295,7 @@ func TestClientRepairStatus(t *testing.T) {
 func TestClientRepairStatusForWrongID(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_2.json")
+	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_2.400.json")
 	defer closeServer()
 
 	_, err := client.RepairStatus(context.Background(), scyllaclienttest.TestHost, "scylla_manager", 5)
