@@ -36,6 +36,9 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 		}
 	}()
 
+	// Enable interactive mode for fast backoff
+	ctx = scyllaclient.Interactive(ctx)
+
 	client, err := r.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "get client")

@@ -2,7 +2,10 @@
 
 package scyllaclient
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 func PickNRandomHosts(n int, hosts []string) []string {
 	return pickNRandomHosts(n, hosts)
@@ -10,6 +13,10 @@ func PickNRandomHosts(n int, hosts []string) []string {
 
 func RcloneSplitRemotePath(remotePath string) (string, string, error) {
 	return rcloneSplitRemotePath(remotePath)
+}
+
+func NoRetry(ctx context.Context) context.Context {
+	return noRetry(ctx)
 }
 
 func (p *CachedProvider) SetValidity(d time.Duration) {

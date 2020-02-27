@@ -390,9 +390,6 @@ func (s *Service) saveTLSIdentityWithRollback(clusterID uuid.UUID, cert, key []b
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
-	// Do not retry in validate
-	ctx = scyllaclient.NoRetry(ctx)
-
 	// If host changes ignore old known hosts.
 	if c.Host != "" {
 		c.KnownHosts = []string{c.Host}

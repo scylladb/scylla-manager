@@ -37,8 +37,8 @@ func isForceHost(ctx context.Context) bool {
 	return ok
 }
 
-// NoRetry disables Retry middleware.
-func NoRetry(ctx context.Context) context.Context {
+// noRetry disables retries.
+func noRetry(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxNoRetry, true)
 }
 

@@ -396,7 +396,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 // KillAllRepairs forces a termination of all repairs running on a host, the
 // operation is not retried to avoid side effects of a deferred kill.
 func (c *Client) KillAllRepairs(ctx context.Context, host string) error {
-	ctx = NoRetry(ctx)
+	ctx = noRetry(ctx)
 
 	_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
 		Context: forceHost(ctx, host),
