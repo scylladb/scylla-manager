@@ -74,6 +74,8 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 }
 
 func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	s.logger.Info(ctx, "Creating new Scylla REST client", "cluster_id", clusterID)
+
 	c, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
 		return nil, err
@@ -92,8 +94,6 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	if err := s.setKnownHosts(c, hosts); err != nil {
 		return nil, errors.Wrap(err, "update cluster")
 	}
-
-	s.logger.Info(ctx, "New Scylla REST client", "cluster_id", clusterID)
 
 	return s.createClient(c)
 }
