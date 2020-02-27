@@ -126,6 +126,36 @@ func TestHostIDs(t *testing.T) {
 	}
 }
 
+func TestCheckHostsChanged(t *testing.T) {
+	t.Parallel()
+
+	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/host_id_map.json")
+	defer closeServer()
+
+	b, err := client.CheckHostsChanged(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !b {
+		t.Fatal(b)
+	}
+}
+
+func TestCheckHostsNotChanged(t *testing.T) {
+	t.Parallel()
+
+	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/host_id_map_localhost.json")
+	defer closeServer()
+
+	b, err := client.CheckHostsChanged(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b {
+		t.Fatal(b)
+	}
+}
+
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 

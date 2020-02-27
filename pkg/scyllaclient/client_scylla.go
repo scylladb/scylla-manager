@@ -107,6 +107,19 @@ func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
 	return v, nil
 }
 
+// CheckHostsChanged returns true iff a host was added or removed from cluster.
+// In such a case the client should be discarded.
+func (c *Client) CheckHostsChanged(ctx context.Context) (bool, error) {
+	cur, err := c.Hosts(ctx)
+	if err != nil {
+		return false, err
+	}
+	if len(cur) != len(c.config.Hosts) {
+		return true, err
+	}
+	return !strset.New(c.config.Hosts...).Has(cur...), nil
+}
+
 // Keyspaces return a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
 	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{Context: ctx})
