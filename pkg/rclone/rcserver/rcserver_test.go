@@ -5,12 +5,16 @@ package rcserver
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path"
 	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -53,17 +57,11 @@ func TestRC(t *testing.T) {
 		Status:   http.StatusOK,
 		Expected: "{}\n",
 	}, {
-		Name:   "rc-error",
-		URL:    "rc/error",
-		Method: "POST",
-		Status: http.StatusInternalServerError,
-		Expected: `{
-	"input": {},
-	"message": "arbitrary error on input map[]",
-	"path": "rc/error",
-	"status": 500
-}
-`,
+		Name:     "rc-error",
+		URL:      "rc/error",
+		Method:   "POST",
+		Status:   http.StatusInternalServerError,
+		Contains: regexp.MustCompile(`(?s).*\"arbitrary error on input map\[.*`),
 	}, {
 		Name:   "url-params",
 		URL:    "rc/noop?param1=potato&param2=sausage",
@@ -378,6 +376,64 @@ func TestLongBodyReturnsContentLengthHeader(t *testing.T) {
 	rcServer.ServeHTTP(w, req)
 	if w.Header().Get("Content-Length") == "" {
 		t.Fatal("expected to have Content-Length header, got", w.Header())
+	}
+}
+
+func TestOperationsList(t *testing.T) {
+	const operationPath = "./testdata/list_operation"
+
+	dirName := func(count int) string {
+		return path.Join(operationPath, "file_count_"+strconv.Itoa(count))
+	}
+
+	// Setup file counts for listing
+	fileCounts := []int{
+		1,
+		defaultListEncoderMaxItems,
+		defaultListEncoderMaxItems + 1,
+		2 * defaultListEncoderMaxItems,
+	}
+
+	for _, count := range fileCounts {
+		if err := os.MkdirAll(dirName(count), 0755); err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < count; i++ {
+			if err := ioutil.WriteFile(path.Join(dirName(count), "file"+strconv.Itoa(i)), nil, 0755); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	defer os.RemoveAll(operationPath)
+
+	rclone.InitFsConfig()
+	if err := rclone.RegisterLocalDirProvider("testing", "testing provider", operationPath); err != nil {
+		t.Fatal(err)
+	}
+
+	rcServer := New()
+
+	for _, count := range fileCounts {
+		buf := bytes.NewBuffer(nil)
+		json.NewEncoder(buf).Encode(map[string]interface{}{
+			"fs":     "testing:file_count_" + strconv.Itoa(count),
+			"remote": "",
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://1.2.3.4/operations/list", buf)
+		req.Header.Add("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		rcServer.ServeHTTP(rec, req)
+
+		v := struct {
+			List []map[string]interface{} `json:"list"`
+		}{}
+		if err := json.NewDecoder(rec.Body).Decode(&v); err != nil {
+			t.Fatal(err)
+		}
+		if len(v.List) != count {
+			t.Errorf("Expected %d items, got %d", count, len(v.List))
+			t.Log(v.List)
+		}
 	}
 }
 

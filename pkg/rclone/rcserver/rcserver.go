@@ -79,6 +79,11 @@ func New() Server {
 
 // writeError writes a formatted error to the output.
 func writeError(path string, in rc.Params, w http.ResponseWriter, err error, status int) {
+	// Ignore if response was already written
+	if errors.Cause(err) == errResponseWritten {
+		return
+	}
+
 	fs.Errorf(nil, "rc: %q: error: %v", path, err)
 	// Adjust the error return for some well known errors
 	errOrig := errors.Cause(err)
@@ -168,6 +173,8 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 			in[k] = vs[len(vs)-1]
 		}
 	}
+	// Add additional parameters to pass down to a function
+	extra := make(rc.Params)
 
 	// Parse a JSON blob from the input
 	if contentType == "application/json" {
@@ -185,18 +192,22 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	}
 
 	if contentType == "application/octet-stream" {
-		in["body"] = r.Body
+		extra["body"] = r.Body
 		defer r.Body.Close()
 
-		in["size"] = int64(-1)
+		extra["size"] = int64(-1)
 		if r.Header.Get("Content-Length") != "" {
 			size, err := strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
 			if err != nil {
 				writeError(path, in, w, errors.Wrap(err, "cannot parse Content-Size header"), http.StatusBadRequest)
 				return
 			}
-			in["size"] = size
+			extra["size"] = size
 		}
+	}
+
+	if path == "operations/list" {
+		extra["response-writer"] = w
 	}
 
 	// Find the call
@@ -227,11 +238,25 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		jobID int64
 	)
 
+	// Merge in and extra to one
+	var inExt rc.Params
+	if len(extra) == 0 {
+		inExt = in
+	} else {
+		inExt = make(rc.Params)
+		for k, v := range in {
+			inExt[k] = v
+		}
+		for k, v := range extra {
+			inExt[k] = v
+		}
+	}
+
 	if isAsync {
-		out, err = jobs.StartAsyncJob(fn, in)
+		out, err = jobs.StartAsyncJob(fn, inExt)
 		jobID = out["jobid"].(int64)
 	} else {
-		out, err = fn(r.Context(), in)
+		out, err = fn(r.Context(), inExt)
 	}
 
 	if rc.IsErrParamNotFound(err) || err == ErrNotFound {
