@@ -57,7 +57,7 @@ func DefaultConfig() Config {
 		Backoff: BackoffConfig{
 			WaitMin:    1 * time.Second,
 			WaitMax:    30 * time.Second,
-			MaxRetries: 10,
+			MaxRetries: 9,
 			Multiplier: 2,
 			Jitter:     0.2,
 		},
