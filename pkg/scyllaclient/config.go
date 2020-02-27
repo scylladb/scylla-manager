@@ -27,6 +27,9 @@ type Config struct {
 	// Backoff specifies parameters of exponential backoff used when requests
 	// from Scylla Manager to Scylla Agent fail.
 	Backoff BackoffConfig
+	// InteractiveBackoff specifies backoff for interactive requests i.e.
+	// originating from API / sctool.
+	InteractiveBackoff BackoffConfig
 	// How many seconds to wait for the job to finish before returning
 	// the info response.
 	LongPollingSeconds int64
@@ -60,6 +63,10 @@ func DefaultConfig() Config {
 			MaxRetries: 9,
 			Multiplier: 2,
 			Jitter:     0.2,
+		},
+		InteractiveBackoff: BackoffConfig{
+			WaitMin:    time.Second,
+			MaxRetries: 1,
 		},
 		LongPollingSeconds: 10,
 		PoolDecayDuration:  30 * time.Minute,

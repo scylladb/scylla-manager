@@ -13,10 +13,11 @@ import (
 )
 
 type retryableTransport struct {
-	transport runtime.ClientTransport
-	config    BackoffConfig
-	poolSize  int
-	logger    log.Logger
+	transport         runtime.ClientTransport
+	config            BackoffConfig
+	interactiveConfig BackoffConfig
+	poolSize          int
+	logger            log.Logger
 }
 
 type retryableOperation struct {
@@ -28,12 +29,13 @@ type retryableOperation struct {
 }
 
 // retryable wraps parent and adds retry capabilities.
-func retryable(transport runtime.ClientTransport, config BackoffConfig, poolSize int, logger log.Logger) runtime.ClientTransport {
+func retryable(transport runtime.ClientTransport, config Config, logger log.Logger) runtime.ClientTransport {
 	return retryableTransport{
-		transport: transport,
-		config:    config,
-		poolSize:  poolSize,
-		logger:    logger,
+		transport:         transport,
+		config:            config.Backoff,
+		interactiveConfig: config.InteractiveBackoff,
+		poolSize:          len(config.Hosts),
+		logger:            logger,
 	}
 }
 
@@ -71,6 +73,9 @@ func (o *retryableOperation) op() (err error) {
 
 func (o *retryableOperation) backoff() retry.Backoff {
 	if isForceHost(o.operation.Context) {
+		if isInteractive(o.operation.Context) {
+			return backoff(o.interactiveConfig)
+		}
 		return backoff(o.config)
 	}
 

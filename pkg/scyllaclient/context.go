@@ -9,10 +9,22 @@ type ctxt byte
 
 // ctxt enumeration.
 const (
-	ctxHost ctxt = iota
+	ctxInteractive ctxt = iota
+	ctxHost
 	ctxNoRetry
 	ctxNoTimeout
 )
+
+// Interactive context means that it should be processed fast without too much
+// useless waiting.
+func Interactive(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxInteractive, true)
+}
+
+func isInteractive(ctx context.Context) bool {
+	_, ok := ctx.Value(ctxInteractive).(bool)
+	return ok
+}
 
 // forceHost makes hostPool middleware use the given host instead of selecting
 // one.
@@ -20,7 +32,6 @@ func forceHost(ctx context.Context, host string) context.Context {
 	return context.WithValue(ctx, ctxHost, host)
 }
 
-// isForceHost checks that forceHost was applied to the context.
 func isForceHost(ctx context.Context) bool {
 	_, ok := ctx.Value(ctxHost).(string)
 	return ok

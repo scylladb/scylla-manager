@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/httphandler"
 	"github.com/scylladb/mermaid/pkg/util/httplog"
 )
@@ -23,6 +24,7 @@ func New(services Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(
+		interactive,
 		httplog.TraceID,
 		httplog.RequestLogger(logger),
 		render.SetContentType(render.ContentTypeJSON),
@@ -50,6 +52,13 @@ func New(services Services, logger log.Logger) http.Handler {
 	})
 
 	return r
+}
+
+func interactive(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r = r.WithContext(scyllaclient.Interactive(r.Context()))
+		next.ServeHTTP(w, r)
+	})
 }
 
 // NewPrometheus returns an http.Handler exposing Prometheus metrics on

@@ -112,8 +112,8 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	scyllaRuntime.Debug = false
 	agentRuntime.Debug = false
 
-	scyllaOps := scyllaOperations.New(retryable(scyllaRuntime, config.Backoff, len(config.Hosts), logger), strfmt.Default)
-	agentOps := agentOperations.New(retryable(agentRuntime, config.Backoff, len(config.Hosts), logger), strfmt.Default)
+	scyllaOps := scyllaOperations.New(retryable(scyllaRuntime, config, logger), strfmt.Default)
+	agentOps := agentOperations.New(retryable(agentRuntime, config, logger), strfmt.Default)
 
 	return &Client{
 		config:    config,
