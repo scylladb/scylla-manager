@@ -223,11 +223,20 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 }
 
 func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
-	// v1 manifests always contains single keyspace and table
-	tagsDir := h.paths.RemoteTagsDir(m.ClusterID, m.TaskID, m.DC, m.NodeID, m.Content.Index[0].Keyspace, m.Content.Index[0].Table)
+	for _, idx := range m.Content.Index {
+		tagsDir := h.paths.RemoteTagsDir(m.ClusterID, m.TaskID, m.DC, m.NodeID, idx.Keyspace, idx.Table)
 
-	h.logger.Debug(ctx, "Deleting v1 snapshot", "tag", m.SnapshotTag)
-	return h.client.RcloneDeleteDir(ctx, h.host, h.location.RemotePath(path.Join(tagsDir, m.SnapshotTag)))
+		h.logger.Debug(ctx, "Deleting v1 snapshot", "tag", m.SnapshotTag, "keyspace", idx.Keyspace, "table", idx.Table)
+		err := h.client.RcloneDeleteDir(ctx, h.host, h.location.RemotePath(path.Join(tagsDir, m.SnapshotTag)))
+		if err != nil {
+			return err
+		}
+	}
+
+	// V1 manifests are copied to V2 format during migration step. Delete V2
+	// format manifest too when snapshot tag is expired.
+	v2ManifestPath := remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
+	return h.client.RcloneDeleteFile(ctx, h.host, h.location.RemotePath(v2ManifestPath))
 }
 
 func (h *manifestV1Helper) makeLegacyListFilterPruneDirFunc(ksf *ksfilter.Filter, f ListFilter) func(string) bool {

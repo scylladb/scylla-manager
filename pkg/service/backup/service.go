@@ -400,7 +400,7 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 				"location", l,
 			)
 
-			mh := newMultiManifestHelper(h, l, client, s.logger.Named("list"))
+			mh := newMultiVersionManifestLister(h, l, client, s.logger.Named("list"))
 			m, err := mh.ListManifests(ctx, filter)
 			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", h, l)}
 		}(item.IP, item.Location)
@@ -607,6 +607,14 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	w = w.WithLogger(s.logger.Named("manifest"))
 	if err := w.AggregateManifests(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "aggregate manifest")
+	}
+
+	w.cleanup(ctx, hi)
+
+	// Migrate V1 manifests
+	w = w.WithLogger(s.logger.Named("migrate"))
+	if err := w.MigrateManifests(ctx, hi, target.UploadParallel); err != nil {
+		return errors.Wrap(err, "migrate manifest")
 	}
 
 	w.cleanup(ctx, hi)

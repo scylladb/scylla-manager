@@ -19,9 +19,10 @@ func keyspaceDir(keyspace string) string {
 }
 
 const (
-	scyllaManifest = "manifest.json"
-	manifest       = "manifest.json.gz"
-	sep            = string(os.PathSeparator)
+	scyllaManifest  = "manifest.json"
+	manifest        = "manifest.json.gz"
+	metadataVersion = ".version"
+	sep             = string(os.PathSeparator)
 )
 
 func remoteMetaClusterDCDir(clusterID uuid.UUID) string {
@@ -102,6 +103,13 @@ func remoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 		dc,
 		"node",
 		nodeID,
+	)
+}
+
+func remoteMetaVersionFile(clusterID uuid.UUID, dc, nodeID string) string {
+	return path.Join(
+		remoteManifestDir(clusterID, dc, nodeID),
+		metadataVersion,
 	)
 }
 

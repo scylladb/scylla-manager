@@ -33,5 +33,6 @@ func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 }
 
 const (
-	ScyllaManifest = scyllaManifest
+	ScyllaManifest  = scyllaManifest
+	MetadataVersion = metadataVersion
 )

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"path"
 	"sort"
 	"strings"
@@ -265,40 +266,112 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 
 const manifestFileSuffix = "-Data.db"
 
-type manifestHelper interface {
+type manifestLister interface {
 	ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error)
+}
+
+type manifestDeleter interface {
 	DeleteManifest(ctx context.Context, m *remoteManifest) error
 }
 
-type multiManifestHelper struct {
-	helpers map[string]manifestHelper
+type manifestHelper interface {
+	manifestDeleter
+	manifestLister
 }
 
-func newMultiManifestHelper(host string, location Location, client *scyllaclient.Client,
-	logger log.Logger) manifestHelper {
-	return &multiManifestHelper{
-		helpers: map[string]manifestHelper{
+// multiVersionManifestDeleter allows to delete manifest files based on it's version
+// taken from the manifest content.
+// It supports V1 and V2 manifests.
+type multiVersionManifestDeleter struct {
+	deleters map[string]manifestDeleter
+}
+
+func newMultiVersionManifestDeleter(host string, location Location, client *scyllaclient.Client,
+	logger log.Logger) manifestDeleter {
+	return &multiVersionManifestDeleter{
+		deleters: map[string]manifestDeleter{
 			"v1": newManifestV1Helper(host, location, client, logger.Named("v1")),
 			"v2": newManifestV2Helper(host, location, client, logger.Named("v2")),
 		}}
 }
 
-func (m *multiManifestHelper) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
-	var manifests []*remoteManifest
-	for _, hl := range m.helpers {
-		m, err := hl.ListManifests(ctx, f)
-		if err != nil {
-			return nil, err
-		}
-		manifests = append(manifests, m...)
-	}
-	return manifests, nil
-}
-
-func (m *multiManifestHelper) DeleteManifest(ctx context.Context, rm *remoteManifest) error {
-	h, ok := m.helpers[rm.Content.Version]
+func (m *multiVersionManifestDeleter) DeleteManifest(ctx context.Context, rm *remoteManifest) error {
+	h, ok := m.deleters[rm.Content.Version]
 	if !ok {
 		return errors.Errorf("unsupported manifest version: %s", rm.Content.Version)
 	}
 	return h.DeleteManifest(ctx, rm)
+}
+
+// multiVersionManifestLister allows to list manifests depending on bucket metadata
+// version. It looks up version of metadata by reading version file from location,
+// and lists manifests matching it.
+// In case when filter doesn't have enough information to determine version, all
+// manifests available in location are listed.
+type multiVersionManifestLister struct {
+	host     string
+	location Location
+	client   *scyllaclient.Client
+	listers  map[string]manifestLister
+}
+
+func newMultiVersionManifestLister(host string, location Location, client *scyllaclient.Client,
+	logger log.Logger) manifestLister {
+	return &multiVersionManifestLister{
+		host:     host,
+		location: location,
+		client:   client,
+		listers: map[string]manifestLister{
+			"v1": newManifestV1Helper(host, location, client, logger.Named("v1")),
+			"v2": newManifestV2Helper(host, location, client, logger.Named("v2")),
+		}}
+}
+
+func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+	if f.ClusterID != uuid.Nil && f.DC != "" && f.NodeID != "" {
+		version, err := getMetadataVersion(ctx, l.host, l.location, l.client, f.ClusterID, f.DC, f.NodeID)
+		if err != nil {
+			return nil, err
+		}
+
+		lister, ok := l.listers[version]
+		if !ok {
+			return nil, errors.Errorf("not supported metadata version: %s", version)
+		}
+		return lister.ListManifests(ctx, f)
+	}
+
+	var manifests []*remoteManifest
+
+	for _, lister := range l.listers {
+		ms, err := lister.ListManifests(ctx, f)
+		if err != nil {
+			return nil, err
+		}
+		manifests = append(manifests, ms...)
+	}
+
+	return manifests, nil
+}
+
+func getMetadataVersion(ctx context.Context, host string, location Location, client *scyllaclient.Client,
+	clusterID uuid.UUID, dc, nodeID string) (string, error) {
+	p := location.RemotePath(remoteMetaVersionFile(clusterID, dc, nodeID))
+	content, err := client.RcloneCat(ctx, host, p)
+	if err != nil {
+		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+			// means V1, since we introduced this file in V2
+			return "v1", nil
+		}
+		return "", err
+	}
+
+	var mv struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(content, &mv); err != nil {
+		return "", err
+	}
+
+	return mv.Version, nil
 }

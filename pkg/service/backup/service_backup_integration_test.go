@@ -128,7 +128,7 @@ func (h *backupTestHelper) listS3Files() (manifests, files []string) {
 		h.t.Fatal(err)
 	}
 	for _, f := range allFiles {
-		if strings.HasPrefix(f.Path, "backup/meta") {
+		if strings.HasPrefix(f.Path, "backup/meta") && strings.Contains(f.Path, "manifest") {
 			manifests = append(manifests, f.Path)
 		} else {
 			files = append(files, f.Path)
@@ -161,6 +161,39 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 	}
 
 	return files
+}
+
+func (h *backupTestHelper) assertMetadataVersion(ctx context.Context, expected string) {
+	var versionFiles []string
+
+	_, files := h.listS3Files()
+	for _, f := range files {
+		if strings.HasSuffix(f, backup.MetadataVersion) {
+			versionFiles = append(versionFiles, f)
+		}
+	}
+
+	if len(versionFiles) != 3 {
+		h.t.Fatalf("Expected 3 metadata version files, got %d", len(versionFiles))
+	}
+
+	for _, f := range versionFiles {
+		content, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(f))
+		if err != nil {
+			h.t.Fatal(err)
+		}
+
+		var mv struct {
+			Version string `json:"version"`
+		}
+		if err := json.Unmarshal(content, &mv); err != nil {
+			h.t.Fatal(err)
+		}
+
+		if mv.Version != expected {
+			h.t.Fatalf("Expected version %s, got %s", expected, mv.Version)
+		}
+	}
 }
 
 const bigTableName = "big_table"
@@ -764,6 +797,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if len(files) != 3*3 {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(files), 3*3)
 	}
+
+	h.assertMetadataVersion(ctx, "v2")
 }
 
 var backupTimeout = 10 * time.Second
@@ -1126,7 +1161,7 @@ func TestPurgeIntegration(t *testing.T) {
 	for _, f := range files {
 		ok := false
 		for _, pfx := range sstPfx {
-			if strings.HasPrefix(path.Base(f), pfx) {
+			if strings.HasPrefix(path.Base(f), pfx) || strings.HasSuffix(f, backup.MetadataVersion) {
 				ok = true
 				break
 			}
@@ -1220,8 +1255,6 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-purge-v1"
 		testKeyspace = "backuptest_purge_v1"
-
-		tablesNum = 10
 	)
 
 	location := s3Location(testBucket)
@@ -1260,7 +1293,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		},
 		DC:        []string{"dc1"},
 		Location:  []backup.Location{location},
-		Retention: 1,
+		Retention: 2,
 	}
 
 	Print("When: backup is run")
@@ -1272,14 +1305,35 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Print("Then: only the last task run is preserved")
 	manifests, _ := h.listS3Files()
 	for _, m := range manifests {
 		if !strings.Contains(m, h.taskID.String()) {
 			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
 		}
 	}
-	if len(manifests) != 3 {
+	// 10 tables * 3 nodes + 3 v1 migrated to v2 + 3 v2
+	v1Manifests := 10 * 3
+	v2Manifests := 3 + 3
+	if len(manifests) != v1Manifests+v2Manifests {
+		t.Fatalf("Expected 3 manifests got %d", len(manifests))
+	}
+
+	Print("When: another backup is run")
+
+	writeData(t, clusterSession, testKeyspace, 3)
+	runID = uuid.NewTime()
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: only the last task run is preserved")
+	manifests, _ = h.listS3Files()
+	for _, m := range manifests {
+		if !strings.Contains(m, h.taskID.String()) {
+			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
+		}
+	}
+	if len(manifests) != 2*3 {
 		t.Fatalf("Expected 3 manifests got %d", len(manifests))
 	}
 

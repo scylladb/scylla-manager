@@ -308,6 +308,7 @@ func TestListManifests(t *testing.T) {
 		Name       string
 		Location   Location
 		GoldenFile string
+		Filter     ListFilter
 	}{
 		{
 			Name:       "Smoke manifest listing",
@@ -319,6 +320,16 @@ func TestListManifests(t *testing.T) {
 			Location:   Location{Provider: "walker", Path: "v1-support"},
 			GoldenFile: "testdata/walker/v1-support/golden.json",
 		},
+		{
+			Name:       "List only manifests from metadata version file",
+			Location:   Location{Provider: "walker", Path: "version-file"},
+			GoldenFile: "testdata/walker/version-file/golden.json",
+			Filter: ListFilter{
+				ClusterID: uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
+				DC:        "dc1",
+				NodeID:    "49f5a202-6661-4a1e-a674-4c7b97247fdb",
+			},
+		},
 	}
 
 	for i := range ts {
@@ -329,9 +340,9 @@ func TestListManifests(t *testing.T) {
 			client, closeServer := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/metrics", "testdata/walker/scylla_metrics/metrics"))
 			defer closeServer()
 
-			mr := newMultiManifestHelper(scyllaclienttest.TestHost, test.Location, client, log.NewDevelopment())
+			mr := newMultiVersionManifestLister(scyllaclienttest.TestHost, test.Location, client, log.NewDevelopment())
 
-			manifests, err := mr.ListManifests(context.Background(), ListFilter{})
+			manifests, err := mr.ListManifests(context.Background(), test.Filter)
 			if err != nil {
 				t.Fatal("listManifests() error", err)
 			}

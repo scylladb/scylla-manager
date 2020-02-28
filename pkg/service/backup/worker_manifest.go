@@ -60,14 +60,22 @@ func (w *worker) AggregateManifests(ctx context.Context, hosts []hostInfo, limit
 	return nil
 }
 
-func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *manifestContent {
+func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *remoteManifest {
 	w.Logger.Info(ctx, "Aggregating manifest files on host", "host", h.IP)
 
 	dirs := w.hostSnapshotDirs(h)
 
-	m := &manifestContent{
-		Version: "v2",
-		Index:   make([]filesInfo, len(dirs)),
+	m := &remoteManifest{
+		Location:    h.Location,
+		DC:          h.DC,
+		ClusterID:   w.ClusterID,
+		NodeID:      h.ID,
+		TaskID:      w.TaskID,
+		SnapshotTag: w.SnapshotTag,
+		Content: manifestContent{
+			Version: "v2",
+			Index:   make([]filesInfo, len(dirs)),
+		},
 	}
 
 	w.transformSnapshotIndexIntoManifest(dirs, m)
@@ -76,9 +84,9 @@ func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *manifes
 	return m
 }
 
-func (w *worker) transformSnapshotIndexIntoManifest(dirs []snapshotDir, m *manifestContent) {
+func (w *worker) transformSnapshotIndexIntoManifest(dirs []snapshotDir, m *remoteManifest) {
 	for i, d := range dirs {
-		idx := &m.Index[i]
+		idx := &m.Content.Index[i]
 		idx.Keyspace = d.Keyspace
 		idx.Table = d.Table
 		idx.Version = d.Version
@@ -86,7 +94,7 @@ func (w *worker) transformSnapshotIndexIntoManifest(dirs []snapshotDir, m *manif
 	}
 }
 
-func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *manifestContent) (rollback func(context.Context) error, err error) {
+func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *remoteManifest) (rollback func(context.Context) error, err error) {
 	w.Logger.Info(ctx, "Uploading manifest file on host", "host", h.IP)
 
 	buf := w.memoryPool.Get().(*bytes.Buffer)
@@ -95,11 +103,11 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *manifest
 		w.memoryPool.Put(buf)
 	}()
 
-	if err := m.Write(buf); err != nil {
+	if err := m.DumpContent(buf); err != nil {
 		return nil, err
 	}
 
-	manifestDst := h.Location.RemotePath(remoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
+	manifestDst := h.Location.RemotePath(remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, h.DC, h.ID))
 	if err := w.Client.RclonePut(ctx, h.IP, manifestDst, buf, int64(buf.Len())); err != nil {
 		return nil, err
 	}
