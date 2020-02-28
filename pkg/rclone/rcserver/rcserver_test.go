@@ -48,7 +48,7 @@ func TestRC(t *testing.T) {
 		URL:    "",
 		Method: "POST",
 		Status: http.StatusNotFound,
-		Expected: `{"message": "Not found", "status": 404}
+		Expected: `{"message":"Not found","status":404}
 `,
 	}, {
 		Name:     "rc-noop",
@@ -61,58 +61,40 @@ func TestRC(t *testing.T) {
 		URL:      "rc/error",
 		Method:   "POST",
 		Status:   http.StatusInternalServerError,
-		Contains: regexp.MustCompile(`(?s).*\"arbitrary error on input map\[.*`),
+		Contains: regexp.MustCompile(`\"arbitrary error on input map\[.*`),
 	}, {
 		Name:   "url-params",
 		URL:    "rc/noop?param1=potato&param2=sausage",
 		Method: "POST",
 		Status: http.StatusOK,
-		Expected: `{
-	"param1": "potato",
-	"param2": "sausage"
-}
+		Expected: `{"param1":"potato","param2":"sausage"}
 `,
 	}, {
 		Name:        "json",
 		URL:         "rc/noop",
 		Method:      "POST",
-		Body:        `{ "param1":"string", "param2":true }`,
+		Body:        `{"param1":"string","param2":true}`,
 		ContentType: "application/json",
 		Status:      http.StatusOK,
-		Expected: `{
-	"param1": "string",
-	"param2": true
-}
+		Expected: `{"param1":"string","param2":true}
 `,
 	}, {
 		Name:        "json-and-url-params",
 		URL:         "rc/noop?param1=potato&param2=sausage",
 		Method:      "POST",
-		Body:        `{ "param1":"string", "param3":true }`,
+		Body:        `{ "param1":"string","param3":true }`,
 		ContentType: "application/json",
 		Status:      http.StatusOK,
-		Expected: `{
-	"param1": "string",
-	"param2": "sausage",
-	"param3": true
-}
+		Expected: `{"param1":"string","param2":"sausage","param3":true}
 `,
 	}, {
 		Name:        "json-bad",
 		URL:         "rc/noop?param1=potato&param2=sausage",
 		Method:      "POST",
-		Body:        `{ param1":"string", "param3":true }`,
+		Body:        `{ param1":"string","param3":true }`,
 		ContentType: "application/json",
 		Status:      http.StatusBadRequest,
-		Expected: `{
-	"input": {
-		"param1": "potato",
-		"param2": "sausage"
-	},
-	"message": "read input JSON: invalid character 'p' looking for beginning of object key string",
-	"path": "rc/noop",
-	"status": 400
-}
+		Expected: `{"input":{"param1":"potato","param2":"sausage"},"message":"read input JSON: invalid character 'p' looking for beginning of object key string","path":"rc/noop","status":400}
 `,
 	}, {
 		Name:        "form",
@@ -121,10 +103,7 @@ func TestRC(t *testing.T) {
 		Body:        `param1=string&param2=true`,
 		ContentType: "application/x-www-form-urlencoded",
 		Status:      http.StatusOK,
-		Expected: `{
-	"param1": "string",
-	"param2": "true"
-}
+		Expected: `{"param1":"string","param2":"true"}
 `,
 	}, {
 		Name:        "form-and-url-params",
@@ -133,11 +112,7 @@ func TestRC(t *testing.T) {
 		Body:        `param1=string&param3=true`,
 		ContentType: "application/x-www-form-urlencoded",
 		Status:      http.StatusOK,
-		Expected: `{
-	"param1": "potato",
-	"param2": "sausage",
-	"param3": "true"
-}
+		Expected: `{"param1":"potato","param2":"sausage","param3":"true"}
 `,
 	}, {
 		Name:        "form-bad",
@@ -146,12 +121,7 @@ func TestRC(t *testing.T) {
 		Body:        `%zz`,
 		ContentType: "application/x-www-form-urlencoded",
 		Status:      http.StatusBadRequest,
-		Expected: `{
-	"input": null,
-	"message": "parse form/URL parameters: invalid URL escape \"%zz\"",
-	"path": "rc/noop",
-	"status": 400
-}
+		Expected: `{"input":null,"message":"parse form/URL parameters: invalid URL escape \"%zz\"","path":"rc/noop","status":400}
 `,
 	}}
 
@@ -164,12 +134,7 @@ func TestMethods(t *testing.T) {
 		URL:    "",
 		Method: "POTATO",
 		Status: http.StatusMethodNotAllowed,
-		Expected: `{
-	"input": null,
-	"message": "method \"POTATO\" not allowed",
-	"path": "",
-	"status": 405
-}
+		Expected: `{"input":null,"message":"method \"POTATO\" not allowed","path":"","status":405}
 `,
 	}}
 
@@ -181,13 +146,13 @@ func TestNoFiles(t *testing.T) {
 		Name:   "file",
 		URL:    "file.txt",
 		Status: http.StatusNotFound,
-		Expected: `{"message": "Not found", "status": 404}
+		Expected: `{"message":"Not found","status":404}
 `,
 	}, {
 		Name:   "dir",
 		URL:    "dir/",
 		Status: http.StatusNotFound,
-		Expected: `{"message": "Not found", "status": 404}
+		Expected: `{"message":"Not found","status":404}
 `,
 	}}
 
@@ -199,13 +164,13 @@ func TestNoServe(t *testing.T) {
 		Name:   "file",
 		URL:    "/file.txt",
 		Status: http.StatusNotFound,
-		Expected: `{"message": "Not found", "status": 404}
+		Expected: `{"message":"Not found","status":404}
 `,
 	}, {
 		Name:   "dir",
 		URL:    "/dir/",
 		Status: http.StatusNotFound,
-		Expected: `{"message": "Not found", "status": 404}
+		Expected: `{"message":"Not found","status":404}
 `,
 	}}
 
@@ -228,14 +193,7 @@ func TestRCAsync(t *testing.T) {
 		ContentType: "application/json",
 		Body:        `{ "_async":"truthy" }`,
 		Status:      http.StatusBadRequest,
-		Expected: `{
-	"input": {
-		"_async": "truthy"
-	},
-	"message": "couldn't parse key \"_async\" (truthy) as bool: strconv.ParseBool: parsing \"truthy\": invalid syntax",
-	"path": "rc/noop",
-	"status": 400
-}
+		Expected: `{"input":{"_async":"truthy"},"message":"couldn't parse key \"_async\" (truthy) as bool: strconv.ParseBool: parsing \"truthy\": invalid syntax","path":"rc/noop","status":400}
 `,
 	}}
 
@@ -263,7 +221,7 @@ func TestRCAsyncSuccessJobInfo(t *testing.T) {
 		ContentType: "application/json",
 		Body:        body,
 		Status:      http.StatusOK,
-		Contains:    regexp.MustCompile("(?si).*\"finished\": true.*\"success\": true.*"),
+		Contains:    regexp.MustCompile("\"finished\":true.*\"success\":true.*"),
 	})
 
 	runHTTPTest(t, rcServer, httpTest{
@@ -273,7 +231,7 @@ func TestRCAsyncSuccessJobInfo(t *testing.T) {
 		ContentType: "application/json",
 		Body:        `{}`,
 		Status:      http.StatusOK,
-		Contains:    regexp.MustCompile("(?si).*\"transfers\": 0.*"),
+		Contains:    regexp.MustCompile("\"transfers\":0.*"),
 	})
 }
 
@@ -298,7 +256,7 @@ func TestRCAsyncErrorJobInfo(t *testing.T) {
 		ContentType: "application/json",
 		Body:        body,
 		Status:      http.StatusOK,
-		Contains:    regexp.MustCompile("(?si).*\"finished\": true.*\"success\": false.*"),
+		Contains:    regexp.MustCompile("\"finished\":true.*\"success\":false.*"),
 	})
 
 	runHTTPTest(t, rcServer, httpTest{
@@ -308,7 +266,7 @@ func TestRCAsyncErrorJobInfo(t *testing.T) {
 		ContentType: "application/json",
 		Body:        `{}`,
 		Status:      http.StatusOK,
-		Contains:    regexp.MustCompile("(?si).*\"job\": null.*\"transfers\": 0.*"),
+		Contains:    regexp.MustCompile("\"job\":null.*\"transfers\":0.*"),
 	})
 }
 
@@ -333,7 +291,7 @@ func TestRCAsyncSuccessJobInfoStatus(t *testing.T) {
 		ContentType: "application/json",
 		Body:        body,
 		Status:      http.StatusOK,
-		Contains:    regexp.MustCompile("(?si).*\"finished\": true.*\"success\": true.*"),
+		Contains:    regexp.MustCompile("\"finished\":true.*\"success\":true.*"),
 	})
 
 	runHTTPTest(t, rcServer, httpTest{
@@ -343,7 +301,7 @@ func TestRCAsyncSuccessJobInfoStatus(t *testing.T) {
 		ContentType: "application/json",
 		Body:        `{}`,
 		Status:      http.StatusOK,
-		Contains:    regexp.MustCompile("(?si).*\"job\": null.*\"transfers\": 0.*"),
+		Contains:    regexp.MustCompile("\"job\":null.*\"transfers\":0.*"),
 	})
 }
 
