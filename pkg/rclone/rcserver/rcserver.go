@@ -78,7 +78,7 @@ func New() Server {
 }
 
 // writeError writes a formatted error to the output.
-func writeError(path string, in rc.Params, w http.ResponseWriter, err error, status int) {
+func (s Server) writeError(path string, in rc.Params, w http.ResponseWriter, err error, status int) {
 	// Ignore if response was already written
 	if errors.Cause(err) == errResponseWritten {
 		return
@@ -97,7 +97,7 @@ func writeError(path string, in rc.Params, w http.ResponseWriter, err error, sta
 	}
 
 	w.WriteHeader(status)
-	err = rc.WriteJSON(w, rc.Params{
+	err = s.writeJSON(w, rc.Params{
 		"status":  status,
 		"message": err.Error(),
 		"input":   in,
@@ -107,6 +107,21 @@ func writeError(path string, in rc.Params, w http.ResponseWriter, err error, sta
 		// can't return the error at this point
 		fs.Errorf(nil, "rc: write JSON output: %v", err)
 	}
+}
+
+func (s Server) writeJSON(w http.ResponseWriter, out rc.Params) error {
+	buf := s.memoryPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		s.memoryPool.Put(buf)
+	}()
+
+	if err := json.NewEncoder(buf).Encode(out); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Length", fmt.Sprint(buf.Len()))
+	_, err := io.Copy(w, buf)
+	return err
 }
 
 func isBadRequestErr(err error) bool {
@@ -136,20 +151,20 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET", "HEAD":
 		s.handleGet(w, r, path)
 	default:
-		writeError(path, nil, w, errors.Errorf("method %q not allowed", r.Method), http.StatusMethodNotAllowed)
+		s.writeError(path, nil, w, errors.Errorf("method %q not allowed", r.Method), http.StatusMethodNotAllowed)
 		return
 	}
 }
 
 const (
 	bodySizeLimit int64 = 1024 * 1024
-	notFoundJSON        = `{"message": "Not found", "status": 404}`
+	notFoundJSON        = `{"message":"Not found","status":404}`
 )
 
 func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
 	contentType, err := parseContentType(r.Header)
 	if err != nil {
-		writeError(path, nil, w, errors.Wrap(err, "parse Content-Type header"), http.StatusBadRequest)
+		s.writeError(path, nil, w, errors.Wrap(err, "parse Content-Type header"), http.StatusBadRequest)
 		return
 	}
 
@@ -160,7 +175,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		// Parse the POST and URL parameters into r.Form, for others r.Form will be empty value
 		err := r.ParseForm()
 		if err != nil {
-			writeError(path, nil, w, errors.Wrap(err, "parse form/URL parameters"), http.StatusBadRequest)
+			s.writeError(path, nil, w, errors.Wrap(err, "parse form/URL parameters"), http.StatusBadRequest)
 			return
 		}
 		values = r.Form
@@ -180,12 +195,12 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	if contentType == "application/json" {
 		j, err := ioutil.ReadAll(&io.LimitedReader{R: r.Body, N: bodySizeLimit})
 		if err != nil {
-			writeError(path, in, w, errors.Wrap(err, "read request body"), http.StatusBadRequest)
+			s.writeError(path, in, w, errors.Wrap(err, "read request body"), http.StatusBadRequest)
 			return
 		}
 		if len(j) > 0 {
 			if err := json.Unmarshal(j, &in); err != nil {
-				writeError(path, in, w, errors.Wrap(err, "read input JSON"), http.StatusBadRequest)
+				s.writeError(path, in, w, errors.Wrap(err, "read input JSON"), http.StatusBadRequest)
 				return
 			}
 		}
@@ -199,7 +214,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		if r.Header.Get("Content-Length") != "" {
 			size, err := strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
 			if err != nil {
-				writeError(path, in, w, errors.Wrap(err, "cannot parse Content-Size header"), http.StatusBadRequest)
+				s.writeError(path, in, w, errors.Wrap(err, "cannot parse Content-Size header"), http.StatusBadRequest)
 				return
 			}
 			extra["size"] = size
@@ -221,14 +236,14 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	fn := call.Fn
 
 	if err := validateFsName(in); err != nil {
-		writeError(path, in, w, err, http.StatusBadRequest)
+		s.writeError(path, in, w, err, http.StatusBadRequest)
 		return
 	}
 
 	// Check to see if it is async or not
 	isAsync, err := in.GetBool("_async")
 	if rc.NotErrParamNotFound(err) {
-		writeError(path, in, w, err, http.StatusBadRequest)
+		s.writeError(path, in, w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -260,10 +275,10 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	}
 
 	if rc.IsErrParamNotFound(err) || err == ErrNotFound {
-		writeError(path, in, w, err, http.StatusNotFound)
+		s.writeError(path, in, w, err, http.StatusNotFound)
 		return
 	} else if err != nil {
-		writeError(path, in, w, err, http.StatusInternalServerError)
+		s.writeError(path, in, w, err, http.StatusInternalServerError)
 		return
 	}
 	if out == nil {
@@ -273,14 +288,8 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	fs.Debugf(nil, "rc: %q: reply %+v: %v", path, out, err)
 	w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
 
-	buf := s.memoryPool.Get().(*bytes.Buffer)
-	defer func() {
-		buf.Reset()
-		s.memoryPool.Put(buf)
-	}()
-
-	if err := writeJSON(buf, w, out); err != nil {
-		writeError(path, in, w, err, http.StatusInternalServerError)
+	if err := s.writeJSON(w, out); err != nil {
+		s.writeError(path, in, w, err, http.StatusInternalServerError)
 		return
 	}
 }
@@ -296,17 +305,6 @@ func parseContentType(headers http.Header) (string, error) {
 	}
 
 	return contentType, nil
-}
-
-func writeJSON(buf *bytes.Buffer, w http.ResponseWriter, out rc.Params) error {
-	err := rc.WriteJSON(buf, out)
-	if err != nil {
-		return err
-	}
-
-	w.Header().Set("Content-Length", fmt.Sprint(buf.Len()))
-	_, err = io.Copy(w, buf)
-	return err
 }
 
 func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam

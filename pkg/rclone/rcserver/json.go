@@ -24,11 +24,9 @@ type jsonEncoder struct {
 }
 
 func newJSONEncoder(wf writerFlusher) *jsonEncoder {
-	enc := json.NewEncoder(wf)
-	enc.SetIndent("", "\t")
 	return &jsonEncoder{
 		wf:  wf,
-		enc: enc,
+		enc: json.NewEncoder(wf),
 	}
 }
 
@@ -41,7 +39,7 @@ func (e *jsonEncoder) CloseObject() {
 }
 
 func (e *jsonEncoder) OpenList(name string) {
-	e.writeString(`"` + name + `": [`)
+	e.writeString(`"` + name + `":[`)
 }
 
 func (e *jsonEncoder) CloseList() {
@@ -49,7 +47,7 @@ func (e *jsonEncoder) CloseList() {
 }
 
 func (e *jsonEncoder) Field(key string, value interface{}) {
-	e.writeString(`"` + key + `": `)
+	e.writeString(`"` + key + `":`)
 	e.Encode(value)
 }
 
