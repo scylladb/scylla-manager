@@ -20,10 +20,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
+	"github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/config/configmap"
 	"github.com/rclone/rclone/fs/config/configstruct"
 	"github.com/rclone/rclone/fs/fserrors"
 	"github.com/rclone/rclone/fs/hash"
+	"github.com/rclone/rclone/lib/encoder"
 	"github.com/rclone/rclone/lib/file"
 	"github.com/rclone/rclone/lib/readers"
 )
@@ -115,6 +117,11 @@ Windows/macOS and case sensitive for everything else.  Use this flag
 to override the default choice.`,
 			Default:  false,
 			Advanced: true,
+		}, {
+			Name:     config.ConfigEncoding,
+			Help:     config.ConfigEncodingHelp,
+			Advanced: true,
+			Default:  defaultEnc,
 		}},
 	}
 	fs.Register(fsi)
@@ -122,15 +129,16 @@ to override the default choice.`,
 
 // Options defines the configuration for this backend
 type Options struct {
-	FollowSymlinks    bool `config:"copy_links"`
-	TranslateSymlinks bool `config:"links"`
-	SkipSymlinks      bool `config:"skip_links"`
-	NoUTFNorm         bool `config:"no_unicode_normalization"`
-	NoCheckUpdated    bool `config:"no_check_updated"`
-	NoUNC             bool `config:"nounc"`
-	OneFileSystem     bool `config:"one_file_system"`
-	CaseSensitive     bool `config:"case_sensitive"`
-	CaseInsensitive   bool `config:"case_insensitive"`
+	FollowSymlinks    bool                 `config:"copy_links"`
+	TranslateSymlinks bool                 `config:"links"`
+	SkipSymlinks      bool                 `config:"skip_links"`
+	NoUTFNorm         bool                 `config:"no_unicode_normalization"`
+	NoCheckUpdated    bool                 `config:"no_check_updated"`
+	NoUNC             bool                 `config:"nounc"`
+	OneFileSystem     bool                 `config:"one_file_system"`
+	CaseSensitive     bool                 `config:"case_sensitive"`
+	CaseInsensitive   bool                 `config:"case_insensitive"`
+	Enc               encoder.MultiEncoder `config:"encoding"`
 }
 
 // Fs represents a local filesystem rooted at root
@@ -189,7 +197,7 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		dev:    devUnset,
 		lstat:  os.Lstat,
 	}
-	f.root = cleanRootPath(root, f.opt.NoUNC)
+	f.root = cleanRootPath(root, f.opt.NoUNC, f.opt.Enc)
 	f.features = (&fs.Features{
 		CaseInsensitive:         f.caseInsensitive(),
 		CanHaveEmptyDirectories: true,
@@ -234,7 +242,7 @@ func (f *Fs) Name() string {
 
 // Root of the remote (as passed into NewFs)
 func (f *Fs) Root() string {
-	return enc.ToStandardPath(filepath.ToSlash(f.root))
+	return f.opt.Enc.ToStandardPath(filepath.ToSlash(f.root))
 }
 
 // String converts this Fs to a string
@@ -350,7 +358,7 @@ func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err e
 		err = errors.Wrapf(err, "failed to open directory %q", dir)
 		fs.Errorf(dir, "%v", err)
 		if isPerm {
-			accounting.Stats(ctx).Error(fserrors.NoRetryError(err))
+			_ = accounting.Stats(ctx).Error(fserrors.NoRetryError(err))
 			err = nil // ignore error but fail sync
 		}
 		return nil, err
@@ -386,7 +394,7 @@ func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err e
 					if fierr != nil {
 						err = errors.Wrapf(err, "failed to read directory %q", namepath)
 						fs.Errorf(dir, "%v", fierr)
-						accounting.Stats(ctx).Error(fserrors.NoRetryError(fierr)) // fail the sync
+						_ = accounting.Stats(ctx).Error(fserrors.NoRetryError(fierr)) // fail the sync
 						continue
 					}
 					fis = append(fis, fi)
@@ -409,7 +417,7 @@ func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err e
 					// Skip bad symlinks
 					err = fserrors.NoRetryError(errors.Wrap(err, "symlink"))
 					fs.Errorf(newRemote, "Listing error: %v", err)
-					accounting.Stats(ctx).Error(err)
+					err = accounting.Stats(ctx).Error(err)
 					continue
 				}
 				if err != nil {
@@ -443,7 +451,7 @@ func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err e
 }
 
 func (f *Fs) cleanRemote(dir, filename string) (remote string) {
-	remote = path.Join(dir, enc.ToStandardName(filename))
+	remote = path.Join(dir, f.opt.Enc.ToStandardName(filename))
 
 	if !utf8.ValidString(filename) {
 		f.warnedMu.Lock()
@@ -457,7 +465,7 @@ func (f *Fs) cleanRemote(dir, filename string) (remote string) {
 }
 
 func (f *Fs) localPath(name string) string {
-	return filepath.Join(f.root, filepath.FromSlash(enc.FromStandardPath(name)))
+	return filepath.Join(f.root, filepath.FromSlash(f.opt.Enc.FromStandardPath(name)))
 }
 
 // Put the Object to the local filesystem
@@ -820,10 +828,10 @@ func (file *localOpenFile) Read(p []byte) (n int, err error) {
 			return 0, errors.Wrap(err, "can't read status of source file while transferring")
 		}
 		if file.o.size != fi.Size() {
-			return 0, errors.Errorf("can't copy - source file is being updated (size changed from %d to %d)", file.o.size, fi.Size())
+			return 0, fserrors.NoLowLevelRetryError(errors.Errorf("can't copy - source file is being updated (size changed from %d to %d)", file.o.size, fi.Size()))
 		}
 		if !file.o.modTime.Equal(fi.ModTime()) {
-			return 0, errors.Errorf("can't copy - source file is being updated (mod time changed from %v to %v)", file.o.modTime, fi.ModTime())
+			return 0, fserrors.NoLowLevelRetryError(errors.Errorf("can't copy - source file is being updated (mod time changed from %v to %v)", file.o.modTime, fi.ModTime()))
 		}
 	}
 
@@ -956,7 +964,17 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	if !o.translatedLink {
 		f, err := file.OpenFile(o.path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 		if err != nil {
-			return err
+			if runtime.GOOS == "windows" && os.IsPermission(err) {
+				// If permission denied on Windows might be trying to update a
+				// hidden file, in which case try opening without CREATE
+				// See: https://stackoverflow.com/questions/13215716/ioerror-errno-13-permission-denied-when-trying-to-open-hidden-file-in-w-mod
+				f, err = file.OpenFile(o.path, os.O_WRONLY|os.O_TRUNC, 0666)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 		// Pre-allocate the file for performance reasons
 		err = preAllocate(src.Size(), f)
@@ -1082,7 +1100,7 @@ func (o *Object) Remove(ctx context.Context) error {
 	return remove(o.path)
 }
 
-func cleanRootPath(s string, noUNC bool) string {
+func cleanRootPath(s string, noUNC bool, enc encoder.MultiEncoder) string {
 	if runtime.GOOS == "windows" {
 		if !filepath.IsAbs(s) && !strings.HasPrefix(s, "\\") {
 			s2, err := filepath.Abs(s)

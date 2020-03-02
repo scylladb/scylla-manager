@@ -18,6 +18,7 @@ type TransferSnapshot struct {
 	StartedAt   time.Time `json:"started_at"`
 	CompletedAt time.Time `json:"completed_at,omitempty"`
 	Error       error     `json:"-"`
+	Group       string    `json:"group"`
 }
 
 // MarshalJSON implements json.Marshaler interface.
@@ -26,6 +27,7 @@ func (as TransferSnapshot) MarshalJSON() ([]byte, error) {
 	if as.Error != nil {
 		err = as.Error.Error()
 	}
+
 	type Alias TransferSnapshot
 	return json.Marshal(&struct {
 		Error string `json:"error"`
@@ -84,7 +86,7 @@ func newTransferRemoteSize(stats *StatsInfo, remote string, size int64, checking
 // Must be called after transfer is finished to run proper cleanups.
 func (tr *Transfer) Done(err error) {
 	if err != nil {
-		tr.stats.Error(err)
+		err = tr.stats.Error(err)
 
 		tr.mu.Lock()
 		tr.err = err
@@ -176,5 +178,6 @@ func (tr *Transfer) Snapshot() TransferSnapshot {
 		StartedAt:   tr.startedAt,
 		CompletedAt: tr.completedAt,
 		Error:       tr.err,
+		Group:       tr.stats.group,
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"path"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
@@ -31,6 +32,7 @@ type syncCopyMove struct {
 	ctx             context.Context        // internal context for controlling go-routines
 	cancel          func()                 // cancel the context
 	noTraverse      bool                   // if set don't traverse the dst
+	noCheckDest     bool                   // if set transfer all objects regardless without checking dst
 	deletersWg      sync.WaitGroup         // for delete before go routine
 	deleteFilesCh   chan fs.Object         // channel to receive deletes if delete before
 	trackRenames    bool                   // set if we should do server side renames
@@ -82,18 +84,47 @@ func newSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 		dstEmptyDirs:       make(map[string]fs.DirEntry),
 		srcEmptyDirs:       make(map[string]fs.DirEntry),
 		noTraverse:         fs.Config.NoTraverse,
-		toBeChecked:        newPipe(accounting.Stats(ctx).SetCheckQueue, fs.Config.MaxBacklog),
-		toBeUploaded:       newPipe(accounting.Stats(ctx).SetTransferQueue, fs.Config.MaxBacklog),
+		noCheckDest:        fs.Config.NoCheckDest,
 		deleteFilesCh:      make(chan fs.Object, fs.Config.Checkers),
 		trackRenames:       fs.Config.TrackRenames,
 		commonHash:         fsrc.Hashes().Overlap(fdst.Hashes()).GetOne(),
-		toBeRenamed:        newPipe(accounting.Stats(ctx).SetRenameQueue, fs.Config.MaxBacklog),
 		trackRenamesCh:     make(chan fs.Object, fs.Config.Checkers),
 	}
-	s.ctx, s.cancel = context.WithCancel(ctx)
+	var err error
+	s.toBeChecked, err = newPipe(fs.Config.OrderBy, accounting.Stats(ctx).SetCheckQueue, fs.Config.MaxBacklog)
+	if err != nil {
+		return nil, err
+	}
+	s.toBeUploaded, err = newPipe(fs.Config.OrderBy, accounting.Stats(ctx).SetTransferQueue, fs.Config.MaxBacklog)
+	if err != nil {
+		return nil, err
+	}
+	s.toBeRenamed, err = newPipe(fs.Config.OrderBy, accounting.Stats(ctx).SetRenameQueue, fs.Config.MaxBacklog)
+	if err != nil {
+		return nil, err
+	}
+	// If a max session duration has been defined add a deadline to the context
+	if fs.Config.MaxDuration > 0 {
+		endTime := time.Now().Add(fs.Config.MaxDuration)
+		fs.Infof(s.fdst, "Transfer session deadline: %s", endTime.Format("2006/01/02 15:04:05"))
+		s.ctx, s.cancel = context.WithDeadline(ctx, endTime)
+	} else {
+		s.ctx, s.cancel = context.WithCancel(ctx)
+	}
 	if s.noTraverse && s.deleteMode != fs.DeleteModeOff {
 		fs.Errorf(nil, "Ignoring --no-traverse with sync")
 		s.noTraverse = false
+	}
+	if s.noCheckDest {
+		if s.deleteMode != fs.DeleteModeOff {
+			return nil, errors.New("can't use --no-check-dest with sync: use copy instead")
+		}
+		if fs.Config.Immutable {
+			return nil, errors.New("can't use --no-check-dest with --immutable")
+		}
+		if s.backupDir != nil {
+			return nil, errors.New("can't use --no-check-dest with --backup-dir")
+		}
 	}
 	if s.trackRenames {
 		// Don't track renames for remotes without server-side move support.
@@ -171,6 +202,9 @@ outer:
 func (s *syncCopyMove) processError(err error) {
 	if err == nil {
 		return
+	}
+	if err == context.DeadlineExceeded {
+		err = fserrors.NoRetryError(err)
 	}
 	s.errorMu.Lock()
 	defer s.errorMu.Unlock()
@@ -667,6 +701,7 @@ func (s *syncCopyMove) run() error {
 		NoTraverse:    s.noTraverse,
 		Callback:      s,
 		DstIncludeAll: filter.Active.Opt.DeleteExcluded,
+		NoCheckDest:   s.noCheckDest,
 	}
 	s.processError(m.Run())
 
@@ -717,6 +752,9 @@ func (s *syncCopyMove) run() error {
 		//delete empty subdirectories that were part of the move
 		s.processError(deleteEmptyDirectories(s.ctx, s.fsrc, s.srcEmptyDirs))
 	}
+
+	// Read the error out of the context if there is one
+	s.processError(s.ctx.Err())
 
 	// cancel the context to free resources
 	s.cancel()
@@ -926,7 +964,7 @@ func MoveDir(ctx context.Context, fdst, fsrc fs.Fs, deleteEmptySrcDirs bool, cop
 			fs.Infof(fdst, "Server side directory move succeeded")
 			return nil
 		default:
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(fdst, "Server side directory move failed: %v", err)
 			return err
 		}

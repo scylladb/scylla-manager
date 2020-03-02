@@ -4,10 +4,13 @@ package operations
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"path"
 	"path/filepath"
 	"sort"
@@ -63,7 +66,7 @@ func checkHashes(ctx context.Context, src fs.ObjectInfo, dst fs.Object, ht hash.
 	g.Go(func() (err error) {
 		srcHash, err = src.Hash(ctx, ht)
 		if err != nil {
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(src, "Failed to calculate src hash: %v", err)
 		}
 		return err
@@ -71,7 +74,7 @@ func checkHashes(ctx context.Context, src fs.ObjectInfo, dst fs.Object, ht hash.
 	g.Go(func() (err error) {
 		dstHash, err = dst.Hash(ctx, ht)
 		if err != nil {
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(dst, "Failed to calculate dst hash: %v", err)
 		}
 		return err
@@ -234,7 +237,7 @@ func equal(ctx context.Context, src fs.ObjectInfo, dst fs.Object, opt equalOpt) 
 				}
 				return false
 			} else if err != nil {
-				fs.CountError(err)
+				err = fs.CountError(err)
 				fs.Errorf(dst, "Failed to set modification time: %v", err)
 			} else {
 				fs.Infof(src, "Updated modification time in destination")
@@ -260,28 +263,63 @@ func removeFailedCopy(ctx context.Context, dst fs.Object) bool {
 	return true
 }
 
-// Wrapper to override the remote for an object
-type overrideRemoteObject struct {
-	fs.Object
+// OverrideRemote is a wrapper to override the Remote for an
+// ObjectInfo
+type OverrideRemote struct {
+	fs.ObjectInfo
 	remote string
 }
 
+// NewOverrideRemote returns an OverrideRemoteObject which will
+// return the remote specified
+func NewOverrideRemote(oi fs.ObjectInfo, remote string) *OverrideRemote {
+	return &OverrideRemote{
+		ObjectInfo: oi,
+		remote:     remote,
+	}
+}
+
 // Remote returns the overridden remote name
-func (o *overrideRemoteObject) Remote() string {
+func (o *OverrideRemote) Remote() string {
 	return o.remote
 }
 
 // MimeType returns the mime type of the underlying object or "" if it
 // can't be worked out
-func (o *overrideRemoteObject) MimeType(ctx context.Context) string {
-	if do, ok := o.Object.(fs.MimeTyper); ok {
+func (o *OverrideRemote) MimeType(ctx context.Context) string {
+	if do, ok := o.ObjectInfo.(fs.MimeTyper); ok {
 		return do.MimeType(ctx)
 	}
 	return ""
 }
 
-// Check interface is satisfied
-var _ fs.MimeTyper = (*overrideRemoteObject)(nil)
+// ID returns the ID of the Object if known, or "" if not
+func (o *OverrideRemote) ID() string {
+	if do, ok := o.ObjectInfo.(fs.IDer); ok {
+		return do.ID()
+	}
+	return ""
+}
+
+// UnWrap returns the Object that this Object is wrapping or nil if it
+// isn't wrapping anything
+func (o *OverrideRemote) UnWrap() fs.Object {
+	if o, ok := o.ObjectInfo.(fs.Object); ok {
+		return o
+	}
+	return nil
+}
+
+// GetTier returns storage tier or class of the Object
+func (o *OverrideRemote) GetTier() string {
+	if do, ok := o.ObjectInfo.(fs.GetTierer); ok {
+		return do.GetTier()
+	}
+	return ""
+}
+
+// Check all optional interfaces satisfied
+var _ fs.FullObjectInfo = (*OverrideRemote)(nil)
 
 // Copy src object to dst or f if nil.  If dst is nil then it uses
 // remote as the name of the new object.
@@ -377,7 +415,7 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 						var wrappedSrc fs.ObjectInfo = src
 						// We try to pass the original object if possible
 						if src.Remote() != remote {
-							wrappedSrc = &overrideRemoteObject{Object: src, remote: remote}
+							wrappedSrc = NewOverrideRemote(src, remote)
 						}
 						if doUpdate {
 							actionTaken = "Copied (replaced existing)"
@@ -409,7 +447,7 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 		break
 	}
 	if err != nil {
-		fs.CountError(err)
+		err = fs.CountError(err)
 		fs.Errorf(src, "Failed to copy: %v", err)
 		return newDst, err
 	}
@@ -418,7 +456,7 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 	if sizeDiffers(src, dst) {
 		err = errors.Errorf("corrupted on transfer: sizes differ %d vs %d", src.Size(), dst.Size())
 		fs.Errorf(dst, "%v", err)
-		fs.CountError(err)
+		err = fs.CountError(err)
 		removeFailedCopy(ctx, dst)
 		return newDst, err
 	}
@@ -430,7 +468,7 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 		if !equal {
 			err = errors.Errorf("corrupted on transfer: %v hash differ %q vs %q", hashType, srcSum, dstSum)
 			fs.Errorf(dst, "%v", err)
-			fs.CountError(err)
+			err = fs.CountError(err)
 			removeFailedCopy(ctx, dst)
 			return newDst, err
 		}
@@ -493,7 +531,7 @@ func Move(ctx context.Context, fdst fs.Fs, dst fs.Object, remote string, src fs.
 		case fs.ErrorCantMove:
 			fs.Debugf(src, "Can't move, switching to copy")
 		default:
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(src, "Couldn't move: %v", err)
 			return newDst, err
 		}
@@ -559,8 +597,8 @@ func DeleteFileWithBackupDir(ctx context.Context, dst fs.Object, backupDir fs.Fs
 		err = dst.Remove(ctx)
 	}
 	if err != nil {
-		fs.CountError(err)
 		fs.Errorf(dst, "Couldn't %s: %v", action, err)
+		err = fs.CountError(err)
 	} else if !fs.Config.DryRun {
 		fs.Infof(dst, actioned)
 	}
@@ -686,7 +724,7 @@ func checkIdentical(ctx context.Context, dst, src fs.Object) (differ bool, noHas
 	if !same {
 		err = errors.Errorf("%v differ", ht)
 		fs.Errorf(src, "%v", err)
-		fs.CountError(err)
+		_ = fs.CountError(err)
 		return true, false
 	}
 	return false, false
@@ -717,11 +755,14 @@ func (c *checkMarch) DstOnly(dst fs.DirEntry) (recurse bool) {
 		}
 		err := errors.Errorf("File not in %v", c.fsrc)
 		fs.Errorf(dst, "%v", err)
-		fs.CountError(err)
+		_ = fs.CountError(err)
 		atomic.AddInt32(&c.differences, 1)
 		atomic.AddInt32(&c.srcFilesMissing, 1)
 	case fs.Directory:
 		// Do the same thing to the entire contents of the directory
+		if c.oneway {
+			return false
+		}
 		return true
 	default:
 		panic("Bad object in DirEntries")
@@ -735,7 +776,7 @@ func (c *checkMarch) SrcOnly(src fs.DirEntry) (recurse bool) {
 	case fs.Object:
 		err := errors.Errorf("File not in %v", c.fdst)
 		fs.Errorf(src, "%v", err)
-		fs.CountError(err)
+		_ = fs.CountError(err)
 		atomic.AddInt32(&c.differences, 1)
 		atomic.AddInt32(&c.dstFilesMissing, 1)
 	case fs.Directory:
@@ -757,7 +798,6 @@ func (c *checkMarch) checkIdentical(ctx context.Context, dst, src fs.Object) (di
 	if sizeDiffers(src, dst) {
 		err = errors.Errorf("Sizes differ")
 		fs.Errorf(src, "%v", err)
-		fs.CountError(err)
 		return true, false
 	}
 	if fs.Config.SizeOnly {
@@ -777,15 +817,17 @@ func (c *checkMarch) Match(ctx context.Context, dst, src fs.DirEntry) (recurse b
 				atomic.AddInt32(&c.differences, 1)
 			} else {
 				atomic.AddInt32(&c.matches, 1)
-				fs.Debugf(dstX, "OK")
-			}
-			if noHash {
-				atomic.AddInt32(&c.noHashes, 1)
+				if noHash {
+					atomic.AddInt32(&c.noHashes, 1)
+					fs.Debugf(dstX, "OK - could not check hash")
+				} else {
+					fs.Debugf(dstX, "OK")
+				}
 			}
 		} else {
 			err := errors.Errorf("is file on %v but directory on %v", c.fsrc, c.fdst)
 			fs.Errorf(src, "%v", err)
-			fs.CountError(err)
+			_ = fs.CountError(err)
 			atomic.AddInt32(&c.differences, 1)
 			atomic.AddInt32(&c.dstFilesMissing, 1)
 		}
@@ -797,7 +839,7 @@ func (c *checkMarch) Match(ctx context.Context, dst, src fs.DirEntry) (recurse b
 		}
 		err := errors.Errorf("is file on %v but directory on %v", c.fdst, c.fsrc)
 		fs.Errorf(dst, "%v", err)
-		fs.CountError(err)
+		_ = fs.CountError(err)
 		atomic.AddInt32(&c.differences, 1)
 		atomic.AddInt32(&c.srcFilesMissing, 1)
 
@@ -924,7 +966,7 @@ func CheckDownload(ctx context.Context, fdst, fsrc fs.Fs, oneway bool) error {
 	check := func(ctx context.Context, a, b fs.Object) (differ bool, noHash bool) {
 		differ, err := CheckIdentical(ctx, a, b)
 		if err != nil {
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(a, "Failed to download: %v", err)
 			return true, true
 		}
@@ -1002,8 +1044,9 @@ func Sha1sum(ctx context.Context, f fs.Fs, w io.Writer) error {
 }
 
 // hashSum returns the human readable hash for ht passed in.  This may
-// be UNSUPPORTED or ERROR.
-func hashSum(ctx context.Context, ht hash.Type, o fs.Object) string {
+// be UNSUPPORTED or ERROR. If it isn't returning a valid hash it will
+// return an error.
+func hashSum(ctx context.Context, ht hash.Type, o fs.Object) (string, error) {
 	var err error
 	tr := accounting.Stats(ctx).NewCheckingTransfer(o)
 	defer func() {
@@ -1016,14 +1059,27 @@ func hashSum(ctx context.Context, ht hash.Type, o fs.Object) string {
 		fs.Debugf(o, "Failed to read %v: %v", ht, err)
 		sum = "ERROR"
 	}
-	return sum
+	return sum, err
 }
 
 // HashLister does a md5sum equivalent for the hash type passed in
 func HashLister(ctx context.Context, ht hash.Type, f fs.Fs, w io.Writer) error {
 	return ListFn(ctx, f, func(o fs.Object) {
-		sum := hashSum(ctx, ht, o)
+		sum, _ := hashSum(ctx, ht, o)
 		syncFprintf(w, "%*s  %s\n", hash.Width(ht), sum, o.Remote())
+	})
+}
+
+// HashListerBase64 does a md5sum equivalent for the hash type passed in with base64 encoded
+func HashListerBase64(ctx context.Context, ht hash.Type, f fs.Fs, w io.Writer) error {
+	return ListFn(ctx, f, func(o fs.Object) {
+		sum, err := hashSum(ctx, ht, o)
+		if err == nil {
+			hexBytes, _ := hex.DecodeString(sum)
+			sum = base64.URLEncoding.EncodeToString(hexBytes)
+		}
+		width := base64.URLEncoding.EncodedLen(hash.Width(ht) / 2)
+		syncFprintf(w, "%*s  %s\n", width, sum, o.Remote())
 	})
 }
 
@@ -1071,7 +1127,7 @@ func Mkdir(ctx context.Context, f fs.Fs, dir string) error {
 	fs.Debugf(fs.LogDirName(f, dir), "Making directory")
 	err := f.Mkdir(ctx, dir)
 	if err != nil {
-		fs.CountError(err)
+		err = fs.CountError(err)
 		return err
 	}
 	return nil
@@ -1092,7 +1148,7 @@ func TryRmdir(ctx context.Context, f fs.Fs, dir string) error {
 func Rmdir(ctx context.Context, f fs.Fs, dir string) error {
 	err := TryRmdir(ctx, f, dir)
 	if err != nil {
-		fs.CountError(err)
+		err = fs.CountError(err)
 		return err
 	}
 	return err
@@ -1125,7 +1181,7 @@ func Purge(ctx context.Context, f fs.Fs, dir string) error {
 		err = Rmdirs(ctx, f, dir, false)
 	}
 	if err != nil {
-		fs.CountError(err)
+		err = fs.CountError(err)
 		return err
 	}
 	return nil
@@ -1168,7 +1224,7 @@ func listToChan(ctx context.Context, f fs.Fs, dir string) fs.ObjectsChan {
 		})
 		if err != nil && err != fs.ErrorDirNotFound {
 			err = errors.Wrap(err, "failed to list")
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(nil, "%v", err)
 		}
 	}()
@@ -1224,7 +1280,7 @@ func Cat(ctx context.Context, f fs.Fs, w io.Writer, offset, count int64) error {
 		}
 		in, err := o.Open(ctx, options...)
 		if err != nil {
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(o, "Failed to open: %v", err)
 			return
 		}
@@ -1237,7 +1293,7 @@ func Cat(ctx context.Context, f fs.Fs, w io.Writer, offset, count int64) error {
 		defer mu.Unlock()
 		_, err = io.Copy(w, in)
 		if err != nil {
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(o, "Failed to send to output: %v", err)
 		}
 	})
@@ -1264,7 +1320,7 @@ func Rcat(ctx context.Context, fdst fs.Fs, dstFileName string, in io.ReadCloser,
 		src := object.NewStaticObjectInfo(dstFileName, modTime, int64(readCounter.BytesRead()), false, hash.Sums(), fdst)
 		if !Equal(ctx, src, dst) {
 			err = errors.Errorf("corrupted on transfer")
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(dst, "%v", err)
 			return err
 		}
@@ -1339,7 +1395,7 @@ func Rmdirs(ctx context.Context, f fs.Fs, dir string, leaveRoot bool) error {
 	dirEmpty[dir] = !leaveRoot
 	err := walk.Walk(ctx, f, dir, true, fs.Config.MaxDepth, func(dirPath string, entries fs.DirEntries, err error) error {
 		if err != nil {
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(f, "Failed to list %q: %v", dirPath, err)
 			return nil
 		}
@@ -1386,7 +1442,7 @@ func Rmdirs(ctx context.Context, f fs.Fs, dir string, leaveRoot bool) error {
 		dir := toDelete[i]
 		err := TryRmdir(ctx, f, dir)
 		if err != nil {
-			fs.CountError(err)
+			err = fs.CountError(err)
 			fs.Errorf(dir, "Failed to rmdir: %v", err)
 			return err
 		}
@@ -1612,26 +1668,48 @@ func RcatSize(ctx context.Context, fdst fs.Fs, dstFileName string, in io.ReadClo
 	return obj, nil
 }
 
-// CopyURL copies the data from the url to (fdst, dstFileName)
-func CopyURL(ctx context.Context, fdst fs.Fs, dstFileName string, url string, dstFileNameFromURL bool) (dst fs.Object, err error) {
+// copyURLFunc is called from CopyURLFn
+type copyURLFunc func(ctx context.Context, dstFileName string, in io.ReadCloser, size int64, modTime time.Time) (err error)
+
+// copyURLFn copies the data from the url to the function supplied
+func copyURLFn(ctx context.Context, dstFileName string, url string, dstFileNameFromURL bool, fn copyURLFunc) (err error) {
 	client := fshttp.NewClient(fs.Config)
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer fs.CheckClose(resp.Body, &err)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.Errorf("CopyURL failed: %s", resp.Status)
+		return errors.Errorf("CopyURL failed: %s", resp.Status)
 	}
-
+	modTime, err := http.ParseTime(resp.Header.Get("Last-Modified"))
+	if err != nil {
+		modTime = time.Now()
+	}
 	if dstFileNameFromURL {
 		dstFileName = path.Base(resp.Request.URL.Path)
 		if dstFileName == "." || dstFileName == "/" {
-			return nil, errors.Errorf("CopyURL failed: file name wasn't found in url")
+			return errors.Errorf("CopyURL failed: file name wasn't found in url")
 		}
 	}
+	return fn(ctx, dstFileName, resp.Body, resp.ContentLength, modTime)
+}
 
-	return RcatSize(ctx, fdst, dstFileName, resp.Body, resp.ContentLength, time.Now())
+// CopyURL copies the data from the url to (fdst, dstFileName)
+func CopyURL(ctx context.Context, fdst fs.Fs, dstFileName string, url string, dstFileNameFromURL bool) (dst fs.Object, err error) {
+	err = copyURLFn(ctx, dstFileName, url, dstFileNameFromURL, func(ctx context.Context, dstFileName string, in io.ReadCloser, size int64, modTime time.Time) (err error) {
+		dst, err = RcatSize(ctx, fdst, dstFileName, in, size, modTime)
+		return err
+	})
+	return dst, err
+}
+
+// CopyURLToWriter copies the data from the url to the io.Writer supplied
+func CopyURLToWriter(ctx context.Context, url string, out io.Writer) (err error) {
+	return copyURLFn(ctx, "", url, false, func(ctx context.Context, dstFileName string, in io.ReadCloser, size int64, modTime time.Time) (err error) {
+		_, err = io.Copy(out, in)
+		return err
+	})
 }
 
 // BackupDir returns the correctly configured --backup-dir
@@ -1704,11 +1782,14 @@ func moveOrCopyFile(ctx context.Context, fdst fs.Fs, fsrc fs.Fs, dstFileName str
 	}
 
 	// Find dst object if it exists
-	dstObj, err := fdst.NewObject(ctx, dstFileName)
-	if err == fs.ErrorObjectNotFound {
-		dstObj = nil
-	} else if err != nil {
-		return err
+	var dstObj fs.Object
+	if !fs.Config.NoCheckDest {
+		dstObj, err = fdst.NewObject(ctx, dstFileName)
+		if err == fs.ErrorObjectNotFound {
+			dstObj = nil
+		} else if err != nil {
+			return err
+		}
 	}
 
 	// Special case for changing case of a file on a case insensitive remote

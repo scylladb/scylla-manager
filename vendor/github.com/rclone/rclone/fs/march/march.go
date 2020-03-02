@@ -30,6 +30,7 @@ type March struct {
 	SrcIncludeAll bool            // don't include all files in the src
 	DstIncludeAll bool            // don't include all files in the destination
 	Callback      Marcher         // object to call with results
+	NoCheckDest   bool            // transfer all objects regardless without checking dst
 	// internal state
 	srcListDir listDirFn // function to call to list a directory in the src
 	dstListDir listDirFn // function to call to list a directory in the dst
@@ -188,6 +189,7 @@ func (m *March) Run() error {
 		srcDepth:  srcDepth - 1,
 		dstRemote: m.Dir,
 		dstDepth:  dstDepth - 1,
+		noDst:     m.NoCheckDest,
 	}
 	go func() {
 		// when the context is cancelled discard the remaining jobs
@@ -393,20 +395,20 @@ func (m *March) processJob(job listDirJob) ([]listDirJob, error) {
 	wg.Wait()
 	if srcListErr != nil {
 		fs.Errorf(job.srcRemote, "error reading source directory: %v", srcListErr)
-		fs.CountError(srcListErr)
+		srcListErr = fs.CountError(srcListErr)
 		return nil, srcListErr
 	}
 	if dstListErr == fs.ErrorDirNotFound {
 		// Copy the stuff anyway
 	} else if dstListErr != nil {
 		fs.Errorf(job.dstRemote, "error reading destination directory: %v", dstListErr)
-		fs.CountError(dstListErr)
+		dstListErr = fs.CountError(dstListErr)
 		return nil, dstListErr
 	}
 
 	// If NoTraverse is set, then try to find a matching object
 	// for each item in the srcList
-	if m.NoTraverse {
+	if m.NoTraverse && !m.NoCheckDest {
 		for _, src := range srcList {
 			if srcObj, ok := src.(fs.Object); ok {
 				leaf := path.Base(srcObj.Remote())

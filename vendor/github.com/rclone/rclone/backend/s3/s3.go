@@ -34,6 +34,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/corehandlers"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
@@ -46,21 +47,21 @@ import (
 	"github.com/ncw/swift"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/config/configmap"
 	"github.com/rclone/rclone/fs/config/configstruct"
-	"github.com/rclone/rclone/fs/encodings"
 	"github.com/rclone/rclone/fs/fserrors"
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/hash"
 	"github.com/rclone/rclone/fs/walk"
 	"github.com/rclone/rclone/lib/bucket"
+	"github.com/rclone/rclone/lib/encoder"
 	"github.com/rclone/rclone/lib/pacer"
+	"github.com/rclone/rclone/lib/pool"
 	"github.com/rclone/rclone/lib/readers"
 	"github.com/rclone/rclone/lib/rest"
 	"golang.org/x/sync/errgroup"
 )
-
-const enc = encodings.S3
 
 // Register with Fs
 func init() {
@@ -95,6 +96,9 @@ func init() {
 			}, {
 				Value: "Netease",
 				Help:  "Netease Object Storage (NOS)",
+			}, {
+				Value: "StackPath",
+				Help:  "StackPath Object Storage",
 			}, {
 				Value: "Wasabi",
 				Help:  "Wasabi Object Storage",
@@ -165,6 +169,9 @@ func init() {
 			}, {
 				Value: "ap-south-1",
 				Help:  "Asia Pacific (Mumbai)\nNeeds location constraint ap-south-1.",
+			}, {
+				Value: "ap-east-1",
+				Help:  "Asia Patific (Hong Kong) Region\nNeeds location constraint ap-east-1.",
 			}, {
 				Value: "sa-east-1",
 				Help:  "South America (Sao Paulo) Region\nNeeds location constraint sa-east-1.",
@@ -356,8 +363,22 @@ func init() {
 			}},
 		}, {
 			Name:     "endpoint",
+			Help:     "Endpoint for StackPath Object Storage.",
+			Provider: "StackPath",
+			Examples: []fs.OptionExample{{
+				Value: "s3.us-east-2.stackpathstorage.com",
+				Help:  "US East Endpoint",
+			}, {
+				Value: "s3.us-west-1.stackpathstorage.com",
+				Help:  "US West Endpoint",
+			}, {
+				Value: "s3.eu-central-1.stackpathstorage.com",
+				Help:  "EU Endpoint",
+			}},
+		}, {
+			Name:     "endpoint",
 			Help:     "Endpoint for S3 API.\nRequired when using an S3 clone.",
-			Provider: "!AWS,IBMCOS,Alibaba",
+			Provider: "!AWS,IBMCOS,Alibaba,StackPath",
 			Examples: []fs.OptionExample{{
 				Value:    "objects-us-east-1.dream.io",
 				Help:     "Dream Objects endpoint",
@@ -433,6 +454,9 @@ func init() {
 			}, {
 				Value: "ap-south-1",
 				Help:  "Asia Pacific (Mumbai)",
+			}, {
+				Value: "ap-east-1",
+				Help:  "Asia Pacific (Hong Kong)",
 			}, {
 				Value: "sa-east-1",
 				Help:  "South America (Sao Paulo) Region.",
@@ -541,7 +565,7 @@ func init() {
 		}, {
 			Name:     "location_constraint",
 			Help:     "Location constraint - must be set to match the Region.\nLeave blank if not sure. Used when creating buckets only.",
-			Provider: "!AWS,IBMCOS,Alibaba",
+			Provider: "!AWS,IBMCOS,Alibaba,StackPath",
 		}, {
 			Name: "acl",
 			Help: `Canned ACL used when creating buckets and storing or copying objects.
@@ -760,7 +784,9 @@ if false then rclone will use virtual path style. See [the AWS S3
 docs](https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro)
 for more info.
 
-Some providers (eg Aliyun OSS or Netease COS) require this set to false.`,
+Some providers (eg AWS, Aliyun OSS or Netease COS) require this set to
+false - rclone will do this automatically based on the provider
+setting.`,
 			Default:  true,
 			Advanced: true,
 		}, {
@@ -793,81 +819,109 @@ WARNING: Storing parts of an incomplete multipart upload counts towards space us
 			Default:  false,
 			Advanced: true,
 		}, {
-			Name: "max_retries",
-			Help: `Maximum number of retries.
+			Name: "list_chunk",
+			Help: `Size of listing chunk (response list for each ListObject S3 request).
 
-The maximum number of times that a request will be retried for failures.
-Defaults to 10. Setting it to -1 defers the max retry setting to the service
-specific configuration.`,
-			Default:  10,
+This option is also known as "MaxKeys", "max-items", or "page-size" from the AWS S3 specification.
+Most services truncate the response list to 1000 objects even if requested more than that.
+In AWS S3 this is a global maximum and cannot be changed, see [AWS S3](https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html).
+In Ceph, this can be increased with the "rgw list buckets max chunk" option.
+`,
+			Default:  1000,
 			Advanced: true,
 		}, {
-			Name: "list_chunk_size",
-			Help: `Number of times read at once during object listing.
-
-Listing requests are paginated. This value allows to set the maximum number of
-objects returned in single response.`,
-			Default:  listChunkSize,
+			Name:     config.ConfigEncoding,
+			Help:     config.ConfigEncodingHelp,
 			Advanced: true,
+			// Any UTF-8 character is valid in a key, however it can't handle
+			// invalid UTF-8 and / have a special meaning.
+			//
+			// The SDK can't seem to handle uploading files called '.'
+			//
+			// FIXME would be nice to add
+			// - initial / encoding
+			// - doubled / encoding
+			// - trailing / encoding
+			// so that AWS keys are always valid file names
+			Default: encoder.EncodeInvalidUtf8 |
+				encoder.EncodeSlash |
+				encoder.EncodeDot,
+		}, {
+			Name:     "memory_pool_flush_time",
+			Default:  memoryPoolFlushTime,
+			Advanced: true,
+			Help: `How often internal memory buffer pools will be flushed.
+Uploads which requires additional buffers (f.e multipart) will use memory pool for allocations.
+This option controls how often unused buffers will be removed from the pool.`,
+		}, {
+			Name:     "memory_pool_use_mmap",
+			Default:  memoryPoolUseMmap,
+			Advanced: true,
+			Help:     `Whether to use mmap buffers in internal memory pool.`,
 		},
-		},
-	})
+		}})
 }
 
 // Constants
 const (
 	metaMtime           = "Mtime"                // the meta key to store mtime in - eg X-Amz-Meta-Mtime
 	metaMD5Hash         = "Md5chksum"            // the meta key to store md5hash in
-	listChunkSize       = 1000                   // number of items to read at once
 	maxSizeForCopy      = 5 * 1024 * 1024 * 1024 // The maximum size of object we can COPY
 	maxUploadParts      = 10000                  // maximum allowed number of parts in a multi-part upload
 	minChunkSize        = fs.SizeSuffix(1024 * 1024 * 5)
 	defaultUploadCutoff = fs.SizeSuffix(200 * 1024 * 1024)
 	maxUploadCutoff     = fs.SizeSuffix(5 * 1024 * 1024 * 1024)
 	minSleep            = 10 * time.Millisecond // In case of error, start at 10ms sleep.
+
+	memoryPoolFlushTime = fs.Duration(time.Minute) // flush the cached buffers after this long
+	memoryPoolUseMmap   = false
 )
 
 // Options defines the configuration for this backend
 type Options struct {
-	Provider              string        `config:"provider"`
-	EnvAuth               bool          `config:"env_auth"`
-	AccessKeyID           string        `config:"access_key_id"`
-	SecretAccessKey       string        `config:"secret_access_key"`
-	Region                string        `config:"region"`
-	Endpoint              string        `config:"endpoint"`
-	LocationConstraint    string        `config:"location_constraint"`
-	ACL                   string        `config:"acl"`
-	BucketACL             string        `config:"bucket_acl"`
-	ServerSideEncryption  string        `config:"server_side_encryption"`
-	SSEKMSKeyID           string        `config:"sse_kms_key_id"`
-	StorageClass          string        `config:"storage_class"`
-	UploadCutoff          fs.SizeSuffix `config:"upload_cutoff"`
-	CopyCutoff            fs.SizeSuffix `config:"copy_cutoff"`
-	ChunkSize             fs.SizeSuffix `config:"chunk_size"`
-	DisableChecksum       bool          `config:"disable_checksum"`
-	SessionToken          string        `config:"session_token"`
-	UploadConcurrency     int           `config:"upload_concurrency"`
-	ForcePathStyle        bool          `config:"force_path_style"`
-	V2Auth                bool          `config:"v2_auth"`
-	UseAccelerateEndpoint bool          `config:"use_accelerate_endpoint"`
-	LeavePartsOnError     bool          `config:"leave_parts_on_error"`
-	MaxRetries            int           `config:"max_retries"`
-	ListChunkSize         int           `config:"list_chunk_size"`
+	Provider              string               `config:"provider"`
+	EnvAuth               bool                 `config:"env_auth"`
+	AccessKeyID           string               `config:"access_key_id"`
+	SecretAccessKey       string               `config:"secret_access_key"`
+	Region                string               `config:"region"`
+	Endpoint              string               `config:"endpoint"`
+	LocationConstraint    string               `config:"location_constraint"`
+	ACL                   string               `config:"acl"`
+	BucketACL             string               `config:"bucket_acl"`
+	ServerSideEncryption  string               `config:"server_side_encryption"`
+	SSEKMSKeyID           string               `config:"sse_kms_key_id"`
+	StorageClass          string               `config:"storage_class"`
+	UploadCutoff          fs.SizeSuffix        `config:"upload_cutoff"`
+	CopyCutoff            fs.SizeSuffix        `config:"copy_cutoff"`
+	ChunkSize             fs.SizeSuffix        `config:"chunk_size"`
+	DisableChecksum       bool                 `config:"disable_checksum"`
+	SessionToken          string               `config:"session_token"`
+	UploadConcurrency     int                  `config:"upload_concurrency"`
+	ForcePathStyle        bool                 `config:"force_path_style"`
+	V2Auth                bool                 `config:"v2_auth"`
+	UseAccelerateEndpoint bool                 `config:"use_accelerate_endpoint"`
+	LeavePartsOnError     bool                 `config:"leave_parts_on_error"`
+	ListChunk             int64                `config:"list_chunk"`
+	Enc                   encoder.MultiEncoder `config:"encoding"`
+	MemoryPoolFlushTime   fs.Duration          `config:"memory_pool_flush_time"`
+	MemoryPoolUseMmap     bool                 `config:"memory_pool_use_mmap"`
 }
 
 // Fs represents a remote s3 server
 type Fs struct {
-	name          string           // the name of the remote
-	root          string           // root of the bucket - ignore all objects above this
-	opt           Options          // parsed options
-	features      *fs.Features     // optional features
-	c             *s3.S3           // the connection to the s3 server
-	ses           *session.Session // the s3 session
-	rootBucket    string           // bucket part of root (if any)
-	rootDirectory string           // directory part of root (if any)
-	cache         *bucket.Cache    // cache for bucket creation status
-	pacer         *fs.Pacer        // To pace the API calls
-	srv           *http.Client     // a plain http client
+	name          string               // the name of the remote
+	root          string               // root of the bucket - ignore all objects above this
+	opt           Options              // parsed options
+	features      *fs.Features         // optional features
+	c             *s3.S3               // the connection to the s3 server
+	ses           *session.Session     // the s3 session
+	rootBucket    string               // bucket part of root (if any)
+	rootDirectory string               // directory part of root (if any)
+	cache         *bucket.Cache        // cache for bucket creation status
+	pacer         *fs.Pacer            // To pace the API calls
+	srv           *http.Client         // a plain http client
+	poolMu        sync.Mutex           // mutex protecting memory pools map
+	pools         map[int64]*pool.Pool // memory pools
 }
 
 // Object describes a s3 object
@@ -965,7 +1019,7 @@ func parsePath(path string) (root string) {
 // relative to f.root
 func (f *Fs) split(rootRelativePath string) (bucketName, bucketPath string) {
 	bucketName, bucketPath = bucket.Split(path.Join(f.root, rootRelativePath))
-	return enc.FromStandardName(bucketName), enc.FromStandardPath(bucketPath)
+	return f.opt.Enc.FromStandardName(bucketName), f.opt.Enc.FromStandardPath(bucketPath)
 }
 
 // split returns bucket and bucketPath from the object
@@ -1036,11 +1090,10 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 	if opt.Region == "" {
 		opt.Region = "us-east-1"
 	}
-	if opt.Provider == "Alibaba" || opt.Provider == "Netease" || opt.UseAccelerateEndpoint {
+	if opt.Provider == "AWS" || opt.Provider == "Alibaba" || opt.Provider == "Netease" || opt.UseAccelerateEndpoint {
 		opt.ForcePathStyle = false
 	}
 	awsConfig := aws.NewConfig().
-		WithMaxRetries(opt.MaxRetries).
 		WithCredentials(cred).
 		WithHTTPClient(fshttp.NewClient(fs.Config)).
 		WithS3ForcePathStyle(opt.ForcePathStyle).
@@ -1051,6 +1104,14 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 	if opt.Endpoint != "" {
 		awsConfig.WithEndpoint(opt.Endpoint)
 	}
+	// Force retry check even if request is not retryable so we can control
+	// retries with context.
+	awsConfig.EnforceShouldRetryCheck = aws.Bool(true)
+	request.WithRetryer(awsConfig, retryer{
+		client.DefaultRetryer{
+			NumMaxRetries: fs.Config.LowLevelRetries,
+		},
+	})
 
 	// awsConfig.WithLogLevel(aws.LogDebugWithSigning)
 	awsSessionOpts := session.Options{
@@ -1147,9 +1208,9 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		return nil, err
 	}
 
-	// Initialize pacer to 0 retries because we are relying on SDK with
-	// MaxRetries for that
 	pc := fs.NewPacer(pacer.NewS3(pacer.MinSleep(minSleep)))
+	// Set pacer retries to 0 because we are relying on SDK retry mechanism.
+	// Setting it to 1 because in context of pacer it means 1 attempt.
 	pc.SetRetries(1)
 
 	f := &Fs{
@@ -1160,7 +1221,9 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		pacer: pc,
 		cache: bucket.NewCache(),
 		srv:   fshttp.NewClient(fs.Config),
+		pools: make(map[int64]*pool.Pool),
 	}
+
 	f.setRoot(root)
 	f.features = (&fs.Features{
 		ReadMimeType:      true,
@@ -1172,7 +1235,7 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	}).Fill(f)
 	if f.rootBucket != "" && f.rootDirectory != "" {
 		// Check to see if the object exists
-		encodedDirectory := enc.FromStandardPath(f.rootDirectory)
+		encodedDirectory := f.opt.Enc.FromStandardPath(f.rootDirectory)
 		req := s3.HeadObjectInput{
 			Bucket: &f.rootBucket,
 			Key:    &encodedDirectory,
@@ -1290,7 +1353,6 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 	if directory != "" {
 		directory += "/"
 	}
-	maxKeys := int64(f.opt.ListChunkSize)
 	delimiter := ""
 	if !recurse {
 		delimiter = "/"
@@ -1318,7 +1380,7 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 			Bucket:    &bucket,
 			Delimiter: &delimiter,
 			Prefix:    &directory,
-			MaxKeys:   &maxKeys,
+			MaxKeys:   &f.opt.ListChunk,
 			Marker:    marker,
 		}
 		if urlEncodeListings {
@@ -1376,7 +1438,7 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 						continue
 					}
 				}
-				remote = enc.ToStandardPath(remote)
+				remote = f.opt.Enc.ToStandardPath(remote)
 				if !strings.HasPrefix(remote, prefix) {
 					fs.Logf(f, "Odd name received %q", remote)
 					continue
@@ -1403,7 +1465,7 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 					continue
 				}
 			}
-			remote = enc.ToStandardPath(remote)
+			remote = f.opt.Enc.ToStandardPath(remote)
 			if !strings.HasPrefix(remote, prefix) {
 				fs.Logf(f, "Odd name received %q", remote)
 				continue
@@ -1433,6 +1495,12 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 			marker = resp.Contents[len(resp.Contents)-1].Key
 		} else {
 			marker = resp.NextMarker
+		}
+		if urlEncodeListings {
+			*marker, err = url.QueryUnescape(*marker)
+			if err != nil {
+				return errors.Wrapf(err, "failed to URL decode NextMarker %q", *marker)
+			}
 		}
 	}
 	return nil
@@ -1488,7 +1556,7 @@ func (f *Fs) listBuckets(ctx context.Context) (entries fs.DirEntries, err error)
 		return nil, err
 	}
 	for _, bucket := range resp.Buckets {
-		bucketName := enc.ToStandardName(aws.StringValue(bucket.Name))
+		bucketName := f.opt.Enc.ToStandardName(aws.StringValue(bucket.Name))
 		f.cache.MarkOK(bucketName)
 		d := fs.NewDir(bucketName, aws.TimeValue(bucket.CreationDate))
 		entries = append(entries, d)
@@ -1739,8 +1807,9 @@ func (f *Fs) copyMultipart(ctx context.Context, req *s3.CopyObjectInput, dstBuck
 	defer func() {
 		if err != nil {
 			// We can try to abort the upload, but ignore the error.
+			fs.Debugf(nil, "Cancelling multipart copy")
 			_ = f.pacer.Call(func() (bool, error) {
-				_, err := f.c.AbortMultipartUploadWithContext(ctx, &s3.AbortMultipartUploadInput{
+				_, err := f.c.AbortMultipartUploadWithContext(context.Background(), &s3.AbortMultipartUploadInput{
 					Bucket:       &dstBucket,
 					Key:          &dstPath,
 					UploadId:     uid,
@@ -1840,6 +1909,22 @@ func (f *Fs) Copy(ctx context.Context, src fs.Object, remote string) (fs.Object,
 // Hashes returns the supported hash sets.
 func (f *Fs) Hashes() hash.Set {
 	return hash.Set(hash.MD5)
+}
+
+func (f *Fs) getMemoryPool(size int64) *pool.Pool {
+	f.poolMu.Lock()
+	defer f.poolMu.Unlock()
+
+	_, ok := f.pools[size]
+	if !ok {
+		f.pools[size] = pool.New(
+			time.Duration(f.opt.MemoryPoolFlushTime),
+			int(f.opt.ChunkSize),
+			f.opt.UploadConcurrency*fs.Config.Transfers,
+			f.opt.MemoryPoolUseMmap,
+		)
+	}
+	return f.pools[size]
 }
 
 // ------------------------------------------------------------
@@ -2045,16 +2130,7 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 	if concurrency < 1 {
 		concurrency = 1
 	}
-	bufs := make(chan []byte, concurrency)
-	defer func() {
-		// empty the channel on exit
-		close(bufs)
-		for range bufs {
-		}
-	}()
-	for i := 0; i < concurrency; i++ {
-		bufs <- nil
-	}
+	tokens := pacer.NewTokenDispenser(concurrency)
 
 	// calculate size of parts
 	partSize := int(f.opt.ChunkSize)
@@ -2074,6 +2150,8 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 			partSize = int((((size / maxUploadParts) >> 20) + 1) << 20)
 		}
 	}
+
+	memPool := f.getMemoryPool(int64(partSize))
 
 	var cout *s3.CreateMultipartUploadOutput
 	err = f.pacer.Call(func() (bool, error) {
@@ -2103,7 +2181,7 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 			// We can try to abort the upload, but ignore the error.
 			fs.Debugf(o, "Cancelling multipart upload")
 			errCancel := f.pacer.Call(func() (bool, error) {
-				_, err := f.c.AbortMultipartUploadWithContext(ctx, &s3.AbortMultipartUploadInput{
+				_, err := f.c.AbortMultipartUploadWithContext(context.Background(), &s3.AbortMultipartUploadInput{
 					Bucket:       req.Bucket,
 					Key:          req.Key,
 					UploadId:     uid,
@@ -2126,11 +2204,9 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 	)
 
 	for partNum := int64(1); !finished; partNum++ {
-		// Get a block of memory from the channel (which limits concurrency)
-		buf := <-bufs
-		if buf == nil {
-			buf = make([]byte, partSize)
-		}
+		// Get a block of memory from the pool and token which limits concurrency.
+		tokens.Get()
+		buf := memPool.Get()
 
 		// Fail fast, in case an errgroup managed function returns an error
 		// gCtx is cancelled. There is no point in uploading all the other parts.
@@ -2193,8 +2269,9 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 				return false, nil
 			})
 
-			// return the memory
-			bufs <- buf[:partSize]
+			// return the memory and token
+			memPool.Put(buf[:partSize])
+			tokens.Put()
 
 			if err != nil {
 				return errors.Wrap(err, "multipart upload failed to upload part")
@@ -2247,10 +2324,13 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		metaMtime: aws.String(swift.TimeToFloatString(modTime)),
 	}
 
-	// read the md5sum if available for non multpart and if
-	// disable checksum isn't present.
+	// read the md5sum if available
+	// - for non multpart
+	//    - so we can add a ContentMD5
+	// - for multipart provided checksums aren't disabled
+	//    - so we can add the md5sum in the metadata as metaMD5Hash
 	var md5sum string
-	if !multipart && !o.fs.opt.DisableChecksum {
+	if !multipart || !o.fs.opt.DisableChecksum {
 		hash, err := src.Hash(ctx, hash.MD5)
 		if err == nil && matchMd5.MatchString(hash) {
 			hashBytes, err := hex.DecodeString(hash)

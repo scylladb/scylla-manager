@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
-	github.com/aws/aws-sdk-go v1.23.8
+	github.com/aws/aws-sdk-go v1.25.31
 	github.com/cenkalti/backoff/v4 v4.0.0
 	github.com/cespare/xxhash v1.0.0
 	github.com/go-chi/chi v4.0.2+incompatible
@@ -28,7 +28,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.0
 	github.com/prometheus/client_model v0.2.0
-	github.com/rclone/rclone v1.50.2
+	github.com/rclone/rclone v1.51.0
 	github.com/scylladb/go-log v0.0.4
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
@@ -36,12 +36,12 @@ require (
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.5
-	github.com/spf13/pflag v1.0.3
+	github.com/spf13/pflag v1.0.5
 	go.uber.org/atomic v1.5.0
 	go.uber.org/config v1.4.0
 	go.uber.org/multierr v1.4.0
 	go.uber.org/zap v1.14.0
-	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
+	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82
 	golang.org/x/tools v0.0.0-20191104232314-dc038396d1f0
@@ -50,5 +50,5 @@ require (
 
 replace (
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.3.3
-	github.com/rclone/rclone => github.com/scylladb/rclone v1.50.2-patched-21
+	github.com/rclone/rclone => github.com/scylladb/rclone v1.51.0-patched-4
 )

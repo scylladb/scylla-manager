@@ -40,6 +40,7 @@ type StatsInfo struct {
 	startedTransfers  []*Transfer   // currently active transfers
 	oldTimeRanges     timeRanges    // a merged list of time ranges for the transfers
 	oldDuration       time.Duration // duration of transfers we have culled
+	group             string
 }
 
 // NewStats creates an initialised StatsInfo
@@ -249,11 +250,11 @@ func (s *StatsInfo) String() string {
 
 	dt := s.totalDuration()
 	dtSeconds := dt.Seconds()
+	dtSecondsOnly := dt.Truncate(time.Second/10) % time.Minute
 	speed := 0.0
 	if dt > 0 {
 		speed = float64(s.bytes) / dtSeconds
 	}
-	dtRounded := dt - (dt % (time.Second / 10))
 
 	displaySpeed := speed
 	if fs.Config.DataRateUnit == "bits" {
@@ -291,7 +292,7 @@ func (s *StatsInfo) String() string {
 		}
 	}
 
-	_, _ = fmt.Fprintf(buf, "%s%10s / %s, %s, %s, ETA %s%s",
+	_, _ = fmt.Fprintf(buf, "%s%10s / %s, %s, %s, ETA %s%s\n",
 		dateString,
 		fs.SizeSuffix(s.bytes),
 		fs.SizeSuffix(totalSize).Unit("Bytes"),
@@ -312,16 +313,23 @@ func (s *StatsInfo) String() string {
 			errorDetails = " (no need to retry)"
 		}
 
-		_, _ = fmt.Fprintf(buf, `
-Errors:        %10d%s
-Checks:        %10d / %d, %s
-Transferred:   %10d / %d, %s
-Elapsed time:  %10v
-`,
-			s.errors, errorDetails,
-			s.checks, totalChecks, percent(s.checks, totalChecks),
-			s.transfers, totalTransfer, percent(s.transfers, totalTransfer),
-			dtRounded)
+		// Add only non zero stats
+		if s.errors != 0 {
+			_, _ = fmt.Fprintf(buf, "Errors:        %10d%s\n",
+				s.errors, errorDetails)
+		}
+		if s.checks != 0 || totalChecks != 0 {
+			_, _ = fmt.Fprintf(buf, "Checks:        %10d / %d, %s\n",
+				s.checks, totalChecks, percent(s.checks, totalChecks))
+		}
+		if s.deletes != 0 {
+			_, _ = fmt.Fprintf(buf, "Deleted:       %10d\n", s.deletes)
+		}
+		if s.transfers != 0 || totalTransfer != 0 {
+			_, _ = fmt.Fprintf(buf, "Transferred:   %10d / %d, %s\n",
+				s.transfers, totalTransfer, percent(s.transfers, totalTransfer))
+		}
+		_, _ = fmt.Fprintf(buf, "Elapsed time:  %10ss\n", strings.TrimRight(dt.Truncate(time.Minute).String(), "0s")+fmt.Sprintf("%.1f", dtSecondsOnly.Seconds()))
 	}
 
 	// checking and transferring have their own locking so unlock
@@ -331,10 +339,10 @@ Elapsed time:  %10v
 	// Add per transfer stats if required
 	if !fs.Config.StatsOneLine {
 		if !s.checking.empty() {
-			_, _ = fmt.Fprintf(buf, "Checking:\n%s\n", s.checking.String(s.inProgress))
+			_, _ = fmt.Fprintf(buf, "Checking:\n%s\n", s.checking.String(s.inProgress, s.transferring))
 		}
 		if !s.transferring.empty() {
-			_, _ = fmt.Fprintf(buf, "Transferring:\n%s\n", s.transferring.String(s.inProgress))
+			_, _ = fmt.Fprintf(buf, "Transferring:\n%s\n", s.transferring.String(s.inProgress, nil))
 		}
 	}
 
@@ -474,14 +482,16 @@ func (s *StatsInfo) Errored() bool {
 }
 
 // Error adds a single error into the stats, assigns lastError and eventually sets fatalError or retryError
-func (s *StatsInfo) Error(err error) {
-	if err == nil {
-		return
+func (s *StatsInfo) Error(err error) error {
+	if err == nil || fserrors.IsCounted(err) {
+		return err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.errors++
 	s.lastError = err
+	err = fserrors.FsError(err)
+	fserrors.Count(err)
 	switch {
 	case fserrors.IsFatalError(err):
 		s.fatalError = true
@@ -494,6 +504,7 @@ func (s *StatsInfo) Error(err error) {
 	case !fserrors.IsNoRetryError(err):
 		s.retryError = true
 	}
+	return err
 }
 
 // RetryAfter returns the time to retry after if it is set.  It will
