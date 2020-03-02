@@ -47,17 +47,37 @@ func (w *hostWorker) init(ctx context.Context) error {
 		return errors.Wrap(err, "get host progress")
 	}
 
-	// Split segments to shards
-	p, err := w.partitioner(ctx)
+	// Check if row-level-repair should be used
+	rrl, err := w.rowLevelRepair(ctx)
 	if err != nil {
-		return errors.Wrap(err, "get partitioner")
+		return errors.Wrap(err, "check row-level-repair")
 	}
-	shards := w.splitSegmentsToShards(ctx, p)
+
+	// If not row-level-repair split segments to shards
+	var shards []segments
+	if rrl {
+		w.Logger.Info(ctx, "Detected row-level repair")
+		shards = []segments{w.Segments}
+	} else {
+		p, err := w.partitioner(ctx)
+		if err != nil {
+			return errors.Wrap(err, "get partitioner")
+		}
+		shards = w.splitSegmentsToShards(ctx, p)
+	}
 
 	// Check if savepoint can be used
 	if err := validateShardProgress(shards, prog); err != nil {
 		if len(prog) > 1 {
 			w.Logger.Info(ctx, "Starting from scratch: invalid progress info", "error", err, "progress", prog)
+		}
+
+		// Delete inherited progress as most likely shard count changed and some
+		// shards may become orphaned.
+		for _, p := range prog {
+			if err := w.Service.deleteRunProgress(ctx, p); err != nil {
+				w.Logger.Info(ctx, "Failed to delete progress", "error", err)
+			}
 		}
 		prog = nil
 	}
@@ -105,6 +125,11 @@ func (w *hostWorker) init(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (w *hostWorker) rowLevelRepair(ctx context.Context) (bool, error) {
+	f, err := w.Client.ScyllaFeatures(ctx, w.Host)
+	return f.RowLevelRepair, err
 }
 
 func (w *hostWorker) partitioner(ctx context.Context) (*dht.Murmur3Partitioner, error) {

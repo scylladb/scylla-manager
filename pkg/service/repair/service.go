@@ -680,3 +680,13 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 
 	return q.ExecRelease()
 }
+
+// deleteRunProgress deletes a repair run.
+func (s *Service) deleteRunProgress(ctx context.Context, p *RunProgress) error {
+	s.logger.Debug(ctx, "DeleteRunProgress", "run_progress", p)
+
+	stmt, names := table.RepairRunProgress.Delete()
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(p)
+
+	return q.ExecRelease()
+}
