@@ -517,3 +517,14 @@ func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string
 	}
 	return resp.Payload, nil
 }
+
+// ScyllaFeatures returns features supported by the current Scylla release.
+func (c *Client) ScyllaFeatures(ctx context.Context, host string) (ScyllaFeatures, error) {
+	resp, err := c.scyllaOps.StorageServiceScyllaReleaseVersionGet(&operations.StorageServiceScyllaReleaseVersionGetParams{
+		Context: forceHost(ctx, host),
+	})
+	if err != nil {
+		return ScyllaFeatures{}, err
+	}
+	return makeScyllaFeatures(resp.Payload)
+}
