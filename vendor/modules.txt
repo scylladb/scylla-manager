@@ -126,7 +126,7 @@ github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 github.com/hailocab/go-hostpool
-# github.com/hashicorp/go-version v1.1.0
+# github.com/hashicorp/go-version v1.2.0
 github.com/hashicorp/go-version
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
