@@ -373,3 +373,15 @@ func TestClientTableDiskSize(t *testing.T) {
 		t.Fatalf("Expected size %d, got %d", expected, size)
 	}
 }
+
+func TestScyllaFeatures(t *testing.T) {
+	t.Parallel()
+
+	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_scylla_release_version.json")
+	defer closeServer()
+
+	_, err := client.ScyllaFeatures(context.Background(), scyllaclienttest.TestHost)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

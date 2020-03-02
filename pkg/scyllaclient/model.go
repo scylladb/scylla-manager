@@ -2,7 +2,12 @@
 
 package scyllaclient
 
-import "github.com/scylladb/go-set/strset"
+import (
+	"strings"
+
+	"github.com/hashicorp/go-version"
+	"github.com/scylladb/go-set/strset"
+)
 
 // CommandStatus specifies a result of a command
 type CommandStatus string
@@ -56,4 +61,25 @@ type TokenRange struct {
 type Unit struct {
 	Keyspace string
 	Tables   []string
+}
+
+// ScyllaFeatures specifies features supported by the Scylla version.
+type ScyllaFeatures struct {
+	RowLevelRepair bool
+}
+
+func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
+	// Trim build version suffix as it breaks constraints.
+	v, err := version.NewSemver(strings.Split(ver, "-")[0])
+	if err != nil {
+		return ScyllaFeatures{}, err
+	}
+
+	rowLevelRepair, err := version.NewConstraint(">= 3.1, < 2000")
+	if err != nil {
+		panic(err)
+	}
+	return ScyllaFeatures{
+		RowLevelRepair: rowLevelRepair.Check(v),
+	}, nil
 }
