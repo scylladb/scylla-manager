@@ -48,8 +48,10 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			continue
 		}
 		// Check if we should attach to a previous job and wait for it to complete.
-		if err := w.attachToJob(ctx, h, d); err != nil {
+		if attached, err := w.attachToJob(ctx, h, d); err != nil {
 			return errors.Wrap(err, "attach to the agent job")
+		} else if attached {
+			continue
 		}
 		// Start new upload with new job.
 		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
@@ -60,19 +62,26 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	return nil
 }
 
-func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) error {
-	if jobID := w.snapshotJobID(ctx, d); jobID != 0 {
-		w.Logger.Info(ctx, "Attaching to the previous agent job",
-			"host", h.IP,
-			"keyspace", d.Keyspace,
-			"tag", w.SnapshotTag,
-			"job_id", jobID,
-		)
-		if err := w.waitJob(ctx, jobID, d); err != nil {
-			return err
-		}
+// attachToJob returns true if previous job was found and wait procedure was
+// initiated.
+// Caller needs to check for error if true is returned otherwise it can be
+// ignored.
+func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) (bool, error) {
+	jobID := w.snapshotJobID(ctx, d)
+	if jobID == 0 {
+		return false, nil
 	}
-	return nil
+	w.Logger.Info(ctx, "Attaching to the previous agent job",
+		"host", h.IP,
+		"keyspace", d.Keyspace,
+		"tag", w.SnapshotTag,
+		"job_id", jobID,
+	)
+	err := w.waitJob(ctx, jobID, d)
+	if errors.Is(err, errJobNotFound) {
+		return false, nil
+	}
+	return true, err
 }
 
 // snapshotJobID returns the id of the job that was last responsible for
@@ -81,7 +90,7 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) err
 func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 	p := d.Progress
 
-	if p.AgentJobID == 0 || p.Size == p.Uploaded {
+	if p.AgentJobID == 0 {
 		return 0
 	}
 
@@ -144,6 +153,8 @@ func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotD
 	}
 	return nil
 }
+
+var errJobNotFound = errors.New("job not found")
 
 func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err error) {
 	defer func() {
@@ -208,7 +219,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			case scyllaclient.JobRunning:
 				w.updateProgress(waitCtx, d, job)
 			case scyllaclient.JobNotFound:
-				return errors.Errorf("job not found (%d)", id)
+				return errJobNotFound
 			}
 		}
 	}
