@@ -95,6 +95,12 @@ func (p *purger) purge(ctx context.Context) error {
 		return nil
 	}
 
+	// Delete sstables that are not alive
+	p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
+	if err := p.deleteSSTables(ctx, staleFiles.List()); err != nil {
+		return errors.Wrap(err, "delete stale data")
+	}
+
 	// Delete stale tags
 	for _, m := range manifests {
 		if staleTagsSet.Has(m.SnapshotTag) {
@@ -109,12 +115,6 @@ func (p *purger) purge(ctx context.Context) error {
 				"policy", p.Policy,
 			)
 		}
-	}
-
-	// Delete sstables that are not alive
-	p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
-	if err := p.deleteSSTables(ctx, staleFiles.List()); err != nil {
-		return errors.Wrap(err, "delete stale data")
 	}
 
 	return nil
