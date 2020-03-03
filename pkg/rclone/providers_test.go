@@ -16,6 +16,7 @@ func TestRegisterS3ProviderSetsS3Options(t *testing.T) {
 		SecretAccessKey: "b",
 		Region:          "c",
 		Endpoint:        "d",
+		Provider:        "f",
 	}
 
 	if err := RegisterS3Provider(opts); err != nil {

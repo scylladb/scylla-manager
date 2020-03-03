@@ -15,6 +15,7 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/sync"
+	"github.com/rclone/rclone/lib/pacer"
 )
 
 // wrap a Reader and a Closer together into a ReadCloser
@@ -71,6 +72,9 @@ func (e PermissionError) Cause() error {
 // CheckPermissions checks if file system is available for listing, getting,
 // creating, and deleting objects.
 func CheckPermissions(ctx context.Context, l fs.Fs) error {
+	// Disable retries for calls in permissions check.
+	ctx = pacer.WithRetries(ctx, 0)
+
 	// Create temp dir.
 	tmpDir, err := ioutil.TempDir("", "scylla-manager-agent-")
 	if err != nil {

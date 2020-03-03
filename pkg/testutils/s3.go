@@ -11,6 +11,7 @@ import (
 
 var (
 	flagS3DataDir         = flag.String("s3-data-dir", "", "path to test S3 instance root data dir")
+	flagS3Provider        = flag.String("s3-provider", "", "test S3 instance provider")
 	flagS3Endpoint        = flag.String("s3-endpoint", "", "test S3 instance endpoint")
 	flagS3AccessKeyID     = flag.String("s3-access-key-id", "", "test S3 instance access key")
 	flagS3SecretAccessKey = flag.String("s3-secret-access-key", "", "test S3 instance secret")
@@ -37,10 +38,10 @@ func S3InitBucket(t *testing.T, bucket string) {
 	}
 }
 
-// S3Credentials returns endpoint and credentials to test S3 instance.
-func S3Credentials() (endpoint, accessKeyID, secretAccessKey string) {
+// S3Credentials returns provider, endpoint, and credentials to test S3 instance.
+func S3Credentials() (provider, endpoint, accessKeyID, secretAccessKey string) {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
-	return *flagS3Endpoint, *flagS3AccessKeyID, *flagS3SecretAccessKey
+	return *flagS3Provider, *flagS3Endpoint, *flagS3AccessKeyID, *flagS3SecretAccessKey
 }

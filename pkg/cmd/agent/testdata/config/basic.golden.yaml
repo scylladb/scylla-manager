@@ -19,11 +19,11 @@ scylla:
 s3:
   access_key_id: ""
   secret_access_key: ""
+  provider: ""
   region: ""
   endpoint: ""
   server_side_encryption: ""
   sse_kms_key_id: ""
   upload_concurrency: ""
   chunk_size: ""
-  max_retries: ""
   use_accelerate_endpoint: ""

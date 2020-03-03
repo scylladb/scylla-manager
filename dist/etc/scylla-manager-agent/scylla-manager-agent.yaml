@@ -88,6 +88,15 @@
 #  access_key_id:
 #  secret_access_key:
 #
+# Provider of the S3 service. By default this is AWS. There are multiple S3
+# API compatible providers that can be used instead. Due to minor differences
+# between them we require that exact provider is specified here for full
+# compatibility. Only two supported and tested options are:
+# AWS and Minio.
+# Other non supported but usable options are:
+# Alibaba, Ceph, DigitalOcean, IBMCOS, Wasabi, Dreamhost, Netease, and Other.
+#  provider: AWS
+#
 # Region to connect to, if running in AWS EC2 instance region is set
 # to the local region by default.
 #  region:

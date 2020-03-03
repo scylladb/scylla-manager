@@ -3,6 +3,7 @@
 package rclone
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"strconv"
@@ -59,13 +60,13 @@ func MustRegisterLocalDirProvider(name, description, rootDir string) {
 type S3Options struct {
 	AccessKeyID           string `yaml:"access_key_id"`
 	SecretAccessKey       string `yaml:"secret_access_key"`
+	Provider              string `yaml:"provider"`
 	Region                string `yaml:"region"`
 	Endpoint              string `yaml:"endpoint"`
 	ServerSideEncryption  string `yaml:"server_side_encryption"`
 	SSEKMSKeyID           string `yaml:"sse_kms_key_id"`
 	UploadConcurrency     string `yaml:"upload_concurrency"`
 	ChunkSize             string `yaml:"chunk_size"`
-	MaxRetries            string `yaml:"max_retries"`
 	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
 }
 
@@ -81,17 +82,20 @@ const (
 	// increasing chunk size by ten times, which should decrease number of
 	// requests by ten times.
 	defaultChunkSize = "50M"
-
-	// Default value of 10 was not enough for problems with S3 returning 5xx.
-	// We want to be more persistent in retries and wait until service is
-	// available.
-	defaultMaxRetries = 20
 )
 
 // RegisterS3Provider must be called before server is started.
 // It allows for adding dynamically adding s3 provider named s3.
 func RegisterS3Provider(opts S3Options) error {
 	const name = "s3"
+
+	if opts.Endpoint != "" && opts.Provider == "" {
+		return fmt.Errorf("missing provider for specified s3 endpoint: %s", opts.Endpoint)
+	}
+
+	if opts.Provider == "" {
+		opts.Provider = "AWS"
+	}
 
 	// Auto set region if needed
 	if opts.Region == "" && opts.Endpoint == "" {
@@ -106,17 +110,13 @@ func RegisterS3Provider(opts S3Options) error {
 		opts.ChunkSize = defaultChunkSize
 	}
 
-	if opts.MaxRetries == "" {
-		opts.MaxRetries = strconv.Itoa(defaultMaxRetries)
-	}
-
 	// Set common properties
 	errs := multierr.Combine(
 		fs.ConfigFileSet(name, "type", "s3"),
-		fs.ConfigFileSet(name, "provider", "AWS"),
+		fs.ConfigFileSet(name, "provider", opts.Provider),
 		fs.ConfigFileSet(name, "env_auth", "true"),
 		fs.ConfigFileSet(name, "disable_checksum", "true"),
-		fs.ConfigFileSet(name, "list_chunk_size", "200"),
+		fs.ConfigFileSet(name, "list_chunk", "200"),
 	)
 
 	// Set custom properties
@@ -147,8 +147,9 @@ func RegisterS3Provider(opts S3Options) error {
 }
 
 // MustRegisterS3Provider calls RegisterS3Provider and panics on error.
-func MustRegisterS3Provider(endpoint, accessKeyID, secretAccessKey string) {
+func MustRegisterS3Provider(provider, endpoint, accessKeyID, secretAccessKey string) {
 	if err := RegisterS3Provider(S3Options{
+		Provider:        provider,
 		Endpoint:        endpoint,
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,

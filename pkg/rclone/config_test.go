@@ -1,11 +1,13 @@
 // Copyright (C) 2017 ScyllaDB
 
-package rclone
+package rclone_test
 
 import (
 	"testing"
 
 	"github.com/rclone/rclone/fs/rc"
+	"github.com/scylladb/mermaid/pkg/rclone"
+	_ "github.com/scylladb/mermaid/pkg/rclone/rcserver"
 )
 
 func TestInMemoryConfNotExposed(t *testing.T) {
@@ -33,13 +35,13 @@ func TestInMemoryConfNotExposed(t *testing.T) {
 		},
 	}
 
-	initInMemoryConfig()
+	rclone.InitInMemoryConfig()
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			call := rc.Calls.Get(test.Path)
 			if call != nil {
-				t.Fatalf("Can't find %s call", test.Path)
+				t.Fatalf("Call is available %s", test.Path)
 			}
 		})
 	}

@@ -30,8 +30,8 @@ func InitFsConfig() {
 	fs.Config.NoUpdateModTime = true
 	// Set proper agent for backend clients.
 	fs.Config.UserAgent = UserAgent()
-	// How many times to retry low level operations like copy file.
-	fs.Config.LowLevelRetries = 5
+	// How many times to retry low level operations like s3 chunk upload.
+	fs.Config.LowLevelRetries = 20
 	// How many stat groups to keep in memory.
 	fs.Config.MaxStatsGroups = 1000
 }
