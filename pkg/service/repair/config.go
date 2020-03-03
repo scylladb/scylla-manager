@@ -28,7 +28,6 @@ func DefaultConfig() Config {
 		ShardFailedSegmentsMax: 100,
 		ErrorBackoff:           5 * time.Minute,
 		PollInterval:           200 * time.Millisecond,
-		AgeMax:                 36 * time.Hour,
 		ShardingIgnoreMsbBits:  12,
 	}
 }
@@ -55,8 +54,8 @@ func (c *Config) Validate() error {
 	if c.PollInterval <= 0 {
 		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
 	}
-	if c.AgeMax <= 0 {
-		err = multierr.Append(err, errors.New("invalid age_max, must be > 0"))
+	if c.AgeMax < 0 {
+		err = multierr.Append(err, errors.New("invalid age_max, must be >= 0"))
 	}
 	if c.ShardingIgnoreMsbBits < 0 {
 		err = multierr.Append(err, errors.New("invalid murmur3_partitioner_ignore_msb_bits, must be >= 0"))

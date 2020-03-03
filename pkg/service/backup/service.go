@@ -637,7 +637,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 
 	// Check if can continue from prev
 	s.logger.Info(ctx, "Found previous run", "run_id", prev.ID)
-	if timeutc.Since(prev.StartTime) > s.config.AgeMax {
+	if s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax {
 		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 		return nil
 	}

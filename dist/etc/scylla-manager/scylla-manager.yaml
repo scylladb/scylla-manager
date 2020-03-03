@@ -87,6 +87,7 @@ http: 127.0.0.1:56080
 #
 # Maximal time for backup run to be considered fresh and can be continued from
 # the same snapshot. If exceeded, new run with new snapshot will be created.
+# Zero means no limit.
 #  age_max: 12h
 
 # Repair service configuration.
@@ -114,8 +115,8 @@ http: 127.0.0.1:56080
 #  poll_interval: 200ms
 #
 # Maximal time a paused repair is considered fresh and can be continued,
-# if exceeded repair will start from the beginning.
-#  age_max: 36h
+# if exceeded repair will start from the beginning. Zero means no limit.
+#  age_max: 0
 #
 # Distribution of data among cores (shards) within a node.
 # Copy value from Scylla configuration file.

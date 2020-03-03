@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg/service"
 	"go.uber.org/multierr"
 )
 
@@ -25,9 +26,16 @@ func DefaultConfig() Config {
 
 // Validate checks if all the fields are properly set.
 func (c *Config) Validate() error {
+	if c == nil {
+		return service.ErrNilPtr
+	}
+
 	var err error
 	if c.DiskSpaceFreeMinPercent < 0 || c.DiskSpaceFreeMinPercent >= 100 {
 		err = multierr.Append(err, errors.New("invalid disk_space_free_min_percent, must be between 0 and 100"))
+	}
+	if c.AgeMax < 0 {
+		err = multierr.Append(err, errors.New("invalid age_max, must be >= 0"))
 	}
 
 	return err

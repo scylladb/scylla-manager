@@ -263,7 +263,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	// Check if can continue from prev
 	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
 	switch {
-	case timeutc.Since(prev.StartTime) > s.config.AgeMax:
+	case s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax:
 		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 		return nil
 	case prev.TopologyHash != run.TopologyHash:
