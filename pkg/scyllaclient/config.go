@@ -41,7 +41,7 @@ func DefaultConfig() Config {
 	return Config{
 		Port:              "10001",
 		Scheme:            "https",
-		Timeout:           15 * time.Minute,
+		// Timeout:           15 * time.Minute,
 		RequestTimeout:    15 * time.Second,
 		PoolDecayDuration: 30 * time.Minute,
 	}
