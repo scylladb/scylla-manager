@@ -12,8 +12,9 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
-	"go.uber.org/multierr"
+	"go.uber.org/atomic"
 )
 
 type purger struct {
@@ -112,7 +113,7 @@ func (p *purger) purge(ctx context.Context) error {
 
 	// Delete sstables that are not alive
 	p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
-	if err := p.deleteSSTables(ctx, staleFiles); err != nil {
+	if err := p.deleteSSTables(ctx, staleFiles.List()); err != nil {
 		return errors.Wrap(err, "delete stale data")
 	}
 
@@ -128,29 +129,19 @@ func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error
 	return p.ManifestHelper.ListManifests(ctx, filter)
 }
 
-func (p *purger) deleteSSTables(ctx context.Context, filePaths *strset.Set) error {
+func (p *purger) deleteSSTables(ctx context.Context, files []string) error {
 	baseDir := remoteSSTableBaseDir(p.ClusterID, p.HostInfo.DC, p.HostInfo.ID)
 
-	p.Logger.Debug(ctx, "Listing sstables",
-		"host", p.HostInfo.IP,
-		"location", p.HostInfo.Location,
-		"path", baseDir,
-	)
-
-	var (
-		errs    error
-		deleted int
-	)
-
-	filePaths.Each(func(filePath string) bool {
-		l := p.HostInfo.Location.RemotePath(path.Join(baseDir, filePath))
-		if err := p.deleteFile(ctx, l); err != nil {
-			errs = multierr.Append(errs, errors.Wrapf(err, "delete file %s", l))
-		} else {
-			deleted++
-		}
-		return true
-	})
+	deleted, err := p.deleteFiles(ctx, baseDir, files)
+	if err != nil {
+		p.Logger.Info(ctx, "Failed to delete orphaned data files",
+			"host", p.HostInfo.IP,
+			"location", p.HostInfo.Location,
+			"files", deleted,
+			"error", err,
+		)
+		return err
+	}
 
 	p.Logger.Info(ctx, "Deleted orphaned data files",
 		"host", p.HostInfo.IP,
@@ -158,7 +149,25 @@ func (p *purger) deleteSSTables(ctx context.Context, filePaths *strset.Set) erro
 		"files", deleted,
 	)
 
-	return errs
+	return nil
+}
+
+func (p *purger) deleteFiles(ctx context.Context, baseDir string, files []string) (n int64, err error) {
+	const limit = 5
+
+	var deleted atomic.Int64
+
+	err = parallel.Run(len(files), limit, func(i int) error {
+		filePath := files[i]
+		l := p.HostInfo.Location.RemotePath(path.Join(baseDir, filePath))
+		if err := p.deleteFile(ctx, l); err != nil {
+			return err
+		}
+		deleted.Inc()
+		return nil
+	})
+
+	return deleted.Load(), err
 }
 
 func (p *purger) deleteFile(ctx context.Context, path string) error {
