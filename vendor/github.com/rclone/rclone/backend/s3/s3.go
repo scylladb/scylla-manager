@@ -801,6 +801,14 @@ Defaults to 10. Setting it to -1 defers the max retry setting to the service
 specific configuration.`,
 			Default:  10,
 			Advanced: true,
+		}, {
+			Name: "list_chunk_size",
+			Help: `Number of times read at once during object listing.
+
+Listing requests are paginated. This value allows to set the maximum number of
+objects returned in single response.`,
+			Default:  listChunkSize,
+			Advanced: true,
 		},
 		},
 	})
@@ -844,6 +852,7 @@ type Options struct {
 	UseAccelerateEndpoint bool          `config:"use_accelerate_endpoint"`
 	LeavePartsOnError     bool          `config:"leave_parts_on_error"`
 	MaxRetries            int           `config:"max_retries"`
+	ListChunkSize         int           `config:"list_chunk_size"`
 }
 
 // Fs represents a remote s3 server
@@ -1281,7 +1290,7 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 	if directory != "" {
 		directory += "/"
 	}
-	maxKeys := int64(listChunkSize)
+	maxKeys := int64(f.opt.ListChunkSize)
 	delimiter := ""
 	if !recurse {
 		delimiter = "/"
