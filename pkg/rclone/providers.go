@@ -116,6 +116,7 @@ func RegisterS3Provider(opts S3Options) error {
 		fs.ConfigFileSet(name, "provider", "AWS"),
 		fs.ConfigFileSet(name, "env_auth", "true"),
 		fs.ConfigFileSet(name, "disable_checksum", "true"),
+		fs.ConfigFileSet(name, "list_chunk_size", "200"),
 	)
 
 	// Set custom properties

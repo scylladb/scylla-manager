@@ -7,7 +7,7 @@ import (
 	"github.com/rclone/rclone/fs/rc"
 )
 
-const defaultListEncoderMaxItems = 1000
+const defaultListEncoderMaxItems = 200
 
 type listJSONEncoder struct {
 	enc      *jsonEncoder
