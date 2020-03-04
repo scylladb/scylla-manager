@@ -53,14 +53,14 @@ type backupTestHelper struct {
 	t *testing.T
 }
 
-func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Config, location backup.Location) *backupTestHelper {
+func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
 	t.Helper()
 
 	S3InitBucket(t, location.Path)
 
 	logger := log.NewDevelopmentWithLevel(zapcore.DebugLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	client := newTestClient(t, hrt, logger.Named("client"))
+	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
 	service := newTestService(t, session, client, config, logger)
 
 	for _, ip := range ManagedClusterHosts() {
@@ -84,13 +84,16 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 	}
 }
 
-func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
+func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, config *scyllaclient.Config) *scyllaclient.Client {
 	t.Helper()
 
-	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	if config == nil {
+		c := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+		config = &c
+	}
 	config.Transport = hrt
 
-	c, err := scyllaclient.NewClient(config, logger)
+	c, err := scyllaclient.NewClient(*config, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +359,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket))
+		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -461,7 +464,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket))
+		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -490,7 +493,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 
 	var (
 		session = CreateSession(t)
-		h       = newBackupTestHelper(t, session, config, s3Location(testBucket))
+		h       = newBackupTestHelper(t, session, config, s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -654,7 +657,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
-		h              = newBackupTestHelper(t, session, config, location)
+		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
 	)
 
@@ -881,7 +884,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	}
 
 	t.Run("resume after stop", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config, location)
+		h := newBackupTestHelper(t, session, config, location, nil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
@@ -940,7 +943,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 
 	t.Run("resume after agent restart", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config, location)
+		clientConf := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+		clientConf.Backoff.MaxRetries = 5
+		h := newBackupTestHelper(t, session, config, location, &clientConf)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -949,8 +954,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 		go func() {
 			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
-			if err == nil {
-				t.Error("Expected error on run but got nil")
+			if err != nil {
+				t.Errorf("Expected no error but got %+v", err)
 			}
 			close(done)
 		}()
@@ -970,21 +975,12 @@ func TestBackupResumeIntegration(t *testing.T) {
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
 
-		Print("When: backup is resumed with new RunID")
-		err := h.service.Backup(context.Background(), h.clusterID, h.taskID, uuid.NewTime(), target)
-		if err != nil {
-			t.Error("Unexpected error", err)
-		}
-
-		Print("Then: data is uploaded")
+		Print("And: data is uploaded")
 		assertDataUploded(t, h)
-
-		Print("And: nothing is transferring")
-		h.waitNoTransfers()
 	})
 
 	t.Run("resume after snapshot failed", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config, location)
+		h := newBackupTestHelper(t, session, config, location, nil)
 
 		Print("Given: snapshot fails on a host")
 		var (
@@ -1037,7 +1033,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 
 	t.Run("continue false", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config, location)
+		h := newBackupTestHelper(t, session, config, location, nil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
@@ -1107,7 +1103,7 @@ func TestPurgeIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
 
-		h   = newBackupTestHelper(t, session, config, location)
+		h   = newBackupTestHelper(t, session, config, location, nil)
 		ctx = context.Background()
 	)
 
@@ -1205,7 +1201,7 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 		Retention: 3,
 	}
 
-	h := newBackupTestHelper(t, session, config, location)
+	h := newBackupTestHelper(t, session, config, location, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -1270,7 +1266,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
 
-		h   = newBackupTestHelper(t, session, config, location)
+		h   = newBackupTestHelper(t, session, config, location, nil)
 		ctx = context.Background()
 	)
 

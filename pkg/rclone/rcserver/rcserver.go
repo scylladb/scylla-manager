@@ -88,7 +88,7 @@ func (s Server) writeError(path string, in rc.Params, w http.ResponseWriter, err
 	// Adjust the error return for some well known errors
 	errOrig := errors.Cause(err)
 	switch {
-	case errOrig == fs.ErrorDirNotFound || errOrig == fs.ErrorObjectNotFound || errOrig == fs.ErrorNotFoundInConfigFile:
+	case errOrig == fs.ErrorDirNotFound || errOrig == fs.ErrorObjectNotFound || errOrig == fs.ErrorNotFoundInConfigFile || errOrig == errJobNotFound:
 		status = http.StatusNotFound
 	case isBadRequestErr(err):
 		status = http.StatusBadRequest

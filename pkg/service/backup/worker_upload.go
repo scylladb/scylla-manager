@@ -129,9 +129,16 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		sstablesPath = w.remoteSSTableDir(h, d)
 		dataDst      = h.Location.RemotePath(sstablesPath)
 		dataSrc      = d.Path
+		retries      = 10
 	)
-	if err := w.uploadDataDir(ctx, dataDst, dataSrc, d); err != nil {
-		return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
+	for i := 0; i < retries; i++ {
+		if err := w.uploadDataDir(ctx, dataDst, dataSrc, d); err != nil {
+			if errors.Is(err, errJobNotFound) {
+				continue
+			}
+			return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
+		}
+		break
 	}
 
 	return nil

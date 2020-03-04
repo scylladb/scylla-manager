@@ -31,29 +31,37 @@ import (
 const CatLimit = 4 * 1024 * 1024
 
 // rcJobInfo aggregates core, transferred, and job stats into a single call.
+// If jobid parameter is provided but job is not found then nil is returned for
+// all three aggregated stats.
+// If jobid parameter is not provided then transferred and core stats are
+// returned for all groups to allow access to global transfer stats.
 func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	// Load Job status only if jobid is explicitly set.
 	var (
-		jobOut rc.Params
-		jobErr error
+		jobOut, statsOut, transOut map[string]interface{}
+		jobErr, statsErr, transErr error
 	)
+	// Load Job status only if jobid is explicitly set.
 	if jobid, err := in.GetInt64("jobid"); err == nil {
 		wait, err := in.GetInt64("wait")
 		if err != nil && !rc.IsErrParamNotFound(err) {
-			return rc.Params{}, err
+			jobErr = err
+		} else if wait > 0 {
+			jobErr = waitForJobFinish(ctx, jobid, wait)
 		}
-		if wait > 0 {
-			if err := waitForJobFinish(ctx, jobid, wait); err != nil {
-				return rc.Params{}, err
-			}
+		if jobErr == nil {
+			jobOut, jobErr = rcCalls.Get("job/status").Fn(ctx, in)
+			in["group"] = fmt.Sprintf("job/%d", jobid)
 		}
-
-		jobOut, jobErr = rcCalls.Get("job/status").Fn(ctx, in)
-		in["group"] = fmt.Sprintf("job/%d", jobid)
 	}
 
-	statsOut, statsErr := rcCalls.Get("core/stats").Fn(ctx, in)
-	transOut, transErr := rcCalls.Get("core/transferred").Fn(ctx, in)
+	if jobErr == nil {
+		statsOut, statsErr = rcCalls.Get("core/stats").Fn(ctx, in)
+		transOut, transErr = rcCalls.Get("core/transferred").Fn(ctx, in)
+	} else if errors.Is(jobErr, errJobNotFound) {
+		// Job not found status will be registered as nil in "job" field.
+		jobErr = nil
+		fs.Errorf(nil, "Job not found")
+	}
 
 	return rc.Params{
 		"job":         jobOut,
@@ -62,6 +70,8 @@ func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	}, multierr.Combine(jobErr, statsErr, transErr)
 }
 
+var errJobNotFound = errors.New("job not found")
+
 func waitForJobFinish(ctx context.Context, jobid, wait int64) error {
 	w := time.Second * time.Duration(wait)
 	done := make(chan struct{})
@@ -69,7 +79,10 @@ func waitForJobFinish(ctx context.Context, jobid, wait int64) error {
 	if err := jobs.OnFinish(jobid, func() {
 		close(done)
 	}); err != nil {
-		return err
+		// Returning errJobNotFound because jobs.OnFinish can fail only if job
+		// is not available and it doesn't return any specific error to signal
+		// that higher up the call chain.
+		return errJobNotFound
 	}
 
 	timer := time.NewTimer(w)
