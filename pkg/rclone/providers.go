@@ -67,6 +67,7 @@ type S3Options struct {
 	ChunkSize             string `yaml:"chunk_size"`
 	MaxRetries            string `yaml:"max_retries"`
 	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
+	ListChunkSize         string `yaml:"list_chunk_size"`
 }
 
 const (
@@ -116,6 +117,7 @@ func RegisterS3Provider(opts S3Options) error {
 		fs.ConfigFileSet(name, "provider", "AWS"),
 		fs.ConfigFileSet(name, "env_auth", "true"),
 		fs.ConfigFileSet(name, "disable_checksum", "true"),
+		fs.ConfigFileSet(name, "list_chunk_size", "200"),
 	)
 
 	// Set custom properties
