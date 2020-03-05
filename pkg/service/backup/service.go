@@ -513,25 +513,23 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Get hosts in all DCs
-	dcMap, err := client.Datacenters(ctx)
+	status, err := client.Status(ctx)
 	if err != nil {
-		return errors.Wrap(err, "read datacenters")
+		return errors.Wrap(err, "status")
 	}
 
-	// Get hosts in the given DCs
-	hosts := dcHosts(dcMap, run.DC)
-	if len(hosts) == 0 {
-		return errors.New("no matching hosts found")
+	// Validate that there are no hosts down
+	if down := status.Datacenter(run.DC).DownHosts(); len(down) != 0 {
+		return errors.Errorf("nodes are down: %s", strings.Join(down, ","))
 	}
 
-	// Get host IDs
-	hostIDs, err := client.HostIDs(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get host IDs")
+	nodes := status.Datacenter(run.DC)
+	if len(nodes) == 0 {
+		return errors.New("no matching nodes found")
 	}
 
 	// Create hostInfo for hosts
-	hi, err := hostInfoFromHosts(hosts, dcMap, hostIDs, target.Location, target.RateLimit)
+	hi, err := makeHostInfo(nodes, target.Location, target.RateLimit)
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"go.uber.org/multierr"
 )
 
@@ -63,15 +64,7 @@ func checkAllDCsCovered(locations []Location, dcs []string) error {
 	return nil
 }
 
-func hostInfoFromHosts(hosts []string, dcMap map[string][]string, hostIDs map[string]string, locations []Location, rateLimits []DCLimit) ([]hostInfo, error) {
-	// Host to DC index
-	hdc := map[string]string{}
-	for dc, hosts := range dcMap {
-		for _, h := range hosts {
-			hdc[h] = dc
-		}
-	}
-
+func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []Location, rateLimits []DCLimit) ([]hostInfo, error) {
 	// DC location index
 	dcl := map[string]Location{}
 	for _, l := range locations {
@@ -85,30 +78,23 @@ func hostInfoFromHosts(hosts []string, dcMap map[string][]string, hostIDs map[st
 	}
 
 	var (
-		hi   = make([]hostInfo, len(hosts))
+		hi   = make([]hostInfo, len(nodes))
 		errs error
 	)
-	for i, h := range hosts {
+	for i, h := range nodes {
 		var ok bool
 
-		dc, ok := hdc[h]
-		if !ok {
-			errs = multierr.Append(errs, errors.Errorf("%s: unknown datacenter", h))
-		}
-		hi[i].DC = dc
-		hi[i].IP = h
-		hi[i].ID, ok = hostIDs[h]
-		if !ok {
-			errs = multierr.Append(errs, errors.Errorf("%s: unknown ID", h))
-		}
-		hi[i].Location, ok = dcl[dc]
+		hi[i].DC = h.Datacenter
+		hi[i].IP = h.Addr
+		hi[i].ID = h.HostID
+		hi[i].Location, ok = dcl[h.Datacenter]
 		if !ok {
 			hi[i].Location, ok = dcl[""]
 			if !ok {
 				errs = multierr.Append(errs, errors.Errorf("%s: unknown location", h))
 			}
 		}
-		hi[i].RateLimit, ok = dcr[dc]
+		hi[i].RateLimit, ok = dcr[h.Datacenter]
 		if !ok {
 			hi[i].RateLimit = dcr[""] // no rate limit is ok, fallback to 0 - no limit
 		}
