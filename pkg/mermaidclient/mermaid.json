@@ -72,7 +72,13 @@
           "dc": {
             "type": "string"
           },
+          "host_id": {
+            "type": "string"
+          },
           "host": {
+            "type": "string"
+          },
+          "status": {
             "type": "string"
           },
           "ssl": {

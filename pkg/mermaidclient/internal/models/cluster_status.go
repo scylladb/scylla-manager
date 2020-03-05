@@ -60,6 +60,9 @@ type ClusterStatusItems0 struct {
 	// host
 	Host string `json:"host,omitempty"`
 
+	// host id
+	HostID string `json:"host_id,omitempty"`
+
 	// rest rtt ms
 	RestRttMs float32 `json:"rest_rtt_ms,omitempty"`
 
@@ -68,6 +71,9 @@ type ClusterStatusItems0 struct {
 
 	// ssl
 	Ssl bool `json:"ssl,omitempty"`
+
+	// status
+	Status string `json:"status,omitempty"`
 }
 
 // Validate validates this cluster status items0

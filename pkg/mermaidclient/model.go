@@ -41,8 +41,6 @@ func (cs ClusterSlice) Render(w io.Writer) error {
 	return nil
 }
 
-const statusDown = "DOWN"
-
 // ClusterStatus contains cluster status info.
 type ClusterStatus models.ClusterStatus
 
@@ -52,9 +50,11 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 		return nil
 	}
 
+	const statusUp = "UP"
+
 	var (
 		dc = cs[0].Dc
-		t  = table.New("CQL", "SSL", "REST", "Host")
+		t  = table.New("", "CQL", "SSL", "REST", "Host", "Host ID")
 	)
 
 	for _, s := range cs {
@@ -63,21 +63,33 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 				return err
 			}
 			dc = s.Dc
-			t = table.New("CQL", "SSL", "REST", "Host")
+			t = table.New("", "CQL", "SSL", "REST", "Host", "Host ID")
 		}
-		cqlStatus := statusDown
-		if s.CqlStatus != statusDown {
+
+		cqlStatus := s.CqlStatus
+		ssl := ""
+		if s.CqlStatus == statusUp {
 			cqlStatus = fmt.Sprintf("%s (%.0fms)", s.CqlStatus, s.CqlRttMs)
+			if s.Ssl {
+				ssl = "ON"
+			} else {
+				ssl = "OFF"
+			}
 		}
-		restStatus := statusDown
-		if s.RestStatus != statusDown {
+		if s.CqlStatus == "" {
+			cqlStatus = "-"
+			ssl = "-"
+		}
+
+		restStatus := s.RestStatus
+		if restStatus == statusUp {
 			restStatus = fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
 		}
-		ssl := "OFF"
-		if s.Ssl {
-			ssl = "ON"
+		if restStatus == "" {
+			restStatus = "-"
 		}
-		t.AddRow(cqlStatus, ssl, restStatus, s.Host)
+
+		t.AddRow(s.Status, cqlStatus, ssl, restStatus, s.Host, s.HostID)
 	}
 	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
 		return err
