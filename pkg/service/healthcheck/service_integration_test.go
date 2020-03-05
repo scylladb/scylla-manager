@@ -45,14 +45,15 @@ func TestStatusIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	compare := func(t *testing.T, got, expected []NodeStatus) {
+	assertEqual := func(t *testing.T, got, golden []NodeStatus) {
 		t.Helper()
-		diffOpts := []cmp.Option{
+
+		opts := cmp.Options{
 			UUIDComparer(),
-			cmpopts.IgnoreFields(NodeStatus{}, "CQLRtt", "RESTRtt"),
+			cmpopts.IgnoreFields(NodeStatus{}, "HostID", "Status", "CQLRtt", "RESTRtt"),
 		}
-		if diff := cmp.Diff(got, expected, diffOpts...); diff != "" {
-			t.Error(diff)
+		if diff := cmp.Diff(got, golden, opts...); diff != "" {
+			t.Errorf("Status() = %+v, diff %s", got, diff)
 		}
 	}
 
@@ -78,15 +79,15 @@ func TestStatusIntegration(t *testing.T) {
 			return
 		}
 
-		expected := []NodeStatus{
-			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		compare(t, status, expected)
+		assertEqual(t, status, golden)
 	})
 
 	t.Run("all nodes UP", func(t *testing.T) {
@@ -96,18 +97,18 @@ func TestStatusIntegration(t *testing.T) {
 			return
 		}
 
-		expected := []NodeStatus{
-			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		compare(t, status, expected)
+		assertEqual(t, status, golden)
 	})
 
-	t.Run("node_12 REST DOWN", func(t *testing.T) {
+	t.Run("node REST DOWN", func(t *testing.T) {
 		host := "192.168.100.12"
 		blockREST(t, host)
 		defer unblockREST(t, host)
@@ -118,18 +119,18 @@ func TestStatusIntegration(t *testing.T) {
 			return
 		}
 
-		expected := []NodeStatus{
-			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN"},
-			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		compare(t, status, expected)
+		assertEqual(t, status, golden)
 	})
 
-	t.Run("node_12 CQL DOWN", func(t *testing.T) {
+	t.Run("node CQL DOWN", func(t *testing.T) {
 		host := "192.168.100.12"
 		blockCQL(t, host)
 		defer unblockCQL(t, host)
@@ -140,18 +141,18 @@ func TestStatusIntegration(t *testing.T) {
 			return
 		}
 
-		expected := []NodeStatus{
-			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "DOWN", RESTStatus: "UP"},
-			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{DC: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "DOWN", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		compare(t, status, expected)
+		assertEqual(t, status, golden)
 	})
 
-	t.Run("managed cluster nodes REST DOWN", func(t *testing.T) {
+	t.Run("all nodes REST DOWN", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -164,16 +165,17 @@ func TestStatusIntegration(t *testing.T) {
 			}
 		}()
 
-		_, err := s.Status(ctx, uuid.MustRandom())
-		if err == nil {
-			t.Error("Expected error got nil")
-		} else if !strings.Contains(err.Error(), "get hosts for cluster") {
-			t.Errorf("Expected 'failed to get hosts for cluster' got %s", err)
+		msg := ""
+		if _, err := s.Status(ctx, uuid.MustRandom()); err != nil {
+			msg = err.Error()
+		}
+		if !strings.HasPrefix(msg, "status: giving up after") {
+			t.Errorf("Status() error = %s, expected ~ status: giving up after", msg)
 		}
 	})
 
 	t.Run("context timeout exceeded", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 		defer cancel()
 
 		_, err := s.Status(ctx, uuid.MustRandom())

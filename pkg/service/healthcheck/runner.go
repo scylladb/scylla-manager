@@ -58,7 +58,7 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 }
 
 func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, hosts []string) {
-	parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+	parallel.Run(len(hosts), parallel.NoLimit, func(i int) error { // nolint: errcheck
 		l := prometheus.Labels{
 			clusterKey: clusterName,
 			hostKey:    hosts[i],

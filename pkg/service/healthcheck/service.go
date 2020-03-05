@@ -5,11 +5,8 @@ package healthcheck
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net"
-	"runtime"
-	"sort"
 	"sync"
 	"time"
 
@@ -19,11 +16,9 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/secrets"
+	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
-)
-
-const (
-	pingLaps = 3
+	"golang.org/x/sync/errgroup"
 )
 
 // ClusterNameFunc returns name for a given ID.
@@ -92,109 +87,72 @@ func (s *Service) RESTRunner() Runner {
 	}
 }
 
-type pingStat struct {
-	status string
-	rtt    float64
-}
-
-type pingFunc func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
-
 // Status returns the current status of the supplied cluster.
 func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus, error) {
 	s.logger.Debug(ctx, "Status", "cluster_id", clusterID)
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get client for cluster with id %s", clusterID)
+		return nil, errors.Wrap(err, "get client")
 	}
 
-	dcs, err := client.Datacenters(ctx)
+	status, err := client.Status(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get hosts for cluster with id %s", clusterID)
+		return nil, errors.Wrap(err, "status")
 	}
 
-	check := func(host, name string, ping pingFunc, q chan pingStat) {
-		status := pingStat{
-			status: statusUp,
-		}
-		s.logger.Debug(ctx, fmt.Sprintf("pinging %s", name),
-			"cluster_id", clusterID,
-			"host", host,
-		)
-		rtt, err := ping(ctx, clusterID, host)
-		if err != nil {
-			s.logger.Error(ctx, fmt.Sprintf("%s ping failed", name),
-				"cluster_id", clusterID,
-				"host", host,
-				"error", err,
-			)
-			status.status = statusDown
-		}
-		status.rtt = float64(rtt / 1000000)
-		select {
-		case q <- status:
-		case <-ctx.Done():
-		}
-	}
+	out := makeNodeStatus(status)
 
-	out := make(chan NodeStatus, runtime.NumCPU()+1)
+	g := new(errgroup.Group)
+	g.Go(func() error {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			// Ignore check if node is not Un and Normal
+			if !status[i].IsUN() {
+				return
+			}
 
-	size := 0
-	for dc, hosts := range dcs {
-		for _, h := range hosts {
-			size++
+			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr)
+			out[i].CQLRtt = float64(rtt / 1000000)
+			if err != nil {
+				s.logger.Error(ctx, "CQL ping failed",
+					"cluster_id", clusterID,
+					"host", status[i].Addr,
+					"error", err,
+				)
+				out[i].CQLStatus = statusDown
+			} else {
+				out[i].CQLStatus = statusUp
+			}
+			out[i].SSL = s.hasTLSConfig(clusterID)
 
-			cqlQ := make(chan pingStat)
-			restQ := make(chan pingStat)
-			go check(h, "CQL", s.pingCQL, cqlQ)
-			go check(h, "REST", s.pingREST, restQ)
+			return
+		})
+	})
+	g.Go(func() error {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			// Ignore check if node is not Un and Normal
+			if !status[i].IsUN() {
+				return
+			}
 
-			go func(dc, h string) {
-				var cqlStatus, restStatus pingStat
-				for cqlStatus.status == "" || restStatus.status == "" {
-					select {
-					case cqlStatus = <-cqlQ:
-						continue
-					case restStatus = <-restQ:
-						continue
-					case <-ctx.Done():
-						s.logger.Error(ctx, "NodeStatus check canceled",
-							"cluster_id", clusterID,
-							"host", h,
-							"error", ctx.Err(),
-						)
-						return
-					}
-				}
-				out <- NodeStatus{
-					DC:         dc,
-					Host:       h,
-					SSL:        s.hasTLSConfig(clusterID),
-					CQLStatus:  cqlStatus.status,
-					CQLRtt:     cqlStatus.rtt,
-					RESTStatus: restStatus.status,
-					RESTRtt:    restStatus.rtt,
-				}
-			}(dc, h)
-		}
-	}
+			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr)
+			out[i].RESTRtt = float64(rtt / 1000000)
+			if err != nil {
+				s.logger.Error(ctx, "REST ping failed",
+					"cluster_id", clusterID,
+					"host", status[i].Addr,
+					"error", err,
+				)
+				out[i].RESTStatus = statusDown
+			} else {
+				out[i].RESTStatus = statusUp
+			}
 
-	statuses := make([]NodeStatus, size)
-	for i := 0; i < size; i++ {
-		select {
-		case statuses[i] = <-out:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-	}
-	sort.Slice(statuses, func(i, j int) bool {
-		if statuses[i].DC == statuses[j].DC {
-			return statuses[i].Host < statuses[j].Host
-		}
-		return statuses[i].DC < statuses[j].DC
+			return
+		})
 	})
 
-	return statuses, nil
+	return out, g.Wait()
 }
 
 func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
@@ -258,12 +216,14 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 }
 
 func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string) (time.Duration, error) {
+	const laps = 3
+
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrapf(err, "get client for cluster with id %s", clusterID)
 	}
 
-	return client.PingN(ctx, host, pingLaps, 0)
+	return client.PingN(ctx, host, laps, 0)
 }
 
 func (s *Service) hasNodeInfo(cidHost clusterIDHost) (*scyllaclient.NodeInfo, bool) {
