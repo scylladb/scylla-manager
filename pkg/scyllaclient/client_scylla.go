@@ -30,6 +30,94 @@ func (c *Client) ClusterName(ctx context.Context) (string, error) {
 	return resp.Payload, nil
 }
 
+// Status returns nodetool status alike information, items are sorted by
+// Datacenter and Address.
+func (c *Client) Status(ctx context.Context) (NodeStatusInfoSlice, error) {
+	// Get all hosts
+	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	all := make([]NodeStatusInfo, len(resp.Payload))
+	for i, p := range resp.Payload {
+		all[i].Addr = p.Key
+		all[i].HostID = p.Value
+	}
+
+	// Get host datacenter (hopefully cached)
+	for i := range all {
+		all[i].Datacenter, err = c.HostDatacenter(ctx, all[i].Addr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Get live nodes
+	live, err := c.scyllaOps.GossiperEndpointLiveGet(&operations.GossiperEndpointLiveGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+	setNodeStatus(all, NodeStatusUp, live.Payload)
+
+	// Get joining nodes
+	joining, err := c.scyllaOps.StorageServiceNodesJoiningGet(&operations.StorageServiceNodesJoiningGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+	setNodeState(all, NodeStateJoining, joining.Payload)
+
+	// Get leaving nodes
+	leaving, err := c.scyllaOps.StorageServiceNodesLeavingGet(&operations.StorageServiceNodesLeavingGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+	setNodeState(all, NodeStateLeaving, leaving.Payload)
+
+	// Get moving nodes
+	moving, err := c.scyllaOps.StorageServiceNodesMovingGet(&operations.StorageServiceNodesMovingGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+	setNodeState(all, NodeStateMoving, moving.Payload)
+
+	// Sort by Datacenter and Address
+	sort.Slice(all, func(i, j int) bool {
+		if all[i].Datacenter != all[j].Datacenter {
+			return all[i].Datacenter < all[j].Datacenter
+		}
+		return all[i].Addr < all[j].Addr
+	})
+
+	return all, nil
+}
+
+func setNodeStatus(all []NodeStatusInfo, status NodeStatus, addrs []string) {
+	if len(addrs) == 0 {
+		return
+	}
+	m := strset.New(addrs...)
+
+	for i := range all {
+		if m.Has(all[i].Addr) {
+			all[i].Status = status
+		}
+	}
+}
+
+func setNodeState(all []NodeStatusInfo, state NodeState, addrs []string) {
+	if len(addrs) == 0 {
+		return
+	}
+	m := strset.New(addrs...)
+
+	for i := range all {
+		if m.Has(all[i].Addr) {
+			all[i].State = state
+		}
+	}
+}
+
 // Datacenters returns the available datacenters in this cluster.
 func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})

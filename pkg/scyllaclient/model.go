@@ -9,6 +9,109 @@ import (
 	"github.com/scylladb/go-set/strset"
 )
 
+// NodeStatus represents nodetool Status=Up/Down.
+type NodeStatus bool
+
+// NodeStatus enumeration
+const (
+	NodeStatusUp   NodeStatus = true
+	NodeStatusDown NodeStatus = false
+)
+
+func (s NodeStatus) String() string {
+	if s {
+		return "U"
+	}
+	return "D"
+}
+
+// NodeState represents nodetool State=Normal/Leaving/Joining/Moving
+type NodeState string
+
+// NodeState enumeration
+const (
+	NodeStateNormal  NodeState = ""
+	NodeStateLeaving NodeState = "LEAVING"
+	NodeStateJoining NodeState = "JOINING"
+	NodeStateMoving  NodeState = "MOVING"
+)
+
+func (s NodeState) String() string {
+	switch s {
+	case NodeStateNormal:
+		return "N"
+	case NodeStateLeaving:
+		return "L"
+	case NodeStateJoining:
+		return "J"
+	case NodeStateMoving:
+		return "M"
+	}
+	return ""
+}
+
+// NodeStatusInfo represents a nodetool status line.
+type NodeStatusInfo struct {
+	Datacenter string
+	HostID     string
+	Addr       string
+	Status     NodeStatus
+	State      NodeState
+}
+
+// IsUN returns true if host is Up and NORMAL meaning it's a fully functional
+// live node.
+func (s NodeStatusInfo) IsUN() bool {
+	return s.Status == NodeStatusUp && s.State == NodeStateNormal
+}
+
+// NodeStatusInfoSlice adds functionality to Status response.
+type NodeStatusInfoSlice []NodeStatusInfo
+
+// Datacenter resturns sub slice containing only nodes from given datacenters.
+func (s NodeStatusInfoSlice) Datacenter(dcs []string) NodeStatusInfoSlice {
+	m := strset.New(dcs...)
+
+	var filtered NodeStatusInfoSlice
+	for _, h := range s {
+		if m.Has(h.Datacenter) {
+			filtered = append(filtered, h)
+		}
+	}
+	return filtered
+}
+
+// Hosts returns slice of address of all nodes.
+func (s NodeStatusInfoSlice) Hosts() []string {
+	var hosts []string
+	for _, h := range s {
+		hosts = append(hosts, h.Addr)
+	}
+	return hosts
+}
+
+// LiveHosts returns slice of address of nodes in UN state.
+func (s NodeStatusInfoSlice) LiveHosts() []string {
+	var hosts []string
+	for _, h := range s {
+		if h.IsUN() {
+			hosts = append(hosts, h.Addr)
+		}
+	}
+	return hosts
+}
+
+// DownHosts returns slice of address of nodes that are down.
+func (s NodeStatusInfoSlice) DownHosts() []string {
+	var hosts []string
+	for _, h := range s {
+		if h.Status == NodeStatusDown {
+			hosts = append(hosts, h.Addr)
+		}
+	}
+	return hosts
+}
+
 // CommandStatus specifies a result of a command
 type CommandStatus string
 

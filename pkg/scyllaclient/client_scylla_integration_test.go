@@ -13,9 +13,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
-	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
 func TestClientAuthIntegration(t *testing.T) {
@@ -29,6 +30,30 @@ func TestClientAuthIntegration(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "agent [HTTP 401] unauthorized") {
 		t.Fatal("expected error about wrong auth token, got", err)
+	}
+}
+
+func TestClientStatus(t *testing.T) {
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, err := client.Status(context.Background())
+	if err != nil {
+		t.Fatal("Status() error", err)
+	}
+
+	golden := []scyllaclient.NodeStatusInfo{
+		{Datacenter: "dc1", Addr: "192.168.100.11", State: "", Status: true},
+		{Datacenter: "dc1", Addr: "192.168.100.12", State: "", Status: true},
+		{Datacenter: "dc1", Addr: "192.168.100.13", State: "", Status: true},
+		{Datacenter: "dc2", Addr: "192.168.100.21", State: "", Status: true},
+		{Datacenter: "dc2", Addr: "192.168.100.22", State: "", Status: true},
+		{Datacenter: "dc2", Addr: "192.168.100.23", State: "", Status: true},
+	}
+
+	if diff := cmp.Diff(status, golden, cmpopts.IgnoreFields(scyllaclient.NodeStatusInfo{}, "HostID")); diff != "" {
+		t.Fatalf("Status() = %#+v, diff %s", status, diff)
 	}
 }
 
