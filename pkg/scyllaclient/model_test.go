@@ -10,6 +10,8 @@ import (
 )
 
 func TestNodeStatusInfo(t *testing.T) {
+	t.Parallel()
+
 	test := NodeStatusInfoSlice{
 		{Datacenter: "dc1", Addr: "192.168.100.11", State: NodeStateJoining, Status: NodeStatusUp},
 		{Datacenter: "dc1", Addr: "192.168.100.12", State: NodeStateLeaving, Status: NodeStatusUp},
@@ -39,6 +41,8 @@ func TestNodeStatusInfo(t *testing.T) {
 }
 
 func TestRingDatacenters(t *testing.T) {
+	t.Parallel()
+
 	r := Ring{
 		HostDC: map[string]string{
 			"172.16.1.10": "dc1",
@@ -57,6 +61,8 @@ func TestRingDatacenters(t *testing.T) {
 }
 
 func TestScyllaFeatures(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Version string
 		Golden  ScyllaFeatures
