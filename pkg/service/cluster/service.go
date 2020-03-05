@@ -403,35 +403,28 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	}
 	defer client.Close()
 
-	hosts, err := client.Hosts(ctx)
+	status, err := client.Status(ctx)
 	if err != nil {
-		return errors.Wrap(err, "discover cluster topology")
+		return errors.Wrap(err, "status")
 	}
 
-	// For every reachable host check that there are not HTTP errors
-	var (
-		errs  error
-		alive int
-		abort bool
-	)
-	for i, err := range client.CheckHostsConnectivity(ctx, hosts) {
-		errs = multierr.Append(errs, errors.Wrap(err, hosts[i]))
-		if scyllaclient.StatusCodeOf(err) > 0 {
-			abort = true
-		}
-		if err == nil {
-			alive++
-		}
+	// Get live hosts
+	live := status.LiveHosts()
+	if len(live) == 0 {
+		return service.ErrValidate(errors.New("no live nodes"))
 	}
-	if alive < len(hosts)/2 {
-		abort = true
+
+	// For every live host check there are no errors
+	var errs error
+	for i, err := range client.CheckHostsConnectivity(ctx, live) {
+		errs = multierr.Append(errs, errors.Wrap(err, live[i]))
 	}
-	if abort {
+	if errs != nil {
 		return service.ErrValidate(errors.Wrap(errs, "connectivity check failed"))
 	}
 
 	// Update known hosts.
-	c.KnownHosts = hosts
+	c.KnownHosts = live
 
 	return nil
 }
