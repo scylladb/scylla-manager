@@ -34,7 +34,7 @@ type ClusterService interface {
 
 // HealthCheckService service interface for the REST API handlers.
 type HealthCheckService interface {
-	GetStatus(ctx context.Context, clusterID uuid.UUID) ([]healthcheck.Status, error)
+	Status(ctx context.Context, clusterID uuid.UUID) ([]healthcheck.NodeStatus, error)
 }
 
 // RepairService service interface for the REST API handlers.

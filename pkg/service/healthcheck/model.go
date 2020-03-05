@@ -7,8 +7,8 @@ const (
 	statusDown = `DOWN`
 )
 
-// Status represents the status of a particular host
-type Status struct {
+// NodeStatus represents the status of a particular node.
+type NodeStatus struct {
 	DC         string  `json:"dc"`
 	Host       string  `json:"host"`
 	SSL        bool    `json:"ssl"`

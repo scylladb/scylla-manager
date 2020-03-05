@@ -21,7 +21,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func TestGetStatusIntegration(t *testing.T) {
+func TestStatusIntegration(t *testing.T) {
 	session := CreateSession(t)
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
@@ -45,11 +45,11 @@ func TestGetStatusIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	compare := func(t *testing.T, got, expected []Status) {
+	compare := func(t *testing.T, got, expected []NodeStatus) {
 		t.Helper()
 		diffOpts := []cmp.Option{
 			UUIDComparer(),
-			cmpopts.IgnoreFields(Status{}, "CQLRtt", "RESTRtt"),
+			cmpopts.IgnoreFields(NodeStatus{}, "CQLRtt", "RESTRtt"),
 		}
 		if diff := cmp.Diff(got, expected, diffOpts...); diff != "" {
 			t.Error(diff)
@@ -72,13 +72,13 @@ func TestGetStatusIntegration(t *testing.T) {
 			NativeTransportPort: DefaultPort,
 		}
 
-		status, err := s.GetStatus(context.Background(), cid)
+		status, err := s.Status(context.Background(), cid)
 		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		expected := []Status{
+		expected := []NodeStatus{
 			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
 			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
 			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
@@ -90,13 +90,13 @@ func TestGetStatusIntegration(t *testing.T) {
 	})
 
 	t.Run("all nodes UP", func(t *testing.T) {
-		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), uuid.MustRandom())
 		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		expected := []Status{
+		expected := []NodeStatus{
 			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
 			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
 			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
@@ -112,13 +112,13 @@ func TestGetStatusIntegration(t *testing.T) {
 		blockREST(t, host)
 		defer unblockREST(t, host)
 
-		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), uuid.MustRandom())
 		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		expected := []Status{
+		expected := []NodeStatus{
 			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
 			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN"},
 			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
@@ -134,13 +134,13 @@ func TestGetStatusIntegration(t *testing.T) {
 		blockCQL(t, host)
 		defer unblockCQL(t, host)
 
-		status, err := s.GetStatus(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), uuid.MustRandom())
 		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		expected := []Status{
+		expected := []NodeStatus{
 			{DC: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
 			{DC: "dc1", Host: "192.168.100.12", CQLStatus: "DOWN", RESTStatus: "UP"},
 			{DC: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
@@ -164,7 +164,7 @@ func TestGetStatusIntegration(t *testing.T) {
 			}
 		}()
 
-		_, err := s.GetStatus(ctx, uuid.MustRandom())
+		_, err := s.Status(ctx, uuid.MustRandom())
 		if err == nil {
 			t.Error("Expected error got nil")
 		} else if !strings.Contains(err.Error(), "get hosts for cluster") {
@@ -176,7 +176,7 @@ func TestGetStatusIntegration(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 		defer cancel()
 
-		_, err := s.GetStatus(ctx, uuid.MustRandom())
+		_, err := s.Status(ctx, uuid.MustRandom())
 		if err == nil {
 			t.Error("Expected error got nil")
 		}

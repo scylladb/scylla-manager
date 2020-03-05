@@ -99,9 +99,9 @@ type pingStat struct {
 
 type pingFunc func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
 
-// GetStatus returns the current status of the supplied cluster.
-func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status, error) {
-	s.logger.Debug(ctx, "GetStatus", "cluster_id", clusterID)
+// Status returns the current status of the supplied cluster.
+func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus, error) {
+	s.logger.Debug(ctx, "Status", "cluster_id", clusterID)
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
@@ -137,7 +137,7 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 		}
 	}
 
-	out := make(chan Status, runtime.NumCPU()+1)
+	out := make(chan NodeStatus, runtime.NumCPU()+1)
 
 	size := 0
 	for dc, hosts := range dcs {
@@ -158,7 +158,7 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 					case restStatus = <-restQ:
 						continue
 					case <-ctx.Done():
-						s.logger.Error(ctx, "Status check canceled",
+						s.logger.Error(ctx, "NodeStatus check canceled",
 							"cluster_id", clusterID,
 							"host", h,
 							"error", ctx.Err(),
@@ -166,7 +166,7 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 						return
 					}
 				}
-				out <- Status{
+				out <- NodeStatus{
 					DC:         dc,
 					Host:       h,
 					SSL:        s.hasTLSConfig(clusterID),
@@ -179,7 +179,7 @@ func (s *Service) GetStatus(ctx context.Context, clusterID uuid.UUID) ([]Status,
 		}
 	}
 
-	statuses := make([]Status, size)
+	statuses := make([]NodeStatus, size)
 	for i := 0; i < size; i++ {
 		select {
 		case statuses[i] = <-out:
