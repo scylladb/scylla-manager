@@ -44,13 +44,13 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 		return errors.Wrap(err, "get client")
 	}
 
-	hosts, err := client.Hosts(ctx)
+	status, err := client.Status(ctx)
 	if err != nil {
-		return errors.Wrap(err, "get hosts")
+		return errors.Wrap(err, "status")
 	}
 
-	r.removeDecommissionedHosts(clusterName, hosts)
-	r.checkHosts(ctx, clusterID, clusterName, hosts)
+	r.removeDecommissionedHosts(clusterName, status.Hosts())
+	r.checkHosts(ctx, clusterID, clusterName, status.LiveHosts())
 
 	return nil
 }
