@@ -63,7 +63,7 @@ func allHosts() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return client.Hosts(context.Background())
+	return client.hosts(context.Background())
 }
 
 func testRetry(hosts []string, n int, shouldTimeout bool) error {
@@ -108,7 +108,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 		return err
 	}
 
-	if _, err = client.Hosts(ctx); err != nil {
+	if _, err = client.hosts(ctx); err != nil {
 		if shouldTimeout {
 			if !strings.HasSuffix(err.Error(), fmt.Sprintf("timeout after %s", client.Config().Timeout)) {
 				return errors.Errorf("call error %s, expected timeout", err)

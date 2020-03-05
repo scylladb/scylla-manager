@@ -167,20 +167,6 @@ func (c *Client) HostDatacenter(ctx context.Context, host string) (dc string, er
 	return
 }
 
-// Hosts returns a list of all hosts in a cluster.
-func (c *Client) Hosts(ctx context.Context) ([]string, error) {
-	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
-	if err != nil {
-		return nil, err
-	}
-
-	v := make([]string, len(resp.Payload))
-	for i := 0; i < len(resp.Payload); i++ {
-		v[i] = resp.Payload[i].Key
-	}
-	return v, nil
-}
-
 // HostIDs returns a mapping from host IP to UUID.
 func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
 	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
@@ -198,7 +184,7 @@ func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
 // CheckHostsChanged returns true iff a host was added or removed from cluster.
 // In such a case the client should be discarded.
 func (c *Client) CheckHostsChanged(ctx context.Context) (bool, error) {
-	cur, err := c.Hosts(ctx)
+	cur, err := c.hosts(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -206,6 +192,20 @@ func (c *Client) CheckHostsChanged(ctx context.Context) (bool, error) {
 		return true, err
 	}
 	return !strset.New(c.config.Hosts...).Has(cur...), nil
+}
+
+// hosts returns a list of all hosts in a cluster.
+func (c *Client) hosts(ctx context.Context) ([]string, error) {
+	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	v := make([]string, len(resp.Payload))
+	for i := 0; i < len(resp.Payload); i++ {
+		v[i] = resp.Payload[i].Key
+	}
+	return v, nil
 }
 
 // Keyspaces return a list of all the keyspaces.

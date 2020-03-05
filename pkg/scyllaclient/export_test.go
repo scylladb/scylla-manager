@@ -26,3 +26,7 @@ func RcloneSplitRemotePath(remotePath string) (string, string, error) {
 func (p *CachedProvider) SetValidity(d time.Duration) {
 	p.validity = d
 }
+
+func (c *Client) Hosts(ctx context.Context) ([]string, error) {
+	return c.hosts(ctx)
+}
