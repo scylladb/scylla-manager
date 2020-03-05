@@ -5,13 +5,13 @@ package healthcheck
 import (
 	"context"
 	"encoding/json"
-	"runtime"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -32,7 +32,7 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 
 	defer func() {
 		if err != nil {
-			r.removeAll(clusterName)
+			r.removeMetricsForCluster(clusterName)
 		}
 	}()
 
@@ -49,47 +49,35 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 		return errors.Wrap(err, "status")
 	}
 
-	r.removeDecommissionedHosts(clusterName, status.Hosts())
-	r.checkHosts(ctx, clusterID, clusterName, status.LiveHosts())
+	hosts := status.LiveHosts()
+
+	r.removeMetricsForMissingHosts(clusterName, hosts)
+	r.checkHosts(ctx, clusterID, clusterName, hosts)
 
 	return nil
 }
 
-type hostRTT struct {
-	host string
-	rtt  time.Duration
-	err  error
-}
-
 func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, hosts []string) {
-	out := make(chan hostRTT, runtime.NumCPU()+1)
-	for _, h := range hosts {
-		v := hostRTT{host: h}
-		go func() {
-			v.rtt, v.err = r.ping(ctx, clusterID, v.host)
-			out <- v
-		}()
-	}
-
-	for range hosts {
-		v := <-out
-
+	parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
 		l := prometheus.Labels{
 			clusterKey: clusterName,
-			hostKey:    v.host,
+			hostKey:    hosts[i],
 		}
 
-		if v.err != nil {
+		rtt, err := r.ping(ctx, clusterID, hosts[i])
+		if err != nil {
 			r.status.With(l).Set(-1)
 			r.rtt.With(l).Set(0)
 		} else {
 			r.status.With(l).Set(1)
-			r.rtt.With(l).Set(float64(v.rtt) / 1000000)
+			r.rtt.With(l).Set(float64(rtt) / 1000000)
 		}
-	}
+
+		return nil
+	})
 }
 
-func (r Runner) removeAll(clusterName string) {
+func (r Runner) removeMetricsForCluster(clusterName string) {
 	apply(collect(r.status), func(cluster, host string, v float64) {
 		if clusterName != cluster {
 			return
@@ -104,7 +92,7 @@ func (r Runner) removeAll(clusterName string) {
 	})
 }
 
-func (r Runner) removeDecommissionedHosts(clusterName string, hosts []string) {
+func (r Runner) removeMetricsForMissingHosts(clusterName string, hosts []string) {
 	m := strset.New(hosts...)
 
 	apply(collect(r.status), func(cluster, host string, v float64) {
