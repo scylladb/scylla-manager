@@ -339,7 +339,7 @@ func (m *manifestV1) ParsePartialPath(s string) error {
 			return nil
 		},
 		pathparser.String(&m.Version),
-		pathparser.Static("manifest.json"),
+		pathparser.Static(scyllaManifest),
 	)
 	if err != nil {
 		return err
@@ -396,7 +396,7 @@ func (p manifestV1Paths) RemoteManifestFile(clusterID, taskID uuid.UUID, snapsho
 		"tag",
 		snapshotTag,
 		version,
-		"manifest.json",
+		scyllaManifest,
 	)
 }
 

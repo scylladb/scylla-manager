@@ -19,8 +19,9 @@ func keyspaceDir(keyspace string) string {
 }
 
 const (
-	manifest = "manifest.json.gz"
-	sep      = string(os.PathSeparator)
+	scyllaManifest = "manifest.json"
+	manifest       = "manifest.json.gz"
+	sep            = string(os.PathSeparator)
 )
 
 func remoteMetaClusterDCDir(clusterID uuid.UUID) string {
@@ -115,7 +116,7 @@ var (
 
 	keyspaceTableVersionLaMcRe     = regexp.MustCompile(keyspaceTableVersionPatternRe + laMcFileNameRe)
 	keyspaceTableVersionKaRe       = regexp.MustCompile(keyspaceTableVersionPatternRe + kaFileNameRe)
-	keyspaceTableVersionManifestRe = regexp.MustCompile(keyspaceTableVersionPatternRe + "manifest.json")
+	keyspaceTableVersionManifestRe = regexp.MustCompile(keyspaceTableVersionPatternRe + scyllaManifest)
 )
 
 // groupingKey returns key which can be used for grouping SSTable files.

@@ -103,7 +103,19 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				fileNames []string
 				size      int64
 			)
+
+			mp := path.Join(d.Path, scyllaManifest)
+			if err := w.Client.RcloneDeleteFile(ctx, h.IP, mp); err != nil {
+				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
+					w.Logger.Error(ctx, "Failed to delete local manifest file", "error", err)
+				}
+			}
+
 			for _, f := range files {
+				// Filter out Scylla manifest files, they are not needed.
+				if f.Name == scyllaManifest {
+					continue
+				}
 				fileNames = append(fileNames, f.Name)
 				size += f.Size
 			}

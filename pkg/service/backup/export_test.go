@@ -31,3 +31,7 @@ type LegacyManifest = manifestV1
 func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return remoteManifestDir(clusterID, dc, nodeID)
 }
+
+const (
+	ScyllaManifest = scyllaManifest
+)

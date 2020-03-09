@@ -153,7 +153,7 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 	pr := &backup.RunProgress{}
 	for iter.StructScan(pr) {
 		for i := range pr.Files {
-			if strings.Contains(pr.Files[i], "manifest.json") {
+			if strings.Contains(pr.Files[i], backup.ScyllaManifest) {
 				continue
 			}
 			files.Add(pr.Files[i])
@@ -221,7 +221,7 @@ func (h *backupTestHelper) waitTransfersStarted() {
 				h.t.Fatal(err)
 			}
 			for _, tr := range job.Stats.Transferring {
-				if tr.Name != "manifest.json" {
+				if tr.Name != backup.ScyllaManifest {
 					Print("And: upload is underway")
 					return true
 				}
@@ -686,6 +686,14 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		for _, f := range remoteFiles {
 			remoteFileNames = append(remoteFileNames, f.Name)
 		}
+
+		Print("And: Scylla manifests are not uploaded")
+		for _, rfn := range remoteFileNames {
+			if strings.Contains(rfn, backup.ScyllaManifest) {
+				t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(tbl.SST))
+			}
+		}
+
 		opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
 		if !cmp.Equal(tbl.Files, remoteFileNames, opts...) {
 			t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(tbl.Files, remoteFileNames, opts...))
