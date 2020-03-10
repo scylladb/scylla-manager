@@ -112,7 +112,7 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 			}
 
 			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr)
-			out[i].CQLRtt = float64(rtt / 1000000)
+			out[i].CQLRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
 					"cluster_id", clusterID,
@@ -136,7 +136,7 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 			}
 
 			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr)
-			out[i].RESTRtt = float64(rtt / 1000000)
+			out[i].RESTRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "REST ping failed",
 					"cluster_id", clusterID,
