@@ -285,7 +285,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	// Response contains all files available in directory without paging,
 	// default request constraints might be not sufficient to list thousands
 	// of files, which may be a case for SSTable directories.
-	ctx = customTimeout(ctx, 5 * time.Minute)
+	ctx = customTimeout(ctx, 10*time.Minute)
 
 	empty := ""
 	p := operations.OperationsListParams{
