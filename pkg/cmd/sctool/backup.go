@@ -99,7 +99,7 @@ var backupCmd = &cobra.Command{
 			return err
 		}
 		if dryRun {
-			showTables, err := cmd.Flags().GetInt("show-tables")
+			showTables, err := cmd.Flags().GetBool("show-tables")
 			if err != nil {
 				return err
 			}
@@ -118,7 +118,9 @@ var backupCmd = &cobra.Command{
 			}
 
 			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, backup is not scheduled\n\n")
-			res.ShowTables = showTables
+			if showTables {
+				res.ShowTables = -1
+			}
 			return res.Render(cmd.OutOrStdout())
 		}
 
@@ -157,8 +159,7 @@ func init() {
 		"forces backup to skip database validation and schedules a backup even if there are no matching keyspaces/tables")
 	fs.Bool("dry-run", false,
 		"validates and prints backup information without scheduling a backup")
-	fs.Int("show-tables", 0,
-		"specifies maximal number of table names printed for a keyspace, use -1 for no limit")
+	fs.Bool("show-tables", false, "print all table names for a keyspace")
 
 	taskInitCommonFlags(fs)
 	requireFlags(cmd, "location")
@@ -202,7 +203,7 @@ var backupListCmd = &cobra.Command{
 				return err
 			}
 		}
-		showTables, err := cmd.Flags().GetInt("show-tables")
+		showTables, err := cmd.Flags().GetBool("show-tables")
 		if err != nil {
 			return err
 		}
@@ -220,7 +221,9 @@ var backupListCmd = &cobra.Command{
 			return err
 		}
 		list.AllClusters = allClusters
-		list.ShowTables = showTables
+		if showTables {
+			list.ShowTables = -1
+		}
 
 		return list.Render(cmd.OutOrStdout())
 	},
@@ -242,8 +245,7 @@ func init() {
 		"specifies minimal snapshot date expressed in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
 	fs.String("max-date", "",
 		"specifies maximal snapshot date expressed in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
-	fs.Int("show-tables", 0,
-		"specifies maximal number of table names printed for a keyspace, use -1 for no limit")
+	fs.Bool("show-tables", false, "print all table names for a keyspace")
 }
 
 var backupFilesCmd = &cobra.Command{

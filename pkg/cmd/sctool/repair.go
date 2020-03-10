@@ -139,9 +139,12 @@ var repairCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			res.ShowTables, err = cmd.Flags().GetInt("show-tables")
+			showTables, err := cmd.Flags().GetBool("show-tables")
 			if err != nil {
 				return err
+			}
+			if showTables {
+				res.ShowTables = -1
 			}
 
 			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, repair is not scheduled\n\n")
@@ -174,7 +177,6 @@ func init() {
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Bool("force", false, "force repair to skip database validation and schedule even if there are no matching keyspaces/tables")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
-	fs.Int("show-tables", 0,
-		"specifies maximal number of table names printed for a keyspace, use -1 for no limit")
+	fs.Bool("show-tables", false, "print all table names for a keyspace")
 	taskInitCommonFlags(fs)
 }
