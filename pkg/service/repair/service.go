@@ -85,6 +85,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		TokenRanges: p.TokenRanges,
 		FailFast:    p.FailFast,
 		Continue:    p.Continue,
+		Intensity:   p.Intensity,
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -186,7 +187,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		WithHosts:   t.WithHosts,
 		StartTime:   timeutc.Now(),
 
-		failFast: t.FailFast,
+		failFast:  t.FailFast,
+		intensity: t.Intensity,
 	}
 
 	// Get cluster name
@@ -409,7 +411,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 	unitWorker := make([]*hostWorker, len(hosts))
 	for i, host := range hosts {
 		unitWorker[i] = &hostWorker{
-			Config:   &s.config,
+			Config:   s.config,
 			Run:      run,
 			Unit:     unit,
 			Host:     host,
@@ -419,6 +421,18 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			Client:  client,
 			Logger:  s.logger.Named("worker").With("host", host),
 		}
+
+		if run.intensity > 0 {
+			hostShards, err := client.ShardCount(ctx, host)
+			if err != nil {
+				return errors.Wrap(err, "get shard count")
+			}
+
+			hostSegmentsPerRepair, hostShardParallelMax := calculateRepairIntensity(run.intensity, hostShards)
+			unitWorker[i].Config.SegmentsPerRepair = hostSegmentsPerRepair
+			unitWorker[i].Config.ShardParallelMax = hostShardParallelMax
+		}
+
 		if err := unitWorker[i].init(ctx); err != nil {
 			return errors.Wrapf(err, "host %s: init repair", host)
 		}
@@ -697,4 +711,11 @@ func (s *Service) deleteRunProgress(ctx context.Context, p *RunProgress) error {
 	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(p)
 
 	return q.ExecRelease()
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

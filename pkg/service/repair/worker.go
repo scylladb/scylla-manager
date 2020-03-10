@@ -24,7 +24,7 @@ type unitWorker []*hostWorker
 
 // hostWorker manages shardWorkers.
 type hostWorker struct {
-	Config   *Config
+	Config   Config
 	Run      *Run
 	Unit     int
 	Host     string

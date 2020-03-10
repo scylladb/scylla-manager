@@ -134,6 +134,15 @@ var repairCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if f = cmd.Flag("intensity"); f.Changed {
+			intensity, err := cmd.Flags().GetFloat64("intensity")
+			if err != nil {
+				return err
+			}
+			props["intensity"] = intensity
+		}
+
 		if dryRun {
 			res, err := client.GetRepairTarget(ctx, cfgCluster, t)
 			if err != nil {
@@ -178,5 +187,6 @@ func init() {
 	fs.Bool("force", false, "force repair to skip database validation and schedule even if there are no matching keyspaces/tables")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	fs.Bool("show-tables", false, "print all table names for a keyspace")
+	fs.Float64("intensity", 0, "repair speed, higher values result in higher speed and may increase cluster load, values in a range (0-1) result in lower speed and load")
 	taskInitCommonFlags(fs)
 }

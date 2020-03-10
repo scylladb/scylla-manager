@@ -256,3 +256,13 @@ func aggregateUnitProgress(u Unit, prog []*RunProgress) UnitProgress {
 	v.progress.calculateProgress()
 	return v
 }
+
+func calculateRepairIntensity(intensity float64, shards uint) (segmentsPerRepair, shardParallelMax int) {
+	if intensity > 1 {
+		return int(intensity), 0
+	}
+	if intensity < 1 {
+		return 1, min(int(intensity*float64(shards)), 1)
+	}
+	return 1, 0
+}

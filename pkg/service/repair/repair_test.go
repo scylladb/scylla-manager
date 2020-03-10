@@ -493,3 +493,54 @@ func TestAggregateUnitProgress(t *testing.T) {
 		}
 	}
 }
+
+func TestRepairIntensityCalculation(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Shards                    uint
+		Intensity                 float64
+		ExpectedSegmentsPerRepair int
+		ExpectedShardParallelMax  int
+	}{
+		{
+			Intensity:                 5,
+			ExpectedSegmentsPerRepair: 5,
+			ExpectedShardParallelMax:  0,
+		},
+		{
+			Intensity:                 0,
+			ExpectedSegmentsPerRepair: 1,
+			ExpectedShardParallelMax:  0,
+		},
+		{
+			Intensity:                 0.5,
+			Shards:                    4,
+			ExpectedSegmentsPerRepair: 1,
+			ExpectedShardParallelMax:  1,
+		},
+		{
+			Intensity:                 0.2,
+			Shards:                    4,
+			ExpectedSegmentsPerRepair: 1,
+			ExpectedShardParallelMax:  0,
+		},
+		{
+			Intensity:                 1,
+			ExpectedSegmentsPerRepair: 1,
+			ExpectedShardParallelMax:  0,
+		},
+	}
+
+	for i, test := range table {
+		segmentsPerRepair, shardParallelMax := calculateRepairIntensity(test.Intensity, test.Shards)
+
+		if segmentsPerRepair != test.ExpectedSegmentsPerRepair {
+			t.Errorf("%d: calculateRepairIntensity(): expected segments per repair to equal %d, got %d", i, test.ExpectedSegmentsPerRepair, segmentsPerRepair)
+		}
+
+		if shardParallelMax != test.ExpectedShardParallelMax {
+			t.Errorf("%d: calculateRepairIntensity(): expected shard parallel max to equal %d, got %d", i, test.ExpectedShardParallelMax, shardParallelMax)
+		}
+	}
+}

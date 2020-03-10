@@ -141,6 +141,7 @@ type Target struct {
 	TokenRanges TokenRangesKind `json:"token_ranges,omitempty"`
 	FailFast    bool            `json:"fail_fast,omitempty"`
 	Continue    bool            `json:"continue,omitempty"`
+	Intensity   float64         `json:"intensity,omitempty"`
 }
 
 // Run tracks repair progress, shares ID with scheduler.Run that initiated it.
@@ -163,6 +164,7 @@ type Run struct {
 	prevProg    []*RunProgress
 
 	unitWorkers []unitWorker
+	intensity   float64
 }
 
 // RunProgress describes repair progress on per shard basis.
@@ -222,4 +224,5 @@ type taskProperties struct {
 	TokenRanges TokenRangesKind `json:"token_ranges"`
 	FailFast    bool            `json:"fail_fast"`
 	Continue    bool            `json:"continue"`
+	Intensity   float64         `json:"intensity"`
 }
