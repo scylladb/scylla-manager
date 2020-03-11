@@ -7,6 +7,7 @@ package repair_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -1129,4 +1130,43 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 
 	Print("Then: repair fails")
 	h.assertErrorContains("active repair on hosts", longWait)
+}
+
+func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *testing.T) {
+	clusterSession := CreateManagedClusterSession(t)
+
+	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_0 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_0.test_table_0 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair_0")
+
+	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_1 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 0}")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_1.test_table_0 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair_1")
+
+	session := CreateSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	properties := map[string]interface{}{
+		"keyspace": []string{"test_repair_0", "test_repair_1"},
+		"dc":       []string{"dc2"},
+	}
+
+	props, err := json.Marshal(properties)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := h.service.GetTarget(ctx, h.clusterID, props, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(target.Units) != 1 {
+		t.Errorf("Expected single unit in target, get %d", len(target.Units))
+	}
+	if target.Units[0].Keyspace != "test_repair_0" {
+		t.Errorf("Expected only 'test_repair_0' keyspace in target units, got %s", target.Units[0].Keyspace)
+	}
 }

@@ -121,6 +121,8 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	if err != nil {
 		return t, errors.Wrapf(err, "read keyspaces")
 	}
+
+	targetDCs := strset.New(t.DC...)
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
@@ -132,7 +134,13 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		if err != nil {
 			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
 		}
+
 		if ring.Replication == scyllaclient.LocalStrategy {
+			continue
+		}
+
+		// Check if keyspace has replica in any DC
+		if !targetDCs.HasAny(ring.Datacenters()...) {
 			continue
 		}
 
@@ -325,7 +333,7 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			)
 		}
 	} else {
-		// get coordinator DC
+		// Get coordinator DC
 		dc, err := s.resolveDC(ctx, client, *u, run, ksDCs)
 		if err != nil {
 			return err
