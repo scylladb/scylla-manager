@@ -50,6 +50,18 @@ func TestScyllaFeatures(t *testing.T) {
 				RowLevelRepair: true,
 			},
 		},
+		{
+			Version: scyllaMasterVersion,
+			Golden: ScyllaFeatures{
+				RowLevelRepair: true,
+			},
+		},
+		{
+			Version: scyllaEnterpriseMasterVersion,
+			Golden: ScyllaFeatures{
+				RowLevelRepair: true,
+			},
+		},
 	}
 
 	for i := range table {

@@ -68,16 +68,32 @@ type ScyllaFeatures struct {
 	RowLevelRepair bool
 }
 
+var masterScyllaFeatures = ScyllaFeatures{
+	RowLevelRepair: true,
+}
+
+const (
+	scyllaMasterVersion           = "666.development"
+	scyllaEnterpriseMasterVersion = "9999.enterprise_dev"
+)
+
 func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
-	// Trim build version suffix as it breaks constraints.
-	v, err := version.NewSemver(strings.Split(ver, "-")[0])
+	// Trim build version suffix as it breaks constraints
+	ver = strings.Split(ver, "-")[0]
+
+	// Detect master builds
+	if ver == scyllaMasterVersion || ver == scyllaEnterpriseMasterVersion {
+		return masterScyllaFeatures, nil
+	}
+
+	v, err := version.NewSemver(ver)
 	if err != nil {
 		return ScyllaFeatures{}, err
 	}
 
 	rowLevelRepair, err := version.NewConstraint(">= 3.1, < 2000")
 	if err != nil {
-		panic(err)
+		panic(err) // must
 	}
 	return ScyllaFeatures{
 		RowLevelRepair: rowLevelRepair.Check(v),
