@@ -88,12 +88,10 @@ func (s Server) writeError(path string, in rc.Params, w http.ResponseWriter, err
 	// Adjust the error return for some well known errors
 	errOrig := errors.Cause(err)
 	switch {
-	case errOrig == fs.ErrorDirNotFound || errOrig == fs.ErrorObjectNotFound || errOrig == fs.ErrorNotFoundInConfigFile || errOrig == errJobNotFound:
+	case isCheckErr(err) || isNotFoundErr(errOrig):
 		status = http.StatusNotFound
 	case isBadRequestErr(err):
 		status = http.StatusBadRequest
-	case isCheckError(err):
-		status = http.StatusNotFound
 	}
 
 	w.WriteHeader(status)
@@ -136,9 +134,16 @@ func isBadRequestErr(err error) bool {
 		errOrig == fs.ErrorListBucketRequired
 }
 
-func isCheckError(err error) bool {
+func isCheckErr(err error) bool {
 	_, ok := err.(operations.PermissionError)
 	return ok
+}
+
+func isNotFoundErr(err error) bool {
+	return err == fs.ErrorDirNotFound ||
+		err == fs.ErrorObjectNotFound ||
+		err == fs.ErrorNotFoundInConfigFile ||
+		err == errJobNotFound
 }
 
 // ServeHTTP implements http.Handler interface.
