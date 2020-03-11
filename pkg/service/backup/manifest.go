@@ -21,16 +21,22 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
+type fileInfo struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+}
+
 type filesInfo struct {
-	Keyspace string   `json:"keyspace"`
-	Table    string   `json:"table"`
-	Version  string   `json:"version"`
-	Files    []string `json:"files"`
+	Keyspace string     `json:"keyspace"`
+	Table    string     `json:"table"`
+	Version  string     `json:"version"`
+	Files    []fileInfo `json:"files"`
 }
 
 type manifestContent struct {
 	Version string      `json:"version"`
 	Index   []filesInfo `json:"index"`
+	Size    int64       `json:"size"`
 }
 
 func (m *manifestContent) Read(r io.Reader) error {

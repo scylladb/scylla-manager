@@ -73,7 +73,7 @@ func (p *purger) purge(ctx context.Context) error {
 		if isStaleManifest(manifests[i]) {
 			for _, fi := range manifests[i].Content.Index {
 				for _, f := range fi.Files {
-					staleFiles.Add(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
+					staleFiles.Add(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f.Name))
 				}
 			}
 		}
@@ -83,7 +83,7 @@ func (p *purger) purge(ctx context.Context) error {
 		if !isStaleManifest(manifests[i]) {
 			for _, fi := range manifests[i].Content.Index {
 				for _, f := range fi.Files {
-					staleFiles.Remove(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
+					staleFiles.Remove(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f.Name))
 				}
 			}
 		}
@@ -97,24 +97,28 @@ func (p *purger) purge(ctx context.Context) error {
 
 	// Delete sstables that are not alive
 	p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
-	if err := p.deleteSSTables(ctx, staleFiles.List()); err != nil {
+	staleFilesList := staleFiles.List()
+	if err := p.deleteSSTables(ctx, staleFilesList); err != nil {
 		return errors.Wrap(err, "delete stale data")
 	}
 
 	// Delete stale tags
 	for _, m := range manifests {
-		if staleTagsSet.Has(m.SnapshotTag) {
-			if err := p.ManifestHelper.DeleteManifest(ctx, m); err != nil {
-				return errors.Wrap(err, "delete stale tag")
-			}
-
-			p.Logger.Info(ctx, "Deleted metadata according to retention policy",
-				"host", p.HostInfo.IP,
-				"location", p.HostInfo.Location,
-				"tags", m.SnapshotTag,
-				"policy", p.Policy,
-			)
+		if !staleTagsSet.Has(m.SnapshotTag) {
+			continue
 		}
+		if err := p.ManifestHelper.DeleteManifest(ctx, m); err != nil {
+			return errors.Wrap(err, "delete stale tag")
+		}
+
+		p.Logger.Info(ctx, "Deleted metadata according to retention policy",
+			"host", p.HostInfo.IP,
+			"location", p.HostInfo.Location,
+			"tags", m.SnapshotTag,
+			"policy", p.Policy,
+			"size", m.Content.Size,
+			"files", len(staleFilesList),
+		)
 	}
 
 	return nil

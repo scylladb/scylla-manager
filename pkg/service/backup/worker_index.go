@@ -101,6 +101,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 
 			var (
 				fileNames []string
+				fileSizes []int64
 				size      int64
 			)
 
@@ -117,6 +118,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 					continue
 				}
 				fileNames = append(fileNames, f.Name)
+				fileSizes = append(fileSizes, f.Size)
 				size += f.Size
 			}
 			d.Progress = &RunProgress{
@@ -127,6 +129,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				Unit:      d.Unit,
 				TableName: d.Table,
 				Files:     fileNames,
+				FileSizes: fileSizes,
 				Size:      size,
 			}
 			w.ResumeUploadProgress(ctx, d.Progress)

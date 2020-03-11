@@ -188,8 +188,9 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 		return nil, err
 	}
 
-	fileNames := make([]string, 0, len(files))
+	fileInfos := make([]fileInfo, 0, len(files))
 
+	totalSize := int64(0)
 	s := strset.New(h.extractGroupingKeys(m)...)
 	for _, f := range files {
 		k, err := groupingKey(path.Join("keyspace", m.Keyspace, "table", m.Table, m.Version, f.Path))
@@ -197,9 +198,14 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 			h.logger.Debug(ctx, "GroupingKey error", "error", err)
 		}
 		if s.Has(k) {
-			fileNames = append(fileNames, f.Name)
+			fileInfos = append(fileInfos, fileInfo{
+				Name: f.Name,
+				Size: f.Size,
+			})
+			totalSize += f.Size
 		}
 	}
+
 	return &remoteManifest{
 		CleanPath:   m.CleanPath,
 		Location:    h.location,
@@ -215,9 +221,10 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 					Keyspace: m.Keyspace,
 					Table:    m.Table,
 					Version:  m.Version,
-					Files:    fileNames,
+					Files:    fileInfos,
 				},
 			},
+			Size: totalSize,
 		},
 	}, nil
 }

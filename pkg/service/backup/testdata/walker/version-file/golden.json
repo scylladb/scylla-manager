@@ -25,18 +25,46 @@
           "table":"big_table",
           "version":"1f08f70041c711ea8049000000000000",
           "files":[
-            "mc-5-big-CompressionInfo.db",
-            "mc-5-big-Data.db",
-            "mc-5-big-Digest.crc32",
-            "mc-5-big-Filter.db",
-            "mc-5-big-Index.db",
-            "mc-5-big-Scylla.db",
-            "mc-5-big-Statistics.db",
-            "mc-5-big-Summary.db",
-            "mc-5-big-TOC.txt"
+            {
+              "name":"mc-5-big-CompressionInfo.db",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-Data.db",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-Digest.crc32",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-Filter.db",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-Index.db",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-Scylla.db",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-Statistics.db",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-Summary.db",
+              "size":0
+            },
+            {
+              "name":"mc-5-big-TOC.txt",
+              "size":0
+            }
           ]
         }
-      ]
+      ],
+      "size":0
     }
   }
 ]

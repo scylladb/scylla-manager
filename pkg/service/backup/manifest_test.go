@@ -330,6 +330,11 @@ func TestListManifests(t *testing.T) {
 				NodeID:    "49f5a202-6661-4a1e-a674-4c7b97247fdb",
 			},
 		},
+		{
+			Name:       "Manifest contains file sizes",
+			Location:   Location{Provider: "walker", Path: "file-size"},
+			GoldenFile: "testdata/walker/file-size/golden.json",
+		},
 	}
 
 	for i := range ts {

@@ -130,6 +130,7 @@ type RunProgress struct {
 	TableName string
 
 	Files       []string
+	FileSizes   []int64
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string

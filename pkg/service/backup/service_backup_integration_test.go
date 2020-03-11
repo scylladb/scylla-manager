@@ -727,8 +727,13 @@ func TestBackupSmokeIntegration(t *testing.T) {
 			}
 		}
 
+		tableFileNames := make([]string, 0, len(tbl.Files))
+		for _, f := range tbl.Files {
+			tableFileNames = append(tableFileNames, f.Name)
+		}
+
 		opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
-		if !cmp.Equal(tbl.Files, remoteFileNames, opts...) {
+		if !cmp.Equal(tableFileNames, remoteFileNames, opts...) {
 			t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(tbl.Files, remoteFileNames, opts...))
 		}
 	}
@@ -1153,7 +1158,7 @@ func TestPurgeIntegration(t *testing.T) {
 
 		for _, fi := range rm.Content.Index {
 			for _, f := range fi.Files {
-				sstPfx = append(sstPfx, strings.TrimSuffix(f, "-Data.db"))
+				sstPfx = append(sstPfx, strings.TrimSuffix(f.Name, "-Data.db"))
 			}
 		}
 	}
