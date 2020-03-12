@@ -40,9 +40,12 @@ func (e *mockEnv) Docker() bool {
 }
 
 func TestChecker(t *testing.T) {
-	initVer := "v1.0.0"
+	initVer := "v1.0.0-0.20200123.7cf18f6b"
+	semanticVer := "v1.0.0"
+
 	hs := newMockHomeServer(initVer)
 	defer hs.Close()
+
 	macUUID := uuid.NewTime()
 	regUUID := uuid.NewTime()
 	dist := string(osutil.Centos)
@@ -63,7 +66,7 @@ func TestChecker(t *testing.T) {
 			Install: false,
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       initVer,
+				Installed:       semanticVer,
 				Available:       initVer,
 			},
 			Status: "md",
@@ -73,7 +76,7 @@ func TestChecker(t *testing.T) {
 			Install: true,
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       initVer,
+				Installed:       semanticVer,
 				Available:       initVer,
 			},
 			Status: "mi",
@@ -83,7 +86,7 @@ func TestChecker(t *testing.T) {
 			Install: false,
 			Result: Result{
 				UpdateAvailable: true,
-				Installed:       initVer,
+				Installed:       semanticVer,
 				Available:       "v1.0.1",
 			},
 			Status: "md",
@@ -93,7 +96,7 @@ func TestChecker(t *testing.T) {
 			Install: false,
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       initVer,
+				Installed:       semanticVer,
 				Available:       "v0.9.1",
 			},
 			Status: "md",
@@ -103,17 +106,27 @@ func TestChecker(t *testing.T) {
 			Install: true,
 			Result: Result{
 				UpdateAvailable: true,
-				Installed:       initVer,
+				Installed:       semanticVer,
 				Available:       "v1.0.1",
 			},
 			Status: "mi",
+		}, {
+			Name:    "daily check version equal",
+			Version: "v1.0.0",
+			Install: false,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       semanticVer,
+				Available:       "v1.0.0",
+			},
+			Status: "md",
 		}, {
 			Name:    "daily check docker",
 			Version: initVer,
 			Install: false,
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       initVer,
+				Installed:       semanticVer,
 				Available:       initVer,
 			},
 			Status: "md",
@@ -123,7 +136,7 @@ func TestChecker(t *testing.T) {
 			Install: true,
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       initVer,
+				Installed:       semanticVer,
 				Available:       initVer,
 			},
 			Status: "mi",
@@ -141,7 +154,7 @@ func TestChecker(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			Print("Then: result should be expected")
+			Print("Then: result is expected")
 			if diff := cmp.Diff(res, test.Result); diff != "" {
 				t.Error(diff)
 			}

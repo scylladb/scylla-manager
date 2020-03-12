@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/scylladb/go-log"
@@ -152,10 +153,13 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) (Result, er
 	if err != nil {
 		return res, err
 	}
-	installed, err := version.NewVersion(s.Version)
+
+	installedVersion := strings.Split(s.Version, "-")[0]
+	installed, err := version.NewVersion(installedVersion)
 	if err != nil {
 		return res, err
 	}
+
 	res.Available = available.Original()
 	res.Installed = installed.Original()
 
