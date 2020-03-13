@@ -190,6 +190,18 @@ func aggregateRemoteManifests(manifests []*remoteManifest) []ListItem {
 		}
 	}
 
+	// Calculate snapshot total sizes
+	sizes := make(map[key]int64)
+	for _, m := range manifests {
+		k := key{m.ClusterID, m.SnapshotTag}
+		_, ok := sizes[k]
+		if ok {
+			sizes[k] += m.Content.Size
+		} else {
+			sizes[k] = m.Content.Size
+		}
+	}
+
 	// Group Snapshot tags by Units
 	items := make(map[uint64]*ListItem)
 	for k, v := range kv {
@@ -213,21 +225,27 @@ func aggregateRemoteManifests(manifests []*remoteManifest) []ListItem {
 		l, ok := items[h]
 		if !ok {
 			l := &ListItem{
-				ClusterID:    k.ClusterID,
-				Units:        units,
-				SnapshotTags: []string{k.SnapshotTag},
-				unitsHash:    h,
+				ClusterID: k.ClusterID,
+				Units:     units,
+				SnapshotInfo: []SnapshotInfo{{
+					SnapshotTag: k.SnapshotTag,
+					Size:        sizes[k],
+				}},
+				unitsHash: h,
 			}
 			items[h] = l
-		} else if !sliceContains(k.SnapshotTag, l.SnapshotTags) {
-			l.SnapshotTags = append(l.SnapshotTags, k.SnapshotTag)
+		} else if !l.SnapshotInfo.hasSnapshot(k.SnapshotTag) {
+			l.SnapshotInfo = append(l.SnapshotInfo, SnapshotInfo{
+				SnapshotTag: k.SnapshotTag,
+				Size:        sizes[k],
+			})
 		}
 	}
 
 	// Sort Snapshot tags DESC
 	for _, l := range items {
-		sort.Slice(l.SnapshotTags, func(i, j int) bool {
-			return l.SnapshotTags[i] > l.SnapshotTags[j] // nolint: scopelint
+		sort.Slice(l.SnapshotInfo, func(i, j int) bool {
+			return l.SnapshotInfo[i].SnapshotTag > l.SnapshotInfo[j].SnapshotTag // nolint: scopelint
 		})
 	}
 
@@ -242,8 +260,8 @@ func aggregateRemoteManifests(manifests []*remoteManifest) []ListItem {
 		if c := uuid.Compare(list[i].ClusterID, list[j].ClusterID); c != 0 {
 			return c < 0
 		}
-		if list[i].SnapshotTags[0] != list[j].SnapshotTags[0] {
-			return list[i].SnapshotTags[0] > list[j].SnapshotTags[0]
+		if list[i].SnapshotInfo[0].SnapshotTag != list[j].SnapshotInfo[0].SnapshotTag {
+			return list[i].SnapshotInfo[0].SnapshotTag > list[j].SnapshotInfo[0].SnapshotTag
 		}
 		return list[i].unitsHash < list[j].unitsHash
 	})

@@ -690,7 +690,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("List() = %v, expected one item", items)
 	}
 	i := items[0]
-	if len(i.SnapshotTags) != 2 {
+	if len(i.SnapshotInfo) != 2 {
 		t.Fatalf("List() = %v, expected two SnapshotTags", items)
 	}
 
@@ -763,7 +763,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("List() = %v, expected one item", items)
 	}
 	i = items[0]
-	if len(i.SnapshotTags) != 3 {
+	if len(i.SnapshotInfo) != 3 {
 		t.Fatalf("List() = %v, expected three SnapshotTags", items)
 	}
 

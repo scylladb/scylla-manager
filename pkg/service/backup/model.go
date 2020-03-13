@@ -29,13 +29,31 @@ type ListFilter struct {
 	MaxDate     time.Time `json:"max_date"`
 }
 
+// SnapshotInfo contains detailed information about snapshot.
+type SnapshotInfo struct {
+	SnapshotTag string `json:"snapshot_tag"`
+	Size        int64  `json:"size"`
+}
+
+// SnapshotInfoSlice slice of SnapshotInfo.
+type SnapshotInfoSlice []SnapshotInfo
+
 // ListItem represents contents of a snapshot within list boundaries.
 type ListItem struct {
-	ClusterID    uuid.UUID `json:"cluster_id"`
-	Units        []Unit    `json:"units,omitempty"`
-	SnapshotTags []string  `json:"snapshot_tags"`
+	ClusterID    uuid.UUID         `json:"cluster_id"`
+	Units        []Unit            `json:"units,omitempty"`
+	SnapshotInfo SnapshotInfoSlice `json:"snapshot_info"`
 
 	unitsHash uint64 // Internal usage only
+}
+
+func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
+	for _, sd := range d {
+		if sd.SnapshotTag == snapshotTag {
+			return true
+		}
+	}
+	return false
 }
 
 // FilesInfo specifies paths to files backed up for a table (and node) within

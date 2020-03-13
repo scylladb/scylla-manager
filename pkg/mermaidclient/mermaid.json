@@ -405,10 +405,10 @@
             "$ref": "#/definitions/BackupUnit"
           }
         },
-        "snapshot_tags": {
+        "snapshot_info": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/SnapshotInfo"
           }
         }
       }
@@ -512,6 +512,17 @@
         },
         "all_tables": {
           "type": "boolean"
+        }
+      }
+    },
+    "SnapshotInfo": {
+      "type": "object",
+      "properties": {
+        "snapshot_tag": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
         }
       }
     },

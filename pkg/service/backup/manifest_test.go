@@ -162,31 +162,36 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	tb0 := "table0"
 	tb1 := "table1"
 
+	manifestSize := int64(1024)
+	nodeCount := int64(2)
+
 	var input []*remoteManifest
 
 	// Add product of all the possibilities 2^5 items
 	for _, c := range []uuid.UUID{c0, c1} {
 		for _, n := range []string{n0, n1} {
 			for _, s := range []string{s0, s1} {
+				var idx []filesInfo
 				for _, ks := range []string{ks0, ks1} {
 					for _, tb := range []string{tb0, tb1} {
-						m := &remoteManifest{
-							ClusterID:   c,
-							NodeID:      n,
-							SnapshotTag: s,
-							Content: manifestContent{
-								Version: "v2",
-								Index: []filesInfo{
-									{
-										Keyspace: ks,
-										Table:    tb,
-									},
-								},
-							},
-						}
-						input = append(input, m)
+						idx = append(idx, filesInfo{
+							Keyspace: ks,
+							Table:    tb,
+						})
 					}
 				}
+
+				m := &remoteManifest{
+					ClusterID:   c,
+					NodeID:      n,
+					SnapshotTag: s,
+					Content: manifestContent{
+						Version: "v2",
+						Index:   idx,
+						Size:    manifestSize,
+					},
+				}
+				input = append(input, m)
 			}
 		}
 	}
@@ -202,6 +207,7 @@ func TestAggregateRemoteManifests(t *testing.T) {
 					Table:    tb0,
 				},
 			},
+			Size: manifestSize,
 		},
 	})
 	// Shuffle items
@@ -226,20 +232,25 @@ func TestAggregateRemoteManifests(t *testing.T) {
 		{
 			ClusterID:    c0,
 			Units:        []Unit{{Keyspace: ks0, Tables: []string{tb0}}},
-			SnapshotTags: []string{s3},
+			SnapshotInfo: []SnapshotInfo{{SnapshotTag: s3, Size: manifestSize}},
 		},
 		{
-			ClusterID:    c0,
-			Units:        units,
-			SnapshotTags: []string{s1, s0},
+			ClusterID: c0,
+			Units:     units,
+			SnapshotInfo: []SnapshotInfo{
+				{SnapshotTag: s1, Size: nodeCount * manifestSize},
+				{SnapshotTag: s0, Size: nodeCount * manifestSize},
+			},
 		},
 		{
-			ClusterID:    c1,
-			Units:        units,
-			SnapshotTags: []string{s1, s0},
+			ClusterID: c1,
+			Units:     units,
+			SnapshotInfo: []SnapshotInfo{
+				{SnapshotTag: s1, Size: nodeCount * manifestSize},
+				{SnapshotTag: s0, Size: nodeCount * manifestSize},
+			},
 		},
 	}
-
 	v := aggregateRemoteManifests(input)
 	if diff := cmp.Diff(v, golden, listItemCmpOpts); diff != "" {
 		t.Error("AggregateRemoteManifests() diff", diff)

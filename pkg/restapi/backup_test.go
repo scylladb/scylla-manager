@@ -81,7 +81,7 @@ func TestBackupList(t *testing.T) {
 						Tables:   []string{"table1"},
 					},
 				},
-				SnapshotTags: []string{"tag1"},
+				SnapshotInfo: []backup.SnapshotInfo{{SnapshotTag: "tag1"}},
 			},
 		}
 	)

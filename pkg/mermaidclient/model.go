@@ -656,8 +656,8 @@ type BackupListItems struct {
 }
 
 const backupListItemTemplate = `Snapshots:
-{{- range .SnapshotTags }}
-  - {{ . }}
+{{- range .SnapshotInfo }}
+  - {{ .SnapshotTag }} ({{ ByteCountBinary .Size }})
 {{- end }}
 Keyspaces:
 {{- range .Units }}
@@ -672,6 +672,7 @@ func (bl BackupListItems) Render(w io.Writer) error {
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(bl.ShowTables, tables, all)
 		},
+		"ByteCountBinary": ByteCountBinary,
 	}).Parse(backupListItemTemplate))
 
 	prev := ""

@@ -21,8 +21,8 @@ type BackupListItem struct {
 	// cluster id
 	ClusterID string `json:"cluster_id,omitempty"`
 
-	// snapshot tags
-	SnapshotTags []string `json:"snapshot_tags"`
+	// snapshot info
+	SnapshotInfo []*SnapshotInfo `json:"snapshot_info"`
 
 	// units
 	Units []*BackupUnit `json:"units"`
@@ -32,6 +32,10 @@ type BackupListItem struct {
 func (m *BackupListItem) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateSnapshotInfo(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateUnits(formats); err != nil {
 		res = append(res, err)
 	}
@@ -39,6 +43,31 @@ func (m *BackupListItem) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *BackupListItem) validateSnapshotInfo(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SnapshotInfo) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.SnapshotInfo); i++ {
+		if swag.IsZero(m.SnapshotInfo[i]) { // not required
+			continue
+		}
+
+		if m.SnapshotInfo[i] != nil {
+			if err := m.SnapshotInfo[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("snapshot_info" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
