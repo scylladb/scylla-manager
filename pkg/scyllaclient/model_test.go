@@ -97,6 +97,36 @@ func TestScyllaFeatures(t *testing.T) {
 				RowLevelRepair: true,
 			},
 		},
+		{
+			Version: "3.3.rc2",
+			Golden: ScyllaFeatures{
+				RowLevelRepair: true,
+			},
+		},
+		{
+			Version: "3.1.hotfix",
+			Golden: ScyllaFeatures{
+				RowLevelRepair: true,
+			},
+		},
+		{
+			Version: "3.0.rc8",
+			Golden: ScyllaFeatures{
+				RowLevelRepair: false,
+			},
+		},
+		{
+			Version: "2019.1.1-2.reader_concurrency_semaphore.20190730.f0071c669",
+			Golden: ScyllaFeatures{
+				RowLevelRepair: false,
+			},
+		},
+		{
+			Version: "2019.1.5-2.many_tables.20200311.be960ed96",
+			Golden: ScyllaFeatures{
+				RowLevelRepair: false,
+			},
+		},
 	}
 
 	for i := range table {
