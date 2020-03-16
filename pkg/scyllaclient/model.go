@@ -3,9 +3,11 @@
 package scyllaclient
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/go-version"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 )
 
@@ -77,6 +79,10 @@ const (
 	scyllaEnterpriseMasterVersion = "9999.enterprise_dev"
 )
 
+var (
+	verRe = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?`)
+)
+
 func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
 	// Trim build version suffix as it breaks constraints
 	ver = strings.Split(ver, "-")[0]
@@ -85,6 +91,13 @@ func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
 	if ver == scyllaMasterVersion || ver == scyllaEnterpriseMasterVersion {
 		return masterScyllaFeatures, nil
 	}
+
+	if verRe.FindString(ver) == "" {
+		return ScyllaFeatures{}, errors.Errorf("Unsupported Scylla version: %s", ver)
+	}
+
+	// Extract only version number
+	ver = verRe.FindString(ver)
 
 	v, err := version.NewSemver(ver)
 	if err != nil {
