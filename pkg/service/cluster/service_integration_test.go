@@ -59,7 +59,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
-	diffOpts := []cmp.Option{
+	diffOpts := cmp.Options{
 		UUIDComparer(),
 		cmpopts.IgnoreFields(cluster.Cluster{}, "Host"),
 		cmpopts.IgnoreFields(cluster.Cluster{}, "KnownHosts"),
@@ -223,7 +223,32 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("put new cluster with TLS config", func(t *testing.T) {
+	assertSecrets := func(t *testing.T, c *cluster.Cluster) {
+		t.Helper()
+
+		cqlCreds := &secrets.CQLCreds{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(cqlCreds); err != nil {
+			t.Fatal(err)
+		}
+		tlsIdentity := &secrets.TLSIdentity{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(tlsIdentity); err != nil {
+			t.Fatal(err)
+		}
+
+		goldenCqlCreds, goldenTlsIdentity := goldenSecrets(c)
+		if diff := cmp.Diff(goldenCqlCreds, cqlCreds, diffOpts...); diff != "" {
+			t.Error("Invalid CQL creds, diff", diff)
+		}
+		if diff := cmp.Diff(goldenTlsIdentity, tlsIdentity, diffOpts...); diff != "" {
+			t.Error("Invalid TLS identity, diff", diff)
+		}
+	}
+
+	t.Run("put new cluster with secrets", func(t *testing.T) {
 		setup(t)
 
 		c := tlsCluster()
@@ -233,24 +258,10 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		tlsIdentity := &secrets.TLSIdentity{
-			ClusterID: c.ID,
-		}
-		if err := secretsStore.Get(tlsIdentity); err != nil {
-			t.Fatal(err)
-		}
-		if tlsIdentity.ClusterID != c.ID {
-			t.Fatal("invalid clusterID", tlsIdentity.ClusterID)
-		}
-		if cmp.Diff(tlsIdentity.PrivateKey, tlsKey) != "" {
-			t.Fatal("invalid TLS key", tlsIdentity.PrivateKey)
-		}
-		if cmp.Diff(tlsIdentity.Cert, tlsCert) != "" {
-			t.Fatal("invalid TLS cert", tlsIdentity.Cert)
-		}
+		assertSecrets(t, c)
 	})
 
-	t.Run("update of TLS cluster with new TLS data also updates TLS identity", func(t *testing.T) {
+	t.Run("update cluster with secrets", func(t *testing.T) {
 		setup(t)
 
 		c := tlsCluster()
@@ -259,41 +270,23 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := s.PutCluster(ctx, c); err != nil {
 			t.Fatal(err)
 		}
-		var err error
-		tlsCert, err = ioutil.ReadFile("testdata/cluster_update.crt")
-		if err != nil {
-			t.Fatal(err)
-		}
-		tlsKey, err = ioutil.ReadFile("testdata/cluster_update.key")
-		if err != nil {
-			t.Fatal(err)
-		}
-		c.SSLUserKeyFile = tlsKey
-		c.SSLUserCertFile = tlsCert
 
+		c.SSLUserCertFile, err = ioutil.ReadFile("testdata/cluster_update.crt")
+		if err != nil {
+			t.Fatal(err)
+		}
+		c.SSLUserKeyFile, err = ioutil.ReadFile("testdata/cluster_update.key")
+		if err != nil {
+			t.Fatal(err)
+		}
 		if err := s.PutCluster(ctx, c); err != nil {
 			t.Fatal(err)
 		}
 
-		tlsIdentity := &secrets.TLSIdentity{
-			ClusterID: c.ID,
-		}
-		if err := secretsStore.Get(tlsIdentity); err != nil {
-			t.Fatal(err)
-		}
-		if tlsIdentity.ClusterID != c.ID {
-			t.Fatal("invalid clusterID", tlsIdentity.ClusterID)
-		}
-		if cmp.Diff(tlsIdentity.PrivateKey, tlsKey) != "" {
-			t.Fatal("invalid TLS key", tlsIdentity.PrivateKey)
-		}
-		if cmp.Diff(tlsIdentity.Cert, tlsCert) != "" {
-			t.Fatal("invalid TLS cert", tlsIdentity.Cert)
-		}
-
+		assertSecrets(t, c)
 	})
 
-	t.Run("delete TLS cluster removes TLS data", func(t *testing.T) {
+	t.Run("delete cluster removes secrets", func(t *testing.T) {
 		setup(t)
 
 		c := tlsCluster()
@@ -305,14 +298,18 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := s.DeleteCluster(ctx, c.ID); err != nil {
 			t.Fatal(err)
 		}
+
+		cqlCreds := &secrets.CQLCreds{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(cqlCreds); err != service.ErrNotFound {
+			t.Fatal(err)
+		}
 		tlsIdentity := &secrets.TLSIdentity{
 			ClusterID: c.ID,
 		}
 		if err := secretsStore.Get(tlsIdentity); err != service.ErrNotFound {
 			t.Fatal(err)
-		}
-		if tlsIdentity.Cert != nil || tlsIdentity.PrivateKey != nil {
-			t.Fatal("expected to get nil tls identity")
 		}
 	})
 
@@ -484,7 +481,21 @@ func init() {
 
 func tlsCluster() *cluster.Cluster {
 	c := validCluster()
+	c.User = "user"
+	c.Password = "password"
 	c.SSLUserCertFile = tlsCert
 	c.SSLUserKeyFile = tlsKey
 	return c
+}
+
+func goldenSecrets(c *cluster.Cluster) (*secrets.CQLCreds, *secrets.TLSIdentity) {
+	return &secrets.CQLCreds{
+			ClusterID: c.ID,
+			User:      c.User,
+			Password:  c.Password,
+		}, &secrets.TLSIdentity{
+			ClusterID:  c.ID,
+			Cert:       c.SSLUserCertFile,
+			PrivateKey: c.SSLUserKeyFile,
+		}
 }

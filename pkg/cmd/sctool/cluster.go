@@ -27,6 +27,8 @@ var (
 	cfgClusterName            string
 	cfgClusterHost            string
 	cfgClusterAuthToken       string
+	cfgClusterUser            string
+	cfgClusterPassword        string
 	cfgClusterSSLUserCertFile string
 	cfgClusterSSLUserKeyFile  string
 )
@@ -35,6 +37,8 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "`alias` you can give to your cluster")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
 	cmd.Flags().StringVar(&cfgClusterAuthToken, "auth-token", "", "authentication token set on the cluster nodes in agent config file")
+	cmd.Flags().StringVar(&cfgClusterUser, "user", "", "cql `username` used in advanced CQL health check")
+	cmd.Flags().StringVar(&cfgClusterPassword, "password", "", "cql `password` associated with user")
 	cmd.Flags().StringVar(&cfgClusterSSLUserCertFile, "ssl-user-cert-file", "", "`path` to client certificate when using client/server encryption with require_client_auth enabled")
 	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
 }
@@ -94,6 +98,8 @@ var clusterAddCmd = &cobra.Command{
 			Name:      cfgClusterName,
 			Host:      cfgClusterHost,
 			AuthToken: cfgClusterAuthToken,
+			User:      cfgClusterUser,
+			Password:  cfgClusterPassword,
 		}
 
 		if cfgClusterSSLUserCertFile != "" && cfgClusterSSLUserKeyFile == "" {
@@ -171,6 +177,14 @@ var clusterUpdateCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("host") {
 			cluster.Host = cfgClusterHost
+			ok = true
+		}
+		if cmd.Flags().Changed("user") {
+			cluster.User = cfgClusterUser
+			ok = true
+		}
+		if cmd.Flags().Changed("password") {
+			cluster.Password = cfgClusterPassword
 			ok = true
 		}
 		if cmd.Flags().Changed("auth-token") {

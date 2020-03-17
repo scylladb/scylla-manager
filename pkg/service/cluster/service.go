@@ -323,11 +323,27 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	}()
 
 	if len(c.SSLUserCertFile) != 0 && len(c.SSLUserKeyFile) != 0 {
-		r, err := s.saveTLSIdentityWithRollback(c.ID, c.SSLUserCertFile, c.SSLUserKeyFile)
-		rollback = append(rollback, r)
+		r, err := secrets.PutWithRollback(s.secretsStore, &secrets.TLSIdentity{
+			ClusterID:  c.ID,
+			Cert:       c.SSLUserCertFile,
+			PrivateKey: c.SSLUserKeyFile,
+		})
 		if err != nil {
 			return errors.Wrap(err, "save SSL cert file")
 		}
+		rollback = append(rollback, r)
+	}
+
+	if c.User != "" {
+		r, err := secrets.PutWithRollback(s.secretsStore, &secrets.CQLCreds{
+			ClusterID: c.ID,
+			User:      c.User,
+			Password:  c.Password,
+		})
+		if err != nil {
+			return errors.Wrap(err, "save SSL cert file")
+		}
+		rollback = append(rollback, r)
 	}
 
 	stmt, names := table.Cluster.Insert()
@@ -359,34 +375,6 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		WithoutRepair: c.WithoutRepair,
 	}
 	return s.notifyChangeListener(ctx, changeEvent)
-}
-
-func (s *Service) saveTLSIdentityWithRollback(clusterID uuid.UUID, cert, key []byte) (func(), error) {
-	oldIdentity := &secrets.TLSIdentity{
-		ClusterID: clusterID,
-	}
-	err := s.secretsStore.Get(oldIdentity)
-	if err != nil && err != service.ErrNotFound {
-		return nil, errors.Wrap(err, "read old tls identity")
-	}
-
-	if oldIdentity.PrivateKey != nil && oldIdentity.Cert != nil {
-		if err := s.secretsStore.Delete(oldIdentity); err != nil {
-			return nil, errors.Wrap(err, "delete old tls identity")
-		}
-	}
-
-	identity := secrets.MakeTLSIdentity(clusterID, cert, key)
-	if err := s.secretsStore.Put(identity); err != nil {
-		return nil, errors.Wrap(err, "put tls identity")
-	}
-
-	return func() {
-		s.secretsStore.Delete(identity) // nolint:errcheck
-		if oldIdentity.PrivateKey != nil && oldIdentity.Cert != nil {
-			s.secretsStore.Put(oldIdentity) // nolint:errcheck
-		}
-	}, nil
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {

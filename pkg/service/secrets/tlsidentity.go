@@ -19,15 +19,6 @@ type TLSIdentity struct {
 	PrivateKey []byte    `json:"private_key"`
 }
 
-// MakeTLSIdentity returns instance of TLSIdentity.
-func MakeTLSIdentity(clusterID uuid.UUID, cert, key []byte) *TLSIdentity {
-	return &TLSIdentity{
-		ClusterID:  clusterID,
-		Cert:       cert,
-		PrivateKey: key,
-	}
-}
-
 // Key returns pair of `clusterID` and `key` used for identifying credentials.
 func (v *TLSIdentity) Key() (clusterID uuid.UUID, key string) {
 	return v.ClusterID, tlsIdentityKey

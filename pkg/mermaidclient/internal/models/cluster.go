@@ -28,6 +28,9 @@ type Cluster struct {
 	// name
 	Name string `json:"name,omitempty"`
 
+	// password
+	Password string `json:"password,omitempty"`
+
 	// ssl user cert file
 	// Format: byte
 	SslUserCertFile strfmt.Base64 `json:"ssl_user_cert_file,omitempty"`
@@ -35,6 +38,9 @@ type Cluster struct {
 	// ssl user key file
 	// Format: byte
 	SslUserKeyFile strfmt.Base64 `json:"ssl_user_key_file,omitempty"`
+
+	// user
+	User string `json:"user,omitempty"`
 
 	// without repair
 	WithoutRepair bool `json:"without_repair,omitempty"`
