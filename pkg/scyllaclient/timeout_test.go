@@ -27,7 +27,7 @@ func TestCustomTimeout(t *testing.T) {
 	_, err := client.Ping(ctx, host)
 	close(done)
 
-	const golden = "timeout after 5ms"
+	const golden = "after 5ms: timeout"
 	if err == nil || err.Error() != golden {
 		t.Fatalf("Ping() error = %v, expected %s", err, golden)
 	}

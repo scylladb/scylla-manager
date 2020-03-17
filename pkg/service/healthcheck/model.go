@@ -5,8 +5,11 @@ package healthcheck
 import "github.com/scylladb/mermaid/pkg/scyllaclient"
 
 const (
-	statusUp   = `UP`
-	statusDown = `DOWN`
+	statusUp           = `UP`
+	statusDown         = `DOWN`
+	statusTimeout      = `TIMEOUT`
+	statusUnauthorized = `UNAUTHORIZED`
+	statusHTTP         = `HTTP`
 )
 
 // NodeStatus represents the status of a particular node.

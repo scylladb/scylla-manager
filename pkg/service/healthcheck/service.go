@@ -5,8 +5,10 @@ package healthcheck
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
@@ -119,7 +121,12 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 					"host", status[i].Addr,
 					"error", err,
 				)
-				out[i].CQLStatus = statusDown
+
+				if errors.Is(err, cqlping.ErrTimeout) {
+					out[i].CQLStatus = fmt.Sprintf("%s (%dms)", statusTimeout, rtt.Milliseconds())
+				} else {
+					out[i].CQLStatus = statusDown
+				}
 			} else {
 				out[i].CQLStatus = statusUp
 			}
@@ -143,7 +150,16 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 					"host", status[i].Addr,
 					"error", err,
 				)
-				out[i].RESTStatus = statusDown
+				switch {
+				case errors.Is(err, scyllaclient.ErrTimeout):
+					out[i].RESTStatus = fmt.Sprintf("%s (%dms)", statusTimeout, rtt.Milliseconds())
+				case scyllaclient.StatusCodeOf(err) == http.StatusUnauthorized:
+					out[i].RESTStatus = statusUnauthorized
+				case scyllaclient.StatusCodeOf(err) != 0:
+					out[i].RESTStatus = fmt.Sprintf("%s %d", statusHTTP, scyllaclient.StatusCodeOf(err))
+				default:
+					out[i].RESTStatus = statusDown
+				}
 			} else {
 				out[i].RESTStatus = statusUp
 			}

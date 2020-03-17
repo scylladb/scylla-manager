@@ -12,6 +12,11 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/httpx"
 )
 
+var (
+	// ErrTimeout is returned when request times out.
+	ErrTimeout = errors.New("timeout")
+)
+
 // body defers context cancellation until response body is closed.
 type body struct {
 	io.ReadCloser
@@ -41,7 +46,7 @@ func timeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
 			}
 
 			if errors.Cause(err) == context.DeadlineExceeded && ctx.Err() == context.DeadlineExceeded {
-				err = errors.Errorf("timeout after %s", d)
+				err = errors.Wrapf(ErrTimeout, "after %s", d)
 			}
 		}()
 		return next.RoundTrip(req.WithContext(ctx))

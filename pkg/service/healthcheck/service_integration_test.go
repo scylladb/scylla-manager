@@ -5,7 +5,11 @@
 package healthcheck
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
+	"net"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +21,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service/secrets/dbsecrets"
 	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
@@ -30,13 +35,16 @@ func TestStatusIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	s, err := NewService(
 		DefaultConfig(),
 		func(ctx context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), logger.Named("scylla"))
+			conf := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+			conf.Transport = hrt
+			return scyllaclient.NewClient(conf, logger.Named("scylla"))
 		},
 		secretService,
 		logger,
@@ -108,10 +116,54 @@ func TestStatusIntegration(t *testing.T) {
 		assertEqual(t, status, golden)
 	})
 
-	t.Run("node REST DOWN", func(t *testing.T) {
+	t.Run("node REST TIMEOUT", func(t *testing.T) {
 		host := "192.168.100.12"
 		blockREST(t, host)
 		defer unblockREST(t, host)
+
+		status, err := s.Status(context.Background(), uuid.MustRandom())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "TIMEOUT (5000ms)"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		}
+		assertEqual(t, status, golden)
+	})
+
+	t.Run("node CQL TIMEOUT", func(t *testing.T) {
+		host := "192.168.100.12"
+		blockCQL(t, host)
+		defer unblockCQL(t, host)
+
+		status, err := s.Status(context.Background(), uuid.MustRandom())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "TIMEOUT (250ms)", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		}
+		assertEqual(t, status, golden)
+	})
+
+	t.Run("node REST DOWN", func(t *testing.T) {
+		host := "192.168.100.12"
+		stopAgent(t, host)
+		defer startAgent(t, host)
 
 		status, err := s.Status(context.Background(), uuid.MustRandom())
 		if err != nil {
@@ -130,10 +182,9 @@ func TestStatusIntegration(t *testing.T) {
 		assertEqual(t, status, golden)
 	})
 
-	t.Run("node CQL DOWN", func(t *testing.T) {
-		host := "192.168.100.12"
-		blockCQL(t, host)
-		defer unblockCQL(t, host)
+	t.Run("node REST UNAUTHORIZED", func(t *testing.T) {
+		hrt.SetInterceptor(fakeHealthCheckStatus("192.168.100.12", http.StatusUnauthorized))
+		defer hrt.SetInterceptor(nil)
 
 		status, err := s.Status(context.Background(), uuid.MustRandom())
 		if err != nil {
@@ -143,7 +194,28 @@ func TestStatusIntegration(t *testing.T) {
 
 		golden := []NodeStatus{
 			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "DOWN", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UNAUTHORIZED"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+		}
+		assertEqual(t, status, golden)
+	})
+
+	t.Run("node REST ERROR", func(t *testing.T) {
+		hrt.SetInterceptor(fakeHealthCheckStatus("192.168.100.12", http.StatusBadGateway))
+		defer hrt.SetInterceptor(nil)
+
+		status, err := s.Status(context.Background(), uuid.MustRandom())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "HTTP 502"},
 			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
@@ -227,4 +299,43 @@ func unblock(h, cmd string) error {
 		return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
 	return nil
+}
+
+const agentService = "scylla-manager-agent"
+
+func stopAgent(t *testing.T, h string) {
+	t.Helper()
+	if err := StopService(h, agentService); err != nil {
+		t.Error(err)
+	}
+}
+
+func startAgent(t *testing.T, h string) {
+	t.Helper()
+	if err := StartService(h, agentService); err != nil {
+		t.Error(err)
+	}
+}
+
+func fakeHealthCheckStatus(host string, code int) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		h, _, err := net.SplitHostPort(r.URL.Host)
+		if err != nil {
+			return nil, err
+		}
+		if h == host && r.Method == http.MethodGet && r.URL.Path == "/" {
+			resp := &http.Response{
+				Status:     http.StatusText(code),
+				StatusCode: code,
+				Proto:      "HTTP/1.1",
+				ProtoMajor: 1,
+				ProtoMinor: 1,
+				Request:    r,
+				Header:     make(http.Header, 0),
+				Body:       ioutil.NopCloser(bytes.NewReader([]byte{})),
+			}
+			return resp, nil
+		}
+		return nil, nil
+	})
 }

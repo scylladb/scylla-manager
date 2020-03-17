@@ -163,9 +163,9 @@ func pickNRandomHosts(n int, hosts []string) []string {
 // return an error.
 func (c *Client) PingN(ctx context.Context, host string, n int, timeout time.Duration) (time.Duration, error) {
 	// Open connection to server.
-	_, err := c.Ping(ctx, host)
+	rtt, err := c.Ping(ctx, host)
 	if err != nil {
-		return 0, err
+		return rtt, err
 	}
 
 	// Limit the running time of many loops to timeout
@@ -180,11 +180,14 @@ func (c *Client) PingN(ctx context.Context, host string, n int, timeout time.Dur
 	for i := 0; i < n; i++ {
 		d, err := c.Ping(ctxWithTimeout, host)
 		if err != nil {
+			if ctxWithTimeout.Err() != nil {
+				return timeout, ErrTimeout
+			}
 			return 0, err
 		}
 		sum += d
 	}
-	rtt := sum / time.Duration(n)
+	rtt = sum / time.Duration(n)
 
 	return rtt, nil
 }

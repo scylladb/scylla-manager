@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"net"
 
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -54,4 +55,24 @@ func sshAsRoot() *ssh.ClientConfig {
 	c.Auth = []ssh.AuthMethod{ssh.Password("root")}
 	c.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 	return c
+}
+
+// StopService allows to stop given service on the given host. Service must be
+// controlled by supervisor.
+func StopService(h, service string) error {
+	stdout, stderr, err := ExecOnHost(h, "supervisorctl stop "+service)
+	if err != nil {
+		return errors.Wrapf(err, "stop agent failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
+	}
+	return nil
+}
+
+// StartService allows to start given service on the given host. Service must be
+// controlled by supervisor.
+func StartService(h, service string) error {
+	stdout, stderr, err := ExecOnHost(h, "supervisorctl start "+service)
+	if err != nil {
+		return errors.Wrapf(err, "start agent failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
+	}
+	return nil
 }

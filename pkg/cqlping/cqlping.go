@@ -12,6 +12,11 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
+var (
+	// ErrTimeout is returned when CQL ping times out.
+	ErrTimeout = errors.New("timeout")
+)
+
 // options is wire encoded CQL OPTIONS frame.
 var options = []byte{4, 0, 0, 0, 5, 0, 0, 0, 0}
 
@@ -64,5 +69,11 @@ func Ping(ctx context.Context, config Config) (time.Duration, error) {
 	}
 
 exit:
+	if err != nil {
+		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			return timeutc.Since(t), ErrTimeout
+		}
+	}
+
 	return timeutc.Since(t), err
 }
