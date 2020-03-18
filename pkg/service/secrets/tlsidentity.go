@@ -29,19 +29,19 @@ func MakeTLSIdentity(clusterID uuid.UUID, cert, key []byte) *TLSIdentity {
 }
 
 // Key returns pair of `clusterID` and `key` used for identifying credentials.
-func (i *TLSIdentity) Key() (clusterID uuid.UUID, key string) {
-	return i.ClusterID, tlsIdentityKey
+func (v *TLSIdentity) Key() (clusterID uuid.UUID, key string) {
+	return v.ClusterID, tlsIdentityKey
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
-func (i *TLSIdentity) MarshalBinary() (data []byte, err error) {
-	if i.Cert == nil && i.PrivateKey == nil {
+func (v *TLSIdentity) MarshalBinary() (data []byte, err error) {
+	if v.Cert == nil && v.PrivateKey == nil {
 		return nil, nil
 	}
-	return json.Marshal(i)
+	return json.Marshal(v)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
-func (i *TLSIdentity) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, i)
+func (v *TLSIdentity) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, v)
 }
