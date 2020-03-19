@@ -147,8 +147,6 @@ type RunProgress struct {
 	Unit      int64
 	TableName string
 
-	Files       []string
-	FileSizes   []int64
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string
@@ -158,6 +156,8 @@ type RunProgress struct {
 	// Amount of bytes that have been uploaded but due to error have to be
 	// uploaded again.
 	Failed int64
+
+	files []fileInfo
 }
 
 // TotalUploaded returns total amount of uploaded bytes including skipped

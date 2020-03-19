@@ -27,6 +27,7 @@ func ParsePartialPath(s string) error {
 
 type RemoteManifest = remoteManifest
 type LegacyManifest = manifestV1
+type FileInfo = fileInfo
 
 func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return remoteManifestDir(clusterID, dc, nodeID)
@@ -36,3 +37,7 @@ const (
 	ScyllaManifest  = scyllaManifest
 	MetadataVersion = metadataVersion
 )
+
+func (p *RunProgress) Files() []FileInfo {
+	return p.files
+}

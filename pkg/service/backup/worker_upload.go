@@ -252,17 +252,17 @@ func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllac
 	}
 
 	var errs error
-	for _, f := range p.Files {
-		ft := fileTransfers[f]
+	for _, f := range p.files {
+		ft := fileTransfers[f.Name]
 
 		switch len(ft) {
 		case 0:
 			// Nothing in transferred so inspect transfers in progress
-			p.Uploaded += transferringBytes[f]
+			p.Uploaded += transferringBytes[f.Name]
 		case 1:
 			if ft[0].Error != "" {
 				p.Failed += ft[0].Size - ft[0].Bytes
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f.Name, ft[0].Error))
 			}
 			if ft[0].Checked {
 				// File is already uploaded we just checked.
@@ -276,11 +276,11 @@ func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllac
 			failed := false
 			if ft[0].Error != "" {
 				failed = true
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f.Name, ft[0].Error))
 			}
 			if ft[1].Error != "" {
 				failed = true
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[1].Error))
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f.Name, ft[1].Error))
 			}
 			if failed {
 				p.Failed += ft[1].Size - ft[1].Bytes

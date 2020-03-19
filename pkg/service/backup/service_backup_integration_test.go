@@ -152,11 +152,12 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 
 	pr := &backup.RunProgress{}
 	for iter.StructScan(pr) {
-		for i := range pr.Files {
-			if strings.Contains(pr.Files[i], backup.ScyllaManifest) {
+		fs := pr.Files()
+		for i := range fs {
+			if strings.Contains(fs[i].Name, backup.ScyllaManifest) {
 				continue
 			}
-			files.Add(pr.Files[i])
+			files.Add(fs[i].Name)
 		}
 	}
 

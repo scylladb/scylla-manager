@@ -34,7 +34,6 @@ var (
 			"host",
 			"unit",
 			"table_name",
-			"files",
 			"started_at",
 			"completed_at",
 			"error",

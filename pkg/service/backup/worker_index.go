@@ -83,7 +83,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			opts := &scyllaclient.RcloneListDirOpts{
 				FilesOnly: true,
 			}
-			files, err := w.Client.RcloneListDir(ctx, h.IP, d.Path, opts)
+			localFiles, err := w.Client.RcloneListDir(ctx, h.IP, d.Path, opts)
 			if err != nil {
 				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 					continue
@@ -100,9 +100,8 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			)
 
 			var (
-				fileNames []string
-				fileSizes []int64
-				size      int64
+				files = make([]fileInfo, 0, len(localFiles))
+				size  int64
 			)
 
 			mp := path.Join(d.Path, scyllaManifest)
@@ -112,13 +111,16 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				}
 			}
 
-			for _, f := range files {
+			for _, f := range localFiles {
 				// Filter out Scylla manifest files, they are not needed.
 				if f.Name == scyllaManifest {
 					continue
 				}
-				fileNames = append(fileNames, f.Name)
-				fileSizes = append(fileSizes, f.Size)
+
+				files = append(files, fileInfo{
+					Name: f.Name,
+					Size: f.Size,
+				})
 				size += f.Size
 			}
 			d.Progress = &RunProgress{
@@ -128,9 +130,8 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				Host:      d.Host,
 				Unit:      d.Unit,
 				TableName: d.Table,
-				Files:     fileNames,
-				FileSizes: fileSizes,
 				Size:      size,
+				files:     files,
 			}
 			w.ResumeUploadProgress(ctx, d.Progress)
 
