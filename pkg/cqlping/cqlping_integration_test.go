@@ -7,8 +7,6 @@ package cqlping
 import (
 	"context"
 	"crypto/tls"
-	"net"
-	"strings"
 	"testing"
 	"time"
 
@@ -16,53 +14,55 @@ import (
 )
 
 func TestPingIntegration(t *testing.T) {
-	_, err := Ping(context.Background(), Config{
-		Addr:    testutils.ManagedClusterHost() + ":9042",
-		Timeout: 250 * time.Millisecond,
-	})
-	if err != nil {
-		t.Fatal(err)
+	user, password := testutils.ManagedClusterCredentials()
+	config := Config{
+		Addr:     testutils.ManagedClusterHost() + ":9042",
+		Timeout:  250 * time.Millisecond,
+		User:     user,
+		Password: password,
 	}
+
+	t.Run("simple", func(t *testing.T) {
+		d, err := simplePing(context.Background(), config)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("simplePing() = %s", d)
+	})
+
+	t.Run("query", func(t *testing.T) {
+		d, err := queryPing(context.Background(), config)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("queryPing() = %s", d)
+	})
 }
 
 func TestPingTLSIntegration(t *testing.T) {
 	t.SkipNow()
 
-	_, err := Ping(context.Background(), Config{
+	config := Config{
 		Addr:    testutils.ManagedClusterHost() + ":9042",
 		Timeout: 250 * time.Millisecond,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
-}
 
-func TestPingIntegrationTimeout(t *testing.T) {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer l.Close()
-
-	go func() {
-		conn, err := l.Accept()
+	t.Run("simple", func(t *testing.T) {
+		d, err := simplePing(context.Background(), config)
 		if err != nil {
-			return
+			t.Error(err)
 		}
-		var buf [10]byte
-		conn.Read(buf[:])
-		time.Sleep(time.Second)
-		conn.Write(buf[:])
-	}()
-
-	_, err = Ping(context.Background(), Config{
-		Addr:    l.Addr().String(),
-		Timeout: 250 * time.Millisecond,
+		t.Logf("simplePing() = %s", d)
 	})
-	if err == nil || !strings.HasSuffix(err.Error(), "timeout") {
-		t.Fatal("expected timeout error, got", err)
-	}
+
+	t.Run("query", func(t *testing.T) {
+		d, err := queryPing(context.Background(), config)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("queryPing() = %s", d)
+	})
 }
