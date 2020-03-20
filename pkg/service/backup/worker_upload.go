@@ -174,6 +174,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 	defer t.Stop()
 
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	for {
 		select {
 		case <-ctx.Done():
