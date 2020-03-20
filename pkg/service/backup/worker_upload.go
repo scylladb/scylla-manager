@@ -173,6 +173,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 	t := time.NewTicker(w.Config.PollInterval)
 	defer t.Stop()
 
+	ctx, cancel := context.WithCancel(ctx)
 	for {
 		select {
 		case <-ctx.Done():
@@ -210,12 +211,9 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 					"job_id", id,
 					"error", err,
 				)
-				// If context is canceled loop once again to select job
-				// stopping procedure.
-				if ctx.Err() == context.Canceled {
-					continue
-				}
-				return err
+				// In case of error execute cancel procedure
+				cancel()
+				continue
 			}
 			switch w.Client.RcloneStatusOfJob(job.Job) {
 			case scyllaclient.JobError:
