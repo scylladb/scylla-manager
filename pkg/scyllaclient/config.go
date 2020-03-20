@@ -68,7 +68,7 @@ func DefaultConfig() Config {
 			WaitMin:    time.Second,
 			MaxRetries: 1,
 		},
-		LongPollingSeconds: 10,
+		LongPollingSeconds: 30,
 		PoolDecayDuration:  30 * time.Minute,
 	}
 }
