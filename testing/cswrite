@@ -37,4 +37,5 @@ while [[ $# > 0 ]]; do
 done
 
 cassandra-stress write no-warmup cl=ALL n=100000 -schema "keyspace=${KEYSPACE}" \
--mode cql3 native -pop seq=1..100000 -node ${NODE}
+-mode cql3 native user cassandra password cassandra \
+-pop seq=1..100000 -node ${NODE}

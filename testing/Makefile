@@ -2,6 +2,7 @@ all: help
 
 COMPOSE=docker-compose
 CQLSH=cqlsh --cqlversion=3.3.1
+CQLSH_WITH_USER=$(CQLSH) -u cassandra -p cassandra
 
 include .env
 
@@ -17,9 +18,9 @@ up: ## Start docker containers
 	@mkdir -p $(MINIO_DATA_DIR)
 	@. ./.env && $(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
-	@until $(CQLSH) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
+	@until $(CQLSH_WITH_USER) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
 	@echo "==> Creating tables"
-	@$(CQLSH) 192.168.100.11 -f init.cql
+	@$(CQLSH_WITH_USER) 192.168.100.11 -f init.cql
 	@echo "==> Installing root SSH key"
 	@./install_root_key
 	@echo "==> Adding Minio user"

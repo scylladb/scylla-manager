@@ -17,12 +17,14 @@ import (
 )
 
 var (
-	flagCluster = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
-	flagProto   = flag.Int("proto", 0, "protcol version")
-	flagCQL     = flag.String("cql", "3.0.0", "CQL version")
-	flagRF      = flag.Int("rf", 1, "replication factor for test keyspace")
-	flagRetry   = flag.Int("retries", 5, "number of times to retry queries")
-	flagTimeout = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
+	flagCluster  = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
+	flagProto    = flag.Int("proto", 0, "protcol version")
+	flagCQL      = flag.String("cql", "3.0.0", "CQL version")
+	flagRF       = flag.Int("rf", 1, "replication factor for test keyspace")
+	flagRetry    = flag.Int("retries", 5, "number of times to retry queries")
+	flagTimeout  = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
+	flagUser     = flag.String("user", "", "CQL user")
+	flagPassword = flag.String("password", "", "CQL password")
 
 	flagManagedCluster = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
 	flagSchemaDir      = flag.String("schema-dir", "", "path to schema dir")
@@ -43,6 +45,14 @@ func ManagedClusterHost() string {
 		panic("No nodes specified in --managed-cluster flag")
 	}
 	return s[0]
+}
+
+// ManagedClusterCredentials returns user and poassword.
+func ManagedClusterCredentials() (user, password string) {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return *flagUser, *flagPassword
 }
 
 // SchemaDir returns the specified location of CQL files.
@@ -88,6 +98,11 @@ func CreateManagedClusterSession(tb testing.TB) *gocql.Session {
 	tb.Helper()
 
 	cluster := createCluster(ManagedClusterHosts()...)
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: *flagUser,
+		Password: *flagPassword,
+	}
+
 	session, err := cluster.CreateSession()
 	if err != nil {
 		tb.Fatal("createSession:", err)

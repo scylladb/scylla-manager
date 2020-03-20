@@ -109,9 +109,9 @@ integration-test:
 # Load Minio config for INTEGRATION_TEST_ARGS
 include testing/.env
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
+INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -schema-dir $(PWD)/schema \
 -managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
--schema-dir $(PWD)/schema \
+-user cassandra -password cassandra \
 -agent-auth-token token \
 -s3-data-dir $(PWD)/testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
 
