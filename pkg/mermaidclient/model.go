@@ -50,11 +50,9 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 		return nil
 	}
 
-	const statusUp = "UP"
-
 	var (
 		dc = cs[0].Dc
-		t  = table.New("", "CQL", "SSL", "REST", "Host", "Host ID")
+		t  = table.New("", "CQL", "REST", "Host", "Host ID")
 	)
 
 	for _, s := range cs {
@@ -63,34 +61,20 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 				return err
 			}
 			dc = s.Dc
-			t = table.New("", "CQL", "SSL", "REST", "Host", "Host ID")
+			t = table.New("", "CQL", "REST", "Host", "Host ID")
 		}
 
 		cqlStatus := s.CqlStatus
-		ssl := ""
-		if s.CqlStatus == statusUp {
-			cqlStatus = fmt.Sprintf("%s (%.0fms)", s.CqlStatus, s.CqlRttMs)
-			if s.Ssl {
-				ssl = "ON"
-			} else {
-				ssl = "OFF"
-			}
+		if s.Ssl {
+			cqlStatus += " SSL"
 		}
-		if s.CqlStatus == "" {
-			cqlStatus = "-"
-			ssl = "-"
-		}
+		cqlStatus = fmt.Sprintf("%s (%.0fms)", cqlStatus, s.CqlRttMs)
 
-		restStatus := s.RestStatus
-		if restStatus == statusUp {
-			restStatus = fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
-		}
-		if restStatus == "" {
-			restStatus = "-"
-		}
+		restStatus := fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
 
-		t.AddRow(s.Status, cqlStatus, ssl, restStatus, s.Host, s.HostID)
+		t.AddRow(s.Status, cqlStatus, restStatus, s.Host, s.HostID)
 	}
+
 	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
 		return err
 	}
