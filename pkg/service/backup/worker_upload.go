@@ -153,18 +153,18 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 		)
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
+	waitCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-waitCtx.Done():
 			// Running stop procedure in different context because original
 			// is canceled.
 			stopCtx := context.Background()
 
 			err := w.Client.RcloneJobStop(stopCtx, d.Host, id)
 			if err != nil {
-				w.Logger.Error(ctx, "Failed to stop rclone job",
+				w.Logger.Error(waitCtx, "Failed to stop rclone job",
 					"host", d.Host,
 					"keyspace", d.Keyspace,
 					"table", d.Table,
@@ -174,7 +174,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			}
 			job, err := w.Client.RcloneJobInfo(stopCtx, d.Host, id)
 			if err != nil {
-				w.Logger.Error(ctx, "Failed to fetch job info",
+				w.Logger.Error(waitCtx, "Failed to fetch job info",
 					"host", d.Host,
 					"keyspace", d.Keyspace,
 					"table", d.Table,
@@ -184,11 +184,11 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 				return err
 			}
 			w.updateProgress(stopCtx, d, job)
-			return ctx.Err()
+			return waitCtx.Err()
 		default:
-			job, err := w.Client.RcloneJobInfo(ctx, d.Host, id)
+			job, err := w.Client.RcloneJobInfo(waitCtx, d.Host, id)
 			if err != nil {
-				w.Logger.Error(ctx, "Failed to fetch job info",
+				w.Logger.Error(waitCtx, "Failed to fetch job info",
 					"host", d.Host,
 					"keyspace", d.Keyspace,
 					"table", d.Table,
@@ -203,10 +203,10 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			case scyllaclient.JobError:
 				return errors.Errorf("job error (%d): %s", id, job.Job.Error)
 			case scyllaclient.JobSuccess:
-				w.updateProgress(ctx, d, job)
+				w.updateProgress(waitCtx, d, job)
 				return nil
 			case scyllaclient.JobRunning:
-				w.updateProgress(ctx, d, job)
+				w.updateProgress(waitCtx, d, job)
 			case scyllaclient.JobNotFound:
 				return errors.Errorf("job not found (%d)", id)
 			}
