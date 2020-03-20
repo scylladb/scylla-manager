@@ -115,6 +115,7 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 
 			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr)
 			out[i].CQLRtt = float64(rtt.Milliseconds())
+			out[i].SSL = s.hasTLSConfig(clusterID)
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
 					"cluster_id", clusterID,
@@ -122,15 +123,17 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 					"error", err,
 				)
 
-				if errors.Is(err, cqlping.ErrTimeout) {
-					out[i].CQLStatus = fmt.Sprintf("%s (%dms)", statusTimeout, rtt.Milliseconds())
-				} else {
+				switch {
+				case errors.Is(err, cqlping.ErrTimeout):
+					out[i].CQLStatus = statusTimeout
+				case errors.Is(err, cqlping.ErrUnauthorised):
+					out[i].CQLStatus = statusUnauthorized
+				default:
 					out[i].CQLStatus = statusDown
 				}
 			} else {
 				out[i].CQLStatus = statusUp
 			}
-			out[i].SSL = s.hasTLSConfig(clusterID)
 
 			return
 		})
@@ -152,7 +155,7 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 				)
 				switch {
 				case errors.Is(err, scyllaclient.ErrTimeout):
-					out[i].RESTStatus = fmt.Sprintf("%s (%dms)", statusTimeout, rtt.Milliseconds())
+					out[i].RESTStatus = statusTimeout
 				case scyllaclient.StatusCodeOf(err) == http.StatusUnauthorized:
 					out[i].RESTStatus = statusUnauthorized
 				case scyllaclient.StatusCodeOf(err) != 0:
@@ -228,6 +231,15 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 		}
 	}
 
+	// If CQL credentials are available try executing a query.
+	if err == nil {
+		if c := s.cqlCreds(ctx, clusterID); c != nil {
+			config.User = c.User
+			config.Password = c.Password
+			rtt, err = cqlping.Ping(ctx, config)
+		}
+	}
+
 	return rtt, err
 }
 
@@ -272,6 +284,20 @@ func (s *Service) updateNodeInfo(ctx context.Context, cidHost clusterIDHost) *sc
 	s.cacheMu.Unlock()
 
 	return ni
+}
+
+func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQLCreds {
+	cqlCreds := &secrets.CQLCreds{
+		ClusterID: clusterID,
+	}
+	err := s.secretsStore.Get(cqlCreds)
+	if err != nil {
+		cqlCreds = nil
+		if err != service.ErrNotFound {
+			s.logger.Error(ctx, "Failed to load CQL credentials from secrets store", "cluster_id", clusterID, "error", err)
+		}
+	}
+	return cqlCreds
 }
 
 func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Config, error) {

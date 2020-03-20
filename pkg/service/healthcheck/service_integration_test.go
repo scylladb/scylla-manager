@@ -14,11 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/service"
+	"github.com/scylladb/mermaid/pkg/service/secrets"
 	"github.com/scylladb/mermaid/pkg/service/secrets/dbsecrets"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/httpx"
@@ -28,12 +31,75 @@ import (
 
 func TestStatusIntegration(t *testing.T) {
 	session := CreateSession(t)
-	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
+	defer session.Close()
 
-	secretService, err := dbsecrets.New(session)
+	secretsStore, err := dbsecrets.New(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+	testStatusIntegration(t, session, secretsStore)
+}
+
+type testStore []byte
+
+var _ secrets.Store = &testStore{}
+
+func (t *testStore) Put(secret secrets.KeyValue) error {
+	if _, ok := secret.(*secrets.CQLCreds); !ok {
+		return nil
+	}
+
+	v, err := secret.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	*t = v
+	return nil
+}
+
+func (t *testStore) Get(secret secrets.KeyValue) error {
+	if _, ok := secret.(*secrets.CQLCreds); !ok {
+		return service.ErrNotFound
+	}
+
+	if len(*t) == 0 {
+		return service.ErrNotFound
+	}
+	return secret.UnmarshalBinary(*t)
+}
+
+func (t *testStore) Delete(secret secrets.KeyValue) error {
+	panic("not implemented")
+}
+
+func (t *testStore) DeleteAll(clusterID uuid.UUID) error {
+	panic("not implemented")
+}
+
+func (t *testStore) version() byte {
+	if len(*t) == 0 {
+		return 0
+	}
+	return []byte(*t)[0]
+}
+
+func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
+	user, password := ManagedClusterCredentials()
+
+	session := CreateSession(t)
+	defer session.Close()
+
+	secretsStore := &testStore{}
+	secretsStore.Put(&secrets.CQLCreds{
+		User:     user,
+		Password: password,
+	})
+
+	testStatusIntegration(t, session, secretsStore)
+}
+
+func testStatusIntegration(t *testing.T, session *gocql.Session, secretsStore secrets.Store) {
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	s, err := NewService(
@@ -46,7 +112,7 @@ func TestStatusIntegration(t *testing.T) {
 			conf.Transport = hrt
 			return scyllaclient.NewClient(conf, logger.Named("scylla"))
 		},
-		secretService,
+		secretsStore,
 		logger,
 	)
 	if err != nil {
@@ -129,7 +195,7 @@ func TestStatusIntegration(t *testing.T) {
 
 		golden := []NodeStatus{
 			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "TIMEOUT (5000ms)"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "TIMEOUT"},
 			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
@@ -151,7 +217,7 @@ func TestStatusIntegration(t *testing.T) {
 
 		golden := []NodeStatus{
 			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "TIMEOUT (250ms)", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "TIMEOUT", RESTStatus: "UP"},
 			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
