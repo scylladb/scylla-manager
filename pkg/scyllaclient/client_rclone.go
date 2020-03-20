@@ -45,6 +45,8 @@ type RcloneJobInfo = models.JobInfo
 
 // RcloneJobInfo returns aggregated stats for the job along with job status.
 func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*RcloneJobInfo, error) {
+	ctx = customTimeout(ctx, time.Second*time.Duration(c.config.LongPollingSeconds)+c.config.Timeout)
+
 	p := operations.JobInfoParams{
 		Context: forceHost(ctx, host),
 		Jobinfo: &models.JobInfoParams{
