@@ -17,6 +17,7 @@ type retryableTransport struct {
 	config            BackoffConfig
 	interactiveConfig BackoffConfig
 	poolSize          int
+	timeout           time.Duration
 	logger            log.Logger
 }
 
@@ -35,6 +36,7 @@ func retryable(transport runtime.ClientTransport, config Config, logger log.Logg
 		config:            config.Backoff,
 		interactiveConfig: config.InteractiveBackoff,
 		poolSize:          len(config.Hosts),
+		timeout:           config.Timeout,
 		logger:            logger,
 	}
 }
@@ -64,8 +66,19 @@ func (o *retryableOperation) op() (err error) {
 	o.attempts++
 
 	o.result, err = o.transport.Submit(o.operation)
-	if err != nil && !o.shouldRetry(err) {
-		err = retry.Permanent(err)
+	if err != nil {
+		if !o.shouldRetry(err) {
+			err = retry.Permanent(err)
+			return
+		}
+		if o.shouldIncreaseTimeout(err) {
+			timeout := 2 * o.timeout
+			o.logger.Debug(o.operation.Context, "HTTP increasing timeout",
+				"operation", o.operation.ID,
+				"timeout", timeout,
+			)
+			o.operation.Context = customTimeout(o.operation.Context, timeout)
+		}
 	}
 
 	return
@@ -108,6 +121,11 @@ func (o *retryableOperation) shouldRetry(err error) bool {
 	}
 
 	return false
+}
+
+func (o *retryableOperation) shouldIncreaseTimeout(err error) bool {
+	ctx := o.operation.Context
+	return isForceHost(ctx) && !isInteractive(ctx) && !hasCustomTimeout(ctx) && errors.Is(err, ErrTimeout)
 }
 
 func (o *retryableOperation) notify(err error, wait time.Duration) {
