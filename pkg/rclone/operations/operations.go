@@ -55,11 +55,11 @@ type PermissionError struct {
 }
 
 func (e PermissionError) Error() string {
-	return "no " + e.op + " permission"
+	return "no " + e.op + " permission" + ": " + e.cause.Error()
 }
 
 func (e PermissionError) String() string {
-	return e.Error() + ": " + e.cause.Error()
+	return e.Error()
 }
 
 // Cause implements errors.Causer.

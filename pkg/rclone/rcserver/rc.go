@@ -99,7 +99,7 @@ func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err e
 	}
 
 	if err := operations.CheckPermissions(ctx, l); err != nil {
-		fs.Errorf(nil, "Location check: error=%+v", err)
+		fs.Errorf(nil, "Location check: error=%s", err)
 		return nil, err
 	}
 
