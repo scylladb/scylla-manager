@@ -257,22 +257,11 @@ func (h *backupTestHelper) waitTransfersStarted() {
 			if err != nil {
 				h.t.Fatal(err)
 			}
-			for _, tr := range job.Stats.Transferring {
-				if tr.Name != backup.ScyllaManifest {
-					Print("And: upload is underway")
-					return true
-				}
+			if len(job.Stats.Transferring) > 0 {
+				return true
 			}
 		}
 		return false
-	})
-}
-
-func (h *backupTestHelper) waitManifestUploaded() {
-	h.waitCond(func() bool {
-		h.t.Helper()
-		m, _ := h.listS3Files()
-		return len(m) > 0
 	})
 }
 
@@ -289,6 +278,14 @@ func (h *backupTestHelper) waitNoTransfers() {
 			}
 		}
 		return true
+	})
+}
+
+func (h *backupTestHelper) waitManifestUploaded() {
+	h.waitCond(func() bool {
+		h.t.Helper()
+		m, _ := h.listS3Files()
+		return len(m) > 0
 	})
 }
 
@@ -902,6 +899,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 			}
 		}()
 
+		Print("And: upload is underway")
 		h.waitTransfersStarted()
 
 		Print("And: context is canceled")
@@ -960,6 +958,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 			close(done)
 		}()
 
+		Print("And: upload is underway")
 		h.waitTransfersStarted()
 
 		Print("And: we restart the agents")
