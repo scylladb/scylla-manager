@@ -8,7 +8,7 @@ set -eu -o pipefail
 source .env
 
 function mc() {
-  docker run -it --network=host -v $(pwd)/minio/mc:/root/.mc/ -v $(pwd)/minio/user-policy.json:/user-policy.json  minio/mc:"$MINIO_MC_VERSION" "$@"
+  docker run -it --rm --network=host -v $(pwd)/minio/mc:/root/.mc/ -v $(pwd)/minio/user-policy.json:/user-policy.json  minio/mc:"$MINIO_MC_VERSION" "$@"
 }
 
 mc config host add minio-test "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
