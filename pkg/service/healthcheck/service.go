@@ -234,7 +234,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 	// If CQL credentials are available try executing a query.
 	if err == nil {
 		if c := s.cqlCreds(ctx, clusterID); c != nil {
-			config.User = c.User
+			config.Username = c.Username
 			config.Password = c.Password
 			rtt, err = cqlping.Ping(ctx, config)
 		}

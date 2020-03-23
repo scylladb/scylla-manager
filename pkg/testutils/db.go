@@ -47,7 +47,7 @@ func ManagedClusterHost() string {
 	return s[0]
 }
 
-// ManagedClusterCredentials returns user and poassword.
+// ManagedClusterCredentials returns CQL username and password.
 func ManagedClusterCredentials() (user, password string) {
 	if !flag.Parsed() {
 		flag.Parse()

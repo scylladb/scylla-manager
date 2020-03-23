@@ -334,10 +334,10 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		rollback = append(rollback, r)
 	}
 
-	if c.User != "" {
+	if c.Username != "" {
 		r, err := secrets.PutWithRollback(s.secretsStore, &secrets.CQLCreds{
 			ClusterID: c.ID,
-			User:      c.User,
+			Username:  c.Username,
 			Password:  c.Password,
 		})
 		if err != nil {

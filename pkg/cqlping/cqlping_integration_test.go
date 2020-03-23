@@ -18,7 +18,7 @@ func TestPingIntegration(t *testing.T) {
 	config := Config{
 		Addr:     testutils.ManagedClusterHost() + ":9042",
 		Timeout:  250 * time.Millisecond,
-		User:     user,
+		Username: user,
 		Password: password,
 	}
 

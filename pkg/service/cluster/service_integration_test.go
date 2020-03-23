@@ -481,7 +481,7 @@ func init() {
 
 func tlsCluster() *cluster.Cluster {
 	c := validCluster()
-	c.User = "user"
+	c.Username = "user"
 	c.Password = "password"
 	c.SSLUserCertFile = tlsCert
 	c.SSLUserKeyFile = tlsKey
@@ -491,7 +491,7 @@ func tlsCluster() *cluster.Cluster {
 func goldenSecrets(c *cluster.Cluster) (*secrets.CQLCreds, *secrets.TLSIdentity) {
 	return &secrets.CQLCreds{
 			ClusterID: c.ID,
-			User:      c.User,
+			Username:  c.Username,
 			Password:  c.Password,
 		}, &secrets.TLSIdentity{
 			ClusterID:  c.ID,

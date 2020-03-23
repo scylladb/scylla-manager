@@ -84,14 +84,14 @@ func (t *testStore) version() byte {
 }
 
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
-	user, password := ManagedClusterCredentials()
+	username, password := ManagedClusterCredentials()
 
 	session := CreateSession(t)
 	defer session.Close()
 
 	secretsStore := &testStore{}
 	secretsStore.Put(&secrets.CQLCreds{
-		User:     user,
+		Username: username,
 		Password: password,
 	})
 

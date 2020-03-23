@@ -27,7 +27,7 @@ var (
 // zero timeout will result in errors.
 type Config struct {
 	Addr      string
-	User      string
+	Username  string
 	Password  string
 	Timeout   time.Duration
 	TLSConfig *tls.Config
@@ -39,7 +39,7 @@ type Config struct {
 // are specified ping is based on executing "SELECT now() FROM system.local"
 // query.
 func Ping(ctx context.Context, config Config) (time.Duration, error) {
-	if config.User == "" {
+	if config.Username == "" {
 		return simplePing(ctx, config)
 	}
 	return queryPing(ctx, config)
@@ -120,7 +120,7 @@ func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error
 	}
 	// Set credentials
 	cluster.Authenticator = gocql.PasswordAuthenticator{
-		Username: config.User,
+		Username: config.Username,
 		Password: config.Password,
 	}
 

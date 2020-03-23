@@ -15,7 +15,7 @@ const (
 // CQLCreds specifies CQL credentials to cluster.
 type CQLCreds struct {
 	ClusterID uuid.UUID `json:"-"`
-	User      string    `json:"user"`
+	Username  string    `json:"username"`
 	Password  string    `json:"password"`
 }
 
@@ -26,7 +26,7 @@ func (v *CQLCreds) Key() (clusterID uuid.UUID, key string) {
 
 // MarshalBinary implements encoding.BinaryMarshaler.
 func (v *CQLCreds) MarshalBinary() (data []byte, err error) {
-	if v.User == "" {
+	if v.Username == "" {
 		return nil, nil
 	}
 	return json.Marshal(v)

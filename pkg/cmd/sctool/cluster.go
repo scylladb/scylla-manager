@@ -27,7 +27,7 @@ var (
 	cfgClusterName            string
 	cfgClusterHost            string
 	cfgClusterAuthToken       string
-	cfgClusterUser            string
+	cfgClusterUsername        string
 	cfgClusterPassword        string
 	cfgClusterSSLUserCertFile string
 	cfgClusterSSLUserKeyFile  string
@@ -37,8 +37,8 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "`alias` you can give to your cluster")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
 	cmd.Flags().StringVar(&cfgClusterAuthToken, "auth-token", "", "authentication token set on the cluster nodes in agent config file")
-	cmd.Flags().StringVar(&cfgClusterUser, "user", "", "cql `username` used in advanced CQL health check")
-	cmd.Flags().StringVar(&cfgClusterPassword, "password", "", "cql `password` associated with user")
+	cmd.Flags().StringVarP(&cfgClusterUsername, "username", "u", "", "cql `username` used in advanced CQL health check")
+	cmd.Flags().StringVarP(&cfgClusterPassword, "password", "p", "", "cql `password` associated with user")
 	cmd.Flags().StringVar(&cfgClusterSSLUserCertFile, "ssl-user-cert-file", "", "`path` to client certificate when using client/server encryption with require_client_auth enabled")
 	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
 }
@@ -98,8 +98,15 @@ var clusterAddCmd = &cobra.Command{
 			Name:      cfgClusterName,
 			Host:      cfgClusterHost,
 			AuthToken: cfgClusterAuthToken,
-			User:      cfgClusterUser,
+			Username:  cfgClusterUsername,
 			Password:  cfgClusterPassword,
+		}
+
+		if cfgClusterUsername != "" && cfgClusterPassword == "" {
+			return errors.New("missing flag \"password\"")
+		}
+		if cfgClusterPassword != "" && cfgClusterUsername == "" {
+			return errors.New("missing flag \"username\"")
 		}
 
 		if cfgClusterSSLUserCertFile != "" && cfgClusterSSLUserKeyFile == "" {
@@ -179,8 +186,8 @@ var clusterUpdateCmd = &cobra.Command{
 			cluster.Host = cfgClusterHost
 			ok = true
 		}
-		if cmd.Flags().Changed("user") {
-			cluster.User = cfgClusterUser
+		if cmd.Flags().Changed("username") {
+			cluster.Username = cfgClusterUsername
 			ok = true
 		}
 		if cmd.Flags().Changed("password") {
@@ -191,6 +198,14 @@ var clusterUpdateCmd = &cobra.Command{
 			cluster.AuthToken = cfgClusterAuthToken
 			ok = true
 		}
+
+		if cfgClusterUsername != "" && cfgClusterPassword == "" {
+			return errors.New("missing flag \"password\"")
+		}
+		if cfgClusterPassword != "" && cfgClusterUsername == "" {
+			return errors.New("missing flag \"username\"")
+		}
+
 		if cmd.Flags().Changed("ssl-user-cert-file") {
 			if cfgClusterSSLUserKeyFile == "" {
 				return errors.New("missing flag \"ssl-user-key-file\"")
