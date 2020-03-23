@@ -30,7 +30,7 @@ type ClusterSlice []*models.Cluster
 
 // Render renders ClusterSlice in a tabular format.
 func (cs ClusterSlice) Render(w io.Writer) error {
-	t := table.New("cluster id", "name")
+	t := table.New("ID", "Name")
 	for _, c := range cs {
 		t.AddRow(c.ID, c.Name)
 	}
@@ -217,7 +217,7 @@ type ExtendedTasks struct {
 
 // Render renders ExtendedTasks in a tabular format.
 func (et ExtendedTasks) Render(w io.Writer) error {
-	p := table.New("task", "arguments", "next run", "status")
+	p := table.New("Task", "Arguments", "Next run", "Status")
 	p.LimitColumnLength(3)
 	for _, t := range et.ExtendedTaskSlice {
 		id := fmt.Sprint(t.Type, "/", t.ID)
@@ -255,7 +255,7 @@ type TaskRunSlice []*TaskRun
 
 // Render renders TaskRunSlice in a tabular format.
 func (tr TaskRunSlice) Render(w io.Writer) error {
-	t := table.New("id", "start time", "end time", "duration", "status")
+	t := table.New("ID", "Start time", "End time", "Duration", "Status")
 	for _, r := range tr {
 		s := r.Status
 		t.AddRow(r.ID, FormatTime(r.StartTime), FormatTime(r.EndTime), FormatDuration(r.StartTime, r.EndTime), s)
@@ -349,7 +349,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 			if addSeparator {
 				d.AddSeparator()
 			}
-			d.AddRow(u.Unit.Keyspace, "shard", "progress", "segment_count", "segment_success", "segment_error")
+			d.AddRow(u.Unit.Keyspace, "Shard", "Progress", "Segment count", "Segment success", "Segment error")
 			addSeparator = true
 			if len(u.Nodes) > 0 {
 				d.AddSeparator()
@@ -499,7 +499,7 @@ func (bp BackupProgress) Render(w io.Writer) error {
 }
 
 func (bp BackupProgress) addHostProgress(t *table.Table) {
-	t.AddRow("host", "progress", "size", "success", "deduplicated", "failed")
+	t.AddRow("Host", "Progress", "Size", "Success", "Deduplicated", "Failed")
 	t.AddSeparator()
 	for _, h := range bp.Progress.Hosts {
 		if bp.hideHost(h.Host) {
@@ -527,7 +527,7 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 		}
 		fmt.Fprintf(w, "\nHost: %s\n", h.Host)
 
-		t := table.New("keyspace", "table", "progress", "size", "success", "deduplicated", "failed", "started at", "completed at")
+		t := table.New("Keyspace", "Table", "Progress", "Size", "Success", "Deduplicated", "Failed", "Started at", "Completed at")
 		for i, ks := range h.Keyspaces {
 			if bp.hideKeyspace(ks.Keyspace) {
 				break
