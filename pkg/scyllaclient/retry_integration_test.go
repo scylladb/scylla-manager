@@ -110,7 +110,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	if _, err = client.Hosts(ctx); err != nil {
 		if shouldTimeout {
-			if !strings.HasSuffix(err.Error(), fmt.Sprintf("timeout after %s", client.Config().Timeout)) {
+			if !strings.HasSuffix(err.Error(), fmt.Sprintf("after %s: timeout", client.Config().Timeout)) {
 				return errors.Errorf("call error %s, expected timeout", err)
 			}
 		} else {

@@ -62,7 +62,7 @@ func TestPingIntegrationTimeout(t *testing.T) {
 		Addr:    l.Addr().String(),
 		Timeout: 250 * time.Millisecond,
 	})
-	if err == nil || !strings.HasSuffix(err.Error(), "i/o timeout") {
+	if err == nil || !strings.HasSuffix(err.Error(), "timeout") {
 		t.Fatal("expected timeout error, got", err)
 	}
 }
