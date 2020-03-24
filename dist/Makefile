@@ -6,16 +6,7 @@ VERSION := 2.0
 RELEASE := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION_NAME := $(VERSION)-$(RELEASE)
 
-DEB_TARGET ?= "stretch"
-
-GO_VERSION := 1.13.8
-GO_URL := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
-GO_BUNDLE := .go$(GO_VERSION).linux-amd64.tar.gz
-
-$(GO_BUNDLE):
-	@echo "==> Downloading Go $(GO_VERSION)..."
-	@curl -sSq $(GO_URL) -o $(GO_BUNDLE)
-	@[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" == "`curl $(GO_URL).sha256`" ]
+GO_VERSION = $(shell cat ../.go-version)
 
 .PHONY: clean
 clean: ## Remove release and all the temporary files
@@ -33,11 +24,9 @@ release/rpm: $(GO_BUNDLE) release/scylla-manager-$(VERSION_NAME).tar.gz ## Creat
 	$(eval RPMBUILD := $(shell mktemp -t -d mermaid_rpm.XXXX))
 	@echo "==> Building RPM in $(RPMBUILD)..."
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
-
-	@tar -xzf $(GO_BUNDLE) -C $(RPMBUILD)/BUILD
 	@cp release/scylla-manager-$(VERSION_NAME).tar.gz $(RPMBUILD)/SOURCES
 
-	@rpmbuild -bb --target x86_64 \
+	@GO_VERSION=$(GO_VERSION) rpmbuild -bb --target x86_64 \
 	--define "mermaid_version $(VERSION)" \
 	--define "mermaid_release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)"  \
@@ -47,12 +36,14 @@ release/rpm: $(GO_BUNDLE) release/scylla-manager-$(VERSION_NAME).tar.gz ## Creat
 	@cp $(RPMBUILD)/RPMS/x86_64/*.rpm release/rpm
 	@rm -Rf $(RPMBUILD)
 
-release/deb: release/scylla-manager-$(VERSION_NAME).tar.gz ## Create DEB package
+release/deb: ## Create DEB package
+release/deb: DEB_TARGET=stretch
+release/deb: release/scylla-manager-$(VERSION_NAME).tar.gz
 	@echo "==> Building DEB for $(DEB_TARGET)..."
 	@mkdir -p release/deb
 
 	@cd $(GIT_ROOT); cp dist/release/scylla-manager-$(VERSION_NAME).tar.gz ../scylla-manager-server_$(VERSION_NAME).orig.tar.gz
-	@cd $(GIT_ROOT); MERMAID_VERSION=$(VERSION) MERMAID_RELEASE=$(RELEASE) ./dist/debian/build_deb.sh --target $(DEB_TARGET)
+	@cd $(GIT_ROOT); GO_VERSION=$(GO_VERSION) MERMAID_VERSION=$(VERSION) MERMAID_RELEASE=$(RELEASE) ./dist/debian/build_deb.sh --target $(DEB_TARGET)
 	@cd $(GIT_ROOT); rm -rf debian
 
 .PHONY: inspect/rpm

@@ -24,22 +24,31 @@ Requires: scylla-enterprise scylla-manager-server = %{version}-%{release} scylla
 %setup -q -n %{name}-%{version}-%{release}
 
 %build
-GOROOT="$(pwd)/../go/"
-GOLDFLAGS="-w -extldflags '-static' -X %{import_path}.version=%{version}-%{release}"
+export CGO_ENABLED=0
+export GOROOT="$(pwd)/../go"
 
-GO="${GOROOT}/bin/go"
+readonly GO_URL="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
+readonly GO_BUNDLE="./go${GO_VERSION}.linux-amd64.tar.gz"
+readonly GO="${GOROOT}/bin/go"
+readonly GOLDFLAGS="-w -extldflags '-static' -X %{import_path}.version=%{version}-%{release}"
 
-CGO_ENABLED=0 ${GO} build -a -trimpath -mod vendor \
+readonly CURL="curl -sSq"
+
+${CURL} ${GO_URL} -o ${GO_BUNDLE}
+[ "`sha256sum ${GO_BUNDLE} | cut -c1-64`" = "`${CURL} ${GO_URL}.sha256`" ]
+tar -zxf ${GO_BUNDLE} -C ../
+
+${GO} build -a -trimpath -mod vendor \
 -ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
--o release/linux_amd64/%{name} %{import_path}/cmd/%{name}
+-o release/linux_amd64/%{name} ./pkg/cmd/%{name}
 
-CGO_ENABLED=0 ${GO} build -a -trimpath -mod vendor \
+${GO} build -a -trimpath -mod vendor \
 -ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
--o release/linux_amd64/sctool %{import_path}/cmd/sctool
+-o release/linux_amd64/sctool ./pkg/cmd/sctool
 
-CGO_ENABLED=0 ${GO} build -a -trimpath -mod vendor \
+${GO} build -a -trimpath -mod vendor \
 -ldflags "${GOLDFLAGS} -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
--o release/linux_amd64/%{name}-agent %{import_path}/cmd/agent
+-o release/linux_amd64/%{name}-agent ./pkg/cmd/agent
 
 mkdir -p release/bash_completion
 ./release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash

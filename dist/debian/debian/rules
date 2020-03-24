@@ -2,34 +2,33 @@
 
 import_path := github.com/scylladb/mermaid/pkg
 
-GO_VERSION := 1.13.8
-GO_URL     := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
-GO_BUNDLE  := ./go$(GO_VERSION).linux-amd64.tar.gz
+export CGO_ENABLED := 0
+export GOROOT      := $(PWD)/../go
 
-GOROOT     := ./go
-GOLDFLAGS  := -w -extldflags '-static' -X $(import_path).version=$(shell dpkg-parsechangelog --show-field Version)
-
-GO := $(GOROOT)/bin/go
+GO_URL    := https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz
+GO_BUNDLE := ./go${GO_VERSION}.linux-amd64.tar.gz
+GO        := ${GOROOT}/bin/go
+GOLDFLAGS := -w -extldflags '-static' -X %{import_path}.version=%{version}-%{release}
 
 %:
 	dh $@ --with=systemd
 
 override_dh_auto_build:
-	curl -sSq $(GO_URL) -o $(GO_BUNDLE)
-	[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "`curl $(GO_URL).sha256`" ]
-	tar -zxf $(GO_BUNDLE)
+	$(CURL) $(GO_URL) -o $(GO_BUNDLE)
+	[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" = "`$(CURL) $(GO_URL).sha256`" ]
+	tar -zxf $(GO_BUNDLE) -C ../
 
-	CGO_ENABLED=0 $(GO) build -a -trimpath -mod vendor \
+	$(GO) build -a -trimpath -mod vendor \
 	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
-	-o release/linux_amd64/scylla-manager $(import_path)/cmd/scylla-manager
+	-o release/linux_amd64/scylla-manager ./pwd/cmd/scylla-manager
 
-	CGO_ENABLED=0 $(GO) build -a -trimpath -mod vendor \
+	$(GO) build -a -trimpath -mod vendor \
 	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
-	-o release/linux_amd64/sctool $(import_path)/cmd/sctool
+	-o release/linux_amd64/sctool ./pwd/cmd/sctool
 
-	CGO_ENABLED=0 $(GO) build -a -trimpath -mod vendor \
+	$(GO) build -a -trimpath -mod vendor \
 	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
-	-o release/linux_amd64/scylla-manager-agent $(import_path)/cmd/agent
+	-o release/linux_amd64/scylla-manager-agent ./pwd/cmd/agent
 
 	mkdir -p release/bash_completion
 	release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
