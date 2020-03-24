@@ -1,108 +1,76 @@
 # Scylla Manager
 
-Mermaid repository provides tools for managing clusters of Scylla servers. It consists of two main components:
+Welcome to Scylla Manager repository!
+Scylla Manager user docs can be found in [Scylla docs portal](https://docs.scylladb.com/operating-scylla/manager/). 
 
-- `scylla-manager`, server that manages Scylla clusters,
-- `sctool`, CLI interface to the `scylla-manager` server.
+Scylla Manager consists of tree components:
 
-## Setting up development environment
+1. a server that manages Scylla clusters
+1. an agent running on each node
+1. `sctool` - a CLI interface to the server
 
-* Install Go
-* Install Docker and docker-compose
-* Run installation script `install_deps.sh`
+## Installing and updating Go
+
+The desired Go version is specified in `.go-version` file.
+You can install or update Go version by running `make install` in `go` directory.
+
+**Procedure**:
+
+1. Define `GOROOT` environment variable as `/PATH/TO/GO/SDKS/latest`
+1. Run `make -C go install`
+
+This would download required go version and install it at `GOROOT`.
+
+## Installing other packages needed for development
+
+1. Install Docker and `docker-compose`
+1. Run installation script `./install_deps.sh`
+
+## Configuring imports formatting in GoLand
 
 If using GoLand update import grouping policy:
 
-* Open File -> Settings -> Editor -> Code Style -> Go
-* Go to Imports Pane
-* Set "Sorting type" to goimports
-* Check every checkbox but "Group current project imports"
-* Press OK
+1. Open File -> Settings -> Editor -> Code Style -> Go
+1. Go to Imports Pane
+1. Set "Sorting type" to goimports
+1. Check every checkbox but "Group current project imports"
+1. Press OK
 
-## Running a development server and sctool
+## Running a development environment 
 
-Let's start the test cluster.
-Docker compose environment for test cluster is located in the `testing` directory.
-The following command will:
- * build the custom Scylla image that is going to be used for every node in the test cluster
- * start the whole cluster
- * compile and starts manager development server 
- * compile manager development client
- * compile manager agent and deploy it to testing containers
+Let's start the development environment.
 
 ```bash
-make start-dev-server
-```
-Test ScyllaDB cluster consist of two data centers (dc1 and dc2) and 6 nodes (3 nodes per dc).
-Additionally two utility containers are spawned:
-* `Prometheus` metrics node 
-* Scylla Manager database node - metadata storage about the clusters.
-
-```
-# Check the status of the cluster
-make status
-
-Datacenter: dc1
-===============
-Status=Up/Down
-|/ State=Normal/Leaving/Joining/Moving
---  Address         Load       Tokens       Owns    Host ID                               Rack
-UN  192.168.100.11  1.98 MB    256          ?       c50e6a9e-9bfa-4f68-ab66-0308bd9249e0  rack1
-UN  192.168.100.12  1.99 MB    256          ?       a447fa2f-a510-485b-bf0f-9aafcfbbaf0c  rack1
-UN  192.168.100.13  1.99 MB    256          ?       11537dbf-220d-4051-96e1-d30276309085  rack1
-Datacenter: dc2
-===============
-Status=Up/Down
-|/ State=Normal/Leaving/Joining/Moving
---  Address         Load       Tokens       Owns    Host ID                               Rack
-UN  192.168.100.21  1.98 MB    256          ?       69c3ef9e-b8b1-41b3-8878-72c35de00dcc  rack1
-UN  192.168.100.22  1.98 MB    256          ?       7176f302-9614-4769-820d-b3b32cc52ad2  rack1
-UN  192.168.100.23  1.99 MB    256          ?       fae327fa-f157-48c6-bbbc-98169b8a65bb  rack1
-
-Note: Non-system keyspaces don't have the same replication settings, effective ownership information is meaningless
+make start-dev-env
 ```
 
-```
-docker ps
+This command will:
+1. Build custom Scylla Docker image (testing/scylla)
+1. Compile server, agent and sctool binaries
+1. Start Scylla cluster with 2 DCs 3 nodes each (6 containers)
+1. Start MinIO and Prometheus containers
+1. Start dedicated Scylla container for Scylla Manager datastore
+1. Start Scylla Manager server on localhost
 
-CONTAINER ID        IMAGE                       COMMAND                  CREATED             STATUS              PORTS                                                    NAMES
-4a2908be0548        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_dc1_node_3_1
-ef8dd5b68763        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_dc2_node_1_1
-1a20e308c82b        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_dc1_node_2_1
-3b8172c18146        prom/prometheus             "/bin/prometheus --c…"   2 hours ago         Up 2 hours                                                                   mermaid_prometheus_1
-093c9e54c388        scylladb/scylla:2.3.0       "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_scylla-manager-db_1
-3292046031d5        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_dc2_node_3_1
-eb8e19c04d97        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_dc2_node_2_1
-08e9a46112e2        scylladb/scylla-ssh:2.3.0   "/docker-entrypoint.…"   2 hours ago         Up 2 hours          7000-7001/tcp, 9042/tcp, 9160/tcp, 9180/tcp, 10000/tcp   mermaid_dc1_node_1_1
+Docker compose environment for test cluster is located in the `testing` directory.
 
-```
-
-Once `scylla-manager` is bootstrapped use `sctool` to add information about the cluster to the manager:
+Once `scylla-manager` is bootstrapped use `./sctool` to add information about the cluster to the manager:
 
 ```bash
 ./sctool cluster add --host=192.168.100.11 --auth-token token --name my-cluster 
 ```
 
-Then ask `scylla-manager` to give the status of the cluster:
+You can ask Scylla Manager to give the status of the cluster:
 
 ```bash
-./sctool status -c my-cluster
+./sctool status
 ```
 
-If everything worked correctly you should see the output similar to [this](https://docs.scylladb.com/operating-scylla/manager/latest/sctool/#example-status).
+For other commands consult [user manual](https://docs.scylladb.com/operating-scylla/manager/).
 
-## Development
-To test new features during development, developers might use following commands:
-```bash
+### Helpful Makefile targets
 
-make build        # compiles all project binaries
-make build-server # compiles new version of `scylla-manager` server
-make build-cli    # compiles new version of `sctool`
-make build-agent  # compiles new version of `scylla-manager-agent`
-
-make deploy-agent # deploys new version of agent to all cluster nodes
-make run-server   # run `scylla-manager`
-``` 
+Make is self-documenting run `make` or `make help` to see available targets with descriptions. 
 
 More Makefile targets are available in `testing` directory.
 
@@ -114,17 +82,17 @@ If test environment is running correctly you can run tests with:
 make test
 ```
 
-This runs both unit and integration tests.
-You can run them separately with:
+This runs both unit and integration tests. You can run them separately with:
 
 ```bash
 make unit-test
-# and
 make integration-test
+make pkg-integration-test PKG=pkg/service/foo
 ```
 
 Project testing heavily depends on integration tests, which are slow.
-Tests should run for couple of minutes. All tests should succeed.
+Tests should run for couple of minutes.
+All tests should succeed.
 
 ## Extending HTTP clients
 
@@ -141,8 +109,7 @@ To refresh generated packages from Swagger specification run:
 ```bash
 make generate
 
-# Or for generating specific client package
-
+# Or for generating specific client package ex.
 go generate ./mermaidclient
 go generate ./scyllaclient
 ```
