@@ -1,5 +1,6 @@
 This product includes software from github.com/asaskevich/govalidator licensed under MIT license.
 This product includes software from github.com/beorn7/perks licensed under MIT license.
+This product includes software from github.com/cespare/xxhash licensed under MIT license.
 This product includes software from github.com/globalsign/mgo licensed under BSD-2-Clause license.
 This product includes software from github.com/gobwas/glob licensed under MIT license.
 This product includes software from github.com/gocql/gocql licensed under BSD-3-Clause license.
