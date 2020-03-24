@@ -23,7 +23,10 @@ func NewFakeScyllaServerMatching(t *testing.T, m Matcher) (client *scyllaclient.
 		r.Header.Set("Content-Type", "text/plain")
 		SendFile(t, w, m(r))
 	})
+	return NewFakeScyllaServerWithHandler(t, h)
+}
 
+func NewFakeScyllaServerWithHandler(t *testing.T, h http.Handler) (client *scyllaclient.Client, closeServer func()) {
 	host, port, closeServer := MakeServer(t, h)
 	client = MakeClient(t, host, port)
 	return
@@ -38,7 +41,10 @@ func NewFakeScyllaV2ServerMatching(t *testing.T, m Matcher) (client *scyllaclien
 		w.Header().Set("Content-Type", "application/json")
 		SendFile(t, w, m(r))
 	})
+	return NewFakeScyllaV2ServerWithHandler(t, h)
+}
 
+func NewFakeScyllaV2ServerWithHandler(t *testing.T, h http.Handler) (client *scyllaclient.ConfigClient, closeServer func()) {
 	host, port, closeServer := MakeServer(t, h)
 	client = scyllaclient.NewConfigClient(net.JoinHostPort(host, port))
 	return

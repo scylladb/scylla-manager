@@ -6,10 +6,13 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
+	"time"
 
+	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	api "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client"
+	scyllaV2Client "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client/config"
 )
 
@@ -17,16 +20,26 @@ import (
 // host if it's directly accessible.
 type ConfigClient struct {
 	addr   string
-	client *api.Scylla2
+	client *scyllaV2Client.Scylla2
 }
 
 func NewConfigClient(addr string) *ConfigClient {
 	setOpenAPIGlobals()
 
-	t := api.DefaultTransportConfig().WithHost(addr)
+	t := http.DefaultTransport
+	t = fixContentType(t)
+	c := &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: t,
+	}
+
+	scyllaV2Runtime := api.NewWithClient(
+		addr, scyllaV2Client.DefaultBasePath, scyllaV2Client.DefaultSchemes, c,
+	)
+
 	return &ConfigClient{
 		addr:   addr,
-		client: api.NewHTTPClientWithConfig(strfmt.Default, t),
+		client: scyllaV2Client.New(scyllaV2Runtime, strfmt.Default),
 	}
 }
 

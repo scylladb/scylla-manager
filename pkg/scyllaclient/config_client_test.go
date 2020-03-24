@@ -5,7 +5,9 @@ package scyllaclient_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -157,5 +159,24 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 
 	if diff := cmp.Diff(v, &goldenNodeInfo, diffOpts...); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestTextPlainError(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"message": "Not found", "code": 404}`)
+	})
+
+	client, closeServer := scyllaclienttest.NewFakeScyllaV2ServerWithHandler(t, h)
+	defer closeServer()
+
+	_, err := client.ListenAddress(context.Background())
+	if err == nil {
+		t.Fatalf("ListenAddress() expected error")
+	}
+	if err.Error() != "agent [HTTP 404] Not found" {
+		t.Fatalf("ListenAddress() error %s expected not found", err)
 	}
 }
