@@ -9,14 +9,13 @@ VERSION_NAME := $(VERSION)-$(RELEASE)
 DEB_TARGET ?= "stretch"
 
 GO_VERSION := 1.13.8
-GO_HASH := 0567734d558aef19112f2b2873caa0c600f1b4a5827930eb5a7f35235219e9d8
 GO_URL := https://storage.googleapis.com/golang/go$(GO_VERSION).linux-amd64.tar.gz
 GO_BUNDLE := .go$(GO_VERSION).linux-amd64.tar.gz
 
 $(GO_BUNDLE):
 	@echo "==> Downloading Go $(GO_VERSION)..."
 	@curl -sSq $(GO_URL) -o $(GO_BUNDLE)
-	@[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" == "$(GO_HASH)" ]
+	@[ "`sha256sum $(GO_BUNDLE) | cut -c1-64`" == "`curl $(GO_URL).sha256`" ]
 
 .PHONY: clean
 clean: ## Remove release and all the temporary files
