@@ -94,7 +94,7 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 		return 0
 	}
 
-	job, err := w.Client.RcloneJobInfo(ctx, d.Host, p.AgentJobID)
+	job, err := w.Client.RcloneJobProgress(ctx, d.Host, p.AgentJobID)
 	if err != nil {
 		w.Logger.Error(ctx, "Failed to fetch job info",
 			"host", d.Host,
@@ -104,7 +104,7 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 		return 0
 	}
 
-	if s := w.Client.RcloneStatusOfJob(job.Job); s == scyllaclient.JobSuccess || s == scyllaclient.JobRunning {
+	if job.Status == string(scyllaclient.JobSuccess) || job.Status == string(scyllaclient.JobRunning) {
 		return p.AgentJobID
 	}
 
@@ -190,7 +190,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 					"error", err,
 				)
 			}
-			job, err := w.Client.RcloneJobInfo(stopCtx, d.Host, id)
+			job, err := w.Client.RcloneJobProgress(stopCtx, d.Host, id)
 			if err != nil {
 				w.Logger.Error(waitCtx, "Failed to fetch job info",
 					"host", d.Host,
@@ -204,7 +204,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			w.updateProgress(stopCtx, d, job)
 			return waitCtx.Err()
 		default:
-			job, err := w.Client.RcloneJobInfo(waitCtx, d.Host, id)
+			job, err := w.Client.RcloneJobProgress(waitCtx, d.Host, id)
 			if err != nil {
 				w.Logger.Error(waitCtx, "Failed to fetch job info",
 					"host", d.Host,
@@ -217,9 +217,9 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 				cancel()
 				continue
 			}
-			switch w.Client.RcloneStatusOfJob(job.Job) {
+			switch scyllaclient.RcloneJobStatus(job.Status) {
 			case scyllaclient.JobError:
-				return errors.Errorf("job error (%d): %s", id, job.Job.Error)
+				return errors.Errorf("job error (%d): %s", id, job.Error)
 			case scyllaclient.JobSuccess:
 				w.updateProgress(waitCtx, d, job)
 				return nil
@@ -237,78 +237,23 @@ func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) er
 	return errors.Wrap(w.Client.RcloneDeleteJobStats(ctx, host, jobID), "clear job stats")
 }
 
-func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllaclient.RcloneJobInfo) {
+func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllaclient.RcloneJobProgress) {
 	p := d.Progress
 
-	// Build mapping for files in progress to bytes uploaded
-	var transferringBytes = make(map[string]int64, len(job.Stats.Transferring))
-	for _, tr := range job.Stats.Transferring {
-		transferringBytes[tr.Name] = tr.Bytes
-	}
-
-	// Build mapping from file name to transfer entries
-	var fileTransfers = make(map[string][]*scyllaclient.RcloneTransfer, len(job.Transferred))
-	for _, tr := range job.Transferred {
-		fileTransfers[tr.Name] = append(fileTransfers[tr.Name], tr)
-	}
-
-	// Clear values
 	p.StartedAt = nil
-	p.CompletedAt = nil
-	p.Error = ""
-	p.Uploaded = 0
-	p.Skipped = 0
-	p.Failed = 0
-
 	// Set StartedAt and CompletedAt based on Job
-	if t := time.Time(job.Job.StartTime); !t.IsZero() {
+	if t := time.Time(job.StartedAt); !t.IsZero() {
 		p.StartedAt = &t
 	}
-	if t := time.Time(job.Job.EndTime); !t.IsZero() {
+	p.CompletedAt = nil
+	if t := time.Time(job.CompletedAt); !t.IsZero() {
 		p.CompletedAt = &t
 	}
 
-	var errs error
-	for _, f := range p.files {
-		ft := fileTransfers[f.Name]
-
-		switch len(ft) {
-		case 0:
-			// Nothing in transferred so inspect transfers in progress
-			p.Uploaded += transferringBytes[f.Name]
-		case 1:
-			if ft[0].Error != "" {
-				p.Failed += ft[0].Size - ft[0].Bytes
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f.Name, ft[0].Error))
-			}
-			if ft[0].Checked {
-				// File is already uploaded we just checked.
-				p.Skipped += ft[0].Size
-			} else {
-				p.Uploaded += ft[0].Bytes
-			}
-		case 2:
-			// File is found and updated on remote (check plus transfer).
-			// Order Check > Transfer is expected.
-			failed := false
-			if ft[0].Error != "" {
-				failed = true
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f.Name, ft[0].Error))
-			}
-			if ft[1].Error != "" {
-				failed = true
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f.Name, ft[1].Error))
-			}
-			if failed {
-				p.Failed += ft[1].Size - ft[1].Bytes
-			}
-			p.Uploaded += ft[1].Bytes
-		}
-	}
-
-	if errs != nil {
-		p.Error = errs.Error()
-	}
+	p.Error = job.Error
+	p.Uploaded = job.Uploaded
+	p.Skipped = job.Skipped
+	p.Failed = job.Failed
 
 	w.onRunProgress(ctx, p)
 }

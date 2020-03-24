@@ -8,14 +8,18 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"sort"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/object"
 	rcops "github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
@@ -58,7 +62,6 @@ func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 		statsOut, statsErr = rcCalls.Get("core/stats").Fn(ctx, in)
 		transOut, transErr = rcCalls.Get("core/transferred").Fn(ctx, in)
 	} else if errors.Is(jobErr, errJobNotFound) {
-		// Job not found status will be registered as nil in "job" field.
 		jobErr = nil
 		fs.Errorf(nil, "Job not found")
 	}
@@ -68,6 +71,255 @@ func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 		"stats":       statsOut,
 		"transferred": transOut["transferred"],
 	}, multierr.Combine(jobErr, statsErr, transErr)
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "job/info",
+		AuthRequired: true,
+		Fn:           rcJobInfo,
+		Title:        "Group all status calls into one",
+		Help: `This takes the following parameters
+
+- jobid - id of the job to get status of 
+- wait  - seconds to wait for job operation to complete
+
+Returns
+
+job: job status
+stats: running stats
+transferred: transferred stats
+`,
+	})
+}
+
+// rcJobProgress aggregates and returns prepared job progress information.
+func rcJobProgress(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	var (
+		jobOut, statsOut, transOut map[string]interface{}
+	)
+	jobid, err := in.GetInt64("jobid")
+	if err != nil {
+		return rc.Params{}, err
+	}
+	wait, err := in.GetInt64("wait")
+	if err != nil && !rc.IsErrParamNotFound(err) {
+		return rc.Params{}, err
+	}
+
+	if wait > 0 {
+		err = waitForJobFinish(ctx, jobid, wait)
+		if err != nil {
+			return rc.Params{}, err
+		}
+	}
+
+	jobOut, err = rcCalls.Get("job/status").Fn(ctx, in)
+	if err != nil {
+		return rc.Params{}, err
+	}
+	in["group"] = fmt.Sprintf("job/%d", jobid)
+	statsOut, err = rcCalls.Get("core/stats").Fn(ctx, in)
+	if err != nil {
+		return rc.Params{}, err
+	}
+	transOut, err = rcCalls.Get("core/transferred").Fn(ctx, in)
+	if err != nil {
+		return rc.Params{}, err
+	}
+
+	if err := rc.Reshape(&out, aggregateJobInfo(jobOut, statsOut, transOut)); err != nil {
+		return rc.Params{}, err
+	}
+	return out, nil
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "job/progress",
+		AuthRequired: true,
+		Fn:           rcJobProgress,
+		Title:        "Return job progress",
+		Help: `This takes the following parameters
+
+- jobid - id of the job to get progress of
+- wait  - seconds to wait for job operation to complete
+
+Returns
+
+status: string
+completed_at: string
+started_at: string
+error: string
+failed: int64
+skipped: int64
+uploaded: int64
+`,
+	})
+}
+
+type jobProgress struct {
+	// status of the job
+	// Enum: [success error running not_found]
+	Status JobStatus `json:"status"`
+	// time at which job completed
+	// Format: date-time
+	CompletedAt time.Time `json:"completed_at"`
+	// time at which job started
+	// Format: date-time
+	StartedAt time.Time `json:"started_at"`
+	// string description of the error (empty if successful)
+	Error string `json:"error"`
+	// number of bytes that failed transfer
+	Failed int64 `json:"failed"`
+	// number of bytes that were skipped
+	Skipped int64 `json:"skipped"`
+	// number of bytes that are successfully uploaded
+	Uploaded int64 `json:"uploaded"`
+}
+
+type jobFields struct {
+	ID        int64  `mapstructure:"id"`
+	StartTime string `mapstructure:"startTime"`
+	EndTime   string `mapstructure:"endTime"`
+	Finished  bool   `mapstructure:"finished"`
+	Success   bool   `mapstructure:"success"`
+	Error     string `mapstructure:"error"`
+}
+
+type statsFields struct {
+	Transferring []fileFields `mapstructure:"transferring"`
+}
+
+type fileFields struct {
+	Name  string `mapstructure:"name"`
+	Bytes int64  `mapstructure:"bytes"`
+}
+
+type transFields struct {
+	Transferred []accounting.TransferSnapshot
+}
+
+func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {
+	var (
+		p     jobProgress
+		job   jobFields
+		stats statsFields
+		trans transFields
+	)
+
+	if err := mapstructure.Decode(jobParam, &job); err != nil {
+		panic(err)
+	}
+	if err := mapstructure.Decode(statsParam, &stats); err != nil {
+		panic(err)
+	}
+	if err := mapstructure.Decode(transParam, &trans); err != nil {
+		panic(err)
+	}
+
+	p.Status = statusOfJob(job)
+	if job.Error != "" {
+		p.Error += job.Error + ";"
+	}
+
+	filesSet := strset.New()
+
+	// Calculating stats for running transfers.
+	var transferringBytes = make(map[string]int64, len(stats.Transferring))
+	for _, tr := range stats.Transferring {
+		filesSet.Add(tr.Name)
+		transferringBytes[tr.Name] = tr.Bytes
+	}
+
+	// Calculating stats for completed transfers.
+	var fileTransfers = make(map[string][]accounting.TransferSnapshot, len(trans.Transferred))
+	for _, tr := range trans.Transferred {
+		filesSet.Add(tr.Name)
+		fileTransfers[tr.Name] = append(fileTransfers[tr.Name], tr)
+	}
+
+	// Set StartedAt and CompletedAt based on Job dates.
+	if t, err := timeutc.Parse(time.RFC3339, job.StartTime); err == nil && !t.IsZero() {
+		p.StartedAt = t
+	}
+	if t, err := timeutc.Parse(time.RFC3339, job.EndTime); err == nil && !t.IsZero() {
+		p.CompletedAt = t
+	}
+
+	var errs error
+
+	// Sorting for more consistent error output.
+	files := filesSet.List()
+	sort.Strings(files)
+	for _, f := range files {
+		ft := fileTransfers[f]
+
+		switch len(ft) {
+		case 0:
+			// Nothing in transferred so inspect transfers in progress
+			p.Uploaded += transferringBytes[f]
+		case 1:
+			if ft[0].Error != nil {
+				p.Failed += ft[0].Size - ft[0].Bytes
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
+			}
+			if ft[0].Checked {
+				// File is already uploaded we just checked.
+				p.Skipped += ft[0].Size
+			} else {
+				p.Uploaded += ft[0].Bytes
+			}
+		case 2:
+			// File is found and updated on remote (check plus transfer).
+			// Order Check > Transfer is expected.
+			failed := false
+			if ft[0].Error != nil {
+				failed = true
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
+			}
+			if ft[1].Error != nil {
+				failed = true
+				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[1].Error))
+			}
+			if failed {
+				p.Failed += ft[1].Size - ft[1].Bytes
+			}
+			p.Uploaded += ft[1].Bytes
+		}
+	}
+
+	if errs != nil {
+		p.Error = errs.Error()
+	}
+
+	return p
+}
+
+// JobStatus represents one of the available job statuses.
+type JobStatus string
+
+// JobStatus enumeration.
+const (
+	JobError    JobStatus = "error"
+	JobSuccess  JobStatus = "success"
+	JobRunning  JobStatus = "running"
+	JobNotFound JobStatus = "not_found"
+)
+
+func statusOfJob(job jobFields) (status JobStatus) {
+	status = JobRunning
+
+	switch {
+	case job.ID == 0:
+		status = JobNotFound
+	case job.Finished && job.Success:
+		status = JobSuccess
+	case job.Finished && !job.Success:
+		status = JobError
+	}
+
+	return
 }
 
 var errJobNotFound = errors.New("job not found")
@@ -96,26 +348,6 @@ func waitForJobFinish(ctx context.Context, jobid, wait int64) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-}
-
-func init() {
-	rc.Add(rc.Call{
-		Path:         "job/info",
-		AuthRequired: true,
-		Fn:           rcJobInfo,
-		Title:        "Group all status calls into one",
-		Help: `This takes the following parameters
-
-- jobid - id of the job to get status of 
-- wait  - seconds to wait for job operation to complete
-
-Returns
-
-job: job status
-stats: running stats
-transferred: transferred stats
-`,
-	})
 }
 
 // Cat a remote object.

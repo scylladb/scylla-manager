@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg/rclone/rcserver"
 	agentClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
@@ -40,10 +41,21 @@ func (c *Client) RcloneJobStop(ctx context.Context, host string, jobID int64) er
 	return err
 }
 
-// RcloneJobInfo aggregates current, transferred and job statuses.
+// RcloneJobInfo groups stats for job, running, and completed transfers.
 type RcloneJobInfo = models.JobInfo
 
-// RcloneJobInfo returns aggregated stats for the job along with job status.
+// RcloneJobProgress aggregates job progress stats.
+type RcloneJobProgress = models.JobProgress
+
+// RcloneTransfer represents a single file transfer in RcloneJobProgress Transferred.
+type RcloneTransfer = models.Transfer
+
+// GlobalProgressID represents empty job id.
+// Use this value to return global stats by job info.
+var GlobalProgressID int64 = 0
+
+// RcloneJobInfo returns job stats, and transfers info about running stats and
+// completed transfers.
 func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*RcloneJobInfo, error) {
 	ctx = customTimeout(ctx, time.Second*time.Duration(c.config.LongPollingSeconds)+c.config.Timeout)
 
@@ -58,6 +70,32 @@ func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*
 	if err != nil {
 		return nil, err
 	}
+
+	return resp.Payload, nil
+}
+
+// RcloneJobProgress returns aggregated stats for the job along with its status.
+func (c *Client) RcloneJobProgress(ctx context.Context, host string, jobID int64) (*RcloneJobProgress, error) {
+	ctx = customTimeout(ctx, time.Second*time.Duration(c.config.LongPollingSeconds)+c.config.Timeout)
+
+	p := operations.JobProgressParams{
+		Context: forceHost(ctx, host),
+		Jobinfo: &models.JobInfoParams{
+			Jobid: jobID,
+			Wait:  c.config.LongPollingSeconds,
+		},
+	}
+	resp, err := c.agentOps.JobProgress(&p)
+	if StatusCodeOf(err) == http.StatusNotFound {
+		// If we got 404 then return empty progress with not found status.
+		return &RcloneJobProgress{
+			Status: string(rcserver.JobNotFound),
+		}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	return resp.Payload, nil
 }
 
@@ -66,32 +104,16 @@ func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*
 // success.
 type RcloneJobStatus string
 
-// RcloneJobStatus enumeration.
 const (
-	JobError    RcloneJobStatus = "error"
-	JobSuccess  RcloneJobStatus = "success"
-	JobRunning  RcloneJobStatus = "running"
+	// JobError signals that job completed with error.
+	JobError RcloneJobStatus = "error"
+	// JobSuccess signals that job completed with success.
+	JobSuccess RcloneJobStatus = "success"
+	// JobRunning signals that job is still running.
+	JobRunning RcloneJobStatus = "running"
+	// JobNotFound signals that job is no longer available.
 	JobNotFound RcloneJobStatus = "not_found"
 )
-
-// RcloneStatusOfJob extracts simple status from rclone job.
-func (c *Client) RcloneStatusOfJob(job *models.Job) (status RcloneJobStatus) {
-	status = JobRunning
-
-	switch {
-	case job == nil:
-		status = JobNotFound
-	case job.Finished && job.Success:
-		status = JobSuccess
-	case job.Finished && !job.Success:
-		status = JobError
-	}
-
-	return
-}
-
-// RcloneTransfer represents a single file transfer in RcloneJobInfo Transferred.
-type RcloneTransfer = models.Transfer
 
 // RcloneDeleteJobStats deletes job stats group.
 func (c *Client) RcloneDeleteJobStats(ctx context.Context, host string, jobID int64) error {

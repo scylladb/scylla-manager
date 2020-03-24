@@ -618,6 +618,43 @@
         "security": []
       }
     },
+    "/rclone/job/progress": {
+      "post": {
+        "description": "Returns aggregated job stats",
+        "summary": "Returns aggregated job stats",
+        "operationId": "JobProgress",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "jobinfo",
+            "description": "Job info params with id and long polling",
+            "schema": {
+              "$ref": "#/definitions/JobInfoParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated info about job transfers",
+            "schema": {
+              "$ref": "#/definitions/JobProgress"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/node_info": {
       "get": {
         "description": "Get information about Scylla node",
@@ -1024,6 +1061,42 @@
             "type": "object",
             "$ref": "#/definitions/Transfer"
           }
+        }
+      }
+    },
+    "JobProgress": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "status of the job",
+          "type": "string",
+          "enum": ["success", "error", "running", "not_found"]
+        },
+        "started_at": {
+          "description": "time at which job started",
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "description": "time at which job completed ",
+          "type": "string",
+          "format": "date-time"
+        },
+        "error": {
+          "description": "string description of the error (empty if successful)",
+          "type": "string"
+        },
+        "uploaded": {
+          "description": "number of bytes that are successfully uploaded",
+          "type": "integer"
+        },
+        "skipped": {
+          "description": "number of bytes that were skipped",
+          "type": "integer"
+        },
+        "failed": {
+          "description": "number of bytes that failed transfer",
+          "type": "integer"
         }
       }
     },

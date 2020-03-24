@@ -253,31 +253,18 @@ func (h *backupTestHelper) waitTransfersStarted() {
 	h.waitCond(func() bool {
 		h.t.Helper()
 		for _, host := range ManagedClusterHosts() {
-			job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
+			job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID)
 			if err != nil {
 				h.t.Fatal(err)
 			}
-			if len(job.Stats.Transferring) > 0 {
-				return true
+			for _, tr := range job.Stats.Transferring {
+				if tr.Name != backup.ScyllaManifest {
+					Print("And: upload is underway")
+					return true
+				}
 			}
 		}
 		return false
-	})
-}
-
-func (h *backupTestHelper) waitNoTransfers() {
-	h.waitCond(func() bool {
-		h.t.Helper()
-		for _, host := range ManagedClusterHosts() {
-			job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
-			if err != nil {
-				h.t.Fatal(err)
-			}
-			if len(job.Stats.Transferring) > 0 {
-				return false
-			}
-		}
-		return true
 	})
 }
 
@@ -286,6 +273,22 @@ func (h *backupTestHelper) waitManifestUploaded() {
 		h.t.Helper()
 		m, _ := h.listS3Files()
 		return len(m) > 0
+	})
+}
+
+func (h *backupTestHelper) waitNoTransfers() {
+	h.waitCond(func() bool {
+		h.t.Helper()
+		for _, host := range ManagedClusterHosts() {
+			job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID)
+			if err != nil {
+				h.t.Fatal(err)
+			}
+			if len(job.Stats.Transferring) > 0 {
+				return false
+			}
+		}
+		return true
 	})
 }
 
@@ -770,7 +773,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: transfer statistics are cleared")
 	for _, host := range ManagedClusterHosts() {
-		job, err := h.client.RcloneJobInfo(context.Background(), host, 0)
+		job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID)
 		if err != nil {
 			h.t.Fatal(err)
 		}
@@ -899,7 +902,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 			}
 		}()
 
-		Print("And: upload is underway")
 		h.waitTransfersStarted()
 
 		Print("And: context is canceled")
@@ -958,7 +960,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 			close(done)
 		}()
 
-		Print("And: upload is underway")
 		h.waitTransfersStarted()
 
 		Print("And: we restart the agents")
