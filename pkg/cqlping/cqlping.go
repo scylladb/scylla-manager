@@ -95,7 +95,10 @@ func simplePing(ctx context.Context, config Config) (rtt time.Duration, err erro
 	return 0, nil
 }
 
-const cqlUnauthorisedMessage = "Username and/or password are incorrect"
+var cqlUnauthorisedMessage = []string{
+	"authentication failed",
+	"Username and/or password are incorrect",
+}
 
 func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error) {
 	host, port, err := net.SplitHostPort(config.Addr)
@@ -140,8 +143,13 @@ func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error
 		if err != nil {
 			if rtt >= config.Timeout {
 				err = ErrTimeout
-			} else if strings.HasSuffix(err.Error(), cqlUnauthorisedMessage) {
-				err = ErrUnauthorised
+			} else {
+				for _, m := range cqlUnauthorisedMessage {
+					if strings.HasSuffix(err.Error(), m) {
+						err = ErrUnauthorised
+						break
+					}
+				}
 			}
 		}
 	}()
