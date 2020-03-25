@@ -64,13 +64,20 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 			t = table.New("", "CQL", "REST", "Host", "Host ID")
 		}
 
-		cqlStatus := s.CqlStatus
-		if s.Ssl {
-			cqlStatus += " SSL"
+		var (
+			cqlStatus  = "-"
+			restStatus = "-"
+		)
+		if s.CqlStatus != "" {
+			cqlStatus = s.CqlStatus
+			if s.Ssl {
+				cqlStatus += " SSL"
+			}
+			cqlStatus = fmt.Sprintf("%s (%.0fms)", cqlStatus, s.CqlRttMs)
 		}
-		cqlStatus = fmt.Sprintf("%s (%.0fms)", cqlStatus, s.CqlRttMs)
-
-		restStatus := fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
+		if s.RestStatus != "" {
+			restStatus = fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
+		}
 
 		t.AddRow(s.Status, cqlStatus, restStatus, s.Host, s.HostID)
 	}
