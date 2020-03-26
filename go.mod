@@ -25,6 +25,7 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.2.0
+	github.com/mitchellh/mapstructure v1.2.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.0
 	github.com/prometheus/client_model v0.2.0
