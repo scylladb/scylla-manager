@@ -70,6 +70,24 @@ type S3Options struct {
 	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
 }
 
+var s3Providers = strset.New(
+	"AWS", "Minio", "Alibaba", "Ceph", "DigitalOcean",
+	"IBMCOS", "Wasabi", "Dreamhost", "Netease", "Other",
+)
+
+// Validate returns error if option values are not set properly.
+func (opts *S3Options) Validate() error {
+	if opts.Endpoint != "" && opts.Provider == "" {
+		return fmt.Errorf("specify provider for the endpoint %s, available providers are: %s", opts.Endpoint, s3Providers)
+	}
+
+	if opts.Provider != "" && !s3Providers.Has(opts.Provider) {
+		return fmt.Errorf("unknown provider: %s", opts.Provider)
+	}
+
+	return nil
+}
+
 const (
 	// In order to reduce memory footprint, by default we allow at most two
 	// concurrent requests.
@@ -89,8 +107,8 @@ const (
 func RegisterS3Provider(opts S3Options) error {
 	const name = "s3"
 
-	if opts.Endpoint != "" && opts.Provider == "" {
-		return fmt.Errorf("missing provider for specified s3 endpoint: %s", opts.Endpoint)
+	if err := opts.Validate(); err != nil {
+		return err
 	}
 
 	if opts.Provider == "" {

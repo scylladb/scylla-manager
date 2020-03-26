@@ -119,6 +119,9 @@ func (c config) validate() (errs error) {
 	// Validate Scylla config
 	errs = multierr.Append(errs, errors.Wrap(c.Scylla.validate(), "scylla"))
 
+	// Validate S3 config
+	errs = multierr.Append(errs, errors.Wrap(c.S3.Validate(), "s3"))
+
 	return
 }
 
