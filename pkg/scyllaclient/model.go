@@ -146,13 +146,25 @@ type Ring struct {
 	Replication ReplicationStrategy
 }
 
-// Datacenters returs a list of datacenters the keyspace is replicated in.
+// Datacenters returns a list of datacenters the keyspace is replicated in.
 func (r Ring) Datacenters() []string {
 	v := strset.NewWithSize(len(r.HostDC))
 	for _, dc := range r.HostDC {
 		v.Add(dc)
 	}
 	return v.List()
+}
+
+// HostTokenRanges returns a list of token ranges given host is a replica.
+// It returns pairs of token range start and end.
+func (r Ring) HostTokenRanges(host string) []int64 {
+	var tr []int64
+	for _, t := range r.Tokens {
+		if contains(t.Replicas, host) {
+			tr = append(tr, t.StartToken, t.EndToken)
+		}
+	}
+	return tr
 }
 
 // TokenRange describes replicas of a token (range).
@@ -214,4 +226,13 @@ func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
 	return ScyllaFeatures{
 		RowLevelRepair: rowLevelRepair.Check(v),
 	}, nil
+}
+
+func contains(v []string, s string) bool {
+	for _, e := range v {
+		if e == s {
+			return true
+		}
+	}
+	return false
 }

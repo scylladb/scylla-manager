@@ -26,8 +26,10 @@ func ParsePartialPath(s string) error {
 }
 
 type RemoteManifest = remoteManifest
+type ManifestContent = manifestContent
 type LegacyManifest = manifestV1
 type FileInfo = fileInfo
+type ManifestFilesInfo = filesInfo
 
 func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return remoteManifestDir(clusterID, dc, nodeID)

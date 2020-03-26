@@ -1454,3 +1454,90 @@ func uploadV1Backup(t *testing.T, ctx context.Context, localPath string, locatio
 
 	return uploadedFiles
 }
+
+func TestManifestFormatIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-manifest-format"
+		testKeyspace = "backuptest_manifest_format"
+
+		goldenPath = "testdata/manifest_format/golden.json.gz"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+
+		h   = newBackupTestHelper(t, session, config, location, nil)
+		ctx = context.Background()
+	)
+
+	Print("Given: retention policy 1")
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 1,
+	}
+
+	Print("When: run backup")
+	writeData(t, clusterSession, testKeyspace, 3)
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, uuid.NewTime(), target); err != nil {
+		t.Fatal(err)
+	}
+
+	manifests, _ := h.listS3Files()
+	for _, m := range manifests {
+		if !strings.Contains(m, h.taskID.String()) {
+			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
+		}
+	}
+	if len(manifests) != 3 {
+		t.Fatalf("Expected 3 manifests got %s", manifests)
+	}
+
+	manifestPath := h.location.RemotePath(manifests[0])
+	manifestsContent, err := h.client.RcloneCat(ctx, ManagedClusterHost(), manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var manifest backup.ManifestContent
+	if err := manifest.Read(bytes.NewReader(manifestsContent)); err != nil {
+		t.Fatalf("Cannot read manifest created by backup: %s", err)
+	}
+
+	if UpdateGoldenFiles() {
+		var buf bytes.Buffer
+		if err := manifest.Write(&buf); err != nil {
+			t.Error(err)
+		}
+		if err := ioutil.WriteFile(goldenPath, buf.Bytes(), 0666); err != nil {
+			t.Error(err)
+		}
+	}
+
+	buf, err := ioutil.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var golden backup.ManifestContent
+	if err := golden.Read(bytes.NewReader(buf)); err != nil {
+		t.Error(err)
+	}
+
+	opts := []cmp.Option{
+		cmpopts.IgnoreFields(backup.ManifestContent{}, "Size"),
+		cmpopts.IgnoreFields(backup.ManifestFilesInfo{}, "Version"),
+		cmpopts.IgnoreFields(backup.FileInfo{}, "Size"),
+	}
+	if diff := cmp.Diff(golden, manifest, opts...); diff != "" {
+		t.Fatal(diff)
+	}
+}

@@ -58,9 +58,10 @@ type worker struct {
 	ResumeUploadProgress func(ctx context.Context, p *RunProgress)
 
 	// Cache for host snapshotDirs
-	dirs   map[string][]snapshotDir
-	dirsMu sync.Mutex
+	snapshotDirs map[string][]snapshotDir
+	mu           sync.Mutex
 
+	rings      map[string]scyllaclient.Ring
 	memoryPool *sync.Pool
 }
 
@@ -70,19 +71,20 @@ func (w *worker) WithLogger(logger log.Logger) *worker {
 }
 
 func (w *worker) hostSnapshotDirs(h hostInfo) []snapshotDir {
-	w.dirsMu.Lock()
-	defer w.dirsMu.Unlock()
-	return w.dirs[h.IP]
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.snapshotDirs[h.IP]
 }
 
-func (w *worker) setHostSnapshotDirs(h hostInfo, dirs []snapshotDir) {
-	w.dirsMu.Lock()
-	defer w.dirsMu.Unlock()
-	if w.dirs == nil {
-		w.dirs = make(map[string][]snapshotDir)
+func (w *worker) setSnapshotDirs(h hostInfo, dirs []snapshotDir) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.snapshotDirs == nil {
+		w.snapshotDirs = make(map[string][]snapshotDir)
 	}
 
-	w.dirs[h.IP] = dirs
+	w.snapshotDirs[h.IP] = dirs
 }
 
 // cleanup resets global stats for each agent.

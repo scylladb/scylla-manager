@@ -64,6 +64,7 @@ func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *remoteM
 	w.Logger.Info(ctx, "Aggregating manifest files on host", "host", h.IP)
 
 	dirs := w.hostSnapshotDirs(h)
+	tokenRanges := w.hostTokenRanges(h)
 
 	m := &remoteManifest{
 		Location:    h.Location,
@@ -73,8 +74,9 @@ func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *remoteM
 		TaskID:      w.TaskID,
 		SnapshotTag: w.SnapshotTag,
 		Content: manifestContent{
-			Version: "v2",
-			Index:   make([]filesInfo, len(dirs)),
+			Version:     "v2",
+			Index:       make([]filesInfo, len(dirs)),
+			TokenRanges: tokenRanges,
 		},
 	}
 
@@ -82,6 +84,14 @@ func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *remoteM
 
 	w.Logger.Info(ctx, "Done aggregating manifest file on host", "host", h.IP)
 	return m
+}
+
+func (w *worker) hostTokenRanges(h hostInfo) map[string][]int64 {
+	tr := make(map[string][]int64)
+	for _, u := range w.Units {
+		tr[u.Keyspace] = w.rings[u.Keyspace].HostTokenRanges(h.IP)
+	}
+	return tr
 }
 
 func (w *worker) transformSnapshotIndexIntoManifest(dirs []snapshotDir, m *remoteManifest) {

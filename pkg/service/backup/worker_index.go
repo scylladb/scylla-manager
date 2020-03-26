@@ -34,7 +34,8 @@ func (w *worker) Index(ctx context.Context, hosts []hostInfo, limits []DCLimit) 
 		} else {
 			w.Logger.Info(ctx, "Done indexing snapshot files on host", "host", h.IP)
 		}
-		w.setHostSnapshotDirs(h, dirs)
+
+		w.setSnapshotDirs(h, dirs)
 
 		return err
 	})

@@ -561,6 +561,16 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "register the run")
 	}
 
+	// Collect ring information
+	rings := make(map[string]scyllaclient.Ring, len(run.Units))
+	for _, u := range run.Units {
+		ring, err := client.DescribeRing(ctx, u.Keyspace)
+		if err != nil {
+			return errors.Wrap(err, "describe keyspace ring")
+		}
+		rings[u.Keyspace] = ring
+	}
+
 	// Create a worker
 	w := &worker{
 		ClusterID:            clusterID,
@@ -573,6 +583,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Client:               client,
 		OnRunProgress:        s.putRunProgressLogError,
 		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
+		rings:                rings,
 		memoryPool: &sync.Pool{
 			New: func() interface{} {
 				return &bytes.Buffer{}
