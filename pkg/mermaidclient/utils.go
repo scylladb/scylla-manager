@@ -4,6 +4,7 @@ package mermaidclient
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"path"
 	"regexp"
@@ -226,4 +227,9 @@ func FormatTables(threshold int, tables []string, all bool) string {
 		out = "all " + out
 	}
 	return out
+}
+
+// FormatClusterName writes cluster name and id to the writer.
+func FormatClusterName(w io.Writer, c *Cluster) {
+	fmt.Fprintf(w, "Cluster: %s (%s)\n", c.Name, c.ID)
 }

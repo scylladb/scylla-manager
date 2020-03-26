@@ -76,12 +76,7 @@ var taskListCmd = &cobra.Command{
 		for _, c := range clusters {
 			// display cluster id if it's not specified.
 			if cfgCluster == "" {
-				fmt.Fprint(w, "Cluster: ")
-				if c.Name != "" {
-					fmt.Fprintln(w, c.Name)
-				} else {
-					fmt.Fprintln(w, c.ID)
-				}
+				mermaidclient.FormatClusterName(w, c)
 			}
 			tasks, err := client.ListTasks(ctx, c.ID, taskType, all, status)
 			if err != nil {

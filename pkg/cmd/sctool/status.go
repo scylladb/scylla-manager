@@ -3,8 +3,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/scylladb/mermaid/pkg/mermaidclient"
 	"github.com/spf13/cobra"
 )
@@ -27,12 +25,7 @@ var statusCmd = &cobra.Command{
 		w := cmd.OutOrStdout()
 		for _, c := range clusters {
 			if cfgCluster == "" {
-				fmt.Fprint(w, "Cluster: ")
-				if c.Name != "" {
-					fmt.Fprintln(w, c.Name)
-				} else {
-					fmt.Fprintln(w, c.ID)
-				}
+				mermaidclient.FormatClusterName(w, c)
 			}
 			status, err := client.ClusterStatus(ctx, c.ID)
 			if err != nil {
