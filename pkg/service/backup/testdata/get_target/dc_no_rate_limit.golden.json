@@ -4,7 +4,8 @@
       "keyspace": "system_auth",
       "tables": [
         "role_members",
-        "roles"
+        "roles",
+        "role_permissions"
       ],
       "all_tables": true
     },
