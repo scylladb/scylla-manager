@@ -304,7 +304,7 @@ var backupFilesCmd = &cobra.Command{
 				if withVersion {
 					dir += "-" + t.Version
 				}
-				var filePath = strings.Replace(path.Join(t.Location, t.Sst, f), ":", "://", 1)
+				var filePath = strings.Replace(path.Join(t.Location, t.Sst, f.Name), ":", "://", 1)
 
 				_, err = fmt.Fprintln(w, filePath, d, dir)
 				if err != nil {
