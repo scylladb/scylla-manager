@@ -733,7 +733,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 		tableFileNames := make([]string, 0, len(tbl.Files))
 		for _, f := range tbl.Files {
-			tableFileNames = append(tableFileNames, f.Name)
+			tableFileNames = append(tableFileNames, f)
 		}
 
 		opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
@@ -1155,7 +1155,7 @@ func TestPurgeIntegration(t *testing.T) {
 
 		for _, fi := range rm.Content.Index {
 			for _, f := range fi.Files {
-				sstPfx = append(sstPfx, strings.TrimSuffix(f.Name, "-Data.db"))
+				sstPfx = append(sstPfx, strings.TrimSuffix(f, "-Data.db"))
 			}
 		}
 	}
@@ -1487,7 +1487,7 @@ func TestManifestFormatIntegration(t *testing.T) {
 	}
 
 	Print("When: run backup")
-	writeData(t, clusterSession, testKeyspace, 3)
+	writeData(t, clusterSession, testKeyspace, 1)
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, uuid.NewTime(), target); err != nil {
 		t.Fatal(err)
 	}
@@ -1534,8 +1534,7 @@ func TestManifestFormatIntegration(t *testing.T) {
 
 	opts := []cmp.Option{
 		cmpopts.IgnoreFields(backup.ManifestContent{}, "Size"),
-		cmpopts.IgnoreFields(backup.ManifestFilesInfo{}, "Version"),
-		cmpopts.IgnoreFields(backup.FileInfo{}, "Size"),
+		cmpopts.IgnoreFields(backup.ManifestFilesInfo{}, "Version", "Size"),
 	}
 	if diff := cmp.Diff(golden, manifest, opts...); diff != "" {
 		t.Fatal(diff)

@@ -3,7 +3,15 @@
 package backup
 
 import (
+	"bytes"
+	"fmt"
+	"math/rand"
+	"strings"
 	"testing"
+
+	"github.com/scylladb/mermaid/pkg/rclone/rcserver"
+	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
 func TestProviderMarshalUnmarshalText(t *testing.T) {
@@ -187,5 +195,74 @@ func TestDCLimitMarshalUnmarshalText(t *testing.T) {
 				t.Errorf("Got %s, expected %s", r, golden)
 			}
 		})
+	}
+}
+
+func TestCatLimitIsEnoughToDownloadManifest(t *testing.T) {
+	var manifest manifestContent
+
+	const (
+		keyspaces     = 2
+		tables        = 8000
+		filesPerTable = 200
+		tokensRanges  = 256
+	)
+
+	var metaFilesFormats = []string{
+		"mc-%d-big-Data.db",
+		"mc-%d-big-Index.db",
+		"mc-%d-big-Scylla.db",
+		"mc-%d-big-Digest.crc32",
+		"mc-%d-big-TOC.txt",
+		"mc-%d-big-Filter.db",
+		"mc-%d-big-Statistics.db",
+		"mc-%d-big-Summary.db",
+	}
+
+	totalFiles := keyspaces * tables * filesPerTable
+	Printf("Given: manifest with %d keyspaces each having %d tables, each having %d SST files, %d files in total", keyspaces, tables, filesPerTable, totalFiles)
+
+	manifest.Index = make([]filesInfo, 0, tables)
+	manifest.TokenRanges = make(map[string][]int64, keyspaces)
+
+	for k := 0; k < keyspaces; k++ {
+		keyspaceName := uuid.MustRandom()
+		for t := 0; t < tables; t++ {
+			tableName := uuid.MustRandom()
+			idx := filesInfo{
+				Keyspace: keyspaceName.String(),
+				Table:    tableName.String(),
+				Version:  strings.ReplaceAll(uuid.MustRandom().String(), "-", ""),
+				Files:    make([]string, 0, filesPerTable),
+			}
+
+			for f := filesPerTable; f > 0; f -= len(metaFilesFormats) {
+				for _, mfmt := range metaFilesFormats {
+					idx.Size += rand.Int63n(1 * 1024 * 1024 * 1024)
+					idx.Files = append(idx.Files, fmt.Sprintf(mfmt, f))
+				}
+			}
+			manifest.Index = append(manifest.Index, idx)
+		}
+
+		tr := make([]int64, 0, 2*tokensRanges)
+		for i := 0; i < 2*tokensRanges; i++ {
+			tr = append(tr, rand.Int63())
+		}
+
+		manifest.TokenRanges[keyspaceName.String()] = tr
+	}
+
+	var buf bytes.Buffer
+	if err := manifest.Write(&buf); err != nil {
+		t.Fatal(err)
+	}
+
+	Printf("Then: manifest takes %dB", buf.Len())
+
+	// Lets reserve 20% space for errors in calculations
+	limit := rcserver.CatLimit * 0.80
+	if buf.Len() >= int(limit) {
+		t.Errorf("Cat limit is not enouogh to download manifest of %d size", buf.Len())
 	}
 }

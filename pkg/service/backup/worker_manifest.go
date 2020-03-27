@@ -100,7 +100,11 @@ func (w *worker) transformSnapshotIndexIntoManifest(dirs []snapshotDir, m *remot
 		idx.Keyspace = d.Keyspace
 		idx.Table = d.Table
 		idx.Version = d.Version
-		idx.Files = d.Progress.files
+		idx.Files = make([]string, 0, len(d.Progress.files))
+		for _, f := range d.Progress.files {
+			idx.Files = append(idx.Files, f.Name)
+			idx.Size += f.Size
+		}
 		m.Content.Size += d.Progress.Size
 	}
 }

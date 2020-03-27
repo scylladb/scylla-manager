@@ -27,10 +27,11 @@ type fileInfo struct {
 }
 
 type filesInfo struct {
-	Keyspace string     `json:"keyspace"`
-	Table    string     `json:"table"`
-	Version  string     `json:"version"`
-	Files    []fileInfo `json:"files"`
+	Keyspace string   `json:"keyspace"`
+	Table    string   `json:"table"`
+	Version  string   `json:"version"`
+	Files    []string `json:"files"`
+	Size     int64    `json:"size"`
 }
 
 // V1 backups lacks token ranges info, so it may be empty.

@@ -73,7 +73,7 @@ func (p *purger) purge(ctx context.Context) error {
 		if isStaleManifest(manifests[i]) {
 			for _, fi := range manifests[i].Content.Index {
 				for _, f := range fi.Files {
-					staleFiles.Add(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f.Name))
+					staleFiles.Add(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
 				}
 			}
 		}
@@ -83,7 +83,7 @@ func (p *purger) purge(ctx context.Context) error {
 		if !isStaleManifest(manifests[i]) {
 			for _, fi := range manifests[i].Content.Index {
 				for _, f := range fi.Files {
-					staleFiles.Remove(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f.Name))
+					staleFiles.Remove(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
 				}
 			}
 		}

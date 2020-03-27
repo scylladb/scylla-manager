@@ -11,3 +11,8 @@ import (
 func Print(msg string) {
 	fmt.Fprintf(os.Stderr, "--- %s\n", msg)
 }
+
+// Printf prints format string to stderr.
+func Printf(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "--- "+format+"\n", args...)
+}
