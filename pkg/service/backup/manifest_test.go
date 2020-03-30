@@ -3,6 +3,7 @@
 package backup
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io/ioutil"
@@ -341,11 +342,6 @@ func TestListManifests(t *testing.T) {
 				NodeID:    "49f5a202-6661-4a1e-a674-4c7b97247fdb",
 			},
 		},
-		{
-			Name:       "Manifest contains file sizes",
-			Location:   Location{Provider: "walker", Path: "file-size"},
-			GoldenFile: "testdata/walker/file-size/golden.json",
-		},
 	}
 
 	for i := range ts {
@@ -368,12 +364,21 @@ func TestListManifests(t *testing.T) {
 				return path.Join(manifests[i].CleanPath...) < path.Join(manifests[j].CleanPath...)
 			})
 
+			var manifestPaths []string
+			for _, m := range manifests {
+				manifestPaths = append(manifestPaths, path.Join(m.CleanPath...))
+			}
+
 			if UpdateGoldenFiles() {
-				b, err := json.Marshal(manifests)
+				b, err := json.Marshal(manifestPaths)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := ioutil.WriteFile(test.GoldenFile, b, 0666); err != nil {
+				var buf bytes.Buffer
+				if err := json.Indent(&buf, b, "", "  "); err != nil {
+					t.Fatal(err)
+				}
+				if err := ioutil.WriteFile(test.GoldenFile, buf.Bytes(), 0666); err != nil {
 					t.Error(err)
 				}
 			}
@@ -382,15 +387,12 @@ func TestListManifests(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var golden []*remoteManifest
+			var golden []string
 			if err := json.Unmarshal(b, &golden); err != nil {
 				t.Fatal(err)
 			}
 
-			opts := []cmp.Option{
-				UUIDComparer(), cmpopts.IgnoreUnexported(remoteManifest{}),
-			}
-			if diff := cmp.Diff(manifests, golden, opts...); diff != "" {
+			if diff := cmp.Diff(manifestPaths, golden); diff != "" {
 				t.Fatalf("listManifests() = %v, diff %s", manifests, diff)
 			}
 		})
