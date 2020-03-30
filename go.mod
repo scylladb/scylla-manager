@@ -33,7 +33,7 @@ require (
 	github.com/rclone/rclone v1.50.2
 	github.com/scylladb/go-log v0.0.0-20190808115121-2ceb34174b18
 	github.com/scylladb/go-reflectx v1.0.1
-	github.com/scylladb/go-set v1.0.1
+	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx v1.3.2
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
