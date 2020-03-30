@@ -14,6 +14,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
@@ -153,6 +154,8 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, err
 	}
 
+	targetDCs := strset.New(t.DC...)
+
 	keyspaces, err := client.Keyspaces(ctx)
 	if err != nil {
 		return t, errors.Wrapf(err, "read keyspaces")
@@ -172,6 +175,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			if strings.HasPrefix(keyspace, "system") && keyspace != "system_schema" {
 				continue
 			}
+		}
+		// Check if keyspace has replica in any DC
+		if !targetDCs.HasAny(ring.Datacenters()...) {
+			continue
 		}
 
 		// Add to the filter
