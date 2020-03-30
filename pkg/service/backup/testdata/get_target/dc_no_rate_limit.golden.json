@@ -27,6 +27,7 @@
         "keyspaces",
         "scylla_tables",
         "views",
+        "computed_columns",
         "dropped_columns",
         "triggers",
         "aggregates",

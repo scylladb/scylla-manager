@@ -17,7 +17,9 @@ import (
 )
 
 var (
-	flagCluster  = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
+	flagCluster = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
+
+	flagTimeout  = flag.Duration("gocql.timeout", 10*time.Second, "sets the connection `timeout` for all operations")
 	flagUser     = flag.String("user", "", "CQL user")
 	flagPassword = flag.String("password", "", "CQL password")
 
@@ -117,6 +119,7 @@ func createCluster(hosts ...string) *gocql.ClusterConfig {
 func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocql.Session {
 	tb.Helper()
 	cluster.Keyspace = "test_scylla_manager"
+	cluster.Timeout = *flagTimeout
 	session, err := cluster.CreateSession()
 	if err != nil {
 		tb.Fatal("createSession:", err)
@@ -130,7 +133,7 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 
 	c := *cluster
 	c.Keyspace = "system"
-	c.Timeout = 30 * time.Second
+	c.Timeout = *flagTimeout
 	session, err := c.CreateSession()
 	if err != nil {
 		tb.Fatal(err)
