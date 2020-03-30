@@ -388,15 +388,15 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:f45446ccc56855d2633cdeae00a127663c6e072ed4e1936f5810c3ec487511a1"
+  digest = "1:6c48eb9fab6f7dc3fb1631cbc67e3f2c5c3ac0797f2f2eacd1a0106722590d11"
   name = "github.com/scylladb/go-set"
   packages = [
     "i64set",
     "strset",
   ]
   pruneopts = "UT"
-  revision = "538a353339f71d1290a04e6abb40c398bc745704"
-  version = "v1.0.1"
+  revision = "e560bb8f49bb7f34d4f59b7e771f6e1307c329da"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:d3823037877d9e5c4b6f9b2460f6c60809ea00f6eae49f5954657305f1647fbd"
