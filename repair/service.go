@@ -170,7 +170,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, p runner.P
 		return Target{}, mermaid.ErrValidate(err, "")
 	}
 
-	t.Units, err = s.getUnits(ctx, clusterID, tp.Keyspace)
+	t.Units, err = s.getUnits(ctx, clusterID, tp.Keyspace, t.DC)
 	if err != nil {
 		return t, err
 	}
@@ -216,7 +216,7 @@ func (s *Service) getDCs(ctx context.Context, clusterID uuid.UUID, filters []str
 // getUnits loads available repair units (keyspaces) filtered through the
 // supplied filters. If no units are found or a filter is invalid a validation
 // error is returned.
-func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []string) ([]Unit, error) {
+func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []string, dc []string) ([]Unit, error) {
 	if err := validateKeyspaceFilters(filters); err != nil {
 		return nil, err
 	}
@@ -236,6 +236,7 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 	}
 
 	var units []Unit
+	targetDCs := strset.New(dc...)
 
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
@@ -267,6 +268,11 @@ func (s *Service) getUnits(ctx context.Context, clusterID uuid.UUID, filters []s
 
 		// local data, skip the keyspace
 		if ring.Replication == scyllaclient.LocalStrategy {
+			continue
+		}
+
+		// Check if keyspace has replica in any DC
+		if !targetDCs.HasAny(ring.Datacenters()...) {
 			continue
 		}
 
