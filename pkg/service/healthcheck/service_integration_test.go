@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -37,7 +36,7 @@ func TestStatusIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testStatusIntegration(t, session, secretsStore)
+	testStatusIntegration(t, secretsStore)
 }
 
 type testStore []byte
@@ -95,10 +94,10 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 		Password: password,
 	})
 
-	testStatusIntegration(t, session, secretsStore)
+	testStatusIntegration(t, secretsStore)
 }
 
-func testStatusIntegration(t *testing.T, session *gocql.Session, secretsStore secrets.Store) {
+func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
