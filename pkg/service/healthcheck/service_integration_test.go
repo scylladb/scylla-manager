@@ -160,7 +160,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		assertEqual(t, status, golden)
+		assertEqual(t, golden, status)
 	})
 
 	t.Run("all nodes UP", func(t *testing.T) {
@@ -178,7 +178,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		assertEqual(t, status, golden)
+		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST TIMEOUT", func(t *testing.T) {
@@ -200,7 +200,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		assertEqual(t, status, golden)
+		assertEqual(t, golden, status)
 	})
 
 	t.Run("node CQL TIMEOUT", func(t *testing.T) {
@@ -222,7 +222,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		assertEqual(t, status, golden)
+		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST DOWN", func(t *testing.T) {
@@ -244,7 +244,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		assertEqual(t, status, golden)
+		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST UNAUTHORIZED", func(t *testing.T) {
@@ -265,7 +265,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		assertEqual(t, status, golden)
+		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST ERROR", func(t *testing.T) {
@@ -286,7 +286,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
 		}
-		assertEqual(t, status, golden)
+		assertEqual(t, golden, status)
 	})
 
 	t.Run("all nodes REST DOWN", func(t *testing.T) {
