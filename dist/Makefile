@@ -2,7 +2,7 @@ all: help
 
 GIT_ROOT := $(shell git rev-parse --show-toplevel)
 
-VERSION := 1.4.3
+VERSION := 1.4.4
 RELEASE := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION_NAME := $(VERSION)-$(RELEASE)
 
