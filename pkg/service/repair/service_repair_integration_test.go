@@ -498,10 +498,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair simple strategy multi dc", func(t *testing.T) {
-		systemAuthUnit := repair.Target{
+		testKeyspace := "test_repair_simple_multi_dc"
+		ExecStmt(t, clusterSession, "CREATE KEYSPACE "+testKeyspace+" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+		ExecStmt(t, clusterSession, "CREATE TABLE "+testKeyspace+".test_table_0 (id int PRIMARY KEY)")
+		ExecStmt(t, clusterSession, "CREATE TABLE "+testKeyspace+".test_table_1 (id int PRIMARY KEY)")
+		defer dropKeyspace(t, clusterSession, testKeyspace)
+
+		testUnit := repair.Target{
 			Units: []repair.Unit{
 				{
-					Keyspace: "system_auth",
+					Keyspace: testKeyspace,
 				},
 			},
 			DC:          []string{"dc1"},
@@ -520,7 +526,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.runRepair(ctx, systemAuthUnit)
+		h.runRepair(ctx, testUnit)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)

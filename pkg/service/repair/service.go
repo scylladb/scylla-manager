@@ -327,7 +327,6 @@ func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client
 			tr = PrimaryTokenRanges
 		}
 		hostSegments = groupSegmentsByHost("", run.Host, run.WithHosts, tr, ring)
-
 		if !u.allDCs {
 			s.logger.Info(ctx, "SimpleStrategy replication strategy with DC filtering may result in not all tokens being repaired in selected DCs ignoring DC filtering",
 				"cluster_id", run.ClusterID,
@@ -659,7 +658,6 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	if err != nil {
 		return Progress{}, err
 	}
-
 	return aggregateProgress(run, prog), nil
 }
 
