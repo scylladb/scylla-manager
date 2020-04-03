@@ -77,7 +77,7 @@ var rootCmd = &cobra.Command{
 		}()
 
 		// Log version and check for updates
-		logger.Info(ctx, "Scylla Manager Server", "version", pkg.Version())
+		logger.Info(ctx, "Scylla Manager Server", "version", pkg.Version(), "pid", os.Getpid())
 		if pkg.Version() != "Snapshot" {
 			if res, err := callhome.NewChecker("", "", callhome.DefaultEnv).CheckForUpdates(ctx, false); err != nil {
 				logger.Error(ctx, "Failed to check for updates", "error", err)
