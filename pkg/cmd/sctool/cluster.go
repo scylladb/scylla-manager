@@ -37,8 +37,8 @@ func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "`alias` you can give to your cluster")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
 	cmd.Flags().StringVar(&cfgClusterAuthToken, "auth-token", "", "authentication token set on the cluster nodes in agent config file")
-	cmd.Flags().StringVarP(&cfgClusterUsername, "username", "u", "", "cql `username` used in advanced CQL health check")
-	cmd.Flags().StringVarP(&cfgClusterPassword, "password", "p", "", "cql `password` associated with user")
+	cmd.Flags().StringVarP(&cfgClusterUsername, "username", "u", "", "CQL `username` used in advanced CQL health check")
+	cmd.Flags().StringVarP(&cfgClusterPassword, "password", "p", "", "CQL `password` associated with user")
 	cmd.Flags().StringVar(&cfgClusterSSLUserCertFile, "ssl-user-cert-file", "", "`path` to client certificate when using client/server encryption with require_client_auth enabled")
 	cmd.Flags().StringVar(&cfgClusterSSLUserKeyFile, "ssl-user-key-file", "", "`path` to key associated with ssl-user-cert-file")
 }
@@ -228,10 +228,25 @@ var clusterUpdateCmd = &cobra.Command{
 			cluster.SslUserKeyFile = b
 			ok = true
 		}
-		if !ok {
+
+		var (
+			deleteCQLCredentials bool
+			deleteSSLUserCert    bool
+		)
+		if cmd.Flags().Changed("delete-cql-credentials") {
+			deleteCQLCredentials = true
+		}
+		if cmd.Flags().Changed("delete-ssl-user-cert") {
+			deleteSSLUserCert = true
+		}
+
+		if !ok && !deleteCQLCredentials && !deleteSSLUserCert {
 			return errors.New("nothing to do")
 		}
 
+		if err := client.DeleteClusterSecrets(ctx, cfgCluster, deleteCQLCredentials, deleteSSLUserCert); err != nil {
+			return err
+		}
 		if err := client.UpdateCluster(ctx, cluster); err != nil {
 			return err
 		}
@@ -242,10 +257,13 @@ var clusterUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterUpdateCmd
+
 	withScyllaDocs(cmd, "/sctool/#cluster-update")
 	register(cmd, clusterCmd)
 
 	clusterInitCommonFlags(cmd)
+	cmd.Flags().Bool("delete-cql-credentials", false, "delete CQL username and password if added, features that require CQL may not work")
+	cmd.Flags().Bool("delete-ssl-user-cert", false, "delete SSL user certificate if added")
 }
 
 var clusterDeleteCmd = &cobra.Command{

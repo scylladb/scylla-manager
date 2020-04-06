@@ -417,7 +417,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	return nil
 }
 
-// DeleteCluster removes cluster based on ID.
+// DeleteCluster removes cluster and it's secrets.
 func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error {
 	s.logger.Debug(ctx, "DeleteCluster", "cluster_id", clusterID)
 
@@ -441,6 +441,20 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 	s.clientCache.Invalidate(clusterID)
 
 	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
+}
+
+// DeleteCQLCredentials removes the associated CQLCreds from secrets store.
+func (s *Service) DeleteCQLCredentials(_ context.Context, clusterID uuid.UUID) error {
+	return s.secretsStore.Delete(&secrets.CQLCreds{
+		ClusterID: clusterID,
+	})
+}
+
+// DeleteSSLUserCert removes the associated TLSIdentity from secrets store.
+func (s *Service) DeleteSSLUserCert(_ context.Context, clusterID uuid.UUID) error {
+	return s.secretsStore.Delete(&secrets.TLSIdentity{
+		ClusterID: clusterID,
+	})
 }
 
 // ListNodes returns information about all the nodes in the cluster.

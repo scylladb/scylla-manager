@@ -116,6 +116,30 @@ func (c Client) DeleteCluster(ctx context.Context, clusterID string) error {
 	return err
 }
 
+// DeleteClusterSecrets removes cluster secrets.
+func (c Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlCreds, sslUserCert bool) error {
+	ok := false
+	p := &operations.DeleteClusterClusterIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+	}
+	if cqlCreds {
+		p.CqlCreds = &cqlCreds
+		ok = true
+	}
+	if sslUserCert {
+		p.SslUserCert = &sslUserCert
+		ok = true
+	}
+
+	if !ok {
+		return nil
+	}
+
+	_, err := c.operations.DeleteClusterClusterID(p) // nolint: errcheck
+	return err
+}
+
 // ListClusters returns clusters.
 func (c Client) ListClusters(ctx context.Context) (ClusterSlice, error) {
 	resp, err := c.operations.GetClusters(&operations.GetClustersParams{

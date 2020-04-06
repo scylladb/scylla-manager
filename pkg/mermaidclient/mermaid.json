@@ -899,6 +899,18 @@
         }
       },
       "delete": {
+        "parameters": [
+          {
+            "type": "boolean",
+            "name": "cql_creds",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "name": "ssl_user_cert",
+            "in": "query"
+           }
+        ],
         "responses": {
           "200": {
             "description": "Cluster deleted"

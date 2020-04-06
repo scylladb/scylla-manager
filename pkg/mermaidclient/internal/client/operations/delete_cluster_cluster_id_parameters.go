@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -63,6 +64,10 @@ type DeleteClusterClusterIDParams struct {
 
 	/*ClusterID*/
 	ClusterID string
+	/*CqlCreds*/
+	CqlCreds *bool
+	/*SslUserCert*/
+	SslUserCert *bool
 
 	timeout    time.Duration
 	Context    context.Context
@@ -113,6 +118,28 @@ func (o *DeleteClusterClusterIDParams) SetClusterID(clusterID string) {
 	o.ClusterID = clusterID
 }
 
+// WithCqlCreds adds the cqlCreds to the delete cluster cluster ID params
+func (o *DeleteClusterClusterIDParams) WithCqlCreds(cqlCreds *bool) *DeleteClusterClusterIDParams {
+	o.SetCqlCreds(cqlCreds)
+	return o
+}
+
+// SetCqlCreds adds the cqlCreds to the delete cluster cluster ID params
+func (o *DeleteClusterClusterIDParams) SetCqlCreds(cqlCreds *bool) {
+	o.CqlCreds = cqlCreds
+}
+
+// WithSslUserCert adds the sslUserCert to the delete cluster cluster ID params
+func (o *DeleteClusterClusterIDParams) WithSslUserCert(sslUserCert *bool) *DeleteClusterClusterIDParams {
+	o.SetSslUserCert(sslUserCert)
+	return o
+}
+
+// SetSslUserCert adds the sslUserCert to the delete cluster cluster ID params
+func (o *DeleteClusterClusterIDParams) SetSslUserCert(sslUserCert *bool) {
+	o.SslUserCert = sslUserCert
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *DeleteClusterClusterIDParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -124,6 +151,38 @@ func (o *DeleteClusterClusterIDParams) WriteToRequest(r runtime.ClientRequest, r
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
 		return err
+	}
+
+	if o.CqlCreds != nil {
+
+		// query param cql_creds
+		var qrCqlCreds bool
+		if o.CqlCreds != nil {
+			qrCqlCreds = *o.CqlCreds
+		}
+		qCqlCreds := swag.FormatBool(qrCqlCreds)
+		if qCqlCreds != "" {
+			if err := r.SetQueryParam("cql_creds", qCqlCreds); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.SslUserCert != nil {
+
+		// query param ssl_user_cert
+		var qrSslUserCert bool
+		if o.SslUserCert != nil {
+			qrSslUserCert = *o.SslUserCert
+		}
+		qSslUserCert := swag.FormatBool(qrSslUserCert)
+		if qSslUserCert != "" {
+			if err := r.SetQueryParam("ssl_user_cert", qSslUserCert); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {

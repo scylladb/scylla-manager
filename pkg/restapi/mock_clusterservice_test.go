@@ -35,6 +35,20 @@ func (m *MockClusterService) EXPECT() *MockClusterServiceMockRecorder {
 	return m.recorder
 }
 
+// DeleteCQLCredentials mocks base method
+func (m *MockClusterService) DeleteCQLCredentials(arg0 context.Context, arg1 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCQLCredentials", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteCQLCredentials indicates an expected call of DeleteCQLCredentials
+func (mr *MockClusterServiceMockRecorder) DeleteCQLCredentials(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCQLCredentials", reflect.TypeOf((*MockClusterService)(nil).DeleteCQLCredentials), arg0, arg1)
+}
+
 // DeleteCluster mocks base method
 func (m *MockClusterService) DeleteCluster(arg0 context.Context, arg1 uuid.UUID) error {
 	m.ctrl.T.Helper()
@@ -47,6 +61,20 @@ func (m *MockClusterService) DeleteCluster(arg0 context.Context, arg1 uuid.UUID)
 func (mr *MockClusterServiceMockRecorder) DeleteCluster(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCluster", reflect.TypeOf((*MockClusterService)(nil).DeleteCluster), arg0, arg1)
+}
+
+// DeleteSSLUserCert mocks base method
+func (m *MockClusterService) DeleteSSLUserCert(arg0 context.Context, arg1 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSSLUserCert", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSSLUserCert indicates an expected call of DeleteSSLUserCert
+func (mr *MockClusterServiceMockRecorder) DeleteSSLUserCert(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSSLUserCert", reflect.TypeOf((*MockClusterService)(nil).DeleteSSLUserCert), arg0, arg1)
 }
 
 // GetCluster mocks base method

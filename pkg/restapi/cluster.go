@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
@@ -131,8 +132,43 @@ func (h clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 func (h clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 
-	if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
-		respondError(w, r, errors.Wrapf(err, "delete cluster %q", c.ID))
-		return
+	var (
+		deleteCQLCredentials bool
+		deleteSSLUserCert    bool
+		err                  error
+	)
+
+	if v := r.FormValue("cql_creds"); v != "" {
+		deleteCQLCredentials, err = strconv.ParseBool(v)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
+	}
+	if v := r.FormValue("ssl_user_cert"); v != "" {
+		deleteSSLUserCert, err = strconv.ParseBool(v)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
+	}
+
+	if !deleteCQLCredentials && !deleteSSLUserCert {
+		if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
+			respondError(w, r, errors.Wrapf(err, "delete cluster %q", c.ID))
+			return
+		}
+	}
+	if deleteCQLCredentials {
+		if err := h.svc.DeleteCQLCredentials(r.Context(), c.ID); err != nil {
+			respondError(w, r, errors.Wrapf(err, "delete CQL credentials for cluster %q", c.ID))
+			return
+		}
+	}
+	if deleteSSLUserCert {
+		if err := h.svc.DeleteSSLUserCert(r.Context(), c.ID); err != nil {
+			respondError(w, r, errors.Wrapf(err, "delete SSL user cert for cluster %q", c.ID))
+			return
+		}
 	}
 }
