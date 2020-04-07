@@ -74,6 +74,11 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 		s.Add(extractGroupingKeys(m)...)
 	}
 
+	// Delete stale tags
+	if err := p.deleteTags(ctx, h, staleTags); err != nil {
+		return errors.Wrap(err, "delete stale tags")
+	}
+
 	// Remove alive files from stale files laving only the orphans
 	staleFiles.Separate(aliveFiles)
 
@@ -81,11 +86,6 @@ func (p *purger) purge(ctx context.Context, h hostInfo) error {
 	if staleFiles.IsEmpty() {
 		p.Logger.Debug(ctx, "Nothing to do, no stale files")
 		return nil
-	}
-
-	// Delete stale tags
-	if err := p.deleteTags(ctx, h, staleTags); err != nil {
-		return errors.Wrap(err, "delete stale tags")
 	}
 
 	// Delete sstables that are not alive (by grouping key)
