@@ -10,7 +10,7 @@
       ],
       "Resource": [
         "arn:aws:s3:::backuptest-*",
-        "arn:aws:s3:::manual-*"
+        "arn:aws:s3:::my-*"
       ]
     },
     {
