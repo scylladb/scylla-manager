@@ -159,7 +159,7 @@ build-cli: ## Build development cli binary
 build-server: ## Build development server
 	@echo "==> Building scylla-manager"
 	@go build -trimpath -mod=vendor -race -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
-	
+
 .PHONY: run-server
 run-server: build-server ## Build and run development server
 	@./scylla-manager.dev -c testing/scylla-manager/scylla-manager.yaml; rm -f ./scylla-manager.dev
@@ -167,9 +167,15 @@ run-server: build-server ## Build and run development server
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries
 
+.PHONY: filler-tool
+filler-tool: ## Build "filler" tool
+	@echo "==> Building filler"
+	@go build -trimpath -mod=vendor ./pkg/tools/filler/cmd/filler
+
 .PHONY: clean
 clean: ## Remove dev build artifacts (*.dev files)
-	@rm -rf agent.dev sctool.dev scylla-manager.dev stress.test
+	@rm -rf agent.dev sctool.dev scylla-manager.dev stress.test \
+	filler
 
 .PHONY: mrproper
 mrproper: ## Clean go caches

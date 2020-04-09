@@ -41,7 +41,8 @@ func NewFiller(session *gocql.Session, size, bufSize int64, parallel int, logger
 func (f *Filler) Run(ctx context.Context) error {
 	f.logger.Info(ctx, "Creating table", "table", "data")
 
-	q := f.session.Query("CREATE TABLE IF NOT EXISTS data (id uuid PRIMARY KEY, data blob)")
+	q := f.session.Query("CREATE TABLE IF NOT EXISTS data (id uuid PRIMARY KEY, data blob) " +
+		"WITH compaction = {'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb' : 500}")
 	if err := q.Exec(); err != nil {
 		return errors.Wrap(err, "create table")
 	}
@@ -71,11 +72,13 @@ func (f *Filler) fill(i int) error {
 		t := time.NewTicker(5 * time.Second)
 		defer t.Stop()
 
-		select {
-		case <-done:
-			return
-		case <-t.C:
-			f.logger.Info(f.ctx, "Remaining", "worker", i, "bytes", f.size.Load())
+		for {
+			select {
+			case <-done:
+				return
+			case <-t.C:
+				f.logger.Info(f.ctx, "Remaining", "worker", i, "bytes", f.size.Load())
+			}
 		}
 	}()
 
@@ -139,7 +142,8 @@ func (f *MultiFiller) Run(ctx context.Context) error {
 func (f *MultiFiller) create(i int) error {
 	f.logger.Info(f.ctx, "Creating table", "table", fmt.Sprintf("data_%d", i))
 
-	q := f.session.Query(fmt.Sprintf("CREATE TABLE IF NOT EXISTS data_%d (id uuid PRIMARY KEY, data blob)", i))
+	q := f.session.Query(fmt.Sprintf("CREATE TABLE IF NOT EXISTS data_%d (id uuid PRIMARY KEY, data blob) "+
+		"WITH compaction = {'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb' : 500}", i))
 	defer q.Release()
 
 	return q.Exec()
