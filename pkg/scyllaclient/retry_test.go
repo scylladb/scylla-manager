@@ -176,7 +176,7 @@ func TestRetryTimeout(t *testing.T) {
 	})
 
 	shortTimeout := func(config *scyllaclient.Config) {
-		config.Timeout = 50 * time.Millisecond
+		config.Timeout = 30 * time.Millisecond
 	}
 
 	host, port, closeServer := scyllaclienttest.MakeServer(t, handler)
@@ -192,13 +192,13 @@ func TestRetryTimeout(t *testing.T) {
 	t.Run("interactive", func(t *testing.T) {
 		_, err := client.NodeInfo(scyllaclient.Interactive(context.Background()), host)
 		if err == nil {
-			t.Fatalf("NodeInfo() expected error")
+			t.Fatal("NodeInfo() expected error")
 		}
 	})
 	t.Run("custom timeout", func(t *testing.T) {
-		_, err := client.NodeInfo(scyllaclient.CustomTimeout(context.Background(), 30*time.Millisecond), host)
-		if err == nil {
-			t.Fatalf("NodeInfo() expected error")
+		_, err := client.NodeInfo(scyllaclient.CustomTimeout(context.Background(), 5*time.Millisecond), host)
+		if err != nil {
+			t.Fatal("NodeInfo() error", err)
 		}
 	})
 }

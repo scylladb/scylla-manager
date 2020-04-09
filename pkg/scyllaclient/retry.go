@@ -73,6 +73,10 @@ func (o *retryableOperation) op() (err error) {
 		}
 		if o.shouldIncreaseTimeout(err) {
 			timeout := 2 * o.timeout
+			if ct, ok := hasCustomTimeout(o.operation.Context); ok {
+				timeout = ct + o.timeout
+			}
+
 			o.logger.Debug(o.operation.Context, "HTTP increasing timeout",
 				"operation", o.operation.ID,
 				"timeout", timeout,
@@ -125,7 +129,7 @@ func (o *retryableOperation) shouldRetry(err error) bool {
 
 func (o *retryableOperation) shouldIncreaseTimeout(err error) bool {
 	ctx := o.operation.Context
-	return isForceHost(ctx) && !isInteractive(ctx) && !hasCustomTimeout(ctx) && errors.Is(err, ErrTimeout)
+	return isForceHost(ctx) && !isInteractive(ctx) && errors.Is(err, ErrTimeout)
 }
 
 func (o *retryableOperation) notify(err error, wait time.Duration) {

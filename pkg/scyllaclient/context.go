@@ -54,7 +54,7 @@ func customTimeout(ctx context.Context, d time.Duration) context.Context {
 	return context.WithValue(ctx, ctxCustomTimeout, d)
 }
 
-func hasCustomTimeout(ctx context.Context) bool {
-	_, ok := ctx.Value(ctxCustomTimeout).(time.Duration)
-	return ok
+func hasCustomTimeout(ctx context.Context) (time.Duration, bool) {
+	v, ok := ctx.Value(ctxCustomTimeout).(time.Duration)
+	return v, ok
 }
