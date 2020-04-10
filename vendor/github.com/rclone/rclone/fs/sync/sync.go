@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,7 +28,8 @@ type syncCopyMove struct {
 	DoMove             bool
 	copyEmptySrcDirs   bool
 	deleteEmptySrcDirs bool
-	dir                string
+	dstDir             string
+	srcDir             string
 	// internal state
 	ctx             context.Context        // internal context for controlling go-routines
 	cancel          func()                 // cancel the context
@@ -64,9 +66,10 @@ type syncCopyMove struct {
 	renameCheck     []fs.Object            // accumulate files to check for rename here
 	compareCopyDest fs.Fs                  // place to check for files to server side copy
 	backupDir       fs.Fs                  // place to store overwrites/deletes
+	useSrcBaseName  bool                   // use only source basename when coping or moving to destination directory
 }
 
-func newSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.DeleteMode, DoMove bool, deleteEmptySrcDirs bool, copyEmptySrcDirs bool) (*syncCopyMove, error) {
+func newSyncCopyMove(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, deleteMode fs.DeleteMode, DoMove bool, deleteEmptySrcDirs bool, copyEmptySrcDirs bool, useSrcBaseName bool) (*syncCopyMove, error) {
 	if (deleteMode != fs.DeleteModeOff || DoMove) && operations.Overlapping(fdst, fsrc) {
 		return nil, fserrors.FatalError(fs.ErrorOverlapping)
 	}
@@ -77,7 +80,8 @@ func newSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 		DoMove:             DoMove,
 		copyEmptySrcDirs:   copyEmptySrcDirs,
 		deleteEmptySrcDirs: deleteEmptySrcDirs,
-		dir:                "",
+		dstDir:             remoteDst,
+		srcDir:             remoteSrc,
 		srcFilesChan:       make(chan fs.Object, fs.Config.Checkers+fs.Config.Transfers),
 		srcFilesResult:     make(chan error, 1),
 		dstFilesResult:     make(chan error, 1),
@@ -89,6 +93,7 @@ func newSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 		trackRenames:       fs.Config.TrackRenames,
 		commonHash:         fsrc.Hashes().Overlap(fdst.Hashes()).GetOne(),
 		trackRenamesCh:     make(chan fs.Object, fs.Config.Checkers),
+		useSrcBaseName:     useSrcBaseName,
 	}
 	var err error
 	s.toBeChecked, err = newPipe(fs.Config.OrderBy, accounting.Stats(ctx).SetCheckQueue, fs.Config.MaxBacklog)
@@ -325,13 +330,30 @@ func (s *syncCopyMove) pairCopyOrMove(ctx context.Context, in *pipe, fdst fs.Fs,
 			return
 		}
 		src := pair.Src
+		name := s.dstObjectName(pair)
 		if s.DoMove {
-			_, err = operations.Move(ctx, fdst, pair.Dst, src.Remote(), src)
+			_, err = operations.Move(ctx, fdst, pair.Dst, name, src)
 		} else {
-			_, err = operations.Copy(ctx, fdst, pair.Dst, src.Remote(), src)
+			_, err = operations.Copy(ctx, fdst, pair.Dst, name, src)
 		}
 		s.processError(err)
 	}
+}
+
+// dstObjectName returns full name of the object as it should be on the
+// destination after copy or move.
+func (s *syncCopyMove) dstObjectName(pair fs.ObjectPair) string {
+	if !s.useSrcBaseName {
+		return pair.Src.Remote()
+	}
+
+	// Example when coping:
+	// data:test_keyspace/snapshots/123/bla/somefile.file
+	// to
+	// s3:bucket/backup/long/path/to/123
+	// this should return backup/long/path/to/123/bla/somefile.file
+	// So we get full path on the destination fs.
+	return path.Join(s.dstDir, strings.TrimPrefix(pair.Src.Remote(), s.srcDir))
 }
 
 // This starts the background checkers.
@@ -696,8 +718,9 @@ func (s *syncCopyMove) run() error {
 	m := &march.March{
 		Ctx:           s.ctx,
 		Fdst:          s.fdst,
+		DstDir:        s.dstDir,
 		Fsrc:          s.fsrc,
-		Dir:           s.dir,
+		SrcDir:        s.srcDir,
 		NoTraverse:    s.noTraverse,
 		Callback:      s,
 		DstIncludeAll: filter.Active.Opt.DeleteExcluded,
@@ -899,7 +922,7 @@ func (s *syncCopyMove) Match(ctx context.Context, dst, src fs.DirEntry) (recurse
 // If DoMove is true then files will be moved instead of copied
 //
 // dir is the start directory, "" for root
-func runSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.DeleteMode, DoMove bool, deleteEmptySrcDirs bool, copyEmptySrcDirs bool) error {
+func runSyncCopyMove(ctx context.Context, fdst fs.Fs, fsrc fs.Fs, deleteMode fs.DeleteMode, DoMove bool, deleteEmptySrcDirs bool, copyEmptySrcDirs bool) error {
 	if deleteMode != fs.DeleteModeOff && DoMove {
 		return fserrors.FatalError(errors.New("can't delete and move at the same time"))
 	}
@@ -909,7 +932,7 @@ func runSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 			return fserrors.FatalError(errors.New("can't use --delete-before with --track-renames"))
 		}
 		// only delete stuff during in this pass
-		do, err := newSyncCopyMove(ctx, fdst, fsrc, fs.DeleteModeOnly, false, deleteEmptySrcDirs, copyEmptySrcDirs)
+		do, err := newSyncCopyMove(ctx, fdst, "", fsrc, "", fs.DeleteModeOnly, false, deleteEmptySrcDirs, copyEmptySrcDirs, false)
 		if err != nil {
 			return err
 		}
@@ -920,7 +943,7 @@ func runSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 		// Next pass does a copy only
 		deleteMode = fs.DeleteModeOff
 	}
-	do, err := newSyncCopyMove(ctx, fdst, fsrc, deleteMode, DoMove, deleteEmptySrcDirs, copyEmptySrcDirs)
+	do, err := newSyncCopyMove(ctx, fdst, "", fsrc, "", deleteMode, DoMove, deleteEmptySrcDirs, copyEmptySrcDirs, false)
 	if err != nil {
 		return err
 	}
@@ -935,6 +958,15 @@ func Sync(ctx context.Context, fdst, fsrc fs.Fs, copyEmptySrcDirs bool) error {
 // CopyDir copies fsrc into fdst
 func CopyDir(ctx context.Context, fdst, fsrc fs.Fs, copyEmptySrcDirs bool) error {
 	return runSyncCopyMove(ctx, fdst, fsrc, fs.DeleteModeOff, false, false, copyEmptySrcDirs)
+}
+
+// CopyDir2 copies files from  fsrc/remoteSrc into fdst/remoteDst.
+func CopyDir2(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, copyEmptySrcDirs bool) error {
+	do, err := newSyncCopyMove(ctx, fdst, remoteDst, fsrc, remoteSrc, fs.DeleteModeOff, false, false, copyEmptySrcDirs, true)
+	if err != nil {
+		return err
+	}
+	return do.run()
 }
 
 // moveDir moves fsrc into fdst

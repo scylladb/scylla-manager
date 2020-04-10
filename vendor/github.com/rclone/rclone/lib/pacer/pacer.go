@@ -2,6 +2,7 @@
 package pacer
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -201,6 +202,23 @@ func (p *Pacer) call(fn Paced, retries int) (err error) {
 		}
 	}
 	return err
+}
+
+// CallContext paces the remote operations to not exceed the limits and retry
+// on rate limit exceeded. Context can be used to control the number of retries
+// on per Call basis. Use WithRetries function to set custom retry count.
+//
+// This calls fn, expecting it to return a retry flag and an
+// error. This error may be returned wrapped in a RetryError if the
+// number of retries is exceeded.
+func (p *Pacer) CallContext(ctx context.Context, fn Paced) (err error) {
+	p.mu.Lock()
+	retries := p.retries
+	if r, ok := RetriesCtx(ctx); ok {
+		retries = r
+	}
+	p.mu.Unlock()
+	return p.call(fn, retries)
 }
 
 // Call paces the remote operations to not exceed the limits and retry

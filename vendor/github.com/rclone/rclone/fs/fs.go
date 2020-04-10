@@ -1061,6 +1061,7 @@ type Objects []Object
 // operation.
 type ObjectPair struct {
 	Src, Dst Object
+	Name     string
 }
 
 // UnWrapFs unwraps f as much as possible and returns the base Fs
