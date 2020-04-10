@@ -23,6 +23,10 @@ func RcloneSplitRemotePath(remotePath string) (string, string, error) {
 	return rcloneSplitRemotePath(remotePath)
 }
 
+func RcloneSplitRemoteDirPath(remotePath string) (string, string, error) {
+	return rcloneSplitRemoteDirPath(remotePath)
+}
+
 func (p *CachedProvider) SetValidity(d time.Duration) {
 	p.validity = d
 }
