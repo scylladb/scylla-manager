@@ -112,6 +112,33 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
+// Stage specifies the backup worker stage.
+type Stage string
+
+// Stage enumeration.
+const (
+	StageInit     Stage = "INIT"
+	StageSnapshot Stage = "SNAPSHOT"
+	StageIndex    Stage = "INDEX"
+	StageUpload   Stage = "UPLOAD"
+	StageManifest Stage = "MANIFEST"
+	StageMigrate  Stage = "MIGRATE"
+	StagePurge    Stage = "PURGE"
+	StageDone     Stage = "DONE"
+
+	stageNone Stage = ""
+)
+
+// Resumable run can be continued.
+func (s Stage) Resumable() bool {
+	switch s {
+	case StageInit, StageSnapshot, StageDone, stageNone:
+		return false
+	default:
+		return true
+	}
+}
+
 // Run tracks backup progress, shares ID with scheduler.Run that initiated it.
 type Run struct {
 	ClusterID uuid.UUID
@@ -124,7 +151,7 @@ type Run struct {
 	DC          []string
 	Location    []Location
 	StartTime   time.Time
-	Done        bool
+	Stage       Stage
 
 	clusterName string
 }

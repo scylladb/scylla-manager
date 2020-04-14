@@ -499,6 +499,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		DC:        target.DC,
 		Location:  target.Location,
 		StartTime: timeutc.Now().UTC(),
+		Stage:     StageInit,
 	}
 
 	// Get cluster name
@@ -598,6 +599,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	defer stopMetricsUpdater()
 
 	// Take snapshot if needed
+	s.updateStage(ctx, run, StageSnapshot)
 	if run.PrevID == uuid.Nil {
 		w = w.WithLogger(s.logger.Named("snapshot"))
 		if err := w.Snapshot(ctx, hi, target.SnapshotParallel); err != nil {
@@ -606,6 +608,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Index files
+	s.updateStage(ctx, run, StageIndex)
 	w = w.WithLogger(s.logger.Named("index"))
 	if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "index")
@@ -614,6 +617,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	w.cleanup(ctx, hi)
 
 	// Upload files
+	s.updateStage(ctx, run, StageUpload)
 	w = w.WithLogger(s.logger.Named("upload"))
 	if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "upload")
@@ -622,6 +626,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	w.cleanup(ctx, hi)
 
 	// Aggregate and upload manifests
+	s.updateStage(ctx, run, StageManifest)
 	w = w.WithLogger(s.logger.Named("manifest"))
 	if err := w.AggregateManifests(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "aggregate manifest")
@@ -630,6 +635,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	w.cleanup(ctx, hi)
 
 	// Migrate V1 manifests
+	s.updateStage(ctx, run, StageMigrate)
 	w = w.WithLogger(s.logger.Named("migrate"))
 	if err := w.MigrateManifests(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "migrate manifest")
@@ -638,14 +644,15 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	w.cleanup(ctx, hi)
 
 	// Purge remote data
+	s.updateStage(ctx, run, StagePurge)
 	w = w.WithLogger(s.logger.Named("purge"))
 	if err := w.Purge(ctx, hi, target.Retention); err != nil {
 		return errors.Wrap(err, "purge")
 	}
 
-	err = errors.Wrap(s.markRunAsDone(run), "mark run as done")
-
 	w.cleanup(ctx, hi)
+
+	s.updateStage(ctx, run, StageDone)
 
 	return err
 }
@@ -699,45 +706,18 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		return nil, err
 	}
 
-	hasProgress := s.hasProgressQuery()
-	defer hasProgress.Release()
-
-	var rp RunProgress
 	for _, r := range runs {
-		if r.Done {
+		// stageNone can be hit when we want to resume a 2.0 backup run
+		// this is not supported.
+		if r.Stage == StageDone || r.Stage == stageNone {
 			break
 		}
-
-		err := hasProgress.BindMap(qb.M{
-			"cluster_id": r.ClusterID,
-			"task_id":    r.TaskID,
-			"run_id":     r.ID,
-		}).Get(&rp)
-
-		if err == gocql.ErrNotFound {
-			continue
+		if r.Stage.Resumable() {
+			return r, nil
 		}
-		if err != nil {
-			return nil, err
-		}
-
-		return r, nil
 	}
 
 	return nil, service.ErrNotFound
-}
-
-func (s *Service) hasProgressQuery() *gocqlx.Queryx {
-	stmt, names := qb.Select(table.BackupRunProgress.Name()).
-		Columns("run_id").
-		Where(
-			qb.Eq("cluster_id"),
-			qb.Eq("task_id"),
-			qb.Eq("run_id"),
-		).
-		Limit(1).
-		ToCql()
-	return gocqlx.Query(s.session.Query(stmt), names)
 }
 
 // putRun upserts a backup run.
@@ -757,12 +737,15 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-// markRunAsDone updates and persists done value.
-func (s *Service) markRunAsDone(run *Run) error {
-	run.Done = true
+// updateStage updates and persists run stage.
+func (s *Service) updateStage(ctx context.Context, run *Run, stage Stage) {
+	run.Stage = stage
 
-	stmt, names := table.BackupRun.Update("done")
-	return gocqlx.Query(s.session.Query(stmt), names).BindStruct(run).ExecRelease()
+	stmt, names := table.BackupRun.Update("stage")
+	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(run)
+	if err := q.ExecRelease(); err != nil {
+		s.logger.Error(ctx, "Failed to update run stage", "error", err)
+	}
 }
 
 // putRunProgress upserts a backup run progress.

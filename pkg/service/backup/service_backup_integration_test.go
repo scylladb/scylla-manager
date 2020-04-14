@@ -504,22 +504,6 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	putRunProgress := func(t *testing.T, r *backup.Run, size, uploaded, skipped int64) {
-		t.Helper()
-		p := backup.RunProgress{
-			ClusterID: r.ClusterID,
-			TaskID:    r.TaskID,
-			RunID:     r.ID,
-			Host:      ManagedClusterHost(),
-			Size:      size,
-			Uploaded:  uploaded,
-			Skipped:   skipped,
-		}
-		stmt, names := table.BackupRunProgress.Insert()
-		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease(); err != nil {
-			t.Fatal(err)
-		}
-	}
 
 	t.Run("no started runs", func(t *testing.T) {
 		t.Parallel()
@@ -532,6 +516,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r0)
 
@@ -540,6 +525,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r1)
 
@@ -560,50 +546,18 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Stage:     backup.StageUpload,
 		}
 		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0, 0)
 
 		r1 := &backup.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
-			Done:      true,
+			Stage:     backup.StageDone,
 		}
 		putRun(t, r1)
-		putRunProgress(t, r0, 10, 10, 0)
-
-		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
-		if err != service.ErrNotFound {
-			t.Fatal(err)
-		}
-	})
-
-	t.Run("started run before skipped run", func(t *testing.T) {
-		t.Parallel()
-
-		clusterID := uuid.MustRandom()
-		taskID := uuid.MustRandom()
-
-		r0 := &backup.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-		}
-		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0, 0)
-
-		r1 := &backup.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-			Done:      true,
-		}
-		putRun(t, r1)
-		putRunProgress(t, r0, 10, 0, 10)
 
 		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
 		if err != service.ErrNotFound {
@@ -622,15 +576,16 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test1"}},
+			Stage:     backup.StageUpload,
 		}
 		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0, 0)
 
 		r1 := &backup.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test2"}},
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r1)
 
