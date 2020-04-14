@@ -18,11 +18,6 @@ import (
 
 var (
 	flagCluster  = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
-	flagProto    = flag.Int("proto", 0, "protcol version")
-	flagCQL      = flag.String("cql", "3.0.0", "CQL version")
-	flagRF       = flag.Int("rf", 1, "replication factor for test keyspace")
-	flagRetry    = flag.Int("retries", 5, "number of times to retry queries")
-	flagTimeout  = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
 	flagUser     = flag.String("user", "", "CQL user")
 	flagPassword = flag.String("password", "", "CQL password")
 
@@ -113,15 +108,9 @@ func CreateManagedClusterSession(tb testing.TB) *gocql.Session {
 
 func createCluster(hosts ...string) *gocql.ClusterConfig {
 	cluster := gocql.NewCluster(hosts...)
-	cluster.ProtoVersion = *flagProto
-	cluster.CQLVersion = *flagCQL
-	cluster.Timeout = *flagTimeout
+	cluster.Timeout = 30 * time.Second
 	cluster.Consistency = gocql.Quorum
 	cluster.MaxWaitSchemaAgreement = 2 * time.Minute // travis might be slow
-	if *flagRetry > 0 {
-		cluster.RetryPolicy = &gocql.SimpleRetryPolicy{NumRetries: *flagRetry}
-	}
-
 	return cluster
 }
 
@@ -154,7 +143,7 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 	WITH replication = {
 		'class' : 'SimpleStrategy',
 		'replication_factor' : %d
-	}`, keyspace, *flagRF))
+	}`, keyspace, 1))
 }
 
 func dropAllKeyspaces(tb testing.TB, session *gocql.Session) {
