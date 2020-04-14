@@ -39,6 +39,9 @@ type BackupProgress struct {
 	// snapshot tag
 	SnapshotTag string `json:"snapshot_tag,omitempty"`
 
+	// stage
+	Stage string `json:"stage,omitempty"`
+
 	// started at
 	StartedAt string `json:"started_at,omitempty"`
 

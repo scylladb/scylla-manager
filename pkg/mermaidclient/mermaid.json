@@ -564,6 +564,9 @@
             "$ref": "#/definitions/HostProgress"
           }
         },
+        "stage": {
+          "type": "string"
+        },
         "size": {
           "type": "integer"
         },

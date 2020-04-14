@@ -591,7 +591,7 @@ func (bp BackupProgress) hideKeyspace(keyspace string) bool {
 
 var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
-{{ with .Run }}Status:		{{ .Status }}
+{{ with .Run }}Status:		{{ status }}
 {{- if .Cause }}
 Cause:		{{ FormatError .Cause }}
 
@@ -630,13 +630,34 @@ func (bp BackupProgress) addHeader(w io.Writer) error {
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
 		"arguments":            bp.arguments,
+		"status":               bp.status,
 	}).Parse(backupProgressTemplate))
 	return temp.Execute(w, bp)
 }
 
-// arguments return task arguments that task was created with.
+// arguments returns task arguments that task was created with.
 func (bp BackupProgress) arguments() string {
 	return NewCmdRenderer(bp.Task, RenderTypeArgs).String()
+}
+
+// status returns task status with optional backup stage.
+func (bp BackupProgress) status() string {
+	translate := map[string]string{
+		"INIT":     "initialising",
+		"SNAPSHOT": "taking snapshot",
+		"INDEX":    "indexing files",
+		"UPLOAD":   "uploading data",
+		"MANIFEST": "uploading metadata",
+		"MIGRATE":  "migrating legacy metadata",
+		"PURGE":    "retention",
+	}
+	stage := translate[bp.Progress.Stage]
+
+	s := bp.Run.Status
+	if s != "NEW" && s != "DONE" && stage != "" {
+		s += " (" + stage + ")"
+	}
+	return s
 }
 
 // BackupListItems is a []backup.ListItem representation.

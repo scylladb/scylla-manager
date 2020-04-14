@@ -213,6 +213,7 @@ type Progress struct {
 	SnapshotTag string         `json:"snapshot_tag"`
 	DC          []string       `json:"dcs,omitempty"`
 	Hosts       []HostProgress `json:"hosts,omitempty"`
+	Stage       Stage          `json:"stage"`
 }
 
 // HostProgress groups uploading progress for keyspaces belonging to this host.
