@@ -227,7 +227,7 @@ github.com/scylladb/go-reflectx
 github.com/scylladb/go-set/i64set
 github.com/scylladb/go-set/iset
 github.com/scylladb/go-set/strset
-# github.com/scylladb/gocqlx v1.4.0
+# github.com/scylladb/gocqlx v1.5.0
 github.com/scylladb/gocqlx
 github.com/scylladb/gocqlx/migrate
 github.com/scylladb/gocqlx/qb
