@@ -22,7 +22,6 @@ type purger struct {
 	TaskID         uuid.UUID
 	Policy         int
 	Client         *scyllaclient.Client
-	SnapshotDirs   []snapshotDir
 	HostInfo       hostInfo
 	ManifestHelper manifestHelper
 	Logger         log.Logger

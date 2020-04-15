@@ -46,11 +46,9 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 		)
 	}
 
-	dirs := w.hostSnapshotDirs(h)
 	p := &purger{
 		ClusterID:      w.ClusterID,
 		TaskID:         w.TaskID,
-		SnapshotDirs:   dirs,
 		HostInfo:       h,
 		Policy:         policy,
 		Client:         w.Client,
