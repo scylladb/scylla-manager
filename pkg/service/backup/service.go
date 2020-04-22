@@ -172,7 +172,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
 		}
 		if ring.Replication == scyllaclient.LocalStrategy {
-			continue
+			if strings.HasPrefix(keyspace, "system") && keyspace != "system_schema" {
+				continue
+			}
 		}
 		// Check if keyspace has replica in any DC
 		if !targetDCs.HasAny(ring.Datacenters()...) {

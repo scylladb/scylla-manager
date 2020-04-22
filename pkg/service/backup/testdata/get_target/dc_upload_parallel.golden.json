@@ -17,6 +17,24 @@
       "all_tables": true
     },
     {
+      "keyspace": "system_schema",
+      "tables": [
+        "indexes",
+        "columns",
+        "types",
+        "tables",
+        "view_virtual_columns",
+        "keyspaces",
+        "scylla_tables",
+        "views",
+        "dropped_columns",
+        "triggers",
+        "aggregates",
+        "functions"
+      ],
+      "all_tables": true
+    },
+    {
       "keyspace": "system_traces",
       "tables": [
         "node_slow_log_time_idx",
