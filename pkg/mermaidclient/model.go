@@ -651,8 +651,8 @@ func (bp BackupProgress) status() string {
 		"MIGRATE":  "migrating legacy metadata",
 		"PURGE":    "retention",
 	}
-	stage := translate[bp.Progress.Stage]
 
+	stage := translate[bp.Progress.Stage]
 	s := bp.Run.Status
 	if s != "NEW" && s != "DONE" && stage != "" {
 		s += " (" + stage + ")"

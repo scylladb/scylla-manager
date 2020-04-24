@@ -345,6 +345,15 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID str
 
 // BackupProgress returns backup progress.
 func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
+	tr := &models.TaskRunBackupProgress{
+		Progress: &models.BackupProgress{
+			Stage: "INIT",
+		},
+		Run: &models.TaskRun{
+			Status: "NEW",
+		},
+	}
+
 	resp, err := c.operations.GetClusterClusterIDTaskBackupTaskIDRunID(&operations.GetClusterClusterIDTaskBackupTaskIDRunIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -352,7 +361,16 @@ func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID str
 		RunID:     runID,
 	})
 	if err != nil {
-		return BackupProgress{}, err
+		return BackupProgress{
+			TaskRunBackupProgress: tr,
+		}, err
+	}
+
+	if resp.Payload.Progress == nil {
+		resp.Payload.Progress = tr.Progress
+	}
+	if resp.Payload.Run == nil {
+		resp.Payload.Run = tr.Run
 	}
 
 	return BackupProgress{
