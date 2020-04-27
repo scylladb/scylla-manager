@@ -73,7 +73,7 @@ func (e PermissionError) Cause() error {
 // creating, and deleting objects.
 func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	// Disable retries for calls in permissions check.
-	ctx = pacer.WithRetries(ctx, 0)
+	ctx = pacer.WithRetries(ctx, 1)
 
 	// Create temp dir.
 	tmpDir, err := ioutil.TempDir("", "scylla-manager-agent-")
