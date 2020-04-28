@@ -27,8 +27,9 @@ require (
 	github.com/hashicorp/go-version v1.2.0
 	github.com/mitchellh/mapstructure v1.2.2
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.4.0
+	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/procfs v0.0.11 // indirect
 	github.com/rclone/rclone v1.51.0
 	github.com/scylladb/go-log v0.0.4
 	github.com/scylladb/go-reflectx v1.0.1
