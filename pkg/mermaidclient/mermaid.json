@@ -580,10 +580,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },
@@ -612,10 +616,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },
@@ -644,10 +652,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },
@@ -673,10 +685,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },

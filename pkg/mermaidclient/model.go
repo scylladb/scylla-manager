@@ -7,6 +7,7 @@ import (
 	"io"
 	"text/template"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/table"
 	"github.com/scylladb/mermaid/pkg/util/inexlist"
@@ -545,6 +546,14 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 
 			rowAdded := false
 			for _, tbl := range ks.Tables {
+				startedAt := strfmt.DateTime{}
+				completedAt := strfmt.DateTime{}
+				if tbl.StartedAt != nil {
+					startedAt = *tbl.StartedAt
+				}
+				if tbl.CompletedAt != nil {
+					completedAt = *tbl.CompletedAt
+				}
 				success := tbl.Uploaded + tbl.Skipped
 				t.AddRow(
 					ks.Keyspace,
@@ -557,8 +566,8 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 					ByteCountBinary(success),
 					ByteCountBinary(tbl.Skipped),
 					ByteCountBinary(tbl.Failed),
-					tbl.StartedAt,
-					tbl.CompletedAt,
+					FormatTime(startedAt),
+					FormatTime(completedAt),
 				)
 				rowAdded = true
 			}
