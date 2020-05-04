@@ -420,6 +420,42 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(ctx, task, scheduler.StatusDone)
 	})
 
+	t.Run("start running task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled with start in future")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: task is started")
+		if err := h.service.StartTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("And: task is started while it's running")
+		if err := h.service.StartTask(ctx, task); err == nil {
+			t.Fatal("Starting a running task should error")
+		}
+
+		Print("Then: task status is StatusRunning")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("When: task run finishes")
+		h.runner.Done()
+
+		Print("Then: task status is StatusDone")
+		h.assertStatus(ctx, task, scheduler.StatusDone)
+	})
+
 	t.Run("retry", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
