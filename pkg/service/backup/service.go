@@ -836,5 +836,14 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return Progress{}, err
 	}
 
+	switch run.Stage {
+	case stageNone, StageInit, StageSnapshot, StageIndex:
+		return Progress{
+			SnapshotTag: run.SnapshotTag,
+			DC:          run.DC,
+			Stage:       run.Stage,
+		}, nil
+	}
+
 	return aggregateProgress(run, NewProgressVisitor(run, s.session))
 }
