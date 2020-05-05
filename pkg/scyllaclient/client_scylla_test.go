@@ -295,7 +295,7 @@ func TestClientRepair(t *testing.T) {
 	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_0.json")
 	defer closeServer()
 
-	v, err := client.Repair(context.Background(), scyllaclienttest.TestHost, &scyllaclient.RepairConfig{
+	v, err := client.Repair(context.Background(), scyllaclienttest.TestHost, scyllaclient.RepairConfig{
 		Keyspace: "scylla_manager",
 		Ranges:   "100:110,120:130",
 	})

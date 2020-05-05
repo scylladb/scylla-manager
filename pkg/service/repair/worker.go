@@ -414,7 +414,7 @@ func (w *shardWorker) repair(ctx context.Context, ri repairIterator) error {
 func (w *shardWorker) runRepair(ctx context.Context, start, end int) (int32, error) {
 	u := w.parent.Run.Units[w.parent.Unit]
 
-	cfg := &scyllaclient.RepairConfig{
+	cfg := scyllaclient.RepairConfig{
 		Keyspace: u.Keyspace,
 		Ranges:   w.segments[start:end].dump(),
 		Hosts:    w.parent.Run.WithHosts,

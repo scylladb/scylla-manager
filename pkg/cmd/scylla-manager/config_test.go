@@ -11,7 +11,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	"github.com/scylladb/mermaid/pkg/service/healthcheck"
-	"github.com/scylladb/mermaid/pkg/service/repair"
+	repair "github.com/scylladb/mermaid/pkg/service/repair2"
 	"github.com/scylladb/mermaid/pkg/testutils"
 	"go.uber.org/zap/zapcore"
 )
@@ -71,13 +71,10 @@ func TestConfigModification(t *testing.T) {
 			AgeMax:                  12 * time.Hour,
 		},
 		Repair: repair.Config{
-			SegmentsPerRepair:      7,
-			ShardParallelMax:       10,
-			ShardFailedSegmentsMax: 0,
-			ErrorBackoff:           10 * time.Second,
-			PollInterval:           500 * time.Millisecond,
-			AgeMax:                 12 * time.Hour,
-			ShardingIgnoreMsbBits:  1,
+			ErrorBackoff:          10 * time.Second,
+			PollInterval:          500 * time.Millisecond,
+			AgeMax:                12 * time.Hour,
+			ShardingIgnoreMsbBits: 1,
 		},
 	}
 

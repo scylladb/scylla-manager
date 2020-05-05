@@ -40,9 +40,6 @@ backup:
   age_max: 12h
 
 repair:
-  segments_per_repair: 7
-  shard_parallel_max: 10
-  shard_failed_segments_max: 0
   error_backoff: 10s
   poll_interval: 500ms
   age_max: 12h

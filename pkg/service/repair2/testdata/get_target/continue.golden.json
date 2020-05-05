@@ -1,0 +1,41 @@
+{
+  "units": [
+    {
+      "Keyspace": "system_auth",
+      "Tables": [
+        "role_members",
+        "roles",
+        "role_permissions"
+      ],
+      "AllTables": true
+    },
+    {
+      "Keyspace": "system_distributed",
+      "Tables": [
+        "view_build_status"
+      ],
+      "AllTables": true
+    },
+    {
+      "Keyspace": "system_traces",
+      "Tables": [
+        "node_slow_log_time_idx",
+        "node_slow_log",
+        "events",
+        "sessions",
+        "sessions_time_idx"
+      ],
+      "AllTables": true
+    }
+  ],
+  "dc": [
+    "dc1",
+    "dc2"
+  ],
+  "host": "",
+  "with_hosts": null,
+  "token_ranges": "dcpr",
+  "fail_fast": false,
+  "continue": false,
+  "intensity": 0
+}

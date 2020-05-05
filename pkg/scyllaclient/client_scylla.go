@@ -378,7 +378,7 @@ type RepairConfig struct {
 }
 
 // Repair invokes async repair and returns the repair command ID.
-func (c *Client) Repair(ctx context.Context, host string, config *RepairConfig) (int32, error) {
+func (c *Client) Repair(ctx context.Context, host string, config RepairConfig) (int32, error) {
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
 		Context:  forceHost(ctx, host),
 		Keyspace: config.Keyspace,
