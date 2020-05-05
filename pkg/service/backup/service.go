@@ -594,8 +594,24 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		},
 	}
 
+	runProgress := func(ctx context.Context) (*Run, Progress, error) {
+		p, err := s.GetProgress(ctx, run.ClusterID, run.TaskID, run.ID)
+		if err != nil {
+			return nil, Progress{}, err
+		}
+		r, err := s.GetRun(ctx, run.ClusterID, run.TaskID, run.ID)
+		if err != nil {
+			return nil, p, err
+		}
+		r.clusterName, err = s.clusterName(ctx, run.ClusterID)
+		if err != nil {
+			return r, p, err
+		}
+		return r, p, nil
+	}
+
 	// Start metric updater
-	stopMetricsUpdater := newBackupMetricUpdater(ctx, run, NewProgressVisitor(run, s.session), s.logger.Named("metrics"), service.PrometheusScrapeInterval)
+	stopMetricsUpdater := newBackupMetricUpdater(ctx, runProgress, s.logger.Named("metrics"), service.PrometheusScrapeInterval)
 	defer stopMetricsUpdater()
 
 	// Take snapshot if needed

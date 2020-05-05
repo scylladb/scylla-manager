@@ -51,12 +51,37 @@ func TestBackupMetricUpdater(t *testing.T) {
 	}
 
 	visitor := &testMetricsVisitor{prog: []*RunProgress{p1, p2}}
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				run.Stage = StageIndex
+			}
+		}
+	}()
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
-	stop := newBackupMetricUpdater(context.Background(), run, visitor, logger, 10*time.Millisecond)
-	time.Sleep(20 * time.Millisecond) // Wait for two cycles before updating progress
+	stop := newBackupMetricUpdater(context.Background(), func(ctx context.Context) (*Run, Progress, error) {
+		run := &Run{
+			ID:        runID,
+			ClusterID: clusterID,
+			TaskID:    taskID,
+			Units: []Unit{
+				{Keyspace: "keyspace", Tables: []string{"table1"}},
+			},
+			clusterName: "my-cluster",
+			Stage:       StageInit,
+		}
+		pr, err := aggregateProgress(run, visitor)
+		return run, pr, err
+	}, logger, 10*time.Millisecond)
+	time.Sleep(100 * time.Millisecond) // Wait for ten cycles before updating progress
 	visitor.SetUploaded(0, 50)
 	stop()
+	close(done)
 
 	expected := fmt.Sprintf(`# HELP scylla_manager_backup_bytes_left Number of bytes left for backup completion.
         # TYPE scylla_manager_backup_bytes_left gauge
