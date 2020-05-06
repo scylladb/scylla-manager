@@ -125,9 +125,8 @@ func (s *server) makeServices() error {
 	// Register the runners
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.CQLRunner())
 	s.schedSvc.SetRunner(scheduler.HealthCheckRESTTask, s.healthSvc.RESTRunner())
-	policy := scheduler.NewLockClusterPolicy()
-	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{policy, s.backupSvc.Runner()})
-	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{policy, s.repairSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.backupSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.repairSvc.Runner()})
 
 	return nil
 }

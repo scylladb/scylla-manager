@@ -36,8 +36,8 @@ var errClusterBusy = errors.New("failed to start, another task is running")
 
 // LockClusterPolicy is a policy that can execute only one task at a time.
 type LockClusterPolicy struct {
-	busy map[uuid.UUID]struct{}
 	mu   sync.Mutex
+	busy map[uuid.UUID]struct{}
 }
 
 func NewLockClusterPolicy() *LockClusterPolicy {
