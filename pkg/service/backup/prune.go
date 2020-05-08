@@ -31,6 +31,15 @@ func pruneClusterID(clusterID uuid.UUID, filter ListFilter) bool {
 	return false
 }
 
+func pruneTaskID(taskID uuid.UUID, filter ListFilter) bool {
+	if taskID != uuid.Nil && filter.TaskID != uuid.Nil {
+		if taskID != filter.TaskID {
+			return true
+		}
+	}
+	return false
+}
+
 func pruneSnapshotTag(snapshotTag string, f ListFilter) bool {
 	// Filter snapshot tags
 	if snapshotTag != "" {
@@ -56,7 +65,7 @@ func makeListFilterPruneDirFunc(f ListFilter) func(string) bool {
 			return true
 		}
 		if pruneClusterID(m.ClusterID, f) || pruneSnapshotTag(m.SnapshotTag, f) ||
-			pruneDC(m.DC, f) || pruneNodeID(m.NodeID, f) {
+			pruneDC(m.DC, f) || pruneNodeID(m.NodeID, f) || pruneTaskID(m.TaskID, f) {
 			return true
 		}
 

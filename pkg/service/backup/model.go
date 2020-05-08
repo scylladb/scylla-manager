@@ -23,6 +23,7 @@ type ListFilter struct {
 	ClusterID   uuid.UUID `json:"cluster_id"`
 	DC          string    `json:"dc"`
 	NodeID      string    `json:"node_id"`
+	TaskID      uuid.UUID `json:"task_id"`
 	Keyspace    []string  `json:"keyspace"`
 	SnapshotTag string    `json:"snapshot_tag"`
 	MinDate     time.Time `json:"min_date"`

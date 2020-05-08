@@ -123,8 +123,9 @@ func (p *purger) purge(ctx context.Context) error {
 func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error) {
 	filter := ListFilter{
 		ClusterID: p.ClusterID,
-		NodeID:    p.HostInfo.ID,
 		DC:        p.HostInfo.DC,
+		NodeID:    p.HostInfo.ID,
+		TaskID:    p.TaskID,
 	}
 	return p.ManifestHelper.ListManifests(ctx, filter)
 }

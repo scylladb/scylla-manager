@@ -1100,8 +1100,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 func TestPurgeIntegration(t *testing.T) {
 	const (
-		testBucket   = "backuptest-purge"
-		testKeyspace = "backuptest_purge"
+		testBucket    = "backuptest-purge"
+		testKeyspace  = "backuptest_purge"
+		testKeyspace2 = "backuptest_purge2"
 	)
 
 	location := s3Location(testBucket)
@@ -1115,7 +1116,7 @@ func TestPurgeIntegration(t *testing.T) {
 		ctx = context.Background()
 	)
 
-	Print("Given: retention policy 1")
+	Print("Given: retention policy of 2 for the first task")
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
@@ -1124,10 +1125,22 @@ func TestPurgeIntegration(t *testing.T) {
 		},
 		DC:        []string{"dc1"},
 		Location:  []backup.Location{location},
+		Retention: 2,
+	}
+
+	Print("And: retention policy of 1 for the second task")
+	target2 := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace2,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
 		Retention: 1,
 	}
 
-	Print("When: run backup 3 times")
+	Print("When: run first backup task 3 times")
 	var runID uuid.UUID
 	for i := 0; i < 3; i++ {
 		writeData(t, clusterSession, testKeyspace, 3)
@@ -1137,15 +1150,25 @@ func TestPurgeIntegration(t *testing.T) {
 		}
 	}
 
-	Print("Then: only the last task run is preserved")
-	manifests, files := h.listS3Files()
-	for _, m := range manifests {
-		if !strings.Contains(m, h.taskID.String()) {
-			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
+	Print("When: run second backup task 3 times")
+	task2ID := uuid.NewTime()
+	for i := 0; i < 3; i++ {
+		writeData(t, clusterSession, testKeyspace2, 3)
+		runID = uuid.NewTime()
+		if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target2); err != nil {
+			t.Fatal(err)
 		}
 	}
-	if len(manifests) != 3 {
-		t.Fatalf("Expected 3 manifests got %s", manifests)
+
+	Print("Then: there are tree backups in total (2+1)")
+	manifests, files := h.listS3Files()
+	for _, m := range manifests {
+		if !strings.Contains(m, h.taskID.String()) && !strings.Contains(m, task2ID.String()) {
+			t.Errorf("Unexpected file %s manifest does not belong to tasks %s or %s", m, h.taskID, task2ID)
+		}
+	}
+	if len(manifests) != 9 {
+		t.Fatalf("Expected 9 manifests (3 per each node) got %s", manifests)
 	}
 
 	Print("And: old sstable files are removed")
