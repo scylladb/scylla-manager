@@ -34,17 +34,22 @@ const defaultRateLimit = 100 // 100MiB
 // ClusterNameFunc returns name for a given ID.
 type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
 
+// SessionFunc returns CQL session for given cluster ID.
+type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (*gocql.Session, error)
+
 // Service orchestrates clusterName backups.
 type Service struct {
 	session *gocql.Session
 	config  Config
 
-	clusterName  ClusterNameFunc
-	scyllaClient scyllaclient.ProviderFunc
-	logger       log.Logger
+	clusterName    ClusterNameFunc
+	scyllaClient   scyllaclient.ProviderFunc
+	clusterSession SessionFunc
+	logger         log.Logger
 }
 
-func NewService(session *gocql.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
+func NewService(session *gocql.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
+	clusterSession SessionFunc, logger log.Logger) (*Service, error) {
 	if session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -62,11 +67,12 @@ func NewService(session *gocql.Session, config Config, clusterName ClusterNameFu
 	}
 
 	return &Service{
-		session:      session,
-		config:       config,
-		clusterName:  clusterName,
-		scyllaClient: scyllaClient,
-		logger:       logger,
+		session:        session,
+		config:         config,
+		clusterName:    clusterName,
+		scyllaClient:   scyllaClient,
+		clusterSession: clusterSession,
+		logger:         logger,
 	}, nil
 }
 
@@ -369,7 +375,7 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 
 	var files []FilesInfo
 	for i := range manifests {
-		files = append(files, makeFilesInfo(manifests[i], ksf)...)
+		files = append(files, makeFilesInfo(manifests[i], ksf))
 	}
 	return files, nil
 }
@@ -574,6 +580,11 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		rings[u.Keyspace] = ring
 	}
 
+	clusterSession, sessionErr := s.clusterSession(ctx, clusterID)
+	if sessionErr != nil {
+		s.logger.Error(ctx, "Cannot establish cluster session", "error", sessionErr)
+	}
+
 	// Create a worker
 	w := &worker{
 		ClusterID:            clusterID,
@@ -592,6 +603,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				return &bytes.Buffer{}
 			},
 		},
+		clusterSession: clusterSession,
 	}
 
 	runProgress := func(ctx context.Context) (*Run, Progress, error) {
@@ -614,6 +626,13 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	stopMetricsUpdater := newBackupMetricUpdater(ctx, runProgress, s.logger.Named("metrics"), service.PrometheusScrapeInterval)
 	defer stopMetricsUpdater()
 
+	// Await schema agreement
+	s.updateStage(ctx, run, StageAwaitSchema)
+	w = w.WithLogger(s.logger.Named("await_schema"))
+	if err := w.AwaitSchema(ctx); err != nil {
+		return errors.Wrap(err, "awaiting schema agreement")
+	}
+
 	// Take snapshot if needed
 	s.updateStage(ctx, run, StageSnapshot)
 	if run.PrevID == uuid.Nil {
@@ -622,6 +641,15 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return errors.Wrap(err, "snapshot")
 		}
 	}
+
+	// Upload schema
+	s.updateStage(ctx, run, StageSchema)
+	w = w.WithLogger(s.logger.Named("schema"))
+	if err := w.UploadSchema(ctx, hi); err != nil {
+		return errors.Wrap(err, "upload schema")
+	}
+
+	w.cleanup(ctx, hi)
 
 	// Index files
 	s.updateStage(ctx, run, StageIndex)
@@ -644,8 +672,8 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Aggregate and upload manifests
 	s.updateStage(ctx, run, StageManifest)
 	w = w.WithLogger(s.logger.Named("manifest"))
-	if err := w.AggregateManifests(ctx, hi, target.UploadParallel); err != nil {
-		return errors.Wrap(err, "aggregate manifest")
+	if err := w.UploadManifest(ctx, hi, target.UploadParallel); err != nil {
+		return errors.Wrap(err, "upload manifest")
 	}
 
 	w.cleanup(ctx, hi)

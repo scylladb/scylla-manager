@@ -62,26 +62,37 @@ func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
 // Note that a backup for a table usually consists of multiple instances of
 // FilesInfo since data is replicated across many nodes.
 type FilesInfo struct {
-	filesInfo
-	Location Location `json:"location"`
-	SST      string   `json:"sst"`
+	Location Location    `json:"location"`
+	Schema   string      `json:"schema"`
+	Tables   []filesInfo `json:"tables"`
 }
 
-func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) []FilesInfo {
-	var filesInfo []FilesInfo
-	for _, fi := range m.Content.Index {
-		if !filter.Check(fi.Keyspace, fi.Table) {
-			continue
-		}
-		fi := FilesInfo{
-			Location:  m.Location,
-			SST:       m.RemoteSSTableVersionDir(fi.Keyspace, fi.Table, fi.Version),
-			filesInfo: fi,
-		}
-		filesInfo = append(filesInfo, fi)
+// filesInfo contains information about SST files of particular keyspace/table.
+type filesInfo struct {
+	Keyspace string   `json:"keyspace"`
+	Table    string   `json:"table"`
+	Version  string   `json:"version"`
+	Files    []string `json:"files"`
+	Size     int64    `json:"size"`
+
+	Path string `json:"path,omitempty"`
+}
+
+func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) FilesInfo {
+	fi := FilesInfo{
+		Location: m.Location,
+		Schema:   m.Content.Schema,
 	}
 
-	return filesInfo
+	for _, idx := range m.Content.Index {
+		if !filter.Check(idx.Keyspace, idx.Table) {
+			continue
+		}
+		idx.Path = m.RemoteSSTableVersionDir(idx.Keyspace, idx.Table, idx.Version)
+		fi.Tables = append(fi.Tables, idx)
+	}
+
+	return fi
 }
 
 // Target specifies what should be backed up and where.
@@ -118,14 +129,16 @@ type Stage string
 
 // Stage enumeration.
 const (
-	StageInit     Stage = "INIT"
-	StageSnapshot Stage = "SNAPSHOT"
-	StageIndex    Stage = "INDEX"
-	StageUpload   Stage = "UPLOAD"
-	StageManifest Stage = "MANIFEST"
-	StageMigrate  Stage = "MIGRATE"
-	StagePurge    Stage = "PURGE"
-	StageDone     Stage = "DONE"
+	StageInit        Stage = "INIT"
+	StageAwaitSchema Stage = "AWAIT_SCHEMA"
+	StageSnapshot    Stage = "SNAPSHOT"
+	StageSchema      Stage = "SCHEMA"
+	StageIndex       Stage = "INDEX"
+	StageUpload      Stage = "UPLOAD"
+	StageManifest    Stage = "MANIFEST"
+	StageMigrate     Stage = "MIGRATE"
+	StagePurge       Stage = "PURGE"
+	StageDone        Stage = "DONE"
 
 	stageNone Stage = ""
 )
@@ -133,7 +146,7 @@ const (
 // Resumable run can be continued.
 func (s Stage) Resumable() bool {
 	switch s {
-	case StageInit, StageSnapshot, StageDone, stageNone:
+	case StageInit, StageSnapshot, StageSchema, StageDone, stageNone:
 		return false
 	default:
 		return true

@@ -101,7 +101,7 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537 => github.com/scylladb/gocql v1.3.4
+# github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537 => github.com/scylladb/gocql v1.4.0
 github.com/gocql/gocql
 github.com/gocql/gocql/internal/lru
 github.com/gocql/gocql/internal/murmur

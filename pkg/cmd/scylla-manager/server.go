@@ -96,6 +96,7 @@ func (s *server) makeServices() error {
 		s.config.Backup,
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
+		s.clusterSvc.GetSession,
 		s.logger.Named("backup"),
 	)
 	if err != nil {

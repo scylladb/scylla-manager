@@ -422,29 +422,40 @@
     "BackupFilesInfo": {
       "type": "object",
       "properties": {
-        "keyspace": {
-          "type": "string"
-        },
-        "table": {
-          "type": "string"
-        },
-        "version": {
-          "type": "string"
-        },
         "location": {
           "type": "string"
         },
-        "sst": {
+        "schema": {
           "type": "string"
         },
         "files": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "keyspace": {
+                "type": "string"
+              },
+              "table": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "size": {
+                "type": "integer"
+              }
+            }
           }
-        },
-        "size": {
-          "type": "integer"
         }
       }
     },

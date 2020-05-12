@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/mermaidclient"
 	"github.com/scylladb/mermaid/pkg/util/duration"
 	"github.com/spf13/cobra"
@@ -290,7 +291,7 @@ var backupFilesCmd = &cobra.Command{
 			}
 		})
 
-		tables, err := client.ListBackupFiles(ctx, cfgCluster, location, allClusters, keyspace, snapshotTag)
+		filesInfo, err := client.ListBackupFiles(ctx, cfgCluster, location, allClusters, keyspace, snapshotTag)
 		stillWaiting.Store(false)
 		if err != nil {
 			return err
@@ -298,17 +299,35 @@ var backupFilesCmd = &cobra.Command{
 
 		w := cmd.OutOrStdout()
 		d := cmd.Flag("delimiter").Value.String()
-		for _, t := range tables {
-			for _, f := range t.Files {
+
+		// Nodes may share path to schema, we will print only unique ones.
+		schemaPaths := strset.New()
+		for _, fi := range filesInfo {
+			if fi.Schema != "" {
+				schemaPaths.Add(path.Join(fi.Location, fi.Schema))
+			}
+		}
+		// Schema files first
+		for _, schemaPath := range schemaPaths.List() {
+			var filePath = strings.Replace(schemaPath, ":", "://", 1)
+			_, err = fmt.Fprintln(w, filePath, d, "./")
+			if err != nil {
+				return err
+			}
+		}
+		for _, fi := range filesInfo {
+			for _, t := range fi.Files {
 				dir := path.Join(t.Keyspace, t.Table)
 				if withVersion {
 					dir += "-" + t.Version
 				}
-				var filePath = strings.Replace(path.Join(t.Location, t.Sst, f), ":", "://", 1)
+				for _, f := range t.Files {
+					var filePath = strings.Replace(path.Join(fi.Location, t.Path, f), ":", "://", 1)
 
-				_, err = fmt.Fprintln(w, filePath, d, dir)
-				if err != nil {
-					return err
+					_, err = fmt.Fprintln(w, filePath, d, dir)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}

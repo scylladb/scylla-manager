@@ -652,13 +652,15 @@ func (bp BackupProgress) arguments() string {
 // status returns task status with optional backup stage.
 func (bp BackupProgress) status() string {
 	translate := map[string]string{
-		"INIT":     "initialising",
-		"SNAPSHOT": "taking snapshot",
-		"INDEX":    "indexing files",
-		"UPLOAD":   "uploading data",
-		"MANIFEST": "uploading metadata",
-		"MIGRATE":  "migrating legacy metadata",
-		"PURGE":    "retention",
+		"INIT":         "initialising",
+		"AWAIT_SCHEMA": "awaiting schema agreement",
+		"SNAPSHOT":     "taking snapshot",
+		"SCHEMA":       "uploading schema",
+		"INDEX":        "indexing files",
+		"UPLOAD":       "uploading data",
+		"MANIFEST":     "uploading manifest",
+		"MIGRATE":      "migrating legacy metadata",
+		"PURGE":        "retention",
 	}
 
 	stage := translate[bp.Progress.Stage]

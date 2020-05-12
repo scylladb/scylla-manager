@@ -53,17 +53,19 @@ func NewFindConfigClientEncryptionOptionsOK() *FindConfigClientEncryptionOptions
 Config value
 */
 type FindConfigClientEncryptionOptionsOK struct {
-	Payload []string
+	Payload *models.ClientEncryptionOptions
 }
 
-func (o *FindConfigClientEncryptionOptionsOK) GetPayload() []string {
+func (o *FindConfigClientEncryptionOptionsOK) GetPayload() *models.ClientEncryptionOptions {
 	return o.Payload
 }
 
 func (o *FindConfigClientEncryptionOptionsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
+	o.Payload = new(models.ClientEncryptionOptions)
+
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

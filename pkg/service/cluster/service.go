@@ -5,6 +5,7 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"sort"
 
 	"github.com/gocql/gocql"
@@ -489,6 +490,71 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 	}
 
 	return nodes, nil
+}
+
+// GetSession returns CQL session to provided cluster.
+func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (*gocql.Session, error) {
+	s.logger.Debug(ctx, "GetSession", "cluster_id", clusterID)
+
+	client, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	ni, err := client.NodeInfo(ctx, client.Config().Hosts[0])
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch node info")
+	}
+
+	scyllaCluster := gocql.NewCluster(client.Config().Hosts...)
+	scyllaCluster.DisableInitialHostLookup = true
+
+	if ni.CqlPasswordProtected {
+		credentials := secrets.CQLCreds{
+			ClusterID: clusterID,
+		}
+		err := s.secretsStore.Get(&credentials)
+		if err == service.ErrNotFound {
+			return nil, errors.Wrap(err, "cluster requires CQL authentication but username/password is not registered")
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "get credentials")
+		}
+
+		scyllaCluster.Authenticator = gocql.PasswordAuthenticator{
+			Username: credentials.Username,
+			Password: credentials.Password,
+		}
+	}
+
+	if ni.ClientEncryptionEnabled {
+		scyllaCluster.SslOpts = &gocql.SslOptions{
+			Config: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+
+		if ni.ClientEncryptionRequireAuth {
+			tlsIdentity := secrets.TLSIdentity{
+				ClusterID: clusterID,
+			}
+			err := s.secretsStore.Get(&tlsIdentity)
+			if err == service.ErrNotFound {
+				return nil, errors.Wrap(err, "cluster requires CQL TLS but key/cert is not registered")
+			}
+			if err != nil {
+				return nil, errors.Wrap(err, "get tls identity")
+			}
+
+			keyPair, err := tls.X509KeyPair(tlsIdentity.Cert, tlsIdentity.PrivateKey)
+			if err != nil {
+				return nil, errors.Wrap(err, "invalid SSL user key pair")
+			}
+			scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
+		}
+	}
+
+	return scyllaCluster.CreateSession()
 }
 
 func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {

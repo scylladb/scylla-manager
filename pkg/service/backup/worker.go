@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
@@ -42,16 +43,17 @@ func (sd snapshotDir) String() string {
 }
 
 type worker struct {
-	ClusterID     uuid.UUID
-	ClusterName   string
-	TaskID        uuid.UUID
-	RunID         uuid.UUID
-	SnapshotTag   string
-	Config        Config
-	Units         []Unit
-	Client        *scyllaclient.Client
-	Logger        log.Logger
-	OnRunProgress func(ctx context.Context, p *RunProgress)
+	ClusterID      uuid.UUID
+	ClusterName    string
+	TaskID         uuid.UUID
+	RunID          uuid.UUID
+	SnapshotTag    string
+	Config         Config
+	Units          []Unit
+	SchemaUploaded bool
+	Client         *scyllaclient.Client
+	Logger         log.Logger
+	OnRunProgress  func(ctx context.Context, p *RunProgress)
 	// ResumeUploadProgress populates upload stats of the provided run progress
 	// with previous run progress.
 	// If there is no previous run there should be no update.
@@ -63,6 +65,9 @@ type worker struct {
 
 	rings      map[string]scyllaclient.Ring
 	memoryPool *sync.Pool
+
+	// Note: clusterSession may be nil.
+	clusterSession *gocql.Session
 }
 
 func (w *worker) WithLogger(logger log.Logger) *worker {

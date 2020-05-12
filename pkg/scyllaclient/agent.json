@@ -1291,6 +1291,18 @@
         "prometheus_port": {
           "description": "Port for Prometheus server.",
           "type": "string"
+        },
+        "client_encryption_enabled": {
+          "description": "Whether client encryption is enabled.",
+          "type": "boolean"
+        },
+        "client_encryption_require_auth": {
+          "description": "Whether client authorization is required.",
+          "type": "boolean"
+        },
+        "cql_password_protected": {
+          "description": "Whether CQL requires password authentication.",
+          "type": "boolean"
         }
       }
     }

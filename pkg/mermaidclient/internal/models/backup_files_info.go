@@ -6,8 +6,11 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -16,29 +19,51 @@ import (
 type BackupFilesInfo struct {
 
 	// files
-	Files []string `json:"files"`
-
-	// keyspace
-	Keyspace string `json:"keyspace,omitempty"`
+	Files []*BackupFilesInfoFilesItems0 `json:"files"`
 
 	// location
 	Location string `json:"location,omitempty"`
 
-	// size
-	Size int64 `json:"size,omitempty"`
-
-	// sst
-	Sst string `json:"sst,omitempty"`
-
-	// table
-	Table string `json:"table,omitempty"`
-
-	// version
-	Version string `json:"version,omitempty"`
+	// schema
+	Schema string `json:"schema,omitempty"`
 }
 
 // Validate validates this backup files info
 func (m *BackupFilesInfo) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateFiles(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *BackupFilesInfo) validateFiles(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Files) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Files); i++ {
+		if swag.IsZero(m.Files[i]) { // not required
+			continue
+		}
+
+		if m.Files[i] != nil {
+			if err := m.Files[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("files" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -53,6 +78,52 @@ func (m *BackupFilesInfo) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *BackupFilesInfo) UnmarshalBinary(b []byte) error {
 	var res BackupFilesInfo
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// BackupFilesInfoFilesItems0 backup files info files items0
+// swagger:model BackupFilesInfoFilesItems0
+type BackupFilesInfoFilesItems0 struct {
+
+	// files
+	Files []string `json:"files"`
+
+	// keyspace
+	Keyspace string `json:"keyspace,omitempty"`
+
+	// path
+	Path string `json:"path,omitempty"`
+
+	// size
+	Size int64 `json:"size,omitempty"`
+
+	// table
+	Table string `json:"table,omitempty"`
+
+	// version
+	Version string `json:"version,omitempty"`
+}
+
+// Validate validates this backup files info files items0
+func (m *BackupFilesInfoFilesItems0) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *BackupFilesInfoFilesItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *BackupFilesInfoFilesItems0) UnmarshalBinary(b []byte) error {
+	var res BackupFilesInfoFilesItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
