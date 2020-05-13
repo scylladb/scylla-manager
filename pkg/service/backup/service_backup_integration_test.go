@@ -681,8 +681,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), len(manifests))
 	}
 	for _, fi := range filesInfo {
-		for _, tbl := range fi.Tables {
-			remoteFiles, err := h.client.RcloneListDir(ctx, ManagedClusterHosts()[0], h.location.RemotePath(tbl.Path), nil)
+		for _, fs := range fi.Files {
+			remoteFiles, err := h.client.RcloneListDir(ctx, ManagedClusterHosts()[0], h.location.RemotePath(fs.Path), nil)
 			if err != nil {
 				t.Fatal("RcloneListDir() error", err)
 			}
@@ -695,18 +695,18 @@ func TestBackupSmokeIntegration(t *testing.T) {
 			Print("And: Scylla manifests are not uploaded")
 			for _, rfn := range remoteFileNames {
 				if strings.Contains(rfn, backup.ScyllaManifest) {
-					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(tbl.Path))
+					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
 				}
 			}
 
-			tableFileNames := make([]string, 0, len(tbl.Files))
-			for _, f := range tbl.Files {
+			tableFileNames := make([]string, 0, len(fs.Files))
+			for _, f := range fs.Files {
 				tableFileNames = append(tableFileNames, f)
 			}
 
 			opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
 			if !cmp.Equal(tableFileNames, remoteFileNames, opts...) {
-				t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(tbl.Files, remoteFileNames, opts...))
+				t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(fs.Files, remoteFileNames, opts...))
 			}
 		}
 	}
@@ -770,8 +770,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	// But empty tables because of the filter
 	for _, fi := range filesInfo {
-		if len(fi.Tables) != 0 {
-			t.Fatalf("len(ListFiles()) = %d, expected %d", len(fi.Tables), 0)
+		if len(fi.Files) != 0 {
+			t.Fatalf("len(ListFiles()) = %d, expected %d", len(fi.Files), 0)
 		}
 	}
 

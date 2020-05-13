@@ -64,7 +64,7 @@ func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
 type FilesInfo struct {
 	Location Location    `json:"location"`
 	Schema   string      `json:"schema"`
-	Tables   []filesInfo `json:"tables"`
+	Files    []filesInfo `json:"files"`
 }
 
 // filesInfo contains information about SST files of particular keyspace/table.
@@ -89,7 +89,7 @@ func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) FilesInfo {
 			continue
 		}
 		idx.Path = m.RemoteSSTableVersionDir(idx.Keyspace, idx.Table, idx.Version)
-		fi.Tables = append(fi.Tables, idx)
+		fi.Files = append(fi.Files, idx)
 	}
 
 	return fi
