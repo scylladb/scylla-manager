@@ -501,7 +501,7 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (*gocql.S
 		return nil, err
 	}
 
-	ni, err := client.NodeInfo(ctx, client.Config().Hosts[0])
+	ni, err := client.AnyNodeInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch node info")
 	}
