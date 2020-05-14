@@ -12,15 +12,6 @@ import (
 	"go.uber.org/multierr"
 )
 
-func dcHosts(dcMap map[string][]string, dcs []string) []string {
-	var hosts []string
-	for _, dc := range dcs {
-		h := dcMap[dc]
-		hosts = append(hosts, h...)
-	}
-	return hosts
-}
-
 func checkDCs(dcAtPos func(int) (string, string), n int, dcMap map[string][]string) (err error) {
 	allDCs := strset.New()
 	for dc := range dcMap {

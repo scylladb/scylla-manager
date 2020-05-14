@@ -16,6 +16,7 @@ var (
 			"snapshot_tag",
 			"units",
 			"dc",
+			"hosts",
 			"location",
 			"start_time",
 			"stage",

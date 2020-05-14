@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"sync"
 
@@ -85,6 +84,8 @@ func (s *Service) Runner() Runner {
 // It also ensures configuration for the backup providers is registered on the
 // targeted hosts.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (Target, error) {
+	s.logger.Info(ctx, "Generating backup target", "cluster_id", clusterID)
+
 	p := defaultTaskProperties()
 	t := Target{}
 
@@ -149,19 +150,14 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrap(err, "invalid location")
 	}
 
-	// Validate that locations are accessible from the nodes
-	if err := s.checkLocationsAvailableFromDCs(ctx, client, t.Location, t.DC, dcMap); err != nil {
-		return t, errors.Wrap(err, "location is not accessible")
-	}
+	targetDCs := strset.New(t.DC...)
 
 	// Filter keyspaces
 	f, err := ksfilter.NewFilter(p.Keyspace)
 	if err != nil {
 		return t, err
 	}
-
-	targetDCs := strset.New(t.DC...)
-
+	rings := make(map[string]scyllaclient.Ring)
 	keyspaces, err := client.Keyspaces(ctx)
 	if err != nil {
 		return t, errors.Wrapf(err, "read keyspaces")
@@ -188,6 +184,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			}
 		}
 
+		// Collect ring information
+		rings[keyspace] = ring
+
 		// Add to the filter
 		f.Add(keyspace, tables)
 	}
@@ -208,27 +207,114 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		t.Units = append(t.Units, uu)
 	}
 
+	// Get live nodes
+	t.liveNodes, err = s.getLiveNodes(ctx, client, t, rings)
+	if err != nil {
+		return t, err
+	}
+
+	// Validate locations access
+	if err := s.checkLocationsAvailableFromNodes(ctx, client, t.liveNodes, t.Location); err != nil {
+		return t, errors.Wrap(err, "location is not accessible")
+	}
+
 	return t, nil
+}
+
+// getLiveNodes returns live nodes that contain all data specified by the target.
+// Error is returned if there is not enough live nodes to backup the target.
+func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client, target Target, rings map[string]scyllaclient.Ring) (scyllaclient.NodeStatusInfoSlice, error) {
+	// Get hosts in all DCs
+	status, err := client.Status(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get status")
+	}
+
+	// Filter live nodes
+	var (
+		liveNodes scyllaclient.NodeStatusInfoSlice
+		nodes     = status.Datacenter(target.DC)
+		nodeErr   = client.CheckHostsConnectivity(ctx, nodes.Hosts())
+	)
+	for i, err := range nodeErr {
+		if err == nil {
+			liveNodes = append(liveNodes, nodes[i])
+		}
+	}
+	if len(liveNodes) == 0 {
+		return nil, errors.New("no live nodes found")
+	}
+
+	// Validate that there are enough live nodes to backup all tokens
+	if len(liveNodes) < len(nodes) {
+		hosts := strset.New(liveNodes.Hosts()...)
+		for ks, r := range rings {
+			if r.Replication != scyllaclient.LocalStrategy {
+				for _, tr := range r.Tokens {
+					if !hosts.HasAny(tr.Replicas...) {
+						return nil, errors.Errorf("not enough live nodes to backup keyspace %s", ks)
+					}
+				}
+			}
+		}
+
+		dead := strset.New(nodes.Hosts()...)
+		dead.Remove(liveNodes.Hosts()...)
+		s.logger.Info(ctx, "Ignoring down nodes", "hosts", dead)
+	}
+
+	return liveNodes, nil
+}
+
+// checkLocationsAvailableFromNodes checks if each node has access location for
+// its dataceneter.
+func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client, nodes scyllaclient.NodeStatusInfoSlice, locations []Location) error {
+	s.logger.Info(ctx, "Checking accessibility of remote locations")
+	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
+
+	// DC location index
+	dcl := map[string]Location{}
+	for _, l := range locations {
+		dcl[l.DC] = l
+	}
+
+	// Run checkHostLocation in parallel
+	return service.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, func(i int) error {
+		node := nodes[i]
+
+		l, ok := dcl[node.Datacenter]
+		if !ok {
+			l = dcl[""]
+		}
+		return s.checkHostLocation(ctx, client, node.Addr, l)
+	}))
+}
+
+func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
+	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(""))
+
+	if err != nil {
+		s.logger.Info(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
+		tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run \"scylla-manager-agent check-location -L %s --debug\"", h, l)
+		err = errors.Errorf("%s: %s - %s", h, err, tip)
+		return err
+	}
+
+	s.logger.Info(ctx, "Location check OK", "host", h, "location", l)
+	return nil
 }
 
 // GetTargetSize calculates total size of the backup for the provided target.
 func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target Target) (int64, error) {
-	s.logger.Info(ctx, "Calculating target size")
+	s.logger.Info(ctx, "Calculating backup size")
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrapf(err, "get client")
 	}
-	// Get hosts in all DCs
-	dcMap, err := client.Datacenters(ctx)
-	if err != nil {
-		return 0, errors.Wrap(err, "read datacenters")
-	}
+
 	// Get hosts in the given DCs
-	hosts := dcHosts(dcMap, target.DC)
-	if len(hosts) == 0 {
-		return 0, errors.New("no matching hosts found")
-	}
+	hosts := target.liveNodes.Datacenter(target.DC).Hosts()
 
 	// Create index of all call parameters
 	type hut struct {
@@ -278,54 +364,6 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 	})
 
 	return total.Load(), err
-}
-
-// checkLocationsAvailableFromDCs checks if each node in every DC has access to
-// location assigned to that DC.
-func (s *Service) checkLocationsAvailableFromDCs(ctx context.Context, client *scyllaclient.Client, locations []Location, dcs []string, dcMap map[string][]string) error {
-	s.logger.Info(ctx, "Checking accessibility of remote locations")
-	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
-
-	// DC location index
-	dcl := map[string]Location{}
-	for _, l := range locations {
-		dcl[l.DC] = l
-	}
-
-	// Create partial hostInfo
-	var hi []hostInfo
-	for _, dc := range dcs {
-		l, ok := dcl[dc]
-		if !ok {
-			l = dcl[""]
-		}
-		for _, h := range dcMap[dc] {
-			hi = append(hi, hostInfo{IP: h, Location: l})
-		}
-	}
-
-	// Run checkHostLocation in parallel
-	return service.ErrValidate(parallel.Run(len(hi), parallel.NoLimit, func(i int) error {
-		return s.checkHostLocation(ctx, client, hi[i].IP, hi[i].Location)
-	}))
-}
-
-func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
-	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(""))
-
-	if err != nil {
-		s.logger.Info(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
-		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
-			tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run \"scylla-manager-agent check-location -L %s --debug\"", h, l)
-			err = errors.Errorf("%s: %s - %s", h, err, tip)
-		} else {
-			err = errors.Errorf("%s: %s", h, err)
-		}
-		return err
-	}
-
-	s.logger.Info(ctx, "Host location check OK", "host", h, "location", l)
-	return nil
 }
 
 // ExtractLocations parses task properties and returns list of locations.
@@ -476,9 +514,9 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 		for _, h := range checklist {
 			_, err := client.RcloneListDir(ctx, h, l.RemotePath(""), nil)
 			if err != nil {
-				s.logger.Debug(ctx, "Host location check FAILED", "host", h, "location", l, "error", err)
+				s.logger.Debug(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
 			} else {
-				s.logger.Debug(ctx, "Host location check OK", "host", h, "location", l)
+				s.logger.Debug(ctx, "Location check OK", "host", h, "location", l)
 
 				hosts[i].IP = h
 				return nil
@@ -523,34 +561,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"target", target,
 	)
 
-	// Get the cluster client
-	client, err := s.scyllaClient(ctx, run.ClusterID)
-	if err != nil {
-		return errors.Wrap(err, "initialize: get client proxy")
-	}
-
-	// Get hosts in all DCs
-	status, err := client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "initialize: get status")
-	}
-
-	// Validate that there are no hosts down
-	if down := status.Datacenter(run.DC).DownHosts(); len(down) != 0 {
-		return errors.Errorf("nodes are down: %s", strings.Join(down, ","))
-	}
-
-	nodes := status.Datacenter(run.DC)
-	if len(nodes) == 0 {
-		return errors.New("initialize: no matching nodes found")
-	}
-
-	// Create hostInfo for hosts
-	hi, err := makeHostInfo(nodes, target.Location, target.RateLimit)
-	if err != nil {
-		return err
-	}
-
 	if target.Continue {
 		if err := s.decorateWithPrevRun(ctx, run); err != nil {
 			return err
@@ -566,9 +576,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		run.SnapshotTag = newSnapshotTag()
 	}
 
-	// Register the run
-	if err := s.putRun(run); err != nil {
-		return errors.Wrap(err, "initialize: register the run")
+	// Get the cluster client
+	client, err := s.scyllaClient(ctx, run.ClusterID)
+	if err != nil {
+		return errors.Wrap(err, "initialize: get client proxy")
 	}
 
 	// Collect ring information
@@ -579,6 +590,37 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return errors.Wrap(err, "initialize: describe keyspace ring")
 		}
 		rings[u.Keyspace] = ring
+	}
+
+	// Get live nodes
+	var liveNodes scyllaclient.NodeStatusInfoSlice
+
+	if len(run.Hosts) == 0 {
+		liveNodes = target.liveNodes
+		run.Hosts = liveNodes.Hosts()
+	} else {
+		filter := strset.New(run.Hosts...)
+		for _, v := range target.liveNodes {
+			if filter.Has(v.Addr) {
+				liveNodes = append(liveNodes, v)
+			}
+		}
+		if len(liveNodes) != len(run.Hosts) {
+			missing := strset.New(run.Hosts...)
+			missing.Remove(liveNodes.Hosts()...)
+			return errors.Errorf("missing hosts to resume backup: %s", strings.Join(missing.List(), " "))
+		}
+	}
+
+	// Register the run
+	if err := s.putRun(run); err != nil {
+		return errors.Wrap(err, "initialize: register the run")
+	}
+
+	// Create hostInfo for run hosts
+	hi, err := makeHostInfo(liveNodes, target.Location, target.RateLimit)
+	if err != nil {
+		return err
 	}
 
 	clusterSession, sessionErr := s.clusterSession(ctx, clusterID)
@@ -724,6 +766,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	run.SnapshotTag = prev.SnapshotTag
 	run.Units = prev.Units
 	run.DC = prev.DC
+	run.Hosts = prev.Hosts
 
 	return nil
 }

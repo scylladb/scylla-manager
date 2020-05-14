@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
@@ -105,6 +106,8 @@ type Target struct {
 	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
 	UploadParallel   []DCLimit  `json:"upload_parallel"`
 	Continue         bool       `json:"continue"`
+	// liveNodes caches node status for GetTarget GetTargetSize calls.
+	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
 }
 
 // Unit represents keyspace and its tables.
@@ -163,6 +166,7 @@ type Run struct {
 	SnapshotTag string
 	Units       []Unit
 	DC          []string
+	Hosts       []string
 	Location    []Location
 	StartTime   time.Time
 	Stage       Stage
