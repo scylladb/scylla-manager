@@ -525,13 +525,13 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Get the cluster client
 	client, err := s.scyllaClient(ctx, run.ClusterID)
 	if err != nil {
-		return errors.Wrap(err, "get client proxy")
+		return errors.Wrap(err, "initialize: get client proxy")
 	}
 
 	// Get hosts in all DCs
 	status, err := client.Status(ctx)
 	if err != nil {
-		return errors.Wrap(err, "status")
+		return errors.Wrap(err, "initialize: get status")
 	}
 
 	// Validate that there are no hosts down
@@ -541,7 +541,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	nodes := status.Datacenter(run.DC)
 	if len(nodes) == 0 {
-		return errors.New("no matching nodes found")
+		return errors.New("initialize: no matching nodes found")
 	}
 
 	// Create hostInfo for hosts
@@ -567,7 +567,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Register the run
 	if err := s.putRun(run); err != nil {
-		return errors.Wrap(err, "register the run")
+		return errors.Wrap(err, "initialize: register the run")
 	}
 
 	// Collect ring information
@@ -575,7 +575,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	for _, u := range run.Units {
 		ring, err := client.DescribeRing(ctx, u.Keyspace)
 		if err != nil {
-			return errors.Wrap(err, "describe keyspace ring")
+			return errors.Wrap(err, "initialize: describe keyspace ring")
 		}
 		rings[u.Keyspace] = ring
 	}
@@ -630,7 +630,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	s.updateStage(ctx, run, StageAwaitSchema)
 	w = w.WithLogger(s.logger.Named("await_schema"))
 	if err := w.AwaitSchema(ctx); err != nil {
-		return errors.Wrap(err, "awaiting schema agreement")
+		return errors.Wrap(err, "get schema agreement")
 	}
 
 	// Take snapshot if needed
