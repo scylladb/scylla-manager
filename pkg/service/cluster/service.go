@@ -507,7 +507,6 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (*gocql.S
 	}
 
 	scyllaCluster := gocql.NewCluster(client.Config().Hosts...)
-	scyllaCluster.DisableInitialHostLookup = true
 
 	if ni.CqlPasswordProtected {
 		credentials := secrets.CQLCreds{
