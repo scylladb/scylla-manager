@@ -60,7 +60,7 @@ func newBackupTestHelper(t *testing.T, session, clusterSession *gocql.Session, c
 
 	clusterID := uuid.MustRandom()
 
-	logger := log.NewDevelopmentWithLevel(zapcore.DebugLevel)
+	logger := log.NewDevelopmentWithLevel(zapcore.ErrorLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
 	service := newTestService(t, session, clusterSession, client, config, clusterID, logger)
