@@ -181,10 +181,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			if strings.HasPrefix(keyspace, "system") && keyspace != "system_schema" {
 				continue
 			}
-		}
-		// Check if keyspace has replica in any DC
-		if !targetDCs.HasAny(ring.Datacenters()...) {
-			continue
+		} else {
+			// Check if keyspace has replica in any DC
+			if !targetDCs.HasAny(ring.Datacenters()...) {
+				continue
+			}
 		}
 
 		// Add to the filter
