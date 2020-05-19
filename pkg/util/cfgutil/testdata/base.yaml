@@ -1,5 +1,5 @@
 auth_token: ""
-prometheus: :56090
+prometheus: :5090
 cpu: -1
 logger:
   mode: stderr

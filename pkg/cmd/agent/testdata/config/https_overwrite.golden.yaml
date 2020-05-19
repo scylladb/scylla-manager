@@ -2,8 +2,8 @@ auth_token: ""
 https: foobar
 tls_cert_file: ./testdata/auth/scylla_manager.crt
 tls_key_file: ./testdata/auth/scylla_manager.key
-prometheus: :56090
-debug: 127.0.0.1:56112
+prometheus: :5090
+debug: 127.0.0.1:5112
 cpu: -1
 logger:
   mode: stderr

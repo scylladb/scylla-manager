@@ -17,12 +17,12 @@
 
 # Bind prometheus API to the specified TCP address using HTTP protocol.
 # By default it binds to all network interfaces but you can restrict it
-# by specifying it like this 127:0.0.1:56090 or any other combination
+# by specifying it like this 127:0.0.1:5090 or any other combination
 # of ip and port.
-#prometheus: ':56090'
+#prometheus: ':5090'
 
 # Debug server that allows to run pporf profiling on demand on a live system.
-#debug: 127.0.0.1:56112
+#debug: 127.0.0.1:5112
 
 # CPU to run Scylla Manager Agent on. By default the agent would read Scylla
 # configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by

@@ -3,7 +3,7 @@ auth_token: token
 tls_cert_file: /etc/scylla/db.crt
 tls_key_file: /etc/scylla/db.key
 
-debug: :56112
+debug: :5112
 
 logger:
   level: debug

@@ -11,10 +11,10 @@ RUN yum -y install epel-release && \
 
 COPY scylla-manager-docker.yaml /etc/scylla-manager/
 
-EXPOSE 56080
-EXPOSE 56443
-EXPOSE 56090
-EXPOSE 56112
+EXPOSE 5080
+EXPOSE 5443
+EXPOSE 5090
+EXPOSE 5112
 
 USER scylla-manager
 ENV HOME /var/lib/scylla-manager/

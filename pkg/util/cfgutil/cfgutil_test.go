@@ -28,7 +28,7 @@ func TestParseYAML(t *testing.T) {
 			Input: []string{"./testdata/base.yaml", "./testdata/first.yaml"},
 			Golden: result{
 				AuthToken:  "token",
-				Prometheus: ":56090",
+				Prometheus: ":5090",
 				CPU:        -2,
 				Logger: map[string]string{
 					"mode": "stdout",
@@ -40,7 +40,7 @@ func TestParseYAML(t *testing.T) {
 			Input: []string{"./testdata/base.yaml", "./testdata/missing.yaml"},
 			Golden: result{
 				AuthToken:  "",
-				Prometheus: ":56090",
+				Prometheus: ":5090",
 				CPU:        -1,
 				Logger: map[string]string{
 					"mode": "stderr",
@@ -52,7 +52,7 @@ func TestParseYAML(t *testing.T) {
 			Input: []string{"./testdata/base.yaml", "./testdata/missing.yaml", "./testdata/first.yaml"},
 			Golden: result{
 				AuthToken:  "token",
-				Prometheus: ":56090",
+				Prometheus: ":5090",
 				CPU:        -2,
 				Logger: map[string]string{
 					"mode": "stdout",
@@ -64,7 +64,7 @@ func TestParseYAML(t *testing.T) {
 			Input: []string{"./testdata/base.yaml", "./testdata/invalid_type.yaml"},
 			Golden: result{
 				AuthToken:  "token",
-				Prometheus: ":56090",
+				Prometheus: ":5090",
 				CPU:        -2,
 				Logger: map[string]string{
 					"mode": "stdout",
@@ -77,7 +77,7 @@ func TestParseYAML(t *testing.T) {
 			Input: []string{"./testdata/base.yaml", "./testdata/missing_nested_field_indent.yaml"},
 			Golden: result{
 				AuthToken:  "token",
-				Prometheus: ":56090",
+				Prometheus: ":5090",
 				CPU:        -2,
 				Logger: map[string]string{
 					"mode": "stdout",
