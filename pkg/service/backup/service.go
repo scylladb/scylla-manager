@@ -672,9 +672,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if run.PrevID == uuid.Nil {
 		s.updateStage(ctx, run, StageAwaitSchema)
 		w = w.WithLogger(s.logger.Named("await_schema"))
-		if err := w.AwaitSchema(ctx); err != nil {
-			return errors.Wrap(err, "get schema agreement")
-		}
+		w.AwaitSchema(ctx) // nolint: errcheck
 	}
 
 	// Take snapshot if needed
