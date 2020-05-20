@@ -595,20 +595,18 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Get live nodes
 	var liveNodes scyllaclient.NodeStatusInfoSlice
 
-	if len(run.Hosts) == 0 {
+	if len(run.Nodes) == 0 {
 		liveNodes = target.liveNodes
-		run.Hosts = liveNodes.Hosts()
+		run.Nodes = liveNodes.HostIDs()
 	} else {
-		filter := strset.New(run.Hosts...)
+		filter := strset.New(run.Nodes...)
 		for _, v := range target.liveNodes {
-			if filter.Has(v.Addr) {
+			if filter.Has(v.HostID) {
 				liveNodes = append(liveNodes, v)
 			}
 		}
-		if len(liveNodes) != len(run.Hosts) {
-			missing := strset.New(run.Hosts...)
-			missing.Remove(liveNodes.Hosts()...)
-			return errors.Errorf("missing hosts to resume backup: %s", strings.Join(missing.List(), " "))
+		if len(liveNodes) != len(run.Nodes) {
+			return errors.New("missing hosts to resume backup")
 		}
 	}
 
@@ -766,7 +764,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	run.SnapshotTag = prev.SnapshotTag
 	run.Units = prev.Units
 	run.DC = prev.DC
-	run.Hosts = prev.Hosts
+	run.Nodes = prev.Nodes
 
 	return nil
 }

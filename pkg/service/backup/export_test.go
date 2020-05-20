@@ -49,7 +49,7 @@ func (p *RunProgress) Files() []FileInfo {
 func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *Target) error {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		errors.Wrapf(err, "get client")
+		return errors.Wrapf(err, "get client")
 	}
 
 	// Collect ring information

@@ -166,7 +166,7 @@ type Run struct {
 	SnapshotTag string
 	Units       []Unit
 	DC          []string
-	Hosts       []string
+	Nodes       []string
 	Location    []Location
 	StartTime   time.Time
 	Stage       Stage

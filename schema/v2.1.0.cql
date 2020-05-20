@@ -7,4 +7,4 @@ ALTER TABLE backup_run DROP done;
 
 ALTER TABLE backup_run ADD stage text;
 
-ALTER TABLE backup_run ADD hosts set<text>;
+ALTER TABLE backup_run ADD nodes set<text>;
