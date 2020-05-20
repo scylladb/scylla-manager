@@ -669,10 +669,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	defer stopMetricsUpdater()
 
 	// Await schema agreement
-	s.updateStage(ctx, run, StageAwaitSchema)
-	w = w.WithLogger(s.logger.Named("await_schema"))
-	if err := w.AwaitSchema(ctx); err != nil {
-		return errors.Wrap(err, "get schema agreement")
+	if run.PrevID == uuid.Nil {
+		s.updateStage(ctx, run, StageAwaitSchema)
+		w = w.WithLogger(s.logger.Named("await_schema"))
+		if err := w.AwaitSchema(ctx); err != nil {
+			return errors.Wrap(err, "get schema agreement")
+		}
 	}
 
 	// Take snapshot if needed
