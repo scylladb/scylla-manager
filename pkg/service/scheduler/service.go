@@ -89,7 +89,7 @@ type Service struct {
 // overridable knobs for tests
 var (
 	retryTaskWait     = 10 * time.Minute
-	stopTaskWait      = 10 * time.Second
+	stopTaskWait      = 60 * time.Second
 	startTaskNowSlack = 10 * time.Second
 )
 
