@@ -668,30 +668,28 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	stopMetricsUpdater := newBackupMetricUpdater(ctx, runProgress, s.logger.Named("metrics"), service.PrometheusScrapeInterval)
 	defer stopMetricsUpdater()
 
-	// Await schema agreement
+	// If not resuming...
 	if run.PrevID == uuid.Nil {
+		// Await schema agreement
 		s.updateStage(ctx, run, StageAwaitSchema)
 		w = w.WithLogger(s.logger.Named("await_schema"))
-		w.AwaitSchema(ctx) // nolint: errcheck
-	}
+		_ = w.AwaitSchema(ctx) // nolint: errcheck
 
-	// Take snapshot if needed
-	s.updateStage(ctx, run, StageSnapshot)
-	if run.PrevID == uuid.Nil {
+		// Take snapshot
+		s.updateStage(ctx, run, StageSnapshot)
 		w = w.WithLogger(s.logger.Named("snapshot"))
 		if err := w.Snapshot(ctx, hi, target.SnapshotParallel); err != nil {
 			return errors.Wrap(err, "snapshot")
 		}
-	}
 
-	// Upload schema
-	s.updateStage(ctx, run, StageSchema)
-	w = w.WithLogger(s.logger.Named("schema"))
-	if err := w.UploadSchema(ctx, hi); err != nil {
-		return errors.Wrap(err, "upload schema")
+		// Upload schema
+		s.updateStage(ctx, run, StageSchema)
+		w = w.WithLogger(s.logger.Named("schema"))
+		if err := w.UploadSchema(ctx, hi); err != nil {
+			return errors.Wrap(err, "upload schema")
+		}
+		w.cleanup(ctx, hi)
 	}
-
-	w.cleanup(ctx, hi)
 
 	// Index files
 	s.updateStage(ctx, run, StageIndex)
@@ -699,7 +697,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "index")
 	}
-
 	w.cleanup(ctx, hi)
 
 	// Upload files
@@ -708,7 +705,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "upload")
 	}
-
 	w.cleanup(ctx, hi)
 
 	// Aggregate and upload manifests
@@ -717,7 +713,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err := w.UploadManifest(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "upload manifest")
 	}
-
 	w.cleanup(ctx, hi)
 
 	// Migrate V1 manifests
@@ -726,7 +721,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err := w.MigrateManifests(ctx, hi, target.UploadParallel); err != nil {
 		return errors.Wrap(err, "migrate manifest")
 	}
-
 	w.cleanup(ctx, hi)
 
 	// Purge remote data
@@ -735,7 +729,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err := w.Purge(ctx, hi, target.Retention); err != nil {
 		return errors.Wrap(err, "purge")
 	}
-
 	w.cleanup(ctx, hi)
 
 	s.updateStage(ctx, run, StageDone)
