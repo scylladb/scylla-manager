@@ -61,3 +61,4 @@ issues:
     - should merge variable declaration with assignment on next line
     - at least one file in a package should have a package comment
     - has json tag but is not exported
+    - Line contains TODO/BUG/FIXME
