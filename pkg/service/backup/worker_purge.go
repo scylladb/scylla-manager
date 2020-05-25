@@ -47,16 +47,19 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 	}
 
 	p := &purger{
-		ClusterID:      w.ClusterID,
-		TaskID:         w.TaskID,
-		HostInfo:       h,
-		Policy:         policy,
+		Filter: ListFilter{
+			ClusterID: w.ClusterID,
+			DC:        h.DC,
+			NodeID:    h.ID,
+		},
+		Host:           h.IP,
+		Location:       h.Location,
 		Client:         w.Client,
 		ManifestHelper: newPurgerManifestHelper(h.IP, h.Location, w.Client, w.Logger),
 		Logger:         w.Logger,
 	}
 
-	if err := p.purge(ctx); err != nil {
+	if err := p.PurgeTask(ctx, w.TaskID, policy); err != nil {
 		w.Logger.Error(ctx, "Failed to delete remote stale snapshots",
 			"host", h.IP,
 			"location", h.Location,

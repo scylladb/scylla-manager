@@ -20,6 +20,7 @@ const (
 
 	ctxBackupLocations
 	ctxBackupListFilter
+	ctxBackupSnapshotTag
 )
 
 func mustClusterIDFromCtx(r *http.Request) uuid.UUID {

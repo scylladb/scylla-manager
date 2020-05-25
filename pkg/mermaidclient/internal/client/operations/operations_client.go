@@ -58,6 +58,39 @@ func (a *Client) DeleteClusterClusterID(params *DeleteClusterClusterIDParams) (*
 }
 
 /*
+DeleteClusterClusterIDBackups delete cluster cluster ID backups API
+*/
+func (a *Client) DeleteClusterClusterIDBackups(params *DeleteClusterClusterIDBackupsParams) (*DeleteClusterClusterIDBackupsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteClusterClusterIDBackupsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeleteClusterClusterIDBackups",
+		Method:             "DELETE",
+		PathPattern:        "/cluster/{cluster_id}/backups",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DeleteClusterClusterIDBackupsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteClusterClusterIDBackupsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeleteClusterClusterIDBackupsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 DeleteClusterClusterIDTaskTaskTypeTaskID delete cluster cluster ID task task type task ID API
 */
 func (a *Client) DeleteClusterClusterIDTaskTaskTypeTaskID(params *DeleteClusterClusterIDTaskTaskTypeTaskIDParams) (*DeleteClusterClusterIDTaskTaskTypeTaskIDOK, error) {

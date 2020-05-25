@@ -54,6 +54,7 @@ type BackupService interface {
 	List(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backup.ListFilter) ([]backup.ListItem, error)
 	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backup.ListFilter) ([]backup.FilesInfo, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
+	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, snapshotTag string) error
 }
 
 // SchedService service interface for the REST API handlers.

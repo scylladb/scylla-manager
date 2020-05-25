@@ -1747,6 +1747,59 @@
             }
           }
         }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "snapshot_tag",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "locations",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
       }
     },
     "/cluster/{cluster_id}/backups/files": {
@@ -1763,19 +1816,6 @@
             "items": {
               "type": "string"
             },
-            "name": "locations",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "name": "cluster_id",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
             "name": "keyspace",
             "in": "query",
             "required": true
@@ -1785,6 +1825,19 @@
             "name": "snapshot_tag",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "locations",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "query"
           }
         ],
         "responses": {
