@@ -146,4 +146,4 @@ sudo rm -fv /var/cache/pbuilder/scylla-manager-$TARGET.tgz
 sudo DIST=$TARGET /usr/sbin/pbuilder clean --configfile ./dist/debian/pbuilderrc
 sudo DIST=$TARGET /usr/sbin/pbuilder create --configfile ./dist/debian/pbuilderrc
 sudo DIST=$TARGET /usr/sbin/pbuilder update --configfile ./dist/debian/pbuilderrc
-sudo DIST=$TARGET pdebuild  --configfile ./dist/debian/pbuilderrc --buildresult dist/release/deb
+sudo DIST=$TARGET GO_VERSION="$GO_VERSION" CURL="/usr/bin/curl" pdebuild  --configfile ./dist/debian/pbuilderrc --buildresult dist/release/deb

@@ -20,15 +20,15 @@ override_dh_auto_build:
 
 	$(GO) build -a -trimpath -mod vendor \
 	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
-	-o release/linux_amd64/scylla-manager ./pwd/cmd/scylla-manager
+	-o release/linux_amd64/scylla-manager ./pkg/cmd/scylla-manager
 
 	$(GO) build -a -trimpath -mod vendor \
 	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
-	-o release/linux_amd64/sctool ./pwd/cmd/sctool
+	-o release/linux_amd64/sctool ./pkg/cmd/sctool
 
 	$(GO) build -a -trimpath -mod vendor \
 	-ldflags "$(GOLDFLAGS) -B 0x$(head -c20 < /dev/urandom | xxd -p -c20)" \
-	-o release/linux_amd64/scylla-manager-agent ./pwd/cmd/agent
+	-o release/linux_amd64/scylla-manager-agent ./pkg/cmd/agent
 
 	mkdir -p release/bash_completion
 	release/linux_amd64/sctool _bashcompletion > release/bash_completion/sctool.bash
