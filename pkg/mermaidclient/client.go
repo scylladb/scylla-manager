@@ -427,6 +427,20 @@ func (c Client) ListBackupFiles(ctx context.Context, clusterID string,
 	return resp.Payload, nil
 }
 
+// DeleteSnapshot deletes backup snapshot with all data associated with it.
+func (c Client) DeleteSnapshot(ctx context.Context, clusterID string,
+	locations []string, snapshotTag string) error {
+	p := &operations.DeleteClusterClusterIDBackupsParams{
+		Context:     ctx,
+		ClusterID:   clusterID,
+		Locations:   locations,
+		SnapshotTag: snapshotTag,
+	}
+
+	_, err := c.operations.DeleteClusterClusterIDBackups(p) // nolint: errcheck
+	return err
+}
+
 // Version returns server version.
 func (c Client) Version(ctx context.Context) (*models.Version, error) {
 	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
