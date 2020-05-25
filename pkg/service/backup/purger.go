@@ -39,31 +39,29 @@ func (p *purger) purge(ctx context.Context) error {
 		return errors.Wrap(err, "find and load remote manifests")
 	}
 
-	manifestTags := strset.New()
+	manifestTaskTags := strset.New()
 	for _, m := range manifests {
-		manifestTags.Add(m.SnapshotTag)
+		if m.TaskID == p.TaskID {
+			manifestTaskTags.Add(m.SnapshotTag)
+		}
 	}
-	tags := manifestTags.List()
+	taskTags := manifestTaskTags.List()
 
 	// Exit if there no tags to delete
-	if len(tags) <= p.Policy {
+	if len(taskTags) <= p.Policy {
 		p.Logger.Debug(ctx, "Nothing to do")
 		return nil
 	}
 
 	// Sort by date ascending
-	sort.Strings(tags)
+	sort.Strings(taskTags)
 
 	// Select tags to delete
-	staleTags := tags[:len(tags)-p.Policy]
+	staleTags := taskTags[:len(taskTags)-p.Policy]
 
-	staleTagsSet := strset.New()
-	for _, t := range staleTags {
-		staleTagsSet.Add(t)
-	}
-
+	staleTagsSet := strset.New(staleTags...)
 	isStaleManifest := func(m *remoteManifest) bool {
-		return m.TaskID == p.TaskID && staleTagsSet.Has(m.SnapshotTag)
+		return staleTagsSet.Has(m.SnapshotTag)
 	}
 
 	// Select stale sst files in the form keyspace/<keyspace_name>/table/<table_name>/<version>
@@ -125,7 +123,6 @@ func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error
 		ClusterID: p.ClusterID,
 		DC:        p.HostInfo.DC,
 		NodeID:    p.HostInfo.ID,
-		TaskID:    p.TaskID,
 	}
 	return p.ManifestHelper.ListManifests(ctx, filter)
 }

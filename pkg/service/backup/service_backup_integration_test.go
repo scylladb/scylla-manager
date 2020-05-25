@@ -1207,9 +1207,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 func TestPurgeIntegration(t *testing.T) {
 	const (
-		testBucket    = "backuptest-purge"
-		testKeyspace  = "backuptest_purge"
-		testKeyspace2 = "backuptest_purge2"
+		testBucket   = "backuptest-purge"
+		testKeyspace = "backuptest_purge"
 	)
 
 	location := s3Location(testBucket)
@@ -1239,7 +1238,7 @@ func TestPurgeIntegration(t *testing.T) {
 	target2 := backup.Target{
 		Units: []backup.Unit{
 			{
-				Keyspace: testKeyspace2,
+				Keyspace: testKeyspace,
 			},
 		},
 		DC:        []string{"dc1"},
@@ -1247,7 +1246,8 @@ func TestPurgeIntegration(t *testing.T) {
 		Retention: 1,
 	}
 
-	Print("When: run first backup task 3 times")
+	Print("When: run both backup task 3 times")
+	task2ID := uuid.NewTime()
 	var runID uuid.UUID
 	for i := 0; i < 3; i++ {
 		writeData(t, clusterSession, testKeyspace, 3)
@@ -1258,12 +1258,7 @@ func TestPurgeIntegration(t *testing.T) {
 		if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
 			t.Fatal(err)
 		}
-	}
 
-	Print("When: run second backup task 3 times")
-	task2ID := uuid.NewTime()
-	for i := 0; i < 3; i++ {
-		writeData(t, clusterSession, testKeyspace2, 3)
 		if err := h.service.InitTarget(ctx, h.clusterID, &target2); err != nil {
 			t.Fatal(err)
 		}
@@ -1271,6 +1266,21 @@ func TestPurgeIntegration(t *testing.T) {
 		if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target2); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
+	if firstTaskTags.Size() != target.Retention {
+		t.Error("First task retention policy is not preserved")
+	}
+
+	secondTaskTags := getTaskTags(t, ctx, h, task2ID)
+	if secondTaskTags.Size() != target2.Retention {
+		t.Error("Second task retention policy is not preserved")
+	}
+
+	allSnapshotTags := getTaskTags(t, ctx, h, uuid.Nil)
+	if !allSnapshotTags.IsSubset(firstTaskTags) {
+		t.Error("First task snapshot was removed during second task purging")
 	}
 
 	Print("Then: there are tree backups in total (2+1)")
@@ -1519,6 +1529,23 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 			t.Fatalf("Expected to not have any directories at %s path, got %v", manifestDir, dirs)
 		}
 	}
+}
+
+func getTaskTags(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) *strset.Set {
+	backups, err := h.service.List(ctx, h.clusterID, []backup.Location{h.location},
+		backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	taskTags := strset.New()
+	for _, b := range backups {
+		for _, si := range b.SnapshotInfo {
+			taskTags.Add(si.SnapshotTag)
+		}
+	}
+
+	return taskTags
 }
 
 func overwriteClusterIDs(t *testing.T, dc string, nodeIDs []string, h *backupTestHelper) {
