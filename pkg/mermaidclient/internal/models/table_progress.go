@@ -8,7 +8,9 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // TableProgress table progress
@@ -16,7 +18,8 @@ import (
 type TableProgress struct {
 
 	// completed at
-	CompletedAt string `json:"completed_at,omitempty"`
+	// Format: date-time
+	CompletedAt *strfmt.DateTime `json:"completed_at,omitempty"`
 
 	// error
 	Error string `json:"error,omitempty"`
@@ -31,7 +34,8 @@ type TableProgress struct {
 	Skipped int64 `json:"skipped,omitempty"`
 
 	// started at
-	StartedAt string `json:"started_at,omitempty"`
+	// Format: date-time
+	StartedAt *strfmt.DateTime `json:"started_at,omitempty"`
 
 	// table
 	Table string `json:"table,omitempty"`
@@ -42,6 +46,45 @@ type TableProgress struct {
 
 // Validate validates this table progress
 func (m *TableProgress) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateCompletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *TableProgress) validateCompletedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CompletedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("completed_at", "body", "date-time", m.CompletedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *TableProgress) validateStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("started_at", "body", "date-time", m.StartedAt.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

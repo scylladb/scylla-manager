@@ -5,6 +5,7 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"sort"
 
 	"github.com/gocql/gocql"
@@ -417,7 +418,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	return nil
 }
 
-// DeleteCluster removes cluster based on ID.
+// DeleteCluster removes cluster and it's secrets.
 func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error {
 	s.logger.Debug(ctx, "DeleteCluster", "cluster_id", clusterID)
 
@@ -441,6 +442,20 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 	s.clientCache.Invalidate(clusterID)
 
 	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
+}
+
+// DeleteCQLCredentials removes the associated CQLCreds from secrets store.
+func (s *Service) DeleteCQLCredentials(_ context.Context, clusterID uuid.UUID) error {
+	return s.secretsStore.Delete(&secrets.CQLCreds{
+		ClusterID: clusterID,
+	})
+}
+
+// DeleteSSLUserCert removes the associated TLSIdentity from secrets store.
+func (s *Service) DeleteSSLUserCert(_ context.Context, clusterID uuid.UUID) error {
+	return s.secretsStore.Delete(&secrets.TLSIdentity{
+		ClusterID: clusterID,
+	})
 }
 
 // ListNodes returns information about all the nodes in the cluster.
@@ -475,6 +490,70 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 	}
 
 	return nodes, nil
+}
+
+// GetSession returns CQL session to provided cluster.
+func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (*gocql.Session, error) {
+	s.logger.Debug(ctx, "GetSession", "cluster_id", clusterID)
+
+	client, err := s.client(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	ni, err := client.AnyNodeInfo(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch node info")
+	}
+
+	scyllaCluster := gocql.NewCluster(client.Config().Hosts...)
+
+	if ni.CqlPasswordProtected {
+		credentials := secrets.CQLCreds{
+			ClusterID: clusterID,
+		}
+		err := s.secretsStore.Get(&credentials)
+		if err == service.ErrNotFound {
+			return nil, errors.Wrap(err, "cluster requires CQL authentication but username/password is not registered")
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "get credentials")
+		}
+
+		scyllaCluster.Authenticator = gocql.PasswordAuthenticator{
+			Username: credentials.Username,
+			Password: credentials.Password,
+		}
+	}
+
+	if ni.ClientEncryptionEnabled {
+		scyllaCluster.SslOpts = &gocql.SslOptions{
+			Config: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+
+		if ni.ClientEncryptionRequireAuth {
+			tlsIdentity := secrets.TLSIdentity{
+				ClusterID: clusterID,
+			}
+			err := s.secretsStore.Get(&tlsIdentity)
+			if err == service.ErrNotFound {
+				return nil, errors.Wrap(err, "cluster requires CQL TLS but key/cert is not registered")
+			}
+			if err != nil {
+				return nil, errors.Wrap(err, "get tls identity")
+			}
+
+			keyPair, err := tls.X509KeyPair(tlsIdentity.Cert, tlsIdentity.PrivateKey)
+			if err != nil {
+				return nil, errors.Wrap(err, "invalid SSL user key pair")
+			}
+			scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
+		}
+	}
+
+	return scyllaCluster.CreateSession()
 }
 
 func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {

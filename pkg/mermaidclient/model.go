@@ -7,6 +7,7 @@ import (
 	"io"
 	"text/template"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/table"
 	"github.com/scylladb/mermaid/pkg/util/inexlist"
@@ -545,6 +546,14 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 
 			rowAdded := false
 			for _, tbl := range ks.Tables {
+				startedAt := strfmt.DateTime{}
+				completedAt := strfmt.DateTime{}
+				if tbl.StartedAt != nil {
+					startedAt = *tbl.StartedAt
+				}
+				if tbl.CompletedAt != nil {
+					completedAt = *tbl.CompletedAt
+				}
 				success := tbl.Uploaded + tbl.Skipped
 				t.AddRow(
 					ks.Keyspace,
@@ -557,8 +566,8 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 					ByteCountBinary(success),
 					ByteCountBinary(tbl.Skipped),
 					ByteCountBinary(tbl.Failed),
-					tbl.StartedAt,
-					tbl.CompletedAt,
+					FormatTime(startedAt),
+					FormatTime(completedAt),
 				)
 				rowAdded = true
 			}
@@ -591,7 +600,7 @@ func (bp BackupProgress) hideKeyspace(keyspace string) bool {
 
 var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
-{{ with .Run }}Status:		{{ .Status }}
+{{ with .Run }}Status:		{{ status }}
 {{- if .Cause }}
 Cause:		{{ FormatError .Cause }}
 
@@ -630,13 +639,36 @@ func (bp BackupProgress) addHeader(w io.Writer) error {
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
 		"arguments":            bp.arguments,
+		"status":               bp.status,
 	}).Parse(backupProgressTemplate))
 	return temp.Execute(w, bp)
 }
 
-// arguments return task arguments that task was created with.
+// arguments returns task arguments that task was created with.
 func (bp BackupProgress) arguments() string {
 	return NewCmdRenderer(bp.Task, RenderTypeArgs).String()
+}
+
+// status returns task status with optional backup stage.
+func (bp BackupProgress) status() string {
+	translate := map[string]string{
+		"INIT":         "initialising",
+		"AWAIT_SCHEMA": "awaiting schema agreement",
+		"SNAPSHOT":     "taking snapshot",
+		"SCHEMA":       "uploading schema",
+		"INDEX":        "indexing files",
+		"UPLOAD":       "uploading data",
+		"MANIFEST":     "uploading manifest",
+		"MIGRATE":      "migrating legacy metadata",
+		"PURGE":        "retention",
+	}
+
+	stage := translate[bp.Progress.Stage]
+	s := bp.Run.Status
+	if s != "NEW" && s != "DONE" && stage != "" {
+		s += " (" + stage + ")"
+	}
+	return s
 }
 
 // BackupListItems is a []backup.ListItem representation.

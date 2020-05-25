@@ -89,7 +89,7 @@ type Service struct {
 // overridable knobs for tests
 var (
 	retryTaskWait     = 10 * time.Minute
-	stopTaskWait      = 10 * time.Second
+	stopTaskWait      = 60 * time.Second
 	startTaskNowSlack = 10 * time.Second
 )
 
@@ -441,12 +441,24 @@ wait:
 // StartTask starts execution of a task immediately, regardless of the task's schedule.
 func (s *Service) StartTask(ctx context.Context, t *Task, opts ...Opt) error {
 	s.logger.Debug(ctx, "StartTask", "task", t)
+
+	// Prevent starting an already running task.
+	s.mu.Lock()
+	tg := s.tasks[t.ID]
+	if tg != nil {
+		if s.taskIsRunning(ctx, t, tg.RunID) {
+			s.mu.Unlock()
+			return errors.New("task already running")
+		}
+	}
+	s.mu.Unlock()
+
 	if err := t.Validate(); err != nil {
 		return err
 	}
 	t.opts = opts
 
-	tg := t.newCancelableTrigger()
+	tg = t.newCancelableTrigger()
 	if s.updateTrigger(ctx, t, tg) {
 		s.logger.Info(ctx, "Force task execution",
 			"cluster_id", tg.ClusterID,
@@ -458,6 +470,14 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts ...Opt) error {
 	}
 
 	return nil
+}
+
+func (s *Service) taskIsRunning(ctx context.Context, t *Task, runID uuid.UUID) bool {
+	run, err := s.GetRun(ctx, t, runID)
+	if err != nil {
+		return false
+	}
+	return run.Status == StatusRunning
 }
 
 // StopTask stops task execution of immediately, task is rescheduled according

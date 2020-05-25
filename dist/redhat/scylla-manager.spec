@@ -30,7 +30,7 @@ export GOROOT="$(pwd)/../go"
 readonly GO_URL="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
 readonly GO_BUNDLE="./go${GO_VERSION}.linux-amd64.tar.gz"
 readonly GO="${GOROOT}/bin/go"
-readonly GOLDFLAGS="-w -extldflags '-static' -X %{import_path}.version=%{version}-%{release}"
+readonly GOLDFLAGS="-extldflags '-static' -X %{import_path}.version=%{version}-%{release}"
 
 readonly CURL="curl -sSq"
 

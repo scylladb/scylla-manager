@@ -68,7 +68,7 @@ var rootCmd = &cobra.Command{
 		// Set logger to netwait
 		netwait.DefaultWaiter.Logger = logger.Named("wait")
 
-		logger.Info(ctx, "Scylla Manager Agent", "version", pkg.Version())
+		logger.Info(ctx, "Scylla Manager Agent", "version", pkg.Version(), "pid", os.Getpid())
 
 		// Wait for Scylla API to be available
 		addr := net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort)

@@ -6,6 +6,7 @@
 
 # Development binary, built with makefile
 *.dev
+./filler
 
 # Test binary, built with `go test -c`
 *.test

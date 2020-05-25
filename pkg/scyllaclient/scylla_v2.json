@@ -3591,10 +3591,7 @@
           "200": {
             "description": "Config value",
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "$ref": "#/definitions/ClientEncryptionOptions"
             }
           },
           "default": {
@@ -4880,6 +4877,23 @@
     }
   },
   "definitions": {
+    "ClientEncryptionOptions": {
+      "type": "object",
+      "properties": {
+        "keyfile": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "string"
+        },
+        "certificate": {
+          "type": "string"
+        },
+        "require_client_auth": {
+          "type": "string"
+        }
+      }
+    },
     "ErrorModel": {
       "type": "object",
       "properties": {

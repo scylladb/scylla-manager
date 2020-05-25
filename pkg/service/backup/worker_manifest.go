@@ -12,13 +12,13 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
-func (w *worker) AggregateManifests(ctx context.Context, hosts []hostInfo, limits []DCLimit) (stepError error) {
-	w.Logger.Info(ctx, "Aggregating manifest files...")
+func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo, limits []DCLimit) (stepError error) {
+	w.Logger.Info(ctx, "Uploading manifest files...")
 	defer func(start time.Time) {
 		if stepError != nil {
-			w.Logger.Error(ctx, "Aggregating manifest files failed see exact errors above", "duration", timeutc.Since(start))
+			w.Logger.Error(ctx, "Uploading manifest files failed see exact errors above", "duration", timeutc.Since(start))
 		} else {
-			w.Logger.Info(ctx, "Done aggregating manifest files", "duration", timeutc.Since(start))
+			w.Logger.Info(ctx, "Done uploading manifest files", "duration", timeutc.Since(start))
 		}
 	}(timeutc.Now())
 
@@ -29,8 +29,7 @@ func (w *worker) AggregateManifests(ctx context.Context, hosts []hostInfo, limit
 	defer cancel()
 
 	err := inParallelWithLimits(hosts, limits, func(h hostInfo) error {
-		m := w.aggregateHostManifest(workerCtx, h)
-
+		m := w.aggregateHostManifest(ctx, h)
 		rollback, err := w.uploadHostManifest(workerCtx, h, m)
 		if err != nil {
 			// Fail fast in case of any errors
@@ -38,6 +37,7 @@ func (w *worker) AggregateManifests(ctx context.Context, hosts []hostInfo, limit
 			w.Logger.Error(ctx, "Uploading aggregated manifest file failed", "host", h.IP, "error", err)
 			return parallel.Abort(err)
 		}
+
 		rollbacksMu.Lock()
 		rollbacks = append(rollbacks, rollback)
 		rollbacksMu.Unlock()
@@ -78,6 +78,9 @@ func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *remoteM
 			Index:       make([]filesInfo, len(dirs)),
 			TokenRanges: tokenRanges,
 		},
+	}
+	if w.SchemaUploaded {
+		m.Content.Schema = remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
 	w.transformSnapshotIndexIntoManifest(dirs, m)
@@ -129,11 +132,11 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *remoteMa
 
 	w.Logger.Info(ctx, "Done uploading manifest file on host", "host", h.IP)
 	return func(ctx context.Context) error {
-		return w.deleteHostManifest(ctx, h.IP, manifestDst)
+		return w.deleteHostFile(ctx, h.IP, manifestDst)
 	}, nil
 }
 
-func (w *worker) deleteHostManifest(ctx context.Context, host, manifestPath string) error {
-	w.Logger.Error(ctx, "Deleting manifest", "path", manifestPath, "host", host)
-	return w.Client.RcloneDeleteFile(ctx, host, manifestPath)
+func (w *worker) deleteHostFile(ctx context.Context, host, path string) error {
+	w.Logger.Debug(ctx, "Deleting file", "path", path, "host", host)
+	return w.Client.RcloneDeleteFile(ctx, host, path)
 }

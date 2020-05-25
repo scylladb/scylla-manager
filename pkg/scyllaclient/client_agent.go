@@ -13,10 +13,22 @@ import (
 // NodeInfo provides basic information about Scylla node.
 type NodeInfo models.NodeInfo
 
-// NodeInfo returns basic information about `host` node
+// NodeInfo returns basic information about `host` node.
 func (c *Client) NodeInfo(ctx context.Context, host string) (*NodeInfo, error) {
 	p := operations.NodeInfoParams{
 		Context: forceHost(ctx, host),
+	}
+	resp, err := c.agentOps.NodeInfo(&p)
+	if err != nil {
+		return nil, err
+	}
+	return (*NodeInfo)(resp.Payload), nil
+}
+
+// AnyNodeInfo returns basic information about any node.
+func (c *Client) AnyNodeInfo(ctx context.Context) (*NodeInfo, error) {
+	p := operations.NodeInfoParams{
+		Context: ctx,
 	}
 	resp, err := c.agentOps.NodeInfo(&p)
 	if err != nil {

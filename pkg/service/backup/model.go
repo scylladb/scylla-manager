@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
@@ -23,6 +24,7 @@ type ListFilter struct {
 	ClusterID   uuid.UUID `json:"cluster_id"`
 	DC          string    `json:"dc"`
 	NodeID      string    `json:"node_id"`
+	TaskID      uuid.UUID `json:"task_id"`
 	Keyspace    []string  `json:"keyspace"`
 	SnapshotTag string    `json:"snapshot_tag"`
 	MinDate     time.Time `json:"min_date"`
@@ -61,26 +63,37 @@ func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
 // Note that a backup for a table usually consists of multiple instances of
 // FilesInfo since data is replicated across many nodes.
 type FilesInfo struct {
-	filesInfo
-	Location Location `json:"location"`
-	SST      string   `json:"sst"`
+	Location Location    `json:"location"`
+	Schema   string      `json:"schema"`
+	Files    []filesInfo `json:"files"`
 }
 
-func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) []FilesInfo {
-	var filesInfo []FilesInfo
-	for _, fi := range m.Content.Index {
-		if !filter.Check(fi.Keyspace, fi.Table) {
-			continue
-		}
-		fi := FilesInfo{
-			Location:  m.Location,
-			SST:       m.RemoteSSTableVersionDir(fi.Keyspace, fi.Table, fi.Version),
-			filesInfo: fi,
-		}
-		filesInfo = append(filesInfo, fi)
+// filesInfo contains information about SST files of particular keyspace/table.
+type filesInfo struct {
+	Keyspace string   `json:"keyspace"`
+	Table    string   `json:"table"`
+	Version  string   `json:"version"`
+	Files    []string `json:"files"`
+	Size     int64    `json:"size"`
+
+	Path string `json:"path,omitempty"`
+}
+
+func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) FilesInfo {
+	fi := FilesInfo{
+		Location: m.Location,
+		Schema:   m.Content.Schema,
 	}
 
-	return filesInfo
+	for _, idx := range m.Content.Index {
+		if !filter.Check(idx.Keyspace, idx.Table) {
+			continue
+		}
+		idx.Path = m.RemoteSSTableVersionDir(idx.Keyspace, idx.Table, idx.Version)
+		fi.Files = append(fi.Files, idx)
+	}
+
+	return fi
 }
 
 // Target specifies what should be backed up and where.
@@ -93,6 +106,8 @@ type Target struct {
 	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
 	UploadParallel   []DCLimit  `json:"upload_parallel"`
 	Continue         bool       `json:"continue"`
+	// liveNodes caches node status for GetTarget GetTargetSize calls.
+	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
 }
 
 // Unit represents keyspace and its tables.
@@ -112,6 +127,35 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
+// Stage specifies the backup worker stage.
+type Stage string
+
+// Stage enumeration.
+const (
+	StageInit        Stage = "INIT"
+	StageAwaitSchema Stage = "AWAIT_SCHEMA"
+	StageSnapshot    Stage = "SNAPSHOT"
+	StageSchema      Stage = "SCHEMA"
+	StageIndex       Stage = "INDEX"
+	StageUpload      Stage = "UPLOAD"
+	StageManifest    Stage = "MANIFEST"
+	StageMigrate     Stage = "MIGRATE"
+	StagePurge       Stage = "PURGE"
+	StageDone        Stage = "DONE"
+
+	stageNone Stage = ""
+)
+
+// Resumable run can be continued.
+func (s Stage) Resumable() bool {
+	switch s {
+	case StageInit, StageSnapshot, StageSchema, StageDone, stageNone:
+		return false
+	default:
+		return true
+	}
+}
+
 // Run tracks backup progress, shares ID with scheduler.Run that initiated it.
 type Run struct {
 	ClusterID uuid.UUID
@@ -122,9 +166,10 @@ type Run struct {
 	SnapshotTag string
 	Units       []Unit
 	DC          []string
+	Nodes       []string
 	Location    []Location
 	StartTime   time.Time
-	Done        bool
+	Stage       Stage
 
 	clusterName string
 }
@@ -186,6 +231,7 @@ type Progress struct {
 	SnapshotTag string         `json:"snapshot_tag"`
 	DC          []string       `json:"dcs,omitempty"`
 	Hosts       []HostProgress `json:"hosts,omitempty"`
+	Stage       Stage          `json:"stage"`
 }
 
 // HostProgress groups uploading progress for keyspaces belonging to this host.

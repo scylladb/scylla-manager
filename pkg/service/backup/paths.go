@@ -21,6 +21,7 @@ func keyspaceDir(keyspace string) string {
 const (
 	scyllaManifest  = "manifest.json"
 	manifest        = "manifest.json.gz"
+	schema          = "schema.tar.gz"
 	metadataVersion = ".version"
 	sep             = string(os.PathSeparator)
 )
@@ -56,6 +57,21 @@ func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID str
 	)
 }
 
+func remoteSchemaFile(clusterID, taskID uuid.UUID, snapshotTag string) string {
+	manifestName := strings.Join([]string{
+		"task",
+		taskID.String(),
+		"tag",
+		snapshotTag,
+		schema,
+	}, "_")
+
+	return path.Join(
+		remoteSchemaDir(clusterID),
+		manifestName,
+	)
+}
+
 func remoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
 		remoteSSTableDir(clusterID, dc, nodeID, keyspace, table),
@@ -66,8 +82,9 @@ func remoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, v
 type dirKind string
 
 const (
-	sstDirKind  = dirKind("sst")
-	metaDirKind = dirKind("meta")
+	sstDirKind    = dirKind("sst")
+	metaDirKind   = dirKind("meta")
+	schemaDirKind = dirKind("schema")
 )
 
 func remoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {
@@ -103,6 +120,15 @@ func remoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 		dc,
 		"node",
 		nodeID,
+	)
+}
+
+func remoteSchemaDir(clusterID uuid.UUID) string {
+	return path.Join(
+		"backup",
+		string(schemaDirKind),
+		"cluster",
+		clusterID.String(),
 	)
 }
 

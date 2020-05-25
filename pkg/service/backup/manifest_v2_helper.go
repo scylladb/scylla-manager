@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"net/http"
 	"path"
 	"sync"
 
@@ -56,7 +57,26 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 }
 func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
 	h.logger.Debug(ctx, "Deleting v2 snapshot", "tag", m.SnapshotTag)
-	return h.client.RcloneDeleteFile(ctx, h.host, h.location.RemotePath(path.Join(m.CleanPath...)))
+
+	if m.Content.Schema != "" {
+		if err := h.deleteFile(ctx, m.Content.Schema); err != nil {
+			return errors.Wrap(err, "delete schema file")
+		}
+	}
+
+	if err := h.deleteFile(ctx, path.Join(m.CleanPath...)); err != nil {
+		return errors.Wrap(err, "delete manifest file")
+	}
+
+	return nil
+}
+
+func (h *manifestV2Helper) deleteFile(ctx context.Context, path string) error {
+	err := h.client.RcloneDeleteFile(ctx, h.host, h.location.RemotePath(path))
+	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+		err = nil
+	}
+	return err
 }
 
 func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string) (*remoteManifest, error) {

@@ -422,29 +422,40 @@
     "BackupFilesInfo": {
       "type": "object",
       "properties": {
-        "keyspace": {
-          "type": "string"
-        },
-        "table": {
-          "type": "string"
-        },
-        "version": {
-          "type": "string"
-        },
         "location": {
           "type": "string"
         },
-        "sst": {
+        "schema": {
           "type": "string"
         },
         "files": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "keyspace": {
+                "type": "string"
+              },
+              "table": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "size": {
+                "type": "integer"
+              }
+            }
           }
-        },
-        "size": {
-          "type": "integer"
         }
       }
     },
@@ -564,6 +575,9 @@
             "$ref": "#/definitions/HostProgress"
           }
         },
+        "stage": {
+          "type": "string"
+        },
         "size": {
           "type": "integer"
         },
@@ -577,10 +591,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },
@@ -609,10 +627,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },
@@ -641,10 +663,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },
@@ -670,10 +696,14 @@
           "type": "integer"
         },
         "started_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "completed_at": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         }
       }
     },
@@ -899,6 +929,18 @@
         }
       },
       "delete": {
+        "parameters": [
+          {
+            "type": "boolean",
+            "name": "cql_creds",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "name": "ssl_user_cert",
+            "in": "query"
+           }
+        ],
         "responses": {
           "200": {
             "description": "Cluster deleted"

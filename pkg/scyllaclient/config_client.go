@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	api "github.com/go-openapi/runtime/client"
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	scyllaV2Client "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client/config"
+	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/models"
 )
 
 // ConfigClient provides means to interact with Scylla config API on a given
@@ -127,6 +129,29 @@ func (c *ConfigClient) DataDirectory(ctx context.Context) (string, error) {
 	return resp.Payload[0], nil
 }
 
+// ClientEncryptionOptions represents Client encryption configuration options.
+type ClientEncryptionOptions = models.ClientEncryptionOptions
+
+// ClientEncryptionOptions returns if client encryption options.
+func (c *ConfigClient) ClientEncryptionOptions(ctx context.Context) (*ClientEncryptionOptions, error) {
+	resp, err := c.client.Config.FindConfigClientEncryptionOptions(config.NewFindConfigClientEncryptionOptionsParamsWithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Payload, err
+}
+
+const passwordAuthenticator = "PasswordAuthenticator"
+
+// CQLPasswordProtectionEnabled returns if CQL Username/Password authentication is enabled.
+func (c *ConfigClient) CQLPasswordProtectionEnabled(ctx context.Context) (bool, error) {
+	resp, err := c.client.Config.FindConfigAuthenticator(config.NewFindConfigAuthenticatorParamsWithContext(ctx))
+	if err != nil {
+		return false, err
+	}
+	return resp.Payload == passwordAuthenticator, err
+}
+
 // NodeInfo returns aggregated information about Scylla node.
 func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 	apiAddress, apiPort, err := net.SplitHostPort(c.addr)
@@ -134,9 +159,22 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 		return nil, errors.Wrapf(err, "split %s into host port chunks", c.addr)
 	}
 
+	ceo, err := c.ClientEncryptionOptions(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch Scylla config client encryption enabled")
+	}
+
+	cqlPassProtected, err := c.CQLPasswordProtectionEnabled(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch Scylla config client authenticator")
+	}
+
 	ni := &NodeInfo{
-		APIAddress: apiAddress,
-		APIPort:    apiPort,
+		APIAddress:                  apiAddress,
+		APIPort:                     apiPort,
+		ClientEncryptionEnabled:     strings.EqualFold(ceo.Enabled, "true"),
+		ClientEncryptionRequireAuth: strings.EqualFold(ceo.RequireClientAuth, "true"),
+		CqlPasswordProtected:        cqlPassProtected,
 	}
 
 	ffs := []struct {

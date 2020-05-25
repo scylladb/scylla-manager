@@ -313,6 +313,48 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("delete CQL credentials", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.DeleteCQLCredentials(ctx, c.ID); err != nil {
+			t.Fatal(err)
+		}
+
+		cqlCreds := &secrets.CQLCreds{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(cqlCreds); err != service.ErrNotFound {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("delete SSL cert", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.DeleteSSLUserCert(ctx, c.ID); err != nil {
+			t.Fatal(err)
+		}
+
+		tlsIdentity := &secrets.TLSIdentity{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(tlsIdentity); err != service.ErrNotFound {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("put new cluster without automatic repair", func(t *testing.T) {
 		setup(t)
 

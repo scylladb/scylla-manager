@@ -87,11 +87,12 @@ func (w *worker) uploadMetadataVersionFile(ctx context.Context, h hostInfo, vers
 func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 	helper := newManifestV1Helper(h.IP, h.Location, w.Client, w.Logger.Named("v1"))
 
-	manifests, err := helper.ListManifests(ctx, ListFilter{
+	filter := ListFilter{
 		ClusterID: w.ClusterID,
 		DC:        h.DC,
 		NodeID:    h.ID,
-	})
+	}
+	manifests, err := helper.ListManifests(ctx, filter)
 	if err != nil {
 		return err
 	}

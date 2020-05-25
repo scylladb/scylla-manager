@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // HostProgress host progress
@@ -19,7 +20,8 @@ import (
 type HostProgress struct {
 
 	// completed at
-	CompletedAt string `json:"completed_at,omitempty"`
+	// Format: date-time
+	CompletedAt *strfmt.DateTime `json:"completed_at,omitempty"`
 
 	// failed
 	Failed int64 `json:"failed,omitempty"`
@@ -37,7 +39,8 @@ type HostProgress struct {
 	Skipped int64 `json:"skipped,omitempty"`
 
 	// started at
-	StartedAt string `json:"started_at,omitempty"`
+	// Format: date-time
+	StartedAt *strfmt.DateTime `json:"started_at,omitempty"`
 
 	// uploaded
 	Uploaded int64 `json:"uploaded,omitempty"`
@@ -47,13 +50,34 @@ type HostProgress struct {
 func (m *HostProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateCompletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateKeyspaces(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStartedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *HostProgress) validateCompletedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CompletedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("completed_at", "body", "date-time", m.CompletedAt.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -77,6 +101,19 @@ func (m *HostProgress) validateKeyspaces(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *HostProgress) validateStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("started_at", "body", "date-time", m.StartedAt.String(), formats); err != nil {
+		return err
 	}
 
 	return nil

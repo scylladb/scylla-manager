@@ -40,9 +40,13 @@ status: ## Cluster containers status and nodetool status
 logs: ## Show logs
 	@$(COMPOSE) logs --tail 10 -f $(SRV)
 
-.PHONY: cqlsh
-cqlsh: ## CQL shell to manager node
+.PHONY: cqlsh-manager
+cqlsh-manager: ## CQL shell to manager backend storage
 	@$(CQLSH) 192.168.100.100
+
+.PHONY: cqlsh-node
+cqlsh-node: ## CQL shell to a managed node 192.168.100.11
+	@$(CQLSH_WITH_USER) 192.168.100.11
 
 .PHONY: drop-keyspace
 drop-keyspace: ## Drop Scylla Manager keyspace

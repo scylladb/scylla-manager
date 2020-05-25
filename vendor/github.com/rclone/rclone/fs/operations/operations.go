@@ -869,7 +869,6 @@ func CheckFn(ctx context.Context, fdst, fsrc fs.Fs, check checkFn, oneway bool) 
 		Ctx:      ctx,
 		Fdst:     fdst,
 		Fsrc:     fsrc,
-		Dir:      "",
 		Callback: c,
 	}
 	fs.Infof(fdst, "Waiting for checks to finish")

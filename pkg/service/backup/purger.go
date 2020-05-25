@@ -22,7 +22,6 @@ type purger struct {
 	TaskID         uuid.UUID
 	Policy         int
 	Client         *scyllaclient.Client
-	SnapshotDirs   []snapshotDir
 	HostInfo       hostInfo
 	ManifestHelper manifestHelper
 	Logger         log.Logger
@@ -89,17 +88,14 @@ func (p *purger) purge(ctx context.Context) error {
 		}
 	}
 
-	// Exit if there are no orphan files
-	if staleFiles.IsEmpty() {
-		p.Logger.Debug(ctx, "Nothing to do, no stale files")
-		return nil
-	}
-
-	// Delete sstables that are not alive
-	p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
-	staleFilesList := staleFiles.List()
-	if err := p.deleteSSTables(ctx, staleFilesList); err != nil {
-		return errors.Wrap(err, "delete stale data")
+	// Skip if there are no orphan files
+	if !staleFiles.IsEmpty() {
+		// Delete sstables that are not alive
+		p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
+		staleFilesList := staleFiles.List()
+		if err := p.deleteSSTables(ctx, staleFilesList); err != nil {
+			return errors.Wrap(err, "delete stale data")
+		}
 	}
 
 	// Delete stale tags
@@ -114,10 +110,10 @@ func (p *purger) purge(ctx context.Context) error {
 		p.Logger.Info(ctx, "Deleted metadata according to retention policy",
 			"host", p.HostInfo.IP,
 			"location", p.HostInfo.Location,
-			"tags", m.SnapshotTag,
+			"tag", m.SnapshotTag,
 			"policy", p.Policy,
 			"size", m.Content.Size,
-			"files", len(staleFilesList),
+			"files", staleFiles.Size(),
 		)
 	}
 
@@ -127,8 +123,9 @@ func (p *purger) purge(ctx context.Context) error {
 func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error) {
 	filter := ListFilter{
 		ClusterID: p.ClusterID,
-		NodeID:    p.HostInfo.ID,
 		DC:        p.HostInfo.DC,
+		NodeID:    p.HostInfo.ID,
+		TaskID:    p.TaskID,
 	}
 	return p.ManifestHelper.ListManifests(ctx, filter)
 }

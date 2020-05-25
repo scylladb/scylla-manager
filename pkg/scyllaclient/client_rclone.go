@@ -204,15 +204,25 @@ func (c *Client) RcloneCopyFile(ctx context.Context, host, dstRemotePath, srcRem
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
-	p := operations.SyncCopyParams{
+	dstFs, dstRemote, err := rcloneSplitRemoteDirPath(dstRemotePath)
+	if err != nil {
+		return 0, err
+	}
+	srcFs, srcRemote, err := rcloneSplitRemoteDirPath(srcRemotePath)
+	if err != nil {
+		return 0, err
+	}
+	p := operations.SyncCopyDirParams{
 		Context: forceHost(ctx, host),
-		Copydir: operations.SyncCopyBody{
-			SrcFs: srcRemotePath,
-			DstFs: dstRemotePath,
+		Copydir2: &models.MoveOrCopyFileOptions{
+			DstFs:     dstFs,
+			DstRemote: dstRemote,
+			SrcFs:     srcFs,
+			SrcRemote: srcRemote,
 		},
 		Async: true,
 	}
-	resp, err := c.agentOps.SyncCopy(&p)
+	resp, err := c.agentOps.SyncCopyDir(&p)
 	if err != nil {
 		return 0, err
 	}
@@ -393,5 +403,22 @@ func rcloneSplitRemotePath(remotePath string) (fs, path string, err error) {
 
 	fs = fmt.Sprintf("%s:%s", parts[0], filepath.Dir(parts[1]))
 	path = filepath.Base(parts[1])
+	return
+}
+
+// rcloneSplitRemoteDirPath splits string path into file system and file path.
+func rcloneSplitRemoteDirPath(remotePath string) (fs, path string, err error) {
+	parts := strings.Split(remotePath, ":")
+	if len(parts) != 2 {
+		err = errors.New("remote path without file system name")
+		return
+	}
+
+	dirParts := strings.SplitN(parts[1], "/", 2)
+	root := dirParts[0]
+	fs = fmt.Sprintf("%s:%s", parts[0], root)
+	if len(dirParts) > 1 {
+		path = dirParts[1]
+	}
 	return
 }

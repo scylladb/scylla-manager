@@ -83,6 +83,15 @@ func (s NodeStatusInfoSlice) Datacenter(dcs []string) NodeStatusInfoSlice {
 	return filtered
 }
 
+// HostIDs returns slice of IDs of all nodes.
+func (s NodeStatusInfoSlice) HostIDs() []string {
+	var ids []string
+	for _, h := range s {
+		ids = append(ids, h.HostID)
+	}
+	return ids
+}
+
 // Hosts returns slice of address of all nodes.
 func (s NodeStatusInfoSlice) Hosts() []string {
 	var hosts []string

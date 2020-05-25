@@ -29,6 +29,15 @@ type NodeInfo struct {
 	// Address that is broadcasted to tell the clients to connect to.
 	BroadcastRPCAddress string `json:"broadcast_rpc_address,omitempty"`
 
+	// Whether client encryption is enabled.
+	ClientEncryptionEnabled bool `json:"client_encryption_enabled,omitempty"`
+
+	// Whether client authorization is required.
+	ClientEncryptionRequireAuth bool `json:"client_encryption_require_auth,omitempty"`
+
+	// Whether CQL requires password authentication.
+	CqlPasswordProtected bool `json:"cql_password_protected,omitempty"`
+
 	// Address Scylla listens for connections from other nodes.
 	ListenAddress string `json:"listen_address,omitempty"`
 

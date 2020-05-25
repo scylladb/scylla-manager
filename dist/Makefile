@@ -30,6 +30,7 @@ release/rpm: $(GO_BUNDLE) release/scylla-manager-$(VERSION_NAME).tar.gz ## Creat
 	--define "mermaid_version $(VERSION)" \
 	--define "mermaid_release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)"  \
+	--define "__os_install_post %{nil}" \
 	redhat/scylla-manager.spec > /dev/null
 
 	@mkdir -p release/rpm

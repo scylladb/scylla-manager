@@ -31,6 +31,7 @@ func aggregateProgress(run *Run, vis ProgressVisitor) (Progress, error) {
 	p := Progress{
 		SnapshotTag: run.SnapshotTag,
 		DC:          run.DC,
+		Stage:       run.Stage,
 	}
 
 	if len(run.Units) == 0 {

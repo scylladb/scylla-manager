@@ -259,15 +259,20 @@ func unmarshalVarchar(info TypeInfo, data []byte, value interface{}) error {
 	case k == reflect.String:
 		rv.SetString(string(data))
 		return nil
-	case k == reflect.Slice && t.Elem().Kind() == reflect.Uint8:
+	case k == reflect.Slice && t.Elem().Kind() == reflect.Uint8, k == reflect.Interface:
 		var dataCopy []byte
 		if data != nil {
 			dataCopy = make([]byte, len(data))
 			copy(dataCopy, data)
 		}
-		rv.SetBytes(dataCopy)
+		if k == reflect.Slice {
+			rv.SetBytes(dataCopy)
+		} else {
+			rv.Set(reflect.ValueOf(dataCopy))
+		}
 		return nil
 	}
+
 	return unmarshalErrorf("can not unmarshal %s into %T", info, value)
 }
 
@@ -1914,8 +1919,9 @@ func unmarshalTuple(info TypeInfo, data []byte, value interface{}) error {
 		for i, elem := range tuple.Elems {
 			// each element inside data is a [bytes]
 			var p []byte
-			p, data = readBytes(data)
-
+			if len(data) > 4 {
+				p, data = readBytes(data)
+			}
 			err := Unmarshal(elem, p, v[i])
 			if err != nil {
 				return err

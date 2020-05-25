@@ -19,6 +19,7 @@ import (
 	rcops "github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
+	"github.com/rclone/rclone/fs/sync"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/rclone/operations"
 	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
@@ -512,4 +513,48 @@ func filterRcCalls() {
 			rc.Add(*c)
 		}
 	}
+}
+
+// rcCopyFiles copies files from source to destination directory.
+// Only works for directories with single level depth.
+func rcCopyFiles(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	srcFs, srcRemote, err := getFsAndRemoteNamed(in, "srcFs", "srcRemote")
+	if err != nil {
+		return rc.Params{}, err
+	}
+	dstFs, dstRemote, err := getFsAndRemoteNamed(in, "dstFs", "dstRemote")
+	if err != nil {
+		return rc.Params{}, err
+	}
+
+	return rc.Params{}, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, false)
+}
+
+// getFsAndRemoteNamed gets fs and remote path from the params, but it doesn't
+// fail if remote path is not provided.
+// In that case it is assumed that path is empty and root of the fs is used.
+func getFsAndRemoteNamed(in rc.Params, fsName, remoteName string) (f fs.Fs, remote string, err error) {
+	remote, err = in.GetString(remoteName)
+	if err != nil && !rc.IsErrParamNotFound(err) {
+		return
+	}
+	f, err = rc.GetFsNamed(in, fsName)
+	return
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "sync/copydir",
+		AuthRequired: true,
+		Fn:           rcCopyFiles,
+		Title:        "Copy contents from source directory to destination",
+		Help: `This takes the following parameters:
+
+- srcFs - a remote name string eg "drive:" for the source
+- srcRemote - a directory path within that remote for the source
+- dstFs - a remote name string eg "drive2:" for the destination
+- dstRemote - a directory path within that remote for the destination
+
+`,
+	})
 }

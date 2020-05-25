@@ -3,8 +3,11 @@
 package backup
 
 import (
+	"context"
 	"testing"
 
+	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -27,9 +30,8 @@ func ParsePartialPath(s string) error {
 
 type RemoteManifest = remoteManifest
 type ManifestContent = manifestContent
-type LegacyManifest = manifestV1
 type FileInfo = fileInfo
-type ManifestFilesInfo = filesInfo
+type ModelFilesInfo = filesInfo
 
 func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return remoteManifestDir(clusterID, dc, nodeID)
@@ -42,4 +44,29 @@ const (
 
 func (p *RunProgress) Files() []FileInfo {
 	return p.files
+}
+
+func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *Target) error {
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return errors.Wrapf(err, "get client")
+	}
+
+	// Collect ring information
+	rings := make(map[string]scyllaclient.Ring, len(target.Units))
+	for _, u := range target.Units {
+		ring, err := client.DescribeRing(ctx, u.Keyspace)
+		if err != nil {
+			return errors.Wrap(err, "initialize: describe keyspace ring")
+		}
+		rings[u.Keyspace] = ring
+	}
+
+	// Get live nodes
+	target.liveNodes, err = s.getLiveNodes(ctx, client, *target, rings)
+	return err
+}
+
+func (t Target) Hosts() []string {
+	return t.liveNodes.Hosts()
 }

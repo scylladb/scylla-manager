@@ -126,11 +126,11 @@ func TestBackupListFiles(t *testing.T) {
 		golden = []backup.FilesInfo{
 			{
 				Location: locations[0],
-				SST:      "sst",
+				Schema:   "schema",
 			},
 			{
 				Location: locations[1],
-				SST:      "sst",
+				Schema:   "schema",
 			},
 		}
 	)

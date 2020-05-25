@@ -53,15 +53,17 @@ type backupTestHelper struct {
 	t *testing.T
 }
 
-func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
+func newBackupTestHelper(t *testing.T, session, clusterSession *gocql.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
 	t.Helper()
 
 	S3InitBucket(t, location.Path)
 
-	logger := log.NewDevelopmentWithLevel(zapcore.DebugLevel)
+	clusterID := uuid.MustRandom()
+
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
-	service := newTestService(t, session, client, config, logger)
+	service := newTestService(t, session, clusterSession, client, config, clusterID, logger)
 
 	for _, ip := range ManagedClusterHosts() {
 		if err := client.RcloneResetStats(context.Background(), ip); err != nil {
@@ -76,7 +78,7 @@ func newBackupTestHelper(t *testing.T, session *gocql.Session, config backup.Con
 		service:  service,
 		location: location,
 
-		clusterID: uuid.MustRandom(),
+		clusterID: clusterID,
 		taskID:    uuid.MustRandom(),
 		runID:     uuid.NewTime(),
 
@@ -100,7 +102,8 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.Client, c backup.Config, logger log.Logger) *backup.Service {
+func newTestService(t *testing.T, session, clusterSession *gocql.Session, client *scyllaclient.Client, c backup.Config, clusterID uuid.UUID,
+	logger log.Logger) *backup.Service {
 	t.Helper()
 
 	s, err := backup.NewService(
@@ -112,6 +115,9 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
+		func(ctx context.Context, clusterID uuid.UUID) (*gocql.Session, error) {
+			return clusterSession, nil
+		},
 		logger.Named("backup"),
 	)
 	if err != nil {
@@ -120,7 +126,7 @@ func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.C
 	return s
 }
 
-func (h *backupTestHelper) listS3Files() (manifests, files []string) {
+func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
 	h.t.Helper()
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
@@ -133,6 +139,8 @@ func (h *backupTestHelper) listS3Files() (manifests, files []string) {
 	for _, f := range allFiles {
 		if strings.HasPrefix(f.Path, "backup/meta") && strings.Contains(f.Path, "manifest") {
 			manifests = append(manifests, f.Path)
+		} else if strings.HasPrefix(f.Path, "backup/schema") {
+			schemas = append(schemas, f.Path)
 		} else {
 			files = append(files, f.Path)
 		}
@@ -170,7 +178,7 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 func (h *backupTestHelper) assertMetadataVersion(ctx context.Context, expected string) {
 	var versionFiles []string
 
-	_, files := h.listS3Files()
+	_, _, files := h.listS3Files()
 	for _, f := range files {
 		if strings.HasSuffix(f, backup.MetadataVersion) {
 			versionFiles = append(versionFiles, f)
@@ -271,7 +279,7 @@ func (h *backupTestHelper) waitTransfersStarted() {
 func (h *backupTestHelper) waitManifestUploaded() {
 	h.waitCond(func() bool {
 		h.t.Helper()
-		m, _ := h.listS3Files()
+		m, _, _ := h.listS3Files()
 		return len(m) > 0
 	})
 }
@@ -300,9 +308,6 @@ func s3Location(bucket string) backup.Location {
 }
 
 func TestServiceGetTargetIntegration(t *testing.T) {
-	// Clear keyspaces
-	CreateManagedClusterSession(t)
-
 	table := []struct {
 		Name   string
 		Input  string
@@ -358,9 +363,10 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	const testBucket = "backuptest-get-target"
 
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
-		ctx     = context.Background()
+		session        = CreateSessionWithoutMigration(t)
+		clusterSession = CreateManagedClusterSession(t)
+		h              = newBackupTestHelper(t, session, clusterSession, backup.DefaultConfig(), s3Location(testBucket), nil)
+		ctx            = context.Background()
 	)
 
 	for _, test := range table {
@@ -392,7 +398,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				t.Error(err)
 			}
 
-			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
+			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b }), cmpopts.IgnoreUnexported(backup.Target{})); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -400,9 +406,6 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 }
 
 func TestServiceGetTargetErrorIntegration(t *testing.T) {
-	// Clear keyspaces
-	CreateManagedClusterSession(t)
-
 	table := []struct {
 		Name  string
 		JSON  string
@@ -463,9 +466,10 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 	const testBucket = "backuptest-get-target-error"
 
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
-		ctx     = context.Background()
+		session        = CreateSessionWithoutMigration(t)
+		clusterSession = CreateManagedClusterSession(t)
+		h              = newBackupTestHelper(t, session, clusterSession, backup.DefaultConfig(), s3Location(testBucket), nil)
+		ctx            = context.Background()
 	)
 
 	S3InitBucket(t, testBucket)
@@ -492,31 +496,16 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	config := backup.DefaultConfig()
 
 	var (
-		session = CreateSession(t)
-		h       = newBackupTestHelper(t, session, config, s3Location(testBucket), nil)
-		ctx     = context.Background()
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+		h              = newBackupTestHelper(t, session, clusterSession, config, s3Location(testBucket), nil)
+		ctx            = context.Background()
 	)
 
 	putRun := func(t *testing.T, r *backup.Run) {
 		t.Helper()
 		stmt, names := table.BackupRun.Insert()
 		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
-			t.Fatal(err)
-		}
-	}
-	putRunProgress := func(t *testing.T, r *backup.Run, size, uploaded, skipped int64) {
-		t.Helper()
-		p := backup.RunProgress{
-			ClusterID: r.ClusterID,
-			TaskID:    r.TaskID,
-			RunID:     r.ID,
-			Host:      ManagedClusterHost(),
-			Size:      size,
-			Uploaded:  uploaded,
-			Skipped:   skipped,
-		}
-		stmt, names := table.BackupRunProgress.Insert()
-		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -532,6 +521,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r0)
 
@@ -540,6 +530,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r1)
 
@@ -560,50 +551,18 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
+			Stage:     backup.StageUpload,
 		}
 		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0, 0)
 
 		r1 := &backup.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
-			Done:      true,
+			Stage:     backup.StageDone,
 		}
 		putRun(t, r1)
-		putRunProgress(t, r0, 10, 10, 0)
-
-		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
-		if err != service.ErrNotFound {
-			t.Fatal(err)
-		}
-	})
-
-	t.Run("started run before skipped run", func(t *testing.T) {
-		t.Parallel()
-
-		clusterID := uuid.MustRandom()
-		taskID := uuid.MustRandom()
-
-		r0 := &backup.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-		}
-		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0, 0)
-
-		r1 := &backup.Run{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-			Done:      true,
-		}
-		putRun(t, r1)
-		putRunProgress(t, r0, 10, 0, 10)
 
 		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
 		if err != service.ErrNotFound {
@@ -622,15 +581,16 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test1"}},
+			Stage:     backup.StageUpload,
 		}
 		putRun(t, r0)
-		putRunProgress(t, r0, 10, 0, 0)
 
 		r1 := &backup.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test2"}},
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r1)
 
@@ -658,9 +618,11 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
-		h              = newBackupTestHelper(t, session, config, location, nil)
+		h              = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx            = context.Background()
 	)
+
+	writeData(t, clusterSession, testKeyspace, 1)
 
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -672,8 +634,9 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		Location:  []backup.Location{location},
 		Retention: 3,
 	}
-
-	writeData(t, clusterSession, testKeyspace, 1)
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
 
 	Print("When: run backup")
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
@@ -700,46 +663,54 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: files")
-	manifests, _ := h.listS3Files()
+	manifests, schemas, _ := h.listS3Files()
 	// Manifest meta per host per snapshot
 	expectedNumberOfManifests := 3 * 2
 	if len(manifests) != expectedNumberOfManifests {
-		t.Fatalf("expected %d manifests, got %d", 6, len(manifests))
+		t.Fatalf("expected %d manifests, got %d", expectedNumberOfManifests, len(manifests))
 	}
 
-	tables, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	// Schema meta per snapshot
+	expectedNumberOfSchemas := 2
+	if len(schemas) != expectedNumberOfSchemas {
+		t.Fatalf("expected %d schemas, got %d", expectedNumberOfSchemas, len(schemas))
+	}
+
+	filesInfo, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
-	if len(tables) != 6 {
-		t.Fatalf("len(ListFiles()) = %d, expected %d", len(tables), len(manifests))
+	if len(filesInfo) != 6 {
+		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), len(manifests))
 	}
-	for _, tbl := range tables {
-		remoteFiles, err := h.client.RcloneListDir(ctx, ManagedClusterHosts()[0], h.location.RemotePath(tbl.SST), nil)
-		if err != nil {
-			t.Fatal("RcloneListDir() error", err)
-		}
-
-		var remoteFileNames []string
-		for _, f := range remoteFiles {
-			remoteFileNames = append(remoteFileNames, f.Name)
-		}
-
-		Print("And: Scylla manifests are not uploaded")
-		for _, rfn := range remoteFileNames {
-			if strings.Contains(rfn, backup.ScyllaManifest) {
-				t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(tbl.SST))
+	for _, fi := range filesInfo {
+		for _, fs := range fi.Files {
+			remoteFiles, err := h.client.RcloneListDir(ctx, ManagedClusterHosts()[0], h.location.RemotePath(fs.Path), nil)
+			if err != nil {
+				t.Fatal("RcloneListDir() error", err)
 			}
-		}
 
-		tableFileNames := make([]string, 0, len(tbl.Files))
-		for _, f := range tbl.Files {
-			tableFileNames = append(tableFileNames, f)
-		}
+			var remoteFileNames []string
+			for _, f := range remoteFiles {
+				remoteFileNames = append(remoteFileNames, f.Name)
+			}
 
-		opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
-		if !cmp.Equal(tableFileNames, remoteFileNames, opts...) {
-			t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(tbl.Files, remoteFileNames, opts...))
+			Print("And: Scylla manifests are not uploaded")
+			for _, rfn := range remoteFileNames {
+				if strings.Contains(rfn, backup.ScyllaManifest) {
+					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
+				}
+			}
+
+			tableFileNames := make([]string, 0, len(fs.Files))
+			for _, f := range fs.Files {
+				tableFileNames = append(tableFileNames, f)
+			}
+
+			opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
+			if !cmp.Equal(tableFileNames, remoteFileNames, opts...) {
+				t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(fs.Files, remoteFileNames, opts...))
+			}
 		}
 	}
 
@@ -790,30 +761,40 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: user is able to list backup files using filters")
-	files, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{"some-other-keyspace"}})
-	if err != nil {
-		t.Fatal("ListFiles() error", err)
-	}
-	if len(files) != 0 {
-		t.Fatalf("len(ListFiles()) = %d, expected %d", len(files), 0)
-	}
-
-	files, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{testKeyspace}})
+	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{"some-other-keyspace"}})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
 
 	// 3 backups * 3 nodes
-	if len(files) != 3*3 {
-		t.Fatalf("len(ListFiles()) = %d, expected %d", len(files), 3*3)
+	if len(filesInfo) != 3*3 {
+		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), 3*3)
+	}
+
+	// But empty tables because of the filter
+	for _, fi := range filesInfo {
+		if len(fi.Files) != 0 {
+			t.Fatalf("len(ListFiles()) = %d, expected %d", len(fi.Files), 0)
+		}
+	}
+
+	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{testKeyspace}})
+	if err != nil {
+		t.Fatal("ListFiles() error", err)
+	}
+
+	// 3 backups * 3 nodes
+	if len(filesInfo) != 3*3 {
+		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), 3*3)
 	}
 
 	h.assertMetadataVersion(ctx, "v2")
 
-	thenManifestHasCorrectFormat(t, ctx, h, manifests[0], goldenManifestPath)
+	thenManifestHasCorrectFormat(t, ctx, h, manifests[0], goldenManifestPath, schemas)
 }
 
-func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper, manifestPath, goldenManifestPath string) {
+func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper,
+	manifestPath, goldenManifestPath string, schemas []string) {
 	manifestsContent, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestPath))
 	if err != nil {
 		t.Fatal(err)
@@ -844,8 +825,8 @@ func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTe
 	}
 
 	opts := []cmp.Option{
-		cmpopts.IgnoreFields(backup.ManifestContent{}, "Size", "TokenRanges"),
-		cmpopts.IgnoreFields(backup.ManifestFilesInfo{}, "Version", "Size"),
+		cmpopts.IgnoreFields(backup.ManifestContent{}, "Size", "TokenRanges", "Schema"),
+		cmpopts.IgnoreFields(backup.ModelFilesInfo{}, "Version", "Size"),
 	}
 	if diff := cmp.Diff(golden, manifest, opts...); diff != "" {
 		t.Fatal(diff)
@@ -860,6 +841,68 @@ func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTe
 	}
 	if len(manifest.TokenRanges) == 0 {
 		t.Error("expected token ranges in manifest")
+	}
+
+	if !strset.New(schemas...).Has(manifest.Schema) {
+		t.Error("path from manifest not found in schemas")
+	}
+}
+
+func TestBackupWithNodesDownIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-nodesdown"
+		testKeyspace = "backuptest_data"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+		h              = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+		ctx            = context.Background()
+	)
+
+	writeData(t, clusterSession, testKeyspace, 1)
+
+	Print("Given: downed node")
+	if stdout, stderr, err := ExecOnHost("192.168.100.11", CmdBlockScyllaREST); err != nil {
+		t.Fatal(err, stdout, stderr)
+	}
+	defer ExecOnHost("192.168.100.11", CmdUnblockScyllaREST)
+
+	Print("When: get target")
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 3,
+	}
+
+	Print("Then: target hosts does not contain the downed node")
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+	if len(target.Hosts()) != 2 {
+		t.Fatal(target.Hosts())
+	}
+
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: there are is no manifest for the downed node")
+	manifests, _, _ := h.listS3Files()
+	// Manifest meta per host per snapshot
+	expectedNumberOfManifests := 2
+	if len(manifests) != expectedNumberOfManifests {
+		t.Fatalf("expected %d manifests, got %d", expectedNumberOfManifests, len(manifests))
 	}
 }
 
@@ -900,7 +943,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	assertDataUploded := func(t *testing.T, h *backupTestHelper) {
 		t.Helper()
 
-		manifests, files := h.listS3Files()
+		manifests, _, files := h.listS3Files()
 		if len(manifests) != 3 {
 			t.Fatalf("Expected 3 manifests got %s", manifests)
 		}
@@ -912,7 +955,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	assertDataUplodedAfterTag := func(t *testing.T, h *backupTestHelper, tag string) {
 		t.Helper()
 
-		manifests, files := h.listS3Files()
+		manifests, _, files := h.listS3Files()
 		c := 0
 		for _, m := range manifests {
 			if backup.SnapshotTagFromManifestPath(t, m) > tag {
@@ -937,10 +980,15 @@ func TestBackupResumeIntegration(t *testing.T) {
 	}
 
 	t.Run("resume after stop", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config, location, nil)
+		var (
+			h           = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+			ctx, cancel = context.WithCancel(context.Background())
+			done        = make(chan struct{})
+		)
 
-		ctx, cancel := context.WithCancel(context.Background())
-		done := make(chan struct{})
+		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+			t.Fatal(err)
+		}
 
 		go func() {
 			defer close(done)
@@ -972,7 +1020,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		h.waitNoTransfers()
 
 		Print("And: snapshot is partially uploaded")
-		_, s3Files := h.listS3Files()
+		_, _, s3Files := h.listS3Files()
 		sfs := h.progressFilesSet()
 		s3f := strset.New()
 		for i := range s3Files {
@@ -998,12 +1046,18 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("resume after agent restart", func(t *testing.T) {
 		clientConf := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
 		clientConf.Backoff.MaxRetries = 5
-		h := newBackupTestHelper(t, session, config, location, &clientConf)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		var (
+			h           = newBackupTestHelper(t, session, clusterSession, config, location, &clientConf)
+			ctx, cancel = context.WithCancel(context.Background())
+			done        = make(chan struct{})
+		)
 		defer cancel()
 
-		done := make(chan struct{})
+		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+			t.Fatal(err)
+		}
+
 		go func() {
 			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
@@ -1033,13 +1087,13 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 
 	t.Run("resume after snapshot failed", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config, location, nil)
-
-		Print("Given: snapshot fails on a host")
 		var (
+			h          = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 			brokenHost string
 			mu         sync.Mutex
 		)
+
+		Print("Given: snapshot fails on a host")
 		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if req.Method == http.MethodPost && req.URL.Path == "/storage_service/snapshots" {
 				mu.Lock()
@@ -1058,6 +1112,10 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+
+		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+			t.Fatal(err)
+		}
 
 		Print("When: run backup")
 		err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
@@ -1086,10 +1144,11 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 
 	t.Run("continue false", func(t *testing.T) {
-		h := newBackupTestHelper(t, session, config, location, nil)
-
-		ctx, cancel := context.WithCancel(context.Background())
-		done := make(chan struct{})
+		var (
+			h           = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+			ctx, cancel = context.WithCancel(context.Background())
+			done        = make(chan struct{})
+		)
 
 		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") {
@@ -1102,6 +1161,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		target := target
 		target.Continue = false
+		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+			t.Fatal(err)
+		}
 
 		go func() {
 			defer close(done)
@@ -1145,8 +1207,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 func TestPurgeIntegration(t *testing.T) {
 	const (
-		testBucket   = "backuptest-purge"
-		testKeyspace = "backuptest_purge"
+		testBucket    = "backuptest-purge"
+		testKeyspace  = "backuptest_purge"
+		testKeyspace2 = "backuptest_purge2"
 	)
 
 	location := s3Location(testBucket)
@@ -1156,11 +1219,11 @@ func TestPurgeIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
 
-		h   = newBackupTestHelper(t, session, config, location, nil)
+		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx = context.Background()
 	)
 
-	Print("Given: retention policy 1")
+	Print("Given: retention policy of 2 for the first task")
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
@@ -1169,28 +1232,56 @@ func TestPurgeIntegration(t *testing.T) {
 		},
 		DC:        []string{"dc1"},
 		Location:  []backup.Location{location},
+		Retention: 2,
+	}
+
+	Print("And: retention policy of 1 for the second task")
+	target2 := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace2,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
 		Retention: 1,
 	}
 
-	Print("When: run backup 3 times")
+	Print("When: run first backup task 3 times")
 	var runID uuid.UUID
 	for i := 0; i < 3; i++ {
 		writeData(t, clusterSession, testKeyspace, 3)
+		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+			t.Fatal(err)
+		}
 		runID = uuid.NewTime()
 		if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	Print("Then: only the last task run is preserved")
-	manifests, files := h.listS3Files()
-	for _, m := range manifests {
-		if !strings.Contains(m, h.taskID.String()) {
-			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
+	Print("When: run second backup task 3 times")
+	task2ID := uuid.NewTime()
+	for i := 0; i < 3; i++ {
+		writeData(t, clusterSession, testKeyspace2, 3)
+		if err := h.service.InitTarget(ctx, h.clusterID, &target2); err != nil {
+			t.Fatal(err)
+		}
+		runID = uuid.NewTime()
+		if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target2); err != nil {
+			t.Fatal(err)
 		}
 	}
-	if len(manifests) != 3 {
-		t.Fatalf("Expected 3 manifests got %s", manifests)
+
+	Print("Then: there are tree backups in total (2+1)")
+	manifests, _, files := h.listS3Files()
+	for _, m := range manifests {
+		if !strings.Contains(m, h.taskID.String()) && !strings.Contains(m, task2ID.String()) {
+			t.Errorf("Unexpected file %s manifest does not belong to tasks %s or %s", m, h.taskID, task2ID)
+		}
+	}
+	if len(manifests) != 9 {
+		t.Fatalf("Expected 9 manifests (3 per each node) got %s", manifests)
 	}
 
 	Print("And: old sstable files are removed")
@@ -1239,6 +1330,10 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
+
+		h           = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+		ctx, cancel = context.WithCancel(context.Background())
+		done        = make(chan struct{})
 	)
 
 	writeData(t, clusterSession, testKeyspace, 3)
@@ -1253,19 +1348,18 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 		Location:  []backup.Location{location},
 		Retention: 3,
 	}
-
-	h := newBackupTestHelper(t, session, config, location, nil)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
 
 	putCounter := atomic.NewInt64(0)
 
 	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") {
+		if strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") &&
+			strings.Contains(req.URL.RawQuery, "manifest") {
 			if putCounter.Load() >= 1 {
 				h.waitCond(func() bool {
-					manifests, _ := h.listS3Files()
+					manifests, _, _ := h.listS3Files()
 					return len(manifests) > 0
 				})
 				Print("And: context is canceled")
@@ -1299,7 +1393,7 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 		Print("Then: backup completed execution")
 	}
 
-	manifests, _ := h.listS3Files()
+	manifests, _, _ := h.listS3Files()
 
 	if len(manifests) != 0 {
 		t.Fatalf("Expected to have 0 manifests, found %d", len(manifests))
@@ -1319,7 +1413,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSession(t)
 
-		h   = newBackupTestHelper(t, session, config, location, nil)
+		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx = context.Background()
 	)
 
@@ -1339,6 +1433,8 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 
 	uploadedFiles := uploadV1Backup(t, ctx, "testdata/v1-support", location, h)
 
+	writeData(t, clusterSession, testKeyspace, 3)
+
 	Print("Given: retention policy 1")
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -1350,17 +1446,17 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		Location:  []backup.Location{location},
 		Retention: 2,
 	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
 
 	Print("When: backup is run")
-	var runID uuid.UUID
-
-	writeData(t, clusterSession, testKeyspace, 3)
-	runID = uuid.NewTime()
+	runID := uuid.NewTime()
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
 		t.Fatal(err)
 	}
 
-	manifests, _ := h.listS3Files()
+	manifests, _, _ := h.listS3Files()
 	for _, m := range manifests {
 		if !strings.Contains(m, h.taskID.String()) {
 			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
@@ -1382,7 +1478,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 	}
 
 	Print("Then: only the last task run is preserved")
-	manifests, _ = h.listS3Files()
+	manifests, _, _ = h.listS3Files()
 	for _, m := range manifests {
 		if !strings.Contains(m, h.taskID.String()) {
 			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)

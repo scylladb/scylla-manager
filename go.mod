@@ -27,13 +27,14 @@ require (
 	github.com/hashicorp/go-version v1.2.0
 	github.com/mitchellh/mapstructure v1.2.2
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.4.0
+	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/procfs v0.0.11 // indirect
 	github.com/rclone/rclone v1.51.0
 	github.com/scylladb/go-log v0.0.4
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
-	github.com/scylladb/gocqlx v1.4.0
+	github.com/scylladb/gocqlx v1.5.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.5
@@ -52,6 +53,6 @@ require (
 )
 
 replace (
-	github.com/gocql/gocql => github.com/scylladb/gocql v1.3.3
-	github.com/rclone/rclone => github.com/scylladb/rclone v1.51.0-patched-4
+	github.com/gocql/gocql => github.com/scylladb/gocql v1.4.1-0.20200520132847-57de5e5cdd5c
+	github.com/rclone/rclone => github.com/scylladb/rclone v1.51.0-patched-5
 )

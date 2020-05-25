@@ -5,6 +5,7 @@
 package restapi_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -86,5 +87,59 @@ func TestClusterCreateWithProvidedID(t *testing.T) {
 
 	if !strings.Contains(w.Header().Get("Location"), id.String()) {
 		t.Fatal(w.Header())
+	}
+}
+
+func TestClusterDeleteCQLCredentials(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	id := uuid.MustRandom()
+
+	m := restapi.NewMockClusterService(ctrl)
+	gomock.InOrder(
+		m.EXPECT().GetCluster(gomock.Any(), id.String()).Return(&cluster.Cluster{ID: id}, nil),
+		m.EXPECT().DeleteCQLCredentials(gomock.Any(), id).Return(nil),
+	)
+
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprint("/api/v1/cluster/", id), nil)
+	r.URL.RawQuery = "cql_creds=1"
+	r.ParseForm()
+
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected to receive %d status code, got %d", http.StatusCreated, w.Code)
+	}
+}
+
+func TestClusterDeleteSSLUserCert(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	id := uuid.MustRandom()
+
+	m := restapi.NewMockClusterService(ctrl)
+	gomock.InOrder(
+		m.EXPECT().GetCluster(gomock.Any(), id.String()).Return(&cluster.Cluster{ID: id}, nil),
+		m.EXPECT().DeleteSSLUserCert(gomock.Any(), id).Return(nil),
+	)
+
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprint("/api/v1/cluster/", id), nil)
+	r.URL.RawQuery = "ssl_user_cert=1"
+	r.ParseForm()
+
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected to receive %d status code, got %d", http.StatusCreated, w.Code)
 	}
 }

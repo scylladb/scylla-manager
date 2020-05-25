@@ -1,0 +1,5 @@
+{
+  "keyfile": "/etc/scylla/key",
+  "enabled": "true",
+  "certificate": "/etc/scylla/cert"
+}
