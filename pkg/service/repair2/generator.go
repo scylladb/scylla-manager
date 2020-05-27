@@ -6,6 +6,7 @@ import (
 	"context"
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -38,30 +39,33 @@ type jobResult struct {
 }
 
 type generator struct {
-	target Target
-	logger log.Logger
+	target                  Target
+	gracefulShutdownTimeout time.Duration
+	logger                  log.Logger
 
 	replicas     map[uint64][]string
 	ranges       map[uint64][]*tableTokenRange
 	hostPriority hostPriority
 
-	keys   []uint64
-	pos    int
-	busy   *strset.Set
-	next   chan job
-	result chan jobResult
+	keys       []uint64
+	pos        int
+	busy       *strset.Set
+	next       chan job
+	nextClosed bool
+	result     chan jobResult
 
 	count   int
 	success int
 	failed  int
 }
 
-func newGenerator(target Target, logger log.Logger) *generator {
+func newGenerator(target Target, gracefulShutdownTimeout time.Duration, logger log.Logger) *generator {
 	return &generator{
-		target:   target,
-		logger:   logger,
-		replicas: make(map[uint64][]string),
-		ranges:   make(map[uint64][]*tableTokenRange),
+		target:                  target,
+		gracefulShutdownTimeout: gracefulShutdownTimeout,
+		logger:                  logger,
+		replicas:                make(map[uint64][]string),
+		ranges:                  make(map[uint64][]*tableTokenRange),
 	}
 }
 
@@ -125,51 +129,79 @@ func (g *generator) Result() chan<- jobResult {
 func (g *generator) Run(ctx context.Context) error {
 	g.logger.Info(ctx, "Start repair")
 
+	//TODO: progress and state registration
 	lastPercent := -1
 
+	done := ctx.Done()
+	stop := make(chan struct{})
+loop:
 	for {
 		select {
-		case <-ctx.Done():
-			// TODO graceful stop and wait for worker results at this point
-			// g.next should be closed and we just collect results
-			return ctx.Err()
+		case <-stop:
+			break loop
+		case <-done:
+			g.logger.Info(ctx, "Graceful repair shutdown", "timeout", g.gracefulShutdownTimeout)
+			// Stop workers by closing next channel
+			g.closeNext()
+
+			done = nil
+			time.AfterFunc(g.gracefulShutdownTimeout, func() {
+				close(stop)
+			})
 		case r := <-g.result:
 			// TODO progress and state registration
 			// TODO handling penalties
-			if r.Err != nil {
-				g.failed += len(r.Ranges)
-				g.logger.Info(ctx, "Repair failed", "error", r.Err)
-			} else {
-				g.success += len(r.Ranges)
-			}
-
-			if percent := 100 * (g.success + g.failed) / g.count; percent > lastPercent {
-				g.logger.Info(ctx, "Progress", "percent", percent, "count", g.count, "success", g.success, "failed", g.failed)
-				lastPercent = percent
-			}
-
-			g.unblockReplicas(r.Ranges[0])
+			lastPercent = g.processResult(ctx, r, lastPercent)
 			g.fillNext()
 
 			if done := g.busy.IsEmpty(); done {
 				g.logger.Info(ctx, "Done repair")
 
-				close(g.next)
-
-				if g.failed > 0 {
-					return errors.Errorf("%d token ranges out of %d failed to repair", g.failed, g.count)
-				}
-				return nil
+				g.closeNext()
+				break loop
 			}
 		}
 	}
+
+	if g.failed > 0 {
+		return errors.Errorf("%d token ranges out of %d failed to repair", g.failed, g.count)
+	}
+	return nil
+}
+
+func (g *generator) processResult(ctx context.Context, r jobResult, lastPercent int) int {
+	if r.Err != nil {
+		g.failed += len(r.Ranges)
+		g.logger.Info(ctx, "Repair failed", "error", r.Err)
+	} else {
+		g.success += len(r.Ranges)
+	}
+
+	if percent := 100 * (g.success + g.failed) / g.count; percent > lastPercent {
+		g.logger.Info(ctx, "Progress", "percent", percent, "count", g.count, "success", g.success, "failed", g.failed)
+		lastPercent = percent
+	}
+
+	g.unblockReplicas(r.Ranges[0])
+
+	return lastPercent
 }
 
 func (g *generator) unblockReplicas(ttr *tableTokenRange) {
 	g.busy.Remove(ttr.Replicas...)
 }
 
+func (g *generator) closeNext() {
+	if !g.nextClosed {
+		close(g.next)
+		g.nextClosed = true
+	}
+}
+
 func (g *generator) fillNext() {
+	if g.nextClosed {
+		return
+	}
 	for {
 		hash := g.pickReplicas()
 		if hash == 0 {

@@ -191,7 +191,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Create and init generator
 	var (
-		g  = newGenerator(target, s.logger)
+		g  = newGenerator(target, s.config.GracefulShutdownTimeout, s.logger)
 		wc int
 	)
 	for _, u := range target.Units {
@@ -257,10 +257,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Create worker
 	w := newWorker(g.Next(), g.Result(), client, s.logger)
 
+	// Worker context doesn't derive from ctx, generator will handle graceful
+	// shutdown. Generator must receive ctx.
+	workerCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Run Workers and Generator
 	var eg errgroup.Group
 	for i := 0; i < wc; i++ {
-		wctx := log.WithFields(ctx, "worker", i)
+		wctx := log.WithFields(workerCtx, "worker", i)
 		eg.Go(func() error {
 			return w.Run(wctx)
 		})

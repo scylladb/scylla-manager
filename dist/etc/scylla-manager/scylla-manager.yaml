@@ -121,3 +121,7 @@ http: 127.0.0.1:5080
 # Distribution of data among cores (shards) within a node.
 # Copy value from Scylla configuration file.
 #  murmur3_partitioner_ignore_msb_bits: 12
+#
+# Specifies how long repair will wait until all ongoing repair requests finish
+# when repair task is stopped. After this time, task will be interrupted.
+#  graceful_shutdown_timeout: 60s

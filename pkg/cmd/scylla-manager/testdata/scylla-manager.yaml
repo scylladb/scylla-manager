@@ -44,3 +44,4 @@ repair:
   poll_interval: 500ms
   age_max: 12h
   murmur3_partitioner_ignore_msb_bits: 1
+  graceful_shutdown_timeout: 60s
