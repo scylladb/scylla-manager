@@ -361,17 +361,52 @@ func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFil
 		return lister.ListManifests(ctx, f)
 	}
 
-	var manifests []*remoteManifest
+	// Group manifests.
+	type key struct {
+		DC          string
+		ClusterID   uuid.UUID
+		NodeID      string
+		TaskID      uuid.UUID
+		SnapshotTag string
+	}
+
+	manifests := make(map[key][]*remoteManifest)
 
 	for _, lister := range l.listers {
 		ms, err := lister.ListManifests(ctx, f)
 		if err != nil {
 			return nil, err
 		}
-		manifests = append(manifests, ms...)
+
+		for _, m := range ms {
+			k := key{m.DC, m.ClusterID, m.NodeID, m.TaskID, m.SnapshotTag}
+			if _, ok := manifests[k]; ok {
+				// Resolve collision between two snapshots by preferring v2 over v1.
+				// This can happen after migration.
+				if manifests[k][0].Content.Version == "v1" {
+					if m.Content.Version == "v1" {
+						manifests[k] = append(manifests[k], m)
+					} else {
+						manifests[k] = []*remoteManifest{m}
+					}
+				}
+			} else {
+				manifests[k] = []*remoteManifest{m}
+			}
+		}
 	}
 
-	return manifests, nil
+	var out []*remoteManifest
+	for k := range manifests {
+		out = append(out, manifests[k]...)
+	}
+
+	// Sort for repeatable listing.
+	sort.Slice(out, func(i, j int) bool {
+		return path.Join(out[i].CleanPath...) < path.Join(out[j].CleanPath...)
+	})
+
+	return out, nil
 }
 
 func getMetadataVersion(ctx context.Context, host string, location Location, client *scyllaclient.Client,
