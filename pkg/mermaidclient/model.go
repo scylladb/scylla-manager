@@ -680,7 +680,7 @@ type BackupListItems struct {
 
 const backupListItemTemplate = `Snapshots:
 {{- range .SnapshotInfo }}
-  - {{ .SnapshotTag }} ({{ ByteCountBinary .Size }})
+  - {{ .SnapshotTag }} ({{ if eq .Size 0 }}n/a{{ else }}{{ ByteCountBinary .Size }}{{ end }})
 {{- end }}
 Keyspaces:
 {{- range .Units }}
