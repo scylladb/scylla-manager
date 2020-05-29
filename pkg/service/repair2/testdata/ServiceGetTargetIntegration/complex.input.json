@@ -1,0 +1,9 @@
+{
+  "keyspace": [
+    "system_auth.role_members","system_traces.node*"
+  ],
+  "dc": [
+    "dc1"
+  ],
+  "continue": false
+}

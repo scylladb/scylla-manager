@@ -5,10 +5,8 @@
 package repair_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -16,7 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/service/repair2"
+	repair "github.com/scylladb/mermaid/pkg/service/repair2"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
@@ -93,77 +91,39 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	return s
 }
 
-// TODO port tests to SaveGoldenJSONFileIfNeeded
-// TODO add more tests of GetTarget
-
 func TestServiceGetTargetIntegration(t *testing.T) {
 	// Clear keyspaces
 	CreateManagedClusterSession(t)
 
-	table := []struct {
-		Name   string
-		Input  string
-		Golden string
-	}{
-		{
-			Name:   "everything",
-			Input:  "testdata/get_target/everything.input.json",
-			Golden: "testdata/get_target/everything.golden.json",
-		},
-		{
-			Name:   "filter keyspaces",
-			Input:  "testdata/get_target/filter_keyspaces.input.json",
-			Golden: "testdata/get_target/filter_keyspaces.golden.json",
-		},
-		{
-			Name:   "filter dc",
-			Input:  "testdata/get_target/filter_dc.input.json",
-			Golden: "testdata/get_target/filter_dc.golden.json",
-		},
-		{
-			Name:   "continue",
-			Input:  "testdata/get_target/continue.input.json",
-			Golden: "testdata/get_target/continue.golden.json",
-		},
+	// Test names
+	testNames := []string{
+		"everything",
+		"filter keyspaces",
+		"filter dc",
+		"continue",
+		"filter tables",
+		"fail_fast",
+		"complex",
 	}
 
 	var (
-		session = gocqlx.Session{
-			Session: CreateSessionWithoutMigration(t),
-			Mapper:  gocqlx.DefaultMapper,
-		}
-		h   = newRepairTestHelper(t, session, repair.DefaultConfig())
-		ctx = context.Background()
+		session = gocqlx.NewSession(CreateSessionWithoutMigration(t))
+		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
+		ctx     = context.Background()
 	)
 
-	for _, test := range table {
-		t.Run(test.Name, func(t *testing.T) {
-			b, err := ioutil.ReadFile(test.Input)
-			if err != nil {
-				t.Fatal(err)
-			}
-			v, err := h.service.GetTarget(ctx, h.clusterID, b, false)
+	for _, testName := range testNames {
+		t.Run(testName, func(t *testing.T) {
+			input := ReadInputFile(t)
+			v, err := h.service.GetTarget(ctx, h.clusterID, input, false)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if UpdateGoldenFiles() {
-				b, _ := json.Marshal(v)
-				var buf bytes.Buffer
-				json.Indent(&buf, b, "", "  ")
-				if err := ioutil.WriteFile(test.Golden, buf.Bytes(), 0666); err != nil {
-					t.Error(err)
-				}
-			}
+			SaveGoldenJSONFileIfNeeded(t, v)
 
-			b, err = ioutil.ReadFile(test.Golden)
-			if err != nil {
-				t.Fatal(err)
-			}
 			var golden repair.Target
-			if err := json.Unmarshal(b, &golden); err != nil {
-				t.Error(err)
-			}
+			LoadGoldenJSONFile(t, &golden)
 
 			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
 				t.Fatal(diff)
@@ -174,12 +134,9 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	var (
-		session = gocqlx.Session{
-			Session: CreateSessionWithoutMigration(t),
-			Mapper:  gocqlx.DefaultMapper,
-		}
-		h   = newRepairTestHelper(t, session, repair.DefaultConfig())
-		ctx = context.Background()
+		session = gocqlx.NewSession(CreateSessionWithoutMigration(t))
+		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
+		ctx     = context.Background()
 	)
 
 	target, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage("{}"), false)

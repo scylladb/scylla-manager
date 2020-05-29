@@ -1,0 +1,26 @@
+{
+  "units": [
+    {
+      "Keyspace": "system_auth",
+      "Tables": [
+        "role_members"
+      ],
+      "AllTables": false
+    },
+    {
+      "Keyspace": "system_traces",
+      "Tables": [
+        "node_slow_log_time_idx",
+        "node_slow_log"
+      ],
+      "AllTables": false
+    }
+  ],
+  "dc": [
+    "dc1",
+    "dc2"
+  ],
+  "fail_fast": false,
+  "continue": true,
+  "intensity": 0
+}

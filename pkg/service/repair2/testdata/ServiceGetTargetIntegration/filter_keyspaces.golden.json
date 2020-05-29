@@ -14,9 +14,6 @@
     "dc1",
     "dc2"
   ],
-  "host": "",
-  "with_hosts": null,
-  "token_ranges": "dcpr",
   "fail_fast": false,
   "continue": true,
   "intensity": 0
