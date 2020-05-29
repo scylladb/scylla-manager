@@ -5,43 +5,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/mermaidclient"
 	"github.com/scylladb/mermaid/pkg/util/duration"
 	"github.com/spf13/cobra"
 )
-
-type tokenRangesKind string
-
-const (
-	pr  tokenRangesKind = "pr"
-	npr tokenRangesKind = "npr"
-	all tokenRangesKind = "all"
-)
-
-func (r tokenRangesKind) String() string {
-	return string(r)
-}
-
-func (r *tokenRangesKind) Set(s string) error {
-	switch tokenRangesKind(s) {
-	case pr:
-		*r = pr
-	case npr:
-		*r = npr
-	case all:
-		*r = all
-	default:
-		return errors.New("valid values are: pr, npr, all")
-	}
-	return nil
-}
-
-func (tokenRangesKind) Type() string {
-	return "token ranges"
-}
-
-var repairTokenRanges = tokenRangesKind("")
 
 var repairCmd = &cobra.Command{
 	Use:   "repair",
@@ -91,29 +58,6 @@ var repairCmd = &cobra.Command{
 				return err
 			}
 			props["dc"] = unescapeFilters(dc)
-		}
-
-		if f = cmd.Flag("host"); f.Changed {
-			host, err := cmd.Flags().GetString("host")
-			if err != nil {
-				return err
-			}
-			props["host"] = host
-		}
-
-		if f = cmd.Flag("with-hosts"); f.Changed {
-			hosts, err := cmd.Flags().GetStringSlice("with-hosts")
-			if err != nil {
-				return err
-			}
-			props["with_hosts"] = hosts
-		}
-
-		if f = cmd.Flag("token-ranges"); f.Changed {
-			if !cmd.Flag("host").Changed && !cmd.Flag("with-hosts").Changed {
-				return errors.New("token-ranges is only available with \"host\" and \"with-hosts\" flags")
-			}
-			props["token_ranges"] = repairTokenRanges.String()
 		}
 
 		failFast, err := cmd.Flags().GetBool("fail-fast")
@@ -180,9 +124,6 @@ func init() {
 	fs.StringSliceP("keyspace", "K", nil,
 		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
 	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*', used to specify the DCs to include or exclude from repair")
-	fs.String("host", "", "host to repair, by default all hosts are repaired")
-	fs.StringSlice("with-hosts", nil, "a comma-separated `list` of hosts to repair with")
-	fs.Var(&repairTokenRanges, "token-ranges", "`kind` of token-ranges valid values are: pr, npr, all")
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Bool("force", false, "force repair to skip database validation and schedule even if there are no matching keyspaces/tables")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
