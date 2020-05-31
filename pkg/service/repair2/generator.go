@@ -25,7 +25,7 @@ func (hp hostPriority) PickHost(replicas []string) string {
 			}
 		}
 	}
-	return ""
+	return replicas[0]
 }
 
 type job struct {

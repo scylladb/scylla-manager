@@ -222,6 +222,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Errorf("nodes are down: %s", strings.Join(down, ","))
 	}
 
+	hp := make(hostPriority)
 	// In a multi-dc repair look for a local datacenter
 	if len(target.DC) > 1 {
 		dcMap, err := client.Datacenters(ctx)
@@ -240,7 +241,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return errors.Wrap(err, "datacenter latency measurement")
 		}
 
-		hp := make(hostPriority)
 		for p, dc := range closest {
 			for _, h := range dcMap[dc] {
 				if repairHosts.Has(h) {
@@ -248,8 +248,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				}
 			}
 		}
-		g.SetHostPriority(hp)
 	}
+	g.SetHostPriority(hp)
 
 	// Init Generator
 	g.Init(wc)
