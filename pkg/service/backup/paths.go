@@ -20,6 +20,7 @@ func keyspaceDir(keyspace string) string {
 
 const (
 	scyllaManifest  = "manifest.json"
+	scyllaSchema    = "schema.cql"
 	manifest        = "manifest.json.gz"
 	schema          = "schema.tar.gz"
 	metadataVersion = ".version"
