@@ -457,6 +457,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	})
 
 	t.Run("retry", func(t *testing.T) {
+		t.Skip("Timeouts in 4.0.0")
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
@@ -483,6 +484,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	})
 
 	t.Run("retry preserve options", func(t *testing.T) {
+		t.Skip("Timeouts in 4.0.0")
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
@@ -579,6 +581,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	})
 
 	t.Run("reschedule error", func(t *testing.T) {
+		t.Skip("Timeouts in 4.0.0")
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
