@@ -111,10 +111,16 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 					w.Logger.Error(ctx, "Failed to delete local manifest file", "error", err)
 				}
 			}
+			sp := path.Join(d.Path, scyllaSchema)
+			if err := w.Client.RcloneDeleteFile(ctx, h.IP, sp); err != nil {
+				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
+					w.Logger.Error(ctx, "Failed to delete local schema file", "error", err)
+				}
+			}
 
 			for _, f := range localFiles {
-				// Filter out Scylla manifest files, they are not needed.
-				if f.Name == scyllaManifest {
+				// Filter out Scylla manifest and Schema files, they are not needed.
+				if f.Name == scyllaManifest || f.Name == scyllaSchema {
 					continue
 				}
 
