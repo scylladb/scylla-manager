@@ -28,6 +28,8 @@ func (hp hostPriority) PickHost(replicas []string) string {
 	return replicas[0]
 }
 
+type hostRangesLimit map[string]int
+
 type job struct {
 	Host   string
 	Ranges []*tableTokenRange
@@ -43,9 +45,10 @@ type generator struct {
 	gracefulShutdownTimeout time.Duration
 	logger                  log.Logger
 
-	replicas     map[uint64][]string
-	ranges       map[uint64][]*tableTokenRange
-	hostPriority hostPriority
+	replicas        map[uint64][]string
+	ranges          map[uint64][]*tableTokenRange
+	hostPriority    hostPriority
+	hostRangesLimit hostRangesLimit
 
 	keys       []uint64
 	pos        int
@@ -100,6 +103,18 @@ func (g *generator) SetHostPriority(hp hostPriority) {
 	}
 
 	g.hostPriority = hp
+}
+
+func (g *generator) SetHostRangeLimits(hrl hostRangesLimit) {
+	hosts := g.Hosts()
+
+	for _, h := range hosts.List() {
+		if _, ok := hrl[h]; !ok {
+			panic("invalid host range limits, missing host")
+		}
+	}
+
+	g.hostRangesLimit = hrl
 }
 
 func (g *generator) Init(workerCount int) {
@@ -208,10 +223,13 @@ func (g *generator) fillNext() {
 			return
 		}
 
+		host := g.pickHost(hash)
+		rangesLimit := g.rangesLimit(host)
+
 		select {
 		case g.next <- job{
-			Host:   g.pickHost(hash),
-			Ranges: g.pickRanges(hash),
+			Host:   host,
+			Ranges: g.pickRanges(hash, rangesLimit),
 		}:
 		default:
 			panic("next buffer full")
@@ -245,21 +263,16 @@ func (g *generator) pickReplicas() uint64 {
 	}
 }
 
-func (g *generator) pickRanges(hash uint64) []*tableTokenRange {
+func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	ranges := g.ranges[hash]
-
-	nrRanges := g.target.Intensity
-	if nrRanges == 0 {
-		nrRanges = 1
-	}
 
 	// Speedup repair of system tables be repairing all ranges together.
 	if strings.HasPrefix(ranges[0].Keyspace, "system") {
-		nrRanges = len(ranges)
+		limit = len(ranges)
 	}
 
 	var i int
-	for i = 0; i < nrRanges; i++ {
+	for i = 0; i < limit; i++ {
 		if len(ranges) <= i {
 			break
 		}
@@ -272,6 +285,17 @@ func (g *generator) pickRanges(hash uint64) []*tableTokenRange {
 
 	g.ranges[hash] = ranges[i:]
 	return ranges[0:i]
+}
+
+func (g *generator) rangesLimit(host string) int {
+	limit := g.hostRangesLimit[host]
+	if g.target.Intensity != 0 {
+		limit = g.target.Intensity
+	}
+	if limit == 0 {
+		limit = 1
+	}
+	return limit
 }
 
 func (g *generator) pickHost(hash uint64) string {

@@ -71,6 +71,20 @@ func TestGenerator(t *testing.T) {
 		"f": 2,
 	}
 
+	rangeLimits := hostRangesLimit{
+		"a": 5,
+		"b": 10,
+		"c": 20,
+		"d": 5,
+		"e": 10,
+		"f": 20,
+	}
+
+	units := []Unit{
+		{Keyspace: "kn0", Tables: []string{"tn0", "tn1"}},
+		{Keyspace: "kn1", Tables: []string{"tn0", "tn1"}},
+	}
+
 	ttrLess := func(a, b *tableTokenRange) bool {
 		if a.Keyspace < b.Keyspace {
 			return true
@@ -118,7 +132,7 @@ func TestGenerator(t *testing.T) {
 		g := newGenerator(target, gracefulShutdownTimeout, log.NewDevelopment())
 
 		var allRanges []*tableTokenRange
-		for _, u := range []Unit{{Keyspace: "kn0", Tables: []string{"tn0", "tn1"}}, {Keyspace: "kn1", Tables: []string{"tn0", "tn1"}}} {
+		for _, u := range units {
 			allRanges = append(allRanges, b.Build(u)...)
 			g.Add(b.Build(u))
 		}
@@ -145,6 +159,71 @@ func TestGenerator(t *testing.T) {
 		}
 	})
 
+	t.Run("Host ranges limit", func(t *testing.T) {
+		var ranges []scyllaclient.TokenRange
+		for i := 0; i < 100; i += 4 {
+			ranges = append(ranges, []scyllaclient.TokenRange{
+				{
+					StartToken: int64(i),
+					EndToken:   int64(i + 1),
+					Replicas:   []string{"a", "b"},
+				},
+				{
+					StartToken: int64(i + 2),
+					EndToken:   int64(i + 3),
+					Replicas:   []string{"b", "c"},
+				},
+			}...)
+		}
+
+		t.Run("ranges are distributed within host limit", func(t *testing.T) {
+			target := Target{
+				DC: []string{"dc1", "dc2"},
+			}
+			g := makeGenerator(target, units, hostDC, ranges, hostPriority, rangeLimits)
+			ctx := context.Background()
+			go g.Run(ctx)
+
+			w := fakeWorker{
+				In:     g.Next(),
+				Out:    g.Result(),
+				Logger: log.NewDevelopment(),
+			}
+			jobs := w.drainJobs(ctx)
+
+			// Check that ranges follow host limit
+			for _, j := range jobs {
+				if len(j.Ranges) > rangeLimits[j.Host] {
+					t.Errorf("%s host received more ranges than can handle", j.Host)
+				}
+			}
+		})
+
+		t.Run("ranges are distributed within intensity limit", func(t *testing.T) {
+			target := Target{
+				DC:        []string{"dc1", "dc2"},
+				Intensity: 10,
+			}
+			g := makeGenerator(target, units, hostDC, ranges, hostPriority, rangeLimits)
+			ctx := context.Background()
+			go g.Run(ctx)
+
+			w := fakeWorker{
+				In:     g.Next(),
+				Out:    g.Result(),
+				Logger: log.NewDevelopment(),
+			}
+			jobs := w.drainJobs(ctx)
+
+			// Check that ranges follow host limit
+			for _, j := range jobs {
+				if len(j.Ranges) > target.Intensity {
+					t.Errorf("%s host received more ranges than intensity", j.Host)
+				}
+			}
+		})
+	})
+
 	t.Run("Graceful shutdown", func(t *testing.T) {
 		ranges := []scyllaclient.TokenRange{
 			{
@@ -167,19 +246,7 @@ func TestGenerator(t *testing.T) {
 		target := Target{
 			DC: []string{"dc1", "dc2"},
 		}
-		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-		g := newGenerator(target, gracefulShutdownTimeout, log.NewDevelopment())
-
-		var allRanges []*tableTokenRange
-		for _, u := range []Unit{{Keyspace: "kn0", Tables: []string{"tn0", "tn1"}}, {Keyspace: "kn1", Tables: []string{"tn0", "tn1"}}} {
-			allRanges = append(allRanges, b.Build(u)...)
-			g.Add(b.Build(u))
-		}
-
-		g.SetHostPriority(hostPriority)
-
-		wc := workerCount(ranges)
-		g.Init(wc)
+		g := makeGenerator(target, units, hostDC, ranges, hostPriority, rangeLimits)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -195,6 +262,7 @@ func TestGenerator(t *testing.T) {
 		// Wait for generator to start
 		<-generatorStarted
 
+		wc := workerCount(ranges)
 		Print("Given: multiple workers")
 		workers := make([]fakeWorker, wc)
 		for i := 0; i < wc; i++ {
@@ -249,4 +317,18 @@ func TestGenerator(t *testing.T) {
 			return generatorFinished.Load()
 		}, 50*time.Millisecond, 1*time.Second)
 	})
+}
+
+func makeGenerator(target Target, units []Unit, hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit) *generator {
+	b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
+	g := newGenerator(target, gracefulShutdownTimeout, log.NewDevelopment())
+	for _, u := range units {
+		g.Add(b.Build(u))
+	}
+
+	g.SetHostPriority(hostPriority)
+	g.SetHostRangeLimits(rangeLimits)
+
+	g.Init(workerCount(ranges))
+	return g
 }

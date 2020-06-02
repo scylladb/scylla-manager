@@ -22,6 +22,11 @@ type tableTokenRange struct {
 	Replicas   []string
 }
 
+func (ttr *tableTokenRange) String() string {
+	return fmt.Sprintf("keyspace=%s table=%s pos=%d starttoken=%d endtoken=%d replicas=%v",
+		ttr.Keyspace, ttr.Table, ttr.Pos, ttr.StartToken, ttr.EndToken, ttr.Replicas)
+}
+
 func (ttr *tableTokenRange) ReplicaHash() uint64 {
 	return replicaHash(ttr.Replicas)
 }

@@ -240,6 +240,12 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Errorf("nodes are down: %s", strings.Join(down, ","))
 	}
 
+	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
+	if err != nil {
+		return errors.Wrap(err, "host range limits")
+	}
+	g.SetHostRangeLimits(hostRangesLimits)
+
 	hp := make(hostPriority)
 	// In a multi-dc repair look for a local datacenter
 	if len(target.DC) > 1 {
@@ -293,6 +299,25 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	})
 
 	return eg.Wait()
+}
+
+func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Client, hosts []string) (hostRangesLimit, error) {
+	hrl := make(hostRangesLimit)
+
+	for _, h := range hosts {
+		totalMemory, err := client.TotalMemory(ctx, h)
+		if err != nil {
+			return nil, err
+		}
+
+		hrl[h] = s.maxRepairRangesInParallel(totalMemory)
+		s.logger.Debug(ctx, "Setting host ranges in parallel", "limit", hrl[h], "host", h)
+	}
+	return hrl, nil
+}
+
+func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
+	return int(float64(totalMemory) * 0.1 / (32 * 1024 * 1024))
 }
 
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound

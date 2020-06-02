@@ -3,10 +3,8 @@
 package scyllaclient
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"runtime"
 	"sort"
@@ -17,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client/operations"
+	"github.com/scylladb/mermaid/pkg/util/prom"
 	"go.uber.org/multierr"
 )
 
@@ -268,44 +267,51 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 
 // ShardCount returns number of shards in a node.
 func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
-	body, err := c.metrics(ctx, host)
+	const (
+		queryMetricName = "database_total_writes"
+		metricName      = "scylla_" + queryMetricName
+	)
+
+	metrics, err := c.metrics(ctx, host, queryMetricName)
 	if err != nil {
 		return 0, err
 	}
-	defer body.Close()
 
-	s := bufio.NewScanner(body)
-
-	var shards uint
-	for s.Scan() {
-		if strings.HasPrefix(s.Text(), "scylla_database_total_writes{") {
-			shards++
-		}
+	if _, ok := metrics[metricName]; !ok {
+		return 0, errors.Errorf("scylla doest not expose %s metric", metricName)
 	}
 
+	shards := len(metrics[metricName].Metric)
 	if shards == 0 {
 		return 0, errors.New("failed to get shard count")
 	}
 
-	return shards, nil
+	return uint(shards), nil
 }
 
-// metrics returns Prometheus metrics response body, caller is responsible for
-// closing the returned body.
-func (c *Client) metrics(ctx context.Context, host string) (io.ReadCloser, error) {
+// metrics returns Scylla Prometheus metrics, `name` pattern be used to filter
+// out only subset of metrics.
+func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*prom.MetricFamily, error) {
 	u := c.newURL(host, "/metrics")
-	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	r = r.WithContext(forceHost(ctx, host))
-
-	resp, err := c.transport.RoundTrip(r) // nolint:bodyclose
+	r, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Body, nil
+	if name != "" {
+		q := r.URL.Query()
+		q.Add("name", name)
+		r.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := c.transport.RoundTrip(r)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	return prom.ParseText(resp.Body)
 }
 
 // DescribeRing returns a description of token range of a given keyspace.
@@ -617,4 +623,28 @@ func (c *Client) ScyllaFeatures(ctx context.Context, host string) (ScyllaFeature
 		return ScyllaFeatures{}, err
 	}
 	return makeScyllaFeatures(resp.Payload)
+}
+
+// TotalMemory returns Scylla total memory from particular host.
+func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
+	const (
+		queryMetricName = "memory_total_memory"
+		metricName      = "scylla_" + queryMetricName
+	)
+
+	metrics, err := c.metrics(ctx, host, queryMetricName)
+	if err != nil {
+		return 0, err
+	}
+
+	if _, ok := metrics[metricName]; !ok {
+		return 0, errors.New("scylla doest not expose total memory metric")
+	}
+
+	var totalMemory int64 = 0
+	for _, m := range metrics[metricName].Metric {
+		totalMemory += int64(*m.Counter.Value)
+	}
+
+	return totalMemory, nil
 }
