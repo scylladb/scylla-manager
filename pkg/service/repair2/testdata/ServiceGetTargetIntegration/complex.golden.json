@@ -6,14 +6,6 @@
         "role_members"
       ],
       "AllTables": false
-    },
-    {
-      "Keyspace": "system_traces",
-      "Tables": [
-        "node_slow_log_time_idx",
-        "node_slow_log"
-      ],
-      "AllTables": false
     }
   ],
   "dc": [

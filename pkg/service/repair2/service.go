@@ -126,6 +126,24 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			continue
 		}
 
+		notEnoughReplicas := false
+		for _, tr := range ring.Tokens {
+			replicas := 0
+			for _, r := range tr.Replicas {
+				if dcs.Has(ring.HostDC[r]) {
+					replicas++
+				}
+			}
+			if replicas <= 1 {
+				notEnoughReplicas = true
+				break
+			}
+		}
+		if notEnoughReplicas {
+			s.logger.Info(ctx, "Keyspace skipped because there're no enough replicas in target", "keyspace", keyspace)
+			continue
+		}
+
 		// Add to the filter
 		f.Add(keyspace, tables)
 	}

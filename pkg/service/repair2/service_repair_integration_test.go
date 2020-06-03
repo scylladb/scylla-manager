@@ -104,6 +104,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		"filter tables",
 		"fail_fast",
 		"complex",
+		"no enough replicas",
 	}
 
 	var (

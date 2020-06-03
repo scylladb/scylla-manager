@@ -1,0 +1,4 @@
+{
+  "dc": ["dc1"],
+  "keyspace": ["system_distributed.*", "system_auth.*"]
+}
