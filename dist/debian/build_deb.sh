@@ -27,7 +27,7 @@ is_debian_variant() {
 }
 is_debian() {
     case "$1" in
-        jessie|stretch) return 0;;
+        jessie|stretch|buster) return 0;;
         *) return 1;;
     esac
 }
