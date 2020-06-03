@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-import_path := github.com/scylladb/mermaid/pkg
+IMPORT_PATH := github.com/scylladb/mermaid/pkg
 
 export CGO_ENABLED := 0
 export GOROOT      := $(PWD)/../go
@@ -8,7 +8,7 @@ export GOROOT      := $(PWD)/../go
 GO_URL    := https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz
 GO_BUNDLE := ./go${GO_VERSION}.linux-amd64.tar.gz
 GO        := ${GOROOT}/bin/go
-GOLDFLAGS := -extldflags '-static' -X %{import_path}.version=%{version}-%{release}
+GOLDFLAGS := -extldflags '-static' -X "${IMPORT_PATH}.version=${VERSION}-${RELEASE}"
 
 %:
 	dh $@ --with=systemd
