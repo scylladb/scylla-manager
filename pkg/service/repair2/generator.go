@@ -49,6 +49,7 @@ type generator struct {
 	hostCount       int
 	hostPriority    hostPriority
 	hostRangesLimit hostRangesLimit
+	progress        progressManager
 
 	intensity   float64
 	intensityCh <-chan float64
@@ -65,12 +66,13 @@ type generator struct {
 	failed  int
 }
 
-func newGenerator(intensityCh <-chan float64, gracefulShutdownTimeout time.Duration, logger log.Logger) *generator {
+func newGenerator(intensityCh <-chan float64, gracefulShutdownTimeout time.Duration, logger log.Logger, manager progressManager) *generator {
 	g := &generator{
 		gracefulShutdownTimeout: gracefulShutdownTimeout,
 		logger:                  logger,
 		replicas:                make(map[uint64][]string),
 		ranges:                  make(map[uint64][]*tableTokenRange),
+		progress:                manager,
 	}
 
 	// Check if intensityCh has desired intensity value
@@ -95,7 +97,6 @@ func (g *generator) add(ttr *tableTokenRange) {
 	hash := ttr.ReplicaHash()
 	g.replicas[hash] = ttr.Replicas
 	g.ranges[hash] = append(g.ranges[hash], ttr)
-	g.count++
 }
 
 func (g *generator) Hosts() *strset.Set {
@@ -130,7 +131,7 @@ func (g *generator) SetHostRangeLimits(hrl hostRangesLimit) {
 	g.hostRangesLimit = hrl
 }
 
-func (g *generator) Init(workerCount int) {
+func (g *generator) Init(ctx context.Context, workerCount int) error {
 	if len(g.replicas) == 0 {
 		panic("cannot init generator, no ranges")
 	}
@@ -144,7 +145,31 @@ func (g *generator) Init(workerCount int) {
 	g.next = make(chan job, 2*workerCount)
 	g.result = make(chan jobResult)
 
+	var trs []*tableTokenRange
+	for _, ttrs := range g.ranges {
+		trs = append(trs, ttrs...)
+	}
+	if err := g.progress.Init(ctx, trs); err != nil {
+		return err
+	}
+
+	// Remove repaired ranges from the pool of available ones to avoid their
+	// scheduling.
+	for k := range g.ranges {
+		ttrs := g.ranges[k][:0]
+		for i := range g.ranges[k] {
+			if g.progress.CheckRepaired(g.ranges[k][i]) {
+				continue
+			}
+			ttrs = append(ttrs, g.ranges[k][i])
+		}
+		g.ranges[k] = ttrs
+		g.count += len(ttrs)
+	}
+
 	g.fillNext()
+
+	return nil
 }
 
 func (g *generator) Next() <-chan job {
@@ -182,9 +207,9 @@ loop:
 			g.logger.Info(ctx, "Changing repair intensity", "from", g.intensity, "to", intensity)
 			g.intensity = intensity
 		case r := <-g.result:
-			// TODO progress and state registration
 			// TODO handling penalties
 			lastPercent = g.processResult(ctx, r, lastPercent)
+
 			g.fillNext()
 
 			if done := g.busy.IsEmpty(); done {
@@ -203,6 +228,10 @@ loop:
 }
 
 func (g *generator) processResult(ctx context.Context, r jobResult, lastPercent int) int {
+	if err := g.progress.Update(ctx, r); err != nil {
+		g.logger.Error(ctx, "Failed to update progress", "error", err)
+	}
+
 	if r.Err != nil {
 		g.failed += len(r.Ranges)
 		g.logger.Info(ctx, "Repair failed", "error", r.Err)
@@ -309,7 +338,7 @@ func (g *generator) activeHostLimit() int {
 func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	ranges := g.ranges[hash]
 
-	// Speedup repair of system tables be repairing all ranges together.
+	// Speedup repair of system tables by repairing all ranges together.
 	if strings.HasPrefix(ranges[0].Keyspace, "system") {
 		limit = len(ranges)
 	}

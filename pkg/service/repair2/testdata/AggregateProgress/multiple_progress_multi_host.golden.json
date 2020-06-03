@@ -1,0 +1,98 @@
+{
+  "percent_complete": 100,
+  "token_ranges": 18,
+  "success": 18,
+  "error": 0,
+  "started_at": "2019-01-01T00:00:00Z",
+  "completed_at": "2019-01-01T00:02:00Z",
+  "hosts": [
+    {
+      "percent_complete": 100,
+      "token_ranges": 15,
+      "success": 15,
+      "error": 0,
+      "started_at": "2019-01-01T00:00:00Z",
+      "completed_at": "2019-01-01T00:02:00Z",
+      "host": "h1",
+      "tables": [{
+        "percent_complete": 100,
+        "token_ranges": 10,
+        "success": 10,
+        "error": 0,
+        "started_at": "2019-01-01T00:00:00Z",
+        "completed_at": "2019-01-01T00:01:00Z",
+        "keyspace": "k1",
+        "table": "t1"
+      }, {
+        "percent_complete": 100,
+        "token_ranges": 5,
+        "success": 5,
+        "error": 0,
+        "started_at": "2019-01-01T00:01:00Z",
+        "completed_at": "2019-01-01T00:02:00Z",
+        "keyspace": "k2",
+        "table": "t1"
+      }]
+    },
+    {
+      "percent_complete": 100,
+      "token_ranges": 8,
+      "success": 8,
+      "error": 0,
+      "started_at": "2019-01-01T00:00:00Z",
+      "completed_at": "2019-01-01T00:02:00Z",
+      "host": "h2",
+      "tables": [
+        {
+          "percent_complete": 100,
+          "token_ranges": 5,
+          "success": 5,
+          "error": 0,
+          "started_at": "2019-01-01T00:01:00Z",
+          "completed_at": "2019-01-01T00:02:00Z",
+          "keyspace": "k2",
+          "table": "t1"
+        },
+        {
+        "percent_complete": 100,
+        "token_ranges": 3,
+        "success": 3,
+        "error": 0,
+        "started_at": "2019-01-01T00:00:00Z",
+        "completed_at": "2019-01-01T00:02:00Z",
+        "keyspace": "k3",
+        "table": "t1"
+      }]
+    }
+  ],
+  "tables": [
+    {
+      "percent_complete": 100,
+      "token_ranges": 10,
+      "success": 10,
+      "error": 0,
+      "started_at": "2019-01-01T00:00:00Z",
+      "completed_at": "2019-01-01T00:01:00Z",
+      "keyspace": "k1",
+      "table": "t1"
+    }, {
+      "percent_complete": 100,
+      "token_ranges": 5,
+      "success": 5,
+      "error": 0,
+      "started_at": "2019-01-01T00:01:00Z",
+      "completed_at": "2019-01-01T00:02:00Z",
+      "keyspace": "k2",
+      "table": "t1"
+    }, {
+      "percent_complete": 100,
+      "token_ranges": 3,
+      "success": 3,
+      "error": 0,
+      "started_at": "2019-01-01T00:00:00Z",
+      "completed_at": "2019-01-01T00:02:00Z",
+      "keyspace": "k3",
+      "table": "t1"
+    }
+  ]
+}

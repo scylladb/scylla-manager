@@ -31,18 +31,20 @@ func workerCount(ranges []scyllaclient.TokenRange) int {
 }
 
 type worker struct {
-	in     <-chan job
-	out    chan<- jobResult
-	client *scyllaclient.Client
-	logger log.Logger
+	in       <-chan job
+	out      chan<- jobResult
+	client   *scyllaclient.Client
+	logger   log.Logger
+	progress progressManager
 }
 
-func newWorker(in <-chan job, out chan<- jobResult, client *scyllaclient.Client, logger log.Logger) worker {
+func newWorker(in <-chan job, out chan<- jobResult, client *scyllaclient.Client, logger log.Logger, manager progressManager) worker {
 	return worker{
-		in:     in,
-		out:    out,
-		client: client,
-		logger: logger,
+		in:       in,
+		out:      out,
+		client:   client,
+		logger:   logger,
+		progress: manager,
 	}
 }
 
@@ -68,12 +70,16 @@ func (w worker) Run(ctx context.Context) error {
 }
 
 func (w worker) runJob(ctx context.Context, job job) error {
-	tr := job.Ranges[0]
+	ttr := job.Ranges[0]
+
+	if err := w.progress.OnStartJob(ctx, job); err != nil {
+		return errors.Wrapf(err, "host %s: starting progress", job.Host)
+	}
 
 	cfg := scyllaclient.RepairConfig{
-		Keyspace: tr.Keyspace,
-		Tables:   []string{tr.Table},
-		Hosts:    tr.Replicas,
+		Keyspace: ttr.Keyspace,
+		Tables:   []string{ttr.Table},
+		Hosts:    ttr.Replicas,
 		Ranges:   dumpRanges(job.Ranges),
 	}
 
@@ -83,9 +89,9 @@ func (w worker) runJob(ctx context.Context, job job) error {
 	}
 
 	w.logger.Debug(ctx, "Repair",
-		"keyspace", tr.Keyspace,
-		"table", tr.Table,
-		"hosts", tr.Replicas,
+		"keyspace", ttr.Keyspace,
+		"table", ttr.Table,
+		"hosts", ttr.Replicas,
 		"ranges", len(job.Ranges),
 		"job_id", id,
 	)
@@ -99,7 +105,7 @@ func (w worker) runJob(ctx context.Context, job job) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.C:
-			s, err := w.client.RepairStatus(ctx, job.Host, tr.Keyspace, id)
+			s, err := w.client.RepairStatus(ctx, job.Host, ttr.Keyspace, id)
 			if err != nil {
 				return err
 			}

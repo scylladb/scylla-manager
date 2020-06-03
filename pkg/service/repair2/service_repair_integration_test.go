@@ -108,7 +108,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	}
 
 	var (
-		session = gocqlx.NewSession(CreateSessionWithoutMigration(t))
+		session = gocqlx.NewSession(CreateSession(t))
 		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
 		ctx     = context.Background()
 	)
@@ -135,7 +135,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	var (
-		session = gocqlx.NewSession(CreateSessionWithoutMigration(t))
+		session = gocqlx.NewSession(CreateSession(t))
 		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
 		ctx     = context.Background()
 	)

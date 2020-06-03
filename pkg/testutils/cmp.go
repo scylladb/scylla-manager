@@ -21,3 +21,21 @@ func DateTimeComparer() cmp.Option {
 		return time.Time(a).Equal(time.Time(b))
 	})
 }
+
+// NearTimeComparer creates a cmp.Comparer for comparing time.Time values
+// that are within a threshold duration.
+// First value has to be before second.
+func NearTimeComparer(d time.Duration) cmp.Option {
+	return cmp.Comparer(func(a, b *time.Time) bool {
+		if a == nil && b == nil {
+			return true
+		}
+		if a == nil && b != nil {
+			return false
+		}
+		if a != nil && b == nil {
+			return false
+		}
+		return b.Sub(*a) < d
+	})
+}

@@ -11,7 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/util/inexlist/dcfilter"
@@ -180,7 +182,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		ClusterID: clusterID,
 		TaskID:    taskID,
 		ID:        runID,
+		DC:        target.DC,
 		StartTime: timeutc.Now().UTC(),
+	}
+	if err := s.putRun(run); err != nil {
+		return errors.Wrapf(err, "put run")
 	}
 
 	// Get cluster name
@@ -203,6 +209,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "get client proxy")
 	}
 
+	if target.Continue {
+		if err := s.decorateWithPrevRun(ctx, run); err != nil {
+			return err
+		}
+		if run.PrevID != uuid.Nil {
+			s.putRunLogError(ctx, run)
+		}
+	}
+
 	// Check the cluster partitioner
 	p, err := client.Partitioner(ctx)
 	if err != nil {
@@ -216,10 +231,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	intensityCh, cleanup := s.newIntensityChannel(clusterID, target.Intensity)
 	defer cleanup()
 
-	// Create and init generator
+	// Create generator
 	var (
-		g  = newGenerator(intensityCh, s.config.GracefulShutdownTimeout, s.logger)
-		wc int
+		manager = newProgressManager(run, s.session)
+		g       = newGenerator(intensityCh, s.config.GracefulShutdownTimeout, s.logger, manager)
+		wc      int
 	)
 	for _, u := range target.Units {
 		// Get ring
@@ -236,6 +252,12 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			wc = c
 		}
 	}
+
+	// Init Generator
+	if err := g.Init(ctx, wc); err != nil {
+		return err
+	}
+
 	repairHosts := g.Hosts()
 
 	// Get hosts in all DCs
@@ -284,11 +306,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	g.SetHostPriority(hp)
 
-	// Init Generator
-	g.Init(wc)
-
 	// Create worker
-	w := newWorker(g.Next(), g.Result(), client, s.logger)
+	w := newWorker(g.Next(), g.Result(), client, s.logger, manager)
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
@@ -348,15 +367,132 @@ func (s *Service) newIntensityChannel(clusterID uuid.UUID, intensity float64) (c
 	}
 }
 
+// decorateWithPrevRun looks for previous run and if it can be continued sets
+// PrevID on the given run.
+func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
+	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
+	if err == service.ErrNotFound {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "get previous run")
+	}
+
+	// Check if can continue from prev
+	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
+	if s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax {
+		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
+		return nil
+	}
+
+	// Decorate run with previous run id.
+	// Progress manager will use this as indication to restore state on
+	// generator init.
+	run.PrevID = prev.ID
+
+	return nil
+}
+
+// putRun upserts a repair run.
+func (s *Service) putRun(r *Run) error {
+	stmt, names := table.RepairRun.Insert()
+	q := s.session.Query(stmt, names).BindStruct(r)
+	return q.ExecRelease()
+}
+
+// putRunLogError executes putRun and consumes the error.
+func (s *Service) putRunLogError(ctx context.Context, r *Run) {
+	if err := s.putRun(r); err != nil {
+		s.logger.Error(ctx, "Cannot update the run",
+			"run", r,
+			"error", err,
+		)
+	}
+}
+
+// GetLastResumableRun returns the the most recent started but not done run of
+// the task, if there is a recent run that is completely done ErrNotFound is
+// reported.
+func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
+	s.logger.Debug(ctx, "GetLastResumableRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+	)
+
+	stmt, names := qb.Select(table.RepairRun.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+	).Limit(20).ToCql()
+
+	q := s.session.Query(stmt, names).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+	})
+
+	var runs []*Run
+	if err := q.SelectRelease(&runs); err != nil {
+		return nil, err
+	}
+
+	for _, r := range runs {
+		p, err := aggregateProgress(NewProgressVisitor(r, s.session))
+		if err != nil {
+			return nil, err
+		}
+		p.DC = r.DC
+		if p.TokenRanges > 0 {
+			if p.Success == p.TokenRanges {
+				break
+			}
+			return r, nil
+		}
+	}
+
+	return nil, service.ErrNotFound
+}
+
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
-	return nil, errors.New("not implemented")
+	s.logger.Debug(ctx, "GetRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
+
+	stmt, names := table.RepairRun.Get()
+
+	q := s.session.Query(stmt, names).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+		"id":         runID,
+	})
+
+	var r Run
+	return &r, q.GetRelease(&r)
 }
 
-// GetProgress TODO implement
+// GetProgress returns run progress for all shards on all the hosts. If nothing
+// was found mermaid.ErrNotFound is returned.
 func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
-	return Progress{}, errors.New("not implemented")
+	s.logger.Debug(ctx, "GetProgress",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
+
+	run, err := s.GetRun(ctx, clusterID, taskID, runID)
+	if err != nil {
+		return Progress{}, err
+	}
+
+	p, err := aggregateProgress(NewProgressVisitor(run, s.session))
+	if err != nil {
+		return Progress{}, err
+	}
+	p.DC = run.DC
+
+	return p, nil
 }
 
 // SetIntensity changes intensity of ongoing repair.

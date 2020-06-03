@@ -1,0 +1,41 @@
+{
+  "percent_complete": 100,
+  "token_ranges": 10,
+  "success": 10,
+  "error": 0,
+  "started_at": "2019-01-01T00:00:00Z",
+  "completed_at": "2019-01-01T00:01:00Z",
+  "hosts": [
+    {
+      "percent_complete": 100,
+      "token_ranges": 10,
+      "success": 10,
+      "error": 0,
+      "started_at": "2019-01-01T00:00:00Z",
+      "completed_at": "2019-01-01T00:01:00Z",
+      "host": "h1",
+      "tables": [{
+        "percent_complete": 100,
+        "token_ranges": 10,
+        "success": 10,
+        "error": 0,
+        "started_at": "2019-01-01T00:00:00Z",
+        "completed_at": "2019-01-01T00:01:00Z",
+        "keyspace": "k1",
+        "table": "t1"
+      }]
+    }
+  ],
+  "tables": [
+    {
+      "percent_complete": 100,
+      "token_ranges": 10,
+      "success": 10,
+      "error": 0,
+      "started_at": "2019-01-01T00:00:00Z",
+      "completed_at": "2019-01-01T00:01:00Z",
+      "keyspace": "k1",
+      "table": "t1"
+    }
+  ]
+}

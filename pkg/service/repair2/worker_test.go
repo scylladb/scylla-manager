@@ -3,11 +3,21 @@
 package repair
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
+	"strings"
+	"sync/atomic"
 	"testing"
 
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestWorkerCount(t *testing.T) {
@@ -48,8 +58,102 @@ func TestWorkerCount(t *testing.T) {
 
 			v := workerCount(ranges)
 			if v != test.Count {
-				t.Errorf("workerCount()=%d expeced %d", v, test.Count)
+				t.Errorf("workerCount()=%d expected %d", v, test.Count)
 			}
 		})
 	}
+}
+
+func TestWorkerRun(t *testing.T) {
+	var (
+		in     = make(chan job)
+		out    = make(chan jobResult)
+		logger = log.NewDevelopmentWithLevel(zapcore.DebugLevel)
+		hrt    = NewHackableRoundTripper(scyllaclient.DefaultTransport())
+		c      = newTestClient(t, hrt, logger)
+		ctx    = context.Background()
+	)
+	hrt.SetInterceptor(successfulInterceptor())
+	w := newWorker(in, out, c, logger, newNopProgressManager())
+
+	go func() {
+		if err := w.Run(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	go func() {
+		for i := 0; i < 3; i++ {
+			in <- job{
+				Host: fmt.Sprintf("h%d", i),
+				Ranges: []*tableTokenRange{
+					{
+						Keyspace:   "k1",
+						Table:      fmt.Sprintf("t%d", i),
+						Pos:        0,
+						StartToken: 1,
+						EndToken:   2,
+						Replicas:   []string{"h0", "h1", "h2"},
+					},
+					{
+						Keyspace:   "k1",
+						Table:      fmt.Sprintf("t%d", i),
+						Pos:        1,
+						StartToken: 3,
+						EndToken:   4,
+						Replicas:   []string{"h0", "h1", "h2"},
+					},
+				},
+			}
+		}
+		close(in)
+	}()
+
+	for i := 0; i < 3; i++ {
+		<-out
+	}
+}
+
+var commandCounter int32
+
+func successfulInterceptor() http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+			return nil, nil
+		}
+
+		resp := &http.Response{
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Request:    req,
+			Header:     make(http.Header, 0),
+		}
+
+		switch req.Method {
+		case http.MethodGet:
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandSuccessful)))
+		case http.MethodPost:
+			id := atomic.AddInt32(&commandCounter, 1)
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+		}
+
+		return resp, nil
+	})
+}
+
+func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
+	t.Helper()
+
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	config.Transport = hrt
+
+	c, err := scyllaclient.NewClient(config, logger.Named("scylla"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return c
 }
