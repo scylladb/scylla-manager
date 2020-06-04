@@ -12,77 +12,116 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/atomic"
 )
 
 type purger struct {
-	ClusterID      uuid.UUID
-	TaskID         uuid.UUID
-	Policy         int
 	Client         *scyllaclient.Client
-	HostInfo       hostInfo
+	Filter         ListFilter
+	Host           string
+	Location       Location
 	ManifestHelper manifestHelper
 	Logger         log.Logger
 }
 
-func (p *purger) purge(ctx context.Context) error {
-	p.Logger.Info(ctx, "Analysing",
-		"host", p.HostInfo.IP,
-		"location", p.HostInfo.Location,
+// PurgeSnapshot allows to delete data and metadata associated
+// with provided snapshotTag.
+func (p *purger) PurgeSnapshot(ctx context.Context, snapshotTag string) error {
+	p.Logger.Info(ctx, "Purging snapshot on host",
+		"host", p.Host,
+		"location", p.Location,
+		"snapshot_tag", snapshotTag,
 	)
 
-	// Load all manifests
+	// Load manifests from all tasks
 	manifests, err := p.loadAllManifests(ctx)
 	if err != nil {
 		return errors.Wrap(err, "find and load remote manifests")
 	}
 
-	manifestTags := strset.New()
+	found := false
 	for _, m := range manifests {
-		manifestTags.Add(m.SnapshotTag)
+		if m.SnapshotTag == snapshotTag {
+			found = true
+			break
+		}
 	}
-	tags := manifestTags.List()
+	if !found {
+		return service.ErrNotFound
+	}
 
-	// Exit if there no tags to delete
-	if len(tags) <= p.Policy {
+	isStaleManifest := func(m *remoteManifest) bool {
+		return m.SnapshotTag == snapshotTag
+	}
+
+	return p.purge(ctx, manifests, isStaleManifest)
+}
+
+// PurgeTask analyzes existing manifests and keeps only `policy` latest task snapshots.
+// Expired snapshots are removed from storage.
+func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) error {
+	p.Logger.Info(ctx, "Analysing",
+		"host", p.Host,
+		"location", p.Location,
+	)
+
+	// Load manifests from all tasks
+	manifests, err := p.loadAllManifests(ctx)
+	if err != nil {
+		return errors.Wrap(err, "find and load remote manifests")
+	}
+
+	manifestTaskTags := strset.New()
+	for _, m := range manifests {
+		if m.TaskID == taskID {
+			manifestTaskTags.Add(m.SnapshotTag)
+		}
+	}
+	taskTags := manifestTaskTags.List()
+
+	// Exit if there are no tags to purge
+	if len(taskTags) <= policy {
 		p.Logger.Debug(ctx, "Nothing to do")
 		return nil
 	}
 
 	// Sort by date ascending
-	sort.Strings(tags)
+	sort.Strings(taskTags)
 
 	// Select tags to delete
-	staleTags := tags[:len(tags)-p.Policy]
+	staleTags := taskTags[:len(taskTags)-policy]
 
-	staleTagsSet := strset.New()
-	for _, t := range staleTags {
-		staleTagsSet.Add(t)
-	}
-
+	staleTagsSet := strset.New(staleTags...)
 	isStaleManifest := func(m *remoteManifest) bool {
-		return m.TaskID == p.TaskID && staleTagsSet.Has(m.SnapshotTag)
+		return staleTagsSet.Has(m.SnapshotTag)
 	}
 
-	// Select stale sst files in the form keyspace/<keyspace_name>/table/<table_name>/<version>
+	return p.purge(ctx, manifests, isStaleManifest)
+}
+
+func (p *purger) purge(ctx context.Context, manifests []*remoteManifest, isStaleManifest func(*remoteManifest) bool) error {
+	// Select stale sst files in the form of full path to file.
 	staleFiles := strset.New()
-	for i := range manifests {
-		if isStaleManifest(manifests[i]) {
-			for _, fi := range manifests[i].Content.Index {
+	for _, m := range manifests {
+		if isStaleManifest(m) {
+			baseDir := remoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
+			for _, fi := range m.Content.Index {
 				for _, f := range fi.Files {
-					staleFiles.Add(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
+					staleFiles.Add(path.Join(baseDir, ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f)))
 				}
 			}
 		}
 	}
 	// Remove alive files from staleFiles
-	for i := range manifests {
-		if !isStaleManifest(manifests[i]) {
-			for _, fi := range manifests[i].Content.Index {
+	for _, m := range manifests {
+		if !isStaleManifest(m) {
+			baseDir := remoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
+			for _, fi := range m.Content.Index {
 				for _, f := range fi.Files {
-					staleFiles.Remove(ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f))
+					staleFiles.Remove(path.Join(baseDir, ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f)))
 				}
 			}
 		}
@@ -92,52 +131,45 @@ func (p *purger) purge(ctx context.Context) error {
 	if !staleFiles.IsEmpty() {
 		// Delete sstables that are not alive
 		p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
-		staleFilesList := staleFiles.List()
-		if err := p.deleteSSTables(ctx, staleFilesList); err != nil {
+
+		if err := p.deleteSSTables(ctx, staleFiles); err != nil {
 			return errors.Wrap(err, "delete stale data")
 		}
 	}
 
 	// Delete stale tags
 	for _, m := range manifests {
-		if !staleTagsSet.Has(m.SnapshotTag) {
-			continue
-		}
-		if err := p.ManifestHelper.DeleteManifest(ctx, m); err != nil {
-			return errors.Wrap(err, "delete stale tag")
-		}
+		if isStaleManifest(m) {
+			if err := p.ManifestHelper.DeleteManifest(ctx, m); err != nil {
+				return errors.Wrap(err, "delete stale tag")
+			}
 
-		p.Logger.Info(ctx, "Deleted metadata according to retention policy",
-			"host", p.HostInfo.IP,
-			"location", p.HostInfo.Location,
-			"tag", m.SnapshotTag,
-			"policy", p.Policy,
-			"size", m.Content.Size,
-			"files", staleFiles.Size(),
-		)
+			p.Logger.Info(ctx, "Deleted metadata according to retention policy",
+				"host", p.Host,
+				"location", p.Location,
+				"tag", m.SnapshotTag,
+				"size", m.Content.Size,
+				"files", staleFiles.Size(),
+			)
+		}
 	}
 
 	return nil
 }
 
+// loadAllManifests loads manifests belonging to all tasks.
 func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error) {
-	filter := ListFilter{
-		ClusterID: p.ClusterID,
-		DC:        p.HostInfo.DC,
-		NodeID:    p.HostInfo.ID,
-		TaskID:    p.TaskID,
-	}
+	filter := p.Filter
+	filter.TaskID = uuid.Nil
 	return p.ManifestHelper.ListManifests(ctx, filter)
 }
 
-func (p *purger) deleteSSTables(ctx context.Context, files []string) error {
-	baseDir := remoteSSTableBaseDir(p.ClusterID, p.HostInfo.DC, p.HostInfo.ID)
-
-	deleted, err := p.deleteFiles(ctx, baseDir, files)
+func (p *purger) deleteSSTables(ctx context.Context, staleFiles *strset.Set) error {
+	deleted, err := p.deleteFiles(ctx, staleFiles.List())
 	if err != nil {
-		p.Logger.Info(ctx, "Failed to delete orphaned data files",
-			"host", p.HostInfo.IP,
-			"location", p.HostInfo.Location,
+		p.Logger.Error(ctx, "Failed to delete orphaned data files",
+			"host", p.Host,
+			"location", p.Location,
 			"files", deleted,
 			"error", err,
 		)
@@ -145,22 +177,21 @@ func (p *purger) deleteSSTables(ctx context.Context, files []string) error {
 	}
 
 	p.Logger.Info(ctx, "Deleted orphaned data files",
-		"host", p.HostInfo.IP,
-		"location", p.HostInfo.Location,
+		"host", p.Host,
+		"location", p.Location,
 		"files", deleted,
 	)
 
 	return nil
 }
 
-func (p *purger) deleteFiles(ctx context.Context, baseDir string, files []string) (n int64, err error) {
+func (p *purger) deleteFiles(ctx context.Context, files []string) (n int64, err error) {
 	const limit = 5
 
 	var deleted atomic.Int64
 
 	err = parallel.Run(len(files), limit, func(i int) error {
-		filePath := files[i]
-		l := p.HostInfo.Location.RemotePath(path.Join(baseDir, filePath))
+		l := p.Location.RemotePath(files[i])
 		if err := p.deleteFile(ctx, l); err != nil {
 			return err
 		}
@@ -172,8 +203,8 @@ func (p *purger) deleteFiles(ctx context.Context, baseDir string, files []string
 }
 
 func (p *purger) deleteFile(ctx context.Context, path string) error {
-	p.Logger.Debug(ctx, "Deleting file", "host", p.HostInfo.IP, "path", path)
-	err := p.Client.RcloneDeleteFile(ctx, p.HostInfo.IP, path)
+	p.Logger.Debug(ctx, "Deleting file", "host", p.Host, "path", path)
+	err := p.Client.RcloneDeleteFile(ctx, p.Host, path)
 	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 		err = nil
 	}

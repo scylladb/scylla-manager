@@ -1207,9 +1207,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 func TestPurgeIntegration(t *testing.T) {
 	const (
-		testBucket    = "backuptest-purge"
-		testKeyspace  = "backuptest_purge"
-		testKeyspace2 = "backuptest_purge2"
+		testBucket   = "backuptest-purge"
+		testKeyspace = "backuptest_purge"
 	)
 
 	location := s3Location(testBucket)
@@ -1239,7 +1238,7 @@ func TestPurgeIntegration(t *testing.T) {
 	target2 := backup.Target{
 		Units: []backup.Unit{
 			{
-				Keyspace: testKeyspace2,
+				Keyspace: testKeyspace,
 			},
 		},
 		DC:        []string{"dc1"},
@@ -1247,9 +1246,13 @@ func TestPurgeIntegration(t *testing.T) {
 		Retention: 1,
 	}
 
-	Print("When: run first backup task 3 times")
+	Print("When: run both backup task 3 times")
+	task2ID := uuid.NewTime()
 	var runID uuid.UUID
 	for i := 0; i < 3; i++ {
+		// Ensure different snapshot tag between tasks
+		time.Sleep(1 * time.Second)
+
 		writeData(t, clusterSession, testKeyspace, 3)
 		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 			t.Fatal(err)
@@ -1258,12 +1261,10 @@ func TestPurgeIntegration(t *testing.T) {
 		if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
 			t.Fatal(err)
 		}
-	}
 
-	Print("When: run second backup task 3 times")
-	task2ID := uuid.NewTime()
-	for i := 0; i < 3; i++ {
-		writeData(t, clusterSession, testKeyspace2, 3)
+		// Ensure different snapshot tag between tasks
+		time.Sleep(1 * time.Second)
+
 		if err := h.service.InitTarget(ctx, h.clusterID, &target2); err != nil {
 			t.Fatal(err)
 		}
@@ -1271,6 +1272,21 @@ func TestPurgeIntegration(t *testing.T) {
 		if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target2); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
+	if firstTaskTags.Size() != target.Retention {
+		t.Errorf("First task retention policy is not preserved, expected %d, got %d snapshots", target.Retention, firstTaskTags.Size())
+	}
+
+	secondTaskTags := getTaskTags(t, ctx, h, task2ID)
+	if secondTaskTags.Size() != target2.Retention {
+		t.Errorf("Second task retention policy is not preserved, expected %d, got %d snapshots", target.Retention, secondTaskTags.Size())
+	}
+
+	allSnapshotTags := getTaskTags(t, ctx, h, uuid.Nil)
+	if !allSnapshotTags.IsSubset(firstTaskTags) {
+		t.Error("First task snapshot was removed during second task purging")
 	}
 
 	Print("Then: there are tree backups in total (2+1)")
@@ -1316,6 +1332,141 @@ func TestPurgeIntegration(t *testing.T) {
 			t.Errorf("Unexpected file %s", f)
 		}
 	}
+}
+
+func TestBackupSnapshotDeleteIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-delete"
+		testKeyspace = "backuptest_delete"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSession(t)
+
+		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+		ctx = context.Background()
+	)
+
+	Print("Given: retention policy of 1 for the both task")
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 1,
+	}
+
+	Print("Given: given same data in shared keyspace")
+	writeData(t, clusterSession, testKeyspace, 3)
+
+	Print("When: both tasks backup same data")
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+	runID := uuid.NewTime()
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	// Ensure second task has different snapshot tag
+	time.Sleep(1 * time.Second)
+
+	task2ID := uuid.NewTime()
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	runID = uuid.NewTime()
+	if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: both tasks references same data")
+
+	firstTaskFilePaths := getTaskFiles(t, ctx, h, h.taskID)
+	secondTaskFilePaths := getTaskFiles(t, ctx, h, task2ID)
+
+	filesSymmetricDifference := strset.New(firstTaskFilePaths...)
+	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
+	if !filesSymmetricDifference.IsEmpty() {
+		t.Fatal("Expected to have same SST files in both tasks")
+	}
+
+	Print("When: first task snapshot is deleted")
+
+	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
+	if firstTaskTags.Size() != 1 {
+		t.Fatal("Expected have single snapshot in first task")
+	}
+
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []backup.Location{h.location}, firstTaskTags.Pop()); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: no files are removed")
+	_, _, files := h.listS3Files()
+	if len(files) == 0 {
+		t.Fatal("Expected to have second task files in storage")
+	}
+	filesSymmetricDifference = strset.New(filterOutVersionFiles(files)...)
+	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
+
+	if !filesSymmetricDifference.IsEmpty() {
+		t.Fatal("Second task files were removed during first task snapshot delete")
+	}
+
+	Print("When: last snapshot is removed")
+	secondTaskTags := getTaskTags(t, ctx, h, task2ID)
+	if secondTaskTags.Size() != 1 {
+		t.Fatalf("Expected have single snapshot in second task, got %d", secondTaskTags.Size())
+	}
+
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []backup.Location{h.location}, secondTaskTags.Pop()); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: bucket is empty")
+	manifests, schemas, files := h.listS3Files()
+	sstFiles := filterOutVersionFiles(files)
+	if len(manifests) != 0 || len(schemas) != 0 || len(sstFiles) != 0 {
+		t.Errorf("Not all files were removed.\nmanifests: %s\nschemas: %s\nsstfiles: %s", manifests, schemas, sstFiles)
+	}
+}
+
+func filterOutVersionFiles(files []string) []string {
+	filtered := files[:0]
+	for _, f := range files {
+		if !strings.HasSuffix(f, backup.MetadataVersion) {
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered
+}
+
+func getTaskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) []string {
+	t.Helper()
+
+	filesFilter := backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID}
+	taskFiles, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{h.location}, filesFilter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var taskFilesPaths []string
+	for _, tf := range taskFiles {
+		for _, fi := range tf.Files {
+			for _, f := range fi.Files {
+				taskFilesPaths = append(taskFilesPaths, path.Join(fi.Path, f))
+			}
+		}
+	}
+	return taskFilesPaths
 }
 
 func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
@@ -1519,6 +1670,23 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 			t.Fatalf("Expected to not have any directories at %s path, got %v", manifestDir, dirs)
 		}
 	}
+}
+
+func getTaskTags(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) *strset.Set {
+	backups, err := h.service.List(ctx, h.clusterID, []backup.Location{h.location},
+		backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	taskTags := strset.New()
+	for _, b := range backups {
+		for _, si := range b.SnapshotInfo {
+			taskTags.Add(si.SnapshotTag)
+		}
+	}
+
+	return taskTags
 }
 
 func overwriteClusterIDs(t *testing.T, dc string, nodeIDs []string, h *backupTestHelper) {

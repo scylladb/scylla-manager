@@ -50,6 +50,7 @@ while [[ $# > 0 ]]; do
     esac
 done
 
+openssl rand -out "$HOME/.rnd" 2096
 openssl genrsa -out "${key_file}" 4096
 openssl req -new -x509 -sha512 -subj "${subject}" -key "${key_file}" -out "${crt_file}" -days 365
 chown scylla-manager:scylla-manager "${key_file}" "${crt_file}" ||:

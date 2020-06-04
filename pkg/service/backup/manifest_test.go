@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"path"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -342,6 +341,14 @@ func TestListManifests(t *testing.T) {
 				NodeID:    "49f5a202-6661-4a1e-a674-4c7b97247fdb",
 			},
 		},
+		{
+			Name:       "List overlapping snapshots",
+			Location:   Location{Provider: "walker", Path: "overlap-snapshots"},
+			GoldenFile: "testdata/walker/overlap-snapshots/golden.json",
+			Filter: ListFilter{
+				ClusterID: uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
+			},
+		},
 	}
 
 	for i := range ts {
@@ -358,11 +365,6 @@ func TestListManifests(t *testing.T) {
 			if err != nil {
 				t.Fatal("listManifests() error", err)
 			}
-
-			// Sort for repeatable runs
-			sort.Slice(manifests, func(i, j int) bool {
-				return path.Join(manifests[i].CleanPath...) < path.Join(manifests[j].CleanPath...)
-			})
 
 			var manifestPaths []string
 			for _, m := range manifests {

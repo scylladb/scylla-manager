@@ -927,3 +927,74 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 
 	return aggregateProgress(run, NewProgressVisitor(run, s.session))
 }
+
+// DeleteSnapshot deletes backup data and meta files associated with provided snapshotTag.
+func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []Location, snapshotTag string) error {
+	s.logger.Debug(ctx, "DeleteSnapshot",
+		"cluster_id", clusterID,
+		"snapshot_tag", snapshotTag,
+	)
+
+	// Get the cluster client
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "get scylla client")
+	}
+
+	// Resolve hosts for locations
+	hosts := make([]hostInfo, len(locations))
+	for i := range locations {
+		hosts[i].Location = locations[i]
+	}
+	if err := s.resolveHosts(ctx, client, hosts); err != nil {
+		return errors.Wrap(err, "resolve hosts")
+	}
+
+	// Count 'not found' errors, if all hosts returns them, this function
+	// will also return 'not found'.
+	notFoundErrors := 0
+
+	// Delete snapshot files, one host per location.
+	err = hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+		s.logger.Info(ctx, "Purging snapshot data on host", "host", h.IP)
+		p := &purger{
+			Host:     h.IP,
+			Location: h.Location,
+			Filter: ListFilter{
+				ClusterID: clusterID,
+				DC:        h.DC,
+			},
+			Client:         client,
+			ManifestHelper: newPurgerManifestHelper(h.IP, h.Location, client, s.logger),
+			Logger:         s.logger,
+		}
+
+		if err := p.PurgeSnapshot(ctx, snapshotTag); err != nil {
+			s.logger.Error(ctx, "Failed to delete remote snapshot",
+				"host", h.IP,
+				"location", h.Location,
+				"error", err,
+			)
+			if errors.Cause(err) == service.ErrNotFound {
+				notFoundErrors++
+				return nil
+			}
+			return err
+		}
+		if err != nil {
+			s.logger.Error(ctx, "Purging snapshot data failed on host", "host", h.IP, "error", err)
+		} else {
+			s.logger.Info(ctx, "Done purging snapshot data on host", "host", h.IP)
+		}
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	if notFoundErrors == len(hosts) {
+		return service.ErrNotFound
+	}
+
+	return nil
+}

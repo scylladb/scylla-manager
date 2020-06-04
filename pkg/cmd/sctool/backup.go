@@ -355,3 +355,44 @@ func init() {
 
 	requireFlags(cmd, "snapshot-tag")
 }
+
+var backupDeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Deletes backup snapshot",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var (
+			location    []string
+			snapshotTag string
+			err         error
+		)
+
+		location, err = cmd.Flags().GetStringSlice("location")
+		if err != nil {
+			return err
+		}
+		snapshotTag, err = cmd.Flags().GetString("snapshot-tag")
+		if err != nil {
+			return err
+		}
+
+		err = client.DeleteSnapshot(ctx, cfgCluster, location, snapshotTag)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+func init() {
+	cmd := backupDeleteCmd
+	withScyllaDocs(cmd, "/sctool/#backup-delete-snapshot")
+	register(cmd, backupCmd)
+
+	fs := cmd.Flags()
+	fs.StringSliceP("location", "L", nil,
+		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
+	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
+
+	requireFlags(cmd, "snapshot-tag")
+}
