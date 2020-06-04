@@ -337,3 +337,66 @@ func TestFormatUploadProgress(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatRepairProgress(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Name    string
+		Total   int64
+		Success int64
+		Skipped int64
+		Failed  int64
+		Golden  string
+	}{
+		{
+			Name:    "zero",
+			Total:   0,
+			Success: 0,
+			Golden:  "-",
+		},
+		{
+			Name:    "everything uploaded",
+			Total:   1536,
+			Success: 1536,
+			Golden:  "100%",
+		},
+		{
+			Name:   "no progress",
+			Total:  1536,
+			Golden: "0%",
+		},
+		{
+			Name:   "everything failed",
+			Total:  1536,
+			Failed: 1536,
+			Golden: "0%/100%",
+		},
+		{
+			Name:    "partial failure complete",
+			Total:   1536,
+			Success: 1228,
+			Failed:  308,
+			Golden:  "80%/20%",
+		},
+		{
+			Name:    "partial failure not-complete",
+			Total:   1536,
+			Success: 1229,
+			Failed:  154,
+			Golden:  "80%/10%",
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
+			if s := FormatRepairProgress(test.Total, test.Success, test.Failed); s != test.Golden {
+				t.Errorf("FormatRepairProgress() expected %s got %s", test.Golden, s)
+			}
+		})
+	}
+}

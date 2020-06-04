@@ -117,79 +117,27 @@
     "RepairProgress": {
       "type": "object",
       "properties": {
-        "percent_complete": {
+        "token_ranges": {
           "type": "number",
-          "format": "float"
+          "format": "int"
         },
-        "percent_failed": {
+        "success": {
           "type": "number",
-          "format": "float"
+          "format": "int"
         },
-        "units": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "percent_complete": {
-                "type": "number",
-                "format": "float"
-              },
-              "percent_failed": {
-                "type": "number",
-                "format": "float"
-              },
-              "unit": {
-                "$ref": "#/definitions/RepairUnit"
-              },
-              "nodes": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "percent_complete": {
-                      "type": "number",
-                      "format": "float"
-                    },
-                    "percent_failed": {
-                      "type": "number",
-                      "format": "float"
-                    },
-                    "host": {
-                      "type": "string"
-                    },
-                    "shards": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "percent_complete": {
-                            "type": "number",
-                            "format": "float"
-                          },
-                          "percent_failed": {
-                            "type": "number",
-                            "format": "float"
-                          },
-                          "segment_count": {
-                            "type": "number",
-                            "format": "int"
-                          },
-                          "segment_success": {
-                            "type": "number",
-                            "format": "int"
-                          },
-                          "segment_error": {
-                            "type": "number",
-                            "format": "int"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+        "error": {
+          "type": "number",
+          "format": "int"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "dcs": {
           "type": "array",
@@ -197,7 +145,59 @@
             "type": "string"
           }
         },
-        "ranges": {
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "tables": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/TableRepairProgress"
+                }
+              }
+            }
+          }
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TableRepairProgress"
+          }
+        }
+      }
+    },
+    "TableRepairProgress": {
+      "properties": {
+        "token_ranges": {
+          "type": "number",
+          "format": "int"
+        },
+        "success": {
+          "type": "number",
+          "format": "int"
+        },
+        "error": {
+          "type": "number",
+          "format": "int"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "keyspace": {
+          "type": "string"
+        },
+        "table": {
           "type": "string"
         }
       }
@@ -946,7 +946,7 @@
             "type": "boolean",
             "name": "ssl_user_cert",
             "in": "query"
-           }
+          }
         ],
         "responses": {
           "200": {

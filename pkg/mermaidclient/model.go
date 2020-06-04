@@ -328,28 +328,10 @@ func (rp *RepairProgress) SetKeyspaceFilter(filters []string) (err error) {
 	return
 }
 
-// hideUnit returns true if unit data doesn't match host and keyspace filters.
-// This includes keyspaces that don't have references to filtered hosts.
-func (rp RepairProgress) hideUnit(u *models.RepairProgressUnitsItems0) bool {
-	if u == nil {
-		return true
-	}
-
-	if rp.hostFilter.Size() > 0 {
-		match := false
-		for _, n := range u.Nodes {
-			if rp.hostFilter.FirstMatch(n.Host) != -1 {
-				match = true
-				break
-			}
-		}
-		if !match {
-			return true
-		}
-	}
-
+// hideKeyspace returns true if provided keyspace should be hidden.
+func (rp RepairProgress) hideKeyspace(keyspace string) bool {
 	if rp.keyspaceFilter.Size() > 0 {
-		if rp.keyspaceFilter.FirstMatch(u.Unit.Keyspace) == -1 {
+		if rp.keyspaceFilter.FirstMatch(keyspace) == -1 {
 			return true
 		}
 	}
@@ -369,35 +351,40 @@ func (rp RepairProgress) Render(w io.Writer) error {
 		return err
 	}
 
-	if rp.Progress != nil {
-		t := table.New()
-		rp.addRepairUnitProgress(t)
-		t.SetColumnAlignment(termtables.AlignRight, 1)
-		if _, err := io.WriteString(w, t.String()); err != nil {
-			return err
-		}
+	if rp.Progress == nil {
+		return nil
 	}
 
-	if rp.Progress != nil && rp.Detailed {
-		d := table.New()
-		addSeparator := false
-		for _, u := range rp.Progress.Units {
-			if rp.hideUnit(u) {
+	t := table.New()
+	rp.addRepairTableProgress(t)
+	t.SetColumnAlignment(termtables.AlignRight, 1)
+	if _, err := io.WriteString(w, t.String()); err != nil {
+		return err
+	}
+
+	if rp.Detailed {
+		for _, h := range rp.Progress.PerHost {
+			if rp.hideHost(h.Host) {
 				continue
 			}
-			if addSeparator {
-				d.AddSeparator()
+			fmt.Fprintf(w, "\nHost: %s\n", h.Host)
+			d := table.New()
+			d.AddRow("Keyspace", "Table", "Progress", "Token Ranges", "Success", "Error", "Started at", "Completed at", "Duration")
+			d.AddSeparator()
+			ks := ""
+			for _, t := range h.Tables {
+				if ks == "" {
+					ks = t.Keyspace
+				} else if ks != t.Keyspace {
+					ks = t.Keyspace
+					d.AddSeparator()
+				}
+				rp.addRepairTableDetailedProgress(d, t)
 			}
-			d.AddRow(u.Unit.Keyspace, "Shard", "Progress", "Segment count", "Segment success", "Segment error")
-			addSeparator = true
-			if len(u.Nodes) > 0 {
-				d.AddSeparator()
-				rp.addRepairUnitDetailedProgress(d, u)
+			d.SetColumnAlignment(termtables.AlignRight, 2, 3, 4, 5, 6, 7, 8)
+			if _, err := w.Write([]byte(d.String())); err != nil {
+				return err
 			}
-		}
-		d.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
-		if _, err := w.Write([]byte(d.String())); err != nil {
-			return err
 		}
 	}
 	return nil
@@ -418,26 +405,23 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	{{ FormatProgress .PercentComplete .PercentFailed }}
-{{- if .Ranges }}
-Token ranges:	{{ .Ranges }}
-{{ end -}}
-{{ if .Dcs }}
-Datacenters:	{{ range .Dcs }}
+{{ with .Progress }}Progress:	{{ FormatRepairProgress .TokenRanges .Success .Error }}
+{{ if .Dcs }}Datacenters:	{{ range .Dcs }}
   - {{ . }}
 {{- end }}
 {{ end -}}
-{{ else }}Progress:	0%
-{{ end }}`
+{{ else }}Progress:	-
+{{ end }}
+`
 
 func (rp RepairProgress) addHeader(w io.Writer) error {
 	temp := template.Must(template.New("repair_progress").Funcs(template.FuncMap{
-		"isZero":         isZero,
-		"FormatTime":     FormatTime,
-		"FormatDuration": FormatDuration,
-		"FormatError":    FormatError,
-		"FormatProgress": FormatProgress,
-		"arguments":      rp.arguments,
+		"isZero":               isZero,
+		"FormatTime":           FormatTime,
+		"FormatDuration":       FormatDuration,
+		"FormatError":          FormatError,
+		"FormatRepairProgress": FormatRepairProgress,
+		"arguments":            rp.arguments,
 	}).Parse(repairProgressTemplate))
 	return temp.Execute(w, rp)
 }
@@ -447,31 +431,66 @@ func (rp RepairProgress) arguments() string {
 	return NewCmdRenderer(rp.Task, RenderTypeArgs).String()
 }
 
-func (rp RepairProgress) addRepairUnitProgress(t *table.Table) {
-	for _, u := range rp.Progress.Units {
-		if rp.hideUnit(u) {
+func (rp RepairProgress) addRepairTableProgress(d *table.Table) {
+	if len(rp.Progress.PerTable) > 0 {
+		d.AddRow("Keyspace", "Table", "Progress", "Duration")
+		d.AddSeparator()
+	}
+
+	ks := ""
+	for _, t := range rp.Progress.PerTable {
+		if rp.hideKeyspace(t.Keyspace) {
 			continue
 		}
-		p := "-"
-		if len(u.Nodes) > 0 {
-			p = FormatProgress(u.PercentComplete, u.PercentFailed)
+		if ks == "" {
+			ks = t.Keyspace
+		} else if ks != t.Keyspace {
+			ks = t.Keyspace
+			d.AddSeparator()
 		}
-		t.AddRow(u.Unit.Keyspace, p)
+		p := "-"
+		if t.TokenRanges > 0 {
+			p = FormatRepairProgress(t.TokenRanges, t.Success, t.Error)
+		}
+		startedAt := strfmt.DateTime{}
+		completedAt := strfmt.DateTime{}
+		if t.StartedAt != nil {
+			startedAt = *t.StartedAt
+			if t.CompletedAt != nil {
+				completedAt = *t.CompletedAt
+			} else {
+				completedAt = rp.Run.EndTime
+			}
+		}
+
+		d.AddRow(t.Keyspace, t.Table, p, FormatDuration(startedAt, completedAt))
 	}
 }
 
-// RepairUnitProgress contains unit progress info.
-type RepairUnitProgress = models.RepairProgressUnitsItems0
-
-func (rp RepairProgress) addRepairUnitDetailedProgress(t *table.Table, u *RepairUnitProgress) {
-	for _, n := range u.Nodes {
-		if rp.hideHost(n.Host) {
-			continue
-		}
-		for i, s := range n.Shards {
-			t.AddRow(n.Host, i, FormatProgress(s.PercentComplete, s.PercentFailed), s.SegmentCount, s.SegmentSuccess, s.SegmentError)
+func (rp RepairProgress) addRepairTableDetailedProgress(d *table.Table, t *models.TableRepairProgress) {
+	if rp.hideKeyspace(t.Keyspace) {
+		return
+	}
+	startedAt := strfmt.DateTime{}
+	completedAt := strfmt.DateTime{}
+	if t.StartedAt != nil {
+		startedAt = *t.StartedAt
+		if t.CompletedAt != nil {
+			completedAt = *t.CompletedAt
+		} else {
+			completedAt = rp.Run.EndTime
 		}
 	}
+	d.AddRow(t.Keyspace,
+		t.Table,
+		FormatRepairProgress(t.TokenRanges, t.Success, t.Error),
+		t.TokenRanges,
+		t.Success,
+		t.Error,
+		FormatTime(startedAt),
+		FormatTime(completedAt),
+		FormatDuration(startedAt, completedAt),
+	)
 }
 
 // BackupProgress contains shard progress info.

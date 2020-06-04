@@ -12,33 +12,57 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // RepairProgress repair progress
 // swagger:model RepairProgress
 type RepairProgress struct {
 
+	// completed at
+	// Format: date-time
+	CompletedAt *strfmt.DateTime `json:"completed_at,omitempty"`
+
 	// dcs
 	Dcs []string `json:"dcs"`
 
-	// percent complete
-	PercentComplete float32 `json:"percent_complete,omitempty"`
+	// error
+	Error int64 `json:"error,omitempty"`
 
-	// percent failed
-	PercentFailed float32 `json:"percent_failed,omitempty"`
+	// per host
+	PerHost []*RepairProgressPerHostItems0 `json:"per_host"`
 
-	// ranges
-	Ranges string `json:"ranges,omitempty"`
+	// per table
+	PerTable []*TableRepairProgress `json:"per_table"`
 
-	// units
-	Units []*RepairProgressUnitsItems0 `json:"units"`
+	// started at
+	// Format: date-time
+	StartedAt *strfmt.DateTime `json:"started_at,omitempty"`
+
+	// success
+	Success int64 `json:"success,omitempty"`
+
+	// token ranges
+	TokenRanges int64 `json:"token_ranges,omitempty"`
 }
 
 // Validate validates this repair progress
 func (m *RepairProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateUnits(formats); err != nil {
+	if err := m.validateCompletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePerHost(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePerTable(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStartedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -48,26 +72,77 @@ func (m *RepairProgress) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RepairProgress) validateUnits(formats strfmt.Registry) error {
+func (m *RepairProgress) validateCompletedAt(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Units) { // not required
+	if swag.IsZero(m.CompletedAt) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Units); i++ {
-		if swag.IsZero(m.Units[i]) { // not required
+	if err := validate.FormatOf("completed_at", "body", "date-time", m.CompletedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *RepairProgress) validatePerHost(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.PerHost) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.PerHost); i++ {
+		if swag.IsZero(m.PerHost[i]) { // not required
 			continue
 		}
 
-		if m.Units[i] != nil {
-			if err := m.Units[i].Validate(formats); err != nil {
+		if m.PerHost[i] != nil {
+			if err := m.PerHost[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("units" + "." + strconv.Itoa(i))
+					return ve.ValidateName("per_host" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *RepairProgress) validatePerTable(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.PerTable) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.PerTable); i++ {
+		if swag.IsZero(m.PerTable[i]) { // not required
+			continue
+		}
+
+		if m.PerTable[i] != nil {
+			if err := m.PerTable[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("per_table" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *RepairProgress) validateStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("started_at", "body", "date-time", m.StartedAt.String(), formats); err != nil {
+		return err
 	}
 
 	return nil
@@ -91,124 +166,22 @@ func (m *RepairProgress) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// RepairProgressUnitsItems0 repair progress units items0
-// swagger:model RepairProgressUnitsItems0
-type RepairProgressUnitsItems0 struct {
-
-	// nodes
-	Nodes []*RepairProgressUnitsItems0NodesItems0 `json:"nodes"`
-
-	// percent complete
-	PercentComplete float32 `json:"percent_complete,omitempty"`
-
-	// percent failed
-	PercentFailed float32 `json:"percent_failed,omitempty"`
-
-	// unit
-	Unit *RepairUnit `json:"unit,omitempty"`
-}
-
-// Validate validates this repair progress units items0
-func (m *RepairProgressUnitsItems0) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateNodes(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateUnit(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *RepairProgressUnitsItems0) validateNodes(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Nodes) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Nodes); i++ {
-		if swag.IsZero(m.Nodes[i]) { // not required
-			continue
-		}
-
-		if m.Nodes[i] != nil {
-			if err := m.Nodes[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("nodes" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
-
-func (m *RepairProgressUnitsItems0) validateUnit(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Unit) { // not required
-		return nil
-	}
-
-	if m.Unit != nil {
-		if err := m.Unit.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("unit")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *RepairProgressUnitsItems0) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *RepairProgressUnitsItems0) UnmarshalBinary(b []byte) error {
-	var res RepairProgressUnitsItems0
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
-}
-
-// RepairProgressUnitsItems0NodesItems0 repair progress units items0 nodes items0
-// swagger:model RepairProgressUnitsItems0NodesItems0
-type RepairProgressUnitsItems0NodesItems0 struct {
+// RepairProgressPerHostItems0 repair progress per host items0
+// swagger:model RepairProgressPerHostItems0
+type RepairProgressPerHostItems0 struct {
 
 	// host
 	Host string `json:"host,omitempty"`
 
-	// percent complete
-	PercentComplete float32 `json:"percent_complete,omitempty"`
-
-	// percent failed
-	PercentFailed float32 `json:"percent_failed,omitempty"`
-
-	// shards
-	Shards []*RepairProgressUnitsItems0NodesItems0ShardsItems0 `json:"shards"`
+	// tables
+	Tables []*TableRepairProgress `json:"tables"`
 }
 
-// Validate validates this repair progress units items0 nodes items0
-func (m *RepairProgressUnitsItems0NodesItems0) Validate(formats strfmt.Registry) error {
+// Validate validates this repair progress per host items0
+func (m *RepairProgressPerHostItems0) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateShards(formats); err != nil {
+	if err := m.validateTables(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -218,21 +191,21 @@ func (m *RepairProgressUnitsItems0NodesItems0) Validate(formats strfmt.Registry)
 	return nil
 }
 
-func (m *RepairProgressUnitsItems0NodesItems0) validateShards(formats strfmt.Registry) error {
+func (m *RepairProgressPerHostItems0) validateTables(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Shards) { // not required
+	if swag.IsZero(m.Tables) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Shards); i++ {
-		if swag.IsZero(m.Shards[i]) { // not required
+	for i := 0; i < len(m.Tables); i++ {
+		if swag.IsZero(m.Tables[i]) { // not required
 			continue
 		}
 
-		if m.Shards[i] != nil {
-			if err := m.Shards[i].Validate(formats); err != nil {
+		if m.Tables[i] != nil {
+			if err := m.Tables[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("shards" + "." + strconv.Itoa(i))
+					return ve.ValidateName("tables" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -244,7 +217,7 @@ func (m *RepairProgressUnitsItems0NodesItems0) validateShards(formats strfmt.Reg
 }
 
 // MarshalBinary interface implementation
-func (m *RepairProgressUnitsItems0NodesItems0) MarshalBinary() ([]byte, error) {
+func (m *RepairProgressPerHostItems0) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -252,51 +225,8 @@ func (m *RepairProgressUnitsItems0NodesItems0) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *RepairProgressUnitsItems0NodesItems0) UnmarshalBinary(b []byte) error {
-	var res RepairProgressUnitsItems0NodesItems0
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
-}
-
-// RepairProgressUnitsItems0NodesItems0ShardsItems0 repair progress units items0 nodes items0 shards items0
-// swagger:model RepairProgressUnitsItems0NodesItems0ShardsItems0
-type RepairProgressUnitsItems0NodesItems0ShardsItems0 struct {
-
-	// percent complete
-	PercentComplete float32 `json:"percent_complete,omitempty"`
-
-	// percent failed
-	PercentFailed float32 `json:"percent_failed,omitempty"`
-
-	// segment count
-	SegmentCount int64 `json:"segment_count,omitempty"`
-
-	// segment error
-	SegmentError int64 `json:"segment_error,omitempty"`
-
-	// segment success
-	SegmentSuccess int64 `json:"segment_success,omitempty"`
-}
-
-// Validate validates this repair progress units items0 nodes items0 shards items0
-func (m *RepairProgressUnitsItems0NodesItems0ShardsItems0) Validate(formats strfmt.Registry) error {
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *RepairProgressUnitsItems0NodesItems0ShardsItems0) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *RepairProgressUnitsItems0NodesItems0ShardsItems0) UnmarshalBinary(b []byte) error {
-	var res RepairProgressUnitsItems0NodesItems0ShardsItems0
+func (m *RepairProgressPerHostItems0) UnmarshalBinary(b []byte) error {
+	var res RepairProgressPerHostItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

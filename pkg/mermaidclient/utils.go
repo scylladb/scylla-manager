@@ -108,17 +108,19 @@ func uuidFromLocation(location string) (uuid.UUID, error) {
 	return uuid.Parse(id)
 }
 
-// FormatProgress creates complete vs. failed representation.
-func FormatProgress(complete, failed float32) string {
-	if failed == 0 {
-		return FormatPercent(complete)
+// FormatRepairProgress returns string representation of percentage of
+// successful and error repair ranges.
+func FormatRepairProgress(total, success, failed int64) string {
+	if total == 0 {
+		return "-"
 	}
-	return FormatPercent(complete) + " / " + FormatPercent(failed)
-}
-
-// FormatPercent simply creates a percent representation of the supplied value.
-func FormatPercent(p float32) string {
-	return fmt.Sprintf("%0.2f%%", p)
+	out := fmt.Sprintf("%.f%%",
+		float64(success)*100/float64(total),
+	)
+	if failed > 0 {
+		out += fmt.Sprintf("/%.f%%", float64(failed)*100/float64(total))
+	}
+	return out
 }
 
 // FormatUploadProgress calculates percentage of success and failed uploads
@@ -134,6 +136,11 @@ func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
 		out += fmt.Sprintf("/%d%%", failed*100/size)
 	}
 	return out
+}
+
+// FormatPercent simply creates a percent representation of the supplied value.
+func FormatPercent(p float32) string {
+	return fmt.Sprintf("%0.2f%%", p)
 }
 
 // ByteCountBinary returns string representation of the byte count with proper
@@ -169,6 +176,7 @@ func FormatTime(t strfmt.DateTime) string {
 
 // FormatDuration creates and formats the duration between
 // the supplied DateTime values.
+// If t1 is zero it will default to current time.
 func FormatDuration(t0, t1 strfmt.DateTime) string {
 	if isZero(t0) && isZero(t1) {
 		return "0s"
