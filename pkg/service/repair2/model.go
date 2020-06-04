@@ -18,7 +18,7 @@ type Target struct {
 	DC        []string `json:"dc"`
 	FailFast  bool     `json:"fail_fast"`
 	Continue  bool     `json:"continue"`
-	Intensity int      `json:"intensity"`
+	Intensity float64  `json:"intensity"`
 }
 
 // taskProperties is the main data structure of the runner.Properties blob.
@@ -27,7 +27,7 @@ type taskProperties struct {
 	DC        []string `json:"dc"`
 	FailFast  bool     `json:"fail_fast"`
 	Continue  bool     `json:"continue"`
-	Intensity int      `json:"intensity"`
+	Intensity float64  `json:"intensity"`
 }
 
 func defaultTaskProperties() *taskProperties {

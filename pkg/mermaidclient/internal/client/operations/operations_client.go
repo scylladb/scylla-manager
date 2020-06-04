@@ -487,6 +487,39 @@ func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
 }
 
 /*
+PostClusterClusterIDRepairsIntensity post cluster cluster ID repairs intensity API
+*/
+func (a *Client) PostClusterClusterIDRepairsIntensity(params *PostClusterClusterIDRepairsIntensityParams) (*PostClusterClusterIDRepairsIntensityOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPostClusterClusterIDRepairsIntensityParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PostClusterClusterIDRepairsIntensity",
+		Method:             "POST",
+		PathPattern:        "/cluster/{cluster_id}/repairs/intensity",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PostClusterClusterIDRepairsIntensityReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PostClusterClusterIDRepairsIntensityOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PostClusterClusterIDRepairsIntensityDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 PostClusterClusterIDTasks post cluster cluster ID tasks API
 */
 func (a *Client) PostClusterClusterIDTasks(params *PostClusterClusterIDTasksParams) (*PostClusterClusterIDTasksCreated, error) {

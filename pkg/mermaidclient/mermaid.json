@@ -1883,6 +1883,53 @@
           }
         }
       }
+    },
+    "/cluster/{cluster_id}/repairs/intensity": {
+      "post": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "name": "intensity",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
     }
   }
 }

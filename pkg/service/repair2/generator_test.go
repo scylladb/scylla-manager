@@ -30,6 +30,16 @@ func (w fakeWorker) takeJob() (job, bool) {
 	return job, ok
 }
 
+func (w fakeWorker) tryTakeJob() (job, bool) {
+	select {
+	case job, ok := <-w.In:
+		return job, ok
+	default:
+	}
+
+	return job{}, false
+}
+
 func (w fakeWorker) execute(j job) {
 	w.Out <- jobResult{
 		job: j,
@@ -101,6 +111,8 @@ func TestGenerator(t *testing.T) {
 		return a.Pos < b.Pos
 	}
 
+	intensityCh := make(chan float64, 1)
+
 	t.Run("Basic", func(t *testing.T) {
 		ranges := []scyllaclient.TokenRange{
 			{
@@ -126,10 +138,11 @@ func TestGenerator(t *testing.T) {
 		}
 
 		target := Target{
-			DC: []string{"dc1", "dc2"},
+			DC:        []string{"dc1", "dc2"},
+			Intensity: 50,
 		}
 		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-		g := newGenerator(target, gracefulShutdownTimeout, log.NewDevelopment())
+		g := newGenerator(intensityCh, gracefulShutdownTimeout, log.NewDevelopment())
 
 		var allRanges []*tableTokenRange
 		for _, u := range units {
@@ -138,6 +151,7 @@ func TestGenerator(t *testing.T) {
 		}
 
 		g.SetHostPriority(hostPriority)
+
 		g.Init(workerCount(ranges))
 		ctx := context.Background()
 		go g.Run(ctx)
@@ -180,7 +194,7 @@ func TestGenerator(t *testing.T) {
 			target := Target{
 				DC: []string{"dc1", "dc2"},
 			}
-			g := makeGenerator(target, units, hostDC, ranges, hostPriority, rangeLimits)
+			g := makeGenerator(target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
 			ctx := context.Background()
 			go g.Run(ctx)
 
@@ -204,7 +218,7 @@ func TestGenerator(t *testing.T) {
 				DC:        []string{"dc1", "dc2"},
 				Intensity: 10,
 			}
-			g := makeGenerator(target, units, hostDC, ranges, hostPriority, rangeLimits)
+			g := makeGenerator(target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
 			ctx := context.Background()
 			go g.Run(ctx)
 
@@ -217,9 +231,104 @@ func TestGenerator(t *testing.T) {
 
 			// Check that ranges follow host limit
 			for _, j := range jobs {
-				if len(j.Ranges) > target.Intensity {
+				if len(j.Ranges) > int(target.Intensity) {
 					t.Errorf("%s host received more ranges than intensity", j.Host)
 				}
+			}
+		})
+
+		t.Run("number of active hosts is limited by intensity between (0, 1)", func(t *testing.T) {
+			ranges = []scyllaclient.TokenRange{
+				{
+					StartToken: 1,
+					EndToken:   2,
+					Replicas:   []string{"a", "b"},
+				},
+				{
+					StartToken: 3,
+					EndToken:   4,
+					Replicas:   []string{"c", "d"},
+				},
+				{
+					StartToken: 5,
+					EndToken:   6,
+					Replicas:   []string{"e", "f"},
+				},
+			}
+
+			table := []struct {
+				Name                  string
+				Intensity             float64
+				ExpectedActiveWorkers int
+			}{
+				{
+					Name:                  "One third",
+					Intensity:             0.333,
+					ExpectedActiveWorkers: 1,
+				},
+				{
+					Name:                  "Two thirds",
+					Intensity:             0.666,
+					ExpectedActiveWorkers: 2,
+				},
+				{
+					Name:                  "Three thirds",
+					Intensity:             0.999,
+					ExpectedActiveWorkers: 3,
+				},
+				{
+					Name:                  "Intensity close to 0 does not stop progress",
+					Intensity:             0.001,
+					ExpectedActiveWorkers: 1,
+				},
+			}
+
+			for i := range table {
+				test := table[i]
+				t.Run(test.Name, func(t *testing.T) {
+					intensityCh = make(chan float64, 1)
+					target := Target{
+						DC:        []string{"dc1", "dc2"},
+						Intensity: test.Intensity,
+					}
+					g := makeGenerator(target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
+					ctx := context.Background()
+
+					generatorStarted := make(chan struct{})
+					go func() {
+						close(generatorStarted)
+						g.Run(ctx)
+					}()
+					<-generatorStarted
+
+					workers := make([]fakeWorker, workerCount(ranges))
+					for i := range workers {
+						workers[i] = fakeWorker{
+							In:     g.Next(),
+							Out:    g.Result(),
+							Logger: log.NewDevelopment(),
+						}
+					}
+
+					var jobs []job
+					for _, w := range workers {
+						j, ok := w.tryTakeJob()
+						if ok {
+							jobs = append(jobs, j)
+						}
+					}
+
+					activeWorkers := float64(len(jobs))
+					if a, b := epsilonRange(float64(test.ExpectedActiveWorkers)); activeWorkers < a || activeWorkers > b {
+						t.Errorf("number of active workers differs from limit, expected %d, got %.0f ", test.ExpectedActiveWorkers, activeWorkers)
+					}
+
+					for _, j := range jobs {
+						if len(j.Ranges) != 1 {
+							t.Errorf("workers repair more than 1 range at a time")
+						}
+					}
+				})
 			}
 		})
 	})
@@ -246,7 +355,8 @@ func TestGenerator(t *testing.T) {
 		target := Target{
 			DC: []string{"dc1", "dc2"},
 		}
-		g := makeGenerator(target, units, hostDC, ranges, hostPriority, rangeLimits)
+
+		g := makeGenerator(target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -317,11 +427,97 @@ func TestGenerator(t *testing.T) {
 			return generatorFinished.Load()
 		}, 50*time.Millisecond, 1*time.Second)
 	})
+
+	t.Run("Change intensity in flight", func(t *testing.T) {
+		Print("Given: at least 3 ranges to repair")
+		ranges := []scyllaclient.TokenRange{
+			{
+				StartToken: 1,
+				EndToken:   2,
+				Replicas:   []string{"a", "b"},
+			},
+			{
+				StartToken: 3,
+				EndToken:   4,
+				Replicas:   []string{"a", "b"},
+			},
+			{
+				StartToken: 5,
+				EndToken:   6,
+				Replicas:   []string{"a", "b"},
+			},
+		}
+
+		Print("Given: intensity of 1")
+		intensityCh = make(chan float64, 1)
+		intensity := float64(1)
+		intensityCh <- intensity
+
+		target := Target{
+			DC: []string{"dc1"},
+		}
+
+		g := makeGenerator(target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("Given: running generator")
+		generatorFinished := atomic.NewBool(false)
+		generatorStarted := make(chan struct{})
+		go func() {
+			close(generatorStarted)
+			g.Run(ctx)
+			generatorFinished.Store(true)
+		}()
+
+		// Wait for generator to start
+		<-generatorStarted
+
+		Print("Given: worker")
+		w := fakeWorker{
+			In:     g.Next(),
+			Out:    g.Result(),
+			Logger: log.NewDevelopment().Named("worker"),
+		}
+
+		Print("When: worker get his job")
+		j, ok := w.takeJob()
+		if !ok {
+			t.Error("worker couldn't take job")
+		}
+
+		Print("Then: worker get at most 1 range at once")
+		if len(j.Ranges) != int(intensity) {
+			t.Errorf("worker intensity is wrong, got %d, expected %f", len(j.Ranges), intensity)
+		}
+
+		Print("When: intensity is changed to 2")
+		intensity = 2
+		intensityCh <- intensity
+
+		Print("When: worker finishes first and take a new job")
+		w.execute(j)
+		j, ok = w.takeJob()
+		if !ok {
+			t.Error("worker couldn't take job")
+		}
+
+		Print("Then: worker number of ranges at once was increased according to intensity")
+		if len(j.Ranges) != int(intensity) {
+			t.Errorf("worker intensity is wrong, got %d, expected %f", len(j.Ranges), intensity)
+		}
+	})
 }
 
-func makeGenerator(target Target, units []Unit, hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit) *generator {
+func makeGenerator(target Target, intensityCh chan float64, units []Unit, hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit) *generator {
 	b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-	g := newGenerator(target, gracefulShutdownTimeout, log.NewDevelopment())
+
+	select {
+	case intensityCh <- target.Intensity:
+	default:
+	}
+
+	g := newGenerator(intensityCh, gracefulShutdownTimeout, log.NewDevelopment())
 	for _, u := range units {
 		g.Add(b.Build(u))
 	}
@@ -331,4 +527,9 @@ func makeGenerator(target Target, units []Unit, hostDC map[string]string, ranges
 
 	g.Init(workerCount(ranges))
 	return g
+}
+
+func epsilonRange(v float64) (float64, float64) {
+	e := v * 1.05
+	return v - e, v + e
 }

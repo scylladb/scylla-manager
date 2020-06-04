@@ -41,14 +41,17 @@ type jobResult struct {
 }
 
 type generator struct {
-	target                  Target
 	gracefulShutdownTimeout time.Duration
 	logger                  log.Logger
 
 	replicas        map[uint64][]string
 	ranges          map[uint64][]*tableTokenRange
+	hostCount       int
 	hostPriority    hostPriority
 	hostRangesLimit hostRangesLimit
+
+	intensity   float64
+	intensityCh <-chan float64
 
 	keys       []uint64
 	pos        int
@@ -62,14 +65,24 @@ type generator struct {
 	failed  int
 }
 
-func newGenerator(target Target, gracefulShutdownTimeout time.Duration, logger log.Logger) *generator {
-	return &generator{
-		target:                  target,
+func newGenerator(intensityCh <-chan float64, gracefulShutdownTimeout time.Duration, logger log.Logger) *generator {
+	g := &generator{
 		gracefulShutdownTimeout: gracefulShutdownTimeout,
 		logger:                  logger,
 		replicas:                make(map[uint64][]string),
 		ranges:                  make(map[uint64][]*tableTokenRange),
 	}
+
+	// Check if intensityCh has desired intensity value
+	select {
+	case intensity := <-intensityCh:
+		g.intensity = intensity
+	default:
+	}
+
+	g.intensityCh = intensityCh
+
+	return g
 }
 
 func (g *generator) Add(ranges []*tableTokenRange) {
@@ -125,6 +138,7 @@ func (g *generator) Init(workerCount int) {
 	for k := range g.replicas {
 		g.keys = append(g.keys, k)
 	}
+	g.hostCount = g.Hosts().Size()
 	g.pos = rand.Intn(len(g.keys))
 	g.busy = strset.New()
 	g.next = make(chan job, 2*workerCount)
@@ -164,6 +178,9 @@ loop:
 				close(stop)
 			})
 			err = ctx.Err()
+		case intensity := <-g.intensityCh:
+			g.logger.Info(ctx, "Changing repair intensity", "from", g.intensity, "to", intensity)
+			g.intensity = intensity
 		case r := <-g.result:
 			// TODO progress and state registration
 			// TODO handling penalties
@@ -251,8 +268,9 @@ func (g *generator) pickReplicas() uint64 {
 		hash := g.keys[pos]
 
 		if len(g.ranges[hash]) > 0 {
-			if items := g.replicas[hash]; !g.busy.HasAny(items...) {
-				g.busy.Add(items...)
+			replicas := g.replicas[hash]
+			if g.canScheduleRepair(replicas) {
+				g.busy.Add(replicas...)
 				g.pos = pos
 				return hash
 			}
@@ -262,6 +280,30 @@ func (g *generator) pickReplicas() uint64 {
 			return 0
 		}
 	}
+}
+
+func (g *generator) canScheduleRepair(hosts []string) bool {
+	// Always make some progress
+	if g.busy.IsEmpty() {
+		return true
+	}
+	// Repair intensity might limit active hosts.
+	// Check if adding these hosts to busy pool will not reach the limit.
+	if len(hosts)+g.busy.Size() <= g.activeHostLimit() {
+		// If those hosts aren't busy at the moment
+		if !g.busy.HasAny(hosts...) {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *generator) activeHostLimit() int {
+	activeHostsLimit := g.hostCount
+	if g.intensity > 0 && g.intensity < 1 {
+		activeHostsLimit = int(g.intensity * float64(g.hostCount))
+	}
+	return activeHostsLimit
 }
 
 func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
@@ -290,8 +332,8 @@ func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 
 func (g *generator) rangesLimit(host string) int {
 	limit := g.hostRangesLimit[host]
-	if g.target.Intensity != 0 {
-		limit = g.target.Intensity
+	if g.intensity != 0 {
+		limit = int(g.intensity)
 	}
 	if limit == 0 {
 		limit = 1

@@ -452,3 +452,15 @@ func (c Client) Version(ctx context.Context) (*models.Version, error) {
 
 	return resp.Payload, nil
 }
+
+// SetRepairIntensity updates ongoing repair intensity.
+func (c Client) SetRepairIntensity(ctx context.Context, clusterID string, intensity float64) error {
+	p := &operations.PostClusterClusterIDRepairsIntensityParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Intensity: intensity,
+	}
+
+	_, err := c.operations.PostClusterClusterIDRepairsIntensity(p) // nolint: errcheck
+	return err
+}

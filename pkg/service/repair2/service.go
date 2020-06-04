@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -31,6 +32,9 @@ type Service struct {
 	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
 	logger       log.Logger
+
+	intensityChannels map[uuid.UUID]chan float64
+	mu                sync.Mutex
 }
 
 func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
@@ -47,11 +51,12 @@ func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFu
 	}
 
 	return &Service{
-		session:      session,
-		config:       config,
-		clusterName:  clusterName,
-		scyllaClient: scyllaClient,
-		logger:       logger,
+		session:           session,
+		config:            config,
+		clusterName:       clusterName,
+		scyllaClient:      scyllaClient,
+		logger:            logger,
+		intensityChannels: make(map[uuid.UUID]chan float64),
 	}, nil
 }
 
@@ -207,9 +212,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Errorf("unsupported partitioner %s, the only supported partitioner is %s", p, scyllaclient.Murmur3Partitioner)
 	}
 
+	// Dynamic Intensity
+	intensityCh, cleanup := s.newIntensityChannel(clusterID, target.Intensity)
+	defer cleanup()
+
 	// Create and init generator
 	var (
-		g  = newGenerator(target, s.config.GracefulShutdownTimeout, s.logger)
+		g  = newGenerator(intensityCh, s.config.GracefulShutdownTimeout, s.logger)
 		wc int
 	)
 	for _, u := range target.Units {
@@ -320,6 +329,25 @@ func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
 	return int(float64(totalMemory) * 0.1 / (32 * 1024 * 1024))
 }
 
+func (s *Service) newIntensityChannel(clusterID uuid.UUID, intensity float64) (ch <-chan float64, cleanup func()) {
+	intensityCh := make(chan float64, 1)
+	intensityCh <- intensity
+
+	s.mu.Lock()
+	if _, ok := s.intensityChannels[clusterID]; ok {
+		panic("two repairs for the same cluster are running")
+	}
+	s.intensityChannels[clusterID] = intensityCh
+	s.mu.Unlock()
+
+	return intensityCh, func() {
+		s.mu.Lock()
+		close(s.intensityChannels[clusterID])
+		delete(s.intensityChannels, clusterID)
+		s.mu.Unlock()
+	}
+}
+
 // GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
@@ -329,4 +357,26 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // GetProgress TODO implement
 func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
 	return Progress{}, errors.New("not implemented")
+}
+
+// SetIntensity changes intensity of ongoing repair.
+func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensity float64) error {
+	s.mu.Lock()
+	ch, ok := s.intensityChannels[clusterID]
+	s.mu.Unlock()
+
+	if !ok {
+		return errors.Wrap(service.ErrNotFound, "repair task")
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case ch <- intensity:
+	default:
+		// ch is full or already closed, generator hasn't applied previous change yet or just finished.
+		return errors.New("intensity change was not applied")
+	}
+
+	return nil
 }
