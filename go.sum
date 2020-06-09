@@ -351,12 +351,10 @@ github.com/scylladb/go-reflectx v1.0.1 h1:b917wZM7189pZdlND9PbIJ6NQxfDPfBvUaQ7cj
 github.com/scylladb/go-reflectx v1.0.1/go.mod h1:rWnOfDIRWBGN0miMLIcoPt/Dhi2doCMZqwMCJ3KupFc=
 github.com/scylladb/go-set v1.0.2 h1:SkvlMCKhP0wyyct6j+0IHJkBkSZL+TDzZ4E7f7BCcRE=
 github.com/scylladb/go-set v1.0.2/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
-github.com/scylladb/gocql v1.4.0 h1:JVePQWv+o9ezElfVESvNAzgxG1nmiiojYOaJRxO1pqo=
-github.com/scylladb/gocql v1.4.0/go.mod h1:S154F0u6zQlF3JjuHAidQIExQf9H45yT8z68h0FQYdU=
 github.com/scylladb/gocql v1.4.1-0.20200520132847-57de5e5cdd5c h1:MuvwrAhW4fESdVRv/InyCBvrTmXnTG7SXflw37P2N4Q=
 github.com/scylladb/gocql v1.4.1-0.20200520132847-57de5e5cdd5c/go.mod h1:S154F0u6zQlF3JjuHAidQIExQf9H45yT8z68h0FQYdU=
-github.com/scylladb/gocqlx v1.5.0 h1:p7NEqRaCMAtW2nvq62iyUNXmIYP29373YOC7D2Xd7Qg=
-github.com/scylladb/gocqlx v1.5.0/go.mod h1:QarZcw5kpYh31MXfxiN2JWWvF1cgZbYqfTfXwmwhpEQ=
+github.com/scylladb/gocqlx/v2 v2.1.0 h1:YymsXJyR+KJ9hUppkQcuXb9wQOme7oYBYqt7AdufD6c=
+github.com/scylladb/gocqlx/v2 v2.1.0/go.mod h1:G1Cuw/NcqM0Mnj5zTRihdx7aW3yBk9zxR+XqCV3aCAA=
 github.com/scylladb/rclone v1.51.0-patched-5 h1:xTIx3Ji38C7Yfa3YjhyDJfBvr48B5NA6wgA/YSEEPFM=
 github.com/scylladb/rclone v1.51.0-patched-5/go.mod h1:H4jaCoYf6554GT/f8HZ6IwnNbkCXI9HyXwMn8+FLivs=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
@@ -498,6 +496,8 @@ golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e h1:vcxGaoTs7kV8m5Np9uUNQin4BrLOthgV7252N8V+FwY=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a h1:WXEvlFVvvGxCJLG6REjsT03iWnKLEWinaScsxF2Vm2o=
+golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=

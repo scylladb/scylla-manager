@@ -15,6 +15,13 @@ import (
 	"github.com/scylladb/go-reflectx"
 )
 
+// CompileNamedQueryString translates query with named parameters in a form
+// ':<identifier>' to query with '?' placeholders and a list of parameter names.
+// If you need to use ':' in a query, i.e. with maps or UDTs use '::' instead.
+func CompileNamedQueryString(qs string) (stmt string, names []string, err error) {
+	return CompileNamedQuery([]byte(qs))
+}
+
 // CompileNamedQuery translates query with named parameters in a form
 // ':<identifier>' to query with '?' placeholders and a list of parameter names.
 // If you need to use ':' in a query, i.e. with maps or UDTs use '::' instead.
@@ -90,6 +97,8 @@ type Queryx struct {
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
+//
+// Deprecated: Use gocqlx.Session.Query API instead.
 func Query(q *gocql.Query, names []string) *Queryx {
 	return &Queryx{
 		Query:  q,
@@ -180,6 +189,13 @@ func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, err
 	return arglist, nil
 }
 
+// Bind sets query arguments of query. This can also be used to rebind new query arguments
+// to an existing query instance.
+func (q *Queryx) Bind(v ...interface{}) *Queryx {
+	q.Query.Bind(udtWrapSlice(q.Mapper, DefaultUnsafe, v)...)
+	return q
+}
+
 // Err returns any binding errors.
 func (q *Queryx) Err() error {
 	return q.err
@@ -200,10 +216,34 @@ func (q *Queryx) ExecRelease() error {
 	return q.Exec()
 }
 
-// Get scans first row into a destination. If the destination type is a struct
-// pointer, then Iter.StructScan will be used. If the destination is some
-// other type, then the row must only have one column which can scan into that
-// type.
+// ExecCAS executes the Lightweight Transaction query, returns whether query was applied.
+// See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
+func (q *Queryx) ExecCAS() (applied bool, err error) {
+	iter := q.Iter().StructOnly()
+	if err := iter.Get(&struct{}{}); err != nil {
+		return false, err
+	}
+	return iter.applied, iter.Close()
+}
+
+// ExecCASRelease calls ExecCAS and releases the query, a released query cannot be
+// reused.
+func (q *Queryx) ExecCASRelease() (bool, error) {
+	defer q.Release()
+	return q.ExecCAS()
+}
+
+// Get scans first row into a destination and closes the iterator.
+//
+// If the destination type is a struct pointer, then Iter.StructScan will be
+// used.
+// If the destination is some other type, then the row must only have one column
+// which can scan into that type.
+// This includes types that implement gocql.Unmarshaler and gocql.UDTUnmarshaler.
+//
+// If you'd like to treat a type that implements gocql.Unmarshaler or
+// gocql.UDTUnmarshaler as an ordinary struct you should call
+// Iter().StructOnly().Get(dest) instead.
 //
 // If no rows were selected, ErrNotFound is returned.
 func (q *Queryx) Get(dest interface{}) error {
@@ -220,10 +260,38 @@ func (q *Queryx) GetRelease(dest interface{}) error {
 	return q.Get(dest)
 }
 
+// GetCAS executes a lightweight transaction.
+// If the transaction fails because the existing values did not match,
+// the previous values will be stored in dest object.
+// See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
+func (q *Queryx) GetCAS(dest interface{}) (applied bool, err error) {
+	iter := q.Iter()
+	if err := iter.Get(dest); err != nil {
+		return false, err
+	}
+
+	return iter.applied, iter.Close()
+}
+
+// GetCASRelease calls GetCAS and releases the query, a released query cannot be
+// reused.
+func (q *Queryx) GetCASRelease(dest interface{}) (bool, error) {
+	defer q.Release()
+	return q.GetCAS(dest)
+}
+
 // Select scans all rows into a destination, which must be a pointer to slice
-// of any type. If the destination slice type is a struct, then Iter.StructScan
-// will be used on each row. If the destination is some other type, then each
-// row must only have one column which can scan into that type.
+// of any type, and closes the iterator.
+//
+// If the destination slice type is a struct, then Iter.StructScan will be used
+// on each row.
+// If the destination is some other type, then each row must only have one
+// column which can scan into that type.
+// This includes types that implement gocql.Unmarshaler and gocql.UDTUnmarshaler.
+//
+// If you'd like to treat a type that implements gocql.Unmarshaler or
+// gocql.UDTUnmarshaler as an ordinary struct you should call
+// Iter().StructOnly().Select(dest) instead.
 //
 // If no rows were selected, ErrNotFound is NOT returned.
 func (q *Queryx) Select(dest interface{}) error {
@@ -244,7 +312,9 @@ func (q *Queryx) SelectRelease(dest interface{}) error {
 // big to be loaded with Select in order to do row by row iteration.
 // See Iterx StructScan function.
 func (q *Queryx) Iter() *Iterx {
-	i := Iter(q.Query)
-	i.Mapper = q.Mapper
-	return i
+	return &Iterx{
+		Iter:   q.Query.Iter(),
+		Mapper: q.Mapper,
+		unsafe: DefaultUnsafe,
+	}
 }

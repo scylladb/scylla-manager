@@ -34,7 +34,7 @@ require (
 	github.com/scylladb/go-log v0.0.4
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
-	github.com/scylladb/gocqlx v1.5.0
+	github.com/scylladb/gocqlx/v2 v2.1.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.5
@@ -46,7 +46,7 @@ require (
 	go.uber.org/zap v1.14.0
 	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82
 	golang.org/x/tools v0.0.0-20200318150045-ba25ddc85566
 	gopkg.in/yaml.v2 v2.2.5
