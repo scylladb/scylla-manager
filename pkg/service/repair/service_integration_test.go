@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -42,8 +41,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	putRun := func(t *testing.T, r *repair.Run) {
-		stmt, names := table.RepairRun.Insert()
-		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
+		if err := table.RepairRun.InsertQuery(session).BindStruct(r).ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -58,8 +56,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			SegmentSuccess: segmentSuccess,
 			SegmentError:   segmentError,
 		}
-		stmt, names := table.RepairRunProgress.Insert()
-		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease(); err != nil {
+		if err := table.RepairRunProgress.InsertQuery(session).BindStruct(&p).ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -6,12 +6,13 @@ package migrate
 
 import (
 	"context"
-	"github.com/scylladb/gocqlx/qb"
 	"testing"
 
-	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
+
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/gocqlx/v2/migrate"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
@@ -21,7 +22,7 @@ func TestClusterMoveHostToKnownHostsBefore016Integration(t *testing.T) {
 	session := CreateSessionWithoutMigration(t)
 
 	cb := findCallback("016-cluster_drop_host.cql", migrate.BeforeMigration)
-	registerCallback("016-cluster_drop_host.cql", migrate.BeforeMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+	registerCallback("016-cluster_drop_host.cql", migrate.BeforeMigration, func(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
 		Print("Given: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id, host) VALUES (uuid(), 'host0')`
 		ExecStmt(t, session, insertClusterCql)
@@ -32,8 +33,7 @@ func TestClusterMoveHostToKnownHostsBefore016Integration(t *testing.T) {
 		}
 
 		Print("Then: cluster host contains hosts[0]")
-		stmt, _ := qb.Select("cluster").Columns("known_hosts").ToCql()
-		q := session.Query(stmt)
+		q := qb.Select("cluster").Columns("known_hosts").Query(session)
 
 		var host []string
 		if err := q.Scan(&host); err != nil {

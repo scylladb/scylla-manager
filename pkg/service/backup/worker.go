@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
@@ -67,7 +67,7 @@ type worker struct {
 	memoryPool *sync.Pool
 
 	// Note: clusterSession may be nil.
-	clusterSession *gocql.Session
+	clusterSession gocqlx.Session
 }
 
 func (w *worker) WithLogger(logger log.Logger) *worker {

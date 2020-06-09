@@ -13,6 +13,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/tools/filler"
 )
 
@@ -53,7 +54,7 @@ func main() {
 		ctx    = context.Background()
 	)
 
-	session, err := c.CreateSession()
+	session, err := gocqlx.WrapSession(c.CreateSession())
 	if err != nil {
 		logger.Fatal(ctx, "Create session", "error", err)
 	}

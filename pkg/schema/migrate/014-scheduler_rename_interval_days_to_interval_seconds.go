@@ -6,9 +6,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -16,13 +16,13 @@ func init() {
 	registerCallback("014-scheduler_rename_interval_days_to_interval_seconds.cql", migrate.AfterMigration, adjustScheduleIntervalAfter014)
 }
 
-func adjustScheduleIntervalAfter014(_ context.Context, session *gocql.Session, _ log.Logger) error {
+func adjustScheduleIntervalAfter014(_ context.Context, session gocqlx.Session, _ log.Logger) error {
 	const selectSchedStmt = "SELECT cluster_id, type, id, sched FROM scheduler_task"
-	q := session.Query(selectSchedStmt)
+	q := session.Query(selectSchedStmt, nil)
 	defer q.Release()
 
 	const updateSchedCql = `INSERT INTO scheduler_task(cluster_id, type, id, sched) VALUES (?, ?, ?, ?)`
-	update := session.Query(updateSchedCql)
+	update := session.Query(updateSchedCql, nil)
 	defer update.Release()
 
 	var (

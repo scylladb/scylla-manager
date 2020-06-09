@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/repair"
@@ -40,7 +40,7 @@ const (
 )
 
 type repairTestHelper struct {
-	session *gocql.Session
+	session gocqlx.Session
 	hrt     *HackableRoundTripper
 	client  *scyllaclient.Client
 	service *repair.Service
@@ -56,7 +56,7 @@ type repairTestHelper struct {
 	t *testing.T
 }
 
-func newRepairTestHelper(t *testing.T, session *gocql.Session, config repair.Config) *repairTestHelper {
+func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Config) *repairTestHelper {
 	t.Helper()
 
 	ExecStmt(t, session, "TRUNCATE TABLE repair_run")
@@ -266,7 +266,7 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *
 	return c
 }
 
-func newTestService(t *testing.T, session *gocql.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
+func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
 	t.Helper()
 
 	s, err := repair.NewService(
@@ -334,11 +334,11 @@ func dialErrorInterceptor() http.RoundTripper {
 	})
 }
 
-func createKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
+func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
 
-func dropKeyspace(t *testing.T, session *gocql.Session, keyspace string) {
+func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 	ExecStmt(t, session, "DROP KEYSPACE "+keyspace)
 }
 

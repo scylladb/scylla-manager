@@ -8,12 +8,11 @@ import (
 	"sort"
 
 	"github.com/cespare/xxhash"
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -29,7 +28,7 @@ type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, err
 
 // Service orchestrates clusterName repairs.
 type Service struct {
-	session *gocql.Session
+	session gocqlx.Session
 	config  Config
 
 	clusterName  ClusterNameFunc
@@ -37,8 +36,8 @@ type Service struct {
 	logger       log.Logger
 }
 
-func NewService(session *gocql.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
-	if session == nil || session.Closed() {
+func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
+	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
@@ -570,12 +569,10 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		"task_id", taskID,
 	)
 
-	stmt, names := qb.Select(table.RepairRun.Name()).Where(
+	q := qb.Select(table.RepairRun.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
-	).Limit(20).ToCql()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	).Limit(20).Query(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 	})
@@ -611,9 +608,7 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", runID,
 	)
 
-	stmt, names := table.RepairRun.Get()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.RepairRun.GetQuery(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 		"id":         runID,
@@ -625,8 +620,7 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 // putRun upserts a repair run.
 func (s *Service) putRun(r *Run) error {
-	stmt, names := table.RepairRun.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
+	q := table.RepairRun.InsertQuery(s.session).BindStruct(r)
 	return q.ExecRelease()
 }
 
@@ -662,9 +656,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 }
 
 func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
-	stmt, names := table.RepairRunProgress.Select()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.RepairRunProgress.SelectQuery(s.session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
@@ -675,11 +667,9 @@ func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, er
 }
 
 func (s *Service) getHostProgress(run *Run, unit int, host string) ([]*RunProgress, error) {
-	stmt, names := table.RepairRunProgress.SelectBuilder().Where(
+	q := table.RepairRunProgress.SelectBuilder().Where(
 		qb.Eq("unit"), qb.Eq("host"),
-	).ToCql()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	).Query(s.session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
@@ -695,9 +685,7 @@ func (s *Service) getHostProgress(run *Run, unit int, host string) ([]*RunProgre
 func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
 
-	stmt, names := table.RepairRunProgress.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(p)
-
+	q := table.RepairRunProgress.InsertQuery(s.session).BindStruct(p)
 	return q.ExecRelease()
 }
 
@@ -705,9 +693,7 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 func (s *Service) deleteRunProgress(ctx context.Context, p *RunProgress) error {
 	s.logger.Debug(ctx, "DeleteRunProgress", "run_progress", p)
 
-	stmt, names := table.RepairRunProgress.Delete()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(p)
-
+	q := table.RepairRunProgress.DeleteQuery(s.session).BindStruct(p)
 	return q.ExecRelease()
 }
 

@@ -11,8 +11,8 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -40,15 +40,15 @@ type Change struct {
 
 // Service manages cluster configurations.
 type Service struct {
-	session          *gocql.Session
+	session          gocqlx.Session
 	secretsStore     secrets.Store
 	clientCache      *scyllaclient.CachedProvider
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session *gocql.Session, secretsStore secrets.Store, l log.Logger) (*Service, error) {
-	if session == nil || session.Closed() {
+func NewService(session gocqlx.Session, secretsStore secrets.Store, l log.Logger) (*Service, error) {
+	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
@@ -126,16 +126,14 @@ func (s *Service) discoverHosts(ctx context.Context, client *scyllaclient.Client
 }
 
 func (s *Service) loadKnownHosts(c *Cluster) error {
-	stmt, names := table.Cluster.Get("known_hosts")
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
+	q := table.Cluster.GetQuery(s.session, "known_hosts").BindStruct(c)
 	return q.GetRelease(c)
 }
 
 func (s *Service) setKnownHosts(c *Cluster, hosts []string) error {
 	c.KnownHosts = hosts
 
-	stmt, names := table.Cluster.Update("known_hosts")
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
+	q := table.Cluster.UpdateQuery(s.session, "known_hosts").BindStruct(c)
 	return q.ExecRelease()
 }
 
@@ -148,13 +146,11 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 		return nil, err
 	}
 
-	stmt, _ := qb.Select(table.Cluster.Name()).ToCql()
-
-	q := s.session.Query(stmt)
+	q := qb.Select(table.Cluster.Name()).Query(s.session)
 	defer q.Release()
 
 	var clusters []*Cluster
-	if err := gocqlx.Select(&clusters, q); err != nil {
+	if err := q.Select(&clusters); err != nil {
 		return nil, err
 	}
 
@@ -192,9 +188,7 @@ func (s *Service) GetCluster(ctx context.Context, idOrName string) (*Cluster, er
 func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, error) {
 	s.logger.Debug(ctx, "GetClusterByID", "id", id)
 
-	stmt, names := table.Cluster.Get()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.Cluster.GetQuery(s.session).BindMap(qb.M{
 		"id": id,
 	})
 	defer q.Release()
@@ -204,7 +198,7 @@ func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, e
 	}
 
 	var c Cluster
-	if err := gocqlx.Get(&c, q.Query); err != nil {
+	if err := q.Get(&c); err != nil {
 		return nil, err
 	}
 
@@ -347,8 +341,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		rollback = append(rollback, r)
 	}
 
-	stmt, names := table.Cluster.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(c)
+	q := table.Cluster.InsertQuery(s.session).BindStruct(c)
 
 	if err := q.ExecRelease(); err != nil {
 		return err
@@ -422,8 +415,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error {
 	s.logger.Debug(ctx, "DeleteCluster", "cluster_id", clusterID)
 
-	stmt, names := table.Cluster.Delete()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.Cluster.DeleteQuery(s.session).BindMap(qb.M{
 		"id": clusterID,
 	})
 
@@ -493,17 +485,17 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 }
 
 // GetSession returns CQL session to provided cluster.
-func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (*gocql.Session, error) {
+func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session gocqlx.Session, err error) {
 	s.logger.Debug(ctx, "GetSession", "cluster_id", clusterID)
 
 	client, err := s.client(ctx, clusterID)
 	if err != nil {
-		return nil, err
+		return session, errors.Wrap(err, "get client")
 	}
 
 	ni, err := client.AnyNodeInfo(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetch node info")
+		return session, errors.Wrap(err, "fetch node info")
 	}
 
 	scyllaCluster := gocql.NewCluster(client.Config().Hosts...)
@@ -514,10 +506,10 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (*gocql.S
 		}
 		err := s.secretsStore.Get(&credentials)
 		if err == service.ErrNotFound {
-			return nil, errors.Wrap(err, "cluster requires CQL authentication but username/password is not registered")
+			return session, errors.Wrap(err, "cluster requires CQL authentication but username/password is not registered")
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, "get credentials")
+			return session, errors.Wrap(err, "get credentials")
 		}
 
 		scyllaCluster.Authenticator = gocql.PasswordAuthenticator{
@@ -539,21 +531,21 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (*gocql.S
 			}
 			err := s.secretsStore.Get(&tlsIdentity)
 			if err == service.ErrNotFound {
-				return nil, errors.Wrap(err, "cluster requires CQL TLS but key/cert is not registered")
+				return session, errors.Wrap(err, "cluster requires CQL TLS but key/cert is not registered")
 			}
 			if err != nil {
-				return nil, errors.Wrap(err, "get tls identity")
+				return session, errors.Wrap(err, "get tls identity")
 			}
 
 			keyPair, err := tls.X509KeyPair(tlsIdentity.Cert, tlsIdentity.PrivateKey)
 			if err != nil {
-				return nil, errors.Wrap(err, "invalid SSL user key pair")
+				return session, errors.Wrap(err, "invalid SSL user key pair")
 			}
 			scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
 		}
 	}
 
-	return scyllaCluster.CreateSession()
+	return gocqlx.WrapSession(scyllaCluster.CreateSession())
 }
 
 func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {

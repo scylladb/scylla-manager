@@ -9,7 +9,8 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
 	schemamigrate "github.com/scylladb/mermaid/pkg/schema/migrate"
 )
 
@@ -73,7 +74,7 @@ func migrateSchema(config *serverConfig, logger log.Logger) error {
 	c := gocqlClusterConfigForDBInit(config)
 	c.Keyspace = config.Database.Keyspace
 
-	session, err := c.CreateSession()
+	session, err := gocqlx.WrapSession(c.CreateSession())
 	if err != nil {
 		return err
 	}

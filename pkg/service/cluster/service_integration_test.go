@@ -50,11 +50,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	setup := func(t *testing.T) {
 		t.Helper()
-		q := session.Query("TRUNCATE cluster")
-		defer q.Release()
-		if err := q.Exec(); err != nil {
-			t.Fatal(err)
-		}
+		ExecStmt(t, session, "TRUNCATE cluster")
 	}
 
 	ctx := context.Background()

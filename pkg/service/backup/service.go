@@ -10,12 +10,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -34,11 +33,11 @@ const defaultRateLimit = 100 // 100MiB
 type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
 
 // SessionFunc returns CQL session for given cluster ID.
-type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (*gocql.Session, error)
+type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error)
 
 // Service orchestrates clusterName backups.
 type Service struct {
-	session *gocql.Session
+	session gocqlx.Session
 	config  Config
 
 	clusterName    ClusterNameFunc
@@ -47,9 +46,9 @@ type Service struct {
 	logger         log.Logger
 }
 
-func NewService(session *gocql.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
+func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
 	clusterSession SessionFunc, logger log.Logger) (*Service, error) {
-	if session == nil || session.Closed() {
+	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
@@ -772,11 +771,10 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		"task_id", taskID,
 	)
 
-	stmt, names := qb.Select(table.BackupRun.Name()).Where(
+	q := qb.Select(table.BackupRun.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
-	).Limit(20).ToCql()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	).Limit(20).Query(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 	})
@@ -802,8 +800,7 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 
 // putRun upserts a backup run.
 func (s *Service) putRun(r *Run) error {
-	stmt, names := table.BackupRun.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
+	q := table.BackupRun.InsertQuery(s.session).BindStruct(r)
 	return q.ExecRelease()
 }
 
@@ -821,8 +818,7 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 func (s *Service) updateStage(ctx context.Context, run *Run, stage Stage) {
 	run.Stage = stage
 
-	stmt, names := table.BackupRun.Update("stage")
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(run)
+	q := table.BackupRun.UpdateQuery(s.session, "stage").BindStruct(run)
 	if err := q.ExecRelease(); err != nil {
 		s.logger.Error(ctx, "Failed to update run stage", "error", err)
 	}
@@ -832,9 +828,7 @@ func (s *Service) updateStage(ctx context.Context, run *Run, stage Stage) {
 func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
 
-	stmt, names := table.BackupRunProgress.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(p)
-
+	q := table.BackupRunProgress.InsertQuery(s.session).BindStruct(p)
 	return q.ExecRelease()
 }
 
@@ -855,9 +849,8 @@ func (s *Service) resumeUploadProgress(prevRunID uuid.UUID) func(context.Context
 		}
 		prev := *p
 		prev.RunID = prevRunID
-		stmt, names := table.BackupRunProgress.Get()
 
-		if err := gocqlx.Query(s.session.Query(stmt), names).
+		if err := table.BackupRunProgress.GetQuery(s.session).
 			BindStruct(prev).
 			GetRelease(&prev); err != nil {
 			s.logger.Error(ctx, "Failed to get previous progress",
@@ -889,9 +882,7 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", runID,
 	)
 
-	stmt, names := table.BackupRun.Get()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.BackupRun.GetQuery(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 		"id":         runID,

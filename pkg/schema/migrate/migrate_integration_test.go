@@ -6,7 +6,7 @@ package migrate
 
 import (
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/gocqlx/v2/migrate"
 )
 
 func init() {

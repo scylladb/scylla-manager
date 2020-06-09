@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/migrate"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
+	"github.com/scylladb/gocqlx/v2/qb"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
@@ -50,7 +50,7 @@ ssh:
 		t.Fatal(err)
 	}
 
-	registerCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+	registerCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, func(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
 		Print("And: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id) VALUES (uuid())`
 		ExecStmt(t, session, insertClusterCql)
@@ -65,8 +65,7 @@ ssh:
 		}
 
 		Print("Then: SSH user is added")
-		stmt, _ := qb.Select("cluster").Columns("id", "ssh_user").ToCql()
-		q := session.Query(stmt)
+		q := qb.Select("cluster").Columns("id", "ssh_user").Query(session)
 		var (
 			id      uuid.UUID
 			sshUser string

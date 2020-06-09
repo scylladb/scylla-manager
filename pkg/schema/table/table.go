@@ -2,7 +2,7 @@
 
 package table
 
-import "github.com/scylladb/gocqlx/table"
+import "github.com/scylladb/gocqlx/v2/table"
 
 // Table models
 var (

@@ -8,12 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
@@ -75,7 +74,7 @@ type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, err
 // a Runner for that TaskType. Runners must be registered with SetRunner
 // function and there can be only one Runner for a TaskType.
 type Service struct {
-	session     *gocql.Session
+	session     gocqlx.Session
 	clusterName ClusterNameFunc
 	logger      log.Logger
 
@@ -93,8 +92,8 @@ var (
 	startTaskNowSlack = 10 * time.Second
 )
 
-func NewService(session *gocql.Session, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {
-	if session == nil || session.Closed() {
+func NewService(session gocqlx.Session, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {
+	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
@@ -139,8 +138,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks from database")
 
 	var tasks []*Task
-	stmt, names := qb.Select(table.SchedTask.Name()).ToCql()
-	q := gocqlx.Query(s.session.Query(stmt), names)
+	q := qb.Select(table.SchedTask.Name()).Query(s.session)
 	if err := q.SelectRelease(&tasks); err != nil {
 		return err
 	}
@@ -521,9 +519,7 @@ func (s *Service) GetTask(ctx context.Context, clusterID uuid.UUID, tp TaskType,
 func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskType, id uuid.UUID) (*Task, error) {
 	s.logger.Debug(ctx, "GetTaskByID", "cluster_id", clusterID, "id", id)
 
-	stmt, names := table.SchedTask.Get()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.SchedTask.GetQuery(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"type":       tp,
 		"id":         id,
@@ -535,7 +531,7 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 	}
 
 	var t Task
-	if err := gocqlx.Get(&t, q.Query); err != nil {
+	if err := q.Get(&t); err != nil {
 		return nil, err
 	}
 
@@ -557,8 +553,7 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 		"type":       tp,
 	}
 
-	stmt, names := b.ToCql()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(m)
+	q := b.Query(s.session).BindMap(m)
 	defer q.Release()
 
 	if q.Err() != nil {
@@ -566,7 +561,7 @@ func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp Tas
 	}
 
 	var tasks []*Task
-	if err := gocqlx.Select(&tasks, q.Query); err != nil {
+	if err := q.Select(&tasks); err != nil {
 		return nil, err
 	}
 
@@ -644,8 +639,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		}
 	}
 
-	stmt, names := table.SchedTask.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(t)
+	q := table.SchedTask.InsertQuery(s.session).BindStruct(t)
 
 	if err := q.ExecRelease(); err != nil {
 		return err
@@ -660,9 +654,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "DeleteTask", "task", t)
 
-	stmt, names := table.SchedTask.Delete()
-
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.SchedTask.DeleteQuery(s.session).BindMap(qb.M{
 		"cluster_id": t.ClusterID,
 		"type":       t.Type,
 		"id":         t.ID,
@@ -700,8 +692,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 		m["type"] = tp
 	}
 
-	stmt, names := b.ToCql()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(m)
+	q := b.Query(s.session).BindMap(m)
 	defer q.Release()
 
 	if q.Err() != nil {
@@ -709,7 +700,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 	}
 
 	var tasks []*Task
-	err := gocqlx.Select(&tasks, q.Query)
+	err := q.Select(&tasks)
 	return tasks, err
 }
 
@@ -723,14 +714,13 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 		return nil, err
 	}
 
-	stmt, names := table.SchedRun.Get()
 	r := &Run{
 		ClusterID: t.ClusterID,
 		Type:      t.Type,
 		TaskID:    t.ID,
 		ID:        runID,
 	}
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
+	q := table.SchedRun.GetQuery(s.session).BindStruct(r)
 
 	if err := q.GetRelease(r); err != nil {
 		return nil, err
@@ -758,8 +748,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 	)
 	b.Limit(uint(limit))
 
-	stmt, names := b.ToCql()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := b.Query(s.session).BindMap(qb.M{
 		"cluster_id": t.ClusterID,
 		"type":       t.Type,
 		"task_id":    t.ID,
@@ -771,7 +760,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 	}
 
 	var r []*Run
-	if err := gocqlx.Select(&r, q.Query); err != nil && err != service.ErrNotFound {
+	if err := q.Select(&r); err != nil && err != service.ErrNotFound {
 		return nil, err
 	}
 
@@ -779,9 +768,7 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 }
 
 func (s *Service) putRun(r *Run) error {
-	stmt, names := table.SchedRun.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindStruct(r)
-
+	q := table.SchedRun.InsertQuery(s.session).BindStruct(r)
 	return q.ExecRelease()
 }
 

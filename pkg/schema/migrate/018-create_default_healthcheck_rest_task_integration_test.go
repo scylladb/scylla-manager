@@ -8,9 +8,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
@@ -20,7 +20,7 @@ func TestCreateDefaultHealthCheckRestTaskForClusterAfter018Integration(t *testin
 	session := CreateSessionWithoutMigration(t)
 
 	cb := findCallback("018-empty.cql", migrate.AfterMigration)
-	registerCallback("018-empty.cql", migrate.AfterMigration, func(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+	registerCallback("018-empty.cql", migrate.AfterMigration, func(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
 		Print("Given: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id) VALUES (uuid())`
 		ExecStmt(t, session, insertClusterCql)
@@ -33,7 +33,7 @@ func TestCreateDefaultHealthCheckRestTaskForClusterAfter018Integration(t *testin
 
 		Print("Then: tasks are created")
 		const countSchedulerTask = `SELECT COUNT(*) FROM scheduler_task`
-		q := session.Query(countSchedulerTask)
+		q := session.Query(countSchedulerTask, nil)
 		defer q.Release()
 
 		var count int

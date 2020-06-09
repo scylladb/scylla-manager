@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
@@ -38,16 +37,16 @@ func TestRunProgressIteratorIntegration(t *testing.T) {
 	var prog []RunProgress
 	session := CreateSession(t)
 
-	stmt, names := table.BackupRunProgress.Insert()
+	q := table.BackupRunProgress.InsertQuery(session)
 	for i := 0; i < expected; i++ {
 		p.Host = "host"
 		p.Unit = int64(i)
 		p.TableName = fmt.Sprintf("table_%d", i)
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
-		if err := q.ExecRelease(); err != nil {
+		if err := q.BindStruct(p).Exec(); err != nil {
 			t.Fatal(err)
 		}
 	}
+	q.Release()
 
 	v := NewProgressVisitor(run, session)
 	err := v.ForEach(func(pr *RunProgress) {

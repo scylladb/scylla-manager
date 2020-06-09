@@ -11,10 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 
-	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -118,7 +117,7 @@ func (r *neverEndingRunner) Stop() {
 }
 
 type schedTestHelper struct {
-	session *gocql.Session
+	session gocqlx.Session
 	service *scheduler.Service
 	runner  *mockRunner
 
@@ -129,7 +128,7 @@ type schedTestHelper struct {
 	t *testing.T
 }
 
-func newSchedTestHelper(t *testing.T, session *gocql.Session) *schedTestHelper {
+func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedTestHelper {
 	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task")
 	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task_run")
 
@@ -183,7 +182,7 @@ func (h *schedTestHelper) makeTask(s scheduler.Schedule) *scheduler.Task {
 	}
 }
 
-func newTestService(t *testing.T, session *gocql.Session) *scheduler.Service {
+func newTestService(t *testing.T, session gocqlx.Session) *scheduler.Service {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	s, err := scheduler.NewService(
@@ -289,8 +288,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("When: runs are left in StatusRunning")
 		run := task.NewRun()
 		run.Status = scheduler.StatusRunning
-		stmt, names := table.SchedRun.Insert()
-		if err := gocqlx.Query(h.session.Query(stmt), names).BindStruct(run).Exec(); err != nil {
+		if err := table.SchedRun.InsertQuery(h.session).BindStruct(run).Exec(); err != nil {
 			t.Fatal(err)
 		}
 

@@ -9,16 +9,16 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"go.uber.org/atomic"
 )
 
 // Filler puts a given amount of bytes into a single table named `data`.
 type Filler struct {
-	session  *gocql.Session
+	session  gocqlx.Session
 	size     *atomic.Int64
 	bufSize  int64
 	parallel int
@@ -27,7 +27,7 @@ type Filler struct {
 	ctx context.Context
 }
 
-func NewFiller(session *gocql.Session, size, bufSize int64, parallel int, logger log.Logger) *Filler {
+func NewFiller(session gocqlx.Session, size, bufSize int64, parallel int, logger log.Logger) *Filler {
 	return &Filler{
 		session:  session,
 		size:     atomic.NewInt64(size),
@@ -41,8 +41,8 @@ func NewFiller(session *gocql.Session, size, bufSize int64, parallel int, logger
 func (f *Filler) Run(ctx context.Context) error {
 	f.logger.Info(ctx, "Creating table", "table", "data")
 
-	q := f.session.Query("CREATE TABLE IF NOT EXISTS data (id uuid PRIMARY KEY, data blob) " +
-		"WITH compaction = {'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb' : 500}")
+	q := f.session.Query("CREATE TABLE IF NOT EXISTS data (id uuid PRIMARY KEY, data blob) "+
+		"WITH compaction = {'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb' : 500}", nil)
 	if err := q.Exec(); err != nil {
 		return errors.Wrap(err, "create table")
 	}
@@ -58,7 +58,7 @@ func (f *Filler) Run(ctx context.Context) error {
 }
 
 func (f *Filler) fill(i int) error {
-	q := f.session.Query("INSERT INTO data (id, data) VALUES (uuid(), ?)")
+	q := f.session.Query("INSERT INTO data (id, data) VALUES (uuid(), ?)", nil)
 	defer q.Release()
 
 	data := make([]byte, f.bufSize)
@@ -104,7 +104,7 @@ func (f *Filler) fill(i int) error {
 // MultiFiller puts a given amount of bytes into many tables named `data_XXX`.
 type MultiFiller struct {
 	tables   int
-	session  *gocql.Session
+	session  gocqlx.Session
 	size     *atomic.Int64
 	bufSize  int64
 	parallel int
@@ -113,7 +113,7 @@ type MultiFiller struct {
 	ctx context.Context
 }
 
-func NewMultiFiller(tables int, session *gocql.Session, size, bufSize int64, parallel int, logger log.Logger) *MultiFiller {
+func NewMultiFiller(tables int, session gocqlx.Session, size, bufSize int64, parallel int, logger log.Logger) *MultiFiller {
 	return &MultiFiller{
 		tables:   tables,
 		session:  session,
@@ -143,7 +143,7 @@ func (f *MultiFiller) create(i int) error {
 	f.logger.Info(f.ctx, "Creating table", "table", fmt.Sprintf("data_%d", i))
 
 	q := f.session.Query(fmt.Sprintf("CREATE TABLE IF NOT EXISTS data_%d (id uuid PRIMARY KEY, data blob) "+
-		"WITH compaction = {'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb' : 500}", i))
+		"WITH compaction = {'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb' : 500}", i), nil)
 	defer q.Release()
 
 	return q.Exec()
@@ -151,7 +151,7 @@ func (f *MultiFiller) create(i int) error {
 
 func (f *MultiFiller) fill(i int) error {
 	var (
-		qs   []*gocql.Query
+		qs   []*gocqlx.Queryx
 		data = make([]byte, f.bufSize)
 	)
 
@@ -160,7 +160,7 @@ func (f *MultiFiller) fill(i int) error {
 	end := start + block
 
 	for t := start; t < end; t++ {
-		q := f.session.Query(fmt.Sprintf("INSERT INTO data_%d (id, data) VALUES (uuid(), ?)", t))
+		q := f.session.Query(fmt.Sprintf("INSERT INTO data_%d (id, data) VALUES (uuid(), ?)", t), nil)
 		q.Bind(data)
 		qs = append(qs, q)
 	}

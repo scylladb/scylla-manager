@@ -49,11 +49,7 @@ func TestStorageIntegration(t *testing.T) {
 
 	setup := func(t *testing.T) {
 		t.Helper()
-		q := session.Query(fmt.Sprintf("TRUNCATE %s", table.Secrets.Name()))
-		defer q.Release()
-		if err := q.Exec(); err != nil {
-			t.Fatal(err)
-		}
+		ExecStmt(t, session, fmt.Sprintf("TRUNCATE %s", table.Secrets.Name()))
 	}
 
 	clusterID := uuid.MustRandom()

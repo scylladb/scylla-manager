@@ -6,10 +6,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
@@ -197,12 +196,12 @@ type ProgressVisitor interface {
 }
 
 type progressVisitor struct {
-	session *gocql.Session
+	session gocqlx.Session
 	run     *Run
 }
 
 // NewProgressVisitor creates new progress iterator.
-func NewProgressVisitor(run *Run, session *gocql.Session) ProgressVisitor {
+func NewProgressVisitor(run *Run, session gocqlx.Session) ProgressVisitor {
 	return &progressVisitor{
 		session: session,
 		run:     run,
@@ -213,9 +212,7 @@ func NewProgressVisitor(run *Run, session *gocql.Session) ProgressVisitor {
 // If visit wants to reuse RunProgress it must copy it because memory is reused
 // between calls.
 func (i *progressVisitor) ForEach(visit func(*RunProgress)) error {
-	stmt, names := table.BackupRunProgress.Select()
-
-	iter := gocqlx.Query(i.session.Query(stmt), names).BindMap(qb.M{
+	iter := table.BackupRunProgress.SelectQuery(i.session).BindMap(qb.M{
 		"cluster_id": i.run.ClusterID,
 		"task_id":    i.run.TaskID,
 		"run_id":     i.run.ID,

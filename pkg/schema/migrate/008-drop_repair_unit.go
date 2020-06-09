@@ -5,11 +5,10 @@ package migrate
 import (
 	"context"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/migrate"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
@@ -18,9 +17,8 @@ func init() {
 	registerCallback("008-drop_repair_unit.cql", migrate.AfterMigration, createDefaultRepairTaskForClusterAfter008)
 }
 
-func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session *gocql.Session, logger log.Logger) error {
-	stmt, names := qb.Select("cluster").Columns("id").ToCql()
-	q := gocqlx.Query(session.Query(stmt), names)
+func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+	q := qb.Select("cluster").Columns("id").Query(session)
 	var ids []uuid.UUID
 	if err := q.SelectRelease(&ids); err != nil {
 		return err
@@ -28,7 +26,7 @@ func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session *goc
 
 	const insertTaskCql = `INSERT INTO scheduler_task(cluster_id, type, id, enabled, sched, properties) 
 VALUES (?, 'repair', uuid(), true, {start_date: ?, interval_days: ?, num_retries: ?}, ?)`
-	iq := session.Query(insertTaskCql)
+	iq := session.Query(insertTaskCql, nil)
 	defer iq.Release()
 
 	for _, id := range ids {

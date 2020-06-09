@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/restapi"
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	"github.com/scylladb/mermaid/pkg/service/cluster"
@@ -27,7 +27,7 @@ import (
 
 type server struct {
 	config  *serverConfig
-	session *gocql.Session
+	session gocqlx.Session
 	logger  log.Logger
 
 	clusterSvc *cluster.Service
@@ -45,7 +45,7 @@ type server struct {
 }
 
 func newServer(config *serverConfig, logger log.Logger) (*server, error) {
-	session, err := gocqlClusterConfig(config).CreateSession()
+	session, err := gocqlx.WrapSession(gocqlClusterConfig(config).CreateSession())
 	if err != nil {
 		return nil, errors.Wrapf(err, "database")
 	}

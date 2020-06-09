@@ -6,9 +6,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 	Logger = log.NopLogger
 )
 
-type callback func(ctx context.Context, session *gocql.Session, logger log.Logger) error
+type callback func(ctx context.Context, session gocqlx.Session, logger log.Logger) error
 
 type nameEvent struct {
 	name  string
@@ -42,7 +42,7 @@ func findCallback(name string, ev migrate.CallbackEvent) callback {
 }
 
 // Callback is the main callback dispatcher we use for custom migrations.
-func Callback(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
+func Callback(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 	if ev == migrate.BeforeMigration {
 		Logger.Info(ctx, "Running migration", "migration", name)
 	}

@@ -20,14 +20,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -40,7 +39,7 @@ import (
 )
 
 type backupTestHelper struct {
-	session  *gocql.Session
+	session  gocqlx.Session
 	hrt      *HackableRoundTripper
 	client   *scyllaclient.Client
 	service  *backup.Service
@@ -53,7 +52,7 @@ type backupTestHelper struct {
 	t *testing.T
 }
 
-func newBackupTestHelper(t *testing.T, session, clusterSession *gocql.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
+func newBackupTestHelper(t *testing.T, session, clusterSession gocqlx.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
 	t.Helper()
 
 	S3InitBucket(t, location.Path)
@@ -102,7 +101,7 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestService(t *testing.T, session, clusterSession *gocql.Session, client *scyllaclient.Client, c backup.Config, clusterID uuid.UUID,
+func newTestService(t *testing.T, session, clusterSession gocqlx.Session, client *scyllaclient.Client, c backup.Config, clusterID uuid.UUID,
 	logger log.Logger) *backup.Service {
 	t.Helper()
 
@@ -115,7 +114,7 @@ func newTestService(t *testing.T, session, clusterSession *gocql.Session, client
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (*gocql.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
 			return clusterSession, nil
 		},
 		logger.Named("backup"),
@@ -153,8 +152,7 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 
 	files := strset.New()
 
-	stmt, names := table.BackupRunProgress.Select()
-	iter := gocqlx.Query(h.session.Query(stmt), names).BindMap(qb.M{
+	iter := table.BackupRunProgress.SelectQuery(h.session).BindMap(qb.M{
 		"cluster_id": h.clusterID,
 		"task_id":    h.taskID,
 		"run_id":     h.runID,
@@ -211,14 +209,14 @@ func (h *backupTestHelper) assertMetadataVersion(ctx context.Context, expected s
 const bigTableName = "big_table"
 
 // writeData creates big_table in the provided keyspace with the size in MiB.
-func writeData(t *testing.T, session *gocql.Session, keyspace string, sizeMiB int) {
+func writeData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int) {
 	t.Helper()
 
 	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, bigTableName))
 
 	stmt := fmt.Sprintf("INSERT INTO %s.%s (id, data) VALUES (?, ?)", keyspace, bigTableName)
-	q := gocqlx.Query(session.Query(stmt), []string{"id", "data"})
+	q := session.Query(stmt, []string{"id", "data"})
 	defer q.Release()
 
 	bytes := sizeMiB * 1024 * 1024
@@ -504,8 +502,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 
 	putRun := func(t *testing.T, r *backup.Run) {
 		t.Helper()
-		stmt, names := table.BackupRun.Insert()
-		if err := gocqlx.Query(session.Query(stmt), names).BindStruct(r).ExecRelease(); err != nil {
+		if err := table.BackupRun.InsertQuery(session).BindStruct(r).ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}

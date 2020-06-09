@@ -7,11 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/migrate"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"gopkg.in/yaml.v2"
 )
@@ -29,7 +28,7 @@ type copySSHInfoToCluster006 struct {
 	dir           string
 }
 
-func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Session, logger log.Logger) error {
+func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
 	type sshConfig struct {
 		User         string `yaml:"user,omitempty"`
 		IdentityFile string `yaml:"identity_file,omitempty"`
@@ -56,15 +55,13 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session *gocql.Sessi
 		return err
 	}
 
-	stmt, names := qb.Select("cluster").Columns("id").ToCql()
-	q := gocqlx.Query(session.Query(stmt), names)
+	q := qb.Select("cluster").Columns("id").Query(session)
 	var ids []uuid.UUID
 	if err := q.SelectRelease(&ids); err != nil {
 		return err
 	}
 
-	const updateClusterCql = `INSERT INTO cluster(id, ssh_user) VALUES (?, ?)`
-	iq := session.Query(updateClusterCql)
+	iq := qb.Insert("cluster").Columns("id", "ssh_user").Query(session)
 	defer iq.Release()
 
 	for _, id := range ids {

@@ -12,8 +12,9 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/migrate"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/migrate"
+	"github.com/scylladb/gocqlx/v2/qb"
 )
 
 var (
@@ -64,7 +65,7 @@ var initOnce sync.Once
 
 // CreateSession recreates the database on scylla manager cluster and returns
 // a new gocql.Session.
-func CreateSession(tb testing.TB) *gocql.Session {
+func CreateSession(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
 	cluster := createCluster(*flagCluster)
@@ -82,7 +83,7 @@ func CreateSession(tb testing.TB) *gocql.Session {
 // CreateSessionWithoutMigration clears the database on scylla manager cluster
 // and returns a new gocql.Session. This is only useful for testing migrations
 // you probably should be using CreateSession instead.
-func CreateSessionWithoutMigration(tb testing.TB) *gocql.Session {
+func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
 	cluster := createCluster(*flagCluster)
@@ -91,7 +92,7 @@ func CreateSessionWithoutMigration(tb testing.TB) *gocql.Session {
 }
 
 // CreateManagedClusterSession returns a new gocql.Session to the managed data cluster.
-func CreateManagedClusterSession(tb testing.TB) *gocql.Session {
+func CreateManagedClusterSession(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
 	cluster := createCluster(ManagedClusterHosts()...)
@@ -100,7 +101,7 @@ func CreateManagedClusterSession(tb testing.TB) *gocql.Session {
 		Password: *flagPassword,
 	}
 
-	session, err := cluster.CreateSession()
+	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
 		tb.Fatal("createSession:", err)
 	}
@@ -116,11 +117,11 @@ func createCluster(hosts ...string) *gocql.ClusterConfig {
 	return cluster
 }
 
-func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) *gocql.Session {
+func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) gocqlx.Session {
 	tb.Helper()
 	cluster.Keyspace = "test_scylla_manager"
 	cluster.Timeout = *flagTimeout
-	session, err := cluster.CreateSession()
+	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
 		tb.Fatal("createSession:", err)
 	}
@@ -134,7 +135,7 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 	c := *cluster
 	c.Keyspace = "system"
 	c.Timeout = *flagTimeout
-	session, err := c.CreateSession()
+	session, err := gocqlx.WrapSession(c.CreateSession())
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -149,14 +150,14 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 	}`, keyspace, 1))
 }
 
-func dropAllKeyspaces(tb testing.TB, session *gocql.Session) {
+func dropAllKeyspaces(tb testing.TB, session gocqlx.Session) {
 	tb.Helper()
 
-	q := session.Query("select keyspace_name from system_schema.keyspaces")
+	q := qb.Select("system_schema.keyspaces").Columns("keyspace_name").Query(session)
 	defer q.Release()
 
 	var all []string
-	if err := gocqlx.Select(&all, q); err != nil {
+	if err := q.Select(&all); err != nil {
 		tb.Fatal(err)
 	}
 
@@ -167,17 +168,17 @@ func dropAllKeyspaces(tb testing.TB, session *gocql.Session) {
 	}
 }
 
-func dropKeyspace(tb testing.TB, session *gocql.Session, keyspace string) {
+func dropKeyspace(tb testing.TB, session gocqlx.Session, keyspace string) {
 	tb.Helper()
 
 	ExecStmt(tb, session, "DROP KEYSPACE IF EXISTS "+keyspace)
 }
 
 // ExecStmt executes given statement.
-func ExecStmt(tb testing.TB, session *gocql.Session, stmt string) {
+func ExecStmt(tb testing.TB, session gocqlx.Session, stmt string) {
 	tb.Helper()
 
-	if err := session.Query(stmt).RetryPolicy(nil).Exec(); err != nil {
+	if err := session.ExecStmt(stmt); err != nil {
 		tb.Fatal("exec failed", stmt, err)
 	}
 }

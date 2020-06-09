@@ -3,10 +3,9 @@
 package dbsecrets
 
 import (
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/service/secrets"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
@@ -14,15 +13,15 @@ import (
 
 // Store manages secrets in a database.
 type Store struct {
-	session *gocql.Session
+	session gocqlx.Session
 }
 
 // Check that Store implements secrets.Store
 var _ secrets.Store = &Store{}
 
 // New returns instance of Store.
-func New(session *gocql.Session) (*Store, error) {
-	if session == nil || session.Closed() {
+func New(session gocqlx.Session) (*Store, error) {
+	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
@@ -42,8 +41,7 @@ func (s *Store) Put(secret secrets.KeyValue) error {
 		return errors.Wrap(err, "secret marshal")
 	}
 
-	stmt, names := table.Secrets.Insert()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := table.Secrets.InsertQuery(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"key":        key,
 		"value":      value,
@@ -60,8 +58,8 @@ func (s *Store) Get(secret secrets.KeyValue) error {
 	if clusterID == uuid.Nil || key == "" {
 		return secrets.ErrEmptyKeyValue
 	}
-	stmt, names := table.Secrets.Get("value")
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+
+	q := table.Secrets.GetQuery(s.session, "value").BindMap(qb.M{
 		"cluster_id": clusterID,
 		"key":        key,
 	})
@@ -83,8 +81,8 @@ func (s *Store) Delete(secret secrets.KeyValue) error {
 	if clusterID == uuid.Nil || key == "" {
 		return secrets.ErrEmptyKeyValue
 	}
-	stmt, names := table.Secrets.Delete()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+
+	q := table.Secrets.DeleteQuery(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"key":        key,
 	})
@@ -94,8 +92,7 @@ func (s *Store) Delete(secret secrets.KeyValue) error {
 
 // DeleteAll removes existing secrets associated with given `clusterID`.
 func (s *Store) DeleteAll(clusterID uuid.UUID) error {
-	stmt, names := qb.Delete(table.Secrets.Name()).Where(qb.Eq("cluster_id")).ToCql()
-	q := gocqlx.Query(s.session.Query(stmt), names).BindMap(qb.M{
+	q := qb.Delete(table.Secrets.Name()).Where(qb.Eq("cluster_id")).Query(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 	})
 

@@ -29,7 +29,7 @@ func (w *worker) AwaitSchema(ctx context.Context) (stepError error) {
 		}
 	}(timeutc.Now())
 
-	if w.clusterSession == nil {
+	if w.clusterSession.Session == nil {
 		w.Logger.Info(ctx, "Skipping awaiting schema agreement due to missing cluster session")
 		return nil
 	}
@@ -66,7 +66,7 @@ func (w *worker) AwaitSchema(ctx context.Context) (stepError error) {
 }
 
 func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError error) {
-	if w.clusterSession == nil {
+	if w.clusterSession.Session == nil {
 		w.Logger.Error(ctx, "Skipping schema backup due to missing cluster session")
 		return nil
 	}
