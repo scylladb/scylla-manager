@@ -27,6 +27,7 @@ release/rpm: $(GO_BUNDLE) release/scylla-manager-$(VERSION_NAME).tar.gz ## Creat
 	@cp release/scylla-manager-$(VERSION_NAME).tar.gz $(RPMBUILD)/SOURCES
 
 	@GO_VERSION=$(GO_VERSION) rpmbuild -bb --target x86_64 \
+	--define '_binary_payload w2.xzdio' \
 	--define "mermaid_version $(VERSION)" \
 	--define "mermaid_release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)"  \
