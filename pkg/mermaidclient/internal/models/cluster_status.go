@@ -48,6 +48,12 @@ func (m ClusterStatus) Validate(formats strfmt.Registry) error {
 // swagger:model ClusterStatusItems0
 type ClusterStatusItems0 struct {
 
+	// alternator rtt ms
+	AlternatorRttMs float32 `json:"alternator_rtt_ms,omitempty"`
+
+	// alternator status
+	AlternatorStatus string `json:"alternator_status,omitempty"`
+
 	// cql rtt ms
 	CqlRttMs float32 `json:"cql_rtt_ms,omitempty"`
 

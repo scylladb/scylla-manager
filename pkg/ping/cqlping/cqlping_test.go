@@ -7,6 +7,8 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"github.com/scylladb/mermaid/pkg/ping"
 )
 
 func TestPingTimeout(t *testing.T) {
@@ -40,7 +42,7 @@ func TestPingTimeout(t *testing.T) {
 
 	t.Run("simple", func(t *testing.T) {
 		d, err := simplePing(context.Background(), config)
-		if err != ErrTimeout {
+		if err != ping.ErrTimeout {
 			t.Errorf("simplePing() error %s, expected timeout", err)
 		}
 		if a, b := epsilonRange(config.Timeout); d < a || d > b {
@@ -50,7 +52,7 @@ func TestPingTimeout(t *testing.T) {
 
 	t.Run("query", func(t *testing.T) {
 		d, err := queryPing(context.Background(), config)
-		if err != ErrTimeout {
+		if err != ping.ErrTimeout {
 			t.Errorf("queryPing() error %s, expected timeout", err)
 		}
 		if a, b := epsilonRange(config.Timeout); d < a || d > b {

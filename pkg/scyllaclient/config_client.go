@@ -152,6 +152,42 @@ func (c *ConfigClient) CQLPasswordProtectionEnabled(ctx context.Context) (bool, 
 	return resp.Payload == passwordAuthenticator, err
 }
 
+// AlternatorPort returns node alternator port.
+func (c *ConfigClient) AlternatorPort(ctx context.Context) (string, error) {
+	resp, err := c.client.Config.FindConfigAlternatorPort(config.NewFindConfigAlternatorPortParamsWithContext(ctx))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprint(resp.Payload), err
+}
+
+// AlternatorAddress returns node alternator address.
+func (c *ConfigClient) AlternatorAddress(ctx context.Context) (string, error) {
+	resp, err := c.client.Config.FindConfigAlternatorAddress(config.NewFindConfigAlternatorAddressParamsWithContext(ctx))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprint(resp.Payload), err
+}
+
+// AlternatorHTTPSPort returns node alternator HTTPS port.
+func (c *ConfigClient) AlternatorHTTPSPort(ctx context.Context) (string, error) {
+	resp, err := c.client.Config.FindConfigAlternatorHTTPSPort(config.NewFindConfigAlternatorHTTPSPortParamsWithContext(ctx))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprint(resp.Payload), err
+}
+
+// AlternatorEnforceAuthorization returns whether alternator requires authorization.
+func (c *ConfigClient) AlternatorEnforceAuthorization(ctx context.Context) (bool, error) {
+	resp, err := c.client.Config.FindConfigAlternatorEnforceAuthorization(config.NewFindConfigAlternatorEnforceAuthorizationParamsWithContext(ctx))
+	if err != nil {
+		return false, err
+	}
+	return resp.Payload, err
+}
+
 // NodeInfo returns aggregated information about Scylla node.
 func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 	apiAddress, apiPort, err := net.SplitHostPort(c.addr)
@@ -164,17 +200,11 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 		return nil, errors.Wrap(err, "fetch Scylla config client encryption enabled")
 	}
 
-	cqlPassProtected, err := c.CQLPasswordProtectionEnabled(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "fetch Scylla config client authenticator")
-	}
-
 	ni := &NodeInfo{
 		APIAddress:                  apiAddress,
 		APIPort:                     apiPort,
 		ClientEncryptionEnabled:     strings.EqualFold(ceo.Enabled, "true"),
 		ClientEncryptionRequireAuth: strings.EqualFold(ceo.RequireClientAuth, "true"),
-		CqlPasswordProtected:        cqlPassProtected,
 	}
 
 	ffs := []struct {
@@ -189,9 +219,27 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 		{Field: &ni.PrometheusPort, Fetcher: c.PrometheusPort},
 		{Field: &ni.RPCAddress, Fetcher: c.RPCAddress},
 		{Field: &ni.RPCPort, Fetcher: c.RPCPort},
+		{Field: &ni.AlternatorAddress, Fetcher: c.AlternatorAddress},
+		{Field: &ni.AlternatorPort, Fetcher: c.AlternatorPort},
+		{Field: &ni.AlternatorHTTPSPort, Fetcher: c.AlternatorHTTPSPort},
 	}
 
 	for i, ff := range ffs {
+		*ff.Field, err = ff.Fetcher(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "agent: fetch Scylla config %d", i)
+		}
+	}
+
+	ffb := []struct {
+		Field   *bool
+		Fetcher func(context.Context) (bool, error)
+	}{
+		{Field: &ni.CqlPasswordProtected, Fetcher: c.CQLPasswordProtectionEnabled},
+		{Field: &ni.AlternatorEnforceAuthorization, Fetcher: c.AlternatorEnforceAuthorization},
+	}
+
+	for i, ff := range ffb {
 		*ff.Field, err = ff.Fetcher(ctx)
 		if err != nil {
 			return nil, errors.Wrapf(err, "agent: fetch Scylla config %d", i)

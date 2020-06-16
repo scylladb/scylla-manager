@@ -58,6 +58,138 @@ func (a *Client) FindConfigAbortOnLsaBadAlloc(params *FindConfigAbortOnLsaBadAll
 }
 
 /*
+FindConfigAlternatorAddress The listen address for Alternator client connections
+*/
+func (a *Client) FindConfigAlternatorAddress(params *FindConfigAlternatorAddressParams) (*FindConfigAlternatorAddressOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigAlternatorAddressParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_alternator_address",
+		Method:             "GET",
+		PathPattern:        "/config/alternator_address",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigAlternatorAddressReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigAlternatorAddressOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAlternatorAddressDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindConfigAlternatorEnforceAuthorization Whether alternator requires authorization
+*/
+func (a *Client) FindConfigAlternatorEnforceAuthorization(params *FindConfigAlternatorEnforceAuthorizationParams) (*FindConfigAlternatorEnforceAuthorizationOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigAlternatorEnforceAuthorizationParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_alternator_enforce_authorization",
+		Method:             "GET",
+		PathPattern:        "/config/alternator_enforce_authorization",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigAlternatorEnforceAuthorizationReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigAlternatorEnforceAuthorizationOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAlternatorEnforceAuthorizationDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindConfigAlternatorHTTPSPort The listen port for Alternator HTTPS client connections
+*/
+func (a *Client) FindConfigAlternatorHTTPSPort(params *FindConfigAlternatorHTTPSPortParams) (*FindConfigAlternatorHTTPSPortOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigAlternatorHTTPSPortParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_alternator_https_port",
+		Method:             "GET",
+		PathPattern:        "/config/alternator_https_port",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigAlternatorHTTPSPortReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigAlternatorHTTPSPortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAlternatorHTTPSPortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindConfigAlternatorPort The listen port for Alternator client connections
+*/
+func (a *Client) FindConfigAlternatorPort(params *FindConfigAlternatorPortParams) (*FindConfigAlternatorPortOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigAlternatorPortParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_alternator_port",
+		Method:             "GET",
+		PathPattern:        "/config/alternator_port",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigAlternatorPortReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigAlternatorPortOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigAlternatorPortDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 FindConfigAPIAddress Http Rest API address
 */
 func (a *Client) FindConfigAPIAddress(params *FindConfigAPIAddressParams) (*FindConfigAPIAddressOK, error) {

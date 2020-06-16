@@ -9,8 +9,9 @@ import (
 
 // Health check defaults.
 var (
-	DefaultPort      = "9042"
-	DefaultTLSConfig = &tls.Config{
+	DefaultCQLPort        = "9042"
+	DefaultAlternatorPort = "8000"
+	DefaultTLSConfig      = &tls.Config{
 		InsecureSkipVerify: true,
 	}
 )

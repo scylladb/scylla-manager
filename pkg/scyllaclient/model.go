@@ -232,6 +232,7 @@ func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
 	if err != nil {
 		panic(err) // must
 	}
+
 	return ScyllaFeatures{
 		RowLevelRepair: rowLevelRepair.Check(v),
 	}, nil

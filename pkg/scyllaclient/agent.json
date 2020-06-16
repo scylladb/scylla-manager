@@ -1303,6 +1303,22 @@
         "cql_password_protected": {
           "description": "Whether CQL requires password authentication.",
           "type": "boolean"
+        },
+        "alternator_port": {
+          "description": "Port for Alternator API server.",
+          "type": "string"
+        },
+        "alternator_https_port": {
+          "description": "Port for Alternator HTTPS API server.",
+          "type": "string"
+        },
+        "alternator_address": {
+          "description": "Address for Alternator API requests.",
+          "type": "string"
+        },
+        "alternator_enforce_authorization": {
+          "description": "Whether Alternator requires authentication.",
+          "type": "boolean"
         }
       }
     }

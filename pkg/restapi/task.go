@@ -270,7 +270,7 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if newTask.Type == scheduler.HealthCheckTask {
+	if newTask.Type == scheduler.HealthCheckCQLTask {
 		if err := h.Scheduler.PutTaskOnce(r.Context(), newTask); err != nil {
 			respondError(w, r, errors.Wrap(err, "create task"))
 			return

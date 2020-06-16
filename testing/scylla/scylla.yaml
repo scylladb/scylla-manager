@@ -805,3 +805,5 @@ client_encryption_options:
 murmur3_partitioner_ignore_msb_bits: 12
 api_ui_dir: /usr/lib/scylla/swagger-ui/dist/
 api_doc_dir: /usr/lib/scylla/api/api-doc/
+alternator_port: 8000
+alternator_write_isolation: only_rmw_uses_lwt

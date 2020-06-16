@@ -123,7 +123,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 
 		opts := cmp.Options{
 			UUIDComparer(),
-			cmpopts.IgnoreFields(NodeStatus{}, "HostID", "Status", "CQLRtt", "RESTRtt"),
+			cmpopts.IgnoreFields(NodeStatus{}, "HostID", "Status", "CQLRtt", "RESTRtt", "AlternatorRtt"),
 		}
 		if diff := cmp.Diff(got, golden, opts...); diff != "" {
 			t.Errorf("Status() = %+v, diff %s", got, diff)
@@ -135,15 +135,18 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 
 		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.11"}] = &scyllaclient.NodeInfo{
 			BroadcastRPCAddress: "127.0.0.1",
-			NativeTransportPort: DefaultPort,
+			NativeTransportPort: DefaultCQLPort,
+			AlternatorPort:      "2",
 		}
 		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.12"}] = &scyllaclient.NodeInfo{
 			BroadcastRPCAddress: "192.168.100.12",
 			NativeTransportPort: "1",
+			AlternatorPort:      "2",
 		}
 		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.13"}] = &scyllaclient.NodeInfo{
 			BroadcastRPCAddress: "400.400.400.400",
-			NativeTransportPort: DefaultPort,
+			NativeTransportPort: DefaultCQLPort,
+			AlternatorPort:      "2",
 		}
 
 		status, err := s.Status(context.Background(), cid)
@@ -153,12 +156,12 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -171,12 +174,12 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -193,12 +196,12 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "TIMEOUT"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "TIMEOUT", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -215,12 +218,34 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "TIMEOUT", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "TIMEOUT", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+		}
+		assertEqual(t, golden, status)
+	})
+
+	t.Run("node Alternator TIMEOUT", func(t *testing.T) {
+		host := "192.168.100.12"
+		blockAlternator(t, host)
+		defer unblockAlternator(t, host)
+
+		status, err := s.Status(context.Background(), uuid.MustRandom())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		golden := []NodeStatus{
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "TIMEOUT"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -237,12 +262,12 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -258,12 +283,12 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UNAUTHORIZED"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UNAUTHORIZED", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -279,12 +304,12 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "HTTP 502"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "HTTP 502", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -346,6 +371,20 @@ func blockCQL(t *testing.T, h string) {
 func unblockCQL(t *testing.T, h string) {
 	t.Helper()
 	if err := unblock(h, CmdUnblockScyllaCQL); err != nil {
+		t.Error(err)
+	}
+}
+
+func blockAlternator(t *testing.T, h string) {
+	t.Helper()
+	if err := block(h, CmdBlockScyllaAlternator); err != nil {
+		t.Error(err)
+	}
+}
+
+func unblockAlternator(t *testing.T, h string) {
+	t.Helper()
+	if err := unblock(h, CmdUnblockScyllaAlternator); err != nil {
 		t.Error(err)
 	}
 }

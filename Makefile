@@ -96,7 +96,8 @@ unit-test: ## Run unit tests
 .PHONY: integration-test
 integration-test: ## Run integration tests
 integration-test:
-	@$(MAKE) pkg-integration-test PKG=./pkg/cqlping
+	@$(MAKE) pkg-integration-test PKG=./pkg/ping/cqlping
+	@$(MAKE) pkg-integration-test PKG=./pkg/ping/dynamoping
 	@$(MAKE) pkg-integration-test PKG=./pkg/scyllaclient
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/backup
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/cluster

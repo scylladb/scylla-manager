@@ -51,9 +51,25 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 		return nil
 	}
 
+	apis := []interface{}{"CQL", "REST"}
+
+	hasAlternator := false
+	for _, s := range cs {
+		if s.AlternatorStatus != "" {
+			hasAlternator = true
+			break
+		}
+	}
+
+	if hasAlternator {
+		apis = append([]interface{}{"Alternator"}, apis...)
+	}
+
+	headers := append([]interface{}{""}, append(apis, "Host", "Host ID")...)
+
 	var (
 		dc = cs[0].Dc
-		t  = table.New("", "CQL", "REST", "Host", "Host ID")
+		t  = table.New(headers...)
 	)
 
 	for _, s := range cs {
@@ -62,25 +78,40 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 				return err
 			}
 			dc = s.Dc
-			t = table.New("", "CQL", "REST", "Host", "Host ID")
+			t = table.New(headers...)
 		}
 
-		var (
-			cqlStatus  = "-"
-			restStatus = "-"
-		)
-		if s.CqlStatus != "" {
-			cqlStatus = s.CqlStatus
-			if s.Ssl {
-				cqlStatus += " SSL"
+		var apiStatuses = make([]interface{}, 0, len(apis))
+		if hasAlternator {
+			if s.AlternatorStatus != "" {
+				status := s.AlternatorStatus
+				if s.Ssl {
+					status += " SSL"
+				}
+				apiStatuses = append(apiStatuses, fmt.Sprintf("%s (%.0fms)", status, s.AlternatorRttMs))
+			} else {
+				apiStatuses = append(apiStatuses, "-")
 			}
-			cqlStatus = fmt.Sprintf("%s (%.0fms)", cqlStatus, s.CqlRttMs)
-		}
-		if s.RestStatus != "" {
-			restStatus = fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs)
 		}
 
-		t.AddRow(s.Status, cqlStatus, restStatus, s.Host, s.HostID)
+		if s.CqlStatus != "" {
+			status := s.CqlStatus
+			if s.Ssl {
+				status += " SSL"
+			}
+			apiStatuses = append(apiStatuses, fmt.Sprintf("%s (%.0fms)", status, s.CqlRttMs))
+		} else {
+			apiStatuses = append(apiStatuses, "-")
+		}
+
+		if s.RestStatus != "" {
+			apiStatuses = append(apiStatuses, fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs))
+		} else {
+			apiStatuses = append(apiStatuses, "-")
+		}
+
+		row := append([]interface{}{s.Status}, append(apiStatuses, s.Host, s.HostID)...)
+		t.AddRow(row...)
 	}
 
 	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {

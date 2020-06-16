@@ -136,6 +136,10 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 			scyllaclienttest.PathFileMatcher("/v2/config/data_file_directories", "testdata/scylla_api/v2_config_data_file_directories.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/client_encryption_options", "testdata/scylla_api/v2_config_client_encryption_options.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/authenticator", "testdata/scylla_api/v2_config_authenticator.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_port", "testdata/scylla_api/v2_config_alternator_port.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_https_port", "testdata/scylla_api/v2_config_alternator_https_port.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_address", "testdata/scylla_api/v2_config_alternator_address.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_enforce_authorization", "testdata/scylla_api/v2_config_alternator_enforce_authorization.json"),
 		),
 	)
 	defer closeServer()

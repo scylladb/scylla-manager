@@ -90,6 +90,13 @@
           "ssl": {
             "type": "boolean"
           },
+          "alternator_status": {
+            "type": "string"
+          },
+          "alternator_rtt_ms": {
+            "type": "number",
+            "format": "float"
+          },
           "cql_status": {
             "type": "string"
           },

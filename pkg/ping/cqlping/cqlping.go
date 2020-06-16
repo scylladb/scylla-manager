@@ -12,15 +12,8 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg/ping"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
-)
-
-var (
-	// ErrTimeout is returned when CQL ping times out.
-	ErrTimeout = errors.New("timeout")
-
-	// ErrUnauthorised is returned when CQL
-	ErrUnauthorised = errors.New("unauthorised")
 )
 
 // Config specifies the ping configuration, note that timeout is mandatory and
@@ -56,7 +49,7 @@ func simplePing(ctx context.Context, config Config) (rtt time.Duration, err erro
 	defer func() {
 		rtt = timeutc.Since(t)
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			err = ErrTimeout
+			err = ping.ErrTimeout
 		}
 	}()
 
@@ -142,11 +135,11 @@ func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error
 		rtt = timeutc.Since(t)
 		if err != nil {
 			if rtt >= config.Timeout {
-				err = ErrTimeout
+				err = ping.ErrTimeout
 			} else {
 				for _, m := range cqlUnauthorisedMessage {
 					if strings.HasSuffix(err.Error(), m) {
-						err = ErrUnauthorised
+						err = ping.ErrUnauthorised
 						break
 					}
 				}

@@ -16,7 +16,21 @@ var emptyProperties = []byte{'{', '}'}
 func makeAutoHealthCheckTask(clusterID uuid.UUID) *scheduler.Task {
 	return &scheduler.Task{
 		ClusterID: clusterID,
-		Type:      scheduler.HealthCheckTask,
+		Type:      scheduler.HealthCheckCQLTask,
+		Enabled:   true,
+		Sched: scheduler.Schedule{
+			Interval:   duration.Duration(15 * time.Second),
+			StartDate:  timeutc.Now().Add(30 * time.Second),
+			NumRetries: 0,
+		},
+		Properties: emptyProperties,
+	}
+}
+
+func makeAutoHealthCheckAlternatorTask(clusterID uuid.UUID) *scheduler.Task {
+	return &scheduler.Task{
+		ClusterID: clusterID,
+		Type:      scheduler.HealthCheckAlternatorTask,
 		Enabled:   true,
 		Sched: scheduler.Schedule{
 			Interval:   duration.Duration(15 * time.Second),

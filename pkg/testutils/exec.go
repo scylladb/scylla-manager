@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	// CmdBlockScyllaREST defines the command used for blocking the Scylla REST REST.
+	// CmdBlockScyllaREST defines the command used for blocking the Scylla REST.
 	CmdBlockScyllaREST = "iptables -A INPUT -p tcp --destination-port 10000 -j DROP"
 
-	// CmdUnblockScyllaREST defines the command used for unblocking the Scylla REST REST.
+	// CmdUnblockScyllaREST defines the command used for unblocking the Scylla REST.
 	CmdUnblockScyllaREST = "iptables -D INPUT -p tcp --destination-port 10000 -j DROP"
 
 	// CmdBlockScyllaCQL defines the command used for blocking the Scylla CQL access.
@@ -22,6 +22,12 @@ const (
 
 	// CmdUnblockScyllaCQL defines the command used for unblocking the Scylla CQL access.
 	CmdUnblockScyllaCQL = "iptables -D INPUT -p tcp --destination-port 9042 -j DROP"
+
+	// CmdBlockScyllaAlternator defines the command used for blocking the Scylla Alternator access.
+	CmdBlockScyllaAlternator = "iptables -A INPUT -p tcp --destination-port 8000 -j DROP"
+
+	// CmdUnblockScyllaAlternator defines the command used for unblocking the Scylla Alternator access.
+	CmdUnblockScyllaAlternator = "iptables -D INPUT -p tcp --destination-port 8000 -j DROP"
 )
 
 // ExecOnHost executes the given command on the given host. It returns the

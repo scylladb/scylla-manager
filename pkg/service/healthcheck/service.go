@@ -9,12 +9,15 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/cqlping"
+	"github.com/scylladb/mermaid/pkg/ping"
+	"github.com/scylladb/mermaid/pkg/ping/cqlping"
+	"github.com/scylladb/mermaid/pkg/ping/dynamoping"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/secrets"
@@ -89,6 +92,18 @@ func (s *Service) RESTRunner() Runner {
 	}
 }
 
+// AlternatorRunner creates a Runner that performs health checks for Alternator API
+// connectivity.
+func (s *Service) AlternatorRunner() Runner {
+	return Runner{
+		scyllaClient: s.scyllaClient,
+		clusterName:  s.clusterName,
+		status:       restStatus,
+		rtt:          restRTT,
+		ping:         s.pingAlternator,
+	}
+}
+
 // Status returns the current status of the supplied cluster.
 func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus, error) {
 	s.logger.Debug(ctx, "Status", "cluster_id", clusterID)
@@ -106,39 +121,15 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 	out := makeNodeStatus(status)
 
 	g := new(errgroup.Group)
-	g.Go(func() error {
-		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
-			// Ignore check if node is not Un and Normal
-			if !status[i].IsUN() {
-				return
-			}
+	g.Go(s.parallelAlternatorPingFunc(ctx, clusterID, status, out))
+	g.Go(s.parallelCQLPingFunc(ctx, clusterID, status, out))
+	g.Go(s.parallelRESTPingFunc(ctx, clusterID, status, out))
 
-			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr)
-			out[i].CQLRtt = float64(rtt.Milliseconds())
-			out[i].SSL = s.hasTLSConfig(clusterID)
-			if err != nil {
-				s.logger.Error(ctx, "CQL ping failed",
-					"cluster_id", clusterID,
-					"host", status[i].Addr,
-					"error", err,
-				)
+	return out, g.Wait()
+}
 
-				switch {
-				case errors.Is(err, cqlping.ErrTimeout):
-					out[i].CQLStatus = statusTimeout
-				case errors.Is(err, cqlping.ErrUnauthorised):
-					out[i].CQLStatus = statusUnauthorized
-				default:
-					out[i].CQLStatus = statusDown
-				}
-			} else {
-				out[i].CQLStatus = statusUp
-			}
-
-			return
-		})
-	})
-	g.Go(func() error {
+func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
+	return func() error {
 		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
 			// Ignore check if node is not Un and Normal
 			if !status[i].IsUN() {
@@ -169,9 +160,155 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 
 			return
 		})
-	})
+	}
+}
 
-	return out, g.Wait()
+func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
+	return func() error {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			// Ignore check if node is not Un and Normal.
+			if !status[i].IsUN() {
+				return
+			}
+
+			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr)
+			out[i].CQLRtt = float64(rtt.Milliseconds())
+			out[i].SSL = s.hasTLSConfig(clusterID)
+			if err != nil {
+				s.logger.Error(ctx, "CQL ping failed",
+					"cluster_id", clusterID,
+					"host", status[i].Addr,
+					"error", err,
+				)
+
+				switch {
+				case errors.Is(err, ping.ErrTimeout):
+					out[i].CQLStatus = statusTimeout
+				case errors.Is(err, ping.ErrUnauthorised):
+					out[i].CQLStatus = statusUnauthorized
+				default:
+					out[i].CQLStatus = statusDown
+				}
+			} else {
+				out[i].CQLStatus = statusUp
+			}
+
+			return
+		})
+	}
+}
+
+func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid.UUID,
+	status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
+	return func() error {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			// Ignore check if node is not Un and Normal.
+			if !status[i].IsUN() {
+				return
+			}
+
+			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr)
+			if err != nil {
+				s.logger.Error(ctx, "Alternator ping failed",
+					"cluster_id", clusterID,
+					"host", status[i].Addr,
+					"error", err,
+				)
+
+				switch {
+				case errors.Is(err, ping.ErrTimeout):
+					out[i].AlternatorStatus = statusTimeout
+				case errors.Is(err, ping.ErrUnauthorised):
+					out[i].AlternatorStatus = statusUnauthorized
+				default:
+					out[i].AlternatorStatus = statusDown
+				}
+			} else if rtt != 0 {
+				out[i].AlternatorStatus = statusUp
+			}
+			if rtt != 0 {
+				out[i].AlternatorRtt = float64(rtt.Milliseconds())
+			}
+
+			return
+		})
+	}
+}
+
+// pingAlternator sends ping probe and returns RTT.
+// When Alternator frontend is disabled, it returns 0 and nil error.
+func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
+	tlsConfig, err := s.tlsConfig(ctx, clusterID)
+	if err != nil {
+		return 0, errors.Wrap(err, "create TLS config")
+	}
+
+	cidHost := clusterIDHost{
+		ClusterID: clusterID,
+		Host:      host,
+	}
+
+	u := url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, DefaultAlternatorPort),
+	}
+
+	addr := u.String()
+	if ni, ok := s.hasNodeInfo(cidHost); ok {
+		if !ni.AlternatorEnabled() {
+			return 0, nil
+		}
+		addr = ni.AlternatorAddr(host)
+	}
+
+	config := dynamoping.Config{
+		Addr:    addr,
+		Timeout: s.config.Timeout,
+	}
+	if tlsConfig != nil {
+		config.Timeout = s.config.SSLTimeout
+		config.TLSConfig = tlsConfig.Clone()
+	}
+	rtt, err = dynamoping.Ping(ctx, config)
+
+	// In case any error try to pull NodeInfo and use configured address and port.
+	// AWS SDK doesn't return any network errors - it just times out - we have to
+	// react to any of them, it's not possible to distinguish timeout caused by
+	// service down and caused by wrong address.
+	if err != nil {
+		if ni := s.updateNodeInfo(ctx, cidHost); ni != nil {
+			if !ni.AlternatorEnabled() {
+				return 0, nil
+			}
+			if addr = ni.AlternatorAddr(host); addr != config.Addr {
+				s.logger.Info(ctx, "Changing Alternator IP/port based on information from Scylla API",
+					"cluster_id", cidHost.ClusterID,
+					"host", cidHost.Host,
+					"from", config.Addr,
+					"to", addr,
+				)
+
+				config.Addr = addr
+				rtt, err = dynamoping.Ping(ctx, config)
+			}
+		}
+	}
+
+	// If connection was cut by the server try upgrading to TLS.
+	if err != nil && config.TLSConfig == nil {
+		s.logger.Info(ctx, "Upgrading Alternator connection to TLS",
+			"cluster_id", clusterID,
+			"host", host,
+		)
+
+		config.TLSConfig = DefaultTLSConfig.Clone()
+		rtt, err = dynamoping.Ping(ctx, config)
+		if err == nil {
+			s.setTLSConfig(clusterID, DefaultTLSConfig.Clone())
+		}
+	}
+
+	return rtt, err
 }
 
 func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
@@ -185,7 +322,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 		Host:      host,
 	}
 
-	addr := net.JoinHostPort(host, DefaultPort)
+	addr := net.JoinHostPort(host, DefaultCQLPort)
 	if ni, ok := s.hasNodeInfo(cidHost); ok {
 		addr = ni.CQLAddr(host)
 	}

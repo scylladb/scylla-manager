@@ -407,7 +407,7 @@ var taskProgressCmd = &cobra.Command{
 		}
 
 		switch scheduler.TaskType(taskType) {
-		case scheduler.HealthCheckTask, scheduler.HealthCheckRESTTask:
+		case scheduler.HealthCheckAlternatorTask, scheduler.HealthCheckCQLTask, scheduler.HealthCheckRESTTask:
 			fmt.Fprintf(w, "Use: sctool status -c %s\n", cfgCluster)
 			return statusCmd.RunE(statusCmd, nil)
 		case scheduler.RepairTask:

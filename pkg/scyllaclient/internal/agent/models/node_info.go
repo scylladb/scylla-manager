@@ -17,6 +17,18 @@ import (
 // swagger:model NodeInfo
 type NodeInfo struct {
 
+	// Address for Alternator API requests.
+	AlternatorAddress string `json:"alternator_address,omitempty"`
+
+	// Whether Alternator requires authentication.
+	AlternatorEnforceAuthorization bool `json:"alternator_enforce_authorization,omitempty"`
+
+	// Port for Alternator HTTPS API server.
+	AlternatorHTTPSPort string `json:"alternator_https_port,omitempty"`
+
+	// Port for Alternator API server.
+	AlternatorPort string `json:"alternator_port,omitempty"`
+
 	// Address for REST API requests.
 	APIAddress string `json:"api_address,omitempty"`
 

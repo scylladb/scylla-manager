@@ -5,6 +5,7 @@ package scyllaclient
 import (
 	"context"
 	"net"
+	"net/url"
 
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
@@ -59,6 +60,41 @@ func (ni *NodeInfo) CQLAddr(fallback string) string {
 	}
 
 	return net.JoinHostPort(ni.ListenAddress, ni.NativeTransportPort)
+}
+
+// AlternatorEnabled returns if Alternator is enabled on host.
+func (ni *NodeInfo) AlternatorEnabled() bool {
+	return (ni.AlternatorHTTPSPort != "0" && ni.AlternatorHTTPSPort != "") ||
+		(ni.AlternatorPort != "0" && ni.AlternatorPort != "")
+}
+
+// AlternatorAddr returns Alternator address from NodeInfo.
+// It chooses right address and port based on information stored in NodeInfo.
+// HTTPS port has preference over HTTP.
+// `fallback` argument is used in case alternator_addresses is zero address.
+func (ni *NodeInfo) AlternatorAddr(fallback string) string {
+	const ipv4Zero, ipv6Zero = "0.0.0.0", "::0"
+
+	u := url.URL{
+		Scheme: "http",
+	}
+
+	port := ni.AlternatorPort
+	if ni.AlternatorHTTPSPort != "" && ni.AlternatorHTTPSPort != "0" {
+		port = ni.AlternatorHTTPSPort
+		u.Scheme = "https"
+	}
+	if ni.AlternatorAddress != "" {
+		if ni.AlternatorAddress == ipv4Zero || ni.AlternatorAddress == ipv6Zero {
+			u.Host = net.JoinHostPort(fallback, port)
+		} else {
+			u.Host = net.JoinHostPort(ni.AlternatorAddress, port)
+		}
+	} else {
+		u.Host = net.JoinHostPort(fallback, port)
+	}
+
+	return u.String()
 }
 
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
