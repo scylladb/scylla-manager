@@ -84,14 +84,9 @@ fi
 if [ ! -f /usr/bin/dh_testdir ]; then
     pkg_install debhelper
 fi
-if [ ! -f /usr/bin/pystache ]; then
-    if is_redhat_variant; then
-        sudo yum install -y /usr/bin/pystache
-    elif is_debian_variant; then
-        sudo apt-get install -y python-pystache
-    fi
+if [ ! -f /usr/bin/dch ]; then
+  pkg_install devscripts
 fi
-
 if [ "$ID" = "ubuntu" ] && [ ! -f /usr/share/keyrings/debian-archive-keyring.gpg ]; then
     sudo apt-get install -y debian-archive-keyring
 fi
@@ -134,17 +129,15 @@ elif is_ubuntu $TARGET; then
 else
    echo "Unknown distribution: $TARGET"
 fi
-if [ "$TARGET" = "jessie" ] || [ "$TARGET" = "trusty" ]; then
-    PYTHON_SUPPORT=true
-fi
 
-MUSTACHE_DIST="\"debian\": true, \"$TARGET\": true"
-pystache dist/debian/changelog.mustache "{ \"version\": \"$MERMAID_VERSION\", \"release\": \"$MERMAID_RELEASE\", \"revision\": \"$REVISION\", \"codename\": \"$TARGET\" }" > debian/changelog
-pystache dist/debian/control.mustache "{ $MUSTACHE_DIST, \"python-support\": $PYTHON_SUPPORT }" > debian/control
+# dch generates debian/changelog on-the-fly, with specified package version.
+export DEBFULLNAME="Takuya ASADA"
+export DEBEMAIL="syuu@scylladb.com"
+dch --create --package scylla-manager-server -v $MERMAID_VERSION-$MERMAID_RELEASE-$REVISION -D $TARGET "New release"
 
 sudo rm -fv /var/cache/pbuilder/scylla-manager-$TARGET.tgz
 sudo DIST=$TARGET /usr/sbin/pbuilder clean --configfile ./dist/debian/pbuilderrc
-sudo DIST=$TARGET /usr/sbin/pbuilder create --configfile ./dist/debian/pbuilderrc
+sudo DIST=$TARGET /usr/sbin/pbuilder create --configfile ./dist/debian/pbuilderrc --aptcache /tmp/
 sudo DIST=$TARGET /usr/sbin/pbuilder update --configfile ./dist/debian/pbuilderrc
 sudo DIST=$TARGET GO_VERSION="$GO_VERSION" CURL="/usr/bin/curl" VERSION="$MERMAID_VERSION" RELEASE="$MERMAID_RELEASE"\
  pdebuild  --configfile ./dist/debian/pbuilderrc --buildresult dist/release/deb
