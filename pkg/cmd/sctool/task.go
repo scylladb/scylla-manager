@@ -194,9 +194,9 @@ var taskStartCmd = &cobra.Command{
 			return err
 		}
 
-		cont, err := cmd.Flags().GetBool("continue")
-		if err != nil {
-			return err
+		cont := true
+		if f := cmd.Flag("no-continue"); f.Changed {
+			cont = false
 		}
 
 		if err := client.StartTask(ctx, cfgCluster, taskType, taskID, cont); err != nil {
@@ -212,7 +212,7 @@ func init() {
 	register(cmd, taskCmd)
 
 	fs := cmd.Flags()
-	fs.Bool("continue", true, "try resuming last run")
+	fs.Bool("no-continue", false, "do not resume last run")
 }
 
 var taskStopCmd = &cobra.Command{
