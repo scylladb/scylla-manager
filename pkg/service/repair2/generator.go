@@ -141,7 +141,7 @@ func (g *generator) Result() chan<- jobResult {
 	return g.result
 }
 
-func (g *generator) Run(ctx context.Context) error {
+func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start repair")
 
 	//TODO: progress and state registration
@@ -163,6 +163,7 @@ loop:
 			time.AfterFunc(g.gracefulShutdownTimeout, func() {
 				close(stop)
 			})
+			err = ctx.Err()
 		case r := <-g.result:
 			// TODO progress and state registration
 			// TODO handling penalties
@@ -181,7 +182,7 @@ loop:
 	if g.failed > 0 {
 		return errors.Errorf("%d token ranges out of %d failed to repair", g.failed, g.count)
 	}
-	return nil
+	return err
 }
 
 func (g *generator) processResult(ctx context.Context, r jobResult, lastPercent int) int {
