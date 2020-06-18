@@ -15,7 +15,11 @@ import (
 func ParseYAML(target interface{}, files ...string) error {
 	var opts []config.YAMLOption
 	for _, f := range files {
-		if fileExists(f) {
+		exists, err := fileExists(f)
+		if err != nil {
+			return err
+		}
+		if exists {
 			opts = append(opts, config.File(f))
 		}
 	}
@@ -29,10 +33,13 @@ func ParseYAML(target interface{}, files ...string) error {
 	return nil
 }
 
-func fileExists(filename string) bool {
+func fileExists(filename string) (bool, error) {
 	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
 	}
-	return !info.IsDir()
+	return !info.IsDir(), nil
 }
