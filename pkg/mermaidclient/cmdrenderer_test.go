@@ -29,6 +29,7 @@ func TestCmdlineRender(t *testing.T) {
 			"with_hosts":   []interface{}{"192.168.100.11", "192.168.100.21"},
 			"token_ranges": "all",
 			"fail_fast":    true,
+			"intensity":    1,
 		},
 	}
 
@@ -40,17 +41,17 @@ func TestCmdlineRender(t *testing.T) {
 		{
 			"render all",
 			NewCmdRenderer(task, RenderAll),
-			"sctool repair --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --host 192.168.100.11 --with-hosts 192.168.100.11,192.168.100.21 --fail-fast --token-ranges all",
+			"sctool repair --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --host 192.168.100.11 --with-hosts 192.168.100.11,192.168.100.21 --fail-fast --token-ranges all --intensity 1",
 		},
 		{
 			"render args",
 			NewCmdRenderer(task, RenderArgs),
-			"--cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --host 192.168.100.11 --with-hosts 192.168.100.11,192.168.100.21 --fail-fast --token-ranges all",
+			"--cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --host 192.168.100.11 --with-hosts 192.168.100.11,192.168.100.21 --fail-fast --token-ranges all --intensity 1",
 		},
 		{
 			"render task type args",
 			NewCmdRenderer(task, RenderTypeArgs),
-			"-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --host 192.168.100.11 --with-hosts 192.168.100.11,192.168.100.21 --fail-fast --token-ranges all",
+			"-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --host 192.168.100.11 --with-hosts 192.168.100.11,192.168.100.21 --fail-fast --token-ranges all --intensity 1",
 		},
 	}
 
