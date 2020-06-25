@@ -137,6 +137,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 			rc.writeProp("--with-hosts", "with_hosts", false)
 			rc.writeProp("--fail-fast", "fail_fast", false)
 			rc.writeProp("--token-ranges", "token_ranges", false)
+			rc.writeProp("--intensity", "intensity", false)
 		}
 	}
 
