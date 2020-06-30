@@ -734,6 +734,34 @@
         "security": []
       }
     },
+    "/terminate": {
+      "post": {
+        "description": "Reload agent config",
+        "summary": "Reload agent config",
+        "operationId": "Reload",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/free_os_memory": {
       "post": {
         "description": "Run debug.FreeOSMemory on the agent",
