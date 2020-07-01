@@ -34,6 +34,7 @@ ssl:
 healthcheck:
   timeout: 1s
   ssl_timeout: 1s
+  node_info_ttl: 1s
 
 backup:
   disk_space_free_min_percent: 1

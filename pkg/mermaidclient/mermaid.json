@@ -110,6 +110,21 @@
           "rest_rtt_ms": {
             "type": "number",
             "format": "float"
+          },
+          "total_ram": {
+            "type": "integer"
+          },
+          "uptime": {
+            "type": "integer"
+          },
+          "cpu_count": {
+            "type": "integer"
+          },
+          "scylla_version": {
+            "type": "string"
+          },
+          "agent_version": {
+            "type": "string"
           }
         }
       }

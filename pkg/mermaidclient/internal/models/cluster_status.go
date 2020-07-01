@@ -48,11 +48,17 @@ func (m ClusterStatus) Validate(formats strfmt.Registry) error {
 // swagger:model ClusterStatusItems0
 type ClusterStatusItems0 struct {
 
+	// agent version
+	AgentVersion string `json:"agent_version,omitempty"`
+
 	// alternator rtt ms
 	AlternatorRttMs float32 `json:"alternator_rtt_ms,omitempty"`
 
 	// alternator status
 	AlternatorStatus string `json:"alternator_status,omitempty"`
+
+	// cpu count
+	CPUCount int64 `json:"cpu_count,omitempty"`
 
 	// cql rtt ms
 	CqlRttMs float32 `json:"cql_rtt_ms,omitempty"`
@@ -75,11 +81,20 @@ type ClusterStatusItems0 struct {
 	// rest status
 	RestStatus string `json:"rest_status,omitempty"`
 
+	// scylla version
+	ScyllaVersion string `json:"scylla_version,omitempty"`
+
 	// ssl
 	Ssl bool `json:"ssl,omitempty"`
 
 	// status
 	Status string `json:"status,omitempty"`
+
+	// total ram
+	TotalRAM int64 `json:"total_ram,omitempty"`
+
+	// uptime
+	Uptime int64 `json:"uptime,omitempty"`
 }
 
 // Validate validates this cluster status items0

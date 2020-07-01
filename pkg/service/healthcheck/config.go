@@ -22,12 +22,15 @@ type Config struct {
 	Timeout time.Duration `yaml:"timeout"`
 	// Timeout specifies encrypted CQL ping timeout.
 	SSLTimeout time.Duration `yaml:"ssl_timeout"`
+	// NodeInfoTTL specifies how long node info should be cached.
+	NodeInfoTTL time.Duration `yaml:"node_info_ttl"`
 }
 
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		Timeout:    250 * time.Millisecond,
-		SSLTimeout: 750 * time.Millisecond,
+		Timeout:     250 * time.Millisecond,
+		SSLTimeout:  750 * time.Millisecond,
+		NodeInfoTTL: 5 * time.Minute,
 	}
 }

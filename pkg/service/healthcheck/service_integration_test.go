@@ -24,6 +24,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service/secrets/dbsecrets"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/httpx"
+	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
@@ -123,7 +124,8 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 
 		opts := cmp.Options{
 			UUIDComparer(),
-			cmpopts.IgnoreFields(NodeStatus{}, "HostID", "Status", "CQLRtt", "RESTRtt", "AlternatorRtt"),
+			cmpopts.IgnoreFields(NodeStatus{}, "HostID", "Status", "CQLRtt", "RESTRtt", "AlternatorRtt",
+				"TotalRAM", "Uptime", "CPUCount", "ScyllaVersion", "AgentVersion"),
 		}
 		if diff := cmp.Diff(got, golden, opts...); diff != "" {
 			t.Errorf("Status() = %+v, diff %s", got, diff)
@@ -133,20 +135,29 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 	t.Run("resolve address via Agent NodeInfo endpoint", func(t *testing.T) {
 		cid := uuid.MustRandom()
 
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.11"}] = &scyllaclient.NodeInfo{
-			BroadcastRPCAddress: "127.0.0.1",
-			NativeTransportPort: DefaultCQLPort,
-			AlternatorPort:      "2",
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.11"}] = nodeInfoTTL{
+			NodeInfo: &scyllaclient.NodeInfo{
+				BroadcastRPCAddress: "127.0.0.1",
+				NativeTransportPort: DefaultCQLPort,
+				AlternatorPort:      "2",
+			},
+			Expires: timeutc.Now().Add(time.Hour),
 		}
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.12"}] = &scyllaclient.NodeInfo{
-			BroadcastRPCAddress: "192.168.100.12",
-			NativeTransportPort: "1",
-			AlternatorPort:      "2",
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.12"}] = nodeInfoTTL{
+			NodeInfo: &scyllaclient.NodeInfo{
+				BroadcastRPCAddress: "192.168.100.12",
+				NativeTransportPort: "1",
+				AlternatorPort:      "2",
+			},
+			Expires: timeutc.Now().Add(time.Hour),
 		}
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.13"}] = &scyllaclient.NodeInfo{
-			BroadcastRPCAddress: "400.400.400.400",
-			NativeTransportPort: DefaultCQLPort,
-			AlternatorPort:      "2",
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.13"}] = nodeInfoTTL{
+			NodeInfo: &scyllaclient.NodeInfo{
+				BroadcastRPCAddress: "400.400.400.400",
+				NativeTransportPort: DefaultCQLPort,
+				AlternatorPort:      "2",
+			},
+			Expires: timeutc.Now().Add(time.Hour),
 		}
 
 		status, err := s.Status(context.Background(), cid)

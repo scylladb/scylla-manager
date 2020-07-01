@@ -1319,6 +1319,26 @@
         "alternator_enforce_authorization": {
           "description": "Whether Alternator requires authentication.",
           "type": "boolean"
+        },
+        "memory_total": {
+          "description": "Total available memory.",
+          "type": "integer"
+        },
+        "uptime": {
+          "description": "Uptime in seconds.",
+          "type": "integer"
+        },
+        "cpu_count": {
+          "description": "Logical CPU count.",
+          "type": "integer"
+        },
+        "scylla_version": {
+          "description": "Scylla version.",
+          "type": "string"
+        },
+        "agent_version": {
+          "description": "Scylla Manager Agent version.",
+          "type": "string"
         }
       }
     }

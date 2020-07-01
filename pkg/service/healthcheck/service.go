@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/secrets"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
+	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"golang.org/x/sync/errgroup"
 )
@@ -34,6 +35,11 @@ type clusterIDHost struct {
 	Host      string
 }
 
+type nodeInfoTTL struct {
+	NodeInfo *scyllaclient.NodeInfo
+	Expires  time.Time
+}
+
 // Service manages health checks.
 type Service struct {
 	config       Config
@@ -44,7 +50,7 @@ type Service struct {
 	cacheMu sync.Mutex
 	// fields below are protected by cacheMu
 	tlsCache      map[uuid.UUID]*tls.Config
-	nodeInfoCache map[clusterIDHost]*scyllaclient.NodeInfo
+	nodeInfoCache map[clusterIDHost]nodeInfoTTL
 
 	logger log.Logger
 }
@@ -64,7 +70,7 @@ func NewService(config Config, clusterName ClusterNameFunc, scyllaClient scyllac
 		scyllaClient:  scyllaClient,
 		secretsStore:  secretsStore,
 		tlsCache:      make(map[uuid.UUID]*tls.Config),
-		nodeInfoCache: make(map[clusterIDHost]*scyllaclient.NodeInfo),
+		nodeInfoCache: make(map[clusterIDHost]nodeInfoTTL),
 		logger:        logger,
 	}, nil
 }
@@ -124,8 +130,33 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 	g.Go(s.parallelAlternatorPingFunc(ctx, clusterID, status, out))
 	g.Go(s.parallelCQLPingFunc(ctx, clusterID, status, out))
 	g.Go(s.parallelRESTPingFunc(ctx, clusterID, status, out))
+	g.Go(s.parallelNodeInfoFunc(ctx, clusterID, status, out))
 
 	return out, g.Wait()
+}
+
+func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
+	return func() error {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			// Ignore check if node is not Un and Normal
+			if !status[i].IsUN() {
+				return
+			}
+
+			ni, err := s.getNodeInfo(ctx, clusterID, status[i].Addr)
+			if err != nil {
+				s.logger.Error(ctx, "Node info fetch failed",
+					"cluster_id", clusterID,
+					"host", status[i].Addr,
+					"error", err,
+				)
+				return
+			}
+
+			s.decorateNodeStatus(&out[i], ni)
+			return
+		})
+	}
 }
 
 func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
@@ -311,6 +342,14 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 	return rtt, err
 }
 
+func (s *Service) decorateNodeStatus(status *NodeStatus, ni *scyllaclient.NodeInfo) {
+	status.TotalRAM = ni.MemoryTotal
+	status.Uptime = ni.Uptime
+	status.CPUCount = ni.CPUCount
+	status.ScyllaVersion = ni.ScyllaVersion
+	status.AgentVersion = ni.AgentVersion
+}
+
 func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
 	tlsConfig, err := s.tlsConfig(ctx, clusterID)
 	if err != nil {
@@ -395,10 +434,37 @@ func (s *Service) hasNodeInfo(cidHost clusterIDHost) (*scyllaclient.NodeInfo, bo
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
 
-	if ni, ok := s.nodeInfoCache[cidHost]; ok {
-		return ni, true
+	now := timeutc.Now()
+	if ni, ok := s.nodeInfoCache[cidHost]; ok && now.Before(ni.Expires) {
+		return ni.NodeInfo, true
 	}
 	return nil, false
+}
+
+func (s *Service) getNodeInfo(ctx context.Context, clusterID uuid.UUID, host string) (*scyllaclient.NodeInfo, error) {
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+
+	key := clusterIDHost{clusterID, host}
+	now := timeutc.Now()
+
+	if ni, ok := s.nodeInfoCache[key]; ok && now.Before(ni.Expires) {
+		return ni.NodeInfo, nil
+	}
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "create scylla client")
+	}
+
+	ni, err := client.NodeInfo(ctx, host)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch node info")
+	}
+
+	expires := now.Add(s.config.NodeInfoTTL)
+	s.nodeInfoCache[key] = nodeInfoTTL{NodeInfo: ni, Expires: expires}
+
+	return ni, nil
 }
 
 func (s *Service) updateNodeInfo(ctx context.Context, cidHost clusterIDHost) *scyllaclient.NodeInfo {
@@ -416,8 +482,10 @@ func (s *Service) updateNodeInfo(ctx context.Context, cidHost clusterIDHost) *sc
 		return nil
 	}
 
+	expires := timeutc.Now().Add(s.config.NodeInfoTTL)
+
 	s.cacheMu.Lock()
-	s.nodeInfoCache[cidHost] = ni
+	s.nodeInfoCache[cidHost] = nodeInfoTTL{NodeInfo: ni, Expires: expires}
 	s.cacheMu.Unlock()
 
 	return ni

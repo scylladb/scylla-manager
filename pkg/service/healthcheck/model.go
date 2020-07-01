@@ -2,7 +2,9 @@
 
 package healthcheck
 
-import "github.com/scylladb/mermaid/pkg/scyllaclient"
+import (
+	"github.com/scylladb/mermaid/pkg/scyllaclient"
+)
 
 const (
 	statusUp           = `UP`
@@ -19,12 +21,17 @@ type NodeStatus struct {
 	Host             string  `json:"host"`
 	Status           string  `json:"status"`
 	SSL              bool    `json:"ssl"`
+	AlternatorStatus string  `json:"alternator_status"`
+	AlternatorRtt    float64 `json:"alternator_rtt_ms"`
 	CQLStatus        string  `json:"cql_status"`
 	CQLRtt           float64 `json:"cql_rtt_ms"`
 	RESTStatus       string  `json:"rest_status"`
 	RESTRtt          float64 `json:"rest_rtt_ms"`
-	AlternatorStatus string  `json:"alternator_status"`
-	AlternatorRtt    float64 `json:"alternator_rtt_ms"`
+	TotalRAM         int64   `json:"total_ram"`
+	Uptime           int64   `json:"uptime"`
+	CPUCount         int64   `json:"cpu_count"`
+	ScyllaVersion    string  `json:"scylla_version"`
+	AgentVersion     string  `json:"agent_version"`
 }
 
 func makeNodeStatus(src []scyllaclient.NodeStatusInfo) []NodeStatus {

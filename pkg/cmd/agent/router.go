@@ -7,15 +7,11 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"runtime/debug"
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
-	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/auth"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/httphandler"
 	"github.com/scylladb/mermaid/pkg/util/httplog"
 )
@@ -37,13 +33,8 @@ func newRouter(config config, rclone http.Handler, logger log.Logger) http.Handl
 	priv := r.With(
 		auth.ValidateToken(config.AuthToken, time.Second, unauthorizedErrorBody),
 	)
-	// Agent specific
-	priv.Get("/agent/node_info", nodeInfo(net.JoinHostPort(config.Scylla.APIAddress, config.Scylla.APIPort)))
-	priv.Post("/agent/free_os_memory", func(writer http.ResponseWriter, request *http.Request) {
-		debug.FreeOSMemory()
-	})
-	// Rclone server
-	priv.Mount("/agent/rclone", http.StripPrefix("/agent/rclone", rclone))
+	// Agent specific endpoints
+	priv.Mount("/agent", newAgentHandler(config, rclone))
 	// Scylla prometheus proxy
 	priv.Mount("/metrics", promProxy(config))
 	// Fallback to Scylla API proxy
@@ -70,20 +61,5 @@ func director(addr string) func(r *http.Request) {
 		r.Host = addr
 		r.URL.Host = addr
 		r.URL.Scheme = "http"
-	}
-}
-
-func nodeInfo(addr string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		client := scyllaclient.NewConfigClient(addr)
-
-		nodeInfo, err := client.NodeInfo(r.Context())
-		if err != nil {
-			render.Status(r, http.StatusInternalServerError)
-			render.Respond(w, r, errors.Wrap(err, "node info fetch"))
-			return
-		}
-
-		render.Respond(w, r, nodeInfo)
 	}
 }

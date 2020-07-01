@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"text/template"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/table"
 	"github.com/scylladb/mermaid/pkg/util/inexlist"
+	"github.com/scylladb/mermaid/pkg/util/version"
 	"github.com/scylladb/termtables"
 )
 
@@ -45,31 +47,57 @@ func (cs ClusterSlice) Render(w io.Writer) error {
 // ClusterStatus contains cluster status info.
 type ClusterStatus models.ClusterStatus
 
+func (cs ClusterStatus) tableHeaders() []interface{} {
+	var (
+		headers = []interface{}{"Address", "Uptime", "CPUs", "Memory", "Scylla", "Agent", "Host ID"}
+	)
+
+	apis := []interface{}{"CQL", "REST"}
+
+	if cs.hasAnyAlternator() {
+		apis = append([]interface{}{"Alternator"}, apis...)
+	}
+
+	return append([]interface{}{""}, append(apis, headers...)...)
+}
+
+func (cs ClusterStatus) hasAnyAlternator() bool {
+	for _, s := range cs {
+		if s.AlternatorStatus != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func (cs ClusterStatus) addRow(t *table.Table, rows ...interface{}) {
+	unpacked := make([]interface{}, 0, len(rows))
+	for _, r := range rows {
+		switch v := r.(type) {
+		case []interface{}:
+			unpacked = append(unpacked, v...)
+		default:
+			unpacked = append(unpacked, v)
+		}
+	}
+	headers := cs.tableHeaders()
+	t.AddRow(unpacked[:len(headers)]...)
+}
+
 // Render renders ClusterStatus in a tabular format.
 func (cs ClusterStatus) Render(w io.Writer) error {
+	const (
+		statusUP         = "UP"
+		progressBarWidth = 10
+	)
+
 	if len(cs) == 0 {
 		return nil
 	}
 
-	apis := []interface{}{"CQL", "REST"}
-
-	hasAlternator := false
-	for _, s := range cs {
-		if s.AlternatorStatus != "" {
-			hasAlternator = true
-			break
-		}
-	}
-
-	if hasAlternator {
-		apis = append([]interface{}{"Alternator"}, apis...)
-	}
-
-	headers := append([]interface{}{""}, append(apis, "Host", "Host ID")...)
-
 	var (
 		dc = cs[0].Dc
-		t  = table.New(headers...)
+		t  = table.New(cs.tableHeaders()...)
 	)
 
 	for _, s := range cs {
@@ -78,20 +106,26 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 				return err
 			}
 			dc = s.Dc
-			t = table.New(headers...)
+			t = table.New(cs.tableHeaders()...)
 		}
 
-		var apiStatuses = make([]interface{}, 0, len(apis))
-		if hasAlternator {
-			if s.AlternatorStatus != "" {
-				status := s.AlternatorStatus
-				if s.Ssl {
-					status += " SSL"
-				}
-				apiStatuses = append(apiStatuses, fmt.Sprintf("%s (%.0fms)", status, s.AlternatorRttMs))
-			} else {
-				apiStatuses = append(apiStatuses, "-")
+		var (
+			apiStatuses   []interface{}
+			cpus          = "-"
+			mem           = "-"
+			scyllaVersion = "-"
+			agentVersion  = "-"
+			uptime        = "-"
+		)
+
+		if s.AlternatorStatus != "" {
+			status := s.AlternatorStatus
+			if s.Ssl {
+				status += " SSL"
 			}
+			apiStatuses = append(apiStatuses, fmt.Sprintf("%s (%.0fms)", status, s.AlternatorRttMs))
+		} else if cs.hasAnyAlternator() {
+			apiStatuses = append(apiStatuses, "-")
 		}
 
 		if s.CqlStatus != "" {
@@ -110,8 +144,15 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 			apiStatuses = append(apiStatuses, "-")
 		}
 
-		row := append([]interface{}{s.Status}, append(apiStatuses, s.Host, s.HostID)...)
-		t.AddRow(row...)
+		if s.RestStatus == statusUP {
+			cpus = fmt.Sprintf("%d", s.CPUCount)
+			mem = ByteCountBinary(s.TotalRAM)
+			scyllaVersion = version.Short(s.ScyllaVersion)
+			agentVersion = version.Short(s.AgentVersion)
+			uptime = (time.Duration(s.Uptime) * time.Second).String()
+		}
+
+		cs.addRow(t, s.Status, apiStatuses, s.Host, uptime, cpus, mem, scyllaVersion, agentVersion, s.HostID)
 	}
 
 	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {

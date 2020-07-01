@@ -17,6 +17,9 @@ import (
 // swagger:model NodeInfo
 type NodeInfo struct {
 
+	// Scylla Manager Agent version.
+	AgentVersion string `json:"agent_version,omitempty"`
+
 	// Address for Alternator API requests.
 	AlternatorAddress string `json:"alternator_address,omitempty"`
 
@@ -47,11 +50,17 @@ type NodeInfo struct {
 	// Whether client authorization is required.
 	ClientEncryptionRequireAuth bool `json:"client_encryption_require_auth,omitempty"`
 
+	// Logical CPU count.
+	CPUCount int64 `json:"cpu_count,omitempty"`
+
 	// Whether CQL requires password authentication.
 	CqlPasswordProtected bool `json:"cql_password_protected,omitempty"`
 
 	// Address Scylla listens for connections from other nodes.
 	ListenAddress string `json:"listen_address,omitempty"`
+
+	// Total available memory.
+	MemoryTotal int64 `json:"memory_total,omitempty"`
 
 	// Port for the CQL native transport to listen for clients on.
 	NativeTransportPort string `json:"native_transport_port,omitempty"`
@@ -67,6 +76,12 @@ type NodeInfo struct {
 
 	// Port for Thrift to listen for clients on.
 	RPCPort string `json:"rpc_port,omitempty"`
+
+	// Scylla version.
+	ScyllaVersion string `json:"scylla_version,omitempty"`
+
+	// Uptime in seconds.
+	Uptime int64 `json:"uptime,omitempty"`
 }
 
 // Validate validates this node info
