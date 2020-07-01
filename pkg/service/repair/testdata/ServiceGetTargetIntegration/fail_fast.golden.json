@@ -12,6 +12,8 @@
     {
       "Keyspace": "system_distributed",
       "Tables": [
+        "cdc_generations",
+        "cdc_streams",
         "view_build_status"
       ],
       "AllTables": true
