@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
@@ -33,7 +33,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 	t.Run("start", func(t *testing.T) {
 		var (
-			session = gocqlx.NewSession(CreateSession(t))
+			session = CreateSession(t)
 		)
 
 		ctx := context.Background()
@@ -102,7 +102,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 	t.Run("update", func(t *testing.T) {
 		var (
-			session = gocqlx.NewSession(CreateSession(t))
+			session = CreateSession(t)
 		)
 
 		ctx := context.Background()
@@ -197,7 +197,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 	t.Run("restoring state", func(t *testing.T) {
 		var (
-			session = gocqlx.NewSession(CreateSession(t))
+			session = CreateSession(t)
 		)
 
 		table.RepairRunState.Insert()
@@ -271,17 +271,15 @@ func TestProgressManagerIntegration(t *testing.T) {
 }
 
 func getProgress(run *Run, session gocqlx.Session) []RunProgress {
-	stmt, names := table.RepairRunProgress.Select()
+	var rp = make([]RunProgress, 0)
 
-	q := session.Query(stmt, names).BindMap(qb.M{
+	if err := table.RepairRunProgress.SelectQuery(session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
-	})
-
-	var rp = make([]RunProgress, 0)
-	if err := q.SelectRelease(&rp); err != nil {
-
+	}).SelectRelease(&rp); err != nil {
+		panic(err)
 	}
+
 	return rp
 }

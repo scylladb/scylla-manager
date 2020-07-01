@@ -14,7 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	repair "github.com/scylladb/mermaid/pkg/service/repair"
+	"github.com/scylladb/mermaid/pkg/service/repair"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
@@ -108,7 +108,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	}
 
 	var (
-		session = gocqlx.NewSession(CreateSession(t))
+		session = CreateSession(t)
 		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
 		ctx     = context.Background()
 	)
@@ -135,7 +135,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 
 func TestServiceRepairIntegration(t *testing.T) {
 	var (
-		session = gocqlx.NewSession(CreateSession(t))
+		session = CreateSession(t)
 		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
 		ctx     = context.Background()
 	)

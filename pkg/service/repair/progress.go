@@ -8,8 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
@@ -241,26 +241,18 @@ func (pm *dbProgressManager) CheckRepaired(ttr *tableTokenRange) bool {
 func (pm *dbProgressManager) upsertProgress(ctx context.Context, p *RunProgress) error {
 	pm.logger.Debug(ctx, "UpsertProgress", "run_progress", p)
 
-	stmt, names := table.RepairRunProgress.Insert()
-	q := pm.session.Query(stmt, names).BindStruct(p)
-
-	return q.ExecRelease()
+	return table.RepairRunProgress.InsertQuery(pm.session).BindStruct(p).ExecRelease()
 }
 
 // upsertState upserts a repair state information.
-func (pm *dbProgressManager) upsertState(ctx context.Context, p *RunState) error {
-	pm.logger.Debug(ctx, "UpsertState", "run_state", p)
+func (pm *dbProgressManager) upsertState(ctx context.Context, s *RunState) error {
+	pm.logger.Debug(ctx, "UpsertState", "run_state", s)
 
-	stmt, names := table.RepairRunState.Insert()
-	q := pm.session.Query(stmt, names).BindStruct(p)
-
-	return q.ExecRelease()
+	return table.RepairRunState.InsertQuery(pm.session).BindStruct(s).ExecRelease()
 }
 
 func (pm *dbProgressManager) getState(run *Run) ([]*RunState, error) {
-	stmt, names := table.RepairRunState.Select()
-
-	q := pm.session.Query(stmt, names).BindMap(qb.M{
+	q := table.RepairRunState.SelectQuery(pm.session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
@@ -416,9 +408,7 @@ func NewProgressVisitor(run *Run, session gocqlx.Session) ProgressVisitor {
 // If visit wants to reuse RunProgress it must copy it because memory is reused
 // between calls.
 func (i *progressVisitor) ForEach(visit func(*RunProgress)) error {
-	stmt, names := table.RepairRunProgress.Select()
-
-	iter := i.session.Query(stmt, names).BindMap(qb.M{
+	iter := table.RepairRunProgress.SelectQuery(i.session).BindMap(qb.M{
 		"cluster_id": i.run.ClusterID,
 		"task_id":    i.run.TaskID,
 		"run_id":     i.run.ID,

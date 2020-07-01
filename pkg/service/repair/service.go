@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -395,9 +395,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 
 // putRun upserts a repair run.
 func (s *Service) putRun(r *Run) error {
-	stmt, names := table.RepairRun.Insert()
-	q := s.session.Query(stmt, names).BindStruct(r)
-	return q.ExecRelease()
+	return table.RepairRun.InsertQuery(s.session).BindStruct(r).ExecRelease()
 }
 
 // putRunLogError executes putRun and consumes the error.
@@ -460,16 +458,12 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", runID,
 	)
 
-	stmt, names := table.RepairRun.Get()
-
-	q := s.session.Query(stmt, names).BindMap(qb.M{
+	var r Run
+	return &r, table.RepairRun.GetQuery(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 		"id":         runID,
-	})
-
-	var r Run
-	return &r, q.GetRelease(&r)
+	}).GetRelease(&r)
 }
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing
