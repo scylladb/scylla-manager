@@ -4,20 +4,17 @@ package scyllaclient
 
 import (
 	"context"
-	"io"
-	"io/ioutil"
 	"math"
 	"math/rand"
 	"net"
-	"net/http"
 	"net/url"
 	"runtime"
 	"sort"
 	"sync"
 	"time"
 
-	apiRuntime "github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client/operations"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 )
 
@@ -216,21 +213,11 @@ func (c *Client) newURL(host, path string) url.URL {
 }
 
 func (c *Client) ping(ctx context.Context, host string) error {
-	u := c.newURL(host, "/")
-	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	_, err := c.scyllaOps.StorageServiceScyllaReleaseVersionGet(&operations.StorageServiceScyllaReleaseVersionGetParams{
+		Context: forceHost(ctx, host),
+	})
 	if err != nil {
-		return errors.Wrap(err, "create http request")
+		return err
 	}
-	r = r.WithContext(forceHost(ctx, host))
-
-	resp, err := c.transport.RoundTrip(r)
-	if resp != nil {
-		io.Copy(ioutil.Discard, io.LimitReader(resp.Body, 1024)) // nolint: errcheck
-		resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
-			err = apiRuntime.NewAPIError("unknown error", nil, resp.StatusCode)
-		}
-	}
-	return err
+	return nil
 }

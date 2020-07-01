@@ -432,13 +432,15 @@ func startAgent(t *testing.T, h string) {
 	}
 }
 
+const pingPath = "/storage_service/scylla_release_version"
+
 func fakeHealthCheckStatus(host string, code int) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
 		h, _, err := net.SplitHostPort(r.URL.Host)
 		if err != nil {
 			return nil, err
 		}
-		if h == host && r.Method == http.MethodGet && r.URL.Path == "/" {
+		if h == host && r.Method == http.MethodGet && r.URL.Path == pingPath {
 			resp := &http.Response{
 				Status:     http.StatusText(code),
 				StatusCode: code,
