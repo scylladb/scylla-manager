@@ -354,6 +354,8 @@ github.com/scylladb/go-set v1.0.2 h1:SkvlMCKhP0wyyct6j+0IHJkBkSZL+TDzZ4E7f7BCcRE
 github.com/scylladb/go-set v1.0.2/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
 github.com/scylladb/gocql v1.4.1-0.20200520132847-57de5e5cdd5c h1:MuvwrAhW4fESdVRv/InyCBvrTmXnTG7SXflw37P2N4Q=
 github.com/scylladb/gocql v1.4.1-0.20200520132847-57de5e5cdd5c/go.mod h1:S154F0u6zQlF3JjuHAidQIExQf9H45yT8z68h0FQYdU=
+github.com/scylladb/gocqlx v1.5.0 h1:p7NEqRaCMAtW2nvq62iyUNXmIYP29373YOC7D2Xd7Qg=
+github.com/scylladb/gocqlx v1.5.0/go.mod h1:QarZcw5kpYh31MXfxiN2JWWvF1cgZbYqfTfXwmwhpEQ=
 github.com/scylladb/gocqlx/v2 v2.1.0 h1:YymsXJyR+KJ9hUppkQcuXb9wQOme7oYBYqt7AdufD6c=
 github.com/scylladb/gocqlx/v2 v2.1.0/go.mod h1:G1Cuw/NcqM0Mnj5zTRihdx7aW3yBk9zxR+XqCV3aCAA=
 github.com/scylladb/rclone v1.51.0-patched-5 h1:xTIx3Ji38C7Yfa3YjhyDJfBvr48B5NA6wgA/YSEEPFM=

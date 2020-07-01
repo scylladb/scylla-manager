@@ -5,14 +5,14 @@ package repair
 import (
 	"context"
 	"encoding/json"
-	"sort"
+	"strings"
+	"sync"
 
-	"github.com/cespare/xxhash"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -20,7 +20,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
-	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 // ClusterNameFunc returns name for a given ID.
@@ -34,13 +34,12 @@ type Service struct {
 	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
 	logger       log.Logger
+
+	intensityChannels map[uuid.UUID]chan float64
+	mu                sync.Mutex
 }
 
 func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
-	if session.Session == nil || session.Closed() {
-		return nil, errors.New("invalid session")
-	}
-
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
 	}
@@ -54,11 +53,12 @@ func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFu
 	}
 
 	return &Service{
-		session:      session,
-		config:       config,
-		clusterName:  clusterName,
-		scyllaClient: scyllaClient,
-		logger:       logger,
+		session:           session,
+		config:            config,
+		clusterName:       clusterName,
+		scyllaClient:      scyllaClient,
+		logger:            logger,
+		intensityChannels: make(map[uuid.UUID]chan float64),
 	}, nil
 }
 
@@ -69,22 +69,18 @@ func (s *Service) Runner() Runner {
 
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (Target, error) {
-	p := taskProperties{
-		TokenRanges: DCPrimaryTokenRanges,
-		Continue:    true,
-	}
+	p := defaultTaskProperties()
 
+	// Parse task properties
 	if err := json.Unmarshal(properties, &p); err != nil {
 		return Target{}, service.ErrValidate(errors.Wrapf(err, "parse runner properties: %s", properties))
 	}
 
+	// Copy basic properties
 	t := Target{
-		Host:        p.Host,
-		WithHosts:   p.WithHosts,
-		TokenRanges: p.TokenRanges,
-		FailFast:    p.FailFast,
-		Continue:    p.Continue,
-		Intensity:   p.Intensity,
+		FailFast:  p.FailFast,
+		Continue:  p.Continue,
+		Intensity: p.Intensity,
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -96,14 +92,6 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
 		return t, errors.Wrap(err, "read datacenters")
-	}
-
-	hosts := t.WithHosts
-	if t.Host != "" {
-		hosts = append(hosts, t.Host)
-	}
-	if err := validateHostsBelongToCluster(dcMap, hosts...); err != nil {
-		return t, service.ErrValidate(err)
 	}
 
 	// Filter DCs
@@ -122,7 +110,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrapf(err, "read keyspaces")
 	}
 
-	targetDCs := strset.New(t.DC...)
+	dcs := strset.New(t.DC...)
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
@@ -135,12 +123,31 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
 		}
 
+		// Ignore not replicated keyspaces
 		if ring.Replication == scyllaclient.LocalStrategy {
 			continue
 		}
 
-		// Check if keyspace has replica in any DC
-		if !targetDCs.HasAny(ring.Datacenters()...) {
+		// Ignore keyspaces not replicated in desired DCs
+		if !dcs.HasAny(ring.Datacenters()...) {
+			continue
+		}
+
+		notEnoughReplicas := false
+		for _, tr := range ring.Tokens {
+			replicas := 0
+			for _, r := range tr.Replicas {
+				if dcs.Has(ring.HostDC[r]) {
+					replicas++
+				}
+			}
+			if replicas <= 1 {
+				notEnoughReplicas = true
+				break
+			}
+		}
+		if notEnoughReplicas {
+			s.logger.Info(ctx, "Keyspace skipped because there're no enough replicas in target", "keyspace", keyspace)
 			continue
 		}
 
@@ -149,45 +156,37 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Get the filtered units
-	v, err := f.Apply(force)
+	t.Units, err = f.Apply(force)
 	if err != nil {
 		return t, err
-	}
-
-	// Copy units
-	for _, u := range v {
-		t.Units = append(t.Units, Unit{
-			Keyspace:  u.Keyspace,
-			Tables:    u.Tables,
-			AllTables: u.AllTables,
-		})
 	}
 
 	return t, nil
 }
 
 // Repair performs the repair process on the Target.
-func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, t Target) error {
+func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, target Target) error {
 	s.logger.Debug(ctx, "Repair",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,
-		"target", t,
+		"target", target,
 	)
 
-	run := &Run{
-		ClusterID:   clusterID,
-		TaskID:      taskID,
-		ID:          runID,
-		Units:       t.Units,
-		DC:          t.DC,
-		Host:        t.Host,
-		TokenRanges: t.TokenRanges,
-		WithHosts:   t.WithHosts,
-		StartTime:   timeutc.Now(),
+	// TODO add target validation
+	// * DCs must be set
+	// * If host is set token ranges must be set too
+	// * token ranges and with hosts can only be set if host is set
 
-		failFast:  t.FailFast,
-		intensity: t.Intensity,
+	run := &Run{
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		ID:        runID,
+		DC:        target.DC,
+		StartTime: timeutc.Now().UTC(),
+	}
+	if err := s.putRun(run); err != nil {
+		return errors.Wrapf(err, "put run")
 	}
 
 	// Get cluster name
@@ -201,7 +200,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"cluster_id", run.ClusterID,
 		"task_id", run.TaskID,
 		"run_id", run.ID,
-		"target", t,
+		"target", target,
 	)
 
 	// Get the cluster client
@@ -210,13 +209,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "get client proxy")
 	}
 
-	// Get the cluster topology hash
-	run.TopologyHash, err = s.topologyHash(ctx, client)
-	if err != nil {
-		return errors.Wrap(err, "get topology hash")
-	}
-
-	if t.Continue {
+	if target.Continue {
 		if err := s.decorateWithPrevRun(ctx, run); err != nil {
 			return err
 		}
@@ -231,35 +224,151 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "get client partitioner name")
 	}
 	if p != scyllaclient.Murmur3Partitioner {
-		return errors.Errorf("unsupported partitioner %q, the only supported partitioner is %q", p, scyllaclient.Murmur3Partitioner)
+		return errors.Errorf("unsupported partitioner %s, the only supported partitioner is %s", p, scyllaclient.Murmur3Partitioner)
 	}
 
-	// Register the run
-	if err := s.putRun(run); err != nil {
-		return errors.Wrap(err, "register the run")
-	}
+	// Dynamic Intensity
+	intensityCh, cleanup := s.newIntensityChannel(clusterID, target.Intensity)
+	defer cleanup()
 
-	// Initialize unit runners
-	run.unitWorkers = make([]unitWorker, len(run.Units))
-	for unit := range run.Units {
-		if err := s.initUnitWorker(ctx, run, unit, client); err != nil {
-			return errors.Wrapf(err, "prepare repair for keyspace %s", run.Units[unit].Keyspace)
+	// Create generator
+	var (
+		manager = newProgressManager(run, s.session)
+		g       = newGenerator(intensityCh, s.config.GracefulShutdownTimeout, s.logger, manager)
+		wc      int
+	)
+	for _, u := range target.Units {
+		// Get ring
+		ring, err := client.DescribeRing(ctx, u.Keyspace)
+		if err != nil {
+			return errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
+		}
+
+		// Transform ring to tableTokenRanges and init generator
+		g.Add(newTableTokenRangeBuilder(target, ring.HostDC).Add(ring.Tokens).Build(u))
+
+		// Estimate worker count
+		if c := workerCount(ring.Tokens); c > wc {
+			wc = c
 		}
 	}
-	s.putRunLogError(ctx, run)
 
-	// Repair units
-	for unit := range run.Units {
-		if err := s.repairUnit(ctx, run, unit, client); err != nil {
-			return errors.Wrapf(err, "keyspace %s", run.Units[unit].Keyspace)
-		}
+	// Init Generator
+	if err := g.Init(ctx, wc); err != nil {
+		return err
 	}
 
-	return nil
+	repairHosts := g.Hosts()
+
+	// Get hosts in all DCs
+	status, err := client.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "status")
+	}
+
+	// Validate that there are no hosts to repair down
+	if down := status.DownHosts(); repairHosts.HasAny(down...) {
+		return errors.Errorf("nodes are down: %s", strings.Join(down, ","))
+	}
+
+	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
+	if err != nil {
+		return errors.Wrap(err, "host range limits")
+	}
+	g.SetHostRangeLimits(hostRangesLimits)
+
+	hp := make(hostPriority)
+	// In a multi-dc repair look for a local datacenter
+	if len(target.DC) > 1 {
+		dcMap, err := client.Datacenters(ctx)
+		if err != nil {
+			return errors.Wrap(err, "read datacenters")
+		}
+
+		targetDCs := strset.New(target.DC...)
+		for dc := range dcMap {
+			if !targetDCs.Has(dc) {
+				delete(dcMap, dc)
+			}
+		}
+		closest, err := client.ClosestDC(ctx, dcMap)
+		if err != nil {
+			return errors.Wrap(err, "datacenter latency measurement")
+		}
+
+		for p, dc := range closest {
+			for _, h := range dcMap[dc] {
+				if repairHosts.Has(h) {
+					hp[h] = p
+				}
+			}
+		}
+	}
+	g.SetHostPriority(hp)
+
+	// Create worker
+	w := newWorker(g.Next(), g.Result(), client, s.logger, manager)
+
+	// Worker context doesn't derive from ctx, generator will handle graceful
+	// shutdown. Generator must receive ctx.
+	workerCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Run Workers and Generator
+	var eg errgroup.Group
+	for i := 0; i < wc; i++ {
+		wctx := log.WithFields(workerCtx, "worker", i)
+		eg.Go(func() error {
+			return w.Run(wctx)
+		})
+	}
+	eg.Go(func() error {
+		return g.Run(ctx)
+	})
+
+	return eg.Wait()
 }
 
-// decorateWithPrevRun gets task previous run and if it can be continued
-// sets PrevID on the given run.
+func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Client, hosts []string) (hostRangesLimit, error) {
+	hrl := make(hostRangesLimit)
+
+	for _, h := range hosts {
+		totalMemory, err := client.TotalMemory(ctx, h)
+		if err != nil {
+			return nil, err
+		}
+
+		hrl[h] = s.maxRepairRangesInParallel(totalMemory)
+		s.logger.Debug(ctx, "Setting host ranges in parallel", "limit", hrl[h], "host", h)
+	}
+	return hrl, nil
+}
+
+func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
+	return int(float64(totalMemory) * 0.1 / (32 * 1024 * 1024))
+}
+
+func (s *Service) newIntensityChannel(clusterID uuid.UUID, intensity float64) (ch <-chan float64, cleanup func()) {
+	intensityCh := make(chan float64, 1)
+	intensityCh <- intensity
+
+	s.mu.Lock()
+	if _, ok := s.intensityChannels[clusterID]; ok {
+		panic("two repairs for the same cluster are running")
+	}
+	s.intensityChannels[clusterID] = intensityCh
+	s.mu.Unlock()
+
+	return intensityCh, func() {
+		s.mu.Lock()
+		close(s.intensityChannels[clusterID])
+		delete(s.intensityChannels, clusterID)
+		s.mu.Unlock()
+	}
+}
+
+// decorateWithPrevRun looks for previous run and if it can be continued sets
+// PrevID on the given run.
 func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
 	if err == service.ErrNotFound {
@@ -271,293 +380,34 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 
 	// Check if can continue from prev
 	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
-	switch {
-	case s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax:
+	if s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax {
 		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
 		return nil
-	case prev.TopologyHash != run.TopologyHash:
-		s.logger.Info(ctx, "Starting from scratch: topology changed")
-		return nil
 	}
 
-	// Decorate run
+	// Decorate run with previous run id.
+	// Progress manager will use this as indication to restore state on
+	// generator init.
 	run.PrevID = prev.ID
-	run.prevProg, err = s.getProgress(ctx, &Run{
-		ClusterID: run.ClusterID,
-		TaskID:    run.TaskID,
-		ID:        prev.ID,
-	})
-	if err != nil {
-		return errors.Wrap(err, "get the last run progress")
-	}
-	run.Units = prev.Units
-	run.DC = prev.DC
-	run.WithHosts = prev.WithHosts
-	run.TokenRanges = prev.TokenRanges
 
 	return nil
 }
 
-func (s *Service) initUnitWorker(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
-	u := &run.Units[unit] // pointer to modify the unit
+// putRun upserts a repair run.
+func (s *Service) putRun(r *Run) error {
+	stmt, names := table.RepairRun.Insert()
+	q := s.session.Query(stmt, names).BindStruct(r)
+	return q.ExecRelease()
+}
 
-	// Get the ring description if needed
-	ring, err := client.DescribeRing(ctx, u.Keyspace)
-	if err != nil {
-		return errors.Wrap(err, "get the ring description")
-	}
-	ksDCs := ring.Datacenters()
-
-	u.hosts = s.repairedHosts(run, ring)
-	u.allDCs = strset.New(ksDCs...).IsEqual(strset.New(run.DC...))
-
-	// Get hosts and segments to repair
-	var hostSegments map[string]segments
-
-	if ring.Replication == scyllaclient.SimpleStrategy && len(ksDCs) > 1 {
-		s.logger.Info(ctx, "SimpleStrategy replication strategy detected, conciser changing to NetworkTopologyStrategy",
-			"keyspace", u.Keyspace,
+// putRunLogError executes putRun and consumes the error.
+func (s *Service) putRunLogError(ctx context.Context, r *Run) {
+	if err := s.putRun(r); err != nil {
+		s.logger.Error(ctx, "Cannot update the run",
+			"run", r,
+			"error", err,
 		)
-
-		// Downgrade DCPrimaryTokenRanges to PrimaryTokenRanges since there is
-		// no coordinator DC
-		tr := run.TokenRanges
-		if tr == DCPrimaryTokenRanges {
-			tr = PrimaryTokenRanges
-		}
-		hostSegments = groupSegmentsByHost("", run.Host, run.WithHosts, tr, ring)
-		if !u.allDCs {
-			s.logger.Info(ctx, "SimpleStrategy replication strategy with DC filtering may result in not all tokens being repaired in selected DCs ignoring DC filtering",
-				"cluster_id", run.ClusterID,
-				"keyspace", u.Keyspace,
-			)
-		}
-	} else {
-		// Get coordinator DC
-		dc, err := s.resolveDC(ctx, client, *u, run, ksDCs)
-		if err != nil {
-			return err
-		}
-		u.CoordinatorDC = dc
-
-		hostSegments = groupSegmentsByHost(dc, run.Host, run.WithHosts, run.TokenRanges, ring)
 	}
-
-	var prog []RunProgress
-	if run.prevProg != nil {
-		// extract unit progress
-		n := len(run.prevProg)
-		idx := sort.Search(n, func(i int) bool {
-			return run.prevProg[i].Unit >= unit
-		})
-		end := sort.Search(n, func(i int) bool {
-			return run.prevProg[i].Unit > unit
-		})
-		for i := idx; i < end; i++ {
-			prog = append(prog, *run.prevProg[i])
-		}
-		// fix run ID
-		for i := range prog {
-			prog[i].RunID = run.ID
-		}
-
-		// Check if hosts did not change
-		prevHosts := strset.New()
-		for i := range prog {
-			prevHosts.Add(prog[i].Host)
-		}
-		hosts := strset.New()
-		for host := range hostSegments {
-			hosts.Add(host)
-		}
-		if diff := strset.SymmetricDifference(prevHosts, hosts); !diff.IsEmpty() {
-			s.logger.Info(ctx, "Starting from scratch: hosts changed",
-				"keyspace", u.Keyspace,
-				"cur", hosts.List(),
-				"prev", prevHosts.List(),
-			)
-			prog = nil
-		}
-	}
-	if prog == nil {
-		for host := range hostSegments {
-			prog = append(prog, RunProgress{
-				ClusterID: run.ClusterID,
-				TaskID:    run.TaskID,
-				RunID:     run.ID,
-				Unit:      unit,
-				Host:      host,
-			})
-		}
-	}
-	for i := range prog {
-		if err := s.putRunProgress(ctx, &prog[i]); err != nil {
-			return errors.Wrapf(err, "initialize the run progress %v", prog[i])
-		}
-	}
-
-	// Shuffle hosts
-	hosts := make([]string, 0, len(hostSegments))
-	for host := range hostSegments {
-		hosts = append(hosts, host)
-	}
-	sort.Slice(hosts, func(i, j int) bool {
-		return xxhash.Sum64String(hosts[i]) < xxhash.Sum64String(hosts[j])
-	})
-
-	// Prepare host workers for unit
-	unitWorker := make([]*hostWorker, len(hosts))
-	for i, host := range hosts {
-		unitWorker[i] = &hostWorker{
-			Config:   s.config,
-			Run:      run,
-			Unit:     unit,
-			Host:     host,
-			Segments: hostSegments[host],
-
-			Service: s,
-			Client:  client,
-			Logger:  s.logger.Named("worker").With("host", host),
-		}
-
-		if run.intensity > 0 {
-			hostShards, err := client.ShardCount(ctx, host)
-			if err != nil {
-				return errors.Wrap(err, "get shard count")
-			}
-
-			hostSegmentsPerRepair, hostShardParallelMax := calculateRepairIntensity(run.intensity, hostShards)
-			unitWorker[i].Config.SegmentsPerRepair = hostSegmentsPerRepair
-			unitWorker[i].Config.ShardParallelMax = hostShardParallelMax
-		}
-
-		if err := unitWorker[i].init(ctx); err != nil {
-			return errors.Wrapf(err, "host %s: init repair", host)
-		}
-	}
-	run.unitWorkers[unit] = unitWorker
-
-	return nil
-}
-
-func (s *Service) repairedHosts(run *Run, ring scyllaclient.Ring) (hosts []string) {
-	dcFilter := strset.New(run.DC...)
-	for h, dc := range ring.HostDC {
-		if dcFilter.Has(dc) {
-			hosts = append(hosts, h)
-		}
-	}
-	return
-}
-
-func (s *Service) repairUnit(ctx context.Context, run *Run, unit int, client *scyllaclient.Client) error {
-	s.logger.Info(ctx, "Repairing unit", "unit", run.Units[unit])
-
-	// Calculate number of tries
-	allComplete := true
-	for _, worker := range run.unitWorkers[unit] {
-		for _, shard := range worker.shards {
-			if !shard.progress.complete() || !shard.progress.completeWithErrors() {
-				allComplete = false
-			}
-		}
-	}
-	tries := 1
-	if !allComplete {
-		tries++
-	}
-
-	for ; tries > 0; tries-- {
-		failed := false
-		for _, worker := range run.unitWorkers[unit] {
-			// ensure topology did not change
-			th, err := s.topologyHash(ctx, client)
-			if err != nil {
-				s.logger.Info(ctx, "Topology check error", "error", err)
-			} else if run.TopologyHash != th {
-				return errors.Errorf("topology changed old hash: %s new hash: %s", run.TopologyHash, th)
-			}
-			// run repair on host
-			if err := worker.exec(ctx); err != nil {
-				return errors.Wrapf(err, "host %s", worker.Host)
-			}
-			// check if recoverable segment repair errors occurred
-			if worker.segmentErrors() > 0 {
-				if run.failFast {
-					return errors.Errorf("host %s: repair %d segments", worker.Host, worker.segmentErrors())
-				}
-				failed = true
-			}
-		}
-		if !failed {
-			return nil
-		}
-	}
-
-	// Check if segment repair errors occurred and report it
-	var err error
-	for _, worker := range run.unitWorkers[unit] {
-		if worker.segmentErrors() > 0 {
-			err = multierr.Append(err, errors.Errorf("host %s: repair %d segments", worker.Host, worker.segmentErrors()))
-		}
-	}
-	return err
-}
-
-func (s *Service) resolveDC(ctx context.Context, client *scyllaclient.Client, u Unit, run *Run, ksDCs []string) (string, error) {
-	var (
-		dc  string
-		err error
-	)
-	switch {
-	case u.CoordinatorDC != "":
-		dc = u.CoordinatorDC
-	case run.Host != "":
-		dc, err = client.HostDatacenter(ctx, run.Host)
-		if err != nil {
-			return "", errors.Wrap(err, "resolve coordinator DC")
-		}
-	default:
-		dc, err = s.getCoordinatorDC(ctx, client, run.DC, ksDCs)
-		if err != nil {
-			return "", errors.Wrap(err, "resolve coordinator DC")
-		}
-	}
-	return dc, nil
-}
-
-func (s *Service) getCoordinatorDC(ctx context.Context, client *scyllaclient.Client, runDCs, ksDCs []string) (string, error) {
-	runSet := strset.Intersection(strset.New(runDCs...), strset.New(ksDCs...))
-	if runSet.IsEmpty() {
-		return "", errors.New("no matching DCs")
-	}
-
-	all, err := client.Datacenters(ctx)
-	if err != nil {
-		return "", errors.Wrapf(err, "get datacenters")
-	}
-
-	dcHosts := make(map[string][]string)
-	for dc, hosts := range all {
-		if runSet.Has(dc) {
-			dcHosts[dc] = hosts
-		}
-	}
-	closest, err := client.ClosestDC(ctx, dcHosts)
-	if err != nil {
-		return "", nil
-	}
-
-	return closest[0], nil
-}
-
-func (s *Service) topologyHash(ctx context.Context, client *scyllaclient.Client) (uuid.UUID, error) {
-	tokens, err := client.Tokens(ctx)
-	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "get the cluster tokens")
-	}
-
-	return topologyHash(tokens), nil
 }
 
 // GetLastResumableRun returns the the most recent started but not done run of
@@ -569,10 +419,12 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		"task_id", taskID,
 	)
 
-	q := qb.Select(table.RepairRun.Name()).Where(
+	stmt, names := qb.Select(table.RepairRun.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
-	).Limit(20).Query(s.session).BindMap(qb.M{
+	).Limit(20).ToCql()
+
+	q := s.session.Query(stmt, names).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 	})
@@ -583,13 +435,13 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	}
 
 	for _, r := range runs {
-		prog, err := s.getProgress(ctx, r)
+		p, err := aggregateProgress(NewProgressVisitor(r, s.session))
 		if err != nil {
 			return nil, err
 		}
-		p := aggregateProgress(r, prog)
-		if p.segmentCount > 0 {
-			if p.segmentSuccess == p.segmentCount {
+		p.DC = r.DC
+		if p.TokenRanges > 0 {
+			if p.Success == p.TokenRanges {
 				break
 			}
 			return r, nil
@@ -608,7 +460,9 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", runID,
 	)
 
-	q := table.RepairRun.GetQuery(s.session).BindMap(qb.M{
+	stmt, names := table.RepairRun.Get()
+
+	q := s.session.Query(stmt, names).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 		"id":         runID,
@@ -616,22 +470,6 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	var r Run
 	return &r, q.GetRelease(&r)
-}
-
-// putRun upserts a repair run.
-func (s *Service) putRun(r *Run) error {
-	q := table.RepairRun.InsertQuery(s.session).BindStruct(r)
-	return q.ExecRelease()
-}
-
-// putRunLogError executes putRun and consumes the error.
-func (s *Service) putRunLogError(ctx context.Context, r *Run) {
-	if err := s.putRun(r); err != nil {
-		s.logger.Error(ctx, "Cannot update the run",
-			"run", &r,
-			"error", err,
-		)
-	}
 }
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing
@@ -648,58 +486,33 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return Progress{}, err
 	}
 
-	prog, err := s.getProgress(ctx, run)
+	p, err := aggregateProgress(NewProgressVisitor(run, s.session))
 	if err != nil {
 		return Progress{}, err
 	}
-	return aggregateProgress(run, prog), nil
+	p.DC = run.DC
+
+	return p, nil
 }
 
-func (s *Service) getProgress(ctx context.Context, run *Run) ([]*RunProgress, error) {
-	q := table.RepairRunProgress.SelectQuery(s.session).BindMap(qb.M{
-		"cluster_id": run.ClusterID,
-		"task_id":    run.TaskID,
-		"run_id":     run.ID,
-	})
+// SetIntensity changes intensity of ongoing repair.
+func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensity float64) error {
+	s.mu.Lock()
+	ch, ok := s.intensityChannels[clusterID]
+	s.mu.Unlock()
 
-	var p []*RunProgress
-	return p, q.SelectRelease(&p)
-}
-
-func (s *Service) getHostProgress(run *Run, unit int, host string) ([]*RunProgress, error) {
-	q := table.RepairRunProgress.SelectBuilder().Where(
-		qb.Eq("unit"), qb.Eq("host"),
-	).Query(s.session).BindMap(qb.M{
-		"cluster_id": run.ClusterID,
-		"task_id":    run.TaskID,
-		"run_id":     run.ID,
-		"unit":       unit,
-		"host":       host,
-	})
-
-	var p []*RunProgress
-	return p, q.SelectRelease(&p)
-}
-
-// putRunProgress upserts a repair run.
-func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
-	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
-
-	q := table.RepairRunProgress.InsertQuery(s.session).BindStruct(p)
-	return q.ExecRelease()
-}
-
-// deleteRunProgress deletes a repair run.
-func (s *Service) deleteRunProgress(ctx context.Context, p *RunProgress) error {
-	s.logger.Debug(ctx, "DeleteRunProgress", "run_progress", p)
-
-	q := table.RepairRunProgress.DeleteQuery(s.session).BindStruct(p)
-	return q.ExecRelease()
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
+	if !ok {
+		return errors.Wrap(service.ErrNotFound, "repair task")
 	}
-	return b
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case ch <- intensity:
+	default:
+		// ch is full or already closed, generator hasn't applied previous change yet or just finished.
+		return errors.New("intensity change was not applied")
+	}
+
+	return nil
 }

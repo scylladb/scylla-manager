@@ -11,7 +11,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	"github.com/scylladb/mermaid/pkg/service/healthcheck"
-	repair "github.com/scylladb/mermaid/pkg/service/repair2"
+	"github.com/scylladb/mermaid/pkg/service/repair"
 	"github.com/scylladb/mermaid/pkg/testutils"
 	"go.uber.org/zap/zapcore"
 )

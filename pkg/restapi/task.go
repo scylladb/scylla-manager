@@ -17,7 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/backup"
-	repair "github.com/scylladb/mermaid/pkg/service/repair2"
+	"github.com/scylladb/mermaid/pkg/service/repair"
 	"github.com/scylladb/mermaid/pkg/service/scheduler"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"

@@ -18,7 +18,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	"github.com/scylladb/mermaid/pkg/service/cluster"
 	"github.com/scylladb/mermaid/pkg/service/healthcheck"
-	repair "github.com/scylladb/mermaid/pkg/service/repair2"
+	"github.com/scylladb/mermaid/pkg/service/repair"
 	"github.com/scylladb/mermaid/pkg/service/scheduler"
 	"github.com/scylladb/mermaid/pkg/service/secrets/dbsecrets"
 	"github.com/scylladb/mermaid/pkg/util/httppprof"
@@ -104,7 +104,7 @@ func (s *server) makeServices() error {
 	}
 
 	s.repairSvc, err = repair.NewService(
-		gocqlx.NewSession(s.session),
+		s.session,
 		repair.DefaultConfig(),
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,

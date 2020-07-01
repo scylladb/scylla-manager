@@ -12,23 +12,20 @@ import (
 
 // Config specifies the repair service configuration.
 type Config struct {
-	SegmentsPerRepair      int           `yaml:"segments_per_repair"`
-	ShardParallelMax       int           `yaml:"shard_parallel_max"`
-	ShardFailedSegmentsMax int           `yaml:"shard_failed_segments_max"`
-	PollInterval           time.Duration `yaml:"poll_interval"`
-	ErrorBackoff           time.Duration `yaml:"error_backoff"`
-	AgeMax                 time.Duration `yaml:"age_max"`
-	ShardingIgnoreMsbBits  int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
+	ErrorBackoff            time.Duration `yaml:"error_backoff"`
+	PollInterval            time.Duration `yaml:"poll_interval"`
+	AgeMax                  time.Duration `yaml:"age_max"`
+	ShardingIgnoreMsbBits   int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
+	GracefulShutdownTimeout time.Duration `yaml:"graceful_shutdown_timeout"`
 }
 
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		SegmentsPerRepair:      1,
-		ShardFailedSegmentsMax: 100,
-		ErrorBackoff:           5 * time.Minute,
-		PollInterval:           200 * time.Millisecond,
-		ShardingIgnoreMsbBits:  12,
+		ErrorBackoff:            5 * time.Minute,
+		PollInterval:            200 * time.Millisecond,
+		ShardingIgnoreMsbBits:   12,
+		GracefulShutdownTimeout: 30 * time.Second,
 	}
 }
 
@@ -39,15 +36,6 @@ func (c *Config) Validate() error {
 	}
 
 	var err error
-	if c.SegmentsPerRepair <= 0 {
-		err = multierr.Append(err, errors.New("invalid segments_per_repair, must be > 0"))
-	}
-	if c.ShardParallelMax < 0 {
-		err = multierr.Append(err, errors.New("invalid shard_parallel_max, must be > 0 or 0 for no limit"))
-	}
-	if c.ShardFailedSegmentsMax < 0 {
-		err = multierr.Append(err, errors.New("invalid shard_failed_segments_max, must be >= 0"))
-	}
 	if c.ErrorBackoff <= 0 {
 		err = multierr.Append(err, errors.New("invalid error_backoff, must be > 0"))
 	}

@@ -8,7 +8,7 @@ import (
 	context "context"
 	json "encoding/json"
 	gomock "github.com/golang/mock/gomock"
-	repair2 "github.com/scylladb/mermaid/pkg/service/repair2"
+	repair "github.com/scylladb/mermaid/pkg/service/repair"
 	uuid "github.com/scylladb/mermaid/pkg/util/uuid"
 	reflect "reflect"
 )
@@ -37,10 +37,10 @@ func (m *MockRepairService) EXPECT() *MockRepairServiceMockRecorder {
 }
 
 // GetProgress mocks base method
-func (m *MockRepairService) GetProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (repair2.Progress, error) {
+func (m *MockRepairService) GetProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (repair.Progress, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProgress", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(repair2.Progress)
+	ret0, _ := ret[0].(repair.Progress)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,10 +52,10 @@ func (mr *MockRepairServiceMockRecorder) GetProgress(arg0, arg1, arg2, arg3 inte
 }
 
 // GetRun mocks base method
-func (m *MockRepairService) GetRun(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (*repair2.Run, error) {
+func (m *MockRepairService) GetRun(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (*repair.Run, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRun", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(*repair2.Run)
+	ret0, _ := ret[0].(*repair.Run)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -67,10 +67,10 @@ func (mr *MockRepairServiceMockRecorder) GetRun(arg0, arg1, arg2, arg3 interface
 }
 
 // GetTarget mocks base method
-func (m *MockRepairService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage, arg3 bool) (repair2.Target, error) {
+func (m *MockRepairService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage, arg3 bool) (repair.Target, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTarget", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(repair2.Target)
+	ret0, _ := ret[0].(repair.Target)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
