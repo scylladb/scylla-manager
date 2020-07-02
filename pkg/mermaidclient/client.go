@@ -289,12 +289,12 @@ func (c *Client) DeleteTask(ctx context.Context, clusterID, taskType string, tas
 }
 
 // UpdateTask updates an existing task unit.
-func (c *Client) UpdateTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, t *Task) error {
+func (c *Client) UpdateTask(ctx context.Context, clusterID string, t *Task) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskID(&operations.PutClusterClusterIDTaskTaskTypeTaskIDParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
-		TaskType:  taskType,
-		TaskID:    taskID.String(),
+		TaskType:  t.Type,
+		TaskID:    t.ID,
 		TaskFields: &models.TaskUpdate{
 			Enabled:    t.Enabled,
 			Name:       t.Name,

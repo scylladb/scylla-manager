@@ -334,7 +334,7 @@ var taskUpdateCmd = &cobra.Command{
 			return errors.New("nothing to change")
 		}
 
-		if err := client.UpdateTask(ctx, cfgCluster, taskType, taskID, t); err != nil {
+		if err := client.UpdateTask(ctx, cfgCluster, t); err != nil {
 			return err
 		}
 

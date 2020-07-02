@@ -9,113 +9,92 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/mermaidclient"
-	"github.com/scylladb/mermaid/pkg/util/duration"
+	"github.com/scylladb/mermaid/pkg/service/scheduler"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var repairCmd = &cobra.Command{
 	Use:   "repair",
 	Short: "Schedules repair",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		props := make(map[string]interface{})
-
 		t := &mermaidclient.Task{
 			Type:       "repair",
 			Enabled:    true,
 			Schedule:   new(mermaidclient.Schedule),
-			Properties: props,
+			Properties: make(map[string]interface{}),
 		}
 
-		f := cmd.Flag("start-date")
-		startDate, err := mermaidclient.ParseStartDate(f.Value.String())
+		return repairTaskUpdate(t, cmd)
+	},
+}
+
+func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
+	if err := commonFlagsUpdate(t, cmd); err != nil {
+		return err
+	}
+
+	props := t.Properties.(map[string]interface{})
+
+	failFast, err := cmd.Flags().GetBool("fail-fast")
+	if err != nil {
+		return err
+	}
+	if failFast {
+		t.Schedule.NumRetries = 0
+		props["fail_fast"] = true
+	}
+
+	t.Properties = props
+
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return err
+	}
+
+	dryRun, err := cmd.Flags().GetBool("dry-run")
+	if err != nil {
+		return err
+	}
+
+	if f := cmd.Flag("intensity"); f.Changed {
+		intensity, err := cmd.Flags().GetFloat64("intensity")
 		if err != nil {
 			return err
 		}
-		t.Schedule.StartDate = startDate
+		props["intensity"] = intensity
+	}
 
-		i, err := cmd.Flags().GetString("interval")
+	if dryRun {
+		res, err := client.GetRepairTarget(ctx, cfgCluster, t)
 		if err != nil {
 			return err
 		}
-		if _, err := duration.ParseDuration(i); err != nil {
-			return err
-		}
-		t.Schedule.Interval = i
-
-		t.Schedule.NumRetries, err = cmd.Flags().GetInt64("num-retries")
+		showTables, err := cmd.Flags().GetBool("show-tables")
 		if err != nil {
 			return err
 		}
-
-		if f = cmd.Flag("keyspace"); f.Changed {
-			keyspace, err := cmd.Flags().GetStringSlice("keyspace")
-			if err != nil {
-				return err
-			}
-			props["keyspace"] = unescapeFilters(keyspace)
+		if showTables {
+			res.ShowTables = -1
 		}
 
-		if f = cmd.Flag("dc"); f.Changed {
-			dc, err := cmd.Flags().GetStringSlice("dc")
-			if err != nil {
-				return err
-			}
-			props["dc"] = unescapeFilters(dc)
-		}
+		fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, repair is not scheduled\n\n")
+		return res.Render(cmd.OutOrStdout())
+	}
 
-		failFast, err := cmd.Flags().GetBool("fail-fast")
-		if err != nil {
-			return err
-		}
-		if failFast {
-			t.Schedule.NumRetries = 0
-			props["fail_fast"] = true
-		}
-
-		force, err := cmd.Flags().GetBool("force")
-		if err != nil {
-			return err
-		}
-
-		dryRun, err := cmd.Flags().GetBool("dry-run")
-		if err != nil {
-			return err
-		}
-
-		if f = cmd.Flag("intensity"); f.Changed {
-			intensity, err := cmd.Flags().GetFloat64("intensity")
-			if err != nil {
-				return err
-			}
-			props["intensity"] = intensity
-		}
-
-		if dryRun {
-			res, err := client.GetRepairTarget(ctx, cfgCluster, t)
-			if err != nil {
-				return err
-			}
-			showTables, err := cmd.Flags().GetBool("show-tables")
-			if err != nil {
-				return err
-			}
-			if showTables {
-				res.ShowTables = -1
-			}
-
-			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, repair is not scheduled\n\n")
-			return res.Render(cmd.OutOrStdout())
-		}
-
+	if t.ID == "" {
 		id, err := client.CreateTask(ctx, cfgCluster, t, force)
 		if err != nil {
 			return err
 		}
+		t.ID = id.String()
+	} else if err := client.UpdateTask(ctx, cfgCluster, t); err != nil {
+		return err
+	}
 
-		fmt.Fprintln(cmd.OutOrStdout(), mermaidclient.TaskJoin("repair", id))
+	fmt.Fprintln(cmd.OutOrStdout(), mermaidclient.TaskJoin(t.Type, t.ID))
 
-		return nil
-	},
+	return nil
 }
 
 func init() {
@@ -123,6 +102,10 @@ func init() {
 	withScyllaDocs(cmd, "/sctool/#repair")
 	register(cmd, rootCmd)
 
+	taskInitCommonFlags(repairFlags(cmd))
+}
+
+func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs := cmd.Flags()
 	fs.StringSliceP("keyspace", "K", nil,
 		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
@@ -133,7 +116,8 @@ func init() {
 	fs.Bool("show-tables", false, "print all table names for a keyspace")
 	fs.Var(&IntensityFlag{Value: "0"}, "intensity",
 		"repair speed, higher values result in higher speed and may increase cluster load, values between (0, 1) specifies percentage of active workers")
-	taskInitCommonFlags(fs)
+
+	return fs
 }
 
 var repairIntensityCmd = &cobra.Command{
@@ -215,4 +199,37 @@ func validateIntensity(s string) error {
 		}
 	}
 	return nil
+}
+
+var repairUpdateCmd = &cobra.Command{
+	Use:   "update <type/task-id>",
+	Short: "Modifies a repair task",
+	Args:  cobra.ExactArgs(1),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		if err != nil {
+			return err
+		}
+
+		if scheduler.TaskType(taskType) != scheduler.RepairTask {
+			return fmt.Errorf("repair update can't handle %s task", taskType)
+		}
+
+		t, err := client.GetTask(ctx, cfgCluster, taskType, taskID)
+		if err != nil {
+			return err
+		}
+
+		return repairTaskUpdate(t, cmd)
+	},
+}
+
+func init() {
+	cmd := repairUpdateCmd
+	withScyllaDocs(cmd, "/sctool/#repair-update")
+	register(cmd, repairCmd)
+	fs := repairFlags(cmd)
+	fs.StringP("enabled", "e", "true", "enabled")
+	taskInitCommonFlags(fs)
 }
