@@ -139,10 +139,11 @@ var rootCmd = &cobra.Command{
 		if err := server.startServices(ctx); err != nil {
 			return errors.Wrapf(err, "server start")
 		}
-		server.startHTTPServers(ctx)
-		defer server.close()
-
-		logger.Info(ctx, "Service started")
+		server.startServers(ctx)
+		defer func() {
+			server.shutdownServers(ctx, 30*time.Second)
+			server.close()
+		}()
 
 		// Wait signal
 		signalCh := make(chan os.Signal, 1)
@@ -150,16 +151,13 @@ var rootCmd = &cobra.Command{
 		select {
 		case err := <-server.errCh:
 			if err != nil {
-				logger.Error(ctx, "Server error", "error", err)
+				return err
 			}
 		case sig := <-signalCh:
 			logger.Info(ctx, "Received signal", "signal", sig)
 		}
 
-		// Close
-		server.shutdownServers(ctx, 30*time.Second)
-
-		return
+		return nil
 	},
 }
 

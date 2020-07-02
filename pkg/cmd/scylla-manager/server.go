@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -23,6 +22,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service/secrets/dbsecrets"
 	"github.com/scylladb/mermaid/pkg/util/httppprof"
 	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 type server struct {
@@ -61,7 +61,7 @@ func newServer(config *serverConfig, logger log.Logger) (*server, error) {
 	if err := s.makeServices(); err != nil {
 		return nil, err
 	}
-	if err := s.makeHTTPServers(); err != nil {
+	if err := s.makeServers(); err != nil {
 		return nil, err
 	}
 
@@ -169,7 +169,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	return nil
 }
 
-func (s *server) makeHTTPServers() error {
+func (s *server) makeServers() error {
 	h := restapi.New(restapi.Services{
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
@@ -228,7 +228,7 @@ func (s *server) startServices(ctx context.Context) error {
 	return nil
 }
 
-func (s *server) startHTTPServers(ctx context.Context) {
+func (s *server) startServers(ctx context.Context) {
 	if s.httpServer != nil {
 		s.logger.Info(ctx, "Starting HTTP server", "address", s.httpServer.Addr)
 		go func() {
@@ -246,7 +246,7 @@ func (s *server) startHTTPServers(ctx context.Context) {
 	if s.prometheusServer != nil {
 		s.logger.Info(ctx, "Starting Prometheus server", "address", s.prometheusServer.Addr)
 		go func() {
-			s.errCh <- errors.Wrap(s.prometheusServer.ListenAndServe(), "Prometheus server start")
+			s.errCh <- errors.Wrap(s.prometheusServer.ListenAndServe(), "prometheus server start")
 		}()
 	}
 
@@ -256,51 +256,45 @@ func (s *server) startHTTPServers(ctx context.Context) {
 			s.errCh <- errors.Wrap(s.debugServer.ListenAndServe(), "debug server start")
 		}()
 	}
+
+	s.logger.Info(ctx, "Service started")
 }
 
 func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
+	s.logger.Info(ctx, "Closing servers", "timeout", timeout)
+
 	tctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	var wg sync.WaitGroup
-	wg.Add(4)
-	shutdownHTTPServer(tctx, s.httpServer, &wg, s.logger)
-	shutdownHTTPServer(tctx, s.httpsServer, &wg, s.logger)
-	shutdownHTTPServer(tctx, s.prometheusServer, &wg, s.logger)
-	shutdownHTTPServer(tctx, s.debugServer, &wg, s.logger)
-	wg.Wait()
+	var eg errgroup.Group
+	eg.Go(s.shutdownHTTPServer(tctx, s.httpServer))
+	eg.Go(s.shutdownHTTPServer(tctx, s.httpsServer))
+	eg.Go(s.shutdownHTTPServer(tctx, s.prometheusServer))
+	eg.Go(s.shutdownHTTPServer(tctx, s.debugServer))
+	eg.Wait() // nolint: errcheck
+}
+
+func (s *server) shutdownHTTPServer(ctx context.Context, server *http.Server) func() error {
+	return func() error {
+		if server == nil {
+			return nil
+		}
+		if err := server.Shutdown(ctx); err != nil {
+			s.logger.Info(ctx, "Closing server failed", "address", server.Addr, "error", err)
+		} else {
+			s.logger.Info(ctx, "Closing server done", "address", server.Addr)
+		}
+
+		// Force close
+		return server.Close()
+	}
 }
 
 func (s *server) close() {
-	if s.httpServer != nil {
-		s.httpServer.Close()
-	}
-	if s.httpsServer != nil {
-		s.httpsServer.Close()
-	}
-	if s.prometheusServer != nil {
-		s.prometheusServer.Close()
-	}
-
 	// The cluster service needs to be closed last because it handles closing of
 	// connections to agent running on the nodes.
 	s.schedSvc.Close()
 	s.clusterSvc.Close()
+
 	s.session.Close()
-}
-
-func shutdownHTTPServer(ctx context.Context, s *http.Server, wg *sync.WaitGroup, l log.Logger) {
-	if s == nil {
-		wg.Done()
-		return
-	}
-
-	go func() {
-		defer wg.Done()
-		if err := s.Shutdown(ctx); err != nil {
-			l.Info(ctx, "Closing server failed", "addr", s.Addr, "error", err)
-		} else {
-			l.Info(ctx, "Closing server done", "addr", s.Addr)
-		}
-	}()
 }
