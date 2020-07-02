@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -35,7 +36,7 @@ type Service struct {
 	scyllaClient scyllaclient.ProviderFunc
 	logger       log.Logger
 
-	intensityChannels map[uuid.UUID]chan float64
+	intensityHandlers map[uuid.UUID]*intensityHandler
 	mu                sync.Mutex
 }
 
@@ -58,7 +59,7 @@ func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFu
 		clusterName:       clusterName,
 		scyllaClient:      scyllaClient,
 		logger:            logger,
-		intensityChannels: make(map[uuid.UUID]chan float64),
+		intensityHandlers: make(map[uuid.UUID]*intensityHandler),
 	}, nil
 }
 
@@ -228,13 +229,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Dynamic Intensity
-	intensityCh, cleanup := s.newIntensityChannel(clusterID, target.Intensity)
+	ih, cleanup := s.newIntensityHandler(clusterID, target.Intensity)
 	defer cleanup()
 
 	// Create generator
 	var (
 		manager = newProgressManager(run, s.session)
-		g       = newGenerator(intensityCh, s.config.GracefulShutdownTimeout, s.logger, manager)
+		g       = newGenerator(ih, s.config.GracefulShutdownTimeout, s.logger, manager)
 		wc      int
 	)
 	for _, u := range target.Units {
@@ -275,7 +276,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if err != nil {
 		return errors.Wrap(err, "host range limits")
 	}
-	g.SetHostRangeLimits(hostRangesLimits)
+	ih.SetHostRangeLimits(hostRangesLimits)
 
 	hp := make(hostPriority)
 	// In a multi-dc repair look for a local datacenter
@@ -348,21 +349,26 @@ func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
 	return int(float64(totalMemory) * 0.1 / (32 * 1024 * 1024))
 }
 
-func (s *Service) newIntensityChannel(clusterID uuid.UUID, intensity float64) (ch <-chan float64, cleanup func()) {
+func (s *Service) newIntensityHandler(clusterID uuid.UUID, intensity float64) (ih *intensityHandler, cleanup func()) {
 	intensityCh := make(chan float64, 1)
 	intensityCh <- intensity
 
+	ih = &intensityHandler{
+		c:      intensityCh,
+		global: atomic.NewFloat64(intensity),
+	}
+
 	s.mu.Lock()
-	if _, ok := s.intensityChannels[clusterID]; ok {
+	if _, ok := s.intensityHandlers[clusterID]; ok {
 		panic("two repairs for the same cluster are running")
 	}
-	s.intensityChannels[clusterID] = intensityCh
+	s.intensityHandlers[clusterID] = ih
 	s.mu.Unlock()
 
-	return intensityCh, func() {
+	return ih, func() {
 		s.mu.Lock()
-		close(s.intensityChannels[clusterID])
-		delete(s.intensityChannels, clusterID)
+		close(intensityCh)
+		delete(s.intensityHandlers, clusterID)
 		s.mu.Unlock()
 	}
 }
@@ -433,11 +439,10 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	}
 
 	for _, r := range runs {
-		p, err := aggregateProgress(NewProgressVisitor(r, s.session))
+		p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(r, s.session))
 		if err != nil {
 			return nil, err
 		}
-		p.DC = r.DC
 		if p.TokenRanges > 0 {
 			if p.Success == p.TokenRanges {
 				break
@@ -480,7 +485,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return Progress{}, err
 	}
 
-	p, err := aggregateProgress(NewProgressVisitor(run, s.session))
+	p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
 	if err != nil {
 		return Progress{}, err
 	}
@@ -489,24 +494,70 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	return p, nil
 }
 
+func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func(host string) float64 {
+	// When repair is running, intensity is dynamic.
+	// Otherwise always return 0.
+	intensityFunc := func(host string) float64 {
+		return 0
+	}
+
+	s.mu.Lock()
+	if ih, ok := s.intensityHandlers[clusterID]; ok {
+		intensityFunc = ih.Intensity
+	}
+	s.mu.Unlock()
+
+	return intensityFunc
+}
+
 // SetIntensity changes intensity of ongoing repair.
 func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensity float64) error {
 	s.mu.Lock()
-	ch, ok := s.intensityChannels[clusterID]
+	ih, ok := s.intensityHandlers[clusterID]
 	s.mu.Unlock()
 
 	if !ok {
 		return errors.Wrap(service.ErrNotFound, "repair task")
 	}
 
+	if err := ih.Set(ctx, intensity); err != nil {
+		return errors.Wrap(err, "set intensity")
+	}
+
+	return nil
+}
+
+type intensityHandler struct {
+	c                chan float64
+	global           *atomic.Float64
+	hostRangesLimits hostRangesLimit
+}
+
+func (i *intensityHandler) Set(ctx context.Context, intensity float64) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case ch <- intensity:
+	case i.c <- intensity:
+		i.global.Store(intensity)
 	default:
 		// ch is full or already closed, generator hasn't applied previous change yet or just finished.
 		return errors.New("intensity change was not applied")
 	}
-
 	return nil
+}
+
+func (i *intensityHandler) Intensity(host string) float64 {
+	if v := i.global.Load(); v != 0 {
+		return v
+	}
+
+	if v, ok := i.hostRangesLimits[host]; ok {
+		return float64(v)
+	}
+
+	return 0
+}
+
+func (i *intensityHandler) SetHostRangeLimits(hrl hostRangesLimit) {
+	i.hostRangesLimits = hrl
 }

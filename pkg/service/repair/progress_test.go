@@ -90,7 +90,7 @@ func TestAggregateProgress(t *testing.T) {
 			var prog []*RunProgress
 			ReadInputJSONFile(t, &prog)
 
-			res, err := aggregateProgress(&testVisitor{prog})
+			res, err := aggregateProgress(staticIntensity, &testVisitor{prog})
 			if err != nil {
 				t.Error(err)
 			}
@@ -113,4 +113,8 @@ func (i *testVisitor) ForEach(visit func(*RunProgress)) error {
 		visit(pr)
 	}
 	return nil
+}
+
+func staticIntensity(host string) float64 {
+	return 666
 }

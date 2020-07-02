@@ -114,8 +114,9 @@ type progress struct {
 // HostProgress specifies repair progress of a host.
 type HostProgress struct {
 	progress
-	Host   string          `json:"host"`
-	Tables []TableProgress `json:"tables,omitempty"`
+	Host      string          `json:"host"`
+	Tables    []TableProgress `json:"tables,omitempty"`
+	Intensity float64         `json:"intensity"`
 }
 
 // TableProgress represents progress for table for all all hosts.

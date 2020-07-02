@@ -368,6 +368,9 @@ func (rp RepairProgress) Render(w io.Writer) error {
 				continue
 			}
 			fmt.Fprintf(w, "\nHost: %s\n", h.Host)
+			if h.Intensity != 0 {
+				fmt.Fprintf(w, "Intensity: %d\n", int(h.Intensity))
+			}
 			d := table.New()
 			d.AddRow("Keyspace", "Table", "Progress", "Token Ranges", "Success", "Error", "Started at", "Completed at", "Duration")
 			d.AddSeparator()
@@ -403,8 +406,11 @@ Start time:	{{ FormatTime .StartTime }}
 {{- if not (isZero .EndTime) }}
 End time:	{{ FormatTime .EndTime }}
 {{- end }}
-Duration:	{{ FormatDuration .StartTime .EndTime }}
-{{ end -}}
+Duration:	{{ FormatDuration .StartTime .EndTime }} 
+{{- end }}
+{{- if ne intensity 0 }}
+Intensity:	{{ intensity }} 
+{{- end }}
 {{ with .Progress }}Progress:	{{ FormatRepairProgress .TokenRanges .Success .Error }}
 {{ if .Dcs }}Datacenters:	{{ range .Dcs }}
   - {{ . }}
@@ -422,8 +428,25 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"FormatError":          FormatError,
 		"FormatRepairProgress": FormatRepairProgress,
 		"arguments":            rp.arguments,
+		"intensity":            rp.globalIntensity,
 	}).Parse(repairProgressTemplate))
 	return temp.Execute(w, rp)
+}
+
+// globalIntensity return non zero intensity if all hosts uses the same intensity.
+func (rp RepairProgress) globalIntensity() int {
+	if len(rp.Progress.Hosts) == 0 {
+		return 0
+	}
+
+	intensity := rp.Progress.Hosts[0].Intensity
+	for _, h := range rp.Progress.Hosts {
+		if h.Intensity != intensity {
+			return 0
+		}
+	}
+
+	return int(intensity)
 }
 
 // arguments return task arguments that task was created with.

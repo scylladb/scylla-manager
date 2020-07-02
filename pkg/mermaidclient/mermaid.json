@@ -153,6 +153,9 @@
               "host": {
                 "type": "string"
               },
+              "intensity":{
+                "type": "number"
+              },
               "tables": {
                 "type": "array",
                 "items": {

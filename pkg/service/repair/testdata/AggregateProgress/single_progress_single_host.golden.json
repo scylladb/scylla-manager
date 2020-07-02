@@ -14,6 +14,7 @@
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:01:00Z",
       "host": "h1",
+      "intensity": 666,
       "tables": [{
         "percent_complete": 100,
         "token_ranges": 10,

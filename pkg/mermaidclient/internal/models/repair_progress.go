@@ -173,6 +173,9 @@ type RepairProgressHostsItems0 struct {
 	// host
 	Host string `json:"host,omitempty"`
 
+	// intensity
+	Intensity float64 `json:"intensity,omitempty"`
+
 	// tables
 	Tables []*TableRepairProgress `json:"tables"`
 }

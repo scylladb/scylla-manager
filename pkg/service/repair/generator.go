@@ -44,15 +44,14 @@ type generator struct {
 	gracefulShutdownTimeout time.Duration
 	logger                  log.Logger
 
-	replicas        map[uint64][]string
-	ranges          map[uint64][]*tableTokenRange
-	hostCount       int
-	hostPriority    hostPriority
-	hostRangesLimit hostRangesLimit
-	progress        progressManager
+	replicas     map[uint64][]string
+	ranges       map[uint64][]*tableTokenRange
+	hostCount    int
+	hostPriority hostPriority
+	progress     progressManager
 
-	intensity   float64
-	intensityCh <-chan float64
+	intensity        float64
+	intensityHandler *intensityHandler
 
 	keys       []uint64
 	pos        int
@@ -66,7 +65,7 @@ type generator struct {
 	failed  int
 }
 
-func newGenerator(intensityCh <-chan float64, gracefulShutdownTimeout time.Duration, logger log.Logger, manager progressManager) *generator {
+func newGenerator(ih *intensityHandler, gracefulShutdownTimeout time.Duration, logger log.Logger, manager progressManager) *generator {
 	g := &generator{
 		gracefulShutdownTimeout: gracefulShutdownTimeout,
 		logger:                  logger,
@@ -75,14 +74,14 @@ func newGenerator(intensityCh <-chan float64, gracefulShutdownTimeout time.Durat
 		progress:                manager,
 	}
 
-	// Check if intensityCh has desired intensity value
+	// Check if intensity channel has desired intensity value
 	select {
-	case intensity := <-intensityCh:
+	case intensity := <-ih.c:
 		g.intensity = intensity
 	default:
 	}
 
-	g.intensityCh = intensityCh
+	g.intensityHandler = ih
 
 	return g
 }
@@ -117,18 +116,6 @@ func (g *generator) SetHostPriority(hp hostPriority) {
 	}
 
 	g.hostPriority = hp
-}
-
-func (g *generator) SetHostRangeLimits(hrl hostRangesLimit) {
-	hosts := g.Hosts()
-
-	for _, h := range hosts.List() {
-		if _, ok := hrl[h]; !ok {
-			panic("invalid host range limits, missing host")
-		}
-	}
-
-	g.hostRangesLimit = hrl
 }
 
 func (g *generator) Init(ctx context.Context, workerCount int) error {
@@ -203,7 +190,7 @@ loop:
 				close(stop)
 			})
 			err = ctx.Err()
-		case intensity := <-g.intensityCh:
+		case intensity := <-g.intensityHandler.c:
 			g.logger.Info(ctx, "Changing repair intensity", "from", g.intensity, "to", intensity)
 			g.intensity = intensity
 		case r := <-g.result:
@@ -360,10 +347,7 @@ func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 }
 
 func (g *generator) rangesLimit(host string) int {
-	limit := g.hostRangesLimit[host]
-	if g.intensity != 0 {
-		limit = int(g.intensity)
-	}
+	limit := int(g.intensityHandler.Intensity(host))
 	if limit == 0 {
 		limit = 1
 	}

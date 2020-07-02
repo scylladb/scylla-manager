@@ -111,7 +111,7 @@ func TestGenerator(t *testing.T) {
 		return a.Pos < b.Pos
 	}
 
-	intensityCh := make(chan float64, 1)
+	ih := newIntensityHandler()
 
 	t.Run("Basic", func(t *testing.T) {
 		ranges := []scyllaclient.TokenRange{
@@ -143,7 +143,7 @@ func TestGenerator(t *testing.T) {
 			Intensity: 50,
 		}
 		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-		g := newGenerator(intensityCh, gracefulShutdownTimeout, log.NewDevelopment(), newNopProgressManager())
+		g := newGenerator(ih, gracefulShutdownTimeout, log.NewDevelopment(), newNopProgressManager())
 
 		var allRanges []*tableTokenRange
 		for _, u := range units {
@@ -196,7 +196,7 @@ func TestGenerator(t *testing.T) {
 				DC: []string{"dc1", "dc2"},
 			}
 			ctx := context.Background()
-			g := makeGenerator(ctx, target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
+			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
 			go g.Run(ctx)
 
 			w := fakeWorker{
@@ -221,7 +221,7 @@ func TestGenerator(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			g := makeGenerator(ctx, target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
+			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
 			go g.Run(ctx)
 
 			w := fakeWorker{
@@ -288,13 +288,13 @@ func TestGenerator(t *testing.T) {
 			for i := range table {
 				test := table[i]
 				t.Run(test.Name, func(t *testing.T) {
-					intensityCh = make(chan float64, 1)
+					ih = newIntensityHandler()
 					target := Target{
 						DC:        []string{"dc1", "dc2"},
 						Intensity: test.Intensity,
 					}
 					ctx := context.Background()
-					g := makeGenerator(ctx, target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
+					g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
 
 					generatorStarted := make(chan struct{})
 					go func() {
@@ -360,7 +360,7 @@ func TestGenerator(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		g := makeGenerator(ctx, target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
+		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
 
 		Print("Given: running generator")
 		generatorFinished := atomic.NewBool(false)
@@ -450,18 +450,19 @@ func TestGenerator(t *testing.T) {
 			},
 		}
 
-		Print("Given: intensity of 1")
-		intensityCh = make(chan float64, 1)
-		intensity := float64(1)
-		intensityCh <- intensity
-
-		target := Target{
-			DC: []string{"dc1"},
-		}
-
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		g := makeGenerator(ctx, target, intensityCh, units, hostDC, ranges, hostPriority, rangeLimits)
+
+		Print("Given: intensity of 1")
+		ih = newIntensityHandler()
+		intensity := float64(1)
+
+		target := Target{
+			DC:        []string{"dc1"},
+			Intensity: intensity,
+		}
+
+		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
 
 		Print("Given: running generator")
 		generatorFinished := atomic.NewBool(false)
@@ -495,7 +496,9 @@ func TestGenerator(t *testing.T) {
 
 		Print("When: intensity is changed to 2")
 		intensity = 2
-		intensityCh <- intensity
+		if err := ih.Set(ctx, intensity); err != nil {
+			t.Fatal(err)
+		}
 
 		Print("When: worker finishes first and take a new job")
 		w.execute(j)
@@ -511,20 +514,20 @@ func TestGenerator(t *testing.T) {
 	})
 }
 
-func makeGenerator(ctx context.Context, target Target, intensityCh chan float64, units []Unit, hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit) *generator {
+func makeGenerator(ctx context.Context, target Target, intensityHandler *intensityHandler, units []Unit, hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit) *generator {
 	b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
 
-	select {
-	case intensityCh <- target.Intensity:
-	default:
+	if err := intensityHandler.Set(ctx, target.Intensity); err != nil {
+		panic(err)
 	}
-	g := newGenerator(intensityCh, gracefulShutdownTimeout, log.NewDevelopment(), newNopProgressManager())
+	intensityHandler.SetHostRangeLimits(rangeLimits)
+
+	g := newGenerator(intensityHandler, gracefulShutdownTimeout, log.NewDevelopment(), newNopProgressManager())
 	for _, u := range units {
 		g.Add(b.Build(u))
 	}
 
 	g.SetHostPriority(hostPriority)
-	g.SetHostRangeLimits(rangeLimits)
 
 	if err := g.Init(ctx, workerCount(ranges)); err != nil {
 		panic(err)
@@ -535,4 +538,11 @@ func makeGenerator(ctx context.Context, target Target, intensityCh chan float64,
 func epsilonRange(v float64) (float64, float64) {
 	e := v * 1.05
 	return v - e, v + e
+}
+
+func newIntensityHandler() *intensityHandler {
+	return &intensityHandler{
+		c:      make(chan float64, 1),
+		global: atomic.NewFloat64(0),
+	}
 }
