@@ -29,11 +29,8 @@ type RepairProgress struct {
 	// error
 	Error int64 `json:"error,omitempty"`
 
-	// per host
-	PerHost []*RepairProgressPerHostItems0 `json:"per_host"`
-
-	// per table
-	PerTable []*TableRepairProgress `json:"per_table"`
+	// hosts
+	Hosts []*RepairProgressHostsItems0 `json:"hosts"`
 
 	// started at
 	// Format: date-time
@@ -41,6 +38,9 @@ type RepairProgress struct {
 
 	// success
 	Success int64 `json:"success,omitempty"`
+
+	// tables
+	Tables []*TableRepairProgress `json:"tables"`
 
 	// token ranges
 	TokenRanges int64 `json:"token_ranges,omitempty"`
@@ -54,15 +54,15 @@ func (m *RepairProgress) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validatePerHost(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validatePerTable(formats); err != nil {
+	if err := m.validateHosts(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTables(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -85,46 +85,21 @@ func (m *RepairProgress) validateCompletedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RepairProgress) validatePerHost(formats strfmt.Registry) error {
+func (m *RepairProgress) validateHosts(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.PerHost) { // not required
+	if swag.IsZero(m.Hosts) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.PerHost); i++ {
-		if swag.IsZero(m.PerHost[i]) { // not required
+	for i := 0; i < len(m.Hosts); i++ {
+		if swag.IsZero(m.Hosts[i]) { // not required
 			continue
 		}
 
-		if m.PerHost[i] != nil {
-			if err := m.PerHost[i].Validate(formats); err != nil {
+		if m.Hosts[i] != nil {
+			if err := m.Hosts[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("per_host" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
-
-func (m *RepairProgress) validatePerTable(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.PerTable) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.PerTable); i++ {
-		if swag.IsZero(m.PerTable[i]) { // not required
-			continue
-		}
-
-		if m.PerTable[i] != nil {
-			if err := m.PerTable[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("per_table" + "." + strconv.Itoa(i))
+					return ve.ValidateName("hosts" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -148,50 +123,7 @@ func (m *RepairProgress) validateStartedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-// MarshalBinary interface implementation
-func (m *RepairProgress) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *RepairProgress) UnmarshalBinary(b []byte) error {
-	var res RepairProgress
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
-}
-
-// RepairProgressPerHostItems0 repair progress per host items0
-// swagger:model RepairProgressPerHostItems0
-type RepairProgressPerHostItems0 struct {
-
-	// host
-	Host string `json:"host,omitempty"`
-
-	// tables
-	Tables []*TableRepairProgress `json:"tables"`
-}
-
-// Validate validates this repair progress per host items0
-func (m *RepairProgressPerHostItems0) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateTables(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *RepairProgressPerHostItems0) validateTables(formats strfmt.Registry) error {
+func (m *RepairProgress) validateTables(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Tables) { // not required
 		return nil
@@ -217,7 +149,7 @@ func (m *RepairProgressPerHostItems0) validateTables(formats strfmt.Registry) er
 }
 
 // MarshalBinary interface implementation
-func (m *RepairProgressPerHostItems0) MarshalBinary() ([]byte, error) {
+func (m *RepairProgress) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -225,8 +157,76 @@ func (m *RepairProgressPerHostItems0) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *RepairProgressPerHostItems0) UnmarshalBinary(b []byte) error {
-	var res RepairProgressPerHostItems0
+func (m *RepairProgress) UnmarshalBinary(b []byte) error {
+	var res RepairProgress
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// RepairProgressHostsItems0 repair progress hosts items0
+// swagger:model RepairProgressHostsItems0
+type RepairProgressHostsItems0 struct {
+
+	// host
+	Host string `json:"host,omitempty"`
+
+	// tables
+	Tables []*TableRepairProgress `json:"tables"`
+}
+
+// Validate validates this repair progress hosts items0
+func (m *RepairProgressHostsItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateTables(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *RepairProgressHostsItems0) validateTables(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Tables) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Tables); i++ {
+		if swag.IsZero(m.Tables[i]) { // not required
+			continue
+		}
+
+		if m.Tables[i] != nil {
+			if err := m.Tables[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("tables" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *RepairProgressHostsItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *RepairProgressHostsItems0) UnmarshalBinary(b []byte) error {
+	var res RepairProgressHostsItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

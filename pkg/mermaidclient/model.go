@@ -363,7 +363,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	}
 
 	if rp.Detailed {
-		for _, h := range rp.Progress.PerHost {
+		for _, h := range rp.Progress.Hosts {
 			if rp.hideHost(h.Host) {
 				continue
 			}
@@ -432,13 +432,13 @@ func (rp RepairProgress) arguments() string {
 }
 
 func (rp RepairProgress) addRepairTableProgress(d *table.Table) {
-	if len(rp.Progress.PerTable) > 0 {
+	if len(rp.Progress.Tables) > 0 {
 		d.AddRow("Keyspace", "Table", "Progress", "Duration")
 		d.AddSeparator()
 	}
 
 	ks := ""
-	for _, t := range rp.Progress.PerTable {
+	for _, t := range rp.Progress.Tables {
 		if rp.hideKeyspace(t.Keyspace) {
 			continue
 		}
