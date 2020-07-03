@@ -511,19 +511,19 @@ func TestRepairIntensityCalculation(t *testing.T) {
 		{
 			Intensity:                 0,
 			ExpectedSegmentsPerRepair: 1,
-			ExpectedShardParallelMax:  0,
+			ExpectedShardParallelMax:  1,
 		},
 		{
 			Intensity:                 0.5,
 			Shards:                    4,
 			ExpectedSegmentsPerRepair: 1,
-			ExpectedShardParallelMax:  1,
+			ExpectedShardParallelMax:  2,
 		},
 		{
 			Intensity:                 0.2,
 			Shards:                    4,
 			ExpectedSegmentsPerRepair: 1,
-			ExpectedShardParallelMax:  0,
+			ExpectedShardParallelMax:  1,
 		},
 		{
 			Intensity:                 1,

@@ -262,7 +262,7 @@ func calculateRepairIntensity(intensity float64, shards uint) (segmentsPerRepair
 		return int(intensity), 0
 	}
 	if intensity < 1 {
-		return 1, min(int(intensity*float64(shards)), 1)
+		return 1, max(int(intensity*float64(shards)), 1)
 	}
 	return 1, 0
 }

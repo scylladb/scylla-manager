@@ -713,8 +713,8 @@ func (s *Service) deleteRunProgress(ctx context.Context, p *RunProgress) error {
 	return q.ExecRelease()
 }
 
-func min(a, b int) int {
-	if a < b {
+func max(a, b int) int {
+	if a > b {
 		return a
 	}
 	return b
