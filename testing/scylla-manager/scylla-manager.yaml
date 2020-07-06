@@ -10,5 +10,3 @@ database:
   migrate_dir: schema
   timeout: 1s
 
-repair:
-  error_backoff: 5s

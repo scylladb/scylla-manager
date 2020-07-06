@@ -92,36 +92,13 @@ http: 127.0.0.1:5080
 
 # Repair service configuration.
 #repair:
-# Number of segments repaired by Scylla in a single repair command. Increase
-# this value to make repairs faster, note that this may result in increased load
-# on the cluster.
-#  segments_per_repair: 1
-#
-# Maximal number of shards on a host repaired at the same time. By default all
-# shards are repaired in parallel.
-#  shard_parallel_max: 0
-#
-# Maximal allowed number of failed segments per shard. In case of a failure
-# to repair a segment Scylla Manager will try to repair it multiple times
-# depending on the specified number of retries (default 3). If the
-# shard_failed_segments_max limit is exceeded repair task will immediately
-# fail and the next repair run will start repair procedure from the beginning.
-#  shard_failed_segments_max: 25
-#
-# In case of an error hold back repair for the specified amount of time.
-#  error_backoff: 5m
-#
 # Frequency Scylla Manager poll Scylla node for repair command status.
-#  poll_interval: 200ms
+#  poll_interval: 50ms
 #
 # Maximal time a paused repair is considered fresh and can be continued,
 # if exceeded repair will start from the beginning. Zero means no limit.
 #  age_max: 0
 #
-# Distribution of data among cores (shards) within a node.
-# Copy value from Scylla configuration file.
-#  murmur3_partitioner_ignore_msb_bits: 12
-#
 # Specifies how long repair will wait until all ongoing repair requests finish
 # when repair task is stopped. After this time, task will be interrupted.
-#  graceful_shutdown_timeout: 60s
+#  graceful_shutdown_timeout: 30s

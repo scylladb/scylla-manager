@@ -12,19 +12,15 @@ import (
 
 // Config specifies the repair service configuration.
 type Config struct {
-	ErrorBackoff            time.Duration `yaml:"error_backoff"`
 	PollInterval            time.Duration `yaml:"poll_interval"`
 	AgeMax                  time.Duration `yaml:"age_max"`
-	ShardingIgnoreMsbBits   int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 	GracefulShutdownTimeout time.Duration `yaml:"graceful_shutdown_timeout"`
 }
 
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		ErrorBackoff:            5 * time.Minute,
-		PollInterval:            200 * time.Millisecond,
-		ShardingIgnoreMsbBits:   12,
+		PollInterval:            50 * time.Millisecond,
 		GracefulShutdownTimeout: 30 * time.Second,
 	}
 }
@@ -36,17 +32,14 @@ func (c *Config) Validate() error {
 	}
 
 	var err error
-	if c.ErrorBackoff <= 0 {
-		err = multierr.Append(err, errors.New("invalid error_backoff, must be > 0"))
-	}
 	if c.PollInterval <= 0 {
 		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
 	}
 	if c.AgeMax < 0 {
 		err = multierr.Append(err, errors.New("invalid age_max, must be >= 0"))
 	}
-	if c.ShardingIgnoreMsbBits < 0 {
-		err = multierr.Append(err, errors.New("invalid murmur3_partitioner_ignore_msb_bits, must be >= 0"))
+	if c.GracefulShutdownTimeout <= 0 {
+		err = multierr.Append(err, errors.New("invalid graceful_shutdown_timeout, must be > 0"))
 	}
 
 	return err

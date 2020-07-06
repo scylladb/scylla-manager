@@ -71,10 +71,8 @@ func TestConfigModification(t *testing.T) {
 			AgeMax:                  12 * time.Hour,
 		},
 		Repair: repair.Config{
-			ErrorBackoff:            10 * time.Second,
 			PollInterval:            500 * time.Millisecond,
 			AgeMax:                  12 * time.Hour,
-			ShardingIgnoreMsbBits:   1,
 			GracefulShutdownTimeout: 60 * time.Second,
 		},
 	}
