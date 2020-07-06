@@ -33,7 +33,7 @@ func newTasksHandler(services Services) *chi.Mux {
 
 	m.Get("/", h.listTasks)
 	m.Post("/", h.createTask)
-	m.Put("/{task_type}/target", h.getTarget)
+	m.Get("/{task_type}/target", h.getTarget)
 
 	return m
 }

@@ -421,6 +421,72 @@ func (a *Client) GetClusterClusterIDTasks(params *GetClusterClusterIDTasksParams
 }
 
 /*
+GetClusterClusterIDTasksBackupTarget get cluster cluster ID tasks backup target API
+*/
+func (a *Client) GetClusterClusterIDTasksBackupTarget(params *GetClusterClusterIDTasksBackupTargetParams) (*GetClusterClusterIDTasksBackupTargetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTasksBackupTargetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTasksBackupTarget",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/tasks/backup/target",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTasksBackupTargetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDTasksBackupTargetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDTasksBackupTargetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+GetClusterClusterIDTasksRepairTarget get cluster cluster ID tasks repair target API
+*/
+func (a *Client) GetClusterClusterIDTasksRepairTarget(params *GetClusterClusterIDTasksRepairTargetParams) (*GetClusterClusterIDTasksRepairTargetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTasksRepairTargetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTasksRepairTarget",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/tasks/repair/target",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTasksRepairTargetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDTasksRepairTargetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDTasksRepairTargetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 GetClusters get clusters API
 */
 func (a *Client) GetClusters(params *GetClustersParams) (*GetClustersOK, error) {
@@ -714,72 +780,6 @@ func (a *Client) PutClusterClusterIDTaskTaskTypeTaskIDStop(params *PutClusterClu
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*PutClusterClusterIDTaskTaskTypeTaskIDStopDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-PutClusterClusterIDTasksBackupTarget put cluster cluster ID tasks backup target API
-*/
-func (a *Client) PutClusterClusterIDTasksBackupTarget(params *PutClusterClusterIDTasksBackupTargetParams) (*PutClusterClusterIDTasksBackupTargetOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPutClusterClusterIDTasksBackupTargetParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PutClusterClusterIDTasksBackupTarget",
-		Method:             "PUT",
-		PathPattern:        "/cluster/{cluster_id}/tasks/backup/target",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PutClusterClusterIDTasksBackupTargetReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*PutClusterClusterIDTasksBackupTargetOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*PutClusterClusterIDTasksBackupTargetDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-PutClusterClusterIDTasksRepairTarget put cluster cluster ID tasks repair target API
-*/
-func (a *Client) PutClusterClusterIDTasksRepairTarget(params *PutClusterClusterIDTasksRepairTargetParams) (*PutClusterClusterIDTasksRepairTargetOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPutClusterClusterIDTasksRepairTargetParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PutClusterClusterIDTasksRepairTarget",
-		Method:             "PUT",
-		PathPattern:        "/cluster/{cluster_id}/tasks/repair/target",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PutClusterClusterIDTasksRepairTargetReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*PutClusterClusterIDTasksRepairTargetOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*PutClusterClusterIDTasksRepairTargetDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

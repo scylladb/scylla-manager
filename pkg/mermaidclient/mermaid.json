@@ -1150,7 +1150,7 @@
           "required": true
         }
       ],
-      "put": {
+      "get": {
         "parameters": [
           {
             "name": "taskFields",
@@ -1203,7 +1203,7 @@
           "required": true
         }
       ],
-      "put": {
+      "get": {
         "parameters": [
           {
             "name": "taskFields",

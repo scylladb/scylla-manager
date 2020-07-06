@@ -167,7 +167,7 @@ func (c Client) ClusterStatus(ctx context.Context, clusterID string) (ClusterSta
 
 // GetRepairTarget fetches information about repair target.
 func (c *Client) GetRepairTarget(ctx context.Context, clusterID string, t *Task) (*RepairTarget, error) {
-	resp, err := c.operations.PutClusterClusterIDTasksRepairTarget(&operations.PutClusterClusterIDTasksRepairTargetParams{
+	resp, err := c.operations.GetClusterClusterIDTasksRepairTarget(&operations.GetClusterClusterIDTasksRepairTargetParams{
 		Context:    ctx,
 		ClusterID:  clusterID,
 		TaskFields: makeTaskUpdate(t),
@@ -181,7 +181,7 @@ func (c *Client) GetRepairTarget(ctx context.Context, clusterID string, t *Task)
 
 // GetBackupTarget fetches information about repair target.
 func (c *Client) GetBackupTarget(ctx context.Context, clusterID string, t *Task) (*BackupTarget, error) {
-	resp, err := c.operations.PutClusterClusterIDTasksBackupTarget(&operations.PutClusterClusterIDTasksBackupTargetParams{
+	resp, err := c.operations.GetClusterClusterIDTasksBackupTarget(&operations.GetClusterClusterIDTasksBackupTargetParams{
 		Context:    ctx,
 		ClusterID:  clusterID,
 		TaskFields: makeTaskUpdate(t),
