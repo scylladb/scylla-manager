@@ -31,20 +31,22 @@ func workerCount(ranges []scyllaclient.TokenRange) int {
 }
 
 type worker struct {
-	in       <-chan job
-	out      chan<- jobResult
-	client   *scyllaclient.Client
-	logger   log.Logger
-	progress progressManager
+	in           <-chan job
+	out          chan<- jobResult
+	client       *scyllaclient.Client
+	logger       log.Logger
+	progress     progressManager
+	pollInterval time.Duration
 }
 
-func newWorker(in <-chan job, out chan<- jobResult, client *scyllaclient.Client, logger log.Logger, manager progressManager) worker {
+func newWorker(in <-chan job, out chan<- jobResult, client *scyllaclient.Client, logger log.Logger, manager progressManager, pollInterval time.Duration) worker {
 	return worker{
-		in:       in,
-		out:      out,
-		client:   client,
-		logger:   logger,
-		progress: manager,
+		in:           in,
+		out:          out,
+		client:       client,
+		logger:       logger,
+		progress:     manager,
+		pollInterval: pollInterval,
 	}
 }
 
@@ -97,7 +99,7 @@ func (w worker) runJob(ctx context.Context, job job) error {
 	)
 
 	// TODO change to long polling
-	t := time.NewTicker(50 * time.Millisecond)
+	t := time.NewTicker(w.pollInterval)
 	defer t.Stop()
 
 	for {

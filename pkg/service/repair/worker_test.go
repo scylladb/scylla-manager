@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
@@ -66,15 +67,16 @@ func TestWorkerCount(t *testing.T) {
 
 func TestWorkerRun(t *testing.T) {
 	var (
-		in     = make(chan job)
-		out    = make(chan jobResult)
-		logger = log.NewDevelopmentWithLevel(zapcore.DebugLevel)
-		hrt    = NewHackableRoundTripper(scyllaclient.DefaultTransport())
-		c      = newTestClient(t, hrt, logger)
-		ctx    = context.Background()
+		in           = make(chan job)
+		out          = make(chan jobResult)
+		logger       = log.NewDevelopmentWithLevel(zapcore.DebugLevel)
+		hrt          = NewHackableRoundTripper(scyllaclient.DefaultTransport())
+		c            = newTestClient(t, hrt, logger)
+		ctx          = context.Background()
+		pollInterval = 50 * time.Millisecond
 	)
 	hrt.SetInterceptor(successfulInterceptor())
-	w := newWorker(in, out, c, logger, newNopProgressManager())
+	w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval)
 
 	go func() {
 		if err := w.Run(ctx); err != nil {

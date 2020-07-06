@@ -307,7 +307,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	g.SetHostPriority(hp)
 
 	// Create worker
-	w := newWorker(g.Next(), g.Result(), client, s.logger, manager)
+	w := newWorker(g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval)
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
