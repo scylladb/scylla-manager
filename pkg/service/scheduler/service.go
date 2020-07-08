@@ -42,30 +42,6 @@ func init() {
 	)
 }
 
-type cancelableTrigger struct {
-	ClusterID uuid.UUID
-	Type      TaskType
-	TaskID    uuid.UUID
-	RunID     uuid.UUID
-
-	C      chan struct{}
-	closed bool
-}
-
-func (tg *cancelableTrigger) Cancel() bool {
-	if tg == nil {
-		return false
-	}
-
-	if tg.closed {
-		return false
-	}
-
-	close(tg.C)
-	tg.closed = true
-	return true
-}
-
 // ClusterNameFunc returns name for a given ID.
 type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
 
@@ -79,9 +55,9 @@ type Service struct {
 	logger      log.Logger
 
 	mu      sync.Mutex
-	closing bool
 	runners map[TaskType]Runner
-	tasks   map[uuid.UUID]*cancelableTrigger
+	tasks   map[uuid.UUID]*trigger
+	closing bool
 	wg      sync.WaitGroup
 }
 
@@ -106,7 +82,7 @@ func NewService(session gocqlx.Session, clusterName ClusterNameFunc, logger log.
 		clusterName: clusterName,
 		logger:      logger,
 		runners:     make(map[TaskType]Runner),
-		tasks:       make(map[uuid.UUID]*cancelableTrigger),
+		tasks:       make(map[uuid.UUID]*trigger),
 	}, nil
 }
 
@@ -175,19 +151,34 @@ func (s *Service) fixRunStatus(ctx context.Context, t *Task) error {
 	return s.putRun(r)
 }
 
+// schedule cancels any pending triggers for task and adds new trigger if needed.
+// If task is running it will not be affected.
 func (s *Service) schedule(ctx context.Context, t *Task) {
-	// skip disabled tasks
-	if !t.Enabled {
-		s.mu.Lock()
-		s.cancelLocked(ctx, t.ID)
-		s.mu.Unlock()
-		return
-	}
-
 	// Calculate next activation time
 	runs, err := s.GetLastRun(ctx, t, t.Sched.NumRetries+1)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get history of task", "task", t, "error", err)
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Cancel pending trigger for task, and skip if task is running
+	if tg := s.tasks[t.ID]; !tg.CancelPending() && tg.State() == triggerRan {
+		s.logger.Info(ctx, "Task not scheduled because it's already running, will be scheduled on task completion", "task", t)
+		return
+	}
+
+	// Skip if service is closing
+	if s.closing {
+		s.logger.Info(ctx, "Task not scheduled because service is closing", "task", t)
+		return
+	}
+
+	// Skip if task is disabled
+	if !t.Enabled {
+		s.logger.Info(ctx, "Task not scheduled because it's disabled", "task", t)
 		return
 	}
 
@@ -198,73 +189,70 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 
 	// Skip if not runnable
 	if activation.IsZero() {
-		s.logger.Debug(ctx, "Task has no activation - not scheduling", "task", t)
+		s.logger.Info(ctx, "Task not scheduled due to lack of activation time", "task", t)
 		return
 	}
 
-	tg := t.newCancelableTrigger()
-	if s.updateTrigger(ctx, t, tg) {
-		s.logInfoOrDebug(t.Type)(ctx, "Task scheduled",
-			"cluster_id", t.ClusterID,
-			"task_type", t.Type,
-			"task_id", t.ID,
-			"run_id", tg.RunID,
-			"activation", activation,
-		)
-		go s.runAfter(t, tg, activation.Sub(now))
-	}
+	tg := newTrigger(t)
+	s.tasks[tg.TaskID] = tg
+	s.logInfoOrDebug(t.Type)(ctx, "Task scheduled",
+		"cluster_id", t.ClusterID,
+		"task_type", t.Type,
+		"task_id", t.ID,
+		"run_id", tg.RunID,
+		"activation", activation,
+	)
+	go s.runAfter(t, tg, activation.Sub(now))
 }
 
-func (s *Service) updateTrigger(ctx context.Context, t *Task, tg *cancelableTrigger) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Skip if service is closing
-	if s.closing {
-		return false
-	}
-
-	// Set new trigger and cancel previous one
-	prev := s.tasks[t.ID]
-	s.tasks[t.ID] = tg
-	if prev.Cancel() {
-		s.logger.Info(ctx, "Task execution canceled",
-			"cluster_id", prev.ClusterID,
-			"task_type", tg.Type,
-			"task_id", prev.TaskID,
-			"run_id", prev.RunID,
-		)
-	}
-
-	return true
-}
-
-func (s *Service) rescheduleIfNeeded(ctx context.Context, t *Task, run *Run) {
-	// delete cancellable trigger for the run
-	s.mu.Lock()
-	if tg := s.tasks[t.ID]; tg == nil || tg.RunID != run.ID {
-		s.mu.Unlock()
-		return
-	}
-	delete(s.tasks, t.ID)
-	s.mu.Unlock()
-
-	if t.Sched.Interval > 0 || !run.Status.isFinal() {
-		s.schedule(ctx, t)
-	}
-}
-
-func (s *Service) runAfter(t *Task, tg *cancelableTrigger, after time.Duration) {
+func (s *Service) runAfter(t *Task, tg *trigger, after time.Duration) {
 	timer := time.NewTimer(after)
 	select {
 	case <-timer.C:
-		s.run(t, tg)
+		if tg.Run() {
+			s.run(t, tg)
+		}
 	case <-tg.C:
 		timer.Stop()
 	}
 }
 
-func (s *Service) run(t *Task, tg *cancelableTrigger) {
+func (s *Service) rescheduleIfNeeded(ctx context.Context, t *Task, run *Run) {
+	// Try to update task from db
+	var newTask Task
+	q := table.SchedTask.GetQuery(s.session).BindStruct(t)
+	if err := q.GetRelease(&newTask); err != nil {
+		// Do not reschedule if deleted
+		if err == service.ErrNotFound {
+			return
+		}
+		// Otherwise log and recover
+		s.logger.Error(ctx, "Failed to update task", "task", t, "error", err)
+		newTask = *t
+	}
+
+	// Copy custom options
+	newTask.opts = t.opts
+
+	// Copy schedule for retries
+	if !run.Status.isFinal() {
+		newTask.Sched = t.Sched
+	}
+
+	// Remove task run before scheduling
+	s.mu.Lock()
+	delete(s.tasks, t.ID)
+	s.mu.Unlock()
+
+	// Don't schedule if done or error
+	if newTask.Sched.Interval == 0 && run.Status.isFinal() {
+		return
+	}
+
+	s.schedule(ctx, &newTask)
+}
+
+func (s *Service) run(t *Task, tg *trigger) {
 	// register run in wait group so that it can be collected on service close
 	s.wg.Add(1)
 	defer s.wg.Done()
@@ -442,33 +430,35 @@ wait:
 func (s *Service) StartTask(ctx context.Context, t *Task, opts ...Opt) error {
 	s.logger.Debug(ctx, "StartTask", "task", t)
 
-	// Prevent starting an already running task.
-	s.mu.Lock()
-	tg := s.tasks[t.ID]
-	if tg != nil {
-		if s.taskIsRunning(ctx, t, tg.RunID) {
-			s.mu.Unlock()
-			return errors.New("task already running")
-		}
-	}
-	s.mu.Unlock()
-
 	if err := t.Validate(); err != nil {
 		return err
 	}
 	t.opts = opts
 
-	tg = t.newCancelableTrigger()
-	if s.updateTrigger(ctx, t, tg) {
-		s.logger.Info(ctx, "Force task execution",
-			"cluster_id", tg.ClusterID,
-			"task_type", tg.Type,
-			"task_id", tg.TaskID,
-			"run_id", tg.RunID,
-		)
-		go s.run(t, tg)
+	// Prevent starting an already running task.
+	tg := s.tasks[t.ID]
+	if tg != nil {
+		if s.taskIsRunning(ctx, t, tg.RunID) {
+			return errors.New("task already running")
+		}
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.cancelLocked(ctx, t.ID)
+
+	tg = newTrigger(t)
+	s.tasks[tg.TaskID] = tg
+	s.logger.Info(ctx, "Force task execution",
+		"cluster_id", tg.ClusterID,
+		"task_type", tg.Type,
+		"task_id", tg.TaskID,
+		"run_id", tg.RunID,
+	)
+	if tg.Run() {
+		go s.run(t, tg)
+	}
 	return nil
 }
 
@@ -503,6 +493,7 @@ func (s *Service) cancelLocked(ctx context.Context, taskID uuid.UUID) {
 			"task_id", tg.TaskID,
 			"run_id", tg.RunID,
 		)
+		delete(s.tasks, taskID)
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 
@@ -165,8 +166,13 @@ func (h *schedTestHelper) assertStatus(ctx context.Context, task *scheduler.Task
 	}, _interval, _wait)
 }
 
-func (h *schedTestHelper) assertNotStatus(ctx context.Context, task *scheduler.Task, s scheduler.Status) {
+func (h *schedTestHelper) assertNotStatus(ctx context.Context, task *scheduler.Task, s ...scheduler.Status) {
 	h.t.Helper()
+
+	m := strset.New()
+	for i := range s {
+		m.Add(string(s[i]))
+	}
 
 	n := int(2 * interval.Duration() / _interval)
 	for i := 0; i < n; i++ {
@@ -174,7 +180,7 @@ func (h *schedTestHelper) assertNotStatus(ctx context.Context, task *scheduler.T
 		if !ok {
 			continue
 		}
-		if v == s {
+		if m.Has(string(v)) {
 			h.t.Fatalf("Unexpected status %s", v)
 		}
 	}
@@ -703,7 +709,10 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		Print("And: run ends successfully")
+		Print("Then: task continues to run")
+		h.assertNotStatus(ctx, task, scheduler.StatusStopped)
+
+		Print("When: run ends successfully")
 		h.runner.Done()
 
 		Print("Then: task stops with the status done")
@@ -711,6 +720,73 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task is not executed in future")
 		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
+	})
+
+	t.Run("update schedule of running task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: one shot task is scheduled")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("When: task schedule is updated with interval")
+		task.Sched = scheduler.Schedule{
+			StartDate: now(),
+			Interval:  interval,
+		}
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task continues to run")
+		h.assertNotStatus(ctx, task, scheduler.StatusStopped)
+
+		Print("And: the other task is not started")
+		if n := h.runner.called.Load(); n != 1 {
+			t.Fatalf("Runner executed %d times", n)
+		}
+
+		Print("When: run ends successfully")
+		h.runner.Done()
+
+		Print("Then: task stops with the status done")
+		h.assertStatus(ctx, task, scheduler.StatusDone)
+		Print("And: starts again")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+	})
+
+	t.Run("update schedule of not running task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: one shot task is scheduled")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: task schedule is updated with interval")
+		task.Sched = scheduler.Schedule{
+			StartDate: now(),
+		}
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
 	})
 
 }
