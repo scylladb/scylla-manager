@@ -275,16 +275,6 @@ func (t *Task) Validate() error {
 	return service.ErrValidate(errors.Wrap(errs, "invalid task"))
 }
 
-func (t *Task) newCancelableTrigger() *cancelableTrigger {
-	return &cancelableTrigger{
-		ClusterID: t.ID,
-		Type:      t.Type,
-		TaskID:    t.ID,
-		RunID:     uuid.NewTime(),
-		C:         make(chan struct{}),
-	}
-}
-
 func (t *Task) newRun(id uuid.UUID) *Run {
 	return &Run{
 		ID:        id,
