@@ -346,7 +346,8 @@ func TestListManifests(t *testing.T) {
 			Location:   Location{Provider: "walker", Path: "overlap-snapshots"},
 			GoldenFile: "testdata/walker/overlap-snapshots/golden.json",
 			Filter: ListFilter{
-				ClusterID: uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
+				ClusterID:   uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
+				SnapshotTag: "sm_20200128120927UTC",
 			},
 		},
 	}
@@ -394,7 +395,7 @@ func TestListManifests(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if diff := cmp.Diff(manifestPaths, golden); diff != "" {
+			if diff := cmp.Diff(golden, manifestPaths); diff != "" {
 				t.Fatalf("listManifests() = %v, diff %s", manifests, diff)
 			}
 		})

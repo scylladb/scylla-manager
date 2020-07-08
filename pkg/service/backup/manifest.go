@@ -380,25 +380,13 @@ func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFil
 
 		for _, m := range ms {
 			k := key{m.DC, m.ClusterID, m.NodeID, m.TaskID, m.SnapshotTag}
-			if _, ok := manifests[k]; ok {
-				// Resolve collision between two snapshots by preferring v2 over v1.
-				// This can happen after migration.
-				if manifests[k][0].Content.Version == "v1" {
-					if m.Content.Version == "v1" {
-						manifests[k] = append(manifests[k], m)
-					} else {
-						manifests[k] = []*remoteManifest{m}
-					}
-				}
-			} else {
-				manifests[k] = []*remoteManifest{m}
-			}
+			manifests[k] = append(manifests[k], m)
 		}
 	}
 
 	var out []*remoteManifest
 	for k := range manifests {
-		out = append(out, manifests[k]...)
+		out = append(out, removeDuplicates(manifests[k])...)
 	}
 
 	// Sort for repeatable listing.
@@ -407,6 +395,50 @@ func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFil
 	})
 
 	return out, nil
+}
+
+// removeDuplicates scans list of manifests and returns only manifests of the
+// single version with preference for v2.
+// Only manifests from the same node should be provided.
+func removeDuplicates(ms []*remoteManifest) []*remoteManifest {
+	if len(ms) <= 1 {
+		return ms
+	}
+	var (
+		// Migrated manifests have both v1 and v2 manifests present after
+		// migration but v2 manifest has Content.Version set to v1 because of
+		// mechanism used in purging.
+		// Here we are using length of the CleanPath as a signal for
+		// distinguishing between v1 and v2 because v1 has longer path.
+		pathLength        = len(ms[0].CleanPath)
+		v2CleanPathLength = v2CleanPathLength()
+	)
+
+	for i := range ms {
+		if len(ms[i].CleanPath) != pathLength {
+			for j := range ms {
+				if len(ms[j].CleanPath) == v2CleanPathLength {
+					// There should be only one manifest per node in v2.
+					return []*remoteManifest{ms[j]}
+				}
+			}
+		}
+	}
+
+	return ms
+}
+
+// v2CleanPathLength uses dummy data to parse v2 path and return length of the
+// clean path for the v2 manifest.
+func v2CleanPathLength() int {
+	m := remoteManifest{}
+	if err := m.ParsePartialPath(remoteManifestFile(
+		uuid.NewTime(), uuid.NewTime(), "sm_20091110230000UTC", "b", "c",
+	)); err != nil {
+		panic(err)
+	}
+
+	return len(m.CleanPath)
 }
 
 func getMetadataVersion(ctx context.Context, host string, location Location, client *scyllaclient.Client,
