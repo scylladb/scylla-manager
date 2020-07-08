@@ -178,7 +178,9 @@ func (s *Service) fixRunStatus(ctx context.Context, t *Task) error {
 func (s *Service) schedule(ctx context.Context, t *Task) {
 	// skip disabled tasks
 	if !t.Enabled {
-		s.logger.Debug(ctx, "Task not enabled - not scheduling", "task", t)
+		s.mu.Lock()
+		s.cancelLocked(ctx, t.ID)
+		s.mu.Unlock()
 		return
 	}
 
@@ -639,9 +641,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		}
 	}
 
-	q := table.SchedTask.InsertQuery(s.session).BindStruct(t)
-
-	if err := q.ExecRelease(); err != nil {
+	if err := table.SchedTask.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
 		return err
 	}
 
