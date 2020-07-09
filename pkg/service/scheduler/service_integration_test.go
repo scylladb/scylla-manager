@@ -486,9 +486,6 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: run will fail")
-		h.runner.Error()
-		h.runner.Error()
-		h.runner.Error()
 
 		Print("When: task is scheduled with retry once")
 		task := h.makeTask(scheduler.Schedule{
@@ -501,9 +498,15 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("Then: task is ran two times")
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
+
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
+
+		Print("And: task is not executed in future")
+		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
 	})
 
 	t.Run("retry preserve options", func(t *testing.T) {
@@ -512,9 +515,6 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: run will fail")
-		h.runner.Error()
-		h.runner.Error()
-		h.runner.Error()
 
 		Print("When: task is scheduled with retry once")
 		task := h.makeTask(scheduler.Schedule{
@@ -527,23 +527,32 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task is started with additional properties")
 		a := func(v scheduler.Properties) scheduler.Properties {
-			return scheduler.Properties([]byte(`{"a":1}`))
+			return scheduler.Properties(`{"a":1}`)
 		}
 		b := func(v scheduler.Properties) scheduler.Properties {
-			return scheduler.Properties([]byte(`{"b":1}`))
+			return scheduler.Properties(`{"b":1}`)
 		}
 		if err := h.service.StartTask(ctx, task, a, b); err != nil {
 			t.Fatal(err)
 		}
 
-		Print("Then: task is ran two times")
+		Print("Then: task is ran two times and properties were preserved")
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
-		h.assertStatus(ctx, task, scheduler.StatusError)
-		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
 
-		Print("And: properties were preserved")
-		if diff := cmp.Diff(h.runner.Properties(), []json.RawMessage{[]byte(`{"b":1}`), []byte(`{"b":1}`)}); diff != "" {
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
+		h.assertStatus(ctx, task, scheduler.StatusError)
+
+		Print("And: task is not executed in future")
+		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("And: properties are preserved")
+		if diff := cmp.Diff(h.runner.Properties(), []json.RawMessage{
+			[]byte(`{"b":1}`),
+			[]byte(`{"b":1}`),
+		}); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -554,7 +563,6 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("Given: run ends successfully")
-		h.runner.Done()
 
 		Print("When: task is scheduled")
 		task := h.makeTask(scheduler.Schedule{
@@ -567,6 +575,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("Then: task stops with the status")
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Done()
 		h.assertStatus(ctx, task, scheduler.StatusDone)
 
 		Print("And: task is executed in intervals")
@@ -607,9 +616,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		defer h.close()
 		ctx := context.Background()
 
-		Print("Given: run will fail twice")
-		h.runner.Error()
-		h.runner.Error()
+		Print("Given: run will fail")
 
 		Print("When: task is scheduled with retry once")
 		task := h.makeTask(scheduler.Schedule{
@@ -623,18 +630,20 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("Then: task is ran two times")
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
-		h.assertStatus(ctx, task, scheduler.StatusError)
-		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
 
-		Print("Given: run will fail twice")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
 		h.runner.Error()
-		h.runner.Error()
+		h.assertStatus(ctx, task, scheduler.StatusError)
 
 		Print("Then: task is ran two times in next interval")
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
+
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
 	})
 
