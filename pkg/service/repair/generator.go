@@ -107,14 +107,6 @@ func (g *generator) Hosts() *strset.Set {
 }
 
 func (g *generator) SetHostPriority(hp hostPriority) {
-	hosts := g.Hosts()
-
-	for _, h := range hosts.List() {
-		if _, ok := hp[h]; !ok {
-			panic("invalid host priority, missing host")
-		}
-	}
-
 	g.hostPriority = hp
 }
 

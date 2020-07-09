@@ -111,6 +111,7 @@ func (w worker) runJob(ctx context.Context, job job) error {
 			if err != nil {
 				return err
 			}
+			w.logger.Debug(ctx, "Repair status", "status", s)
 			switch s {
 			case scyllaclient.CommandRunning:
 				// continue

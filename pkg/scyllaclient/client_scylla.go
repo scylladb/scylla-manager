@@ -399,7 +399,7 @@ func (c *Client) Repair(ctx context.Context, host string, config RepairConfig) (
 		dcs := strings.Join(config.DC, ",")
 		p.DataCenters = &dcs
 	}
-	if len(config.Hosts) > 0 {
+	if len(config.Hosts) > 1 {
 		hosts := strings.Join(config.Hosts, ",") + "," + host
 		p.Hosts = &hosts
 	}

@@ -124,32 +124,34 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
 		}
 
-		// Ignore not replicated keyspaces
-		if ring.Replication == scyllaclient.LocalStrategy {
-			continue
-		}
-
 		// Ignore keyspaces not replicated in desired DCs
 		if !dcs.HasAny(ring.Datacenters()...) {
 			continue
 		}
 
-		notEnoughReplicas := false
-		for _, tr := range ring.Tokens {
-			replicas := 0
-			for _, r := range tr.Replicas {
-				if dcs.Has(ring.HostDC[r]) {
-					replicas++
+		if !s.singleNodeCluster(dcMap) {
+			// Ignore not replicated keyspaces
+			if ring.Replication == scyllaclient.LocalStrategy {
+				continue
+			}
+
+			notEnoughReplicas := false
+			for _, tr := range ring.Tokens {
+				replicas := 0
+				for _, r := range tr.Replicas {
+					if dcs.Has(ring.HostDC[r]) {
+						replicas++
+					}
+				}
+				if replicas <= 1 {
+					notEnoughReplicas = true
+					break
 				}
 			}
-			if replicas <= 1 {
-				notEnoughReplicas = true
-				break
+			if notEnoughReplicas {
+				s.logger.Info(ctx, "Keyspace skipped because there're no enough replicas in target", "keyspace", keyspace)
+				continue
 			}
-		}
-		if notEnoughReplicas {
-			s.logger.Info(ctx, "Keyspace skipped because there're no enough replicas in target", "keyspace", keyspace)
-			continue
 		}
 
 		// Add to the filter
@@ -163,6 +165,17 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	return t, nil
+}
+
+func (s *Service) singleNodeCluster(dcMap map[string][]string) bool {
+	if len(dcMap) == 1 {
+		for _, dc := range dcMap {
+			if len(dc) <= 1 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Repair performs the repair process on the Target.
