@@ -22,9 +22,10 @@ type Unit struct {
 // Filter is a builder that let's you filter keyspaces and tables by adding them
 // on keyspace by keyspace basis.
 type Filter struct {
-	filters []string
-	inex    inexlist.InExList
-	units   []Unit
+	filters   []string
+	inex      inexlist.InExList
+	units     []Unit
+	keyspaces []string
 }
 
 func NewFilter(filters []string) (*Filter, error) {
@@ -111,6 +112,8 @@ func (f *Filter) Add(keyspace string, tables []string) {
 		AllTables: len(filtered) == len(tables),
 	}
 	f.units = append(f.units, u)
+
+	f.keyspaces = append(f.keyspaces, keyspace)
 }
 
 // Check returns true iff table matches filter.
@@ -125,7 +128,7 @@ func (f *Filter) Check(keyspace, table string) bool {
 // The validation error may be disabled by providing the force=true.
 func (f *Filter) Apply(force bool) ([]Unit, error) {
 	if len(f.units) == 0 && !force {
-		return nil, service.ErrValidate(errors.Errorf("no matching keyspaces found using the filters %s", f.filters))
+		return nil, service.ErrValidate(errors.Errorf("no keyspace matched criteria %s - available keyspaces are: %s", f.filters, f.keyspaces))
 	}
 
 	// Sort units by the presence
