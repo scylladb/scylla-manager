@@ -1,11 +1,16 @@
 
 -- Repair
 
-ALTER TABLE repair_run DROP topology_hash;
-ALTER TABLE repair_run DROP units;
-ALTER TABLE repair_run DROP host;
-ALTER TABLE repair_run DROP with_hosts;
-ALTER TABLE repair_run DROP token_ranges;
+DROP TABLE repair_run;
+CREATE TABLE repair_run (
+    cluster_id uuid,
+    task_id uuid,
+    id uuid,
+    prev_id uuid,
+    dc list<text>,
+    start_time timestamp,
+    PRIMARY KEY(cluster_id, task_id, id)
+)  WITH default_time_to_live = 15552000;
 
 DROP TABLE repair_run_progress;
 CREATE TABLE repair_run_progress (
