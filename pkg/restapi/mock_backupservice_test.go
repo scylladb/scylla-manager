@@ -7,10 +7,11 @@ package restapi
 import (
 	context "context"
 	json "encoding/json"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	backup "github.com/scylladb/mermaid/pkg/service/backup"
 	uuid "github.com/scylladb/mermaid/pkg/util/uuid"
-	reflect "reflect"
 )
 
 // MockBackupService is a mock of BackupService interface
@@ -80,18 +81,18 @@ func (mr *MockBackupServiceMockRecorder) GetProgress(arg0, arg1, arg2, arg3 inte
 }
 
 // GetTarget mocks base method
-func (m *MockBackupService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage, arg3 bool) (backup.Target, error) {
+func (m *MockBackupService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (backup.Target, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTarget", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "GetTarget", arg0, arg1, arg2)
 	ret0, _ := ret[0].(backup.Target)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTarget indicates an expected call of GetTarget
-func (mr *MockBackupServiceMockRecorder) GetTarget(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockBackupServiceMockRecorder) GetTarget(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTarget", reflect.TypeOf((*MockBackupService)(nil).GetTarget), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTarget", reflect.TypeOf((*MockBackupService)(nil).GetTarget), arg0, arg1, arg2)
 }
 
 // GetTargetSize mocks base method

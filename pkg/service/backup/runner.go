@@ -16,7 +16,7 @@ type Runner struct {
 }
 
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	t, err := r.service.GetTarget(ctx, clusterID, properties, false)
+	t, err := r.service.GetTarget(ctx, clusterID, properties)
 	if err != nil {
 		return errors.Wrap(err, "get backup target")
 	}

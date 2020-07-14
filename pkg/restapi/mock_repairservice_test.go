@@ -7,10 +7,11 @@ package restapi
 import (
 	context "context"
 	json "encoding/json"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	repair "github.com/scylladb/mermaid/pkg/service/repair"
 	uuid "github.com/scylladb/mermaid/pkg/util/uuid"
-	reflect "reflect"
 )
 
 // MockRepairService is a mock of RepairService interface
@@ -67,9 +68,9 @@ func (mr *MockRepairServiceMockRecorder) GetRun(arg0, arg1, arg2, arg3 interface
 }
 
 // GetTarget mocks base method
-func (m *MockRepairService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage, arg3 bool) (repair.Target, error) {
+func (m *MockRepairService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (repair.Target, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTarget", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "GetTarget", arg0, arg1, arg2)
 	ret0, _ := ret[0].(repair.Target)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1

@@ -43,13 +43,13 @@ type HealthCheckService interface {
 type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
-	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (repair.Target, error)
+	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (repair.Target, error)
 	SetIntensity(ctx context.Context, runID uuid.UUID, intensity float64) error
 }
 
 // BackupService service interface for the REST API handlers.
 type BackupService interface {
-	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (backup.Target, error)
+	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.Target, error)
 	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
 	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backup.Location
 	List(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backup.ListFilter) ([]backup.ListItem, error)

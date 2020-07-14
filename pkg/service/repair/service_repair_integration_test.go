@@ -116,7 +116,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	for _, testName := range testNames {
 		t.Run(testName, func(t *testing.T) {
 			input := ReadInputFile(t)
-			v, err := h.service.GetTarget(ctx, h.clusterID, input, false)
+			v, err := h.service.GetTarget(ctx, h.clusterID, input)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -140,7 +140,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	target, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage("{}"), false)
+	target, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage("{}"))
 	if err != nil {
 		t.Fatal("GetTarget() failed", err)
 	}

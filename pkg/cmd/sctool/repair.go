@@ -47,11 +47,6 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 
 	t.Properties = props
 
-	force, err := cmd.Flags().GetBool("force")
-	if err != nil {
-		return err
-	}
-
 	dryRun, err := cmd.Flags().GetBool("dry-run")
 	if err != nil {
 		return err
@@ -83,7 +78,7 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 	}
 
 	if t.ID == "" {
-		id, err := client.CreateTask(ctx, cfgCluster, t, force)
+		id, err := client.CreateTask(ctx, cfgCluster, t)
 		if err != nil {
 			return err
 		}
@@ -111,7 +106,6 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
 	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*', used to specify the DCs to include or exclude from repair")
 	fs.Bool("fail-fast", false, "stop repair on first error")
-	fs.Bool("force", false, "force repair to skip database validation and schedule even if there are no matching keyspaces/tables")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	fs.Bool("show-tables", false, "print all table names for a keyspace")
 	fs.Var(&IntensityFlag{Value: "0"}, "intensity",

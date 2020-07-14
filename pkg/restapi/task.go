@@ -210,7 +210,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 
 	switch newTask.Type {
 	case scheduler.BackupTask:
-		bt, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false)
+		bt, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties)
 		if err != nil {
 			respondError(w, r, errors.Wrap(err, "get backup target"))
 			return
@@ -225,7 +225,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 			Size:   size,
 		}
 	case scheduler.RepairTask:
-		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, false); err != nil {
+		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
 			respondError(w, r, errors.Wrap(err, "get repair target"))
 			return
 		}
@@ -248,23 +248,14 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	force := false
-	if f := r.FormValue("force"); f != "" {
-		force, err = strconv.ParseBool(r.FormValue("force"))
-		if err != nil {
-			respondBadRequest(w, r, err)
-			return
-		}
-	}
-
 	switch newTask.Type {
 	case scheduler.BackupTask:
-		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
+		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
 			respondError(w, r, errors.Wrap(err, "create backup target"))
 			return
 		}
 	case scheduler.RepairTask:
-		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties, force); err != nil {
+		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
 			respondError(w, r, errors.Wrap(err, "create repair target"))
 			return
 		}

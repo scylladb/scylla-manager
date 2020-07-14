@@ -373,7 +373,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			v, err := h.service.GetTarget(ctx, h.clusterID, b, false)
+			v, err := h.service.GetTarget(ctx, h.clusterID, b)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -474,7 +474,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			_, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage(test.JSON), false)
+			_, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage(test.JSON))
 			if err == nil {
 				t.Fatal("GetTarget() expected error")
 			}

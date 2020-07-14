@@ -69,7 +69,7 @@ func (s *Service) Runner() Runner {
 }
 
 // GetTarget converts runner properties into repair Target.
-func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (Target, error) {
+func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
 	p := defaultTaskProperties()
 
 	// Parse task properties
@@ -159,7 +159,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Get the filtered units
-	t.Units, err = f.Apply(force)
+	t.Units, err = f.Apply(false)
 	if err != nil {
 		return t, err
 	}

@@ -63,9 +63,9 @@ for the get cluster cluster ID backups operation typically these are written to 
 type GetClusterClusterIDBackupsParams struct {
 
 	/*ClusterID*/
-	QueryClusterID *string
-	/*ClusterID*/
 	ClusterID string
+	/*ClusterID*/
+	QueryClusterID *string
 	/*Keyspace*/
 	Keyspace []string
 	/*Locations*/
@@ -113,17 +113,6 @@ func (o *GetClusterClusterIDBackupsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithQueryClusterID adds the clusterID to the get cluster cluster ID backups params
-func (o *GetClusterClusterIDBackupsParams) WithQueryClusterID(clusterID *string) *GetClusterClusterIDBackupsParams {
-	o.SetQueryClusterID(clusterID)
-	return o
-}
-
-// SetQueryClusterID adds the clusterId to the get cluster cluster ID backups params
-func (o *GetClusterClusterIDBackupsParams) SetQueryClusterID(clusterID *string) {
-	o.QueryClusterID = clusterID
-}
-
 // WithClusterID adds the clusterID to the get cluster cluster ID backups params
 func (o *GetClusterClusterIDBackupsParams) WithClusterID(clusterID string) *GetClusterClusterIDBackupsParams {
 	o.SetClusterID(clusterID)
@@ -133,6 +122,17 @@ func (o *GetClusterClusterIDBackupsParams) WithClusterID(clusterID string) *GetC
 // SetClusterID adds the clusterId to the get cluster cluster ID backups params
 func (o *GetClusterClusterIDBackupsParams) SetClusterID(clusterID string) {
 	o.ClusterID = clusterID
+}
+
+// WithQueryClusterID adds the clusterID to the get cluster cluster ID backups params
+func (o *GetClusterClusterIDBackupsParams) WithQueryClusterID(clusterID *string) *GetClusterClusterIDBackupsParams {
+	o.SetQueryClusterID(clusterID)
+	return o
+}
+
+// SetQueryClusterID adds the clusterId to the get cluster cluster ID backups params
+func (o *GetClusterClusterIDBackupsParams) SetQueryClusterID(clusterID *string) {
+	o.QueryClusterID = clusterID
 }
 
 // WithKeyspace adds the keyspace to the get cluster cluster ID backups params
@@ -187,6 +187,11 @@ func (o *GetClusterClusterIDBackupsParams) WriteToRequest(r runtime.ClientReques
 	}
 	var res []error
 
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
+		return err
+	}
+
 	if o.QueryClusterID != nil {
 
 		// query param cluster_id
@@ -201,11 +206,6 @@ func (o *GetClusterClusterIDBackupsParams) WriteToRequest(r runtime.ClientReques
 			}
 		}
 
-	}
-
-	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
-		return err
 	}
 
 	valuesKeyspace := o.Keyspace

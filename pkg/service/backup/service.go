@@ -82,7 +82,7 @@ func (s *Service) Runner() Runner {
 // GetTarget converts runner properties into repair Target.
 // It also ensures configuration for the backup providers is registered on the
 // targeted hosts.
-func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage, force bool) (Target, error) {
+func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
 	s.logger.Info(ctx, "Generating backup target", "cluster_id", clusterID)
 
 	p := defaultTaskProperties()
@@ -191,7 +191,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Get the filtered units
-	v, err := f.Apply(force)
+	v, err := f.Apply(false)
 	if err != nil {
 		return t, err
 	}
