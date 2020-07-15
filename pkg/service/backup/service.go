@@ -23,7 +23,6 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
-	"go.uber.org/atomic"
 	"go.uber.org/multierr"
 )
 
@@ -316,54 +315,27 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 	// Get hosts in the given DCs
 	hosts := target.liveNodes.Datacenter(target.DC).Hosts()
 
-	// Create index of all call parameters
-	type hut struct {
-		Host  int
-		Unit  int
-		Table int
-	}
-	var idx []hut
-	for u, v := range target.Units {
-		for t := range v.Tables {
+	var idx []scyllaclient.HostKeyspaceTable
+	for _, v := range target.Units {
+		for _, t := range v.Tables {
 			// Put hosts last to distribute load on hosts evenly
-			for h := range hosts {
-				idx = append(idx, hut{h, u, t})
+			for _, h := range hosts {
+				idx = append(idx, scyllaclient.HostKeyspaceTable{h, v.Keyspace, t})
 			}
 		}
 	}
 
-	// Get shard count of a first node to estimate parallelism limit
-	shards, err := client.ShardCount(ctx, hosts[0])
+	report, err := client.TableDiskSizeReport(ctx, idx)
 	if err != nil {
-		return 0, errors.Wrapf(err, "%s: shard count", hosts[0])
+		return 0, errors.Wrap(err, "table disk size report")
 	}
 
-	var (
-		limit = len(hosts) * int(shards)
-		total atomic.Int64
-	)
-	err = parallel.Run(len(idx), limit, func(i int) error {
-		v := idx[i]
-		h := hosts[v.Host]
-		k := target.Units[v.Unit].Keyspace
-		t := target.Units[v.Unit].Tables[v.Table]
+	var total int64
+	for _, size := range report {
+		total += size
+	}
 
-		size, err := client.TableDiskSize(ctx, h, k, t)
-		if err != nil {
-			return parallel.Abort(errors.Wrapf(err, h))
-		}
-		s.logger.Debug(ctx, "Table disk size",
-			"host", h,
-			"keyspace", k,
-			"table", t,
-			"size", size,
-		)
-		total.Add(size)
-
-		return nil
-	})
-
-	return total.Load(), err
+	return total, err
 }
 
 // ExtractLocations parses task properties and returns list of locations.

@@ -95,6 +95,8 @@ func TestGenerator(t *testing.T) {
 		{Keyspace: "kn1", Tables: []string{"tn0", "tn1"}},
 	}
 
+	var smallTables []keyspaceTableName
+
 	ttrLess := func(a, b *tableTokenRange) bool {
 		if a.Keyspace < b.Keyspace {
 			return true
@@ -196,7 +198,8 @@ func TestGenerator(t *testing.T) {
 				DC: []string{"dc1", "dc2"},
 			}
 			ctx := context.Background()
-			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
+			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+
 			go g.Run(ctx)
 
 			w := fakeWorker{
@@ -221,7 +224,7 @@ func TestGenerator(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
+			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 			go g.Run(ctx)
 
 			w := fakeWorker{
@@ -235,6 +238,39 @@ func TestGenerator(t *testing.T) {
 			for _, j := range jobs {
 				if len(j.Ranges) > int(target.Intensity) {
 					t.Errorf("%s host received more ranges than intensity", j.Host)
+				}
+			}
+		})
+
+		t.Run("small tables are repaired at once", func(t *testing.T) {
+			target := Target{
+				DC:        []string{"dc1", "dc2"},
+				Intensity: 10,
+			}
+
+			ctx := context.Background()
+
+			// Mark all tables as small
+			var smallTables []keyspaceTableName
+			for _, u := range units {
+				for _, t := range u.Tables {
+					smallTables = append(smallTables, keyspaceTableName{u.Keyspace, t})
+				}
+			}
+			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+			go g.Run(ctx)
+
+			w := fakeWorker{
+				In:     g.Next(),
+				Out:    g.Result(),
+				Logger: log.NewDevelopment(),
+			}
+			jobs := w.drainJobs(ctx)
+
+			// Check that intensity wasn't applied to small tables
+			for _, j := range jobs {
+				if len(j.Ranges) <= int(target.Intensity) {
+					t.Errorf("%s host received less than all ranges", j.Host)
 				}
 			}
 		})
@@ -294,7 +330,7 @@ func TestGenerator(t *testing.T) {
 						Intensity: test.Intensity,
 					}
 					ctx := context.Background()
-					g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
+					g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 
 					generatorStarted := make(chan struct{})
 					go func() {
@@ -360,7 +396,7 @@ func TestGenerator(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
+		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 
 		Print("Given: running generator")
 		generatorFinished := atomic.NewBool(false)
@@ -462,7 +498,7 @@ func TestGenerator(t *testing.T) {
 			Intensity: intensity,
 		}
 
-		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits)
+		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 
 		Print("Given: running generator")
 		generatorFinished := atomic.NewBool(false)
@@ -514,7 +550,9 @@ func TestGenerator(t *testing.T) {
 	})
 }
 
-func makeGenerator(ctx context.Context, target Target, intensityHandler *intensityHandler, units []Unit, hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit) *generator {
+func makeGenerator(ctx context.Context, target Target, intensityHandler *intensityHandler, units []Unit,
+	hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit,
+	smallTables []keyspaceTableName) *generator {
 	b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
 
 	if err := intensityHandler.Set(ctx, target.Intensity); err != nil {
@@ -527,12 +565,22 @@ func makeGenerator(ctx context.Context, target Target, intensityHandler *intensi
 		g.Add(b.Build(u))
 	}
 
+	for _, kt := range smallTables {
+		g.markSmallTable(kt.Keyspace, kt.Table)
+	}
+
 	g.SetHostPriority(hostPriority)
 
 	if err := g.Init(ctx, workerCount(ranges)); err != nil {
 		panic(err)
 	}
+
 	return g
+}
+
+type keyspaceTableName struct {
+	Keyspace string
+	Table    string
 }
 
 func epsilonRange(v float64) (float64, float64) {

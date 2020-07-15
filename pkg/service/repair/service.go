@@ -79,9 +79,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy basic properties
 	t := Target{
-		FailFast:  p.FailFast,
-		Continue:  p.Continue,
-		Intensity: p.Intensity,
+		FailFast:                 p.FailFast,
+		Continue:                 p.Continue,
+		Intensity:                p.Intensity,
+		SmallTableThresholdBytes: p.SmallTableThreshold * 1024 * 1024,
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -291,6 +292,10 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	ih.SetHostRangeLimits(hostRangesLimits)
 
+	if err := s.optimizeSmallTables(ctx, client, target, g); err != nil {
+		return errors.Wrap(err, "optimize small tables")
+	}
+
 	hp := make(hostPriority)
 	// In a multi-dc repair look for a local datacenter
 	if len(target.DC) > 1 {
@@ -341,6 +346,33 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	})
 
 	return eg.Wait()
+}
+
+func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.Client, target Target, g *generator) error {
+	repairHosts := g.Hosts()
+
+	// Calculate size and mark small tables for repair optimization.
+	var hkts []scyllaclient.HostKeyspaceTable
+	for _, u := range target.Units {
+		for _, t := range u.Tables {
+			for _, h := range repairHosts.List() {
+				hkts = append(hkts, scyllaclient.HostKeyspaceTable{h, u.Keyspace, t})
+			}
+		}
+	}
+
+	sizeReport, err := client.TableDiskSizeReport(ctx, hkts)
+	if err != nil {
+		return errors.Wrap(err, "table disk size report")
+	}
+	for r, size := range sizeReport {
+		if size <= target.SmallTableThresholdBytes {
+			s.logger.Debug(ctx, "Optimizing small table", "keyspace", r.Keyspace, "table", r.Table, "size", size)
+			g.markSmallTable(r.Keyspace, r.Table)
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Client, hosts []string) (hostRangesLimit, error) {

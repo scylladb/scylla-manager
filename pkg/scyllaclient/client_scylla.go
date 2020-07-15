@@ -10,11 +10,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client/operations"
+	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/prom"
 	"go.uber.org/multierr"
 )
@@ -647,4 +649,62 @@ func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
 	}
 
 	return totalMemory, nil
+}
+
+// HostKeyspaceTable is a triple of Host and Keyspace and Table names.
+type HostKeyspaceTable struct {
+	Host     string
+	Keyspace string
+	Table    string
+}
+
+// HostKeyspaceTables is a slice of HostKeyspaceTable.
+type HostKeyspaceTables []HostKeyspaceTable
+
+// Hosts returns slice of unique hosts.
+func (t HostKeyspaceTables) Hosts() []string {
+	s := strset.New()
+	for _, v := range t {
+		s.Add(v.Host)
+	}
+	return s.List()
+}
+
+// TableDiskSizeReport returns total on disk size of tables in bytes.
+func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables HostKeyspaceTables) (map[HostKeyspaceTable]int64, error) {
+	// Get shard count of a first node to estimate parallelism limit
+	shards, err := c.ShardCount(ctx, hostKeyspaceTables[0].Host)
+	if err != nil {
+		return nil, errors.Wrapf(err, "%s: shard count", hostKeyspaceTables[0].Host)
+	}
+
+	var (
+		limit = len(hostKeyspaceTables.Hosts()) * int(shards)
+
+		m      sync.Mutex
+		report = make(map[HostKeyspaceTable]int64, len(hostKeyspaceTables))
+	)
+
+	err = parallel.Run(len(hostKeyspaceTables), limit, func(i int) error {
+		v := hostKeyspaceTables[i]
+
+		size, err := c.TableDiskSize(ctx, v.Host, v.Keyspace, v.Table)
+		if err != nil {
+			return parallel.Abort(errors.Wrapf(err, v.Host))
+		}
+		c.logger.Debug(ctx, "Table disk size",
+			"host", v.Host,
+			"keyspace", v.Keyspace,
+			"table", v.Table,
+			"size", size,
+		)
+
+		m.Lock()
+		report[v] = size
+		m.Unlock()
+
+		return nil
+	})
+
+	return report, err
 }

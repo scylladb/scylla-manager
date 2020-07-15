@@ -48,6 +48,7 @@ type generator struct {
 	ranges       map[uint64][]*tableTokenRange
 	hostCount    int
 	hostPriority hostPriority
+	smallTables  *strset.Set
 	progress     progressManager
 
 	intensity        float64
@@ -71,6 +72,7 @@ func newGenerator(ih *intensityHandler, gracefulShutdownTimeout time.Duration, l
 		logger:                  logger,
 		replicas:                make(map[uint64][]string),
 		ranges:                  make(map[uint64][]*tableTokenRange),
+		smallTables:             strset.New(),
 		progress:                manager,
 	}
 
@@ -317,8 +319,8 @@ func (g *generator) activeHostLimit() int {
 func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	ranges := g.ranges[hash]
 
-	// Speedup repair of system tables by repairing all ranges together.
-	if strings.HasPrefix(ranges[0].Keyspace, "system") {
+	// Speedup repair of system and small tables by repairing all ranges together.
+	if strings.HasPrefix(ranges[0].Keyspace, "system") || g.smallTable(ranges[0].Keyspace, ranges[0].Table) {
 		limit = len(ranges)
 	}
 
@@ -336,6 +338,14 @@ func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 
 	g.ranges[hash] = ranges[i:]
 	return ranges[0:i]
+}
+
+func (g *generator) markSmallTable(keyspace, table string) {
+	g.smallTables.Add(keyspace + "." + table)
+}
+
+func (g *generator) smallTable(keyspace, table string) bool {
+	return g.smallTables.Has(keyspace + "." + table)
 }
 
 func (g *generator) rangesLimit(host string) int {
