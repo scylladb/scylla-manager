@@ -440,6 +440,9 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts ...Opt) error {
 	}
 	t.opts = opts
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Prevent starting an already running task.
 	tg := s.tasks[t.ID]
 	if tg != nil {
@@ -447,9 +450,6 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts ...Opt) error {
 			return errors.New("task already running")
 		}
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	s.cancelLocked(ctx, t.ID)
 
