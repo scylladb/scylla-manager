@@ -15,6 +15,8 @@ type Config struct {
 	PollInterval                    time.Duration `yaml:"poll_interval"`
 	AgeMax                          time.Duration `yaml:"age_max"`
 	GracefulShutdownTimeout         time.Duration `yaml:"graceful_shutdown_timeout"`
+	ForceRowLevelRepair             bool          `yaml:"force_row_level_repair"`
+	ForceLegacyRepair               bool          `yaml:"force_legacy_repair"`
 	Murmur3PartitionerIgnoreMSBBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 

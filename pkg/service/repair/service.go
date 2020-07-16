@@ -483,6 +483,12 @@ func (s *Service) hostPartitioners(ctx context.Context, hosts []string, client *
 
 // rrlHost returns true if host supports row-level repair.
 func (s *Service) rrlHost(ctx context.Context, host string, client *scyllaclient.Client) bool {
+	if s.config.ForceRowLevelRepair {
+		return true
+	}
+	if s.config.ForceLegacyRepair {
+		return false
+	}
 	sf, err := client.ScyllaFeatures(ctx, host)
 	if err != nil {
 		s.logger.Error(ctx, "Checking scylla features failed", "error", err)

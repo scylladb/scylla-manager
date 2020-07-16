@@ -103,7 +103,16 @@ http: 127.0.0.1:5080
 # when repair task is stopped. After this time, task will be interrupted.
 #  graceful_shutdown_timeout: 30s
 #
+# If set to true, it will force usage of repair algorithm optimised for row level repair.
+# This means that Scylla Manager will not be splitting ranges to shards when making repair requests.
+# By default, Scylla Manager will detect support for row level repair and act accordingly.
+#  force_row_level_repair: false
+#
+# If set to true, it will force usage of legacy repair algorithm used for clusters that don't support row level repair.
+# This means that Scylla Manager will be splitting ranges into shards when making repair requests.
+# By default, Scylla Manager will detect support for row level repair and act accordingly.
+#  force_legacy_repair: false
+#
 # Distribution of data among cores (shards) within a node.
 # Copy value from Scylla configuration file.
 #  murmur3_partitioner_ignore_msb_bits: 12
-

@@ -239,6 +239,60 @@ func TestWorkerRun(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("force row level repair", func(t *testing.T) {
+		in := make(chan job)
+		out := make(chan jobResult)
+		ranges := []tokenRange{
+			{StartToken: 0, EndToken: 5}, {StartToken: 6, EndToken: 10},
+		}
+		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
+
+		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners)
+
+		go func() {
+			if err := w.Run(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}()
+
+		go func() {
+			for i := 0; i < 2; i++ {
+				in <- job{
+					Host: fmt.Sprintf("h%d", i),
+					Ranges: []*tableTokenRange{
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        0,
+							StartToken: 0,
+							EndToken:   5,
+							Replicas:   []string{"h1", "h2"},
+						},
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        1,
+							StartToken: 6,
+							EndToken:   10,
+							Replicas:   []string{"h1", "h2"},
+						},
+					},
+				}
+			}
+			close(in)
+		}()
+
+		for i := 0; i < 2; i++ {
+			res := <-out
+			if res.Err != nil {
+				t.Error(res.Err)
+			}
+			if res.Ranges[0].StartToken != ranges[0].StartToken || res.Ranges[1].EndToken != ranges[1].EndToken {
+				t.Errorf("Unexpected ranges %+v", res.Ranges)
+			}
+		}
+	})
 }
 
 var commandCounter int32
