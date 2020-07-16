@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/mermaid/pkg/dht"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/httpx"
@@ -67,63 +68,188 @@ func TestWorkerCount(t *testing.T) {
 
 func TestWorkerRun(t *testing.T) {
 	var (
-		in           = make(chan job)
-		out          = make(chan jobResult)
-		logger       = log.NewDevelopmentWithLevel(zapcore.DebugLevel)
-		hrt          = NewHackableRoundTripper(scyllaclient.DefaultTransport())
-		c            = newTestClient(t, hrt, logger)
-		ctx          = context.Background()
-		pollInterval = 50 * time.Millisecond
+		logger                = log.NewDevelopmentWithLevel(zapcore.DebugLevel)
+		hrt                   = NewHackableRoundTripper(scyllaclient.DefaultTransport())
+		c                     = newTestClient(t, hrt, logger)
+		ctx                   = context.Background()
+		pollInterval          = 50 * time.Millisecond
+		partitioner           = dht.NewMurmur3Partitioner(2, 12)
+		hostPartitioners      = map[string]*dht.Murmur3Partitioner{"h1": partitioner, "h2": partitioner}
+		emptyHostPartitioners = make(map[string]*dht.Murmur3Partitioner)
 	)
-	hrt.SetInterceptor(successfulInterceptor())
-	w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval)
 
-	go func() {
-		if err := w.Run(ctx); err != nil {
-			t.Fatal(err)
+	t.Run("successful run", func(t *testing.T) {
+		in := make(chan job)
+		out := make(chan jobResult)
+		ranges := []tokenRange{
+			{StartToken: 0, EndToken: 5}, {StartToken: 6, EndToken: 10},
 		}
-	}()
+		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
 
-	go func() {
-		for i := 0; i < 3; i++ {
-			in <- job{
-				Host: fmt.Sprintf("h%d", i),
-				Ranges: []*tableTokenRange{
-					{
-						Keyspace:   "k1",
-						Table:      fmt.Sprintf("t%d", i),
-						Pos:        0,
-						StartToken: 1,
-						EndToken:   2,
-						Replicas:   []string{"h0", "h1", "h2"},
+		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners)
+
+		go func() {
+			if err := w.Run(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}()
+
+		go func() {
+			for i := 1; i <= 2; i++ {
+				in <- job{
+					Host: fmt.Sprintf("h%d", i),
+					Ranges: []*tableTokenRange{
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        0,
+							StartToken: 0,
+							EndToken:   5,
+							Replicas:   []string{"h1", "h2"},
+						},
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        1,
+							StartToken: 6,
+							EndToken:   10,
+							Replicas:   []string{"h1", "h2"},
+						},
 					},
-					{
-						Keyspace:   "k1",
-						Table:      fmt.Sprintf("t%d", i),
-						Pos:        1,
-						StartToken: 3,
-						EndToken:   4,
-						Replicas:   []string{"h0", "h1", "h2"},
-					},
-				},
+				}
+			}
+			close(in)
+		}()
+
+		for i := 0; i < 2; i++ {
+			res := <-out
+			if res.Err != nil {
+				t.Error(res.Err)
+			}
+			if res.Ranges[0].StartToken != ranges[0].StartToken || res.Ranges[1].EndToken != ranges[1].EndToken {
+				t.Errorf("Unexpected ranges %+v", res.Ranges)
 			}
 		}
-		close(in)
-	}()
+	})
 
-	for i := 0; i < 3; i++ {
-		<-out
-	}
+	t.Run("fail run", func(t *testing.T) {
+		in := make(chan job)
+		out := make(chan jobResult)
+		ranges := []tokenRange{
+			{StartToken: 0, EndToken: 5}, {StartToken: 6, EndToken: 10},
+		}
+		hrt.SetInterceptor(repairInterceptor(false, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
+
+		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners)
+
+		go func() {
+			if err := w.Run(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}()
+
+		go func() {
+			for i := 0; i < 2; i++ {
+				in <- job{
+					Host: fmt.Sprintf("h%d", i),
+					Ranges: []*tableTokenRange{
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        0,
+							StartToken: 0,
+							EndToken:   5,
+							Replicas:   []string{"h1", "h2"},
+						},
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        1,
+							StartToken: 6,
+							EndToken:   10,
+							Replicas:   []string{"h1", "h2"},
+						},
+					},
+				}
+			}
+			close(in)
+		}()
+
+		for i := 0; i < 2; i++ {
+			res := <-out
+			if res.Err == nil {
+				t.Error("Expected error")
+			}
+			if res.Ranges[0].StartToken != ranges[0].StartToken || res.Ranges[1].EndToken != ranges[1].EndToken {
+				t.Errorf("Unexpected ranges %+v", res.Ranges)
+			}
+		}
+	})
+
+	t.Run("legacy run", func(t *testing.T) {
+		in := make(chan job)
+		out := make(chan jobResult)
+		ranges := []tokenRange{
+			{StartToken: 3689195723611658698, EndToken: 3689195723611658798}, {StartToken: -8022912513662303546, EndToken: -8022912513662303446},
+		}
+		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
+
+		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, hostPartitioners)
+
+		go func() {
+			if err := w.Run(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}()
+
+		go func() {
+			for i := 1; i <= 2; i++ {
+				in <- job{
+					Host: fmt.Sprintf("h%d", i),
+					Ranges: []*tableTokenRange{
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        0,
+							StartToken: ranges[0].StartToken,
+							EndToken:   ranges[0].EndToken,
+							Replicas:   []string{"h1", "h2"},
+						},
+						{
+							Keyspace:   "k1",
+							Table:      fmt.Sprintf("t%d", i),
+							Pos:        1,
+							StartToken: ranges[1].StartToken,
+							EndToken:   ranges[1].EndToken,
+							Replicas:   []string{"h1", "h2"},
+						},
+					},
+				}
+			}
+			close(in)
+		}()
+
+		for i := 0; i < 2; i++ {
+			res := <-out
+			if res.Err != nil {
+				t.Error(res.Err)
+			}
+			if res.Ranges[0].StartToken != ranges[0].StartToken || res.Ranges[1].EndToken != ranges[1].EndToken {
+				t.Errorf("Unexpected ranges %+v", res.Ranges)
+			}
+		}
+	})
 }
 
 var commandCounter int32
 
-func successfulInterceptor() http.RoundTripper {
-	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
-			return nil, nil
-		}
+type tokenRange struct {
+	StartToken int64
+	EndToken   int64
+}
 
+func repairInterceptor(success bool, ranges []tokenRange, shardCount int, version string) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		resp := &http.Response{
 			Status:     "200 OK",
 			StatusCode: 200,
@@ -133,16 +259,76 @@ func successfulInterceptor() http.RoundTripper {
 			Request:    req,
 			Header:     make(http.Header, 0),
 		}
+		if strings.HasPrefix(req.URL.Path, "/storage_service/describe_ring") {
+			var s []map[string]interface{}
+			for i := range ranges {
+				s = append(s, map[string]interface{}{
+					"start_token": fmt.Sprintf("%d", ranges[i].StartToken),
+					"end_token":   fmt.Sprintf("%d", ranges[i].EndToken),
+					"endpoints": []string{
+						"h1",
+						"h2",
+					},
+					"rpc_endpoints": []string{
+						"h1",
+						"h2",
+					},
+					"endpoint_details": []map[string]string{
+						{
+							"host":       "h1",
+							"datacenter": "dc1",
+							"rack":       "r1",
+						},
+						{
+							"host":       "h2",
+							"datacenter": "dc1",
+							"rack":       "r1",
+						},
+					},
+				})
+			}
+			res, err := json.Marshal(s)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = ioutil.NopCloser(bytes.NewBuffer(res))
 
-		switch req.Method {
-		case http.MethodGet:
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandSuccessful)))
-		case http.MethodPost:
-			id := atomic.AddInt32(&commandCounter, 1)
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+			return resp, nil
 		}
 
-		return resp, nil
+		if strings.HasPrefix(req.URL.Path, "/metrics") {
+			s := ""
+			for i := 0; i < shardCount; i++ {
+				s += fmt.Sprintf("scylla_database_total_writes{shard=\"%d\",type=\"derive\"} 162\n", i)
+			}
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(s))
+
+			return resp, nil
+		}
+
+		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+			cmd := scyllaclient.CommandFailed
+			if success {
+				cmd = scyllaclient.CommandSuccessful
+			}
+			switch req.Method {
+			case http.MethodGet:
+				resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", cmd)))
+			case http.MethodPost:
+				id := atomic.AddInt32(&commandCounter, 1)
+				resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+			}
+
+			return resp, nil
+		}
+
+		if strings.HasPrefix(req.URL.Path, "/storage_service/scylla_release_version") {
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(`"` + version + `"`))
+
+			return resp, nil
+		}
+
+		return nil, nil
 	})
 }
 
@@ -158,4 +344,31 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *
 	}
 
 	return c
+}
+
+func TestSplitSegmentsToShards(t *testing.T) {
+	t.Parallel()
+
+	for _, shardCount := range []uint{1, 2, 3, 5, 8} {
+		p := dht.NewMurmur3Partitioner(shardCount, 12)
+		ttrs := []*tableTokenRange{
+			{
+				StartToken: dht.Murmur3MinToken,
+				EndToken:   dht.Murmur3MinToken + 1<<50,
+			},
+			{
+				StartToken: 9165301526494284802,
+				EndToken:   9190445181212206709,
+			},
+			{
+				StartToken: 9142565851149460331,
+				EndToken:   9143747749498840635,
+			},
+		}
+		v := splitToShards(ttrs, p)
+
+		if err := validateShards(ttrs, v, p); err != nil {
+			t.Fatal(err)
+		}
+	}
 }

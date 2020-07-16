@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/mermaid/pkg/dht"
 	"github.com/scylladb/mermaid/pkg/schema/table"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -325,8 +326,12 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	g.SetHostPriority(hp)
 
+	hostPartitioners, err := s.hostPartitioners(ctx, repairHosts.List(), client)
+	if err != nil {
+		return errors.Wrap(err, "host partitioners")
+	}
 	// Create worker
-	w := newWorker(g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval)
+	w := newWorker(g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioners)
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
@@ -457,6 +462,45 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 			"error", err,
 		)
 	}
+}
+
+func (s *Service) hostPartitioners(ctx context.Context, hosts []string, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
+	out := make(map[string]*dht.Murmur3Partitioner)
+	for _, h := range hosts {
+		if s.rrlHost(ctx, h, client) {
+			out[h] = nil
+		} else {
+			p, err := s.partitioner(ctx, h, client)
+			if err != nil {
+				return nil, err
+			}
+			out[h] = p
+		}
+	}
+
+	return out, nil
+}
+
+// rrlHost returns true if host supports row-level repair.
+func (s *Service) rrlHost(ctx context.Context, host string, client *scyllaclient.Client) bool {
+	sf, err := client.ScyllaFeatures(ctx, host)
+	if err != nil {
+		s.logger.Error(ctx, "Checking scylla features failed", "error", err)
+	}
+	if sf.RowLevelRepair {
+		return true
+	}
+
+	s.logger.Info(ctx, "Row-level repair not supported", "host", host)
+	return false
+}
+
+func (s *Service) partitioner(ctx context.Context, host string, client *scyllaclient.Client) (*dht.Murmur3Partitioner, error) {
+	shardCount, err := client.ShardCount(ctx, host)
+	if err != nil {
+		return nil, errors.Wrap(err, "get shard count")
+	}
+	return dht.NewMurmur3Partitioner(shardCount, uint(s.config.Murmur3PartitionerIgnoreMSBBits)), nil
 }
 
 // GetLastResumableRun returns the the most recent started but not done run of

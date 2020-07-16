@@ -72,9 +72,10 @@ func TestConfigModification(t *testing.T) {
 			AgeMax:                  12 * time.Hour,
 		},
 		Repair: repair.Config{
-			PollInterval:            500 * time.Millisecond,
-			AgeMax:                  12 * time.Hour,
-			GracefulShutdownTimeout: 60 * time.Second,
+			PollInterval:                    500 * time.Millisecond,
+			AgeMax:                          12 * time.Hour,
+			GracefulShutdownTimeout:         60 * time.Second,
+			Murmur3PartitionerIgnoreMSBBits: 12,
 		},
 	}
 
