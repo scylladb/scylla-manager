@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package main
+package config
 
 import (
 	"testing"
@@ -24,12 +24,12 @@ var serverConfigCmpOpts = cmp.Options{
 func TestConfigModification(t *testing.T) {
 	t.Parallel()
 
-	c, err := parseConfigFile([]string{"testdata/scylla-manager.yaml"})
+	c, err := ParseConfigFile([]string{"testdata/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	e := &serverConfig{
+	e := &ServerConfig{
 		HTTP:                     "127.0.0.1:80",
 		HTTPS:                    "127.0.0.1:443",
 		TLSCertFile:              "tls.cert",
@@ -84,12 +84,12 @@ func TestConfigModification(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := parseConfigFile([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
+	c, err := ParseConfigFile([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	e := defaultConfig()
-	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(serverConfig{}, "HTTP", "HTTPS")); diff != "" {
+	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(ServerConfig{}, "HTTP", "HTTPS")); diff != "" {
 		t.Fatal(diff)
 	}
 }

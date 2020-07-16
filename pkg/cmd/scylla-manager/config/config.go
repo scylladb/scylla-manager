@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package main
+package config
 
 import (
 	"time"
@@ -37,6 +37,14 @@ type dbConfig struct {
 	initAddr string
 }
 
+func (dbc *dbConfig) SetInitAddr(initAddr string) {
+	dbc.initAddr = initAddr
+}
+
+func (dbc *dbConfig) InitAddr() string {
+	return dbc.initAddr
+}
+
 type sslConfig struct {
 	CertFile     string `yaml:"cert_file"`
 	Validate     bool   `yaml:"validate"`
@@ -44,7 +52,8 @@ type sslConfig struct {
 	UserKeyFile  string `yaml:"user_key_file"`
 }
 
-type serverConfig struct {
+// ServerConfig contains configuration structure for scylla manager.
+type ServerConfig struct {
 	HTTP                     string             `yaml:"http"`
 	HTTPS                    string             `yaml:"https"`
 	TLSCertFile              string             `yaml:"tls_cert_file"`
@@ -61,8 +70,8 @@ type serverConfig struct {
 	Repair                   repair.Config      `yaml:"repair"`
 }
 
-func defaultConfig() *serverConfig {
-	config := &serverConfig{
+func defaultConfig() *ServerConfig {
+	config := &ServerConfig{
 		TLSCertFile:              "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:               "/var/lib/scylla-manager/scylla_manager.key",
 		Prometheus:               ":5090",
@@ -94,12 +103,15 @@ func defaultConfig() *serverConfig {
 	return config
 }
 
-func parseConfigFile(files []string) (*serverConfig, error) {
+// ParseConfigFile takes list of configuration file paths and returns parsed
+// config struct with merged configuration from all provided files.
+func ParseConfigFile(files []string) (*ServerConfig, error) {
 	c := defaultConfig()
 	return c, cfgutil.ParseYAML(c, files...)
 }
 
-func (c *serverConfig) validate() error {
+// Validate checks if config contains correct values.
+func (c *ServerConfig) Validate() error {
 	if c.HTTP == "" && c.HTTPS == "" {
 		return errors.New("missing http or https")
 	}

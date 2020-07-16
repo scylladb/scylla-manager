@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/mermaid/pkg/cmd/scylla-manager/config"
 	"github.com/scylladb/mermaid/pkg/restapi"
 	"github.com/scylladb/mermaid/pkg/service/backup"
 	"github.com/scylladb/mermaid/pkg/service/cluster"
@@ -26,7 +27,7 @@ import (
 )
 
 type server struct {
-	config  *serverConfig
+	config  *config.ServerConfig
 	session gocqlx.Session
 	logger  log.Logger
 
@@ -44,7 +45,7 @@ type server struct {
 	errCh chan error
 }
 
-func newServer(config *serverConfig, logger log.Logger) (*server, error) {
+func newServer(config *config.ServerConfig, logger log.Logger) (*server, error) {
 	session, err := gocqlx.WrapSession(gocqlClusterConfig(config).CreateSession())
 	if err != nil {
 		return nil, errors.Wrapf(err, "database")

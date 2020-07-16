@@ -11,10 +11,11 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
+	"github.com/scylladb/mermaid/pkg/cmd/scylla-manager/config"
 	schemamigrate "github.com/scylladb/mermaid/pkg/schema/migrate"
 )
 
-func keyspaceExists(config *serverConfig) (bool, error) {
+func keyspaceExists(config *config.ServerConfig) (bool, error) {
 	session, err := gocqlClusterConfigForDBInit(config).CreateSession()
 	if err != nil {
 		return false, err
@@ -26,7 +27,7 @@ func keyspaceExists(config *serverConfig) (bool, error) {
 	return cnt == 1, q.Scan(&cnt)
 }
 
-func createKeyspace(config *serverConfig) error {
+func createKeyspace(config *config.ServerConfig) error {
 	session, err := gocqlClusterConfigForDBInit(config).CreateSession()
 	if err != nil {
 		return err
@@ -56,7 +57,7 @@ func createKeyspace(config *serverConfig) error {
 
 const createKeyspaceStmt = "CREATE KEYSPACE {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': {{.ReplicationFactor}}}"
 
-func mustEvaluateCreateKeyspaceStmt(config *serverConfig) string {
+func mustEvaluateCreateKeyspaceStmt(config *config.ServerConfig) string {
 	t := template.New("")
 	if _, err := t.Parse(string(createKeyspaceStmt)); err != nil {
 		panic(err)
@@ -70,7 +71,7 @@ func mustEvaluateCreateKeyspaceStmt(config *serverConfig) string {
 	return buf.String()
 }
 
-func migrateSchema(config *serverConfig, logger log.Logger) error {
+func migrateSchema(config *config.ServerConfig, logger log.Logger) error {
 	c := gocqlClusterConfigForDBInit(config)
 	c.Keyspace = config.Database.Keyspace
 
@@ -85,7 +86,7 @@ func migrateSchema(config *serverConfig, logger log.Logger) error {
 	return migrate.Migrate(context.Background(), session, config.Database.MigrateDir)
 }
 
-func gocqlClusterConfigForDBInit(config *serverConfig) *gocql.ClusterConfig {
+func gocqlClusterConfigForDBInit(config *config.ServerConfig) *gocql.ClusterConfig {
 	c := gocqlClusterConfig(config)
 	c.Keyspace = "system"
 	c.Timeout = config.Database.MigrateTimeout
@@ -94,13 +95,13 @@ func gocqlClusterConfigForDBInit(config *serverConfig) *gocql.ClusterConfig {
 	// Use only a single host for migrations, using multiple hosts may lead to
 	// conflicting schema changes. This can be avoided by awaiting schema
 	// changes see https://github.com/scylladb/gocqlx/issues/106.
-	c.Hosts = []string{config.Database.initAddr}
+	c.Hosts = []string{config.Database.InitAddr()}
 	c.DisableInitialHostLookup = true
 
 	return c
 }
 
-func gocqlClusterConfig(config *serverConfig) *gocql.ClusterConfig {
+func gocqlClusterConfig(config *config.ServerConfig) *gocql.ClusterConfig {
 	c := gocql.NewCluster(config.Database.Hosts...)
 
 	// Chose consistency level, for a single node deployments use ONE, for

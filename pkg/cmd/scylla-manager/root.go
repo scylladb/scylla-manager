@@ -18,6 +18,7 @@ import (
 	"github.com/scylladb/go-log/gocqllog"
 	"github.com/scylladb/mermaid/pkg"
 	"github.com/scylladb/mermaid/pkg/callhome"
+	"github.com/scylladb/mermaid/pkg/cmd/scylla-manager/config"
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/util/netwait"
 	"github.com/spf13/cobra"
@@ -44,13 +45,13 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Read configuration
-		config, err := parseConfigFile(rootArgs.configFiles)
+		config, err := config.ParseConfigFile(rootArgs.configFiles)
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
-		if err := config.validate(); err != nil {
+		if err := config.Validate(); err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
@@ -109,7 +110,7 @@ var rootCmd = &cobra.Command{
 				strings.Join(rootArgs.configFiles, ", "),
 			)
 		}
-		config.Database.initAddr = net.JoinHostPort(initHost, "9042")
+		config.Database.SetInitAddr(net.JoinHostPort(initHost, "9042"))
 
 		// Create keyspace if needed
 		ok, err := keyspaceExists(config)
@@ -161,7 +162,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func logger(config *serverConfig) (log.Logger, error) {
+func logger(config *config.ServerConfig) (log.Logger, error) {
 	if config.Logger.Development {
 		return log.NewDevelopmentWithLevel(config.Logger.Level), nil
 	}
@@ -172,7 +173,7 @@ func logger(config *serverConfig) (log.Logger, error) {
 	})
 }
 
-func obfuscatePasswords(config *serverConfig) serverConfig {
+func obfuscatePasswords(config *config.ServerConfig) config.ServerConfig {
 	cfg := *config
 	cfg.Database.Password = strings.Repeat("*", len(cfg.Database.Password))
 	return cfg
