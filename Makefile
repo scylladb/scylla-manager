@@ -106,6 +106,7 @@ integration-test:
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/scheduler
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/secrets/dbsecrets
 	@$(MAKE) pkg-integration-test PKG=./pkg/schema/migrate
+	@$(MAKE) pkg-integration-test PKG=./pkg/util/netwait
 
 # Load Minio config for INTEGRATION_TEST_ARGS
 include testing/.env

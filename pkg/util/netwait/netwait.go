@@ -27,12 +27,14 @@ func AnyHostPort(ctx context.Context, hosts []string, port string) (string, erro
 // Waiter specifies waiting parameters.
 type Waiter struct {
 	RetryBackoff time.Duration
+	DialTimeout  time.Duration
 	MaxAttempts  int
 	Logger       log.Logger
 }
 
 var DefaultWaiter = Waiter{
 	RetryBackoff: 2 * time.Second,
+	DialTimeout:  1 * time.Second,
 	MaxAttempts:  60,
 }
 
@@ -49,7 +51,7 @@ func (w Waiter) WaitAnyAddr(ctx context.Context, addr ...string) (string, error)
 	for i := 0; i < w.MaxAttempts; i++ {
 		t.Reset(w.RetryBackoff)
 
-		a, err = tryConnectToAny(addr)
+		a, err = tryConnectToAny(addr, w.DialTimeout)
 
 		if err != nil {
 			w.Logger.Info(ctx, "Waiting for network connection",
@@ -73,11 +75,19 @@ func (w Waiter) WaitAnyAddr(ctx context.Context, addr ...string) (string, error)
 // tryConnectToAny tries to open a TCP connection to any of the provided
 // addresses, attempts are sequential, it returns first successful address or
 // error if failed to connect to any address.
-func tryConnectToAny(addrs []string) (string, error) {
+func tryConnectToAny(addrs []string, timeout time.Duration) (string, error) {
 	var errs error
 
 	for _, addr := range addrs {
-		conn, err := net.Dial("tcp", addr)
+		var conn net.Conn
+		var err error
+
+		if timeout != 0 {
+			conn, err = net.DialTimeout("tcp", addr, timeout)
+		} else {
+			conn, err = net.Dial("tcp", addr)
+		}
+
 		if conn != nil {
 			conn.Close()
 		}

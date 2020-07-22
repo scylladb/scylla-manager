@@ -45,7 +45,7 @@ func TestWaiterWaitAnyAddr(t *testing.T) {
 		},
 		{
 			Name:  "Single inaccessible host",
-			Addrs: []string{"127.0.0.1:10005", "127.0.0.1:10006", "127.0.0.1:10007"},
+			Addrs: []string{"127.0.0.1:10005"},
 			Error: true,
 		},
 	}
