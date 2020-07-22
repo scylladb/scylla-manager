@@ -476,7 +476,7 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 
 // globalIntensity return non zero intensity if all hosts uses the same intensity.
 func (rp RepairProgress) globalIntensity() int {
-	if len(rp.Progress.Hosts) == 0 {
+	if rp.Progress == nil || len(rp.Progress.Hosts) == 0 {
 		return 0
 	}
 
