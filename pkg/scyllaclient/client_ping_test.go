@@ -5,6 +5,7 @@ package scyllaclient_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/scyllaclienttest"
@@ -16,11 +17,13 @@ func TestClientPing(t *testing.T) {
 	c, close := scyllaclienttest.NewFakeScyllaServer(t, "/dev/null")
 	defer close()
 
-	if _, err := c.Ping(context.Background(), scyllaclienttest.TestHost); err != nil {
+	var timeout time.Duration
+
+	if _, err := c.Ping(context.Background(), scyllaclienttest.TestHost, timeout); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := c.Ping(context.Background(), "localhost:0")
+	_, err := c.Ping(context.Background(), "localhost:0", timeout)
 	if err == nil {
 		t.Fatal("expected error")
 	}

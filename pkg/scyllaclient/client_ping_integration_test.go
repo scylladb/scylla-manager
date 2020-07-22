@@ -63,7 +63,7 @@ func TestPingAuthIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	_, err = client.Ping(ctx, ManagedClusterHost())
+	_, err = client.Ping(ctx, ManagedClusterHost(), 0)
 	if scyllaclient.StatusCodeOf(err) != http.StatusUnauthorized {
 		t.Error("expected 401 got", err)
 	}

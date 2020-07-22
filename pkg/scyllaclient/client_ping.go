@@ -82,7 +82,7 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]stri
 		for _, h := range hosts {
 			go func(h string) {
 				c.logger.Debug(ctx, "Measuring host RTT", "dc", dc, "host", h)
-				rtt, err := c.PingN(ctx, h, 3, 0)
+				rtt, err := c.Ping(ctx, h, 0)
 				if err != nil {
 					c.logger.Info(ctx, "Host RTT measurement failed",
 						"dc", dc,
@@ -154,44 +154,18 @@ func pickNRandomHosts(n int, hosts []string) []string {
 	return rh
 }
 
-// PingN does "n" amount of pings towards the host and returns average RTT
-// across all results.
-// Pings are tried sequentially and if any of the pings fail function will
-// return an error.
-func (c *Client) PingN(ctx context.Context, host string, n int, timeout time.Duration) (time.Duration, error) {
-	// Open connection to server.
-	rtt, err := c.Ping(ctx, host)
-	if err != nil {
-		return rtt, err
-	}
-
-	// Limit the running time of many loops to timeout
+// Ping checks if host is available using HTTP ping and returns RTT.
+// Ping requests are not retried, use this function with caution.
+func (c *Client) Ping(ctx context.Context, host string, timeout time.Duration) (time.Duration, error) {
 	if timeout == 0 {
 		timeout = c.config.Timeout
 	}
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
 
-	// Measure avg host RTT.
-	var sum time.Duration
-	for i := 0; i < n; i++ {
-		d, err := c.Ping(ctxWithTimeout, host)
-		if err != nil {
-			if ctxWithTimeout.Err() != nil {
-				return timeout, ErrTimeout
-			}
-			return 0, err
-		}
-		sum += d
+	if ctxTimeout, hasCustomTimeout := hasCustomTimeout(ctx); hasCustomTimeout {
+		timeout = min(ctxTimeout, timeout)
 	}
-	rtt = sum / time.Duration(n)
 
-	return rtt, nil
-}
-
-// Ping checks if host is available using HTTP ping and returns RTT.
-// Ping requests are not retried, use this function with caution.
-func (c *Client) Ping(ctx context.Context, host string) (time.Duration, error) {
+	ctx = customTimeout(ctx, timeout)
 	ctx = noRetry(ctx)
 
 	t := timeutc.Now()
@@ -220,4 +194,11 @@ func (c *Client) ping(ctx context.Context, host string) error {
 		return err
 	}
 	return nil
+}
+
+func min(a, b time.Duration) time.Duration {
+	if a > b {
+		return b
+	}
+	return a
 }

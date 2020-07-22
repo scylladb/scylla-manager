@@ -419,15 +419,13 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 	return rtt, err
 }
 
-func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string) (time.Duration, error) {
-	const laps = 3
-
+func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (time.Duration, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrapf(err, "get client for cluster with id %s", clusterID)
 	}
 
-	return client.PingN(ctx, host, laps, 0)
+	return client.Ping(ctx, host, timeout)
 }
 
 func (s *Service) hasNodeInfo(cidHost clusterIDHost) (*scyllaclient.NodeInfo, bool) {
