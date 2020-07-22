@@ -476,6 +476,7 @@ func (s *Service) updateNodeInfo(ctx context.Context, cidHost clusterIDHost) *sc
 		return nil
 	}
 
+	ctx = scyllaclient.Interactive(ctx)
 	ni, err := client.NodeInfo(ctx, cidHost.Host)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to fetch node info", "error", err)
