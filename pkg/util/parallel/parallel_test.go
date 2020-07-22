@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"go.uber.org/atomic"
 )
@@ -65,16 +66,11 @@ func TestRun(t *testing.T) {
 				t.Error("Run() error", err)
 			}
 			d := timeutc.Since(start)
-			if a, b := epsilonRange(test.Duration); d < a || d > b {
+			if a, b := testutils.EpsilonRange(test.Duration); d < a || d > b {
 				t.Errorf("Run() not within expected time margin %v got %v", test.Duration, d)
 			}
 		})
 	}
-}
-
-func epsilonRange(d time.Duration) (time.Duration, time.Duration) {
-	e := time.Duration(float64(d) * 1.05)
-	return d - e, d + e
 }
 
 func TestIsErrAbort(t *testing.T) {

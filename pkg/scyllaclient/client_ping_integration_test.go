@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	. "github.com/scylladb/mermaid/pkg/testutils"
 )
 
 func TestCheckHostsConnectivityIntegration(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/restapi"
 	"github.com/scylladb/mermaid/pkg/service/cluster"
@@ -74,7 +75,7 @@ func TestClusterCreateWithProvidedID(t *testing.T) {
 	id := uuid.MustRandom()
 
 	m := restapi.NewMockClusterService(ctrl)
-	m.EXPECT().PutCluster(gomock.Any(), testutils.NewClusterMatcher(&cluster.Cluster{ID: id})).Return(nil)
+	m.EXPECT().PutCluster(gomock.Any(), NewClusterMatcher(&cluster.Cluster{ID: id})).Return(nil)
 
 	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/clusters", jsonBody(t, &cluster.Cluster{ID: id}))
@@ -142,4 +143,29 @@ func TestClusterDeleteSSLUserCert(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("Expected to receive %d status code, got %d", http.StatusCreated, w.Code)
 	}
+}
+
+// ClusterMatcher gomock.Matcher interface implementation for cluster.Cluster.
+type ClusterMatcher struct {
+	expected *cluster.Cluster
+}
+
+// NewClusterMatcher returns gomock.Matcher for clusters. It compares only ID field.
+func NewClusterMatcher(expected *cluster.Cluster) *ClusterMatcher {
+	return &ClusterMatcher{
+		expected: expected,
+	}
+}
+
+// Matches returns whether v is a match.
+func (m ClusterMatcher) Matches(v interface{}) bool {
+	c, ok := v.(*cluster.Cluster)
+	if !ok {
+		return false
+	}
+	return cmp.Equal(m.expected.ID, c.ID, testutils.UUIDComparer())
+}
+
+func (m ClusterMatcher) String() string {
+	return fmt.Sprintf("is equal to cluster with ID: %s", m.expected.ID.String())
 }
