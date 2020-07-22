@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -185,6 +186,17 @@ func (pm *dbProgressManager) Update(ctx context.Context, r jobResult) error {
 		if pm.progress[pk].Success+pm.progress[pk].Error == pm.progress[pk].TokenRanges {
 			pm.progress[pk].CompletedAt = &now
 		}
+
+		labels := prometheus.Labels{
+			"cluster":  pm.run.clusterName,
+			"task":     pm.run.TaskID.String(),
+			"keyspace": ttr.Keyspace,
+			"host":     r.Host,
+		}
+
+		repairSegmentsTotal.With(labels).Set(float64(pm.progress[pk].TokenRanges))
+		repairSegmentsSuccess.With(labels).Set(float64(pm.progress[pk].Success))
+		repairSegmentsError.With(labels).Set(float64(pm.progress[pk].Error))
 
 		if err := pm.upsertProgress(ctx, pm.progress[pk]); err != nil {
 			return errors.Wrap(err, "update repair progress")

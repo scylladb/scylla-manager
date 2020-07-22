@@ -207,10 +207,12 @@ func (s *server) makeServers() error {
 		}
 	}
 	if s.config.Prometheus != "" {
+		mw := &restapi.MetricsWatcher{}
 		s.prometheusServer = &http.Server{
 			Addr:    s.config.Prometheus,
-			Handler: restapi.NewPrometheus(s.clusterSvc),
+			Handler: restapi.NewPrometheus(s.clusterSvc, mw),
 		}
+		s.repairSvc.SetMetricsWatcher(mw)
 	}
 	if s.config.Debug != "" {
 		s.debugServer = &http.Server{

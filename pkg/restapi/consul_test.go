@@ -32,7 +32,7 @@ func TestConsulAPI(t *testing.T) {
 		m := NewMockClusterService(ctrl)
 		m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(clusters, nil)
 
-		h := NewPrometheus(m)
+		h := NewPrometheus(m, &MetricsWatcher{})
 		r := httptest.NewRequest(http.MethodGet, "/v1/catalog/services", nil)
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
@@ -70,7 +70,7 @@ func TestConsulAPI(t *testing.T) {
 		m := NewMockClusterService(ctrl)
 		m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(clusters, nil)
 		m.EXPECT().ListNodes(gomock.Any(), clusters[0].ID).Return(nodes, nil)
-		h := NewPrometheus(m)
+		h := NewPrometheus(m, &MetricsWatcher{})
 
 		r := httptest.NewRequest(http.MethodGet, "/v1/catalog/service/scylla", nil)
 		w := httptest.NewRecorder()

@@ -5,6 +5,7 @@ package restapi
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
@@ -64,10 +65,10 @@ func interactive(next http.Handler) http.Handler {
 
 // NewPrometheus returns an http.Handler exposing Prometheus metrics on
 // '/metrics'.
-func NewPrometheus(svc ClusterService) http.Handler {
+func NewPrometheus(svc ClusterService, mw *MetricsWatcher) http.Handler {
 	r := chi.NewRouter()
 
-	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+	r.Get("/metrics", mw.requestHandler)
 
 	// Exposing Consul API to Prometheus for discovering nodes.
 	// The idea is to use already working discovering mechanism to avoid
@@ -75,4 +76,36 @@ func NewPrometheus(svc ClusterService) http.Handler {
 	r.Mount("/v1", newConsulHandler(svc))
 
 	return r
+}
+
+// MetricsWatcher keeps track of registered callbacks for metrics requests.
+type MetricsWatcher struct {
+	mu        sync.Mutex
+	callbacks []func() bool
+}
+
+func (mw *MetricsWatcher) requestHandler(w http.ResponseWriter, r *http.Request) {
+	var unregister []int
+	mw.mu.Lock()
+	for i, callback := range mw.callbacks {
+		if listening := callback(); !listening {
+			unregister = append(unregister, i)
+		}
+	}
+	for _, i := range unregister {
+		mw.callbacks = append(mw.callbacks[:i], mw.callbacks[i+1:]...)
+	}
+	mw.mu.Unlock()
+	promhttp.Handler().ServeHTTP(w, r)
+}
+
+// OnRequest registers callback to be executed when metrics are requested.
+// If callback returns false upon execution, callback will be unregistered.
+func (mw *MetricsWatcher) OnRequest(callback func() bool) {
+	mw.mu.Lock()
+	defer mw.mu.Unlock()
+	if mw.callbacks == nil {
+		mw.callbacks = make([]func() bool, 0)
+	}
+	mw.callbacks = append(mw.callbacks, callback)
 }

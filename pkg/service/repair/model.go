@@ -116,6 +116,24 @@ type progress struct {
 	CompletedAt *time.Time `json:"completed_at"`
 }
 
+// ProgressPercentage returns repair progress percentage based on token ranges.
+func (p progress) PercentComplete() int {
+	if p.TokenRanges == 0 {
+		return 0
+	}
+
+	if p.Success >= p.TokenRanges {
+		return 100
+	}
+
+	percent := 100 * p.Success / p.TokenRanges
+	if percent >= 100 {
+		percent = 99
+	}
+
+	return int(percent)
+}
+
 // HostProgress specifies repair progress of a host.
 type HostProgress struct {
 	progress

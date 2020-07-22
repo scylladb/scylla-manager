@@ -36,6 +36,7 @@ type Service struct {
 	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
 	logger       log.Logger
+	mw           metricsWatcher
 
 	intensityHandlers map[uuid.UUID]*intensityHandler
 	mu                sync.Mutex
@@ -178,6 +179,15 @@ func (s *Service) singleNodeCluster(dcMap map[string][]string) bool {
 		}
 	}
 	return false
+}
+
+type metricsWatcher interface {
+	OnRequest(func() bool)
+}
+
+// SetMetricsWatcher sets the metrics watcher.
+func (s *Service) SetMetricsWatcher(mw metricsWatcher) {
+	s.mw = mw
 }
 
 // Repair performs the repair process on the Target.
@@ -333,12 +343,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "host partitioners")
 	}
 	// Create worker
-	w := newWorker(g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioners, target.FailFast)
+	w := newWorker(run, g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioners, target.FailFast)
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
 	workerCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Start updating progress metrics.
+	s.watchProgressMetrics(ctx, run.ClusterID, run.TaskID, run.ID)
 
 	// Run Workers and Generator
 	var eg errgroup.Group
@@ -509,6 +522,51 @@ func (s *Service) partitioner(ctx context.Context, host string, client *scyllacl
 		return nil, errors.Wrap(err, "get shard count")
 	}
 	return dht.NewMurmur3Partitioner(shardCount, uint(s.config.Murmur3PartitionerIgnoreMSBBits)), nil
+}
+
+func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, runID uuid.UUID) {
+	if s.mw == nil {
+		return
+	}
+
+	update := func() bool {
+		run, err := s.GetRun(ctx, clusterID, taskID, runID)
+		if err != nil {
+			s.logger.Error(ctx, "Failed to get run in metrics update",
+				"cluster_id", clusterID,
+				"task_id", taskID,
+				"run_id", runID,
+				"error", err,
+			)
+			return false
+		}
+
+		p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
+		if err != nil {
+			s.logger.Error(ctx, "Failed to aggregate progress in metrics update",
+				"cluster_id", clusterID,
+				"task_id", taskID,
+				"run_id", runID,
+				"error", err,
+			)
+			return false
+		}
+		updateMetrics(run, p)
+		// If run was completed
+		if p.PercentComplete() == 100 {
+			s.logger.Debug(ctx, "Stopping metrics updates",
+				"cluster_id", clusterID,
+				"task_id", taskID,
+				"run_id", runID,
+			)
+			return false
+		}
+
+		return true
+	}
+	update()
+
+	s.mw.OnRequest(update)
 }
 
 // GetLastResumableRun returns the the most recent started but not done run of

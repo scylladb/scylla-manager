@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	. "github.com/scylladb/mermaid/pkg/testutils"
 	"github.com/scylladb/mermaid/pkg/util/httpx"
+	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -76,6 +77,7 @@ func TestWorkerRun(t *testing.T) {
 		partitioner           = dht.NewMurmur3Partitioner(2, 12)
 		hostPartitioners      = map[string]*dht.Murmur3Partitioner{"h1": partitioner, "h2": partitioner}
 		emptyHostPartitioners = make(map[string]*dht.Murmur3Partitioner)
+		run                   = &Run{ID: uuid.NewTime(), TaskID: uuid.NewTime(), clusterName: "test-cluster"}
 	)
 
 	t.Run("successful run", func(t *testing.T) {
@@ -86,7 +88,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners, false)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -140,7 +142,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(false, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners, false)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -194,7 +196,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, hostPartitioners, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, hostPartitioners, false)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -248,7 +250,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioners, false)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
