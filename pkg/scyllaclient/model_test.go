@@ -139,6 +139,18 @@ func TestScyllaFeatures(t *testing.T) {
 				RowLevelRepair: true,
 			},
 		},
+		{
+			Version: "2020.1",
+			Golden: ScyllaFeatures{
+				RowLevelRepair: true,
+			},
+		},
+		{
+			Version: "2021.1",
+			Golden: ScyllaFeatures{
+				RowLevelRepair: true,
+			},
+		},
 	}
 
 	for i := range table {

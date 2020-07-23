@@ -228,13 +228,18 @@ func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
 		return ScyllaFeatures{}, err
 	}
 
-	rowLevelRepair, err := version.NewConstraint(">= 3.1, < 2000")
+	rowLevelRepairOpenSource, err := version.NewConstraint(">= 3.1, < 2000")
+	if err != nil {
+		panic(err) // must
+	}
+
+	rowLevelRepairEnterprise, err := version.NewConstraint(">= 2020")
 	if err != nil {
 		panic(err) // must
 	}
 
 	return ScyllaFeatures{
-		RowLevelRepair: rowLevelRepair.Check(v),
+		RowLevelRepair: rowLevelRepairOpenSource.Check(v) || rowLevelRepairEnterprise.Check(v),
 	}, nil
 }
 
