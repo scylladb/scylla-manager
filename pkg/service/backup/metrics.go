@@ -4,11 +4,9 @@ package backup
 
 import (
 	"context"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/util/tickrun"
 )
 
 var (
@@ -33,13 +31,6 @@ var (
 		Help:      "Number of bytes left for backup completion.",
 	}, []string{"cluster", "task", "host", "keyspace"})
 
-	backupAvgUploadBandwidth = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "backup",
-		Name:      "avg_upload_bandwidth",
-		Help:      "Average speed in bytes/sec since start of the upload",
-	}, []string{"cluster", "task", "host", "keyspace"})
-
 	backupUploadRetries = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "backup",
@@ -53,23 +44,17 @@ func init() {
 		backupPercentProgress,
 		backupBytesDone,
 		backupBytesLeft,
-		backupAvgUploadBandwidth,
 		backupUploadRetries,
 	)
 }
 
 type runProgressFunc func(ctx context.Context) (*Run, Progress, error)
 
-func newBackupMetricUpdater(ctx context.Context, runProgress runProgressFunc, logger log.Logger, interval time.Duration) (stop func()) {
-	return tickrun.NewTicker(interval, updateFunc(ctx, runProgress, logger))
-}
-
 func saveMetrics(p progress, labels prometheus.Labels) {
 	totalDone, totalLeft := p.ByteProgress()
 	backupBytesLeft.With(labels).Set(float64(totalLeft))
 	backupBytesDone.With(labels).Set(float64(totalDone))
 	backupPercentProgress.With(labels).Set(float64(p.PercentComplete()))
-	backupAvgUploadBandwidth.With(labels).Set(p.AvgUploadBandwidth())
 }
 
 func updateFunc(ctx context.Context, runProgress runProgressFunc, logger log.Logger) func() {

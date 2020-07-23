@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/scylladb/go-log"
@@ -64,7 +63,7 @@ func TestBackupMetricUpdater(t *testing.T) {
 	}()
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
-	stop := newBackupMetricUpdater(context.Background(), func(ctx context.Context) (*Run, Progress, error) {
+	update := updateFunc(context.Background(), func(ctx context.Context) (*Run, Progress, error) {
 		run := &Run{
 			ID:        runID,
 			ClusterID: clusterID,
@@ -77,10 +76,9 @@ func TestBackupMetricUpdater(t *testing.T) {
 		}
 		pr, err := aggregateProgress(run, visitor)
 		return run, pr, err
-	}, logger, 10*time.Millisecond)
-	time.Sleep(100 * time.Millisecond) // Wait for ten cycles before updating progress
+	}, logger)
 	visitor.SetUploaded(0, 50)
-	stop()
+	update()
 	close(done)
 
 	expected := fmt.Sprintf(`# HELP scylla_manager_backup_bytes_left Number of bytes left for backup completion.

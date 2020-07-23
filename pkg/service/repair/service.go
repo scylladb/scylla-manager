@@ -182,7 +182,7 @@ func (s *Service) singleNodeCluster(dcMap map[string][]string) bool {
 }
 
 type metricsWatcher interface {
-	OnRequest(func() bool)
+	OnRequest(func()) func()
 }
 
 // SetMetricsWatcher sets the metrics watcher.
@@ -351,7 +351,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	defer cancel()
 
 	// Start updating progress metrics.
-	s.watchProgressMetrics(ctx, run.ClusterID, run.TaskID, run.ID)
+	stop := s.watchProgressMetrics(ctx, run.ClusterID, run.TaskID, run.ID)
+	defer stop()
 
 	// Run Workers and Generator
 	var eg errgroup.Group
@@ -524,12 +525,12 @@ func (s *Service) partitioner(ctx context.Context, host string, client *scyllacl
 	return dht.NewMurmur3Partitioner(shardCount, uint(s.config.Murmur3PartitionerIgnoreMSBBits)), nil
 }
 
-func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, runID uuid.UUID) {
+func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, runID uuid.UUID) func() {
 	if s.mw == nil {
-		return
+		return func() {}
 	}
 
-	update := func() bool {
+	update := func() {
 		run, err := s.GetRun(ctx, clusterID, taskID, runID)
 		if err != nil {
 			s.logger.Error(ctx, "Failed to get run in metrics update",
@@ -538,7 +539,7 @@ func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, r
 				"run_id", runID,
 				"error", err,
 			)
-			return false
+			return
 		}
 
 		p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
@@ -549,24 +550,13 @@ func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, r
 				"run_id", runID,
 				"error", err,
 			)
-			return false
+			return
 		}
 		updateMetrics(run, p)
-		// If run was completed
-		if p.PercentComplete() == 100 {
-			s.logger.Debug(ctx, "Stopping metrics updates",
-				"cluster_id", clusterID,
-				"task_id", taskID,
-				"run_id", runID,
-			)
-			return false
-		}
-
-		return true
 	}
 	update()
 
-	s.mw.OnRequest(update)
+	return s.mw.OnRequest(update)
 }
 
 // GetLastResumableRun returns the the most recent started but not done run of

@@ -81,31 +81,34 @@ func NewPrometheus(svc ClusterService, mw *MetricsWatcher) http.Handler {
 // MetricsWatcher keeps track of registered callbacks for metrics requests.
 type MetricsWatcher struct {
 	mu        sync.Mutex
-	callbacks []func() bool
+	callbacks []*func()
 }
 
 func (mw *MetricsWatcher) requestHandler(w http.ResponseWriter, r *http.Request) {
-	var unregister []int
 	mw.mu.Lock()
-	for i, callback := range mw.callbacks {
-		if listening := callback(); !listening {
-			unregister = append(unregister, i)
-		}
-	}
-	for _, i := range unregister {
-		mw.callbacks = append(mw.callbacks[:i], mw.callbacks[i+1:]...)
+	for _, callback := range mw.callbacks {
+		(*callback)()
 	}
 	mw.mu.Unlock()
 	promhttp.Handler().ServeHTTP(w, r)
 }
 
 // OnRequest registers callback to be executed when metrics are requested.
-// If callback returns false upon execution, callback will be unregistered.
-func (mw *MetricsWatcher) OnRequest(callback func() bool) {
+// It returns function that should be called to stop watching for requests.
+func (mw *MetricsWatcher) OnRequest(callback func()) func() {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
-	if mw.callbacks == nil {
-		mw.callbacks = make([]func() bool, 0)
+
+	mw.callbacks = append(mw.callbacks, &callback)
+
+	return func() {
+		mw.mu.Lock()
+		defer mw.mu.Unlock()
+		for i := range mw.callbacks {
+			if mw.callbacks[i] == &callback {
+				mw.callbacks = append(mw.callbacks[:i], mw.callbacks[i+1:]...)
+				return
+			}
+		}
 	}
-	mw.callbacks = append(mw.callbacks, callback)
 }

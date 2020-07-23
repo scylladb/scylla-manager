@@ -43,6 +43,7 @@ type Service struct {
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession SessionFunc
 	logger         log.Logger
+	mw             metricsWatcher
 }
 
 func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
@@ -635,9 +636,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return r, p, nil
 	}
 
-	// Start metric updater
-	stopMetricsUpdater := newBackupMetricUpdater(ctx, runProgress, s.logger.Named("metrics"), service.PrometheusScrapeInterval)
-	defer stopMetricsUpdater()
+	// Start metrics updater
+	stop := s.watchProgressMetrics(ctx, runProgress)
+	defer stop()
 
 	// If not resuming...
 	if run.PrevID == uuid.Nil {
@@ -960,4 +961,24 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
+}
+
+type metricsWatcher interface {
+	OnRequest(func()) func()
+}
+
+// SetMetricsWatcher sets metrics watcher.
+func (s *Service) SetMetricsWatcher(mw metricsWatcher) {
+	s.mw = mw
+}
+
+func (s *Service) watchProgressMetrics(ctx context.Context, runProgress runProgressFunc) func() {
+	if s.mw == nil {
+		return func() {}
+	}
+
+	update := updateFunc(ctx, runProgress, s.logger)
+	update()
+
+	return s.mw.OnRequest(update)
 }
