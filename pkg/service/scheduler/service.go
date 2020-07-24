@@ -263,6 +263,20 @@ func (s *Service) run(t *Task, tg *trigger) {
 	// Create a new context, the context lifecycle is managed by this function
 	ctx := log.WithNewTraceID(context.Background())
 
+	defer func() {
+		clusterName, err := s.clusterName(ctx, t.ClusterID)
+		if err != nil {
+			clusterName = t.ClusterID.String()
+		}
+
+		taskLastRunDurationSeconds.With(prometheus.Labels{
+			"cluster": clusterName,
+			"task":    t.ID.String(),
+			"type":    t.Type.String(),
+			"status":  run.Status.String(),
+		}).Observe(timeutc.Since(run.StartTime).Seconds())
+	}()
+
 	// Upon returning reschedule
 	defer s.rescheduleIfNeeded(ctx, t, run)
 
