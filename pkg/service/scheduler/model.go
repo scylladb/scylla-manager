@@ -4,10 +4,8 @@ package scheduler
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/service"
@@ -133,21 +131,11 @@ type Run struct {
 
 // Schedule defines a periodic schedule.
 type Schedule struct {
+	gocqlx.UDT
+
 	StartDate  time.Time         `json:"start_date"`
 	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
 	NumRetries int               `json:"num_retries"`
-}
-
-// MarshalUDT implements UDTMarshaler.
-func (s Schedule) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
-	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(s), name)
-	return gocql.Marshal(info, f.Interface())
-}
-
-// UnmarshalUDT implements UDTUnmarshaler.
-func (s *Schedule) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
-	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(s), name)
-	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
 // NextActivation generates new start time based on schedule and run history.
