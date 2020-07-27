@@ -95,6 +95,10 @@ func TestParseStartDate(t *testing.T) {
 			S: timeutc.Now().Add(time.Hour).Format(time.RFC3339),
 			D: time.Hour,
 		},
+		{
+			S: "2019-05-02T15:04:05Z07:00",
+			E: "extra text",
+		},
 	}
 
 	for i, test := range table {
@@ -106,6 +110,9 @@ func TestParseStartDate(t *testing.T) {
 		}
 		if test.E != "" || msg != "" {
 			if !strings.Contains(msg, test.E) {
+				t.Error(i, msg)
+			}
+			if msg != "" && test.E == "" {
 				t.Error(i, msg)
 			}
 			continue
