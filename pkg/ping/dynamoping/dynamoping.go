@@ -31,20 +31,8 @@ type Config struct {
 	TLSConfig              *tls.Config
 }
 
-// Ping checks if host is available, it returns RTT and error. Special errors
-// are ErrTimeout and ErrUnauthorised. If no credentials are specified
-// and cluster requires authentication ping is based on
-// simple HTTP healthcheck endpoint, otherwise ping is based on executing
-// real query.
-func Ping(ctx context.Context, config Config) (time.Duration, error) {
-	if config.RequiresAuthentication && config.Username == "" && config.Password == "" {
-		return simplePing(ctx, config)
-	}
-	return queryPing(ctx, config)
-}
-
-// simplePing sends GET request to alternator port and expects 200 response code.
-func simplePing(ctx context.Context, config Config) (rtt time.Duration, err error) {
+// SimplePing sends GET request to alternator port and expects 200 response code.
+func SimplePing(ctx context.Context, config Config) (rtt time.Duration, err error) {
 	t := timeutc.Now()
 	defer func() {
 		rtt = timeutc.Since(t)
@@ -84,7 +72,10 @@ var unauthorisedMessage = []string{
 	"The security token included in the request is invalid.",
 }
 
-func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error) {
+// QueryPing checks if host is available, it returns RTT and error. Special errors
+// are ErrTimeout and ErrUnauthorised. Ping is based on executing
+// a real query.
+func QueryPing(ctx context.Context, config Config) (rtt time.Duration, err error) {
 	t := timeutc.Now()
 	defer func() {
 		rtt = timeutc.Since(t)

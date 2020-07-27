@@ -73,6 +73,15 @@ func (ni *NodeInfo) AlternatorEncryptionEnabled() bool {
 	return ni.AlternatorHTTPSPort != "0" && ni.AlternatorHTTPSPort != ""
 }
 
+// SupportsAlternatorQuery returns if Alternator supports querying system tables.
+func (ni *NodeInfo) SupportsAlternatorQuery() (bool, error) {
+	sf, err := makeScyllaFeatures(ni.ScyllaVersion)
+	if err != nil {
+		return false, err
+	}
+	return sf.AlternatorQueryPing, nil
+}
+
 // AlternatorAddr returns Alternator address from NodeInfo.
 // It chooses right address and port based on information stored in NodeInfo.
 // HTTPS port has preference over HTTP.

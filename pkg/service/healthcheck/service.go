@@ -9,7 +9,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -317,19 +316,20 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 		Host:      host,
 	}
 
-	u := url.URL{
-		Scheme: "http",
-		Host:   net.JoinHostPort(host, DefaultAlternatorPort),
+	ni, err := s.getNodeInfo(ctx, clusterID, host)
+	if err != nil {
+		return 0, errors.Wrap(err, "get node info")
+	}
+	if !ni.AlternatorEnabled() {
+		return 0, nil
 	}
 
-	addr := u.String()
-	if ni, ok := s.hasNodeInfo(cidHost); ok {
-		if !ni.AlternatorEnabled() {
-			return 0, nil
-		}
-		addr = ni.AlternatorAddr(host)
+	pingFunc := dynamoping.SimplePing
+	if queryPing, err := ni.SupportsAlternatorQuery(); err == nil && queryPing {
+		pingFunc = dynamoping.QueryPing
 	}
 
+	addr := ni.AlternatorAddr(host)
 	config := dynamoping.Config{
 		Addr:    addr,
 		Timeout: s.config.Timeout,
@@ -342,7 +342,7 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 		config.Timeout = timeout
 	}
 
-	rtt, err = dynamoping.Ping(ctx, config)
+	rtt, err = pingFunc(ctx, config)
 
 	// In case any error try to pull NodeInfo and use configured address and port.
 	// AWS SDK doesn't return any network errors - it just times out - we have to
@@ -362,7 +362,7 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 				)
 
 				config.Addr = addr
-				rtt, err = dynamoping.Ping(ctx, config)
+				rtt, err = pingFunc(ctx, config)
 			}
 		}
 	}
@@ -381,7 +381,7 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 			)
 
 			config.TLSConfig = DefaultTLSConfig.Clone()
-			rtt, err = dynamoping.Ping(ctx, config)
+			rtt, err = pingFunc(ctx, config)
 			if err == nil {
 				s.setTLSConfig(clusterID, DefaultTLSConfig.Clone())
 			}

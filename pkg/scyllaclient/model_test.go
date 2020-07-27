@@ -70,73 +70,85 @@ func TestScyllaFeatures(t *testing.T) {
 		{
 			Version: "2019.1.2-0.20190814.2772d52",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: false,
+				RowLevelRepair:      false,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "3.1.0-0.20191012.9c3cdded9",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "3.2.2-0.20200222.0b23e7145d0",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: scyllaMasterVersion,
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: true,
 			},
 		},
 		{
 			Version: scyllaEnterpriseMasterVersion,
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: true,
 			},
 		},
 		{
 			Version: "3.3.rc2",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "3.1.hotfix",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "3.0.rc8",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: false,
+				RowLevelRepair:      false,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "2019.1.1-2.reader_concurrency_semaphore.20190730.f0071c669",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: false,
+				RowLevelRepair:      false,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "2019.1.5-2.many_tables.20200311.be960ed96",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: false,
+				RowLevelRepair:      false,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "4.0.0",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: false,
 			},
 		},
 		{
 			Version: "4.1.0",
 			Golden: ScyllaFeatures{
-				RowLevelRepair: true,
+				RowLevelRepair:      true,
+				AlternatorQueryPing: true,
 			},
 		},
 		{

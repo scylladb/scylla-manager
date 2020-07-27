@@ -208,11 +208,13 @@ type Unit struct {
 
 // ScyllaFeatures specifies features supported by the Scylla version.
 type ScyllaFeatures struct {
-	RowLevelRepair bool
+	RowLevelRepair      bool
+	AlternatorQueryPing bool
 }
 
 var masterScyllaFeatures = ScyllaFeatures{
-	RowLevelRepair: true,
+	RowLevelRepair:      true,
+	AlternatorQueryPing: true,
 }
 
 const (
@@ -249,14 +251,19 @@ func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
 	if err != nil {
 		panic(err) // must
 	}
-
 	rowLevelRepairEnterprise, err := version.NewConstraint(">= 2020")
 	if err != nil {
 		panic(err) // must
 	}
 
+	alternatorQueryPing, err := version.NewConstraint(">= 4.1, < 2000")
+	if err != nil {
+		panic(err) // must
+	}
+
 	return ScyllaFeatures{
-		RowLevelRepair: rowLevelRepairOpenSource.Check(v) || rowLevelRepairEnterprise.Check(v),
+		RowLevelRepair:      rowLevelRepairOpenSource.Check(v) || rowLevelRepairEnterprise.Check(v),
+		AlternatorQueryPing: alternatorQueryPing.Check(v),
 	}, nil
 }
 

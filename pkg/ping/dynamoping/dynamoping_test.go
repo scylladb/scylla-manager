@@ -50,7 +50,7 @@ func TestPingTimeout(t *testing.T) {
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		d, err := simplePing(context.Background(), config)
+		d, err := SimplePing(context.Background(), config)
 		if err != ping.ErrTimeout {
 			t.Errorf("simplePing() error %s, expected timeout", err)
 		}
@@ -60,12 +60,12 @@ func TestPingTimeout(t *testing.T) {
 	})
 
 	t.Run("query", func(t *testing.T) {
-		d, err := queryPing(context.Background(), config)
+		d, err := QueryPing(context.Background(), config)
 		if err != ping.ErrTimeout {
-			t.Errorf("queryPing() error %s, expected timeout", err)
+			t.Errorf("QueryPing() error %s, expected timeout", err)
 		}
 		if a, b := epsilonRange(config.Timeout); d < a || d > b {
-			t.Errorf("queryPing() not within expected time margin %v got %v", config.Timeout, d)
+			t.Errorf("QueryPing() not within expected time margin %v got %v", config.Timeout, d)
 		}
 	})
 }

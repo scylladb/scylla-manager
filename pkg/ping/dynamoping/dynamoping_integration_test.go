@@ -19,7 +19,7 @@ func TestPingIntegration(t *testing.T) {
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		d, err := simplePing(context.Background(), config)
+		d, err := SimplePing(context.Background(), config)
 		if err != nil {
 			t.Error(err)
 		}
@@ -27,10 +27,10 @@ func TestPingIntegration(t *testing.T) {
 	})
 
 	t.Run("query", func(t *testing.T) {
-		d, err := queryPing(context.Background(), config)
+		d, err := QueryPing(context.Background(), config)
 		if err != nil {
 			t.Error(err)
 		}
-		t.Logf("queryPing() = %s", d)
+		t.Logf("QueryPing() = %s", d)
 	})
 }
