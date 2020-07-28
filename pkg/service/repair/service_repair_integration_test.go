@@ -5,17 +5,28 @@
 package repair_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/service/repair"
 	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/mermaid/pkg/util/httpx"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
@@ -29,6 +40,10 @@ type repairTestHelper struct {
 	clusterID uuid.UUID
 	taskID    uuid.UUID
 	runID     uuid.UUID
+
+	mu     sync.Mutex
+	done   bool
+	result error
 
 	t *testing.T
 }
@@ -56,11 +71,223 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	}
 }
 
+func (h *repairTestHelper) runRepair(ctx context.Context, t repair.Target) {
+	go func() {
+		err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, t)
+
+		h.mu.Lock()
+		h.done = true
+		h.result = err
+		h.mu.Unlock()
+	}()
+}
+
+// WaitCond parameters
+const (
+	// now specifies that condition shall be true in the current state.
+	now = 0
+	// shortWait specifies that condition shall be met in immediate future
+	// such as repair filing on start.
+	shortWait = 4 * time.Second
+	// longWait specifies that condition shall be met after a while, this is
+	// useful for waiting for repair to significantly advance or finish.
+	longWait = 20 * time.Second
+
+	_interval = 100 * time.Millisecond
+
+	node11 = "192.168.100.11"
+	node12 = "192.168.100.12"
+	node13 = "192.168.100.13"
+	node21 = "192.168.100.21"
+	node22 = "192.168.100.22"
+	node23 = "192.168.100.23"
+)
+
+func (h *repairTestHelper) assertRunning(wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		_, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			if err == service.ErrNotFound {
+				return false
+			}
+			h.t.Fatal(err)
+		}
+		return true
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertDone(wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		return h.done && h.result == nil
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertProgressSuccess() {
+	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	Print("And: there are no more errors")
+	if p.Error != 0 {
+		h.t.Fatal("expected", 0, "got", p.Error)
+	}
+	if p.Success != p.TokenRanges {
+		h.t.Fatal("expected", p.TokenRanges, "got", p.Success)
+	}
+}
+
+func (h *repairTestHelper) assertError(wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		return h.done && h.result != nil
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertErrorContains(cause string, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		return h.done && h.result != nil && strings.Contains(h.result.Error(), cause)
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertStopped(wait time.Duration) {
+	h.t.Helper()
+	h.assertErrorContains(context.Canceled.Error(), wait)
+}
+
+func (h *repairTestHelper) assertProgress(node string, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p, _ := h.progress(node)
+		return p >= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertProgressFailed(node string, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		_, f := h.progress(node)
+		return f >= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertMaxProgress(node string, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p, _ := h.progress(node)
+		return p <= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertShardProgress(node string, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p, _ := h.progress(node)
+		return p >= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) assertMaxShardProgress(node string, percent int, wait time.Duration) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		p, _ := h.progress(node)
+		return p <= percent
+	}, _interval, wait)
+}
+
+func (h *repairTestHelper) progress(node string) (int, int) {
+	h.t.Helper()
+
+	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	if node != "" {
+
+	}
+
+	return percentComplete(p)
+}
+
+func percentComplete(p repair.Progress) (int, int) {
+	if p.TokenRanges == 0 {
+		return 0, 0
+	}
+	return int(p.Success * 100 / p.TokenRanges), int(p.Error * 100 / p.TokenRanges)
+}
+
+var commandCounter int32
+
+func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+			return nil, nil
+		}
+
+		resp := &http.Response{
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Request:    req,
+			Header:     make(http.Header, 0),
+		}
+
+		switch req.Method {
+		case http.MethodGet:
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", s)))
+		case http.MethodPost:
+			id := atomic.AddInt32(&commandCounter, 1)
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+		}
+
+		return resp, nil
+	})
+}
+
+func unstableRepairInterceptor() http.RoundTripper {
+	failRi := repairInterceptor(scyllaclient.CommandFailed)
+	successRi := repairInterceptor(scyllaclient.CommandSuccessful)
+	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+		id := atomic.LoadInt32(&commandCounter)
+		if id != 0 && id%20 == 0 {
+			return failRi.RoundTrip(req)
+		}
+		return successRi.RoundTrip(req)
+	})
+}
+
+func dialErrorInterceptor() http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		return nil, errors.New("mock dial error")
+	})
+}
+
 func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
 	t.Helper()
 
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
 	config.Transport = hrt
+	config.Backoff.MaxRetries = 5
 
 	c, err := scyllaclient.NewClient(config, logger.Named("scylla"))
 	if err != nil {
@@ -89,6 +316,38 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	}
 
 	return s
+}
+
+func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
+	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+}
+
+func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
+	ExecStmt(t, session, "DROP KEYSPACE "+keyspace)
+}
+
+func singleUnit() repair.Target {
+	return repair.Target{
+		Units: []repair.Unit{
+			{
+				Keyspace: "test_repair",
+				Tables:   []string{"test_table_0"},
+			},
+		},
+		DC:       []string{"dc1", "dc2"},
+		Continue: true,
+	}
+}
+
+func multipleUnits() repair.Target {
+	return repair.Target{
+		Units: []repair.Unit{
+			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
+			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
+		},
+		DC:       []string{"dc1", "dc2"},
+		Continue: true,
+	}
 }
 
 func TestServiceGetTargetIntegration(t *testing.T) {
@@ -133,7 +392,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	}
 }
 
-func TestServiceRepairIntegration(t *testing.T) {
+func TestServiceRepairSmokeIntegration(t *testing.T) {
 	var (
 		session = CreateSession(t)
 		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
@@ -149,5 +408,589 @@ func TestServiceRepairIntegration(t *testing.T) {
 	err = h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target)
 	if err != nil {
 		t.Fatal("Repair() failed", err)
+	}
+}
+
+func TestServiceRepairIntegration(t *testing.T) {
+	clusterSession := CreateManagedClusterSession(t)
+
+	createKeyspace(t, clusterSession, "test_repair")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair")
+
+	defaultConfig := func() repair.Config {
+		c := repair.DefaultConfig()
+		c.PollInterval = 10 * time.Millisecond
+		return c
+	}
+
+	session := CreateSession(t)
+
+	t.Run("repair simple", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, multipleUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: repair of node11 advances")
+		h.assertProgress(node11, 1, shortWait)
+
+		Print("When: node11 is 100% repaired")
+		h.assertProgress(node11, 100, longWait)
+
+		Print("Then: repair of node1 advances")
+		h.assertProgress(node12, 1, shortWait)
+
+		Print("When: node1 is 100% repaired")
+		h.assertProgress(node12, 100, longWait)
+
+		Print("Then: repair of node2 advances")
+		h.assertProgress(node13, 1, shortWait)
+
+		Print("When: node2 is 100% repaired")
+		h.assertProgress(node13, 100, longWait)
+
+		Print("And: repair of U1 node11 advances")
+		h.assertProgress(node11, 1, shortWait)
+
+		Print("When: U1 node11 is 100% repaired")
+		h.assertProgress(node11, 100, longWait)
+
+		Print("Then: repair of U1 node1 advances")
+		h.assertProgress(node12, 1, shortWait)
+
+		Print("When: U1 node1 is 100% repaired")
+		h.assertProgress(node12, 100, longWait)
+
+		Print("Then: repair of U1 node2 advances")
+		h.assertProgress(node13, 1, shortWait)
+
+		Print("When: U1 node2 is 100% repaired")
+		h.assertProgress(node13, 100, longWait)
+
+		Print("Then: repair is done")
+		h.assertDone(shortWait)
+	})
+
+	t.Run("repair dc", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		units := multipleUnits()
+		units.DC = []string{"dc2"}
+
+		Print("When: run repair")
+		h.runRepair(ctx, units)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: repair is done")
+		h.assertDone(2 * longWait)
+
+		Print("Then: dc2 is used for repair")
+		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if diff := cmp.Diff(prog.DC, []string{"dc2"}); diff != "" {
+			h.t.Fatal(diff)
+		}
+		for _, h := range prog.Hosts {
+			if !strings.HasPrefix(h.Host, "192.168.100.2") {
+				t.Error(h.Host)
+			}
+		}
+	})
+
+	t.Run("repair dc local keyspace mismatch", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("Given: dc2 only keyspace")
+		ExecStmt(t, clusterSession, "CREATE KEYSPACE IF NOT EXISTS test_repair_dc2 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc2': 3}")
+		ExecStmt(t, clusterSession, "CREATE TABLE IF NOT EXISTS test_repair_dc2.test_table_0 (id int PRIMARY KEY)")
+
+		units := singleUnit()
+		units.Units = []repair.Unit{
+			{
+				Keyspace: "test_repair_dc2",
+			},
+		}
+		units.DC = []string{"dc1"}
+
+		Print("When: run repair with dc1")
+		h.runRepair(ctx, units)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: repair fails")
+		h.assertErrorContains("no replicas to repair", shortWait)
+	})
+
+	t.Run("repair simple strategy multi dc", func(t *testing.T) {
+		t.Skip("Unsure how to handle this case")
+		testKeyspace := "test_repair_simple_multi_dc"
+		ExecStmt(t, clusterSession, "CREATE KEYSPACE "+testKeyspace+" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}")
+		ExecStmt(t, clusterSession, "CREATE TABLE "+testKeyspace+".test_table_0 (id int PRIMARY KEY)")
+		ExecStmt(t, clusterSession, "CREATE TABLE "+testKeyspace+".test_table_1 (id int PRIMARY KEY)")
+		defer dropKeyspace(t, clusterSession, testKeyspace)
+
+		testUnit := repair.Target{
+			Units: []repair.Unit{
+				{
+					Keyspace: testKeyspace,
+				},
+			},
+			DC:       []string{"dc1"},
+			Continue: true,
+		}
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, testUnit)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: repair of node11 advances")
+		h.assertProgress(node11, 1, shortWait)
+
+		Print("When: node11 is 100% repaired")
+		h.assertProgress(node11, 100, longWait)
+
+		Print("Then: repair of node12 advances")
+		h.assertProgress(node12, 1, shortWait)
+
+		Print("When: node12 is 100% repaired")
+		h.assertProgress(node12, 100, longWait)
+
+		Print("Then: repair of node13 advances")
+		h.assertProgress(node13, 1, shortWait)
+
+		Print("When: node13 is 100% repaired")
+		h.assertProgress(node13, 100, longWait)
+
+		Print("When: node21 is 100% repaired")
+		h.assertProgress(node21, 100, longWait)
+
+		Print("When: node22 is 100% repaired")
+		h.assertProgress(node22, 100, longWait)
+
+		Print("When: node23 is 100% repaired")
+		h.assertProgress(node23, 100, longWait)
+
+		Print("Then: repair is done")
+		h.assertDone(shortWait)
+	})
+
+	t.Run("repair stop", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, singleUnit())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node11 is 50% repaired")
+		h.assertProgress(node11, 50, longWait)
+
+		Print("And: stop repair")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+	})
+
+	t.Run("repair restart", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, multipleUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node11 is 10% repaired")
+		h.assertProgress(node11, 10, longWait)
+
+		Print("And: stop repair")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+
+		Print("When: create a new task")
+		h.runID = uuid.NewTime()
+
+		Print("And: run repair")
+		ctx, cancel = context.WithCancel(context.Background())
+		defer cancel()
+		h.runRepair(ctx, multipleUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: repair of node11 continues")
+		h.assertProgress(node11, 50, shortWait)
+
+		Print("When: node13 is 10% repaired")
+		h.assertProgress(node13, 10, longWait)
+
+		Print("And: stop repair")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+
+		Print("When: create a new task")
+		h.runID = uuid.NewTime()
+
+		Print("And: run repair")
+		ctx, cancel = context.WithCancel(context.Background())
+		defer cancel()
+		h.runRepair(ctx, multipleUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: repair of all nodes continues")
+		h.assertProgress(node11, 100, longWait)
+		h.assertProgress(node12, 100, shortWait)
+		h.assertProgress(node13, 100, shortWait)
+	})
+
+	t.Run("repair restart no continue", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		unit := singleUnit()
+		unit.Continue = false
+
+		Print("When: run repair")
+		h.runRepair(ctx, unit)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node11 is 50% repaired")
+		h.assertProgress(node11, 50, longWait)
+
+		Print("And: stop repair")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+
+		Print("When: create a new task")
+		h.runID = uuid.NewTime()
+
+		Print("And: run repair")
+		ctx, cancel = context.WithCancel(context.Background())
+		defer cancel()
+		h.runRepair(ctx, unit)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: repair of node11 starts from scratch")
+		h.assertProgress(node11, 1, shortWait)
+		if p, _ := h.progress(node11); p >= 50 {
+			t.Fatal("node11 should start from scratch")
+		}
+	})
+
+	t.Run("repair restart task properties changed", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, multipleUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node1 is 50% repaired")
+		h.assertProgress(node12, 50, longWait)
+
+		Print("And: stop repair")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+
+		Print("When: create a new task run")
+		h.runID = uuid.NewTime()
+
+		Print("And: run repair with modified units")
+		modifiedUnits := multipleUnits()
+		modifiedUnits.Units = []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_1"}}}
+		modifiedUnits.DC = []string{"dc2"}
+
+		ctx, cancel = context.WithCancel(context.Background())
+		defer cancel()
+		h.runRepair(ctx, modifiedUnits)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: repair of node11 continues")
+		h.assertProgress(node11, 100, shortWait)
+		h.assertProgress(node12, 50, now)
+		h.assertProgress(node13, 0, now)
+
+		Print("And: dc2 is used for repair")
+		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if diff := cmp.Diff(prog.DC, modifiedUnits.DC); diff != "" {
+			h.t.Fatal(diff, prog)
+		}
+		if len(prog.Tables) != 1 {
+			t.Fatal(prog.Tables)
+		}
+	})
+
+	t.Run("repair temporary network outage", func(t *testing.T) {
+		c := defaultConfig()
+
+		h := newRepairTestHelper(t, session, c)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, singleUnit())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node12 is 50% repaired")
+		h.assertProgress(node12, 50, longWait)
+
+		Print("And: no network for 5s with 1s backoff")
+		h.hrt.SetInterceptor(dialErrorInterceptor())
+		time.AfterFunc(3*h.client.Config().Timeout, func() {
+			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		})
+
+		Print("Then: node12 repair continues")
+		h.assertProgress(node12, 80, 3*h.client.Config().Timeout+shortWait)
+
+		Print("When: node12 is 95% repaired")
+		h.assertProgress(node12, 95, longWait)
+
+		Print("Then: repair of node13 advances")
+		h.assertProgress(node13, 1, longWait)
+
+		Print("When: node13 is 100% repaired")
+		h.assertProgress(node13, 100, longWait)
+
+		Print("Then: node12 retries repair")
+		h.assertProgress(node12, 100, shortWait)
+
+		Print("And: repair is done")
+		h.assertDone(shortWait)
+	})
+
+	t.Run("repair error retry", func(t *testing.T) {
+		c := defaultConfig()
+
+		h := newRepairTestHelper(t, session, c)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, singleUnit())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node12 is 50% repaired")
+		h.assertProgress(node12, 50, longWait)
+
+		Print("And: errors occur for 5s with 1s backoff")
+		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+		time.AfterFunc(5*time.Second, func() {
+			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		})
+
+		Print("Then: node12 repair continues")
+		h.assertProgress(node12, 60, longWait)
+
+		Print("When: node12 is 95% repaired")
+		h.assertProgress(node12, 95, longWait)
+
+		Print("Then: repair of node13 advances")
+		h.assertProgress(node13, 1, longWait)
+
+		Print("When: node13 is 100% repaired")
+		h.assertProgress(node13, 100, longWait)
+
+		Print("Then: node12 retries repair")
+		h.assertProgress(node12, 100, shortWait)
+
+		Print("And: repair is done")
+		h.assertDone(shortWait)
+	})
+
+	t.Run("repair error fail fast", func(t *testing.T) {
+		c := defaultConfig()
+		h := newRepairTestHelper(t, session, c)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		unit := singleUnit()
+		unit.FailFast = true
+
+		Print("Given: one repair fails")
+		var (
+			mu sync.Mutex
+			ic = repairInterceptor(scyllaclient.CommandFailed)
+		)
+		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
+			if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+				return nil, nil
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+			resp, err = ic.RoundTrip(req)
+
+			if req.Method == http.MethodGet {
+				ic = repairInterceptor(scyllaclient.CommandSuccessful)
+			}
+			return
+		}))
+
+		Print("And: repair")
+		h.runRepair(ctx, unit)
+
+		Print("Then: repair fails")
+		h.assertError(shortWait)
+	})
+
+	t.Run("repair non existing keyspace", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("Given: non-existing keyspace")
+
+		target := singleUnit()
+		target.Units[0].Keyspace = "non_existing_keyspace"
+
+		Print("When: run repair")
+		h.runRepair(ctx, target)
+
+		Print("Then: repair fails")
+		h.assertError(shortWait)
+	})
+}
+
+func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
+	t.Skip("nodetool repair is executing too fast skipping until solution is found")
+	clusterSession := CreateManagedClusterSession(t)
+	const ks = "test_repair"
+
+	createKeyspace(t, clusterSession, ks)
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair")
+
+	// Repair can be very fast with never versions of Scylla.
+	// This fills keyspace with data to prolong nodetool repair execution.
+	WriteData(t, clusterSession, ks, 10, generateTableNames(100)...)
+
+	session := CreateSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	Print("Given: repair is running on a host")
+	done := make(chan struct{})
+	go func() {
+		time.AfterFunc(1*time.Second, func() {
+			close(done)
+		})
+		ExecOnHost(ManagedClusterHost(), "nodetool repair -ful -seq")
+	}()
+	defer func() {
+		if err := h.client.KillAllRepairs(context.Background(), ManagedClusterHost()); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	<-done
+	Print("When: repair starts")
+	h.runRepair(ctx, singleUnit())
+
+	Print("Then: repair fails")
+	h.assertErrorContains("active repair on hosts", longWait)
+}
+
+func generateTableNames(n int) []string {
+	var out []string
+	for i := 0; i < n; i++ {
+		out = append(out, fmt.Sprintf("table_%d", n))
+	}
+	return out
+}
+
+func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *testing.T) {
+	clusterSession := CreateManagedClusterSession(t)
+
+	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_0 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_0.test_table_0 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair_0")
+
+	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_1 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 0}")
+	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_1.test_table_0 (id int PRIMARY KEY)")
+	defer dropKeyspace(t, clusterSession, "test_repair_1")
+
+	session := CreateSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	properties := map[string]interface{}{
+		"keyspace": []string{"test_repair_0", "test_repair_1"},
+		"dc":       []string{"dc2"},
+	}
+
+	props, err := json.Marshal(properties)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := h.service.GetTarget(ctx, h.clusterID, props)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(target.Units) != 1 {
+		t.Errorf("Expected single unit in target, get %d", len(target.Units))
+	}
+	if target.Units[0].Keyspace != "test_repair_0" {
+		t.Errorf("Expected only 'test_repair_0' keyspace in target units, got %s", target.Units[0].Keyspace)
 	}
 }

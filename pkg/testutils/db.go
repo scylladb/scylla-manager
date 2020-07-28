@@ -4,6 +4,7 @@ package testutils
 
 import (
 	"context"
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"strings"
@@ -180,5 +181,37 @@ func ExecStmt(tb testing.TB, session gocqlx.Session, stmt string) {
 
 	if err := session.ExecStmt(stmt); err != nil {
 		tb.Fatal("exec failed", stmt, err)
+	}
+}
+
+const bigTableName = "big_table"
+
+// WriteData creates big_table in the provided keyspace with the size in MiB.
+func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, tables ...string) {
+	t.Helper()
+
+	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+
+	if len(tables) == 0 {
+		tables = []string{bigTableName}
+	}
+
+	for i := range tables {
+		ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, tables[i]))
+		stmt := fmt.Sprintf("INSERT INTO %s.%s (id, data) VALUES (?, ?)", keyspace, tables[i])
+		q := session.Query(stmt, []string{"id", "data"})
+		defer q.Release()
+
+		bytes := sizeMiB * 1024 * 1024
+		data := make([]byte, 4096)
+		if _, err := rand.Read(data); err != nil {
+			t.Fatal(err)
+		}
+
+		for i := 0; i < bytes/4096; i++ {
+			if err := q.Bind(i, data).Exec(); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 }

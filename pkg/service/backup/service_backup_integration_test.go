@@ -8,9 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"path"
@@ -202,30 +200,6 @@ func (h *backupTestHelper) assertMetadataVersion(ctx context.Context, expected s
 
 		if mv.Version != expected {
 			h.t.Fatalf("Expected version %s, got %s", expected, mv.Version)
-		}
-	}
-}
-
-const bigTableName = "big_table"
-
-// writeData creates big_table in the provided keyspace with the size in MiB.
-func writeData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int) {
-	t.Helper()
-
-	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
-	ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, bigTableName))
-
-	stmt := fmt.Sprintf("INSERT INTO %s.%s (id, data) VALUES (?, ?)", keyspace, bigTableName)
-	q := session.Query(stmt, []string{"id", "data"})
-	defer q.Release()
-
-	bytes := sizeMiB * 1024 * 1024
-	data := make([]byte, 4096)
-	rand.Read(data)
-
-	for i := 0; i < bytes/4096; i++ {
-		if err := q.Bind(i, data).Exec(); err != nil {
-			t.Fatal(err)
 		}
 	}
 }
@@ -619,7 +593,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		ctx            = context.Background()
 	)
 
-	writeData(t, clusterSession, testKeyspace, 1)
+	WriteData(t, clusterSession, testKeyspace, 1)
 
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -720,7 +694,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("When: write new data")
 	// 200M is the multipart threshold we want to trigger it in the smoke test.
-	writeData(t, clusterSession, testKeyspace, 210)
+	WriteData(t, clusterSession, testKeyspace, 210)
 
 	Print("And: run it again")
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
@@ -861,7 +835,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 		ctx            = context.Background()
 	)
 
-	writeData(t, clusterSession, testKeyspace, 1)
+	WriteData(t, clusterSession, testKeyspace, 1)
 
 	Print("Given: downed node")
 	if stdout, stderr, err := ExecOnHost("192.168.100.11", CmdBlockScyllaREST); err != nil {
@@ -920,7 +894,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		clusterSession = CreateManagedClusterSession(t)
 	)
 
-	writeData(t, clusterSession, testKeyspace, 3)
+	WriteData(t, clusterSession, testKeyspace, 3)
 
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -1250,7 +1224,7 @@ func TestPurgeIntegration(t *testing.T) {
 		// Ensure different snapshot tag between tasks
 		time.Sleep(1 * time.Second)
 
-		writeData(t, clusterSession, testKeyspace, 3)
+		WriteData(t, clusterSession, testKeyspace, 3)
 		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 			t.Fatal(err)
 		}
@@ -1361,7 +1335,7 @@ func TestBackupSnapshotDeleteIntegration(t *testing.T) {
 	}
 
 	Print("Given: given same data in shared keyspace")
-	writeData(t, clusterSession, testKeyspace, 3)
+	WriteData(t, clusterSession, testKeyspace, 3)
 
 	Print("When: both tasks backup same data")
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
@@ -1484,7 +1458,7 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 		done        = make(chan struct{})
 	)
 
-	writeData(t, clusterSession, testKeyspace, 3)
+	WriteData(t, clusterSession, testKeyspace, 3)
 
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -1581,7 +1555,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 
 	uploadedFiles := uploadV1Backup(t, ctx, "testdata/v1-support", location, h)
 
-	writeData(t, clusterSession, testKeyspace, 3)
+	WriteData(t, clusterSession, testKeyspace, 3)
 
 	Print("Given: retention policy 1")
 	target := backup.Target{
@@ -1619,7 +1593,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 
 	Print("When: another backup is run")
 
-	writeData(t, clusterSession, testKeyspace, 3)
+	WriteData(t, clusterSession, testKeyspace, 3)
 	runID = uuid.NewTime()
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
 		t.Fatal(err)

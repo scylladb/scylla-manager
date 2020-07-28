@@ -114,7 +114,7 @@ func (g *generator) SetHostPriority(hp hostPriority) {
 
 func (g *generator) Init(ctx context.Context, workerCount int) error {
 	if len(g.replicas) == 0 {
-		panic("cannot init generator, no ranges")
+		return errors.New("no replicas to repair")
 	}
 	g.keys = make([]uint64, 0, len(g.replicas))
 	for k := range g.replicas {
@@ -164,7 +164,6 @@ func (g *generator) Result() chan<- jobResult {
 func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start repair")
 
-	//TODO: progress and state registration
 	lastPercent := -1
 
 	done := ctx.Done()

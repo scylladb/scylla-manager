@@ -189,11 +189,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"target", target,
 	)
 
-	// TODO add target validation
-	// * DCs must be set
-	// * If host is set token ranges must be set too
-	// * token ranges and with hosts can only be set if host is set
-
 	run := &Run{
 		ClusterID: clusterID,
 		TaskID:    taskID,
@@ -276,6 +271,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	repairHosts := g.Hosts()
 
+	// Check if no other repairs are running
+	if active, err := client.ActiveRepairs(ctx, repairHosts.List()); err != nil {
+		s.logger.Error(ctx, "Active repair check failed", "error", err)
+	} else if len(active) > 0 {
+		return errors.Errorf("active repair on hosts: %s", strings.Join(active, ", "))
+	}
+
 	// Get hosts in all DCs
 	status, err := client.Status(ctx)
 	if err != nil {
@@ -331,7 +333,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "host partitioners")
 	}
 	// Create worker
-	w := newWorker(g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioners)
+	w := newWorker(g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioners, target.FailFast)
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.

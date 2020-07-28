@@ -42,6 +42,7 @@ type worker struct {
 	progress     progressManager
 	pollInterval time.Duration
 	hosts        map[string]*dht.Murmur3Partitioner
+	failFast     bool
 }
 
 func newWorker(in <-chan job,
@@ -50,7 +51,8 @@ func newWorker(in <-chan job,
 	logger log.Logger,
 	manager progressManager,
 	pollInterval time.Duration,
-	hosts map[string]*dht.Murmur3Partitioner) worker {
+	hosts map[string]*dht.Murmur3Partitioner,
+	failFast bool) worker {
 	return worker{
 		in:           in,
 		out:          out,
@@ -59,6 +61,7 @@ func newWorker(in <-chan job,
 		progress:     manager,
 		pollInterval: pollInterval,
 		hosts:        hosts,
+		failFast:     failFast,
 	}
 }
 
@@ -88,17 +91,33 @@ func (w *worker) runJob(ctx context.Context, job job) error {
 		return errors.Wrapf(err, "host %s: starting progress", job.Host)
 	}
 
-	if w.hosts[job.Host] == nil {
-		if err := w.runRepair(ctx, job.Ranges, job.Host); err != nil {
-			return err
+	const (
+		jobAttempts       = 2
+		jobAttemptTimeout = 5 * time.Second
+	)
+
+	var err error
+	for attempt := 1; attempt <= jobAttempts; attempt++ {
+		msg := ""
+		if w.hosts[job.Host] == nil {
+			err = w.runRepair(ctx, job.Ranges, job.Host)
+			msg = "Run row-level repair"
+		} else {
+			err = w.runLegacyRepair(ctx, job.Ranges, job.Host)
+			msg = "Run legacy repair"
 		}
-	} else {
-		if err := w.runLegacyRepair(ctx, job.Ranges, job.Host); err != nil {
-			return err
+		if err != nil {
+			w.logger.Error(ctx, msg, "error", err, "attempt", attempt)
+			if w.failFast {
+				break
+			}
+			time.Sleep(jobAttemptTimeout)
+			continue
 		}
+		break
 	}
 
-	return nil
+	return err
 }
 
 func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host string) error {
@@ -106,6 +125,7 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 		return fmt.Errorf("host %s: nothing to repair", host)
 	}
 	ttr := ttrs[0]
+
 	cfg := scyllaclient.RepairConfig{
 		Keyspace: ttr.Keyspace,
 		Tables:   []string{ttr.Table},
@@ -115,7 +135,7 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 
 	id, err := w.client.Repair(ctx, host, cfg)
 	if err != nil {
-		return errors.Wrapf(err, "host %s: issue repair", host)
+		return errors.Wrapf(err, "host %s: repair issue", host)
 	}
 	w.logger.Debug(ctx, "Repair",
 		"keyspace", ttr.Keyspace,
