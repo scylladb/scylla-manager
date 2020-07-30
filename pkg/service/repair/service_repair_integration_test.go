@@ -54,6 +54,7 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	logger := log.NewDevelopmentWithLevel(zapcore.DebugLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
+	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	c := newTestClient(t, hrt, logger)
 	s := newTestService(t, session, c, config, logger)
 
@@ -73,6 +74,11 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 
 func (h *repairTestHelper) runRepair(ctx context.Context, t repair.Target) {
 	go func() {
+		h.mu.Lock()
+		h.done = false
+		h.result = nil
+		h.mu.Unlock()
+
 		err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, t)
 
 		h.mu.Lock()
@@ -335,8 +341,9 @@ func singleUnit() repair.Target {
 				Tables:   []string{"test_table_0"},
 			},
 		},
-		DC:       []string{"dc1", "dc2"},
-		Continue: true,
+		DC:                  []string{"dc1", "dc2"},
+		Continue:            true,
+		SmallTableThreshold: 0,
 	}
 }
 
@@ -346,8 +353,9 @@ func multipleUnits() repair.Target {
 			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
 			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 		},
-		DC:       []string{"dc1", "dc2"},
-		Continue: true,
+		DC:                  []string{"dc1", "dc2"},
+		SmallTableThreshold: 0,
+		Continue:            true,
 	}
 }
 
@@ -552,8 +560,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 					Keyspace: testKeyspace,
 				},
 			},
-			DC:       []string{"dc1"},
-			Continue: true,
+			DC:                  []string{"dc1"},
+			Continue:            true,
+			SmallTableThreshold: 0,
 		}
 
 		h := newRepairTestHelper(t, session, defaultConfig())
@@ -608,10 +617,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		Print("When: node11 is 50% repaired")
-		h.assertProgress(node11, 50, longWait)
-
-		Print("And: stop repair")
+		Print("When: repair is stopped")
 		cancel()
 
 		Print("Then: status is StatusStopped")
@@ -629,16 +635,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		Print("When: node11 is 10% repaired")
-		h.assertProgress(node11, 10, longWait)
-
-		Print("And: stop repair")
+		Print("And: repair is stopped")
 		cancel()
 
 		Print("Then: status is StatusStopped")
 		h.assertStopped(shortWait)
 
-		Print("When: create a new task")
+		Print("When: create a new run")
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair")
@@ -649,19 +652,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		Print("And: repair of node11 continues")
-		h.assertProgress(node11, 50, shortWait)
-
-		Print("When: node13 is 10% repaired")
-		h.assertProgress(node13, 10, longWait)
-
-		Print("And: stop repair")
+		Print("And: repair is stopped")
 		cancel()
 
 		Print("Then: status is StatusStopped")
-		h.assertStopped(shortWait)
+		h.assertStopped(longWait)
 
-		Print("When: create a new task")
+		Print("When: create a new run")
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair")
@@ -692,16 +689,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		Print("When: node11 is 50% repaired")
-		h.assertProgress(node11, 50, longWait)
-
-		Print("And: stop repair")
+		Print("And: repair is stopped")
 		cancel()
 
 		Print("Then: status is StatusStopped")
-		h.assertStopped(shortWait)
+		h.assertStopped(longWait)
 
-		Print("When: create a new task")
+		Print("When: create a new run")
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair")
@@ -713,7 +707,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: repair of node11 starts from scratch")
-		h.assertProgress(node11, 1, shortWait)
 		if p, _ := h.progress(node11); p >= 50 {
 			t.Fatal("node11 should start from scratch")
 		}
@@ -730,16 +723,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		Print("When: node1 is 50% repaired")
-		h.assertProgress(node12, 50, longWait)
-
-		Print("And: stop repair")
+		Print("And: repair is stopped")
 		cancel()
 
 		Print("Then: status is StatusStopped")
 		h.assertStopped(shortWait)
 
-		Print("When: create a new task run")
+		Print("When: create a new run")
 		h.runID = uuid.NewTime()
 
 		Print("And: run repair with modified units")
@@ -916,9 +906,9 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	createKeyspace(t, clusterSession, ks)
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
-	defer dropKeyspace(t, clusterSession, "test_repair")
+	defer dropKeyspace(t, clusterSession, ks)
 
-	// Repair can be very fast with never versions of Scylla.
+	// Repair can be very fast with newer versions of Scylla.
 	// This fills keyspace with data to prolong nodetool repair execution.
 	WriteData(t, clusterSession, ks, 10, generateTableNames(100)...)
 

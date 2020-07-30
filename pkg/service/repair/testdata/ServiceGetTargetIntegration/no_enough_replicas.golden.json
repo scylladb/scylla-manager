@@ -15,5 +15,6 @@
   ],
   "fail_fast": false,
   "continue": true,
-  "intensity": 0
+  "intensity": 0,
+  "small_table_threshold": 1073741824
 }
