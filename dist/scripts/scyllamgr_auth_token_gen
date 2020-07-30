@@ -5,4 +5,4 @@
 
 set -eu -o pipefail
 
-tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 128 | head -n 1
+head -c128 < <(tr -dc 'a-zA-Z0-9' < /dev/urandom)
