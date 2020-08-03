@@ -79,7 +79,19 @@ http: 127.0.0.1:5080
 # Timeout for CQL status checks.
 #  timeout: 250ms
 #  ssl_timeout: 750ms
-
+#
+# Dynamic timeout calculates timeout based past probe measurements.
+# It takes recent probes RTTs, calculates mean (m) and standard
+# deviation (stddev) and returns timeout of next probe
+# equal to m + stddev_multiplier * stddev.
+# Higher stddev_multiplier is recommended on stable network environments, because standard
+# deviation may be close to 0.
+#  dynamic_timeout:
+#    enabled: true
+#    probes: 200
+#    max_timeout: 30s
+#    stddev_multiplier: 5
+#
 # Backup service configuration.
 #backup:
 # Minimal amount of free disk space required to take a snapshot.

@@ -35,6 +35,20 @@ type clusterIDHost struct {
 	Host      string
 }
 
+type pingType int
+
+const (
+	cqlPing pingType = iota
+	restPing
+	alternatorPing
+)
+
+type clusterIDDCPingType struct {
+	ClusterID uuid.UUID
+	DC        string
+	PingType  pingType
+}
+
 type nodeInfoTTL struct {
 	NodeInfo *scyllaclient.NodeInfo
 	Expires  time.Time
@@ -51,12 +65,13 @@ type Service struct {
 	// fields below are protected by cacheMu
 	tlsCache      map[uuid.UUID]*tls.Config
 	nodeInfoCache map[clusterIDHost]nodeInfoTTL
+	timeoutsCache map[clusterIDDCPingType]*dynamicTimeout
 
 	logger log.Logger
 }
 
-func NewService(config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
-	secretsStore secrets.Store, logger log.Logger) (*Service, error) {
+func NewService(config Config, clusterName ClusterNameFunc,
+	scyllaClient scyllaclient.ProviderFunc, secretsStore secrets.Store, logger log.Logger) (*Service, error) {
 	if clusterName == nil {
 		return nil, errors.New("invalid cluster name provider")
 	}
@@ -71,6 +86,7 @@ func NewService(config Config, clusterName ClusterNameFunc, scyllaClient scyllac
 		secretsStore:  secretsStore,
 		tlsCache:      make(map[uuid.UUID]*tls.Config),
 		nodeInfoCache: make(map[clusterIDHost]nodeInfoTTL),
+		timeoutsCache: make(map[clusterIDDCPingType]*dynamicTimeout),
 		logger:        logger,
 	}, nil
 }
@@ -79,10 +95,14 @@ func NewService(config Config, clusterName ClusterNameFunc, scyllaClient scyllac
 func (s *Service) CQLRunner() Runner {
 	return Runner{
 		scyllaClient: s.scyllaClient,
+		timeout:      s.cqlTimeout,
 		clusterName:  s.clusterName,
-		status:       cqlStatus,
-		rtt:          cqlRTT,
-		ping:         s.pingCQL,
+		metrics: &runnerMetrics{
+			status:  cqlStatus,
+			rtt:     cqlRTT,
+			timeout: cqlTimeout,
+		},
+		ping: s.pingCQL,
 	}
 }
 
@@ -91,10 +111,14 @@ func (s *Service) CQLRunner() Runner {
 func (s *Service) RESTRunner() Runner {
 	return Runner{
 		scyllaClient: s.scyllaClient,
+		timeout:      s.restTimeout,
 		clusterName:  s.clusterName,
-		status:       restStatus,
-		rtt:          restRTT,
-		ping:         s.pingREST,
+		metrics: &runnerMetrics{
+			status:  restStatus,
+			rtt:     restRTT,
+			timeout: restTimeout,
+		},
+		ping: s.pingREST,
 	}
 }
 
@@ -103,10 +127,12 @@ func (s *Service) RESTRunner() Runner {
 func (s *Service) AlternatorRunner() Runner {
 	return Runner{
 		scyllaClient: s.scyllaClient,
+		timeout:      s.alternatorTimeout,
 		clusterName:  s.clusterName,
-		status:       restStatus,
-		rtt:          restRTT,
-		ping:         s.pingAlternator,
+		metrics: &runnerMetrics{
+			timeout: alternatorTimeout,
+		},
+		ping: s.pingAlternator,
 	}
 }
 
@@ -167,7 +193,8 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				return
 			}
 
-			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr)
+			timeout, saveNext := s.restTimeout(clusterID, status[i].Datacenter)
+			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, timeout)
 			out[i].RESTRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "REST ping failed",
@@ -189,6 +216,8 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				out[i].RESTStatus = statusUp
 			}
 
+			saveNext(rtt)
+
 			return
 		})
 	}
@@ -202,7 +231,8 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				return
 			}
 
-			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr)
+			timeout, saveNext := s.cqlTimeout(clusterID, status[i].Datacenter)
+			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, timeout)
 			out[i].CQLRtt = float64(rtt.Milliseconds())
 			out[i].SSL = s.hasTLSConfig(clusterID)
 			if err != nil {
@@ -224,6 +254,8 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				out[i].CQLStatus = statusUp
 			}
 
+			saveNext(rtt)
+
 			return
 		})
 	}
@@ -238,7 +270,8 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				return
 			}
 
-			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr)
+			timeout, saveNext := s.alternatorTimeout(clusterID, status[i].Datacenter)
+			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, timeout)
 			if err != nil {
 				s.logger.Error(ctx, "Alternator ping failed",
 					"cluster_id", clusterID,
@@ -261,6 +294,8 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				out[i].AlternatorRtt = float64(rtt.Milliseconds())
 			}
 
+			saveNext(rtt)
+
 			return
 		})
 	}
@@ -268,7 +303,8 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 
 // pingAlternator sends ping probe and returns RTT.
 // When Alternator frontend is disabled, it returns 0 and nil error.
-func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
+func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string,
+	timeout time.Duration) (rtt time.Duration, err error) {
 	tlsConfig, err := s.tlsConfig(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrap(err, "create TLS config")
@@ -300,6 +336,10 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 		config.Timeout = s.config.SSLTimeout
 		config.TLSConfig = tlsConfig.Clone()
 	}
+	if timeout != 0 {
+		config.Timeout = timeout
+	}
+
 	rtt, err = dynamoping.Ping(ctx, config)
 
 	// In case any error try to pull NodeInfo and use configured address and port.
@@ -350,7 +390,7 @@ func (s *Service) decorateNodeStatus(status *NodeStatus, ni *scyllaclient.NodeIn
 	status.AgentVersion = ni.AgentVersion
 }
 
-func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error) {
+func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error) {
 	tlsConfig, err := s.tlsConfig(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrap(err, "create TLS config")
@@ -375,18 +415,29 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string)
 	if tlsConfig != nil {
 		config.Timeout = s.config.SSLTimeout
 	}
+
+	if timeout != 0 {
+		config.Timeout = timeout
+	}
+
 	rtt, err = cqlping.Ping(ctx, config)
 
 	// If connection was cut by the server try upgrading to TLS.
 	if errors.Cause(err) == io.EOF && config.TLSConfig == nil {
-		s.logger.Info(ctx, "Upgrading CQL connection to TLS",
-			"cluster_id", clusterID,
-			"host", host,
-		)
-		config.TLSConfig = DefaultTLSConfig
-		rtt, err = cqlping.Ping(ctx, config)
-		if err == nil {
-			s.setTLSConfig(clusterID, DefaultTLSConfig)
+		ni, err := s.getNodeInfo(ctx, clusterID, host)
+		if err != nil {
+			return 0, err
+		}
+		if ni.ClientEncryptionEnabled {
+			s.logger.Info(ctx, "Upgrading CQL connection to TLS",
+				"cluster_id", clusterID,
+				"host", host,
+			)
+			config.TLSConfig = DefaultTLSConfig
+			rtt, err = cqlping.Ping(ctx, config)
+			if err == nil {
+				s.setTLSConfig(clusterID, DefaultTLSConfig)
+			}
 		}
 	}
 
@@ -556,6 +607,41 @@ func (s *Service) hasTLSConfig(clusterID uuid.UUID) bool {
 	return c != nil
 }
 
+func (s *Service) cqlTimeout(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration)) {
+	return s.timeout(clusterID, dc, cqlPing)
+}
+
+func (s *Service) restTimeout(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration)) {
+	return s.timeout(clusterID, dc, restPing)
+}
+
+func (s *Service) alternatorTimeout(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration)) {
+	return s.timeout(clusterID, dc, alternatorPing)
+}
+
+// dcTimeouts returns timeout measured for given clusterID and DC.
+func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout time.Duration, saveNext func(time.Duration)) {
+	if !s.config.DynamicTimeout.Enabled {
+		return s.config.Timeout, func(time.Duration) {}
+	}
+
+	// Try loading from cache.
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+
+	key := clusterIDDCPingType{clusterID, dc, pt}
+	var dt *dynamicTimeout
+	if t, ok := s.timeoutsCache[key]; ok {
+		dt = t
+	} else {
+		dt = newDynamicTimeout(s.config.DynamicTimeout)
+		s.timeoutsCache[key] = dt
+	}
+
+	t := dt.Timeout()
+	return t, dt.SaveProbe
+}
+
 func (s *Service) invalidateHostNodeInfoCache(cidHost clusterIDHost) {
 	s.cacheMu.Lock()
 	delete(s.nodeInfoCache, cidHost)
@@ -567,8 +653,13 @@ func (s *Service) invalidateHostNodeInfoCache(cidHost clusterIDHost) {
 func (s *Service) InvalidateCache(clusterID uuid.UUID) {
 	s.cacheMu.Lock()
 	for cidHost := range s.nodeInfoCache {
-		if cidHost.ClusterID.String() == clusterID.String() {
+		if cidHost.ClusterID == clusterID {
 			delete(s.nodeInfoCache, cidHost)
+		}
+	}
+	for cidDC := range s.timeoutsCache {
+		if cidDC.ClusterID == clusterID {
+			delete(s.timeoutsCache, cidDC)
 		}
 	}
 	delete(s.tlsCache, clusterID)

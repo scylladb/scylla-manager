@@ -19,9 +19,15 @@ import (
 type Runner struct {
 	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
-	status       *prometheus.GaugeVec
-	rtt          *prometheus.GaugeVec
-	ping         func(ctx context.Context, clusterID uuid.UUID, host string) (rtt time.Duration, err error)
+	timeout      timeoutProviderFunc
+	metrics      *runnerMetrics
+	ping         func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error)
+}
+
+type runnerMetrics struct {
+	status  *prometheus.GaugeVec
+	rtt     *prometheus.GaugeVec
+	timeout *prometheus.GaugeVec
 }
 
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
@@ -50,35 +56,45 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 	}
 
 	hosts := status.LiveHosts()
+	hostDCs := make([]string, len(hosts))
+	for i, h := range hosts {
+		hostDCs[i], err = client.HostDatacenter(ctx, h)
+		if err != nil {
+			return errors.Wrap(err, "host dc")
+		}
+	}
 
 	r.removeMetricsForMissingHosts(clusterName, hosts)
-	r.checkHosts(ctx, clusterID, clusterName, hosts)
+	r.checkHosts(ctx, clusterID, clusterName, hosts, hostDCs)
 
 	return nil
 }
 
-func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, hosts []string) {
+func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, hosts, hostDCs []string) {
 	parallel.Run(len(hosts), parallel.NoLimit, func(i int) error { // nolint: errcheck
 		l := prometheus.Labels{
 			clusterKey: clusterName,
 			hostKey:    hosts[i],
 		}
 
-		rtt, err := r.ping(ctx, clusterID, hosts[i])
+		timeout, saveNext := r.timeout(clusterID, hostDCs[i])
+		rtt, err := r.ping(ctx, clusterID, hosts[i], timeout)
 		if err != nil {
-			r.status.With(l).Set(-1)
-			r.rtt.With(l).Set(0)
+			r.metrics.status.With(l).Set(-1)
+			r.metrics.rtt.With(l).Set(0)
 		} else {
-			r.status.With(l).Set(1)
-			r.rtt.With(l).Set(float64(rtt) / 1000000)
+			r.metrics.status.With(l).Set(1)
+			r.metrics.rtt.With(l).Set(float64(rtt.Milliseconds()))
+			r.metrics.timeout.With(l).Set(float64(timeout.Milliseconds()))
 		}
+		saveNext(rtt)
 
 		return nil
 	})
 }
 
 func (r Runner) removeMetricsForCluster(clusterName string) {
-	apply(collect(r.status), func(cluster, host string, v float64) {
+	apply(collect(r.metrics.status), func(cluster, host string, v float64) {
 		if clusterName != cluster {
 			return
 		}
@@ -87,15 +103,16 @@ func (r Runner) removeMetricsForCluster(clusterName string) {
 			clusterKey: clusterName,
 			hostKey:    host,
 		}
-		r.status.Delete(l)
-		r.rtt.Delete(l)
+		r.metrics.status.Delete(l)
+		r.metrics.rtt.Delete(l)
+		r.metrics.timeout.Delete(l)
 	})
 }
 
 func (r Runner) removeMetricsForMissingHosts(clusterName string, hosts []string) {
 	m := strset.New(hosts...)
 
-	apply(collect(r.status), func(cluster, host string, v float64) {
+	apply(collect(r.metrics.status), func(cluster, host string, v float64) {
 		if clusterName != cluster {
 			return
 		}
@@ -107,7 +124,8 @@ func (r Runner) removeMetricsForMissingHosts(clusterName string, hosts []string)
 			clusterKey: clusterName,
 			hostKey:    host,
 		}
-		r.status.Delete(l)
-		r.rtt.Delete(l)
+		r.metrics.status.Delete(l)
+		r.metrics.rtt.Delete(l)
+		r.metrics.timeout.Delete(l)
 	})
 }

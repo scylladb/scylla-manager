@@ -10,3 +10,12 @@ database:
   migrate_dir: schema
   timeout: 1s
 
+
+# Healthcheck service configuration.
+healthcheck:
+# Timeout for CQL status checks.
+  timeout: 250ms
+  ssl_timeout: 750ms
+  dynamic_timeout:
+    enabled: true
+    max_timeout: 1s

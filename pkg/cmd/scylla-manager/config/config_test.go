@@ -63,8 +63,14 @@ func TestConfigModification(t *testing.T) {
 			UserKeyFile:  "ssl.key",
 		},
 		Healthcheck: healthcheck.Config{
-			Timeout:     time.Second,
-			SSLTimeout:  time.Second,
+			Timeout:    time.Second,
+			SSLTimeout: time.Second,
+			DynamicTimeout: healthcheck.DynamicTimeoutConfig{
+				Enabled:          true,
+				Probes:           500,
+				StdDevMultiplier: 100,
+				MaxTimeout:       1 * time.Minute,
+			},
 			NodeInfoTTL: time.Second,
 		},
 		Backup: backup.Config{

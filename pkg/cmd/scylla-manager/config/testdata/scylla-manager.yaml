@@ -34,6 +34,11 @@ ssl:
 healthcheck:
   timeout: 1s
   ssl_timeout: 1s
+  dynamic_timeout:
+    enabled: true
+    probes: 500
+    max_timeout: 1m
+    stddev_multiplier: 100
   node_info_ttl: 1s
 
 backup:
