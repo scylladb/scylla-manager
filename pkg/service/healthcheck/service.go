@@ -369,15 +369,22 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 
 	// If connection was cut by the server try upgrading to TLS.
 	if err != nil && config.TLSConfig == nil {
-		s.logger.Info(ctx, "Upgrading Alternator connection to TLS",
-			"cluster_id", clusterID,
-			"host", host,
-		)
+		ni, err := s.getNodeInfo(ctx, clusterID, host)
+		if err != nil {
+			return 0, err
+		}
 
-		config.TLSConfig = DefaultTLSConfig.Clone()
-		rtt, err = dynamoping.Ping(ctx, config)
-		if err == nil {
-			s.setTLSConfig(clusterID, DefaultTLSConfig.Clone())
+		if ni.AlternatorEncryptionEnabled() {
+			s.logger.Info(ctx, "Upgrading Alternator connection to TLS",
+				"cluster_id", clusterID,
+				"host", host,
+			)
+
+			config.TLSConfig = DefaultTLSConfig.Clone()
+			rtt, err = dynamoping.Ping(ctx, config)
+			if err == nil {
+				s.setTLSConfig(clusterID, DefaultTLSConfig.Clone())
+			}
 		}
 	}
 

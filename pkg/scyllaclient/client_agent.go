@@ -68,6 +68,11 @@ func (ni *NodeInfo) AlternatorEnabled() bool {
 		(ni.AlternatorPort != "0" && ni.AlternatorPort != "")
 }
 
+// AlternatorEncryptionEnabled returns if Alternator uses encrypted traffic.
+func (ni *NodeInfo) AlternatorEncryptionEnabled() bool {
+	return ni.AlternatorHTTPSPort != "0" && ni.AlternatorHTTPSPort != ""
+}
+
 // AlternatorAddr returns Alternator address from NodeInfo.
 // It chooses right address and port based on information stored in NodeInfo.
 // HTTPS port has preference over HTTP.
