@@ -57,6 +57,20 @@ var (
 		Help:      "Host REST Timeout",
 	}, []string{clusterKey, hostKey})
 
+	alternatorStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "healthcheck",
+		Name:      "alternator_status",
+		Help:      "Host Alternator status",
+	}, []string{clusterKey, hostKey})
+
+	alternatorRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "healthcheck",
+		Name:      "alternator_rtt_ms",
+		Help:      "Host Alternator RTT",
+	}, []string{clusterKey, hostKey})
+
 	alternatorTimeout = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
@@ -73,6 +87,8 @@ func init() {
 		restStatus,
 		restRTT,
 		restTimeout,
+		alternatorStatus,
+		alternatorRTT,
 		alternatorTimeout,
 	)
 }

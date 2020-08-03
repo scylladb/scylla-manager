@@ -130,6 +130,8 @@ func (s *Service) AlternatorRunner() Runner {
 		timeout:      s.alternatorTimeout,
 		clusterName:  s.clusterName,
 		metrics: &runnerMetrics{
+			status:  alternatorStatus,
+			rtt:     alternatorRTT,
 			timeout: alternatorTimeout,
 		},
 		ping: s.pingAlternator,
