@@ -651,7 +651,7 @@ func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
 	return totalMemory, nil
 }
 
-// HostKeyspaceTable is a triple of Host and Keyspace and Table names.
+// HostKeyspaceTable is a tuple of Host and Keyspace and Table names.
 type HostKeyspaceTable struct {
 	Host     string
 	Keyspace string
