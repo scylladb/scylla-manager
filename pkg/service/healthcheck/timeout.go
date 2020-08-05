@@ -60,7 +60,7 @@ func (dt *dynamicTimeout) stddev() time.Duration {
 	return sd
 }
 
-const minNoise = 2 * time.Millisecond
+const minStddev = 1 * time.Millisecond
 
 func (dt *dynamicTimeout) Timeout() time.Duration {
 	dt.mu.Lock()
@@ -77,7 +77,7 @@ func (dt *dynamicTimeout) timeout() time.Duration {
 	sd := dt.stddev()
 	m := dt.mean()
 
-	delta := max(time.Duration(dt.config.StdDevMultiplier)*sd, minNoise)
+	delta := time.Duration(dt.config.StdDevMultiplier) * max(sd, minStddev)
 	timeout := m + delta
 
 	if dt.config.MaxTimeout != 0 && timeout > dt.config.MaxTimeout {
