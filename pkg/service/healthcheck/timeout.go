@@ -4,7 +4,6 @@ package healthcheck
 
 import (
 	"math"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -70,8 +69,10 @@ func (dt *dynamicTimeout) Timeout() time.Duration {
 }
 
 func (dt *dynamicTimeout) timeout() time.Duration {
-	if len(dt.values) <= 1 {
-		return 0
+	// Calculate dynamic timeout once we collect 10% of total
+	// required probes. Otherwise return max_timeout.
+	if len(dt.values) < int(0.1*float64(dt.config.Probes)) {
+		return dt.config.MaxTimeout
 	}
 
 	sd := dt.stddev()
@@ -92,15 +93,6 @@ func (dt *dynamicTimeout) SaveProbe(probe time.Duration) {
 
 	if len(dt.values) < dt.config.Probes {
 		dt.values = append(dt.values, probe)
-
-		// Speed up initialization by generating random probes
-		// when we collect 10% of needed probes.
-		if len(dt.values) >= 2 && len(dt.values) > int(0.1*float64(dt.config.Probes)) {
-			for len(dt.values) < dt.config.Probes {
-				p := dt.mean() + time.Duration(2*rand.Float64()*float64(dt.stddev()))
-				dt.values = append(dt.values, p)
-			}
-		}
 	} else {
 		dt.values[dt.idx] = probe
 		dt.idx = (dt.idx + 1) % len(dt.values)

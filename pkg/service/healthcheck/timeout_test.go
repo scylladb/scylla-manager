@@ -42,7 +42,7 @@ func TestDynamicTimeoutOverridesOldestProbes(t *testing.T) {
 	}
 
 	// All probes are equal so stddev is 0 and mean is equal to value of probes
-	expectedTimeout := 10*time.Millisecond + minNoise
+	expectedTimeout := 10*time.Millisecond + time.Duration(config.StdDevMultiplier)*minStddev
 	if dt.Timeout() != expectedTimeout {
 		t.Errorf("Expected timeout equal to %s got %s", expectedTimeout, dt.Timeout())
 	}
