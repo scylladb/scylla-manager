@@ -63,9 +63,9 @@ type Service struct {
 
 	cacheMu sync.Mutex
 	// fields below are protected by cacheMu
-	tlsCache      map[uuid.UUID]*tls.Config
-	nodeInfoCache map[clusterIDHost]nodeInfoTTL
-	timeoutsCache map[clusterIDDCPingType]*dynamicTimeout
+	tlsCache        map[uuid.UUID]*tls.Config
+	nodeInfoCache   map[clusterIDHost]nodeInfoTTL
+	dynamicTimeouts map[clusterIDDCPingType]*dynamicTimeout
 
 	logger log.Logger
 }
@@ -80,14 +80,14 @@ func NewService(config Config, clusterName ClusterNameFunc,
 	}
 
 	return &Service{
-		config:        config,
-		clusterName:   clusterName,
-		scyllaClient:  scyllaClient,
-		secretsStore:  secretsStore,
-		tlsCache:      make(map[uuid.UUID]*tls.Config),
-		nodeInfoCache: make(map[clusterIDHost]nodeInfoTTL),
-		timeoutsCache: make(map[clusterIDDCPingType]*dynamicTimeout),
-		logger:        logger,
+		config:          config,
+		clusterName:     clusterName,
+		scyllaClient:    scyllaClient,
+		secretsStore:    secretsStore,
+		tlsCache:        make(map[uuid.UUID]*tls.Config),
+		nodeInfoCache:   make(map[clusterIDHost]nodeInfoTTL),
+		dynamicTimeouts: make(map[clusterIDDCPingType]*dynamicTimeout),
+		logger:          logger,
 	}, nil
 }
 
@@ -640,11 +640,11 @@ func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout 
 
 	key := clusterIDDCPingType{clusterID, dc, pt}
 	var dt *dynamicTimeout
-	if t, ok := s.timeoutsCache[key]; ok {
+	if t, ok := s.dynamicTimeouts[key]; ok {
 		dt = t
 	} else {
 		dt = newDynamicTimeout(s.config.DynamicTimeout)
-		s.timeoutsCache[key] = dt
+		s.dynamicTimeouts[key] = dt
 	}
 
 	t := dt.Timeout()
@@ -666,9 +666,9 @@ func (s *Service) InvalidateCache(clusterID uuid.UUID) {
 			delete(s.nodeInfoCache, cidHost)
 		}
 	}
-	for cidDC := range s.timeoutsCache {
+	for cidDC := range s.dynamicTimeouts {
 		if cidDC.ClusterID == clusterID {
-			delete(s.timeoutsCache, cidDC)
+			delete(s.dynamicTimeouts, cidDC)
 		}
 	}
 	delete(s.tlsCache, clusterID)
