@@ -22,8 +22,8 @@ func TestWaiterTimeoutIntegration(t *testing.T) {
 	defer unblockCQL(t, host)
 
 	w := &Waiter{
-		RetryBackoff: 10 * time.Millisecond,
 		DialTimeout:  5 * time.Millisecond,
+		RetryBackoff: 10 * time.Millisecond,
 		MaxAttempts:  10,
 	}
 	_, err := w.WaitAnyAddr(context.Background(), net.JoinHostPort(host, "9042"))

@@ -26,15 +26,15 @@ func AnyHostPort(ctx context.Context, hosts []string, port string) (string, erro
 
 // Waiter specifies waiting parameters.
 type Waiter struct {
-	RetryBackoff time.Duration
 	DialTimeout  time.Duration
+	RetryBackoff time.Duration
 	MaxAttempts  int
 	Logger       log.Logger
 }
 
 var DefaultWaiter = Waiter{
-	RetryBackoff: 2 * time.Second,
 	DialTimeout:  1 * time.Second,
+	RetryBackoff: 2 * time.Second,
 	MaxAttempts:  60,
 }
 
