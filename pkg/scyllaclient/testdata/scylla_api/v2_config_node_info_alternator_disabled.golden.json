@@ -1,0 +1,18 @@
+{
+  "alternator_address":"",
+  "alternator_enforce_authorization": false,
+  "alternator_https_port":"",
+  "alternator_port":"",
+  "api_address":"127.0.0.1",
+  "api_port":"45433",
+  "broadcast_address":"192.168.100.100",
+  "broadcast_rpc_address":"1.2.3.4",
+  "client_encryption_enabled":true,
+  "cql_password_protected":true,
+  "listen_address":"192.168.100.100",
+  "native_transport_port":"9042",
+  "prometheus_address":"0.0.0.0",
+  "prometheus_port":"9180",
+  "rpc_address":"192.168.100.101",
+  "rpc_port":"9160"
+}

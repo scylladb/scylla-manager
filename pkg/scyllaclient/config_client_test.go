@@ -168,6 +168,52 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 	}
 }
 
+func TestConfigClientAlternatorDisabledNodeInformationUsingScyllaAPI(t *testing.T) {
+	client, closeServer := scyllaclienttest.NewFakeScyllaV2ServerMatching(t,
+		scyllaclienttest.MultiPathFileMatcher(
+			scyllaclienttest.PathFileMatcher("/v2/config/broadcast_address", "testdata/scylla_api/v2_config_broadcast_address.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/broadcast_rpc_address", "testdata/scylla_api/v2_config_broadcast_rpc_address.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/listen_address", "testdata/scylla_api/v2_config_listen_address.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/native_transport_port", "testdata/scylla_api/v2_config_native_transport_port.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/prometheus_address", "testdata/scylla_api/v2_config_prometheus_address.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/prometheus_port", "testdata/scylla_api/v2_config_prometheus_port.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/rpc_address", "testdata/scylla_api/v2_config_rpc_address.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/rpc_port", "testdata/scylla_api/v2_config_rpc_port.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/data_file_directories", "testdata/scylla_api/v2_config_data_file_directories.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/client_encryption_options", "testdata/scylla_api/v2_config_client_encryption_options.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/authenticator", "testdata/scylla_api/v2_config_authenticator.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_port", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_https_port", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_address", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/alternator_enforce_authorization", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
+		),
+	)
+	defer closeServer()
+
+	nodeInfo, err := client.NodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	golden, err := ioutil.ReadFile("testdata/scylla_api/v2_config_node_info_alternator_disabled.golden.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var goldenNodeInfo scyllaclient.NodeInfo
+	if err := json.Unmarshal(golden, &goldenNodeInfo); err != nil {
+		t.Fatal(err)
+	}
+
+	diffOpts := []cmp.Option{
+		cmpopts.IgnoreFields(scyllaclient.NodeInfo{}, "APIPort"),
+	}
+
+	if diff := cmp.Diff(nodeInfo, &goldenNodeInfo, diffOpts...); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
 func TestTextPlainError(t *testing.T) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
