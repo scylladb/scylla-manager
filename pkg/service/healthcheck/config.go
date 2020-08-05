@@ -29,9 +29,9 @@ type Config struct {
 }
 
 // DynamicTimeoutConfig specifies healthcheck dynamic timeouts.
-// Dynamic timeout takes recent probes RTTs, calculates mean (m) and
-// standard deviation (stddev) and returns timeout of next probe
-// equal to m + max(stddev_multiplier * stddev, 2ms).
+// Dynamic timeout calculates timeout based on past measurements.
+// It takes recent RTTs, calculates mean (m), standard deviation (stddev),
+// and returns timeout of next probe equal to m + max(stddev_multiplier * stddev, 2ms).
 type DynamicTimeoutConfig struct {
 	// Enabled controls whether dynamic timeout is enabled or not.
 	Enabled bool `yaml:"enabled"`
@@ -54,7 +54,7 @@ func DefaultConfig() Config {
 		DynamicTimeout: DynamicTimeoutConfig{
 			Enabled:          true,
 			Probes:           200,
-			StdDevMultiplier: 4,
+			StdDevMultiplier: 5,
 			MaxTimeout:       30 * time.Second,
 		},
 		NodeInfoTTL: 5 * time.Minute,
