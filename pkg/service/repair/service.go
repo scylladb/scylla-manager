@@ -338,12 +338,12 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	g.SetHostPriority(hp)
 
-	hostPartitioners, err := s.hostPartitioners(ctx, repairHosts.List(), client)
+	hostPartitioner, err := s.hostPartitioner(ctx, repairHosts.List(), client)
 	if err != nil {
-		return errors.Wrap(err, "host partitioners")
+		return errors.Wrap(err, "host partitioner")
 	}
 	// Create worker
-	w := newWorker(run, g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioners, target.FailFast)
+	w := newWorker(run, g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioner, target.FailFast)
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
@@ -480,10 +480,10 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-func (s *Service) hostPartitioners(ctx context.Context, hosts []string, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
+func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
 	out := make(map[string]*dht.Murmur3Partitioner)
 	for _, h := range hosts {
-		if s.rrlHost(ctx, h, client) {
+		if s.supportsRowLevelRepair(ctx, client, h) {
 			out[h] = nil
 		} else {
 			p, err := s.partitioner(ctx, h, client)
@@ -497,8 +497,7 @@ func (s *Service) hostPartitioners(ctx context.Context, hosts []string, client *
 	return out, nil
 }
 
-// rrlHost returns true if host supports row-level repair.
-func (s *Service) rrlHost(ctx context.Context, host string, client *scyllaclient.Client) bool {
+func (s *Service) supportsRowLevelRepair(ctx context.Context, client *scyllaclient.Client, host string) bool {
 	if s.config.ForceRowLevelRepair {
 		return true
 	}

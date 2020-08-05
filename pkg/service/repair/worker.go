@@ -38,27 +38,20 @@ func workerCount(ranges []scyllaclient.TokenRange) int {
 }
 
 type worker struct {
-	run          *Run
-	in           <-chan job
-	out          chan<- jobResult
-	client       *scyllaclient.Client
-	logger       log.Logger
-	progress     progressManager
-	pollInterval time.Duration
-	hosts        map[string]*dht.Murmur3Partitioner
-	failFast     bool
+	run             *Run
+	in              <-chan job
+	out             chan<- jobResult
+	client          *scyllaclient.Client
+	logger          log.Logger
+	progress        progressManager
+	pollInterval    time.Duration
+	hostPartitioner map[string]*dht.Murmur3Partitioner
+	failFast        bool
 }
 
-func newWorker(
-	run *Run,
-	in <-chan job,
-	out chan<- jobResult,
-	client *scyllaclient.Client,
-	logger log.Logger,
-	manager progressManager,
-	pollInterval time.Duration,
-	hosts map[string]*dht.Murmur3Partitioner,
-	failFast bool) worker {
+func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclient.Client,
+	logger log.Logger, manager progressManager, pollInterval time.Duration,
+	hostPartitioner map[string]*dht.Murmur3Partitioner, failFast bool) worker {
 	return worker{
 		run:          run,
 		in:           in,
@@ -67,8 +60,9 @@ func newWorker(
 		logger:       logger,
 		progress:     manager,
 		pollInterval: pollInterval,
-		hosts:        hosts,
-		failFast:     failFast,
+
+		hostPartitioner: hostPartitioner,
+		failFast:        failFast,
 	}
 }
 
@@ -106,7 +100,7 @@ func (w *worker) runJob(ctx context.Context, job job) error {
 	var err error
 	for attempt := 1; attempt <= jobAttempts; attempt++ {
 		msg := ""
-		if w.hosts[job.Host] == nil {
+		if w.hostPartitioner[job.Host] == nil {
 			err = w.runRepair(ctx, job.Ranges, job.Host)
 			msg = "Run row-level repair"
 		} else {
@@ -169,10 +163,12 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 }
 
 func (w *worker) runLegacyRepair(ctx context.Context, ranges []*tableTokenRange, host string) error {
-	shardRanges := splitToShards(ranges, w.hosts[host])
-	if err := validateShards(ranges, shardRanges, w.hosts[host]); err != nil {
+	shardRanges := splitToShards(ranges, w.hostPartitioner[host])
+
+	if err := validateShards(ranges, shardRanges, w.hostPartitioner[host]); err != nil {
 		return err
 	}
+
 	g, gCtx := errgroup.WithContext(ctx)
 	for _, shard := range shardRanges {
 		g.Go(func(shard []*tableTokenRange) func() error {
