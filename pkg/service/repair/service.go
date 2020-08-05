@@ -386,7 +386,8 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 	if err != nil {
 		return errors.Wrap(err, "table disk size report")
 	}
-	for r, size := range sizeReport {
+	for i, size := range sizeReport {
+		r := hkts[i]
 		if size <= target.SmallTableThresholdBytes {
 			s.logger.Debug(ctx, "Optimizing small table", "keyspace", r.Keyspace, "table", r.Table, "size", size)
 			g.markSmallTable(r.Keyspace, r.Table)

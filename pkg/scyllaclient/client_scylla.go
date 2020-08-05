@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -671,7 +670,7 @@ func (t HostKeyspaceTables) Hosts() []string {
 }
 
 // TableDiskSizeReport returns total on disk size of tables in bytes.
-func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables HostKeyspaceTables) (map[HostKeyspaceTable]int64, error) {
+func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables HostKeyspaceTables) ([]int64, error) {
 	// Get shard count of a first node to estimate parallelism limit
 	shards, err := c.ShardCount(ctx, hostKeyspaceTables[0].Host)
 	if err != nil {
@@ -679,10 +678,8 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 	}
 
 	var (
-		limit = len(hostKeyspaceTables.Hosts()) * int(shards)
-
-		m      sync.Mutex
-		report = make(map[HostKeyspaceTable]int64, len(hostKeyspaceTables))
+		limit  = len(hostKeyspaceTables.Hosts()) * int(shards)
+		report = make([]int64, len(hostKeyspaceTables))
 	)
 
 	err = parallel.Run(len(hostKeyspaceTables), limit, func(i int) error {
@@ -699,10 +696,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 			"size", size,
 		)
 
-		m.Lock()
-		report[v] = size
-		m.Unlock()
-
+		report[i] = size
 		return nil
 	})
 
