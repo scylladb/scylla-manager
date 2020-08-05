@@ -129,5 +129,9 @@ func configURL(cfg *config.ServerConfig) string {
 		host = ipv4Localhost
 	}
 
-	return (&url.URL{Scheme: scheme, Host: net.JoinHostPort(host, port)}).String()
+	return (&url.URL{
+		Scheme: scheme,
+		Host:   net.JoinHostPort(host, port),
+		Path:   "/api/v1",
+	}).String()
 }
