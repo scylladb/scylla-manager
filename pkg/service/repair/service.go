@@ -81,10 +81,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy basic properties
 	t := Target{
-		FailFast:                 p.FailFast,
-		Continue:                 p.Continue,
-		Intensity:                p.Intensity,
-		SmallTableThresholdBytes: p.SmallTableThreshold * 1024 * 1024,
+		FailFast:            p.FailFast,
+		Continue:            p.Continue,
+		Intensity:           p.Intensity,
+		SmallTableThreshold: p.SmallTableThreshold,
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -388,7 +388,7 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 	}
 	for i, size := range sizeReport {
 		r := hkts[i]
-		if size <= target.SmallTableThresholdBytes {
+		if size <= target.SmallTableThreshold {
 			s.logger.Debug(ctx, "Optimizing small table", "keyspace", r.Keyspace, "table", r.Table, "size", size)
 			g.markSmallTable(r.Keyspace, r.Table)
 		}

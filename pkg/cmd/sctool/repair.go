@@ -61,12 +61,17 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 	}
 
 	if f := cmd.Flag("small-table-threshold"); f.Changed {
-		smallTableThreshold, err := cmd.Flags().GetInt("small-table-threshold")
+		smallTableThreshold, err := cmd.Flags().GetString("small-table-threshold")
 		if err != nil {
 			return err
 		}
 
-		props["small_table_threshold"] = smallTableThreshold
+		threshold, err := mermaidclient.ParseByteCount(smallTableThreshold)
+		if err != nil {
+			return err
+		}
+
+		props["small_table_threshold"] = threshold
 	}
 
 	if dryRun {
@@ -119,7 +124,7 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.Bool("show-tables", false, "print all table names for a keyspace")
 	fs.Var(&IntensityFlag{Value: "0"}, "intensity",
 		"repair speed, higher values result in higher speed and may increase cluster load, values between (0, 1) specifies percentage of active workers")
-	fs.Int("small-table-threshold", 1024, "enable small table optimization for tables of size lower than given threshold in megabytes (MiB)")
+	fs.String("small-table-threshold", "1GiB", "enable small table optimization for tables of size lower than given threshold. Supported units [B, MiB, GiB, TiB]")
 	return fs
 }
 

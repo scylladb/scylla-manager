@@ -16,12 +16,12 @@ type Unit = ksfilter.Unit
 
 // Target specifies what shall be repaired.
 type Target struct {
-	Units                    []Unit   `json:"units"`
-	DC                       []string `json:"dc"`
-	FailFast                 bool     `json:"fail_fast"`
-	Continue                 bool     `json:"continue"`
-	Intensity                float64  `json:"intensity"`
-	SmallTableThresholdBytes int64    `json:"small_table_threshold_bytes"`
+	Units               []Unit   `json:"units"`
+	DC                  []string `json:"dc"`
+	FailFast            bool     `json:"fail_fast"`
+	Continue            bool     `json:"continue"`
+	Intensity           float64  `json:"intensity"`
+	SmallTableThreshold int64    `json:"small_table_threshold"`
 }
 
 // taskProperties is the main data structure of the runner.Properties blob.
@@ -39,7 +39,7 @@ func defaultTaskProperties() *taskProperties {
 		Continue: true,
 
 		// Consider 1GB table as small by default.
-		SmallTableThreshold: 1024,
+		SmallTableThreshold: 1 * 1024 * 1024 * 1024,
 	}
 }
 
