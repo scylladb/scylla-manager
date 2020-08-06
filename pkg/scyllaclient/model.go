@@ -11,6 +11,12 @@ import (
 	"github.com/scylladb/go-set/strset"
 )
 
+// HostDC is a tuple of host and DC.
+type HostDC struct {
+	Host       string
+	Datacenter string
+}
+
 // NodeStatus represents nodetool Status=Up/Down.
 type NodeStatus bool
 
@@ -121,6 +127,17 @@ func (s NodeStatusInfoSlice) DownHosts() []string {
 		}
 	}
 	return hosts
+}
+
+// LiveHostDCs returns slice of DCs of nodes in UN state.
+func (s NodeStatusInfoSlice) LiveHostDCs() []HostDC {
+	var dcs []HostDC
+	for _, h := range s {
+		if h.IsUN() {
+			dcs = append(dcs, HostDC{Host: h.Addr, Datacenter: h.Datacenter})
+		}
+	}
+	return dcs
 }
 
 // CommandStatus specifies a result of a command
