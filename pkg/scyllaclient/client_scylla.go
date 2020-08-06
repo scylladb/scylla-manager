@@ -267,6 +267,7 @@ func (c *Client) Partitioner(ctx context.Context) (string, error) {
 }
 
 // ShardCount returns number of shards in a node.
+// If host is empty it will pick one from the pool.
 func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 	const (
 		queryMetricName = "database_total_writes"
@@ -292,9 +293,15 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 
 // metrics returns Scylla Prometheus metrics, `name` pattern be used to filter
 // out only subset of metrics.
+// If host is empty it will pick one from the pool.
 func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*prom.MetricFamily, error) {
 	u := c.newURL(host, "/metrics")
-	r, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodGet, u.String(), nil)
+
+	// In case host is not set select a host from a pool.
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -672,7 +679,7 @@ func (t HostKeyspaceTables) Hosts() []string {
 // TableDiskSizeReport returns total on disk size of tables in bytes.
 func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables HostKeyspaceTables) ([]int64, error) {
 	// Get shard count of a first node to estimate parallelism limit
-	shards, err := c.ShardCount(ctx, hostKeyspaceTables[0].Host)
+	shards, err := c.ShardCount(ctx, "")
 	if err != nil {
 		return nil, errors.Wrapf(err, "%s: shard count", hostKeyspaceTables[0].Host)
 	}

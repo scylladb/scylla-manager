@@ -192,12 +192,14 @@ func TestClientShardCount(t *testing.T) {
 	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_metrics/metrics")
 	defer closeServer()
 
-	v, err := client.ShardCount(context.Background(), scyllaclienttest.TestHost)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != 4 {
-		t.Fatal(v)
+	for _, host := range []string{scyllaclienttest.TestHost, ""} {
+		v, err := client.ShardCount(context.Background(), host)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v != 4 {
+			t.Fatal(v)
+		}
 	}
 }
 
