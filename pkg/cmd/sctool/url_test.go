@@ -59,7 +59,7 @@ func TestApiURL(t *testing.T) {
 
 	for _, tt := range table {
 		t.Run(tt.Name, func(t *testing.T) {
-			res := configURL(tt.Config)
+			res := urlFromConfig(tt.Config)
 			if diff := cmp.Diff(tt.Golden, res); diff != "" {
 				t.Error(diff)
 			}

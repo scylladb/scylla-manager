@@ -4,9 +4,7 @@ package main
 
 import (
 	"crypto/tls"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/pkg/errors"
@@ -89,7 +87,7 @@ func init() {
 	if apiURL == "" {
 		cfg, err := config.ParseConfigFile([]string{"/etc/scylla-manager/scylla-manager.yaml"})
 		if err == nil {
-			apiURL = configURL(cfg)
+			apiURL = urlFromConfig(cfg)
 		}
 	}
 	if apiURL == "" {
@@ -100,38 +98,4 @@ func init() {
 	f.StringVar(&cfgAPIKeyFile, "api-key-file", os.Getenv("SCYLLA_MANAGER_API_KEY_FILE"), "`path` to HTTPS client key to access Scylla Manager server")
 
 	f.StringVarP(&cfgCluster, "cluster", "c", os.Getenv("SCYLLA_MANAGER_CLUSTER"), "Specifies the target cluster `name` or ID")
-}
-
-func configURL(cfg *config.ServerConfig) string {
-	const ipv4Zero, ipv6Zero1, ipv6Zero2 = "0.0.0.0", "::0", "::"
-	const ipv4Localhost, ipv6Localhost = "127.0.0.1", "::1"
-
-	addr := cfg.HTTP
-	scheme := "http"
-	if cfg.HTTPS != "" {
-		addr = cfg.HTTPS
-		scheme = "https"
-	}
-	if addr == "" {
-		return ""
-	}
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return ""
-	}
-
-	switch host {
-	case "":
-		host = ipv4Localhost
-	case ipv6Zero1, ipv6Zero2:
-		host = ipv6Localhost
-	case ipv4Zero:
-		host = ipv4Localhost
-	}
-
-	return (&url.URL{
-		Scheme: scheme,
-		Host:   net.JoinHostPort(host, port),
-		Path:   "/api/v1",
-	}).String()
 }
