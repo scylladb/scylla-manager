@@ -499,10 +499,10 @@ func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *s
 }
 
 func (s *Service) supportsRowLevelRepair(ctx context.Context, client *scyllaclient.Client, host string) bool {
-	if s.config.ForceRowLevelRepair {
+	if s.config.ForceRepairType == TypeRowLevel {
 		return true
 	}
-	if s.config.ForceLegacyRepair {
+	if s.config.ForceRepairType == TypeLegacy {
 		return false
 	}
 	sf, err := client.ScyllaFeatures(ctx, host)
