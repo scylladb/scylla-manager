@@ -54,29 +54,27 @@ type sslConfig struct {
 
 // ServerConfig contains configuration structure for scylla manager.
 type ServerConfig struct {
-	HTTP                     string             `yaml:"http"`
-	HTTPS                    string             `yaml:"https"`
-	TLSCertFile              string             `yaml:"tls_cert_file"`
-	TLSKeyFile               string             `yaml:"tls_key_file"`
-	TLSCAFile                string             `yaml:"tls_ca_file"`
-	Prometheus               string             `yaml:"prometheus"`
-	PrometheusScrapeInterval time.Duration      `yaml:"prometheus_scrape_interval"`
-	Debug                    string             `json:"debug"`
-	Logger                   logConfig          `yaml:"logger"`
-	Database                 dbConfig           `yaml:"database"`
-	SSL                      sslConfig          `yaml:"ssl"`
-	Healthcheck              healthcheck.Config `yaml:"healthcheck"`
-	Backup                   backup.Config      `yaml:"backup"`
-	Repair                   repair.Config      `yaml:"repair"`
+	HTTP        string             `yaml:"http"`
+	HTTPS       string             `yaml:"https"`
+	TLSCertFile string             `yaml:"tls_cert_file"`
+	TLSKeyFile  string             `yaml:"tls_key_file"`
+	TLSCAFile   string             `yaml:"tls_ca_file"`
+	Prometheus  string             `yaml:"prometheus"`
+	Debug       string             `json:"debug"`
+	Logger      logConfig          `yaml:"logger"`
+	Database    dbConfig           `yaml:"database"`
+	SSL         sslConfig          `yaml:"ssl"`
+	Healthcheck healthcheck.Config `yaml:"healthcheck"`
+	Backup      backup.Config      `yaml:"backup"`
+	Repair      repair.Config      `yaml:"repair"`
 }
 
 func defaultConfig() *ServerConfig {
 	config := &ServerConfig{
-		TLSCertFile:              "/var/lib/scylla-manager/scylla_manager.crt",
-		TLSKeyFile:               "/var/lib/scylla-manager/scylla_manager.key",
-		Prometheus:               ":5090",
-		PrometheusScrapeInterval: 5 * time.Second,
-		Debug:                    "127.0.0.1:5112",
+		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
+		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
+		Prometheus:  ":5090",
+		Debug:       "127.0.0.1:5112",
 		Logger: logConfig{
 			Mode:        log.StderrMode,
 			Level:       zapcore.InfoLevel,
@@ -124,9 +122,6 @@ func (c *ServerConfig) Validate() error {
 		}
 	}
 
-	if c.PrometheusScrapeInterval <= 0 {
-		return errors.New("prometheus_scrape_interval must be > 0")
-	}
 	if len(c.Database.Hosts) == 0 {
 		return errors.New("missing database.hosts")
 	}

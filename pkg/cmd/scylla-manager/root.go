@@ -19,7 +19,6 @@ import (
 	"github.com/scylladb/mermaid/pkg"
 	"github.com/scylladb/mermaid/pkg/callhome"
 	"github.com/scylladb/mermaid/pkg/cmd/scylla-manager/config"
-	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/util/netwait"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -56,9 +55,6 @@ var rootCmd = &cobra.Command{
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
-
-		// Populate global variables
-		service.PrometheusScrapeInterval = config.PrometheusScrapeInterval
 
 		// Get a base context
 		ctx := log.WithNewTraceID(context.Background())

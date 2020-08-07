@@ -310,6 +310,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 			return client, nil
 		},
 		logger.Named("repair"),
+		nil,
 	)
 	if err != nil {
 		t.Fatal(err)

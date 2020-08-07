@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service/scheduler"
 	"github.com/scylladb/mermaid/pkg/service/secrets/dbsecrets"
 	"github.com/scylladb/mermaid/pkg/util/httppprof"
+	"github.com/scylladb/mermaid/pkg/util/prom"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
@@ -59,17 +60,18 @@ func newServer(config *config.ServerConfig, logger log.Logger) (*server, error) 
 		errCh: make(chan error, 4),
 	}
 
-	if err := s.makeServices(); err != nil {
+	var mw prom.MetricsWatcher
+	if err := s.makeServices(&mw); err != nil {
 		return nil, err
 	}
-	if err := s.makeServers(); err != nil {
+	if err := s.makeServers(&mw); err != nil {
 		return nil, err
 	}
 
 	return s, nil
 }
 
-func (s *server) makeServices() error {
+func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 	secretsStore, err := dbsecrets.New(s.session)
 	if err != nil {
 		return errors.Wrap(err, "db secrets service")
@@ -99,6 +101,7 @@ func (s *server) makeServices() error {
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
 		s.logger.Named("backup"),
+		mw,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "backup service")
@@ -110,6 +113,7 @@ func (s *server) makeServices() error {
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.logger.Named("repair"),
+		mw,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "repair service")
@@ -170,7 +174,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	return nil
 }
 
-func (s *server) makeServers() error {
+func (s *server) makeServers(mw *prom.MetricsWatcher) error {
 	h := restapi.New(restapi.Services{
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
@@ -207,13 +211,10 @@ func (s *server) makeServers() error {
 		}
 	}
 	if s.config.Prometheus != "" {
-		mw := &restapi.MetricsWatcher{}
 		s.prometheusServer = &http.Server{
 			Addr:    s.config.Prometheus,
 			Handler: restapi.NewPrometheus(s.clusterSvc, mw),
 		}
-		s.repairSvc.SetMetricsWatcher(mw)
-		s.backupSvc.SetMetricsWatcher(mw)
 	}
 	if s.config.Debug != "" {
 		s.debugServer = &http.Server{

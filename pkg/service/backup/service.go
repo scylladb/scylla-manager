@@ -34,6 +34,10 @@ type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, err
 // SessionFunc returns CQL session for given cluster ID.
 type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error)
 
+type metricsWatcher interface {
+	RegisterCallback(func()) func()
+}
+
 // Service orchestrates clusterName backups.
 type Service struct {
 	session gocqlx.Session
@@ -47,7 +51,7 @@ type Service struct {
 }
 
 func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
-	clusterSession SessionFunc, logger log.Logger) (*Service, error) {
+	clusterSession SessionFunc, logger log.Logger, mw metricsWatcher) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -71,6 +75,7 @@ func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFu
 		scyllaClient:   scyllaClient,
 		clusterSession: clusterSession,
 		logger:         logger,
+		mw:             mw,
 	}, nil
 }
 
@@ -963,15 +968,6 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	return nil
 }
 
-type metricsWatcher interface {
-	OnRequest(func()) func()
-}
-
-// SetMetricsWatcher sets metrics watcher.
-func (s *Service) SetMetricsWatcher(mw metricsWatcher) {
-	s.mw = mw
-}
-
 func (s *Service) watchProgressMetrics(ctx context.Context, runProgress runProgressFunc) func() {
 	if s.mw == nil {
 		return func() {}
@@ -980,5 +976,5 @@ func (s *Service) watchProgressMetrics(ctx context.Context, runProgress runProgr
 	update := updateFunc(ctx, runProgress, s.logger)
 	update()
 
-	return s.mw.OnRequest(update)
+	return s.mw.RegisterCallback(update)
 }

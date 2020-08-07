@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"github.com/scylladb/mermaid/pkg/restapi"
+	"github.com/scylladb/mermaid/pkg/util/prom"
 )
 
 func TestMetrics(t *testing.T) {
-	h := restapi.NewPrometheus(nil, &restapi.MetricsWatcher{})
+	h := restapi.NewPrometheus(nil, &prom.MetricsWatcher{})
 	r := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

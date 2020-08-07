@@ -28,6 +28,10 @@ import (
 // ClusterNameFunc returns name for a given ID.
 type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
 
+type metricsWatcher interface {
+	RegisterCallback(func()) func()
+}
+
 // Service orchestrates clusterName repairs.
 type Service struct {
 	session gocqlx.Session
@@ -42,7 +46,8 @@ type Service struct {
 	mu                sync.Mutex
 }
 
-func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc,
+	scyllaClient scyllaclient.ProviderFunc, logger log.Logger, mw metricsWatcher) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
 	}
@@ -61,6 +66,7 @@ func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFu
 		clusterName:       clusterName,
 		scyllaClient:      scyllaClient,
 		logger:            logger,
+		mw:                mw,
 		intensityHandlers: make(map[uuid.UUID]*intensityHandler),
 	}, nil
 }
@@ -179,15 +185,6 @@ func (s *Service) singleNodeCluster(dcMap map[string][]string) bool {
 		}
 	}
 	return false
-}
-
-type metricsWatcher interface {
-	OnRequest(func()) func()
-}
-
-// SetMetricsWatcher sets the metrics watcher.
-func (s *Service) SetMetricsWatcher(mw metricsWatcher) {
-	s.mw = mw
 }
 
 // Repair performs the repair process on the Target.
@@ -578,7 +575,7 @@ func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, r
 	}
 	update()
 
-	return s.mw.OnRequest(update)
+	return s.mw.RegisterCallback(update)
 }
 
 // GetLastResumableRun returns the the most recent started but not done run of

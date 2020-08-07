@@ -5,7 +5,6 @@ package restapi
 import (
 	"fmt"
 	"net/http"
-	"sync"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
@@ -14,6 +13,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/httphandler"
 	"github.com/scylladb/mermaid/pkg/util/httplog"
+	"github.com/scylladb/mermaid/pkg/util/prom"
 )
 
 func init() {
@@ -65,10 +65,10 @@ func interactive(next http.Handler) http.Handler {
 
 // NewPrometheus returns an http.Handler exposing Prometheus metrics on
 // '/metrics'.
-func NewPrometheus(svc ClusterService, mw *MetricsWatcher) http.Handler {
+func NewPrometheus(svc ClusterService, mw *prom.MetricsWatcher) http.Handler {
 	r := chi.NewRouter()
 
-	r.Get("/metrics", mw.requestHandler)
+	r.Get("/metrics", mw.WrapHandler(promhttp.Handler()))
 
 	// Exposing Consul API to Prometheus for discovering nodes.
 	// The idea is to use already working discovering mechanism to avoid
@@ -76,39 +76,4 @@ func NewPrometheus(svc ClusterService, mw *MetricsWatcher) http.Handler {
 	r.Mount("/v1", newConsulHandler(svc))
 
 	return r
-}
-
-// MetricsWatcher keeps track of registered callbacks for metrics requests.
-type MetricsWatcher struct {
-	mu        sync.Mutex
-	callbacks []*func()
-}
-
-func (mw *MetricsWatcher) requestHandler(w http.ResponseWriter, r *http.Request) {
-	mw.mu.Lock()
-	for _, callback := range mw.callbacks {
-		(*callback)()
-	}
-	mw.mu.Unlock()
-	promhttp.Handler().ServeHTTP(w, r)
-}
-
-// OnRequest registers callback to be executed when metrics are requested.
-// It returns function that should be called to stop watching for requests.
-func (mw *MetricsWatcher) OnRequest(callback func()) func() {
-	mw.mu.Lock()
-	defer mw.mu.Unlock()
-
-	mw.callbacks = append(mw.callbacks, &callback)
-
-	return func() {
-		mw.mu.Lock()
-		defer mw.mu.Unlock()
-		for i := range mw.callbacks {
-			if mw.callbacks[i] == &callback {
-				mw.callbacks = append(mw.callbacks[:i], mw.callbacks[i+1:]...)
-				return
-			}
-		}
-	}
 }

@@ -21,12 +21,6 @@ http: 127.0.0.1:5080
 # of ip and port.
 #prometheus: ':5090'
 
-# Whenever you update Prometheus scrape_interval for Scylla Manager
-# also update this value.
-# This would allow for Scylla Manager to produce aggregated metrics
-# at just right pace for Prometheus to consume them.
-#prometheus_scrape_interval: 5s
-
 # Debug server that allows to run pporf profiling on demand on a live system.
 #debug: 127.0.0.1:5112
 

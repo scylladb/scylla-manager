@@ -7,8 +7,6 @@ tls_key_file: tls.key
 tls_ca_file: ca.cert
 
 prometheus: 127.0.0.1:9090
-prometheus_scrape_interval: 1s
-
 debug: 127.0.0.1:112
 
 logger:
