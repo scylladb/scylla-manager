@@ -239,15 +239,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// Check the cluster partitioner
-	p, err := client.Partitioner(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get client partitioner name")
-	}
-	if p != scyllaclient.Murmur3Partitioner {
-		return errors.Errorf("unsupported partitioner %s, the only supported partitioner is %s", p, scyllaclient.Murmur3Partitioner)
-	}
-
 	// Dynamic Intensity
 	ih, cleanup := s.newIntensityHandler(clusterID, target.Intensity)
 	defer cleanup()
@@ -483,15 +474,28 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 
 func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
 	out := make(map[string]*dht.Murmur3Partitioner)
-	for _, h := range hosts {
-		if s.supportsRowLevelRepair(ctx, client, h) {
+	// Check the cluster partitioner
+	p, err := client.Partitioner(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get client partitioner name")
+	}
+	// If partitioner is not supported just return nil partitioner which will
+	// signal that task should continue as row-level repair.
+	if p != scyllaclient.Murmur3Partitioner {
+		for _, h := range hosts {
 			out[h] = nil
-		} else {
-			p, err := s.partitioner(ctx, h, client)
-			if err != nil {
-				return nil, err
+		}
+	} else {
+		for _, h := range hosts {
+			if s.supportsRowLevelRepair(ctx, client, h) {
+				out[h] = nil
+			} else {
+				p, err := s.partitioner(ctx, h, client)
+				if err != nil {
+					return nil, err
+				}
+				out[h] = p
 			}
-			out[h] = p
 		}
 	}
 
