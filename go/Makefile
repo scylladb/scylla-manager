@@ -21,6 +21,7 @@ ifndef GOROOT
 endif
 	@echo "==> Installing Go $(GO_VERSION) to $(TARGET)..."
 	@[ -d $(TARGET) ] || (mkdir -p $(TARGET) && tar -xzf $(GO_BUNDLE) -C $(TARGET))
+	@rm -f `dirname $(TARGET)`/latest
 	@ln -sf $(TARGET)/go `dirname $(TARGET)`/latest
 
 .PHONY: clean
