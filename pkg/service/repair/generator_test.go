@@ -145,7 +145,7 @@ func TestGenerator(t *testing.T) {
 			Intensity: 50,
 		}
 		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-		g := newGenerator(ih, gracefulShutdownTimeout, log.NewDevelopment(), newNopProgressManager())
+		g := newGenerator(ih, gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
 
 		var allRanges []*tableTokenRange
 		for _, u := range units {
@@ -560,7 +560,7 @@ func makeGenerator(ctx context.Context, target Target, intensityHandler *intensi
 	}
 	intensityHandler.SetHostRangeLimits(rangeLimits)
 
-	g := newGenerator(intensityHandler, gracefulShutdownTimeout, log.NewDevelopment(), newNopProgressManager())
+	g := newGenerator(intensityHandler, gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
 	for _, u := range units {
 		g.Add(b.Build(u))
 	}

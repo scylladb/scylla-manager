@@ -333,6 +333,20 @@ func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 	ExecStmt(t, session, "DROP KEYSPACE "+keyspace)
 }
 
+func allUnits() repair.Target {
+	return repair.Target{
+		Units: []repair.Unit{
+			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
+			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
+			{Keyspace: "system_schema", Tables: []string{"indexes", "keyspaces"}},
+		},
+		DC:                  []string{"dc1", "dc2"},
+		Continue:            true,
+		Intensity:           0.1,
+		SmallTableThreshold: 0,
+	}
+}
+
 func singleUnit() repair.Target {
 	return repair.Target{
 		Units: []repair.Unit{
@@ -343,6 +357,7 @@ func singleUnit() repair.Target {
 		},
 		DC:                  []string{"dc1", "dc2"},
 		Continue:            true,
+		Intensity:           0.1,
 		SmallTableThreshold: 0,
 	}
 }
@@ -354,8 +369,9 @@ func multipleUnits() repair.Target {
 			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 		},
 		DC:                  []string{"dc1", "dc2"},
-		SmallTableThreshold: 0,
 		Continue:            true,
+		Intensity:           0.1,
+		SmallTableThreshold: 0,
 	}
 }
 
@@ -762,6 +778,43 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("repair restart fixes failed ranges", func(t *testing.T) {
+		c := defaultConfig()
+
+		h := newRepairTestHelper(t, session, c)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, allUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("And: errors occur")
+		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+
+		Print("Then: repair completes with error")
+		h.assertError(shortWait)
+
+		Print("When: create a new run")
+		h.runID = uuid.NewTime()
+
+		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+
+		Print("And: run repair")
+		h.runRepair(ctx, allUnits())
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node12 is 50% repaired")
+		h.assertProgress(node12, 50, longWait)
+
+		Print("And: repair is done")
+		h.assertDone(shortWait)
+	})
+
 	t.Run("repair temporary network outage", func(t *testing.T) {
 		c := defaultConfig()
 
@@ -803,81 +856,30 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertDone(shortWait)
 	})
 
-	t.Run("repair error retry", func(t *testing.T) {
+	t.Run("repair error fail fast", func(t *testing.T) {
 		c := defaultConfig()
 
 		h := newRepairTestHelper(t, session, c)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		u := allUnits()
+		u.FailFast = true
+
 		Print("When: run repair")
-		h.runRepair(ctx, singleUnit())
+		h.runRepair(ctx, u)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		Print("When: node12 is 50% repaired")
-		h.assertProgress(node12, 50, longWait)
-
-		Print("And: errors occur for 5s with 1s backoff")
-		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
-		time.AfterFunc(5*time.Second, func() {
+		Print("And: no network for 5s with 1s backoff")
+		h.hrt.SetInterceptor(dialErrorInterceptor())
+		time.AfterFunc(3*h.client.Config().Timeout, func() {
 			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 		})
 
-		Print("Then: node12 repair continues")
-		h.assertProgress(node12, 60, longWait)
-
-		Print("When: node12 is 95% repaired")
-		h.assertProgress(node12, 95, longWait)
-
-		Print("Then: repair of node13 advances")
-		h.assertProgress(node13, 1, longWait)
-
-		Print("When: node13 is 100% repaired")
-		h.assertProgress(node13, 100, longWait)
-
-		Print("Then: node12 retries repair")
-		h.assertProgress(node12, 100, shortWait)
-
-		Print("And: repair is done")
-		h.assertDone(shortWait)
-	})
-
-	t.Run("repair error fail fast", func(t *testing.T) {
-		c := defaultConfig()
-		h := newRepairTestHelper(t, session, c)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		unit := singleUnit()
-		unit.FailFast = true
-
-		Print("Given: one repair fails")
-		var (
-			mu sync.Mutex
-			ic = repairInterceptor(scyllaclient.CommandFailed)
-		)
-		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
-			if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
-				return nil, nil
-			}
-
-			mu.Lock()
-			defer mu.Unlock()
-			resp, err = ic.RoundTrip(req)
-
-			if req.Method == http.MethodGet {
-				ic = repairInterceptor(scyllaclient.CommandSuccessful)
-			}
-			return
-		}))
-
-		Print("And: repair")
-		h.runRepair(ctx, unit)
-
-		Print("Then: repair fails")
-		h.assertError(shortWait)
+		Print("Then: repair completes with error")
+		h.assertError(longWait)
 	})
 
 	t.Run("repair non existing keyspace", func(t *testing.T) {

@@ -45,12 +45,11 @@ type worker struct {
 	progress        progressManager
 	pollInterval    time.Duration
 	hostPartitioner map[string]*dht.Murmur3Partitioner
-	failFast        bool
 }
 
 func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclient.Client,
 	logger log.Logger, manager progressManager, pollInterval time.Duration,
-	hostPartitioner map[string]*dht.Murmur3Partitioner, failFast bool) worker {
+	hostPartitioner map[string]*dht.Murmur3Partitioner) worker {
 	return worker{
 		run:          run,
 		in:           in,
@@ -61,7 +60,6 @@ func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclie
 		pollInterval: pollInterval,
 
 		hostPartitioner: hostPartitioner,
-		failFast:        failFast,
 	}
 }
 
@@ -91,30 +89,19 @@ func (w *worker) runJob(ctx context.Context, job job) error {
 		return errors.Wrapf(err, "host %s: starting progress", job.Host)
 	}
 
-	const (
-		jobAttempts       = 2
-		jobAttemptTimeout = 5 * time.Second
+	var (
+		err error
+		msg string
 	)
-
-	var err error
-	for attempt := 1; attempt <= jobAttempts; attempt++ {
-		msg := ""
-		if w.hostPartitioner[job.Host] == nil {
-			err = w.runRepair(ctx, job.Ranges, job.Host)
-			msg = "Run row-level repair"
-		} else {
-			err = w.runLegacyRepair(ctx, job.Ranges, job.Host)
-			msg = "Run legacy repair"
-		}
-		if err != nil {
-			w.logger.Error(ctx, msg, "error", err, "attempt", attempt)
-			if w.failFast {
-				break
-			}
-			time.Sleep(jobAttemptTimeout)
-			continue
-		}
-		break
+	if w.hostPartitioner[job.Host] == nil {
+		err = w.runRepair(ctx, job.Ranges, job.Host)
+		msg = "Run row-level repair"
+	} else {
+		err = w.runLegacyRepair(ctx, job.Ranges, job.Host)
+		msg = "Run legacy repair"
+	}
+	if err != nil {
+		w.logger.Error(ctx, msg, "error", err)
 	}
 
 	return err

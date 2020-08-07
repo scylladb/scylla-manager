@@ -252,7 +252,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Create generator
 	var (
 		manager = newProgressManager(run, s.session)
-		g       = newGenerator(ih, s.config.GracefulShutdownTimeout, s.logger, manager)
+		g       = newGenerator(ih, s.config.GracefulShutdownTimeout, manager, target.FailFast, s.logger)
 		wc      int
 	)
 	for _, u := range target.Units {
@@ -340,7 +340,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "host partitioner")
 	}
 	// Create worker
-	w := newWorker(run, g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioner, target.FailFast)
+	w := newWorker(run, g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioner)
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.

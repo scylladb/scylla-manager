@@ -88,7 +88,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -142,7 +142,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(false, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -196,7 +196,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, hostPartitioner, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, hostPartitioner)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -250,7 +250,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner, false)
+		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {

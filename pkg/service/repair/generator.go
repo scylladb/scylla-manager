@@ -58,20 +58,23 @@ type generator struct {
 	next       chan job
 	nextClosed bool
 	result     chan jobResult
+	failFast   bool
 
 	count   int
 	success int
 	failed  int
 }
 
-func newGenerator(ih *intensityHandler, gracefulShutdownTimeout time.Duration, logger log.Logger, manager progressManager) *generator {
+func newGenerator(ih *intensityHandler, gracefulShutdownTimeout time.Duration, manager progressManager, failFast bool, logger log.Logger) *generator {
 	g := &generator{
 		gracefulShutdownTimeout: gracefulShutdownTimeout,
-		logger:                  logger,
-		replicas:                make(map[uint64][]string),
-		ranges:                  make(map[uint64][]*tableTokenRange),
-		smallTables:             strset.New(),
 		progress:                manager,
+		failFast:                failFast,
+		logger:                  logger,
+
+		replicas:    make(map[uint64][]string),
+		ranges:      make(map[uint64][]*tableTokenRange),
+		smallTables: strset.New(),
 	}
 
 	// Check if intensity channel has desired intensity value
@@ -213,6 +216,14 @@ func (g *generator) processResult(ctx context.Context, r jobResult, lastPercent 
 	if r.Err != nil {
 		g.failed += len(r.Ranges)
 		g.logger.Info(ctx, "Repair failed", "error", r.Err)
+		if g.failFast {
+			// If worker failed with fail fast error then initiate shutdown.
+			// Setting nextClosed to true will prevent scheduling any new
+			// jobs but will also allow draining queue of any existing jobs.
+			// generator/worker pair will shutdown once there are no more
+			// busy replicas.
+			g.closeNext()
+		}
 	} else {
 		g.success += len(r.Ranges)
 	}
@@ -233,8 +244,8 @@ func (g *generator) unblockReplicas(ttr *tableTokenRange) {
 
 func (g *generator) closeNext() {
 	if !g.nextClosed {
-		close(g.next)
 		g.nextClosed = true
+		close(g.next)
 	}
 }
 
