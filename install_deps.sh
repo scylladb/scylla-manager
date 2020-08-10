@@ -2,10 +2,8 @@
 
 set -u -o pipefail
 
-FEDORA_PKGS="jq make moreutils sshpass python python-pip rpm-build"
-UBUNTU_PKGS="jq make moreutils sshpass python python-pip"
-
-PYTHON_PKGS="cqlsh"
+FEDORA_PKGS="jq make moreutils sshpass rpm-build"
+UBUNTU_PKGS="jq make moreutils sshpass"
 
 GO_PKGS="
 golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.24.0/golangci-lint-1.24.0-linux-amd64.tar.gz \
@@ -32,8 +30,8 @@ case ${DISTRO} in
         exit 1
 esac
 
-echo "==> Installing Python packages"
-pip install --user --upgrade ${PYTHON_PKGS}
+echo "==> Installing cqlsh from pip"
+python2.7 -m pip install cqlsh
 
 export GOBIN=${GOBIN:-${GOPATH}/bin}
 mkdir -p ${GOBIN}
