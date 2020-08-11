@@ -363,7 +363,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.Client, target Target, g *generator) error {
 	repairHosts := g.Hosts()
 
-	// Calculate size and mark small tables for repair optimization.
+	// Get report for Host, Keyspace, Table tuples
 	var hkts []scyllaclient.HostKeyspaceTable
 	for _, u := range target.Units {
 		for _, t := range u.Tables {
@@ -372,16 +372,34 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 			}
 		}
 	}
-
-	sizeReport, err := client.TableDiskSizeReport(ctx, hkts)
+	report, err := client.TableDiskSizeReport(ctx, hkts)
 	if err != nil {
 		return errors.Wrap(err, "table disk size report")
 	}
-	for i, size := range sizeReport {
-		r := hkts[i]
-		if size <= target.SmallTableThreshold {
-			s.logger.Debug(ctx, "Optimizing small table", "keyspace", r.Keyspace, "table", r.Table, "size", size)
-			g.markSmallTable(r.Keyspace, r.Table)
+
+	// Calculate total table size across hosts
+	totalSize := make(map[string]int64)
+	for i, size := range report {
+		key := hkts[i].Keyspace + "." + hkts[i].Table
+		totalSize[key] += size
+	}
+
+	// Log and mark small tables
+	for _, u := range target.Units {
+		var smallTables []string
+
+		for _, t := range u.Tables {
+			key := u.Keyspace + "." + t
+			total := totalSize[key]
+
+			if total <= target.SmallTableThreshold {
+				s.logger.Debug(ctx, "Detected small table", "keyspace", u.Keyspace, "table", t, "size", total, "threshold", target.SmallTableThreshold)
+				g.markSmallTable(u.Keyspace, t)
+				smallTables = append(smallTables, t)
+			}
+		}
+		if len(smallTables) > 0 {
+			s.logger.Info(ctx, "Detected small tables", "keyspace", u.Keyspace, "tables", smallTables, "threshold", target.SmallTableThreshold)
 		}
 	}
 
