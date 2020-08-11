@@ -4,7 +4,7 @@ services:
   dc1_node_1:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -19,7 +19,7 @@ services:
   dc1_node_2:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -34,7 +34,7 @@ services:
   dc1_node_3:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -49,7 +49,7 @@ services:
   dc2_node_1:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -64,7 +64,7 @@ services:
   dc2_node_2:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -79,7 +79,7 @@ services:
   dc2_node_3:
     image: scylladb/scylla-ssh:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --seeds 192.168.100.11,192.168.100.21
+    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
