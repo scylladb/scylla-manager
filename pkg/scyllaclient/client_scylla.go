@@ -681,7 +681,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 	// Get shard count of a first node to estimate parallelism limit
 	shards, err := c.ShardCount(ctx, "")
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s: shard count", hostKeyspaceTables[0].Host)
+		return nil, errors.Wrapf(err, "shard count")
 	}
 
 	var (
