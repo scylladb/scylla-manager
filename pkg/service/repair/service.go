@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/mermaid/pkg/service"
 	"github.com/scylladb/mermaid/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/mermaid/pkg/util/parallel"
 	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -411,20 +412,32 @@ type rangesLimit struct {
 type hostRangesLimit map[string]rangesLimit
 
 func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Client, hosts []string) (hostRangesLimit, error) {
-	hrl := make(hostRangesLimit)
+	var (
+		out = make(hostRangesLimit, len(hosts))
+		mu  sync.Mutex
+	)
 
-	for _, h := range hosts {
+	err := parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+		h := hosts[i]
+
 		totalMemory, err := client.TotalMemory(ctx, h)
 		if err != nil {
-			return nil, err
+			return errors.Wrapf(err, "%s: total memory", h)
 		}
 
-		s.logger.Debug(ctx, "Host ranges in parallel", "limit", hrl[h], "host", h)
-		hrl[h] = rangesLimit{
+		v := rangesLimit{
 			Max: s.maxRepairRangesInParallel(totalMemory),
 		}
-	}
-	return hrl, nil
+		s.logger.Debug(ctx, "Host ranges in parallel", "host", h, "limit", v)
+
+		mu.Lock()
+		out[h] = v
+		mu.Unlock()
+
+		return nil
+	})
+
+	return out, err
 }
 
 func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
