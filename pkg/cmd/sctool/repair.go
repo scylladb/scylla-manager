@@ -122,7 +122,7 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	fs.Bool("show-tables", false, "print all table names for a keyspace")
-	fs.Var(&IntensityFlag{Value: "0"}, "intensity",
+	fs.Var(&IntensityFlag{Value: 0}, "intensity",
 		"repair speed, higher values result in higher speed and may increase cluster load, values between (0, 1) specifies percentage of active workers")
 	fs.String("small-table-threshold", "1GiB", "enable small table optimization for tables of size lower than given threshold. Supported units [B, MiB, GiB, TiB]")
 	return fs
@@ -138,21 +138,13 @@ Intensity must be a real number between (0-1) or integer when >= 1.
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			intensity float64
-			err       error
-		)
+		var intensity IntensityFlag
 
-		if err := validateIntensity(args[0]); err != nil {
+		if err := intensity.Set(args[0]); err != nil {
 			return err
 		}
 
-		intensity, err = strconv.ParseFloat(args[0], 64)
-		if err != nil {
-			return err
-		}
-
-		if err := client.SetRepairIntensity(ctx, cfgCluster, intensity); err != nil {
+		if err := client.SetRepairIntensity(ctx, cfgCluster, intensity.Value); err != nil {
 			if strings.Contains(err.Error(), "not found") {
 				return errors.Errorf("not found any running repairs for '%s' cluster", cfgCluster)
 			}
@@ -170,30 +162,21 @@ func init() {
 
 // IntensityFlag represents intensity flag which is a float64 value with a custom validation.
 type IntensityFlag struct {
-	Value string
+	Value float64
 }
 
 // String returns intensity value as string.
 func (fl *IntensityFlag) String() string {
-	return fl.Value
+	return fmt.Sprint(fl.Value)
 }
 
 // Set validates and sets intensity value.
 func (fl *IntensityFlag) Set(s string) error {
-	if err := validateIntensity(s); err != nil {
-		return err
+	if s == "max" {
+		fl.Value = -1
+		return nil
 	}
 
-	fl.Value = s
-	return nil
-}
-
-// Type returns type of intensity.
-func (fl *IntensityFlag) Type() string {
-	return "float64"
-}
-
-func validateIntensity(s string) error {
 	var errValidation = errors.New("intensity must be a real number between (0-1) or integer when >= 1")
 
 	f, err := strconv.ParseFloat(s, 64)
@@ -206,7 +189,14 @@ func validateIntensity(s string) error {
 			return errValidation
 		}
 	}
+
+	fl.Value = f
 	return nil
+}
+
+// Type returns type of intensity.
+func (fl *IntensityFlag) Type() string {
+	return "float64"
 }
 
 var repairUpdateCmd = &cobra.Command{
