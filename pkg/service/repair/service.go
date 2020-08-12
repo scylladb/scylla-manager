@@ -403,6 +403,13 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 	return nil
 }
 
+type rangesLimit struct {
+	Default int
+	Max     int
+}
+
+type hostRangesLimit map[string]rangesLimit
+
 func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Client, hosts []string) (hostRangesLimit, error) {
 	hrl := make(hostRangesLimit)
 
@@ -412,8 +419,10 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 			return nil, err
 		}
 
-		hrl[h] = s.maxRepairRangesInParallel(totalMemory)
-		s.logger.Debug(ctx, "Setting host ranges in parallel", "limit", hrl[h], "host", h)
+		s.logger.Debug(ctx, "Host ranges in parallel", "limit", hrl[h], "host", h)
+		hrl[h] = rangesLimit{
+			Max: s.maxRepairRangesInParallel(totalMemory),
+		}
 	}
 	return hrl, nil
 }
@@ -716,7 +725,7 @@ func (i *intensityHandler) Intensity(host string) float64 {
 	}
 
 	if v, ok := i.hostRangesLimits[host]; ok {
-		return float64(v)
+		return float64(v.Max)
 	}
 
 	return 0

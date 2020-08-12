@@ -82,12 +82,12 @@ func TestGenerator(t *testing.T) {
 	}
 
 	rangeLimits := hostRangesLimit{
-		"a": 5,
-		"b": 10,
-		"c": 20,
-		"d": 5,
-		"e": 10,
-		"f": 20,
+		"a": rangesLimit{Max: 5},
+		"b": rangesLimit{Max: 10},
+		"c": rangesLimit{Max: 20},
+		"d": rangesLimit{Max: 5},
+		"e": rangesLimit{Max: 10},
+		"f": rangesLimit{Max: 20},
 	}
 
 	units := []Unit{
@@ -211,7 +211,7 @@ func TestGenerator(t *testing.T) {
 
 			// Check that ranges follow host limit
 			for _, j := range jobs {
-				if len(j.Ranges) > rangeLimits[j.Host] {
+				if len(j.Ranges) > rangeLimits[j.Host].Max {
 					t.Errorf("%s host received more ranges than can handle", j.Host)
 				}
 			}

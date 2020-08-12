@@ -28,8 +28,6 @@ func (hp hostPriority) PickHost(replicas []string) string {
 	return replicas[0]
 }
 
-type hostRangesLimit map[string]int
-
 type job struct {
 	Host   string
 	Ranges []*tableTokenRange
