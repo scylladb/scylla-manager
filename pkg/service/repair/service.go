@@ -425,8 +425,14 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 			return errors.Wrapf(err, "%s: total memory", h)
 		}
 
+		shards, err := client.ShardCount(ctx, h)
+		if err != nil {
+			return errors.Wrapf(err, "%s: shard count", h)
+		}
+
 		v := rangesLimit{
-			Max: s.maxRepairRangesInParallel(totalMemory),
+			Default: int(shards),
+			Max:     s.maxRepairRangesInParallel(totalMemory),
 		}
 		s.logger.Debug(ctx, "Host ranges in parallel", "host", h, "limit", v)
 
