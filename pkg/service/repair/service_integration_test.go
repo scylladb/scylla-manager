@@ -33,6 +33,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			return nil, errors.New("not implemented")
 		},
 		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("repair"),
+		nil,
 	)
 	if err != nil {
 		t.Fatal(err)
