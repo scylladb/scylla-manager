@@ -461,3 +461,34 @@ func TestByteCounting(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatIntensity(t *testing.T) {
+	table := []struct {
+		Intensity float64
+		Golden    string
+	}{
+		{
+			Intensity: -1,
+			Golden:    "max",
+		},
+		{
+			Intensity: 1,
+			Golden:    "1",
+		},
+		{
+			Intensity: 0.1111,
+			Golden:    "0.11",
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+		t.Run(test.Golden, func(t *testing.T) {
+			t.Parallel()
+
+			if s := FormatIntensity(test.Intensity); s != test.Golden {
+				t.Errorf("FormatIntensity() expected %s got %s", test.Golden, s)
+			}
+		})
+	}
+}

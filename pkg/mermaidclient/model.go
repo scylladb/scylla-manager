@@ -410,7 +410,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 			}
 			fmt.Fprintf(w, "\nHost: %s\n", h.Host)
 			if h.Intensity != 0 {
-				fmt.Fprintf(w, "Intensity: %d\n", int(h.Intensity))
+				fmt.Fprintf(w, "Intensity: %s\n", FormatIntensity(h.Intensity))
 			}
 			d := table.New()
 			d.AddRow("Keyspace", "Table", "Progress", "Token Ranges", "Success", "Error", "Started at", "Completed at", "Duration")

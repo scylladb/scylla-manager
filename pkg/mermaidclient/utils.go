@@ -276,3 +276,14 @@ func FormatTables(threshold int, tables []string, all bool) string {
 func FormatClusterName(w io.Writer, c *Cluster) {
 	fmt.Fprintf(w, "Cluster: %s (%s)\n", c.Name, c.ID)
 }
+
+// FormatIntensity returns text representation of repair intensity.
+func FormatIntensity(v float64) string {
+	if v == -1 {
+		return "max"
+	}
+	if math.Floor(v) == v {
+		return fmt.Sprintf("%d", int(v))
+	}
+	return fmt.Sprintf("%.2f", v)
+}
