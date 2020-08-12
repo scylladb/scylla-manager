@@ -738,16 +738,22 @@ func (i *intensityHandler) Set(ctx context.Context, intensity float64) error {
 	return nil
 }
 
+const (
+	defaultIntensity = 0
+	maxIntensity     = -1
+)
+
 func (i *intensityHandler) Intensity(host string) float64 {
-	if v := i.global.Load(); v != 0 {
+	v := i.global.Load()
+
+	switch v {
+	case defaultIntensity:
+		return float64(i.hostRangesLimits[host].Default)
+	case maxIntensity:
+		return float64(i.hostRangesLimits[host].Max)
+	default:
 		return v
 	}
-
-	if v, ok := i.hostRangesLimits[host]; ok {
-		return float64(v.Max)
-	}
-
-	return 0
 }
 
 func (i *intensityHandler) SetHostRangeLimits(hrl hostRangesLimit) {
