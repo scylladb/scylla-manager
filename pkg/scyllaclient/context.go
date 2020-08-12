@@ -15,6 +15,7 @@ const (
 	ctxInteractive ctxt = iota
 	ctxHost
 	ctxNoRetry
+	ctxNoTimeout
 	ctxCustomTimeout
 )
 
@@ -57,4 +58,18 @@ func customTimeout(ctx context.Context, d time.Duration) context.Context {
 func hasCustomTimeout(ctx context.Context) (time.Duration, bool) {
 	v, ok := ctx.Value(ctxCustomTimeout).(time.Duration)
 	return v, ok
+}
+
+// noTimeout disables Timeout middleware.
+//
+// WARNING: Usually this is a workaround for Scylla or other API slowness
+// in field condition i.e. with tons of data. This is the last resort of
+// defense please use with care.
+func noTimeout(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxNoTimeout, true)
+}
+
+func hasNoTimeout(ctx context.Context) bool {
+	_, ok := ctx.Value(ctxNoTimeout).(bool)
+	return ok
 }

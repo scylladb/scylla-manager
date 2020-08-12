@@ -317,9 +317,10 @@ type RcloneListDirItem = models.ListItem
 // Listed item path is relative to the remote path root directory.
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*models.ListItem, error) {
 	// Response contains all files available in directory without paging,
-	// default request constraints might be not sufficient to list thousands
+	// default request constraints might be not sufficient to list millions
 	// of files, which may be a case for SSTable directories.
-	ctx = customTimeout(ctx, 10*time.Minute)
+	// NoTimeout can be removed once we get rid of backup v1 migration.
+	ctx = noTimeout(ctx)
 
 	empty := ""
 	p := operations.OperationsListParams{
