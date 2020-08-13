@@ -26,6 +26,8 @@ func newRepairHandler(services Services) *chi.Mux {
 	return m
 }
 
+const maxIntensity = -1
+
 func (h repairHandler) intensity(r *http.Request) (float64, error) {
 	var (
 		intensity float64
@@ -40,7 +42,7 @@ func (h repairHandler) intensity(r *http.Request) (float64, error) {
 	}
 
 	// Report error if intensity is missing
-	if intensity == 0 {
+	if intensity < maxIntensity {
 		return 0, service.ErrValidate(errors.New("missing intensity"))
 	}
 
