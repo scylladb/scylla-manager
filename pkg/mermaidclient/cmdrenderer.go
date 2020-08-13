@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -64,9 +65,23 @@ func (rc *CmdRenderer) writeArg(in ...string) {
 	}
 }
 
+type transformer func(val string) string
+
+func quoted(val string) string {
+	return "'" + val + "'"
+}
+
+func byteCount(val string) string {
+	i, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return "error"
+	}
+	return ByteCountBinary(i)
+}
+
 // writeProp adds a map from argument to the task property.
-// If quoted is true property value will be single quoted.
-func (rc *CmdRenderer) writeProp(arg, prop string, quoted bool) {
+// Transformers will be applied to the value in the provided order.
+func (rc *CmdRenderer) writeProp(arg, prop string, transformers ...transformer) {
 	if rc.task.Properties == nil {
 		return
 	}
@@ -85,22 +100,22 @@ func (rc *CmdRenderer) writeProp(arg, prop string, quoted bool) {
 			tmp[i] = val[i].(string)
 		}
 		out := strings.Join(tmp, ",")
-		if quoted {
-			out = "'" + out + "'"
+		for i := range transformers {
+			out = transformers[i](out)
 		}
 		rc.writeArg(arg, " ", out)
 	case []string:
 		out := strings.Join(val, ",")
-		if quoted {
-			out = "'" + out + "'"
+		for i := range transformers {
+			out = transformers[i](out)
 		}
 		rc.writeArg(arg, " ", out)
 	case bool:
 		rc.writeArg(arg)
 	default:
 		out := fmt.Sprintf("%v", v)
-		if quoted {
-			out = "'" + out + "'"
+		for i := range transformers {
+			out = transformers[i](out)
 		}
 		rc.writeArg(arg, " ", out)
 	}
@@ -123,22 +138,19 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 	case RenderTypeArgs:
 		switch rc.task.Type {
 		case backupTaskType:
-			rc.writeProp("-K", "keyspace", true)
-			rc.writeProp("--dc", "dc", true)
-			rc.writeProp("-L", "location", false)
-			rc.writeProp("--retention", "retention", false)
-			rc.writeProp("--rate-limit", "rate_limit", false)
-			rc.writeProp("--snapshot-parallel", "snapshot_parallel", false)
-			rc.writeProp("--upload-parallel", "upload_parallel", false)
+			rc.writeProp("-K", "keyspace", quoted)
+			rc.writeProp("--dc", "dc", quoted)
+			rc.writeProp("-L", "location")
+			rc.writeProp("--retention", "retention")
+			rc.writeProp("--rate-limit", "rate_limit")
+			rc.writeProp("--snapshot-parallel", "snapshot_parallel", quoted)
+			rc.writeProp("--upload-parallel", "upload_parallel", quoted)
 		case repairTaskType:
-			rc.writeProp("-K", "keyspace", true)
-			rc.writeProp("--dc", "dc", true)
-			rc.writeProp("--host", "host", false)
-			rc.writeProp("--with-hosts", "with_hosts", false)
-			rc.writeProp("--fail-fast", "fail_fast", false)
-			rc.writeProp("--token-ranges", "token_ranges", false)
-			rc.writeProp("--intensity", "intensity", false)
-			rc.writeProp("--small-table-threshold", "small_table_threshold", false)
+			rc.writeProp("-K", "keyspace", quoted)
+			rc.writeProp("--dc", "dc", quoted)
+			rc.writeProp("--fail-fast", "fail_fast")
+			rc.writeProp("--intensity", "intensity")
+			rc.writeProp("--small-table-threshold", "small_table_threshold", byteCount)
 		}
 	}
 
