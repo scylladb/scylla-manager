@@ -145,9 +145,9 @@ func FormatPercent(p float32) string {
 	return fmt.Sprintf("%0.2f%%", p)
 }
 
-// ByteCountBinary returns string representation of the byte count with proper
+// StringByteCount returns string representation of the byte count with proper
 // unit.
-func ByteCountBinary(b int64) string {
+func StringByteCount(b int64) string {
 	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%dB", b)
@@ -157,7 +157,7 @@ func ByteCountBinary(b int64) string {
 		div *= unit
 		exp++
 	}
-	// One decimal by default, two decimals for GiB and three for more than
+	// No decimals by default, two decimals for GiB and three for more than
 	// that.
 	format := "%.0f%ciB"
 	if exp == 2 {
@@ -175,7 +175,7 @@ var (
 )
 
 // ParseByteCount returns byte count parsed from input string.
-// This is opposite of ByteCountBinary function.
+// This is opposite of StringByteCount function.
 func ParseByteCount(s string) (int64, error) {
 	const unit = 1024
 	var exps = []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}

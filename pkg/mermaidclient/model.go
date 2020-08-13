@@ -147,7 +147,7 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 
 		if s.RestStatus == statusUP {
 			cpus = fmt.Sprintf("%d", s.CPUCount)
-			mem = ByteCountBinary(s.TotalRAM)
+			mem = StringByteCount(s.TotalRAM)
 			scyllaVersion = version.Short(s.ScyllaVersion)
 			agentVersion = version.Short(s.AgentVersion)
 			uptime = (time.Duration(s.Uptime) * time.Second).String()
@@ -232,7 +232,7 @@ Keyspaces:
   - {{ .Keyspace }} {{ FormatTables .Tables .AllTables }}
 {{- end }}
 
-Disk size: ~{{ ByteCountBinary .Size }}
+Disk size: ~{{ StringByteCount .Size }}
 
 Locations:
 {{- range .Location }}
@@ -273,7 +273,7 @@ Retention: Last {{ .Retention }} backups
 // Render implements Renderer interface.
 func (t BackupTarget) Render(w io.Writer) error {
 	temp := template.Must(template.New("target").Funcs(template.FuncMap{
-		"ByteCountBinary": ByteCountBinary,
+		"StringByteCount": StringByteCount,
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(t.ShowTables, tables, all)
 		},
@@ -639,10 +639,10 @@ func (bp BackupProgress) addHostProgress(t *table.Table) {
 		}
 		success := h.Uploaded + h.Skipped
 		t.AddRow(h.Host, p,
-			ByteCountBinary(h.Size),
-			ByteCountBinary(success),
-			ByteCountBinary(h.Skipped),
-			ByteCountBinary(h.Failed),
+			StringByteCount(h.Size),
+			StringByteCount(success),
+			StringByteCount(h.Skipped),
+			StringByteCount(h.Failed),
 		)
 	}
 	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
@@ -682,10 +682,10 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 						tbl.Uploaded,
 						tbl.Skipped,
 						tbl.Failed),
-					ByteCountBinary(tbl.Size),
-					ByteCountBinary(success),
-					ByteCountBinary(tbl.Skipped),
-					ByteCountBinary(tbl.Failed),
+					StringByteCount(tbl.Size),
+					StringByteCount(success),
+					StringByteCount(tbl.Skipped),
+					StringByteCount(tbl.Failed),
 					FormatTime(startedAt),
 					FormatTime(completedAt),
 				)
@@ -800,7 +800,7 @@ type BackupListItems struct {
 
 const backupListItemTemplate = `Snapshots:
 {{- range .SnapshotInfo }}
-  - {{ .SnapshotTag }} ({{ if eq .Size 0 }}n/a{{ else }}{{ ByteCountBinary .Size }}{{ end }})
+  - {{ .SnapshotTag }} ({{ if eq .Size 0 }}n/a{{ else }}{{ StringByteCount .Size }}{{ end }})
 {{- end }}
 Keyspaces:
 {{- range .Units }}
@@ -815,7 +815,7 @@ func (bl BackupListItems) Render(w io.Writer) error {
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(bl.ShowTables, tables, all)
 		},
-		"ByteCountBinary": ByteCountBinary,
+		"StringByteCount": StringByteCount,
 	}).Parse(backupListItemTemplate))
 
 	prev := ""

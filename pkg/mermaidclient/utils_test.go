@@ -426,6 +426,10 @@ func TestByteCounting(t *testing.T) {
 			Formatted: "2MiB",
 		},
 		{
+			Bytes:     2 * 1024 * 1024 * 1024,
+			Formatted: "2.00GiB",
+		},
+		{
 			Bytes:     123*1024*1024*1024 + 100*1024*1024 + 10*1024*1024,
 			Formatted: "123.11GiB",
 		},
@@ -448,15 +452,15 @@ func TestByteCounting(t *testing.T) {
 		t.Run(test.Formatted, func(t *testing.T) {
 			t.Parallel()
 
-			if s := ByteCountBinary(test.Bytes); s != test.Formatted {
-				t.Errorf("ByteCountBinary() expected %s got %s", test.Formatted, s)
+			if s := StringByteCount(test.Bytes); s != test.Formatted {
+				t.Errorf("StringByteCount() expected %s got %s", test.Formatted, s)
 			}
 			b, err := ParseByteCount(test.Formatted)
 			if err != nil {
 				t.Errorf("ParseByteCount() err %s", err)
 			}
-			if ByteCountBinary(b) != test.Formatted {
-				t.Errorf("ParseByteCount() expected %s got %s", ByteCountBinary(test.Bytes), ByteCountBinary(b))
+			if StringByteCount(b) != test.Formatted {
+				t.Errorf("ParseByteCount() expected %s got %s", StringByteCount(test.Bytes), StringByteCount(b))
 			}
 		})
 	}
