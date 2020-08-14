@@ -408,8 +408,10 @@ func (c *Client) Repair(ctx context.Context, host string, config RepairConfig) (
 		p.DataCenters = &dcs
 	}
 	if len(config.Hosts) > 1 {
-		hosts := strings.Join(config.Hosts, ",") + "," + host
-		p.Hosts = &hosts
+		hosts := strset.New(config.Hosts...)
+		hosts.Add(host)
+		h := strings.Join(hosts.List(), ",")
+		p.Hosts = &h
 	}
 
 	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspacePost(&p)

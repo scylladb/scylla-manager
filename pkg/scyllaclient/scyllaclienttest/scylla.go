@@ -14,6 +14,19 @@ func NewFakeScyllaServer(t *testing.T, file string) (client *scyllaclient.Client
 	return NewFakeScyllaServerMatching(t, FileMatcher(file))
 }
 
+func NewFakeScyllaServerRequestChecker(t *testing.T, file string, check func(t *testing.T, r *http.Request)) (client *scyllaclient.Client, closeServer func()) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error("ParseForm() error", err)
+		}
+		check(t, r)
+		// Emulate ScyllaDB bug
+		r.Header.Set("Content-Type", "text/plain")
+		SendFile(t, w, FileMatcher(file)(r))
+	})
+	return NewFakeScyllaServerWithHandler(t, h)
+}
+
 func NewFakeScyllaServerMatching(t *testing.T, m Matcher) (client *scyllaclient.Client, closeServer func()) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {

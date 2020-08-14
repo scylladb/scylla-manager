@@ -294,11 +294,16 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 func TestClientRepair(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_0.json")
+	client, closeServer := scyllaclienttest.NewFakeScyllaServerRequestChecker(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_0.json", func(t *testing.T, r *http.Request) {
+		if strings.Count(r.URL.RawQuery, "127.0.0.1") > 1 {
+			t.Errorf("Ivalid host query count: %s", r.URL.RawQuery)
+		}
+	})
 	defer closeServer()
 
 	v, err := client.Repair(context.Background(), scyllaclienttest.TestHost, scyllaclient.RepairConfig{
 		Keyspace: "scylla_manager",
+		Hosts:    []string{"1.1.1.1", "127.0.0.1"},
 		Ranges:   "100:110,120:130",
 	})
 	if err != nil {
