@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/internal/models"
 	"github.com/scylladb/mermaid/pkg/mermaidclient/table"
+	"github.com/scylladb/mermaid/pkg/service/scheduler"
 	"github.com/scylladb/mermaid/pkg/util/inexlist"
 	"github.com/scylladb/mermaid/pkg/util/version"
 	"github.com/scylladb/termtables"
@@ -409,7 +410,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 				continue
 			}
 			fmt.Fprintf(w, "\nHost: %s\n", h.Host)
-			if h.Intensity != 0 {
+			if rp.isRunning() {
 				fmt.Fprintf(w, "Intensity: %s\n", FormatIntensity(h.Intensity))
 			}
 			d := table.New()
@@ -449,7 +450,7 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }} 
 {{- end }}
-{{- if ne intensity 0 }}
+{{- if isRunning }}
 Intensity:	{{ intensity }} 
 {{- end }}
 {{ with .Progress }}Progress:	{{ FormatRepairProgress .TokenRanges .Success .Error }}
@@ -464,6 +465,7 @@ Intensity:	{{ intensity }}
 func (rp RepairProgress) addHeader(w io.Writer) error {
 	temp := template.Must(template.New("repair_progress").Funcs(template.FuncMap{
 		"isZero":               isZero,
+		"isRunning":            rp.isRunning,
 		"FormatTime":           FormatTime,
 		"FormatDuration":       FormatDuration,
 		"FormatError":          FormatError,
@@ -474,8 +476,12 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 	return temp.Execute(w, rp)
 }
 
+func (rp RepairProgress) isRunning() bool {
+	return rp.Run.Status == string(scheduler.StatusRunning)
+}
+
 // globalIntensity return non zero intensity if all hosts uses the same intensity.
-func (rp RepairProgress) globalIntensity() int {
+func (rp RepairProgress) globalIntensity() float64 {
 	if rp.Progress == nil || len(rp.Progress.Hosts) == 0 {
 		return 0
 	}
@@ -487,7 +493,7 @@ func (rp RepairProgress) globalIntensity() int {
 		}
 	}
 
-	return int(intensity)
+	return intensity
 }
 
 // arguments return task arguments that task was created with.
