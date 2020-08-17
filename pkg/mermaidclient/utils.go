@@ -181,12 +181,12 @@ func ParseByteCount(s string) (int64, error) {
 	var exps = []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
 	parts := byteCountRe.FindStringSubmatch(s)
 	if len(parts) != 3 {
-		return 0, errors.New("invalid byte string")
+		return 0, errors.Errorf("invalid byte size string: %q; it must be real number with unit suffix: %s", s, strings.Join(exps, ","))
 	}
 
 	v, err := strconv.ParseFloat(parts[byteCountReValueIdx], 64)
 	if err != nil {
-		return 0, errors.Wrap(err, "value parse")
+		return 0, errors.Wrapf(err, "parsing value for byte size string: %s", s)
 	}
 
 	pow := 0
