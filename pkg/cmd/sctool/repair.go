@@ -123,7 +123,7 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	fs.Bool("show-tables", false, "print all table names for a keyspace")
 	fs.Var(&IntensityFlag{Value: 0}, "intensity",
-		"repair speed, higher values result in higher speed and may increase cluster load, values between (0, 1) specifies percentage of active workers")
+		"integer >= 1 or a float between (0-1), higher values may result in higher speed or cluster load, values between (0, 1) specify percentage of nodes that are repaired at once.")
 	fs.String("small-table-threshold", "1GiB", "enable small table optimization for tables of size lower than given threshold. Supported units [B, MiB, GiB, TiB]")
 	return fs
 }
@@ -133,7 +133,8 @@ var repairIntensityCmd = &cobra.Command{
 	Short: "Changes intensity of a running repair",
 	Long: `This command changes speed of a running repair for provided cluster.
 
-Higher intensity value results in higher repair speed and may increase cluster load. Values between (0, 1) specifies percentage of active workers.
+Higher intensity value results in higher repair speed and may increase cluster load.
+Values between (0, 1) specifies percentage of active workers.
 Intensity must be a real number between (0-1) or integer when >= 1.
 `,
 	Args: cobra.ExactArgs(1),
@@ -177,7 +178,7 @@ func (fl *IntensityFlag) Set(s string) error {
 		return nil
 	}
 
-	var errValidation = errors.New("intensity must be a real number between (0-1) or integer when >= 1")
+	var errValidation = errors.New("intensity must be an integer >= 1 or a float between (0-1)")
 
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
