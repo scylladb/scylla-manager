@@ -111,6 +111,9 @@ func (s *server) init(ctx context.Context) error {
 	if err := rclone.RegisterS3Provider(s.config.S3); err != nil {
 		return err
 	}
+	if err := rclone.RegisterGCSProvider(s.config.GCS); err != nil {
+		return err
+	}
 
 	return nil
 }

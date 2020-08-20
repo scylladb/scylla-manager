@@ -27,3 +27,6 @@ s3:
   upload_concurrency: ""
   chunk_size: ""
   use_accelerate_endpoint: ""
+gcs:
+  service_account_file: ""
+  chunk_size: ""

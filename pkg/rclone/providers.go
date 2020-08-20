@@ -135,31 +135,13 @@ func RegisterS3Provider(opts S3Options) error {
 		fs.ConfigFileSet(name, "env_auth", "true"),
 		fs.ConfigFileSet(name, "disable_checksum", "true"),
 		fs.ConfigFileSet(name, "list_chunk", "200"),
-	)
 
-	// Set custom properties
-	var (
-		m     = reflectx.NewMapper("yaml").FieldMap(reflect.ValueOf(opts))
-		extra = []string{"name=" + name}
+		registerProvider(name, opts),
 	)
-	for key, rval := range m {
-		if s := rval.String(); s != "" {
-			errs = multierr.Append(errs, fs.ConfigFileSet(name, key, s))
-			if key == "secret_access_key" {
-				extra = append(extra, key+"="+strings.Repeat("*", len(s)))
-			} else {
-				extra = append(extra, key+"="+s)
-			}
-		}
-	}
-
 	// Check for errors
 	if errs != nil {
-		return errors.Wrapf(errs, "register s3 provider")
+		return errors.Wrap(errs, "register provider")
 	}
-	fs.Infof(nil, "registered s3 provider [%s]", strings.Join(extra, ", "))
-
-	providers.Add(name)
 
 	return nil
 }
@@ -174,4 +156,75 @@ func MustRegisterS3Provider(provider, endpoint, accessKeyID, secretAccessKey str
 	}); err != nil {
 		panic(err)
 	}
+}
+
+// GCSOptions represents a selected subset of rclone GCS backend options for
+// togged with yaml for inclusion in config objects.
+type GCSOptions struct {
+	ServiceAccountFile string `yaml:"service_account_file"`
+	ChunkSize          string `yaml:"chunk_size"`
+}
+
+// Validate returns error if option values are not set properly.
+func (opts *GCSOptions) Validate() error {
+	// Nothing to check yet
+	return nil
+}
+
+// RegisterGCSProvider must be called before server is started.
+// It allows for adding dynamically adding gcs provider named gcs.
+func RegisterGCSProvider(opts GCSOptions) error {
+	const name = "gcs"
+
+	if err := opts.Validate(); err != nil {
+		return err
+	}
+	if opts.ChunkSize == "" {
+		opts.ChunkSize = defaultChunkSize
+	}
+
+	err := multierr.Combine(
+		fs.ConfigFileSet(name, "type", name),
+		// Disable bucket creation if it doesn't exists
+		fs.ConfigFileSet(name, "allow_create_bucket", "false"),
+		// This option must be true if we don't want rclone to set permission on
+		// each object. Permissions will be controlled by the ACL rules
+		// for fine-grained buckets, and IAM bucket-level settings for uniform buckets.
+		fs.ConfigFileSet(name, "bucket_policy_only", "true"),
+
+		registerProvider(name, opts),
+	)
+	if err != nil {
+		return errors.Wrap(err, "configure provider")
+	}
+
+	return nil
+}
+
+func registerProvider(name string, options interface{}) error {
+	var (
+		m     = reflectx.NewMapper("yaml").FieldMap(reflect.ValueOf(options))
+		extra = []string{"name=" + name}
+		errs  error
+	)
+	for key, rval := range m {
+		if s := rval.String(); s != "" {
+			errs = multierr.Append(errs, fs.ConfigFileSet(name, key, s))
+			if strings.Contains(key, "secret") {
+				extra = append(extra, key+"="+strings.Repeat("*", len(s)))
+			} else {
+				extra = append(extra, key+"="+s)
+			}
+		}
+	}
+
+	// Check for errors
+	if errs != nil {
+		return errors.Wrapf(errs, "register %s provider", name)
+	}
+
+	providers.Add(name)
+	fs.Infof(nil, "registered %s provider [%s]", name, strings.Join(extra, ", "))
+
+	return nil
 }
