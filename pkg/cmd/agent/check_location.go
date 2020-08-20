@@ -64,6 +64,9 @@ var checkLocationCmd = &cobra.Command{
 		if err := rclone.RegisterS3Provider(c.S3); err != nil {
 			return err
 		}
+		if err := rclone.RegisterGCSProvider(c.GCS); err != nil {
+			return err
+		}
 
 		// Providers require that resource names are DNS compliant.
 		// The following is a super simplified DNS (plus provider prefix)

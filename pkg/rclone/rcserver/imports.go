@@ -4,6 +4,7 @@ package rcserver
 
 import (
 	// Needed for triggering global registrations in rclone.
+	_ "github.com/rclone/rclone/backend/googlecloudstorage"
 	_ "github.com/rclone/rclone/backend/local"
 	_ "github.com/rclone/rclone/backend/s3"
 	_ "github.com/rclone/rclone/fs/accounting"

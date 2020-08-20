@@ -111,14 +111,40 @@
 # Number of files uploaded concurrently, by default it's 2.
 #  upload_concurrency: 2
 #
-# Maximum size (in bytes) of body of single request to S3 when uploading big files.
-# Big files are cut into chunks, this value allows to specify how much data
-# single request to S3 can carry. Bigger value allows to reduce number of requests
-# needed to upload files, increasing it may help with 5xx responses returned by S3.
-# Default value is 50M and string representation of the value can be provided, for
-# e.g. 1M, 1G, off.
+# Maximum size (in bytes) of body of single request to S3 when uploading
+# big files. Big files are cut into chunks, this value allows to specify
+# how much data single request to S3 can carry.
+# Bigger value allows to reduce number of requests needed to upload files,
+# increasing it may help with 5xx responses returned by S3.
+# Default value is 50M and string representation of the value can be provided,
+# for e.g. 1M, 1G, off.
 #  chunk_size: 50M
 #
 # AWS S3 Transfer acceleration
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
 #  use_accelerate_endpoint: false
+
+# Backup GCS client configuration.
+#
+# Note that when running in GCP Scylla Manger Agent can use instance
+# Service Account. It's recommended to define access rules based on IAM roles
+# attached to Service Account.
+# https://cloud.google.com/docs/authentication/production
+#
+# To test bucket accessibility use `scylla-manager-agent check-location` command.
+# Example:
+# scylla-manager-agent check-location --location gcs:scylla-manager-backup
+#
+#gcs:
+# GCS credentials, it's recommended to use Service Account authentication
+# if possible, otherwise set path to credentials here.
+#  service_account_file:
+#
+# Maximum size (in bytes) of body of single request to GCS when uploading files.
+# Files are cut into chunks, this value allows to specify how much data
+# single request to GCS can carry. Bigger value allows to reduce number of
+# requests needed to upload files, increasing it may help with rate limiting
+# responses from GCS.
+# Default value is 50M and string representation of the value can be provided,
+# for e.g. 1M, 1G, off.
+#  chunk_size: 50M

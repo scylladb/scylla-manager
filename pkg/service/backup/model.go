@@ -264,7 +264,8 @@ type Provider string
 
 // Provider enumeration.
 const (
-	S3 = Provider("s3")
+	S3  = Provider("s3")
+	GCS = Provider("gcs")
 )
 
 func (p Provider) String() string {
@@ -285,7 +286,7 @@ func (p *Provider) UnmarshalText(text []byte) error {
 	return nil
 }
 
-var providers = strset.New(S3.String())
+var providers = strset.New(S3.String(), GCS.String())
 
 // Location specifies storage provider and container/resource for a DC.
 type Location struct {
