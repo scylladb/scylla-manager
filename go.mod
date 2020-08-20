@@ -22,8 +22,8 @@ require (
 	github.com/go-openapi/validate v0.19.2
 	github.com/gobwas/glob v0.2.3
 	github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537
-	github.com/golang/mock v1.3.1
-	github.com/google/go-cmp v0.4.0
+	github.com/golang/mock v1.4.4
+	github.com/google/go-cmp v0.5.2
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.2.0
 	github.com/mitchellh/mapstructure v1.2.2
@@ -46,15 +46,15 @@ require (
 	go.uber.org/goleak v1.0.0
 	go.uber.org/multierr v1.4.0
 	go.uber.org/zap v1.14.0
-	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82
-	golang.org/x/tools v0.0.0-20200318150045-ba25ddc85566
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/sys v0.0.0-20200828194041-157a740278f4
+	golang.org/x/tools v0.0.0-20200828161849-5deb26317202
 	gopkg.in/yaml.v2 v2.2.5
 )
 
 replace (
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.4.1-0.20200520132847-57de5e5cdd5c
-	github.com/rclone/rclone => github.com/scylladb/rclone v1.51.0-patched-5
+	github.com/rclone/rclone => github.com/scylladb/rclone v1.51.0-patched-6
+	google.golang.org/api v0.30.0 => github.com/scylladb/google-api-go-client v0.30.1-0.20200901094148-b1d4e0b17dda
 )
