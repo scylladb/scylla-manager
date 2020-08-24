@@ -10,6 +10,7 @@ import (
 const (
 	clusterKey = "cluster"
 	hostKey    = "host"
+	dcKey      = "dc"
 
 	metricBufferSize = 100
 )
@@ -34,7 +35,7 @@ var (
 		Subsystem: "healthcheck",
 		Name:      "cql_timeout_ms",
 		Help:      "Host CQL Timeout",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, dcKey})
 
 	restStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
@@ -55,7 +56,7 @@ var (
 		Subsystem: "healthcheck",
 		Name:      "rest_timeout_ms",
 		Help:      "Host REST Timeout",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, dcKey})
 
 	alternatorStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
@@ -76,7 +77,7 @@ var (
 		Subsystem: "healthcheck",
 		Name:      "alternator_timeout_ms",
 		Help:      "Host Alternator Timeout",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, dcKey})
 )
 
 func init() {

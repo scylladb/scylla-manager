@@ -69,6 +69,10 @@ func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName
 			clusterKey: clusterName,
 			hostKey:    hostDCs[i].Host,
 		}
+		l2 := prometheus.Labels{
+			clusterKey: clusterName,
+			dcKey:      hostDCs[i].Datacenter,
+		}
 
 		timeout, saveNext := r.timeout(clusterID, hostDCs[i].Datacenter)
 		rtt, err := r.ping(ctx, clusterID, hostDCs[i].Host, timeout)
@@ -78,7 +82,7 @@ func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName
 		} else {
 			r.metrics.status.With(l).Set(1)
 			r.metrics.rtt.With(l).Set(float64(rtt.Milliseconds()))
-			r.metrics.timeout.With(l).Set(float64(timeout.Milliseconds()))
+			r.metrics.timeout.With(l2).Set(float64(timeout.Milliseconds()))
 		}
 		saveNext(rtt)
 
