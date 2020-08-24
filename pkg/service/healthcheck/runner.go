@@ -78,12 +78,11 @@ func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName
 		rtt, err := r.ping(ctx, clusterID, hostDCs[i].Host, timeout)
 		if err != nil {
 			r.metrics.status.With(l).Set(-1)
-			r.metrics.rtt.With(l).Set(0)
 		} else {
 			r.metrics.status.With(l).Set(1)
-			r.metrics.rtt.With(l).Set(float64(rtt.Milliseconds()))
-			r.metrics.timeout.With(l2).Set(float64(timeout.Milliseconds()))
 		}
+		r.metrics.rtt.With(l).Set(float64(rtt.Milliseconds()))
+		r.metrics.timeout.With(l2).Set(float64(timeout.Milliseconds()))
 		saveNext(rtt)
 
 		return nil
