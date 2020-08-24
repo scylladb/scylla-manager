@@ -122,6 +122,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	dcs := strset.New(t.DC...)
+	var skippedKeyspaces []string
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
@@ -159,9 +160,16 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 				}
 			}
 			if notEnoughReplicas {
-				s.logger.Info(ctx, "Keyspace skipped because there're no enough replicas in target", "keyspace", keyspace)
+				skippedKeyspaces = append(skippedKeyspaces, keyspace)
 				continue
 			}
+		}
+
+		if len(skippedKeyspaces) > 0 {
+			s.logger.Info(ctx,
+				"Repair of the following keyspaces will be skipped because not all the tokens are present in the specified DCs",
+				"keyspaces", strings.Join(skippedKeyspaces, ", "),
+			)
 		}
 
 		// Add to the filter
