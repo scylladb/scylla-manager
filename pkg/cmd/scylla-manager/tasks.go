@@ -47,8 +47,8 @@ func makeAutoHealthCheckRESTTask(clusterID uuid.UUID) *scheduler.Task {
 		Type:      scheduler.HealthCheckRESTTask,
 		Enabled:   true,
 		Sched: scheduler.Schedule{
-			Interval:   duration.Duration(1 * time.Hour),
-			StartDate:  timeutc.Now().Add(1 * time.Minute),
+			Interval:   duration.Duration(1 * time.Minute),
+			StartDate:  timeutc.Now().Add(2 * time.Minute),
 			NumRetries: 0,
 		},
 		Properties: emptyProperties,
