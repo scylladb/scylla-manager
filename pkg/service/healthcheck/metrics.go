@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	clusterKey = "cluster"
-	hostKey    = "host"
-	dcKey      = "dc"
+	clusterKey  = "cluster"
+	hostKey     = "host"
+	dcKey       = "dc"
+	pingTypeKey = "ping_type"
 
 	metricBufferSize = 100
 )
@@ -78,6 +79,27 @@ var (
 		Name:      "alternator_timeout_ms",
 		Help:      "Host Alternator Timeout",
 	}, []string{clusterKey, dcKey})
+
+	rttMean = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "healthcheck",
+		Name:      "rtt_mean_ms",
+		Help:      "Statistical mean for the collection of recent runs",
+	}, []string{clusterKey, dcKey, pingTypeKey})
+
+	rttStandardDeviation = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "healthcheck",
+		Name:      "standard_deviation_ms",
+		Help:      "Standard deviation for rtt duration over collection of recent runs",
+	}, []string{clusterKey, dcKey, pingTypeKey})
+
+	rttNoise = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "healthcheck",
+		Name:      "noise_ms",
+		Help:      "How much to add to the mean to get timeout value",
+	}, []string{clusterKey, dcKey, pingTypeKey})
 )
 
 func init() {
@@ -91,16 +113,19 @@ func init() {
 		alternatorStatus,
 		alternatorRTT,
 		alternatorTimeout,
+		rttMean,
+		rttStandardDeviation,
+		rttNoise,
 	)
 }
 
-func apply(ch <-chan prometheus.Metric, f func(cluster, host string, v float64)) {
+func apply(ch <-chan prometheus.Metric, f func(cluster, dc, host, pt string, v float64)) {
 	for m := range ch {
 		metric := &dto.Metric{}
 		if err := m.Write(metric); err != nil {
 			continue
 		}
-		var c, h string
+		var c, dc, h, pt string
 
 		for _, l := range metric.GetLabel() {
 			if l.GetName() == clusterKey {
@@ -109,8 +134,14 @@ func apply(ch <-chan prometheus.Metric, f func(cluster, host string, v float64))
 			if l.GetName() == hostKey {
 				h = l.GetValue()
 			}
+			if l.GetName() == dcKey {
+				dc = l.GetValue()
+			}
+			if l.GetName() == pingTypeKey {
+				pt = l.GetValue()
+			}
 		}
-		f(c, h, metric.GetGauge().GetValue())
+		f(c, dc, h, pt, metric.GetGauge().GetValue())
 	}
 }
 

@@ -15,18 +15,20 @@ import (
 type timeoutProviderFunc func(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration))
 
 type dynamicTimeout struct {
-	config DynamicTimeoutConfig
+	config      DynamicTimeoutConfig
+	metricsHook func(mean, stddev, delta time.Duration) // Values are in milliseconds
 
 	mu     sync.Mutex
 	values []time.Duration
 	idx    int
 }
 
-func newDynamicTimeout(config DynamicTimeoutConfig) *dynamicTimeout {
+func newDynamicTimeout(config DynamicTimeoutConfig, metricsHook func(mean, stddev, noise time.Duration)) *dynamicTimeout {
 	values := make([]time.Duration, 0, config.Probes)
 	return &dynamicTimeout{
-		config: config,
-		values: values,
+		config:      config,
+		values:      values,
+		metricsHook: metricsHook,
 	}
 }
 
@@ -80,6 +82,10 @@ func (dt *dynamicTimeout) timeout() time.Duration {
 
 	delta := time.Duration(dt.config.StdDevMultiplier) * max(sd, minStddev)
 	timeout := m + delta
+
+	if dt.metricsHook != nil {
+		dt.metricsHook(m, sd, delta)
+	}
 
 	if dt.config.MaxTimeout != 0 && timeout > dt.config.MaxTimeout {
 		timeout = dt.config.MaxTimeout

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg/ping"
 	"github.com/scylladb/mermaid/pkg/ping/cqlping"
@@ -41,6 +42,18 @@ const (
 	restPing
 	alternatorPing
 )
+
+func (pt pingType) String() string {
+	switch pt {
+	case cqlPing:
+		return "cql"
+	case restPing:
+		return "rest"
+	case alternatorPing:
+		return "alternator"
+	}
+	return "unknown"
+}
 
 type clusterIDDCPingType struct {
 	ClusterID uuid.UUID
@@ -643,7 +656,16 @@ func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout 
 	if t, ok := s.dynamicTimeouts[key]; ok {
 		dt = t
 	} else {
-		dt = newDynamicTimeout(s.config.DynamicTimeout)
+		dt = newDynamicTimeout(s.config.DynamicTimeout, func(mean, stddev, noise time.Duration) {
+			l := prometheus.Labels{
+				clusterKey:  clusterID.String(),
+				dcKey:       dc,
+				pingTypeKey: pt.String(),
+			}
+			rttMean.With(l).Set(float64(mean.Milliseconds()))
+			rttStandardDeviation.With(l).Set(float64(stddev.Milliseconds()))
+			rttNoise.With(l).Set(float64(noise.Milliseconds()))
+		})
 		s.dynamicTimeouts[key] = dt
 	}
 
