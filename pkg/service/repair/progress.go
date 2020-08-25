@@ -148,6 +148,13 @@ func (pm *dbProgressManager) OnStartJob(ctx context.Context, job job) error {
 		now = timeutc.Now()
 	)
 
+	l := prometheus.Labels{
+		"cluster": pm.run.clusterName,
+		"task":    pm.run.TaskID.String(),
+		"host":    job.Host,
+	}
+	repairInflightJobs.With(l).Add(1)
+
 	for _, h := range ttr.Replicas {
 		pk := progressKey{
 			host:     h,
@@ -169,6 +176,13 @@ func (pm *dbProgressManager) OnStartJob(ctx context.Context, job job) error {
 func (pm *dbProgressManager) Update(ctx context.Context, r jobResult) error {
 	ttr := r.Ranges[0]
 	now := timeutc.Now()
+
+	l := prometheus.Labels{
+		"cluster": pm.run.clusterName,
+		"task":    pm.run.TaskID.String(),
+		"host":    r.job.Host,
+	}
+	repairInflightJobs.With(l).Sub(1)
 
 	for _, h := range ttr.Replicas {
 		pk := progressKey{
