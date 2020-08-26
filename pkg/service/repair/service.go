@@ -246,7 +246,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Dynamic Intensity
-	ih, cleanup := s.newIntensityHandler(clusterID, target.Intensity)
+	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity)
 	defer cleanup()
 
 	// Create generator
@@ -458,7 +458,7 @@ func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
 	return int(float64(totalMemory) * 0.1 / (32 * 1024 * 1024))
 }
 
-func (s *Service) newIntensityHandler(clusterID uuid.UUID, intensity float64) (ih *intensityHandler, cleanup func()) {
+func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity float64) (ih *intensityHandler, cleanup func()) {
 	intensityCh := make(chan float64, 1)
 	intensityCh <- intensity
 
@@ -469,7 +469,7 @@ func (s *Service) newIntensityHandler(clusterID uuid.UUID, intensity float64) (i
 
 	s.mu.Lock()
 	if _, ok := s.intensityHandlers[clusterID]; ok {
-		panic("two repairs for the same cluster are running")
+		s.logger.Info(ctx, "Overriding intensity handler", "cluster_id", clusterID, "intensity", intensity)
 	}
 	s.intensityHandlers[clusterID] = ih
 	s.mu.Unlock()
