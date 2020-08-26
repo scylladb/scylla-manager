@@ -116,6 +116,7 @@ func newTestService(t *testing.T, session, clusterSession gocqlx.Session, client
 			return clusterSession, nil
 		},
 		logger.Named("backup"),
+		nil,
 	)
 	if err != nil {
 		t.Fatal(err)
