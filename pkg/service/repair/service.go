@@ -282,7 +282,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if active, err := client.ActiveRepairs(ctx, repairHosts.List()); err != nil {
 		s.logger.Error(ctx, "Active repair check failed", "error", err)
 	} else if len(active) > 0 {
-		return errors.Errorf("active repair on hosts: %s", strings.Join(active, ", "))
+		return errors.Errorf("ensure no active repair on hosts, %s are repairing", strings.Join(active, ", "))
 	}
 
 	// Get hosts in all DCs
@@ -291,14 +291,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "status")
 	}
 
-	// Validate that there are no hosts to repair down
+	// Validate that all hosts to repair are up
 	if down := status.DownHosts(); repairHosts.HasAny(down...) {
-		return errors.Errorf("nodes are down: %s", strings.Join(down, ","))
+		return errors.Errorf("ensure nodes are up, down nodes: %s", strings.Join(down, ","))
 	}
 
 	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
 	if err != nil {
-		return errors.Wrap(err, "host range limits")
+		return errors.Wrap(err, "fetch host range limits")
 	}
 	ih.SetHostRangeLimits(hostRangesLimits)
 
@@ -322,7 +322,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 		closest, err := client.ClosestDC(ctx, dcMap)
 		if err != nil {
-			return errors.Wrap(err, "datacenter latency measurement")
+			return errors.Wrap(err, "calculate datacenter latency measurement")
 		}
 
 		for p, dc := range closest {
@@ -337,7 +337,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	hostPartitioner, err := s.hostPartitioner(ctx, repairHosts.List(), client)
 	if err != nil {
-		return errors.Wrap(err, "host partitioner")
+		return errors.Wrap(err, "initialize host partitioner")
 	}
 	// Create worker
 	w := newWorker(run, g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioner)
@@ -380,7 +380,7 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 	}
 	report, err := client.TableDiskSizeReport(ctx, hkts)
 	if err != nil {
-		return errors.Wrap(err, "table disk size report")
+		return errors.Wrap(err, "fetch table disk size report")
 	}
 
 	// Calculate total table size across hosts
@@ -430,12 +430,12 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 
 		totalMemory, err := client.TotalMemory(ctx, h)
 		if err != nil {
-			return errors.Wrapf(err, "%s: total memory", h)
+			return errors.Wrapf(err, "%s: get total memory", h)
 		}
 
 		shards, err := client.ShardCount(ctx, h)
 		if err != nil {
-			return errors.Wrapf(err, "%s: shard count", h)
+			return errors.Wrapf(err, "%s: get shard count", h)
 		}
 
 		v := rangesLimit{
