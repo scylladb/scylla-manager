@@ -3,8 +3,6 @@
 package repair
 
 import (
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -30,14 +28,6 @@ var (
 		Help:      "Number of segments that failed to repair.",
 	}, []string{"cluster", "task", "keyspace", "host"})
 
-	repairDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "repair",
-		Name:      "duration_seconds",
-		Help:      "Duration of a single repair command.",
-		MaxAge:    30 * time.Minute,
-	}, []string{"cluster", "task", "keyspace", "host"})
-
 	repairProgress = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
@@ -58,7 +48,6 @@ func init() {
 		repairSegmentsTotal,
 		repairSegmentsSuccess,
 		repairSegmentsError,
-		repairDurationSeconds,
 		repairProgress,
 		repairInflightJobs,
 	)

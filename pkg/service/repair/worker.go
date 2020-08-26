@@ -8,13 +8,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/dht"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -119,16 +117,6 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 		Hosts:    ttr.Replicas,
 		Ranges:   dumpRanges(ttrs),
 	}
-
-	start := timeutc.Now()
-	defer func() {
-		repairDurationSeconds.With(prometheus.Labels{
-			"cluster":  w.run.clusterName,
-			"task":     w.run.TaskID.String(),
-			"keyspace": ttr.Keyspace,
-			"host":     host,
-		}).Observe(timeutc.Since(start).Seconds())
-	}()
 
 	id, err := w.client.Repair(ctx, host, cfg)
 	if err != nil {
