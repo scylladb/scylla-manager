@@ -392,7 +392,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "invalid keyspace filter",
 			JSON:  `{"keyspace": ["foobar"], "location": ["s3:backuptest-get-target"]}`,
-			Error: "no matching keyspaces found",
+			Error: "no keyspace matched criteria",
 		},
 		{
 			Name:  "invalid dc filter",

@@ -12,8 +12,8 @@
     {
       "keyspace": "system_distributed",
       "tables": [
-        "cdc_description",
-        "cdc_topology_description",
+        "cdc_generations",
+        "cdc_streams",
         "view_build_status"
       ],
       "all_tables": true
