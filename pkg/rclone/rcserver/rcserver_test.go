@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -392,6 +393,42 @@ func TestOperationsList(t *testing.T) {
 			t.Errorf("Expected %d items, got %d", count, len(v.List))
 			t.Log(v.List)
 		}
+	}
+}
+
+func TestOperationsListPermissionError(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "scylla-manager-agent-")
+	if err != nil {
+		t.Fatal(err, "create local tmp directory")
+	}
+	defer os.RemoveAll(tmpDir)
+
+	secretDir := "secret"
+
+	// No read permission, only write needed for deletion
+	if err := os.Mkdir(path.Join(tmpDir, secretDir), 0222); err != nil {
+		log.Fatal(err)
+	}
+
+	rclone.InitFsConfig()
+	if err := rclone.RegisterLocalDirProvider("noperm", "testing provider", tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	rcServer := New()
+
+	buf := bytes.NewBuffer(nil)
+	json.NewEncoder(buf).Encode(map[string]interface{}{
+		"fs":     "noperm:" + secretDir,
+		"remote": "",
+	})
+	req := httptest.NewRequest(http.MethodPost, "http://1.2.3.4/operations/list", buf)
+	req.Header.Add("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	rcServer.ServeHTTP(rec, req)
+
+	if rec.Result().StatusCode != http.StatusForbidden {
+		t.Errorf("Expected %d status code, got %d", http.StatusForbidden, rec.Result().StatusCode)
 	}
 }
 

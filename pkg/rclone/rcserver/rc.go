@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"time"
 
@@ -484,6 +485,13 @@ func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error)
 	err = rcops.ListJSON(ctx, f, remote, &opt, enc.Callback)
 	if err != nil {
 		return enc.Result(err)
+	}
+	// Localdir fs implementation ignores permission errors, but stores them in
+	// statistics. We must inform user about them.
+	if err := accounting.Stats(ctx).GetLastError(); err != nil {
+		if os.IsPermission(errors.Cause(err)) {
+			return enc.Result(err)
+		}
 	}
 
 	enc.Close()
