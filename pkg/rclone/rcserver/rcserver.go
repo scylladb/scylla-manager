@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -92,6 +93,8 @@ func (s Server) writeError(path string, in rc.Params, w http.ResponseWriter, err
 		status = http.StatusNotFound
 	case isBadRequestErr(err):
 		status = http.StatusBadRequest
+	case isForbiddenErr(err):
+		status = http.StatusForbidden
 	}
 
 	w.WriteHeader(status)
@@ -144,6 +147,10 @@ func isNotFoundErr(err error) bool {
 		err == fs.ErrorObjectNotFound ||
 		err == fs.ErrorNotFoundInConfigFile ||
 		err == errJobNotFound
+}
+
+func isForbiddenErr(err error) bool {
+	return os.IsPermission(errors.Cause(err))
 }
 
 // ServeHTTP implements http.Handler interface.
