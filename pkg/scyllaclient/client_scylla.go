@@ -408,9 +408,7 @@ func (c *Client) Repair(ctx context.Context, host string, config RepairConfig) (
 		p.DataCenters = &dcs
 	}
 	if len(config.Hosts) > 1 {
-		hosts := strset.New(config.Hosts...)
-		hosts.Add(host)
-		h := strings.Join(hosts.List(), ",")
+		h := strings.Join(config.Hosts, ",")
 		p.Hosts = &h
 	}
 
