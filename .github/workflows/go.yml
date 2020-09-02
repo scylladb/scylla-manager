@@ -31,6 +31,7 @@ jobs:
           echo "$(go env -w GOCACHE=/home/runner/work/mermaid/mermaid/.cache/go-build/)"
           echo "::set-env name=GOCACHE::$(go env GOCACHE)"
           echo "::set-env name=GOCACHEPATTERN::.cache/go-build/**"
+          echo "::set-env name=date::$(date  +'%m-%Y')"
 
       - name: Restore Module Cache
         uses: actions/cache@preview
@@ -44,7 +45,7 @@ jobs:
         id: cache-go-test
         with:
           path: "${{ env.GOCACHE }}"
-          key: ${{ runner.os }}-${{ hashFiles(env.GOCACHEPATTERN) }}
+          key: ${{ runner.os }}-${{ hashFiles(env.GOCACHEPATTERN) }}-${{ env.date }}
 
       - name: Restore Go dependencies
         uses: actions/cache@preview
