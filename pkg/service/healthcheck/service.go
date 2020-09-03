@@ -6,8 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -61,9 +59,10 @@ type clusterIDDCPingType struct {
 	PingType  pingType
 }
 
-type nodeInfoTTL struct {
-	NodeInfo *scyllaclient.NodeInfo
-	Expires  time.Time
+type nodeInfo struct {
+	*scyllaclient.NodeInfo
+	TLSConfig map[pingType]*tls.Config
+	Expires   time.Time
 }
 
 // Service manages health checks.
@@ -75,8 +74,7 @@ type Service struct {
 
 	cacheMu sync.Mutex
 	// fields below are protected by cacheMu
-	tlsCache        map[uuid.UUID]*tls.Config
-	nodeInfoCache   map[clusterIDHost]nodeInfoTTL
+	nodeInfoCache   map[clusterIDHost]nodeInfo
 	dynamicTimeouts map[clusterIDDCPingType]*dynamicTimeout
 
 	logger log.Logger
@@ -96,8 +94,7 @@ func NewService(config Config, clusterName ClusterNameFunc,
 		clusterName:     clusterName,
 		scyllaClient:    scyllaClient,
 		secretsStore:    secretsStore,
-		tlsCache:        make(map[uuid.UUID]*tls.Config),
-		nodeInfoCache:   make(map[clusterIDHost]nodeInfoTTL),
+		nodeInfoCache:   make(map[clusterIDHost]nodeInfo),
 		dynamicTimeouts: make(map[clusterIDDCPingType]*dynamicTimeout),
 		logger:          logger,
 	}, nil
@@ -183,7 +180,7 @@ func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID,
 				return
 			}
 
-			ni, err := s.getNodeInfo(ctx, clusterID, status[i].Addr)
+			ni, err := s.nodeInfo(ctx, clusterID, status[i].Addr)
 			if err != nil {
 				s.logger.Error(ctx, "Node info fetch failed",
 					"cluster_id", clusterID,
@@ -248,7 +245,6 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 			timeout, saveNext := s.cqlTimeout(clusterID, status[i].Datacenter)
 			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, timeout)
 			out[i].CQLRtt = float64(rtt.Milliseconds())
-			out[i].SSL = s.hasTLSConfig(clusterID)
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
 					"cluster_id", clusterID,
@@ -266,6 +262,18 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				}
 			} else {
 				out[i].CQLStatus = statusUp
+			}
+
+			ni, err := s.nodeInfo(ctx, clusterID, status[i].Addr)
+			if err != nil {
+				s.logger.Error(ctx, "Unable to fetch node information",
+					"cluster_id", clusterID,
+					"host", status[i].Addr,
+					"error", err,
+				)
+				out[i].SSL = false
+			} else {
+				out[i].SSL = ni.hasTLSConfig(cqlPing)
 			}
 
 			saveNext(rtt)
@@ -319,17 +327,7 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 // When Alternator frontend is disabled, it returns 0 and nil error.
 func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string,
 	timeout time.Duration) (rtt time.Duration, err error) {
-	tlsConfig, err := s.tlsConfig(ctx, clusterID)
-	if err != nil {
-		return 0, errors.Wrap(err, "create TLS config")
-	}
-
-	cidHost := clusterIDHost{
-		ClusterID: clusterID,
-		Host:      host,
-	}
-
-	ni, err := s.getNodeInfo(ctx, clusterID, host)
+	ni, err := s.nodeInfo(ctx, clusterID, host)
 	if err != nil {
 		return 0, errors.Wrap(err, "get node info")
 	}
@@ -347,64 +345,20 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 		Addr:    addr,
 		Timeout: s.config.Timeout,
 	}
+
+	tlsConfig := ni.tlsConfig(alternatorPing)
 	if tlsConfig != nil {
-		config.Timeout = s.config.SSLTimeout
 		config.TLSConfig = tlsConfig.Clone()
+		config.Timeout = s.config.SSLTimeout
 	}
 	if timeout != 0 {
 		config.Timeout = timeout
 	}
 
-	rtt, err = pingFunc(ctx, config)
-
-	// In case any error try to pull NodeInfo and use configured address and port.
-	// AWS SDK doesn't return any network errors - it just times out - we have to
-	// react to any of them, it's not possible to distinguish timeout caused by
-	// service down and caused by wrong address.
-	if err != nil {
-		if ni := s.updateNodeInfo(ctx, cidHost); ni != nil {
-			if !ni.AlternatorEnabled() {
-				return 0, nil
-			}
-			if addr = ni.AlternatorAddr(host); addr != config.Addr {
-				s.logger.Info(ctx, "Changing Alternator IP/port based on information from Scylla API",
-					"cluster_id", cidHost.ClusterID,
-					"host", cidHost.Host,
-					"from", config.Addr,
-					"to", addr,
-				)
-
-				config.Addr = addr
-				rtt, err = pingFunc(ctx, config)
-			}
-		}
-	}
-
-	// If connection was cut by the server try upgrading to TLS.
-	if err != nil && config.TLSConfig == nil {
-		ni, err := s.getNodeInfo(ctx, clusterID, host)
-		if err != nil {
-			return 0, err
-		}
-
-		if ni.AlternatorEncryptionEnabled() {
-			s.logger.Info(ctx, "Upgrading Alternator connection to TLS",
-				"cluster_id", clusterID,
-				"host", host,
-			)
-
-			config.TLSConfig = DefaultTLSConfig.Clone()
-			rtt, err = pingFunc(ctx, config)
-			if err == nil {
-				s.setTLSConfig(clusterID, DefaultTLSConfig.Clone())
-			}
-		}
-	}
-
-	return rtt, err
+	return pingFunc(ctx, config)
 }
 
-func (s *Service) decorateNodeStatus(status *NodeStatus, ni *scyllaclient.NodeInfo) {
+func (s *Service) decorateNodeStatus(status *NodeStatus, ni nodeInfo) {
 	status.TotalRAM = ni.MemoryTotal
 	status.Uptime = ni.Uptime
 	status.CPUCount = ni.CPUCount
@@ -413,28 +367,19 @@ func (s *Service) decorateNodeStatus(status *NodeStatus, ni *scyllaclient.NodeIn
 }
 
 func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error) {
-	tlsConfig, err := s.tlsConfig(ctx, clusterID)
+	ni, err := s.nodeInfo(ctx, clusterID, host)
 	if err != nil {
-		return 0, errors.Wrap(err, "create TLS config")
+		return 0, err
 	}
-
-	cidHost := clusterIDHost{
-		ClusterID: clusterID,
-		Host:      host,
-	}
-
-	addr := net.JoinHostPort(host, DefaultCQLPort)
-	if ni, ok := s.hasNodeInfo(cidHost); ok {
-		addr = ni.CQLAddr(host)
-	}
-
-	// Try to connect directly to host address and default port
+	// Try to connect directly to host address.
 	config := cqlping.Config{
-		Addr:      addr,
-		Timeout:   s.config.Timeout,
-		TLSConfig: tlsConfig,
+		Addr:    ni.CQLAddr(host),
+		Timeout: s.config.Timeout,
 	}
+
+	tlsConfig := ni.tlsConfig(cqlPing)
 	if tlsConfig != nil {
+		config.TLSConfig = tlsConfig.Clone()
 		config.Timeout = s.config.SSLTimeout
 	}
 
@@ -443,42 +388,6 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 	}
 
 	rtt, err = cqlping.Ping(ctx, config)
-
-	// If connection was cut by the server try upgrading to TLS.
-	if errors.Cause(err) == io.EOF && config.TLSConfig == nil {
-		ni, err := s.getNodeInfo(ctx, clusterID, host)
-		if err != nil {
-			return 0, err
-		}
-		if ni.ClientEncryptionEnabled {
-			s.logger.Info(ctx, "Upgrading CQL connection to TLS",
-				"cluster_id", clusterID,
-				"host", host,
-			)
-			config.TLSConfig = DefaultTLSConfig
-			rtt, err = cqlping.Ping(ctx, config)
-			if err == nil {
-				s.setTLSConfig(clusterID, DefaultTLSConfig)
-			}
-		}
-	}
-
-	// In case any network error try to pull NodeInfo and use configured address and port.
-	if _, ok := errors.Cause(err).(*net.OpError); ok {
-		if ni := s.updateNodeInfo(ctx, cidHost); ni != nil {
-			if addr = ni.CQLAddr(host); addr != config.Addr {
-				s.logger.Info(ctx, "Changing CQL IP/port based on information from Scylla API",
-					"cluster_id", cidHost.ClusterID,
-					"host", cidHost.Host,
-					"from", config.Addr,
-					"to", addr,
-				)
-
-				config.Addr = addr
-				rtt, err = cqlping.Ping(ctx, config)
-			}
-		}
-	}
 
 	// If CQL credentials are available try executing a query.
 	if err == nil {
@@ -501,18 +410,7 @@ func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string
 	return client.Ping(ctx, host, timeout)
 }
 
-func (s *Service) hasNodeInfo(cidHost clusterIDHost) (*scyllaclient.NodeInfo, bool) {
-	s.cacheMu.Lock()
-	defer s.cacheMu.Unlock()
-
-	now := timeutc.Now()
-	if ni, ok := s.nodeInfoCache[cidHost]; ok && now.Before(ni.Expires) {
-		return ni.NodeInfo, true
-	}
-	return nil, false
-}
-
-func (s *Service) getNodeInfo(ctx context.Context, clusterID uuid.UUID, host string) (*scyllaclient.NodeInfo, error) {
+func (s *Service) nodeInfo(ctx context.Context, clusterID uuid.UUID, host string) (nodeInfo, error) {
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
 
@@ -520,47 +418,69 @@ func (s *Service) getNodeInfo(ctx context.Context, clusterID uuid.UUID, host str
 	now := timeutc.Now()
 
 	if ni, ok := s.nodeInfoCache[key]; ok && now.Before(ni.Expires) {
-		return ni.NodeInfo, nil
+		return nodeInfo{}, nil
 	}
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return nil, errors.Wrap(err, "create scylla client")
+		return nodeInfo{}, errors.Wrap(err, "create scylla client")
 	}
 
 	ni, err := client.NodeInfo(ctx, host)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetch node info")
+		return nodeInfo{}, errors.Wrap(err, "fetch node info")
+	}
+
+	tlsConfigs := make(map[pingType]*tls.Config)
+	for _, p := range []pingType{alternatorPing, cqlPing} {
+		var tlsEnabled, clientCertAuth bool
+		if p == cqlPing {
+			tlsEnabled, clientCertAuth = ni.CQLTLSEnabled()
+		} else if p == alternatorPing {
+			tlsEnabled, clientCertAuth = ni.AlternatorTLSEnabled()
+		}
+		if !tlsEnabled {
+			tlsConfigs[p] = nil
+			continue
+		}
+
+		tlsConfig, err := s.tlsConfig(clusterID, clientCertAuth)
+		if err != nil {
+			return nodeInfo{}, errors.Wrap(err, "fetch TLS config")
+		}
+		tlsConfigs[p] = tlsConfig
 	}
 
 	expires := now.Add(s.config.NodeInfoTTL)
-	s.nodeInfoCache[key] = nodeInfoTTL{NodeInfo: ni, Expires: expires}
-
-	return ni, nil
+	s.nodeInfoCache[key] = nodeInfo{NodeInfo: ni, TLSConfig: tlsConfigs, Expires: expires}
+	return s.nodeInfoCache[key], nil
 }
 
-func (s *Service) updateNodeInfo(ctx context.Context, cidHost clusterIDHost) *scyllaclient.NodeInfo {
-	s.invalidateHostNodeInfoCache(cidHost)
-
-	client, err := s.scyllaClient(ctx, cidHost.ClusterID)
-	if err != nil {
-		s.logger.Error(ctx, "Failed to create scylla client", "error", err)
-		return nil
+func (s *Service) tlsConfig(clusterID uuid.UUID, clientCertAuth bool) (*tls.Config, error) {
+	cfg := &tls.Config{
+		InsecureSkipVerify: true,
 	}
 
-	ctx = scyllaclient.Interactive(ctx)
-	ni, err := client.NodeInfo(ctx, cidHost.Host)
-	if err != nil {
-		s.logger.Error(ctx, "Failed to fetch node info", "error", err)
-		return nil
+	if clientCertAuth {
+		id := &secrets.TLSIdentity{
+			ClusterID: clusterID,
+		}
+		err := s.secretsStore.Get(id)
+		// If there is no user certificate return nil, user will be notified about
+		// unauthorized error.
+		if err == service.ErrNotFound {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "get SSL user cert from secrets store")
+		}
+		keyPair, err := tls.X509KeyPair(id.Cert, id.PrivateKey)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid SSL user key pair")
+		}
+		cfg.Certificates = []tls.Certificate{keyPair}
 	}
 
-	expires := timeutc.Now().Add(s.config.NodeInfoTTL)
-
-	s.cacheMu.Lock()
-	s.nodeInfoCache[cidHost] = nodeInfoTTL{NodeInfo: ni, Expires: expires}
-	s.cacheMu.Unlock()
-
-	return ni
+	return cfg, nil
 }
 
 func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQLCreds {
@@ -575,58 +495,6 @@ func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQ
 		}
 	}
 	return cqlCreds
-}
-
-func (s *Service) tlsConfig(ctx context.Context, clusterID uuid.UUID) (*tls.Config, error) {
-	// Try loading from tlsCache.
-	s.cacheMu.Lock()
-	defer s.cacheMu.Unlock()
-
-	if c, ok := s.tlsCache[clusterID]; ok {
-		return c, nil
-	}
-
-	s.logger.Info(ctx, "Loading SSL certificate from secrets store", "cluster_id", clusterID)
-	tlsIdentity := &secrets.TLSIdentity{
-		ClusterID: clusterID,
-	}
-	err := s.secretsStore.Get(tlsIdentity)
-	// If there is no user certificate record no TLS config to avoid rereading
-	// from a secure store.
-	if err == service.ErrNotFound {
-		s.tlsCache[clusterID] = nil
-		return nil, nil
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "get SSL user cert from secrets store")
-	}
-	keyPair, err := tls.X509KeyPair(tlsIdentity.Cert, tlsIdentity.PrivateKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid SSL user key pair")
-	}
-
-	// Create a new TLS configuration with user certificate and tlsCache
-	// the configuration.
-	cfg := &tls.Config{
-		Certificates:       []tls.Certificate{keyPair},
-		InsecureSkipVerify: true,
-	}
-	s.tlsCache[clusterID] = cfg
-
-	return cfg, nil
-}
-
-func (s *Service) setTLSConfig(clusterID uuid.UUID, config *tls.Config) {
-	s.cacheMu.Lock()
-	s.tlsCache[clusterID] = config
-	s.cacheMu.Unlock()
-}
-
-func (s *Service) hasTLSConfig(clusterID uuid.UUID) bool {
-	s.cacheMu.Lock()
-	c := s.tlsCache[clusterID]
-	s.cacheMu.Unlock()
-	return c != nil
 }
 
 func (s *Service) cqlTimeout(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration)) {
@@ -673,12 +541,6 @@ func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout 
 	return t, dt.SaveProbe
 }
 
-func (s *Service) invalidateHostNodeInfoCache(cidHost clusterIDHost) {
-	s.cacheMu.Lock()
-	delete(s.nodeInfoCache, cidHost)
-	s.cacheMu.Unlock()
-}
-
 // InvalidateCache frees all in-memory NodeInfo and TLS configuration
 // associated with a given cluster forcing reload from Scylla nodes with next usage.
 func (s *Service) InvalidateCache(clusterID uuid.UUID) {
@@ -693,6 +555,13 @@ func (s *Service) InvalidateCache(clusterID uuid.UUID) {
 			delete(s.dynamicTimeouts, cidDC)
 		}
 	}
-	delete(s.tlsCache, clusterID)
 	s.cacheMu.Unlock()
+}
+
+func (ni nodeInfo) tlsConfig(pt pingType) *tls.Config {
+	return ni.TLSConfig[pt]
+}
+
+func (ni nodeInfo) hasTLSConfig(pt pingType) bool {
+	return ni.TLSConfig[pt] != nil
 }

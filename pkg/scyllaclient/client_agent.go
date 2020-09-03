@@ -143,6 +143,20 @@ func (ni *NodeInfo) AlternatorAddr(fallback string) string {
 	return u.String()
 }
 
+// CQLTLSEnabled returns whether TLS and client certificate
+// authorization is enabled for CQL frontend.
+func (ni NodeInfo) CQLTLSEnabled() (tlsEnabled, certAuth bool) {
+	return ni.ClientEncryptionEnabled, ni.ClientEncryptionRequireAuth
+}
+
+// AlternatorTLSEnabled returns whether TLS and client certificate
+// authorization is enabled for Alternator frontend.
+func (ni NodeInfo) AlternatorTLSEnabled() (tlsEnabled, certAuth bool) {
+	// Alternator doesn't support client cert authorization.
+	certAuth = false
+	return ni.AlternatorEncryptionEnabled(), certAuth
+}
+
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
 func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 	p := operations.FreeOSMemoryParams{
