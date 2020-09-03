@@ -40,114 +40,142 @@ func (e *mockEnv) Docker() bool {
 }
 
 func TestChecker(t *testing.T) {
-	initVer := "v1.0.0-0.20200123.7cf18f6b"
-	semanticVer := "v1.0.0"
-
-	hs := newMockHomeServer(initVer)
-	defer hs.Close()
-
-	macUUID := uuid.NewTime()
-	regUUID := uuid.NewTime()
-	dist := string(osutil.Centos)
-	env := &mockEnv{macUUID, regUUID, dist, false}
-	s := NewChecker(hs.ts.URL, initVer, env)
-	params := map[string]string{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": "md", "version": initVer}
-
 	table := []struct {
-		Name    string
-		Version string
-		Install bool
-		Result  Result
-		Status  string
+		Name string
+
+		InstalledVersion string
+		LatestVersion    string
+		Install          bool
+		Docker           bool
+
+		Result Result
+		Status string
 	}{
 		{
-			Name:    "daily check",
-			Version: initVer,
-			Install: false,
+			Name:             "daily equal version",
+			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
+			LatestVersion:    "v1.0.0-0.20200123.7cf18f6b",
+			Install:          false,
+			Docker:           false,
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       semanticVer,
-				Available:       initVer,
+				Installed:       "v1.0.0",
+				Available:       "v1.0.0-0.20200123.7cf18f6b",
 			},
 			Status: "md",
 		}, {
-			Name:    "install check",
-			Version: initVer,
-			Install: true,
+			Name:             "daily install equal version",
+			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
+			LatestVersion:    "v1.0.0-0.20200123.7cf18f6b",
+			Install:          true,
+			Docker:           false,
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       semanticVer,
-				Available:       initVer,
+				Installed:       "v1.0.0",
+				Available:       "v1.0.0-0.20200123.7cf18f6b",
 			},
 			Status: "mi",
 		}, {
-			Name:    "daily check version outdated",
-			Version: "v1.0.1",
-			Install: false,
+			Name:             "docker equal version",
+			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
+			LatestVersion:    "v1.0.0-0.20200123.7cf18f6b",
+			Install:          false,
+			Docker:           true,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       "v1.0.0",
+				Available:       "v1.0.0-0.20200123.7cf18f6b",
+			},
+			Status: "mdd",
+		}, {
+			Name:             "docker install equal version",
+			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
+			LatestVersion:    "v1.0.0-0.20200123.7cf18f6b",
+			Install:          true,
+			Docker:           true,
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       "v1.0.0",
+				Available:       "v1.0.0-0.20200123.7cf18f6b",
+			},
+			Status: "mdi",
+		}, {
+			Name:             "version outdated",
+			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
+			LatestVersion:    "v1.0.1",
 			Result: Result{
 				UpdateAvailable: true,
-				Installed:       semanticVer,
+				Installed:       "v1.0.0",
 				Available:       "v1.0.1",
 			},
 			Status: "md",
 		}, {
-			Name:    "daily check version ahead",
-			Version: "v0.9.1",
-			Install: false,
+			Name:             "check version ahead",
+			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
+			LatestVersion:    "v0.9.1",
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       semanticVer,
+				Installed:       "v1.0.0",
 				Available:       "v0.9.1",
 			},
 			Status: "md",
 		}, {
-			Name:    "install check version outdated",
-			Version: "v1.0.1",
-			Install: true,
-			Result: Result{
-				UpdateAvailable: true,
-				Installed:       semanticVer,
-				Available:       "v1.0.1",
-			},
-			Status: "mi",
-		}, {
-			Name:    "daily check version equal",
-			Version: "v1.0.0",
-			Install: false,
+			Name:             "master version",
+			InstalledVersion: "666.dev-0.20200902.a6a8ce8e",
+			LatestVersion:    "v0.9.1",
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       semanticVer,
-				Available:       "v1.0.0",
+				Installed:       "666",
+				Available:       "v0.9.1",
 			},
 			Status: "md",
 		}, {
-			Name:    "daily check docker",
-			Version: initVer,
-			Install: false,
+			Name:             "long master version",
+			InstalledVersion: "666.development-0.20200325.9fee712d62",
+			LatestVersion:    "v0.9.1",
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       semanticVer,
-				Available:       initVer,
+				Installed:       "666",
+				Available:       "v0.9.1",
 			},
 			Status: "md",
 		}, {
-			Name:    "install check docker",
-			Version: initVer,
-			Install: true,
+			Name:             "master version with v prefix",
+			InstalledVersion: "v666.dev-0.20200902.a6a8ce8e",
+			LatestVersion:    "v0.9.1",
 			Result: Result{
 				UpdateAvailable: false,
-				Installed:       semanticVer,
-				Available:       initVer,
+				Installed:       "v666",
+				Available:       "v0.9.1",
 			},
-			Status: "mi",
+			Status: "md",
+		}, {
+			Name:             "long master version with v prefix",
+			InstalledVersion: "v666.development-0.20200325.9fee712d62",
+			LatestVersion:    "v0.9.1",
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       "v666",
+				Available:       "v0.9.1",
+			},
+			Status: "md",
 		},
 	}
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			Print("When: latest: " + test.Version)
+			hs := newMockHomeServer(test.InstalledVersion)
+			defer hs.Close()
+
+			macUUID := uuid.NewTime()
+			regUUID := uuid.NewTime()
+			dist := string(osutil.Centos)
+			env := &mockEnv{macUUID, regUUID, dist, test.Docker}
+			s := NewChecker(hs.ts.URL, test.InstalledVersion, env)
+
+			Print("When: latest: " + test.LatestVersion)
 			hs.Reset()
-			hs.Return(test.Version)
+			hs.Return(test.LatestVersion)
 
 			Print("And: daily check is performed")
 			res, err := s.CheckForUpdates(context.Background(), test.Install)
@@ -161,7 +189,8 @@ func TestChecker(t *testing.T) {
 
 			Print("And: home server should receive proper request params")
 			got := hs.TakeAll()
-			params["status"] = test.Status
+
+			params := map[string]string{"machine-uuid": macUUID.String(), "registration-uuid": regUUID.String(), "rtype": dist, "status": test.Status, "version": test.InstalledVersion}
 			if diff := cmp.Diff(got, []map[string]string{params}); diff != "" {
 				t.Fatal(diff)
 			}
