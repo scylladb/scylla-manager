@@ -65,6 +65,9 @@ type NodeInfo struct {
 	// Port for the CQL native transport to listen for clients on.
 	NativeTransportPort string `json:"native_transport_port,omitempty"`
 
+	// Port for the encrypted CQL native transport to listen for clients on.
+	NativeTransportPortSsl string `json:"native_transport_port_ssl,omitempty"`
+
 	// Address for Prometheus queries.
 	PrometheusAddress string `json:"prometheus_address,omitempty"`
 

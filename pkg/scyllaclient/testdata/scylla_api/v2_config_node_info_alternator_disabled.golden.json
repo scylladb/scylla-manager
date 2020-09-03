@@ -11,6 +11,7 @@
   "cql_password_protected":true,
   "listen_address":"192.168.100.100",
   "native_transport_port":"9042",
+  "native_transport_port_ssl":"9142",
   "prometheus_address":"0.0.0.0",
   "prometheus_port":"9180",
   "rpc_address":"192.168.100.101",

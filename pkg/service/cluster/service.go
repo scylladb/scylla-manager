@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"sort"
+	"strconv"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -499,6 +500,15 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 	}
 
 	scyllaCluster := gocql.NewCluster(client.Config().Hosts...)
+
+	// Set port if needed
+	if cqlPort := ni.CQLPort(client.Config().Hosts[0]); cqlPort != "9042" {
+		p, err := strconv.Atoi(cqlPort)
+		if err != nil {
+			return session, errors.Wrap(err, "parse cql port")
+		}
+		scyllaCluster.Port = p
+	}
 
 	if ni.CqlPasswordProtected {
 		credentials := secrets.CQLCreds{
