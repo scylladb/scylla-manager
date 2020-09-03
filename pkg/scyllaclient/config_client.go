@@ -63,6 +63,15 @@ func (c *ConfigClient) NativeTransportPort(ctx context.Context) (string, error) 
 	return fmt.Sprint(resp.Payload), err
 }
 
+// NativeTransportPortSSL returns node listen SSL port.
+func (c *ConfigClient) NativeTransportPortSSL(ctx context.Context) (string, error) {
+	resp, err := c.client.Config.FindConfigNativeTransportPortSsl(config.NewFindConfigNativeTransportPortSslParamsWithContext(ctx))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprint(resp.Payload), err
+}
+
 // RPCAddress returns node rpc address.
 func (c *ConfigClient) RPCAddress(ctx context.Context) (string, error) {
 	resp, err := c.client.Config.FindConfigRPCAddress(config.NewFindConfigRPCAddressParamsWithContext(ctx))
@@ -233,6 +242,7 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 		{Field: &ni.BroadcastRPCAddress, Fetcher: c.BroadcastRPCAddress},
 		{Field: &ni.ListenAddress, Fetcher: c.ListenAddress},
 		{Field: &ni.NativeTransportPort, Fetcher: c.NativeTransportPort},
+		{Field: &ni.NativeTransportPortSsl, Fetcher: c.NativeTransportPortSSL},
 		{Field: &ni.PrometheusAddress, Fetcher: c.PrometheusAddress},
 		{Field: &ni.PrometheusPort, Fetcher: c.PrometheusPort},
 		{Field: &ni.RPCAddress, Fetcher: c.RPCAddress},

@@ -6,6 +6,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"time"
 
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
@@ -44,22 +45,53 @@ func (c *Client) AnyNodeInfo(ctx context.Context) (*NodeInfo, error) {
 // is added.
 // `fallback` argument is used in case any of above addresses is zero address.
 func (ni *NodeInfo) CQLAddr(fallback string) string {
+	addr, port := ni.cqlAddr(fallback), ni.CQLPort(fallback)
+	return net.JoinHostPort(addr, port)
+}
+
+func (ni *NodeInfo) cqlAddr(fallback string) string {
 	const ipv4Zero, ipv6Zero = "0.0.0.0", "::0"
 
 	if ni.BroadcastRPCAddress != "" {
-		return net.JoinHostPort(ni.BroadcastRPCAddress, ni.NativeTransportPort)
+		return ni.BroadcastRPCAddress
 	}
 	if ni.RPCAddress != "" {
 		if ni.RPCAddress == ipv4Zero || ni.RPCAddress == ipv6Zero {
-			return net.JoinHostPort(fallback, ni.NativeTransportPort)
+			return fallback
 		}
-		return net.JoinHostPort(ni.RPCAddress, ni.NativeTransportPort)
+		return ni.RPCAddress
 	}
 	if ni.ListenAddress == ipv4Zero || ni.ListenAddress == ipv6Zero {
-		return net.JoinHostPort(fallback, ni.NativeTransportPort)
+		return fallback
 	}
 
-	return net.JoinHostPort(ni.ListenAddress, ni.NativeTransportPort)
+	return ni.ListenAddress
+}
+
+// CQLPort returns CQL port from NodeInfo.
+// `fallbackAddress` argument is needed for Scylla bug workaround, see CQLAddr for description.
+func (ni *NodeInfo) CQLPort(fallbackAddress string) string {
+	if ni.ClientEncryptionEnabled {
+		// Scylla API always returns non-empty NativeTransportPortSSL even when
+		// value is explicitly disabled in configuration file.
+		// This makes impossible to determine which port is being used for CQL
+		// frontend. To workaround it, we try to dial SSL port when
+		// client encryption is enabled. If any error happens, assume this port
+		// is not used.
+		// Ref: https://github.com/scylladb/scylla/issues/7206
+
+		d := &net.Dialer{
+			Timeout: time.Second,
+		}
+		addr := net.JoinHostPort(ni.cqlAddr(fallbackAddress), ni.NativeTransportPortSsl)
+		c, err := d.Dial("tcp", addr)
+		if err != nil {
+			return ni.NativeTransportPort
+		}
+		defer c.Close()
+		return ni.NativeTransportPortSsl
+	}
+	return ni.NativeTransportPort
 }
 
 // AlternatorEnabled returns if Alternator is enabled on host.

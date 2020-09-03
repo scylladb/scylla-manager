@@ -1288,6 +1288,10 @@
           "description": "Port for the CQL native transport to listen for clients on.",
           "type": "string"
         },
+        "native_transport_port_ssl": {
+          "description": "Port for the encrypted CQL native transport to listen for clients on.",
+          "type": "string"
+        },
         "rpc_address": {
           "description": "Address on which Scylla is going to expect Thrift and CQL clients connections.",
           "type": "string"
