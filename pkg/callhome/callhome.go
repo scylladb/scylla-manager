@@ -153,8 +153,13 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) (Result, er
 	if err != nil {
 		return res, err
 	}
-
 	installedVersion := strings.Split(s.Version, "-")[0]
+	// Master branch version can look like this:
+	// * 666.dev-0.20200902.a6a8ce8e
+	// * 666.development-0.20200325.9fee712d62
+	// Adjust it here to match semantic version format.
+	installedVersion = strings.TrimSuffix(installedVersion, ".development")
+	installedVersion = strings.TrimSuffix(installedVersion, ".dev")
 	installed, err := version.NewVersion(installedVersion)
 	if err != nil {
 		return res, err
