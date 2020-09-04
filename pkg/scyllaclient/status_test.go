@@ -17,40 +17,42 @@ func TestStatusCodeOf(t *testing.T) {
 	t.Parallel()
 
 	configNotFound := scylla2ConfigOperations.NewFindConfigAPIAddressDefault(404)
-	configNotFound.Payload = &scylla2Models.ErrorModel{Code: 404}
+	configNotFound.Payload = &scylla2Models.ErrorModel{Code: 404, Message: "not found"}
 
 	rcloneNotFound := rcloneOperations.NewOperationsListDefault(404)
-	rcloneNotFound.Payload = &agentModels.ErrorResponse{Status: 404}
+	rcloneNotFound.Payload = &agentModels.ErrorResponse{Status: 404, Message: "not found"}
 
 	table := []struct {
-		Name   string
-		Err    error
-		Status int
+		Name    string
+		Err     error
+		Status  int
+		Message string
 	}{
 		{
-			Name:   "nil",
-			Err:    nil,
-			Status: 0,
+			Name: "nil",
+			Err:  nil,
 		},
 		{
-			Name:   "not HTTP error",
-			Err:    errors.New("foobar"),
-			Status: 0,
+			Name: "not HTTP error",
+			Err:  errors.New("foobar"),
 		},
 		{
-			Name:   "scylla",
-			Err:    runtime.NewAPIError("GET", errors.New("foobar"), 404),
-			Status: 404,
+			Name:    "scylla",
+			Err:     runtime.NewAPIError("GET", errors.New("not found"), 404),
+			Status:  404,
+			Message: "not found",
 		},
 		{
-			Name:   "scylla config",
-			Err:    configNotFound,
-			Status: 404,
+			Name:    "scylla config",
+			Err:     configNotFound,
+			Status:  404,
+			Message: "not found",
 		},
 		{
-			Name:   "rclone",
-			Err:    rcloneNotFound,
-			Status: 404,
+			Name:    "rclone",
+			Err:     rcloneNotFound,
+			Status:  404,
+			Message: "not found",
 		},
 	}
 
@@ -59,9 +61,11 @@ func TestStatusCodeOf(t *testing.T) {
 
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
-
 			if s := StatusCodeOf(test.Err); s != test.Status {
-				t.Error("expected", test.Status, "got", s)
+				t.Errorf("StatusCodeOf() = %d, expected %d", s, test.Status)
+			}
+			if s, m := StatusCodeAndMessageOf(test.Err); s != test.Status || m != test.Message {
+				t.Errorf("StatusCodeOf() = %d, %s, expected %d, %s", s, m, test.Status, test.Message)
 			}
 		})
 	}

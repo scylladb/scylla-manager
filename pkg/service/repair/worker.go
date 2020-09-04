@@ -16,6 +16,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var errTableDeleted = errors.New("table deleted during repair")
+
 func workerCount(ranges []scyllaclient.TokenRange) int {
 	var replicas = make(map[uint64][]string)
 	for _, tr := range ranges {
@@ -120,7 +122,11 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 
 	id, err := w.client.Repair(ctx, host, cfg)
 	if err != nil {
-		return errors.Wrapf(err, "host %s: repair issue", host)
+		if w.tableDeleted(ctx, err, ttr.Keyspace, ttr.Table) {
+			return errTableDeleted
+		}
+
+		return errors.Wrapf(err, "host %s: schedule repair", host)
 	}
 	w.logger.Debug(ctx, "Repair",
 		"keyspace", ttr.Keyspace,
@@ -129,8 +135,8 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 		"ranges", len(ttrs),
 		"job_id", id,
 	)
-	if err := w.waitRepairStatus(ctx, id, host, ttr.Keyspace); err != nil {
-		return errors.Wrapf(err, "host %s: checking repair status", host)
+	if err := w.waitRepairStatus(ctx, id, host, ttr.Keyspace, ttr.Table); err != nil {
+		return errors.Wrapf(err, "host %s: keyspace %s table %s command %d", host, ttr.Keyspace, ttr.Table, id)
 	}
 
 	return nil
@@ -155,7 +161,7 @@ func (w *worker) runLegacyRepair(ctx context.Context, ranges []*tableTokenRange,
 	return g.Wait()
 }
 
-func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace string) error {
+func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace, table string) error {
 	// TODO change to long polling
 	t := time.NewTicker(w.pollInterval)
 	defer t.Stop()
@@ -167,18 +173,49 @@ func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace 
 		case <-t.C:
 			s, err := w.client.RepairStatus(ctx, host, keyspace, id)
 			if err != nil {
+				if w.tableDeleted(ctx, err, keyspace, table) {
+					return errTableDeleted
+				}
 				return err
 			}
 			switch s {
 			case scyllaclient.CommandRunning:
-				// continue
+				// Continue
 			case scyllaclient.CommandSuccessful:
 				return nil
 			case scyllaclient.CommandFailed:
-				return errors.New("repair failed consult Scylla logs")
+				if w.tableDeleted(ctx, nil, keyspace, table) {
+					return errTableDeleted
+				}
+				return errors.New("repair failed on Scylla - consult Scylla logs for details")
 			default:
 				return errors.Errorf("unknown command status %q", s)
 			}
 		}
 	}
+}
+
+func (w *worker) tableDeleted(ctx context.Context, err error, keyspace, table string) bool {
+	if err != nil {
+		status, msg := scyllaclient.StatusCodeAndMessageOf(err)
+		switch {
+		case status >= 400 && scyllaclient.TableNotExistsRegex.MatchString(msg):
+			return true
+		case status < 400:
+			return false
+		}
+	}
+
+	exists, err := w.client.TableExists(ctx, keyspace, table)
+	if err != nil {
+		w.logger.Debug(ctx, "Failed to check if table exists after a Scylla repair failure", "error", err)
+		return false
+	}
+	deleted := !exists
+
+	if deleted {
+		w.logger.Info(ctx, "Detected table deletion", "keyspace", keyspace, "table", table)
+	}
+
+	return deleted
 }

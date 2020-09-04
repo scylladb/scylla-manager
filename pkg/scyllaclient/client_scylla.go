@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -625,6 +626,24 @@ func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string
 		return 0, err
 	}
 	return resp.Payload, nil
+}
+
+// TableNotExistsRegex matches error messages returned by Scylla when there is no such table.
+var TableNotExistsRegex = regexp.MustCompile("^No column family|^Column family .* not found$|^Keyspace .* Does not exist")
+
+// TableExists returns true iff table exists.
+func (c *Client) TableExists(ctx context.Context, keyspace, table string) (bool, error) {
+	_, err := c.scyllaOps.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(&operations.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetParams{
+		Context: ctx,
+		Name:    keyspace + ":" + table,
+	})
+
+	s, m := StatusCodeAndMessageOf(err)
+	if s >= 400 && TableNotExistsRegex.MatchString(m) {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // ScyllaFeatures returns features supported by the current Scylla release.

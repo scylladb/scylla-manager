@@ -137,6 +137,53 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	}
 }
 
+func TestClientTableExistsIntegration(t *testing.T) {
+	table := []struct {
+		Name     string
+		Keyspace string
+		Table    string
+		Exists   bool
+	}{
+		{
+			Name:     "Valid",
+			Keyspace: "system_auth",
+			Table:    "roles",
+			Exists:   true,
+		},
+		{
+			Name:     "No table",
+			Keyspace: "system_auth",
+			Table:    "aaa",
+			Exists:   false,
+		},
+		{
+			Name:     "No keyspace",
+			Keyspace: "aaa",
+			Table:    "aaa",
+			Exists:   false,
+		},
+	}
+
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+
+	for i := range table {
+		test := table[i]
+
+		exists, err := client.TableExists(ctx, test.Keyspace, test.Table)
+		if err != nil {
+			t.Fatalf("TableExists failed: %s", err)
+		}
+		if exists != test.Exists {
+			t.Fatalf("TableExists() = %v, expected %v", exists, test.Exists)
+		}
+	}
+}
+
 func contains(v []string, s string) bool {
 	for _, e := range v {
 		if e == s {

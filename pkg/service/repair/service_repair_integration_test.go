@@ -55,7 +55,7 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
-	c := newTestClient(t, hrt, logger)
+	c := newTestClient(t, hrt, log.NopLogger)
 	s := newTestService(t, session, c, config, logger)
 
 	return &repairTestHelper{
@@ -248,15 +248,7 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 			return nil, nil
 		}
 
-		resp := &http.Response{
-			Status:     "200 OK",
-			StatusCode: 200,
-			Proto:      "HTTP/1.1",
-			ProtoMajor: 1,
-			ProtoMinor: 1,
-			Request:    req,
-			Header:     make(http.Header, 0),
-		}
+		resp := makeResponse(req)
 
 		switch req.Method {
 		case http.MethodGet:
@@ -268,6 +260,29 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 
 		return resp, nil
 	})
+}
+
+func holdRepairInterceptor() http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodGet {
+			resp := makeResponse(req)
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
+			return resp, nil
+		}
+		return nil, nil
+	})
+}
+
+func makeResponse(req *http.Request) *http.Response {
+	return &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Request:    req,
+		Header:     make(http.Header, 0),
+	}
 }
 
 func unstableRepairInterceptor() http.RoundTripper {
@@ -330,8 +345,11 @@ func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 }
 
 func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
-	ExecStmt(t, session, "DROP KEYSPACE "+keyspace)
+	ExecStmt(t, session, "DROP KEYSPACE IF EXISTS "+keyspace)
 }
+
+// We must use -1 here to support working with empty tables or not flushed data.
+const repairAllSmallTableThreshold = -1
 
 func allUnits() repair.Target {
 	return repair.Target{
@@ -340,10 +358,9 @@ func allUnits() repair.Target {
 			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 			{Keyspace: "system_schema", Tables: []string{"indexes", "keyspaces"}},
 		},
-		DC:                  []string{"dc1", "dc2"},
-		Continue:            true,
-		Intensity:           0.1,
-		SmallTableThreshold: 0,
+		DC:        []string{"dc1", "dc2"},
+		Continue:  true,
+		Intensity: 0.1,
 	}
 }
 
@@ -355,10 +372,9 @@ func singleUnit() repair.Target {
 				Tables:   []string{"test_table_0"},
 			},
 		},
-		DC:                  []string{"dc1", "dc2"},
-		Continue:            true,
-		Intensity:           0.1,
-		SmallTableThreshold: 0,
+		DC:        []string{"dc1", "dc2"},
+		Continue:  true,
+		Intensity: 0.1,
 	}
 }
 
@@ -368,10 +384,9 @@ func multipleUnits() repair.Target {
 			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
 			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
 		},
-		DC:                  []string{"dc1", "dc2"},
-		Continue:            true,
-		Intensity:           0.1,
-		SmallTableThreshold: 0,
+		DC:        []string{"dc1", "dc2"},
+		Continue:  true,
+		Intensity: 0.1,
 	}
 }
 
@@ -440,8 +455,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	clusterSession := CreateManagedClusterSession(t)
 
 	createKeyspace(t, clusterSession, "test_repair")
-	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
-	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
+	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
 	defaultConfig := func() repair.Config {
@@ -576,9 +590,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 					Keyspace: testKeyspace,
 				},
 			},
-			DC:                  []string{"dc1"},
-			Continue:            true,
-			SmallTableThreshold: 0,
+			DC:       []string{"dc1"},
+			Continue: true,
 		}
 
 		h := newRepairTestHelper(t, session, defaultConfig())
@@ -897,6 +910,96 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: repair fails")
 		h.assertError(shortWait)
+	})
+
+	t.Run("drop table during repair", func(t *testing.T) {
+		const (
+			testKeyspace = "test_repair_drop_table"
+			testTable    = "test_table_0"
+		)
+
+		createKeyspace(t, clusterSession, testKeyspace)
+		WriteData(t, clusterSession, testKeyspace, 1, testTable)
+		defer dropKeyspace(t, clusterSession, testKeyspace)
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		target := repair.Target{
+			Units: []repair.Unit{
+				{
+					Keyspace: testKeyspace,
+					Tables:   []string{testTable},
+				},
+			},
+			DC:                  []string{"dc1", "dc2"},
+			Intensity:           -1,
+			SmallTableThreshold: repairAllSmallTableThreshold,
+		}
+
+		Print("When: run repair")
+		h.runRepair(ctx, target)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node12 is 10% repaired")
+		h.assertProgress(node12, 10, longWait)
+
+		Print("And: table is dropped during repair")
+		h.hrt.SetInterceptor(holdRepairInterceptor())
+		h.assertMaxProgress(node12, 20, now)
+		ExecStmt(t, clusterSession, fmt.Sprintf("DROP TABLE %s.%s", testKeyspace, testTable))
+		h.hrt.SetInterceptor(nil)
+
+		Print("Then: repair is done")
+		h.assertDone(shortWait)
+	})
+
+	t.Run("drop keyspace during repair", func(t *testing.T) {
+		const (
+			testKeyspace = "test_repair_drop_table"
+			testTable    = "test_table_0"
+		)
+
+		createKeyspace(t, clusterSession, testKeyspace)
+		WriteData(t, clusterSession, testKeyspace, 1, testTable)
+		defer dropKeyspace(t, clusterSession, testKeyspace)
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		target := repair.Target{
+			Units: []repair.Unit{
+				{
+					Keyspace: testKeyspace,
+					Tables:   []string{testTable},
+				},
+			},
+			DC:                  []string{"dc1", "dc2"},
+			Intensity:           -1,
+			SmallTableThreshold: repairAllSmallTableThreshold,
+		}
+
+		Print("When: run repair")
+		h.runRepair(ctx, target)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: node12 is 10% repaired")
+		h.assertProgress(node12, 10, longWait)
+
+		Print("And: keyspace is dropped during repair")
+		h.hrt.SetInterceptor(holdRepairInterceptor())
+		h.assertMaxProgress(node12, 20, now)
+		dropKeyspace(t, clusterSession, testKeyspace)
+		h.hrt.SetInterceptor(nil)
+
+		Print("Then: repair is done")
+		h.assertDone(shortWait)
 	})
 
 	t.Run("kill repairs on task failure", func(t *testing.T) {
