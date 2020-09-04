@@ -898,6 +898,71 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair fails")
 		h.assertError(shortWait)
 	})
+
+	t.Run("kill repairs on task failure", func(t *testing.T) {
+		killRepairCounter := func(counter *int32) http.RoundTripper {
+			return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if req.URL.Path == "/storage_service/force_terminate_repair" {
+					atomic.AddInt32(counter, 1)
+				}
+				return nil, nil
+			})
+		}
+		target := multipleUnits()
+
+		t.Run("when task is cancelled", func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			h := newRepairTestHelper(t, session, defaultConfig())
+			var killRepairCalled int32
+			h.hrt.SetInterceptor(killRepairCounter(&killRepairCalled))
+
+			Print("When: run repair")
+			h.runRepair(ctx, target)
+
+			Print("When: repair is running")
+			h.assertProgress(node11, 1, longWait)
+
+			Print("When: repair is cancelled")
+			cancel()
+			h.assertError(shortWait)
+
+			Print("Then: repairs on all hosts are killed")
+			if int(killRepairCalled) != len(ManagedClusterHosts()) {
+				t.Errorf("not all repairs were killed")
+			}
+		})
+
+		t.Run("when fail fast is enabled", func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			h := newRepairTestHelper(t, session, defaultConfig())
+			target.FailFast = true
+
+			Print("When: run repair")
+			h.runRepair(ctx, target)
+
+			Print("When: repair is running")
+			h.assertProgress(node11, 1, longWait)
+
+			Print("When: Scylla returns failures")
+			var killRepairCalled int32
+			h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
+				_, _ = killRepairCounter(&killRepairCalled).RoundTrip(r)
+				return repairInterceptor(scyllaclient.CommandFailed).RoundTrip(r)
+			}))
+
+			Print("Then: repair finish with error")
+			h.assertError(longWait)
+
+			Print("Then: repairs on all hosts are killed")
+			if int(killRepairCalled) != len(ManagedClusterHosts()) {
+				t.Errorf("not all repairs were killed")
+			}
+		})
+	})
 }
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
