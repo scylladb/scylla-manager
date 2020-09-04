@@ -81,7 +81,9 @@ func (h *repairTestHelper) runRepair(ctx context.Context, t repair.Target) {
 		h.result = nil
 		h.mu.Unlock()
 
+		h.logger.Info(ctx, "Running repair", "task", h.taskID, "run", h.runID)
 		err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, t)
+		h.logger.Info(ctx, "Repair ended", "task", h.taskID, "run", h.runID, "error", err)
 
 		h.mu.Lock()
 		h.done = true
