@@ -42,12 +42,14 @@ type generator struct {
 	gracefulShutdownTimeout time.Duration
 	logger                  log.Logger
 
-	replicas     map[uint64][]string
-	ranges       map[uint64][]*tableTokenRange
-	hostCount    int
-	hostPriority hostPriority
-	smallTables  *strset.Set
-	progress     progressManager
+	replicas      map[uint64][]string
+	ranges        map[uint64][]*tableTokenRange
+	hostCount     int
+	hostPriority  hostPriority
+	smallTables   *strset.Set
+	deletedTables *strset.Set
+	progress      progressManager
+	lastPercent   int
 
 	intensity        float64
 	intensityHandler *intensityHandler
@@ -72,9 +74,11 @@ func newGenerator(ih *intensityHandler, gracefulShutdownTimeout time.Duration, m
 		failFast:                failFast,
 		logger:                  logger,
 
-		replicas:    make(map[uint64][]string),
-		ranges:      make(map[uint64][]*tableTokenRange),
-		smallTables: strset.New(),
+		replicas:      make(map[uint64][]string),
+		ranges:        make(map[uint64][]*tableTokenRange),
+		smallTables:   strset.New(),
+		deletedTables: strset.New(),
+		lastPercent:   -1,
 	}
 
 	// Check if intensity channel has desired intensity value
@@ -149,7 +153,7 @@ func (g *generator) Init(ctx context.Context, workerCount int) error {
 		g.count += len(ttrs)
 	}
 
-	g.fillNext()
+	g.fillNext(ctx)
 
 	return nil
 }
@@ -164,8 +168,6 @@ func (g *generator) Result() chan<- jobResult {
 
 func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start repair")
-
-	lastPercent := -1
 
 	done := ctx.Done()
 	stop := make(chan struct{})
@@ -189,9 +191,8 @@ loop:
 			g.intensity = intensity
 		case r := <-g.result:
 			// TODO handling penalties
-			lastPercent = g.processResult(ctx, r, lastPercent)
-
-			g.fillNext()
+			g.processResult(ctx, r)
+			g.fillNext(ctx)
 
 			if done := g.busy.IsEmpty(); done {
 				g.logger.Info(ctx, "Done repair")
@@ -208,7 +209,12 @@ loop:
 	return err
 }
 
-func (g *generator) processResult(ctx context.Context, r jobResult, lastPercent int) int {
+func (g *generator) processResult(ctx context.Context, r jobResult) {
+	if errors.Is(r.Err, errTableDeleted) {
+		g.markDeletedTable(keyspaceTableForRanges(r.Ranges))
+		r.Err = nil
+	}
+
 	if err := g.progress.Update(ctx, r); err != nil {
 		g.logger.Error(ctx, "Failed to update progress", "error", err)
 	}
@@ -228,14 +234,12 @@ func (g *generator) processResult(ctx context.Context, r jobResult, lastPercent 
 		g.success += len(r.Ranges)
 	}
 
-	if percent := 100 * (g.success + g.failed) / g.count; percent > lastPercent {
+	if percent := 100 * (g.success + g.failed) / g.count; percent > g.lastPercent {
 		g.logger.Info(ctx, "Progress", "percent", percent, "count", g.count, "success", g.success, "failed", g.failed)
-		lastPercent = percent
+		g.lastPercent = percent
 	}
 
 	g.unblockReplicas(r.Ranges[0])
-
-	return lastPercent
 }
 
 func (g *generator) unblockReplicas(ttr *tableTokenRange) {
@@ -249,7 +253,7 @@ func (g *generator) closeNext() {
 	}
 }
 
-func (g *generator) fillNext() {
+func (g *generator) fillNext(ctx context.Context) {
 	if g.nextClosed {
 		return
 	}
@@ -259,14 +263,32 @@ func (g *generator) fillNext() {
 			return
 		}
 
-		host := g.pickHost(hash)
-		rangesLimit := g.rangesLimit(host)
+		var (
+			host        = g.pickHost(hash)
+			rangesLimit = g.rangesLimit(host)
+			ranges      = g.pickRanges(hash, rangesLimit)
 
+			j = job{
+				Host:   host,
+				Ranges: ranges,
+			}
+		)
+
+		// Process deleted table as a success without sending to worker
+		if k, t := keyspaceTableForRanges(ranges); g.deletedTable(k, t) {
+			g.logger.Debug(ctx, "Repair skipping deleted table",
+				"keyspace", k,
+				"table", t,
+				"hosts", ranges[0].Replicas,
+				"ranges", len(ranges),
+			)
+			g.processResult(ctx, jobResult{job: j})
+			continue
+		}
+
+		// Send job to worker
 		select {
-		case g.next <- job{
-			Host:   host,
-			Ranges: g.pickRanges(hash, rangesLimit),
-		}:
+		case g.next <- j:
 		default:
 			panic("next buffer full")
 		}
@@ -328,7 +350,8 @@ func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	ranges := g.ranges[hash]
 
 	// Speedup repair of system and small tables by repairing all ranges together.
-	if strings.HasPrefix(ranges[0].Keyspace, "system") || g.smallTable(ranges[0].Keyspace, ranges[0].Table) {
+	keyspace, table := keyspaceTableForRanges(ranges)
+	if strings.HasPrefix(keyspace, "system") || g.smallTable(keyspace, table) {
 		limit = len(ranges)
 	}
 
@@ -348,12 +371,24 @@ func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	return ranges[0:i]
 }
 
+func keyspaceTableForRanges(ranges []*tableTokenRange) (keyspace, table string) {
+	return ranges[0].Keyspace, ranges[0].Table
+}
+
 func (g *generator) markSmallTable(keyspace, table string) {
 	g.smallTables.Add(keyspace + "." + table)
 }
 
 func (g *generator) smallTable(keyspace, table string) bool {
 	return g.smallTables.Has(keyspace + "." + table)
+}
+
+func (g *generator) markDeletedTable(keyspace, table string) {
+	g.deletedTables.Add(keyspace + "." + table)
+}
+
+func (g *generator) deletedTable(keyspace, table string) bool {
+	return g.deletedTables.Has(keyspace + "." + table)
 }
 
 func (g *generator) rangesLimit(host string) int {

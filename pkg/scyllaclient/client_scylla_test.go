@@ -411,6 +411,49 @@ func TestClientTableDiskSize(t *testing.T) {
 	}
 }
 
+func TestClientTableExists(t *testing.T) {
+	t.Parallel()
+
+	t.Run("exists", func(t *testing.T) {
+		client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_metrics_total_disk_space_used.json")
+		defer closeServer()
+
+		ok, err := client.TableExists(context.Background(), "system_schema", "tables")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			t.Fatalf("Expected true, got %v", ok)
+		}
+	})
+
+	t.Run("no table", func(t *testing.T) {
+		client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_metrics_total_disk_space_used_no_table.400.json")
+		defer closeServer()
+
+		ok, err := client.TableExists(context.Background(), "system_schema", "tables")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Fatalf("Expected false, got %v", ok)
+		}
+	})
+
+	t.Run("no keyspace", func(t *testing.T) {
+		client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_metrics_total_disk_space_used_no_keyspace.400.json")
+		defer closeServer()
+
+		ok, err := client.TableExists(context.Background(), "system_schema", "tables")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Fatalf("Expected false, got %v", ok)
+		}
+	})
+}
+
 func TestScyllaFeatures(t *testing.T) {
 	t.Parallel()
 
