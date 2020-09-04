@@ -417,25 +417,6 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	}
 }
 
-func TestServiceRepairSmokeIntegration(t *testing.T) {
-	var (
-		session = CreateSession(t)
-		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
-		ctx     = context.Background()
-	)
-
-	target, err := h.service.GetTarget(ctx, h.clusterID, json.RawMessage("{}"))
-	if err != nil {
-		t.Fatal("GetTarget() failed", err)
-	}
-	target.Intensity = 50
-
-	err = h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target)
-	if err != nil {
-		t.Fatal("Repair() failed", err)
-	}
-}
-
 func TestServiceRepairIntegration(t *testing.T) {
 	clusterSession := CreateManagedClusterSession(t)
 
