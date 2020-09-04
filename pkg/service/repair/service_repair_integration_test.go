@@ -32,6 +32,7 @@ import (
 )
 
 type repairTestHelper struct {
+	logger  log.Logger
 	session gocqlx.Session
 	hrt     *HackableRoundTripper
 	client  *scyllaclient.Client
@@ -59,6 +60,7 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	s := newTestService(t, session, c, config, logger)
 
 	return &repairTestHelper{
+		logger:  logger,
 		session: session,
 		hrt:     hrt,
 		client:  c,
