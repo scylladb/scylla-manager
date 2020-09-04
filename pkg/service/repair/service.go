@@ -363,7 +363,23 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return g.Run(ctx)
 	})
 
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		if err == context.Canceled || target.FailFast {
+			// Send kill repair request to all hosts.
+			s.killAllRepairs(ctx, client, repairHosts.List())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Client, hosts []string) {
+	killCtx := log.CopyTraceID(context.Background(), ctx)
+	killCtx = scyllaclient.Interactive(killCtx)
+	if err := client.KillAllRepairs(killCtx, hosts...); err != nil {
+		s.logger.Error(killCtx, "Failed to kill repairs", "hosts", hosts, "error", err)
+	}
 }
 
 func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.Client, target Target, g *generator) error {
