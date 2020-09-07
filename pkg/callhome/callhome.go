@@ -8,13 +8,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/mermaid/pkg"
 	"github.com/scylladb/mermaid/pkg/util/osutil"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
+	scyllaversion "github.com/scylladb/mermaid/pkg/util/version"
 )
 
 const (
@@ -149,27 +149,21 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) (Result, er
 		return res, err
 	}
 
-	available, err := version.NewVersion(check.Version)
+	available, err := version.NewVersion(scyllaversion.TrimMaster(check.Version))
 	if err != nil {
 		return res, err
 	}
-	installedVersion := strings.Split(s.Version, "-")[0]
-	// Master branch version can look like this:
-	// * 666.dev-0.20200902.a6a8ce8e
-	// * 666.development-0.20200325.9fee712d62
-	// Adjust it here to match semantic version format.
-	installedVersion = strings.TrimSuffix(installedVersion, ".development")
-	installedVersion = strings.TrimSuffix(installedVersion, ".dev")
-	installed, err := version.NewVersion(installedVersion)
+	installed, err := version.NewVersion(scyllaversion.TrimMaster(s.Version))
 	if err != nil {
 		return res, err
 	}
-
-	res.Available = available.Original()
-	res.Installed = installed.Original()
 
 	if installed.LessThan(available) {
 		res.UpdateAvailable = true
 	}
+
+	res.Available = check.Version
+	res.Installed = s.Version
+
 	return res, nil
 }

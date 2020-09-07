@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	scyllaversion "github.com/scylladb/mermaid/pkg/util/version"
 )
 
 // HostDC is a tuple of host and DC.
@@ -217,11 +218,6 @@ var masterScyllaFeatures = ScyllaFeatures{
 	AlternatorQueryPing: true,
 }
 
-const (
-	scyllaMasterVersion           = "666.development"
-	scyllaEnterpriseMasterVersion = "9999.enterprise_dev"
-)
-
 var (
 	verRe = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?`)
 )
@@ -231,7 +227,7 @@ func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
 	ver = strings.Split(ver, "-")[0]
 
 	// Detect master builds
-	if ver == scyllaMasterVersion || ver == scyllaEnterpriseMasterVersion {
+	if scyllaversion.MasterVersion(ver) {
 		return masterScyllaFeatures, nil
 	}
 
