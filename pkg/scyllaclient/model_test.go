@@ -89,14 +89,14 @@ func TestScyllaFeatures(t *testing.T) {
 			},
 		},
 		{
-			Version: scyllaMasterVersion,
+			Version: "666.development",
 			Golden: ScyllaFeatures{
 				RowLevelRepair:      true,
 				AlternatorQueryPing: true,
 			},
 		},
 		{
-			Version: scyllaEnterpriseMasterVersion,
+			Version: "9999.enterprise_dev",
 			Golden: ScyllaFeatures{
 				RowLevelRepair:      true,
 				AlternatorQueryPing: true,

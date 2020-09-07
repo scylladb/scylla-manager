@@ -25,3 +25,37 @@ func Short(v string) string {
 
 	return strings.Join(parts, ".")
 }
+
+const (
+	masterMajorVersion           = "666"
+	masterEnterpriseMajorVersion = "9999"
+
+	masterVersionSuffix           = ".dev"
+	masterVersionLongSuffix       = ".development"
+	masterEnterpriseVersionSuffix = ".enterprise_dev"
+
+	masterVersion                 = masterMajorVersion + masterVersionSuffix
+	masterLongVersion             = masterMajorVersion + masterVersionLongSuffix
+	masterEnterpriseMasterVersion = masterEnterpriseMajorVersion + masterEnterpriseVersionSuffix
+)
+
+// MasterVersion returns whether provided version string originates from master branch.
+func MasterVersion(v string) bool {
+	v = strings.Split(v, "-")[0]
+	return v == masterLongVersion || v == masterEnterpriseMasterVersion || v == masterVersion
+}
+
+// TrimMaster returns version string without master branch bloat breaking semantic
+// format constraints.
+func TrimMaster(v string) string {
+	if v == "Snapshot" {
+		return masterMajorVersion
+	}
+
+	v = strings.Split(v, "-")[0]
+	v = strings.TrimSuffix(v, masterVersionSuffix)
+	v = strings.TrimSuffix(v, masterVersionLongSuffix)
+	v = strings.TrimSuffix(v, masterEnterpriseVersionSuffix)
+
+	return v
+}
