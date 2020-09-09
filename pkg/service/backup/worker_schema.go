@@ -154,6 +154,10 @@ func (w *worker) createSchemaArchive(ctx context.Context) (b *bytes.Buffer, err 
 	now := timeutc.Now()
 
 	for _, u := range w.Units {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
 		w.Logger.Info(ctx, "Getting keyspace schema", "keyspace", u.Keyspace)
 		km, err := w.clusterSession.KeyspaceMetadata(u.Keyspace)
 		if err != nil {
