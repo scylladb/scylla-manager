@@ -407,9 +407,8 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 	}
 
 	// Log and mark small tables
+	var smallTables []string
 	for _, u := range target.Units {
-		var smallTables []string
-
 		for _, t := range u.Tables {
 			key := u.Keyspace + "." + t
 			total := totalSize[key]
@@ -417,12 +416,12 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 			if total <= target.SmallTableThreshold {
 				s.logger.Debug(ctx, "Detected small table", "keyspace", u.Keyspace, "table", t, "size", total, "threshold", target.SmallTableThreshold)
 				g.markSmallTable(u.Keyspace, t)
-				smallTables = append(smallTables, t)
+				smallTables = append(smallTables, key)
 			}
 		}
-		if len(smallTables) > 0 {
-			s.logger.Info(ctx, "Detected small tables", "keyspace", u.Keyspace, "tables", smallTables, "threshold", target.SmallTableThreshold)
-		}
+	}
+	if len(smallTables) > 0 {
+		s.logger.Info(ctx, "Detected small tables", "tables", smallTables, "threshold", target.SmallTableThreshold)
 	}
 
 	return nil
