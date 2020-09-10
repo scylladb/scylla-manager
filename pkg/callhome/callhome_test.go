@@ -171,6 +171,28 @@ func TestChecker(t *testing.T) {
 			},
 			Status: "md",
 		},
+		{
+			Name:             "rc version when non-rc available",
+			InstalledVersion: "2.2.rc1",
+			LatestVersion:    "2.2.0",
+			Result: Result{
+				UpdateAvailable: true,
+				Installed:       "2.2.rc1",
+				Available:       "2.2.0",
+			},
+			Status: "md",
+		},
+		{
+			Name:             "rc version when non-rc older available",
+			InstalledVersion: "2.2.rc1",
+			LatestVersion:    "2.1.0",
+			Result: Result{
+				UpdateAvailable: false,
+				Installed:       "2.2.rc1",
+				Available:       "2.1.0",
+			},
+			Status: "md",
+		},
 	}
 
 	for _, test := range table {

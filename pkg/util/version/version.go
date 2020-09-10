@@ -4,6 +4,7 @@ package version
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/go-version"
@@ -56,6 +57,16 @@ func TrimMaster(v string) string {
 	v = strings.TrimSuffix(v, masterVersionSuffix)
 	v = strings.TrimSuffix(v, masterVersionLongSuffix)
 	v = strings.TrimSuffix(v, masterEnterpriseVersionSuffix)
+
+	return v
+}
+
+var releaseCandidateRe = regexp.MustCompile(`\.rc([0-9]+)`)
+
+// TransformReleaseCandidate replaces `.rcX` in version string with `~` instead
+// of the dot.
+func TransformReleaseCandidate(v string) string {
+	v = releaseCandidateRe.ReplaceAllString(v, `~rc$1`)
 
 	return v
 }
