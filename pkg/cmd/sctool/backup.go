@@ -463,7 +463,7 @@ func backupFlags(cmd *cobra.Command) *pflag.FlagSet {
 		"a comma-separated `list` of upload parallelism limits in the format [<dc>:]<limit>. The <dc>: part is optional and allows for specifying different limits in selected datacenters. If The <dc>: part is not set the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") //nolint: lll
 	fs.Bool("dry-run", false,
 		"validates and prints backup information without scheduling a backup")
-	fs.Bool("show-tables", false, "print all table names for a keyspace")
+	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
 
 	return fs
 }

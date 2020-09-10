@@ -121,7 +121,7 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*', used to specify the DCs to include or exclude from repair")
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
-	fs.Bool("show-tables", false, "print all table names for a keyspace")
+	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
 	fs.Var(&IntensityFlag{Value: 0}, "intensity",
 		"integer >= 1 or a float between (0-1), higher values may result in higher speed or cluster load, values between (0, 1) specify percentage of nodes that are repaired at once.")
 	fs.String("small-table-threshold", "1GiB", "enable small table optimization for tables of size lower than given threshold. Supported units [B, MiB, GiB, TiB]")
