@@ -128,7 +128,7 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 
 		return errors.Wrapf(err, "host %s: schedule repair", host)
 	}
-	w.logger.Debug(ctx, "Repair",
+	w.logger.Info(ctx, "Repair",
 		"keyspace", ttr.Keyspace,
 		"table", ttr.Table,
 		"hosts", ttr.Replicas,
