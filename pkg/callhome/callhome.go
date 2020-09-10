@@ -149,11 +149,18 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) (Result, er
 		return res, err
 	}
 
-	available, err := version.NewVersion(scyllaversion.TrimMaster(check.Version))
+	availableVersion := check.Version
+	availableVersion = scyllaversion.TrimMaster(availableVersion)
+	availableVersion = scyllaversion.TransformReleaseCandidate(availableVersion)
+	available, err := version.NewVersion(availableVersion)
 	if err != nil {
 		return res, err
 	}
-	installed, err := version.NewVersion(scyllaversion.TrimMaster(s.Version))
+
+	installedVersion := s.Version
+	installedVersion = scyllaversion.TrimMaster(installedVersion)
+	installedVersion = scyllaversion.TransformReleaseCandidate(installedVersion)
+	installed, err := version.NewVersion(installedVersion)
 	if err != nil {
 		return res, err
 	}
