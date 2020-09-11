@@ -418,7 +418,7 @@ func (s *Service) nodeInfo(ctx context.Context, clusterID uuid.UUID, host string
 	now := timeutc.Now()
 
 	if ni, ok := s.nodeInfoCache[key]; ok && now.Before(ni.Expires) {
-		return nodeInfo{}, nil
+		return ni, nil
 	}
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
