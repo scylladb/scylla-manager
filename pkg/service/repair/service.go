@@ -545,46 +545,49 @@ func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *s
 	if err != nil {
 		return nil, errors.Wrap(err, "get client partitioner name")
 	}
-	// If partitioner is not supported just return nil partitioner which will
-	// signal that task should continue as row-level repair.
-	if p != scyllaclient.Murmur3Partitioner {
+
+	// If partitioner is not supported or row-level repair is forced
+	// return nil partitioner which will  signal that task should continue
+	// as row-level repair.
+	if p != scyllaclient.Murmur3Partitioner || s.config.ForceRepairType == TypeRowLevel {
 		for _, h := range hosts {
 			out[h] = nil
 		}
-	} else {
+		return out, nil
+	}
+
+	if s.config.ForceRepairType == TypeLegacy {
 		for _, h := range hosts {
-			if s.supportsRowLevelRepair(ctx, client, h) {
-				out[h] = nil
-			} else {
-				p, err := s.partitioner(ctx, h, client)
-				if err != nil {
-					return nil, err
-				}
-				out[h] = p
+			p, err := s.partitioner(ctx, h, client)
+			if err != nil {
+				return nil, err
 			}
+			out[h] = p
+		}
+
+		return out, nil
+	}
+
+	sf, err := client.ScyllaFeatures(ctx, hosts)
+	if err != nil {
+		s.logger.Error(ctx, "Checking scylla features failed", "error", err)
+		return nil, errors.Wrap(err, "scylla features")
+	}
+
+	for _, h := range hosts {
+		if sf[h].RowLevelRepair {
+			out[h] = nil
+		} else {
+			s.logger.Info(ctx, "Row-level repair not supported", "host", h)
+			p, err := s.partitioner(ctx, h, client)
+			if err != nil {
+				return nil, err
+			}
+			out[h] = p
 		}
 	}
 
 	return out, nil
-}
-
-func (s *Service) supportsRowLevelRepair(ctx context.Context, client *scyllaclient.Client, host string) bool {
-	if s.config.ForceRepairType == TypeRowLevel {
-		return true
-	}
-	if s.config.ForceRepairType == TypeLegacy {
-		return false
-	}
-	sf, err := client.ScyllaFeatures(ctx, host)
-	if err != nil {
-		s.logger.Error(ctx, "Checking scylla features failed", "error", err)
-	}
-	if sf.RowLevelRepair {
-		return true
-	}
-
-	s.logger.Info(ctx, "Row-level repair not supported", "host", host)
-	return false
 }
 
 func (s *Service) partitioner(ctx context.Context, host string, client *scyllaclient.Client) (*dht.Murmur3Partitioner, error) {

@@ -457,11 +457,17 @@ func TestClientTableExists(t *testing.T) {
 func TestScyllaFeatures(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_scylla_release_version.json")
+	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/failure_detector_endpoints.json")
 	defer closeServer()
 
-	_, err := client.ScyllaFeatures(context.Background(), scyllaclienttest.TestHost)
+	sf, err := client.ScyllaFeatures(context.Background(), []string{scyllaclienttest.TestHost})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(sf) != 1 {
+		t.Errorf("Expected scylla features for each host, got %d", len(sf))
+	}
+	if !sf[scyllaclienttest.TestHost].RowLevelRepair {
+		t.Error("Expected host to support row-level repair")
 	}
 }

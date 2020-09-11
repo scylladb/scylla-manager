@@ -8,8 +8,10 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
 	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
+	scyllaversion "github.com/scylladb/mermaid/pkg/util/version"
 )
 
 // NodeInfo provides basic information about Scylla node.
@@ -106,12 +108,18 @@ func (ni *NodeInfo) AlternatorEncryptionEnabled() bool {
 }
 
 // SupportsAlternatorQuery returns if Alternator supports querying system tables.
-func (ni *NodeInfo) SupportsAlternatorQuery() (bool, error) {
-	sf, err := makeScyllaFeatures(ni.ScyllaVersion)
-	if err != nil {
-		return false, err
+func (ni NodeInfo) SupportsAlternatorQuery() (bool, error) {
+	// Detect master builds
+	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
+		return true, nil
 	}
-	return sf.AlternatorQueryPing, nil
+
+	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 4.1, < 2000")
+	if err != nil {
+		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
+	}
+
+	return supports, nil
 }
 
 // AlternatorAddr returns Alternator address from NodeInfo.

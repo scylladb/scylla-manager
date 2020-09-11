@@ -3,13 +3,10 @@
 package scyllaclient
 
 import (
-	"regexp"
 	"strings"
 
-	"github.com/hashicorp/go-version"
-	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	scyllaversion "github.com/scylladb/mermaid/pkg/util/version"
+	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/models"
 )
 
 // HostDC is a tuple of host and DC.
@@ -209,58 +206,42 @@ type Unit struct {
 
 // ScyllaFeatures specifies features supported by the Scylla version.
 type ScyllaFeatures struct {
-	RowLevelRepair      bool
-	AlternatorQueryPing bool
+	RowLevelRepair bool
 }
 
-var masterScyllaFeatures = ScyllaFeatures{
-	RowLevelRepair:      true,
-	AlternatorQueryPing: true,
-}
+type gossipApplicationState int32
 
-var (
-	verRe = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?`)
+const (
+	// Reference: https://github.com/scylladb/scylla/blob/master/gms/application_state.hh
+
+	gossipSupportedFeatures gossipApplicationState = 14
 )
 
-func makeScyllaFeatures(ver string) (ScyllaFeatures, error) {
-	// Trim build version suffix as it breaks constraints
-	ver = strings.Split(ver, "-")[0]
+type featureFlag = string
 
-	// Detect master builds
-	if scyllaversion.MasterVersion(ver) {
-		return masterScyllaFeatures, nil
+const (
+	rowLevelRepair featureFlag = "ROW_LEVEL_REPAIR"
+)
+
+func makeScyllaFeatures(endpointStates []*models.EndpointState) map[string]ScyllaFeatures {
+	supportedFeatures := make(map[string][]string, len(endpointStates))
+
+	for _, state := range endpointStates {
+		for _, as := range state.ApplicationState {
+			if gossipApplicationState(as.ApplicationState) == gossipSupportedFeatures {
+				supportedFeatures[state.Addrs] = strings.Split(as.Value, ",")
+			}
+		}
 	}
 
-	if verRe.FindString(ver) == "" {
-		return ScyllaFeatures{}, errors.Errorf("Unsupported Scylla version: %s", ver)
+	sfs := make(map[string]ScyllaFeatures, len(supportedFeatures))
+	for host, sf := range supportedFeatures {
+		sfs[host] = ScyllaFeatures{
+			RowLevelRepair: contains(sf, rowLevelRepair),
+		}
 	}
 
-	// Extract only version number
-	ver = verRe.FindString(ver)
-
-	v, err := version.NewSemver(ver)
-	if err != nil {
-		return ScyllaFeatures{}, err
-	}
-
-	rowLevelRepairOpenSource, err := version.NewConstraint(">= 3.1, < 2000")
-	if err != nil {
-		panic(err) // must
-	}
-	rowLevelRepairEnterprise, err := version.NewConstraint(">= 2020")
-	if err != nil {
-		panic(err) // must
-	}
-
-	alternatorQueryPing, err := version.NewConstraint(">= 4.1, < 2000")
-	if err != nil {
-		panic(err) // must
-	}
-
-	return ScyllaFeatures{
-		RowLevelRepair:      rowLevelRepairOpenSource.Check(v) || rowLevelRepairEnterprise.Check(v),
-		AlternatorQueryPing: alternatorQueryPing.Check(v),
-	}, nil
+	return sfs
 }
 
 func contains(v []string, s string) bool {
