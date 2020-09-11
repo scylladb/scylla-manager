@@ -184,6 +184,26 @@ func TestClientTableExistsIntegration(t *testing.T) {
 	}
 }
 
+func TestScyllaFeaturesIntegration(t *testing.T) {
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	sf, err := client.ScyllaFeatures(ctx, ManagedClusterHosts())
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, h := range ManagedClusterHosts() {
+		if !sf[h].RowLevelRepair {
+			t.Errorf("%s host doesn't support row-level repair, but it should", h)
+		}
+	}
+}
+
 func contains(v []string, s string) bool {
 	for _, e := range v {
 		if e == s {

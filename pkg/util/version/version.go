@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-version"
+	"github.com/pkg/errors"
 )
 
 // Short excludes any metadata or pre-release information. For example,
@@ -69,4 +70,29 @@ func TransformReleaseCandidate(v string) string {
 	v = releaseCandidateRe.ReplaceAllString(v, `~rc$1`)
 
 	return v
+}
+
+var (
+	verRe = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?`)
+)
+
+// CheckConstraint returns whether version fulfills given constraint.
+func CheckConstraint(ver, constraint string) (bool, error) {
+	if verRe.FindString(ver) == "" {
+		return false, errors.Errorf("Unsupported Scylla version: %s", ver)
+	}
+
+	// Extract only version number
+	ver = verRe.FindString(ver)
+
+	v, err := version.NewSemver(ver)
+	if err != nil {
+		return false, err
+	}
+
+	c, err := version.NewConstraint(constraint)
+	if err != nil {
+		return false, errors.Errorf("version constraint syntax error: %s", err)
+	}
+	return c.Check(v), nil
 }

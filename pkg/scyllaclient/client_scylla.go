@@ -647,14 +647,22 @@ func (c *Client) TableExists(ctx context.Context, keyspace, table string) (bool,
 }
 
 // ScyllaFeatures returns features supported by the current Scylla release.
-func (c *Client) ScyllaFeatures(ctx context.Context, host string) (ScyllaFeatures, error) {
-	resp, err := c.scyllaOps.StorageServiceScyllaReleaseVersionGet(&operations.StorageServiceScyllaReleaseVersionGetParams{
-		Context: forceHost(ctx, host),
+func (c *Client) ScyllaFeatures(ctx context.Context, hosts []string) (map[string]ScyllaFeatures, error) {
+	resp, err := c.scyllaOps.FailureDetectorEndpointsGet(&operations.FailureDetectorEndpointsGetParams{
+		Context: ctx,
 	})
 	if err != nil {
-		return ScyllaFeatures{}, err
+		return nil, err
 	}
-	return makeScyllaFeatures(resp.Payload)
+	features := makeScyllaFeatures(resp.Payload)
+
+	// Filter results to have only requested hosts.
+	sfs := make(map[string]ScyllaFeatures, len(hosts))
+	for _, h := range hosts {
+		sfs[h] = features[h]
+	}
+
+	return sfs, nil
 }
 
 // TotalMemory returns Scylla total memory from particular host.

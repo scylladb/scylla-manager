@@ -81,3 +81,53 @@ func TestTransformReleaseCandidate(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckConstraint(t *testing.T) {
+	ts := []struct {
+		Version    string
+		Constraint string
+		Match      bool
+	}{
+		{
+			Version:    "4.0.3-0.20200621.1fcf38abd9b",
+			Constraint: ">= 4.0",
+			Match:      true,
+		},
+		{
+			Version:    "4.1.rc2",
+			Constraint: ">= 4.1, < 2000",
+			Match:      true,
+		},
+		{
+			Version:    "2020.1",
+			Constraint: ">= 4.1, < 2000",
+			Match:      false,
+		},
+		{
+			Version:    "4.1",
+			Constraint: ">= 4.1, < 2000",
+			Match:      true,
+		},
+		{
+			Version:    "3.9",
+			Constraint: ">= 4.1, < 2000",
+			Match:      false,
+		},
+	}
+
+	for i := range ts {
+		test := ts[i]
+		t.Run(test.Version, func(t *testing.T) {
+			t.Parallel()
+			match, err := CheckConstraint(test.Version, test.Constraint)
+			if err != nil {
+				t.Error(err)
+			}
+			if test.Match && !match {
+				t.Errorf("Expected match for %q version and %q constraint", test.Version, test.Constraint)
+			} else if !test.Match && match {
+				t.Errorf("Expected no match for %q version and %q constraint", test.Version, test.Constraint)
+			}
+		})
+	}
+}
