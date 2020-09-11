@@ -452,12 +452,24 @@ func (c Client) Version(ctx context.Context) (*models.Version, error) {
 
 // SetRepairIntensity updates ongoing repair intensity.
 func (c Client) SetRepairIntensity(ctx context.Context, clusterID string, intensity float64) error {
-	p := &operations.PostClusterClusterIDRepairsIntensityParams{
+	p := &operations.PutClusterClusterIDRepairsIntensityParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		Intensity: intensity,
 	}
 
-	_, err := c.operations.PostClusterClusterIDRepairsIntensity(p) // nolint: errcheck
+	_, err := c.operations.PutClusterClusterIDRepairsIntensity(p) // nolint: errcheck
+	return err
+}
+
+// SetRepairParallel updates ongoing repair parallel disjoint host groups.
+func (c Client) SetRepairParallel(ctx context.Context, clusterID string, parallel int64) error {
+	p := &operations.PutClusterClusterIDRepairsParallelParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Parallel:  parallel,
+	}
+
+	_, err := c.operations.PutClusterClusterIDRepairsParallel(p) // nolint: errcheck
 	return err
 }

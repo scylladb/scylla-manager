@@ -82,12 +82,12 @@ func TestGenerator(t *testing.T) {
 	}
 
 	rangeLimits := hostRangesLimit{
-		"a": rangesLimit{Max: 5},
-		"b": rangesLimit{Max: 10},
-		"c": rangesLimit{Max: 20},
-		"d": rangesLimit{Max: 5},
-		"e": rangesLimit{Max: 10},
-		"f": rangesLimit{Max: 20},
+		"a": rangesLimit{Default: 2, Max: 5},
+		"b": rangesLimit{Default: 3, Max: 10},
+		"c": rangesLimit{Default: 2, Max: 20},
+		"d": rangesLimit{Default: 3, Max: 5},
+		"e": rangesLimit{Default: 2, Max: 10},
+		"f": rangesLimit{Default: 3, Max: 20},
 	}
 
 	units := []Unit{
@@ -112,8 +112,6 @@ func TestGenerator(t *testing.T) {
 		}
 		return a.Pos < b.Pos
 	}
-
-	ih := newIntensityHandler()
 
 	t.Run("Basic", func(t *testing.T) {
 		ranges := []scyllaclient.TokenRange{
@@ -143,18 +141,83 @@ func TestGenerator(t *testing.T) {
 		target := Target{
 			DC:        []string{"dc1", "dc2"},
 			Intensity: 50,
+			Parallel:  1,
 		}
 		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-		g := newGenerator(ih, gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
+		g := newGenerator(gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
 
 		var allRanges []*tableTokenRange
 		for _, u := range units {
 			allRanges = append(allRanges, b.Build(u)...)
 			g.Add(b.Build(u))
 		}
-
 		g.SetHostPriority(hostPriority)
-		if err := g.Init(ctx, workerCount(ranges)); err != nil {
+		g.SetHostRangeLimits(rangeLimits)
+		ih := newIntensityHandler(log.NewDevelopment(), target.Intensity, target.Parallel, workerCount(ranges))
+		if err := g.Init(ctx, ih); err != nil {
+			t.Fatal(err)
+		}
+		go g.Run(ctx)
+
+		w := fakeWorker{
+			In:     g.Next(),
+			Out:    g.Result(),
+			Logger: log.NewDevelopment(),
+		}
+		jobs := w.drainJobs(ctx)
+
+		// Check that all ranges are covered
+		var drainedRanges []*tableTokenRange
+		for _, j := range jobs {
+			drainedRanges = append(drainedRanges, j.Ranges...)
+		}
+		if diff := cmp.Diff(drainedRanges, allRanges, cmpopts.SortSlices(ttrLess)); diff != "" {
+			t.Error("Ranges mismatch diff", diff)
+		}
+	})
+
+	t.Run("Intensity close to 0 does not stop progress", func(t *testing.T) {
+		ranges := []scyllaclient.TokenRange{
+			{
+				StartToken: 1,
+				EndToken:   2,
+				Replicas:   []string{"a", "b"},
+			},
+			{
+				StartToken: 3,
+				EndToken:   4,
+				Replicas:   []string{"a", "b"},
+			},
+			{
+				StartToken: 5,
+				EndToken:   6,
+				Replicas:   []string{"c", "d"},
+			},
+			{
+				StartToken: 7,
+				EndToken:   8,
+				Replicas:   []string{"e", "f"},
+			},
+		}
+
+		ctx := context.Background()
+		target := Target{
+			DC:        []string{"dc1", "dc2"},
+			Intensity: 0.001,
+		}
+		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
+		g := newGenerator(gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
+
+		var allRanges []*tableTokenRange
+		for _, u := range units {
+			allRanges = append(allRanges, b.Build(u)...)
+			g.Add(b.Build(u))
+		}
+		g.SetHostPriority(hostPriority)
+		g.SetHostRangeLimits(rangeLimits)
+
+		ih := newIntensityHandler(log.NewDevelopment(), target.Intensity, target.Parallel, workerCount(ranges))
+		if err := g.Init(ctx, ih); err != nil {
 			t.Fatal(err)
 		}
 		go g.Run(ctx)
@@ -195,10 +258,11 @@ func TestGenerator(t *testing.T) {
 
 		t.Run("ranges are distributed within host limit", func(t *testing.T) {
 			target := Target{
-				DC: []string{"dc1", "dc2"},
+				DC:       []string{"dc1", "dc2"},
+				Parallel: 1,
 			}
 			ctx := context.Background()
-			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+			g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 
 			go g.Run(ctx)
 
@@ -220,11 +284,12 @@ func TestGenerator(t *testing.T) {
 		t.Run("ranges are distributed within intensity limit", func(t *testing.T) {
 			target := Target{
 				DC:        []string{"dc1", "dc2"},
-				Intensity: 10,
+				Intensity: 2,
+				Parallel:  1,
 			}
 
 			ctx := context.Background()
-			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+			g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 			go g.Run(ctx)
 
 			w := fakeWorker{
@@ -236,7 +301,7 @@ func TestGenerator(t *testing.T) {
 
 			// Check that ranges follow host limit
 			for _, j := range jobs {
-				if len(j.Ranges) > int(target.Intensity) {
+				if len(j.Ranges) > rangeLimits[j.Host].Max {
 					t.Errorf("%s host received more ranges than intensity", j.Host)
 				}
 			}
@@ -257,7 +322,7 @@ func TestGenerator(t *testing.T) {
 					smallTables = append(smallTables, keyspaceTableName{u.Keyspace, t})
 				}
 			}
-			g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+			g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 			go g.Run(ctx)
 
 			w := fakeWorker{
@@ -269,13 +334,13 @@ func TestGenerator(t *testing.T) {
 
 			// Check that intensity wasn't applied to small tables
 			for _, j := range jobs {
-				if len(j.Ranges) <= int(target.Intensity) {
+				if len(j.Ranges) <= rangeLimits[j.Host].Max {
 					t.Errorf("%s host received less than all ranges", j.Host)
 				}
 			}
 		})
 
-		t.Run("number of active hosts is limited by intensity between (0, 1)", func(t *testing.T) {
+		t.Run("number of active workers is limited by parallel", func(t *testing.T) {
 			ranges = []scyllaclient.TokenRange{
 				{
 					StartToken: 1,
@@ -296,41 +361,41 @@ func TestGenerator(t *testing.T) {
 
 			table := []struct {
 				Name                  string
-				Intensity             float64
+				Parallel              int
 				ExpectedActiveWorkers int
 			}{
 				{
-					Name:                  "One third",
-					Intensity:             0.333,
-					ExpectedActiveWorkers: 1,
-				},
-				{
-					Name:                  "Two thirds",
-					Intensity:             0.666,
-					ExpectedActiveWorkers: 2,
-				},
-				{
-					Name:                  "Three thirds",
-					Intensity:             0.999,
+					Name:                  "Max",
+					Parallel:              0,
 					ExpectedActiveWorkers: 3,
 				},
 				{
-					Name:                  "Intensity close to 0 does not stop progress",
-					Intensity:             0.001,
+					Name:                  "Single",
+					Parallel:              1,
 					ExpectedActiveWorkers: 1,
+				},
+				{
+					Name:                  "Multiple",
+					Parallel:              3,
+					ExpectedActiveWorkers: 3,
+				},
+				{
+					Name:                  "Multiple over max",
+					Parallel:              10,
+					ExpectedActiveWorkers: 3,
 				},
 			}
 
 			for i := range table {
 				test := table[i]
 				t.Run(test.Name, func(t *testing.T) {
-					ih = newIntensityHandler()
 					target := Target{
 						DC:        []string{"dc1", "dc2"},
-						Intensity: test.Intensity,
+						Intensity: 1,
+						Parallel:  test.Parallel,
 					}
 					ctx := context.Background()
-					g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+					g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 
 					generatorStarted := make(chan struct{})
 					go func() {
@@ -338,6 +403,9 @@ func TestGenerator(t *testing.T) {
 						g.Run(ctx)
 					}()
 					<-generatorStarted
+					// Test is flapping without this because we can't sync
+					// properly to an event in g.Run.
+					time.Sleep(5 * time.Millisecond)
 
 					workers := make([]fakeWorker, workerCount(ranges))
 					for i := range workers {
@@ -356,9 +424,9 @@ func TestGenerator(t *testing.T) {
 						}
 					}
 
-					activeWorkers := float64(len(jobs))
-					if a, b := epsilonRange(float64(test.ExpectedActiveWorkers)); activeWorkers < a || activeWorkers > b {
-						t.Errorf("number of active workers differs from limit, expected %d, got %.0f ", test.ExpectedActiveWorkers, activeWorkers)
+					activeWorkers := len(jobs)
+					if test.ExpectedActiveWorkers != activeWorkers {
+						t.Errorf("number of active workers differs from limit, expected %d, got %d", test.ExpectedActiveWorkers, activeWorkers)
 					}
 
 					for _, j := range jobs {
@@ -391,12 +459,14 @@ func TestGenerator(t *testing.T) {
 		}
 
 		target := Target{
-			DC: []string{"dc1", "dc2"},
+			DC:        []string{"dc1", "dc2"},
+			Intensity: 0,
+			Parallel:  5,
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+		g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 
 		Print("Given: running generator")
 		generatorFinished := atomic.NewBool(false)
@@ -421,7 +491,7 @@ func TestGenerator(t *testing.T) {
 			}
 		}
 
-		Print("When: all workers starts repairing")
+		Print("When: all workers start repairing")
 		jobs := make([]job, 0, len(workers))
 		for _, w := range workers {
 			j, ok := w.takeJob()
@@ -490,15 +560,15 @@ func TestGenerator(t *testing.T) {
 		defer cancel()
 
 		Print("Given: intensity of 1")
-		ih = newIntensityHandler()
-		intensity := float64(1)
+		intensity := 1.0
 
 		target := Target{
 			DC:        []string{"dc1"},
 			Intensity: intensity,
+			Parallel:  1,
 		}
 
-		g := makeGenerator(ctx, target, ih, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+		g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
 
 		Print("Given: running generator")
 		generatorFinished := atomic.NewBool(false)
@@ -526,13 +596,13 @@ func TestGenerator(t *testing.T) {
 		}
 
 		Print("Then: worker get at most 1 range at once")
-		if len(j.Ranges) != int(intensity) {
+		if len(j.Ranges) > rangeLimits[j.Host].Max {
 			t.Errorf("worker intensity is wrong, got %d, expected %f", len(j.Ranges), intensity)
 		}
 
 		Print("When: intensity is changed to 2")
 		intensity = 2
-		if err := ih.Set(ctx, intensity); err != nil {
+		if err := g.intensityHandler.SetIntensity(ctx, intensity); err != nil {
 			t.Fatal(err)
 		}
 
@@ -544,23 +614,17 @@ func TestGenerator(t *testing.T) {
 		}
 
 		Print("Then: worker number of ranges at once was increased according to intensity")
-		if len(j.Ranges) != int(intensity) {
+		if len(j.Ranges) > rangeLimits[j.Host].Max {
 			t.Errorf("worker intensity is wrong, got %d, expected %f", len(j.Ranges), intensity)
 		}
 	})
 }
 
-func makeGenerator(ctx context.Context, target Target, intensityHandler *intensityHandler, units []Unit,
+func makeGenerator(ctx context.Context, target Target, units []Unit,
 	hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit,
 	smallTables []keyspaceTableName) *generator {
 	b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-
-	if err := intensityHandler.Set(ctx, target.Intensity); err != nil {
-		panic(err)
-	}
-	intensityHandler.SetHostRangeLimits(rangeLimits)
-
-	g := newGenerator(intensityHandler, gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
+	g := newGenerator(gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
 	for _, u := range units {
 		g.Add(b.Build(u))
 	}
@@ -568,10 +632,11 @@ func makeGenerator(ctx context.Context, target Target, intensityHandler *intensi
 	for _, kt := range smallTables {
 		g.markSmallTable(kt.Keyspace, kt.Table)
 	}
-
 	g.SetHostPriority(hostPriority)
+	g.SetHostRangeLimits(rangeLimits)
 
-	if err := g.Init(ctx, workerCount(ranges)); err != nil {
+	ih := newIntensityHandler(log.NewDevelopment(), target.Intensity, target.Parallel, workerCount(ranges))
+	if err := g.Init(ctx, ih); err != nil {
 		panic(err)
 	}
 
@@ -583,14 +648,11 @@ type keyspaceTableName struct {
 	Table    string
 }
 
-func epsilonRange(v float64) (float64, float64) {
-	e := v * 1.05
-	return v - e, v + e
-}
-
-func newIntensityHandler() *intensityHandler {
+func newIntensityHandler(logger log.Logger, intensity float64, parallel, wc int) *intensityHandler {
 	return &intensityHandler{
-		c:      make(chan float64, 1),
-		global: atomic.NewFloat64(0),
+		logger:      logger,
+		intensity:   atomic.NewFloat64(intensity),
+		parallel:    atomic.NewInt64(int64(parallel)),
+		maxParallel: wc,
 	}
 }

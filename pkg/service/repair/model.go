@@ -21,6 +21,7 @@ type Target struct {
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
 	Intensity           float64  `json:"intensity"`
+	Parallel            int      `json:"parallel"`
 	SmallTableThreshold int64    `json:"small_table_threshold"`
 }
 
@@ -31,12 +32,14 @@ type taskProperties struct {
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
 	Intensity           float64  `json:"intensity"`
+	Parallel            int      `json:"parallel"`
 	SmallTableThreshold int64    `json:"small_table_threshold"`
 }
 
 func defaultTaskProperties() *taskProperties {
 	return &taskProperties{
-		Continue: true,
+		Continue:  true,
+		Intensity: 1,
 
 		// Consider 1GB table as small by default.
 		SmallTableThreshold: 1 * 1024 * 1024 * 1024,
@@ -137,9 +140,8 @@ func (p progress) PercentComplete() int {
 // HostProgress specifies repair progress of a host.
 type HostProgress struct {
 	progress
-	Host      string          `json:"host"`
-	Tables    []TableProgress `json:"tables,omitempty"`
-	Intensity float64         `json:"intensity"`
+	Host   string          `json:"host"`
+	Tables []TableProgress `json:"tables,omitempty"`
 }
 
 // TableProgress represents progress for table for all all hosts.
@@ -153,7 +155,9 @@ type TableProgress struct {
 // separately.
 type Progress struct {
 	progress
-	DC     []string        `json:"dcs"`
-	Hosts  []HostProgress  `json:"hosts"`
-	Tables []TableProgress `json:"tables"`
+	DC        []string        `json:"dcs"`
+	Hosts     []HostProgress  `json:"hosts"`
+	Tables    []TableProgress `json:"tables"`
+	Intensity float64         `json:"intensity"`
+	Parallel  int             `json:"parallel"`
 }

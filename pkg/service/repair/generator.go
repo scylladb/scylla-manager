@@ -42,32 +42,33 @@ type generator struct {
 	gracefulShutdownTimeout time.Duration
 	logger                  log.Logger
 
-	replicas      map[uint64][]string
-	ranges        map[uint64][]*tableTokenRange
-	hostCount     int
-	hostPriority  hostPriority
-	smallTables   *strset.Set
-	deletedTables *strset.Set
-	progress      progressManager
-	lastPercent   int
+	replicas         map[uint64][]string
+	ranges           map[uint64][]*tableTokenRange
+	hostCount        int
+	hostPriority     hostPriority
+	hostRangesLimits hostRangesLimit
+	smallTables      *strset.Set
+	deletedTables    *strset.Set
+	progress         progressManager
+	lastPercent      int
 
-	intensity        float64
 	intensityHandler *intensityHandler
 
-	keys       []uint64
-	pos        int
-	busy       *strset.Set
-	next       chan job
-	nextClosed bool
-	result     chan jobResult
-	failFast   bool
+	keys         []uint64
+	pos          int
+	busy         *strset.Set
+	next         chan job
+	nextClosed   bool
+	result       chan jobResult
+	failFast     bool
+	inflightJobs int
 
 	count   int
 	success int
 	failed  int
 }
 
-func newGenerator(ih *intensityHandler, gracefulShutdownTimeout time.Duration, manager progressManager, failFast bool, logger log.Logger) *generator {
+func newGenerator(gracefulShutdownTimeout time.Duration, manager progressManager, failFast bool, logger log.Logger) *generator {
 	g := &generator{
 		gracefulShutdownTimeout: gracefulShutdownTimeout,
 		progress:                manager,
@@ -80,15 +81,6 @@ func newGenerator(ih *intensityHandler, gracefulShutdownTimeout time.Duration, m
 		deletedTables: strset.New(),
 		lastPercent:   -1,
 	}
-
-	// Check if intensity channel has desired intensity value
-	select {
-	case intensity := <-ih.c:
-		g.intensity = intensity
-	default:
-	}
-
-	g.intensityHandler = ih
 
 	return g
 }
@@ -117,7 +109,15 @@ func (g *generator) SetHostPriority(hp hostPriority) {
 	g.hostPriority = hp
 }
 
-func (g *generator) Init(ctx context.Context, workerCount int) error {
+func (g *generator) SetHostRangeLimits(hl hostRangesLimit) {
+	g.hostRangesLimits = hl
+}
+
+func (g *generator) Init(ctx context.Context, ih *intensityHandler) error {
+	if ih.MaxParallel() == 0 {
+		return errors.New("no available workers")
+	}
+	g.intensityHandler = ih
 	if len(g.replicas) == 0 {
 		return errors.New("no replicas to repair")
 	}
@@ -128,7 +128,7 @@ func (g *generator) Init(ctx context.Context, workerCount int) error {
 	g.hostCount = g.Hosts().Size()
 	g.pos = rand.Intn(len(g.keys))
 	g.busy = strset.New()
-	g.next = make(chan job, 2*workerCount)
+	g.next = make(chan job, 2*ih.MaxParallel())
 	g.result = make(chan jobResult)
 
 	var trs []*tableTokenRange
@@ -186,9 +186,6 @@ loop:
 				close(stop)
 			})
 			err = ctx.Err()
-		case intensity := <-g.intensityHandler.c:
-			g.logger.Info(ctx, "Changing repair intensity", "from", g.intensity, "to", intensity)
-			g.intensity = intensity
 		case r := <-g.result:
 			// TODO handling penalties
 			g.processResult(ctx, r)
@@ -244,6 +241,7 @@ func (g *generator) processResult(ctx context.Context, r jobResult) {
 
 func (g *generator) unblockReplicas(ttr *tableTokenRange) {
 	g.busy.Remove(ttr.Replicas...)
+	g.inflightJobs--
 }
 
 func (g *generator) closeNext() {
@@ -311,6 +309,7 @@ func (g *generator) pickReplicas() uint64 {
 			replicas := g.replicas[hash]
 			if g.canScheduleRepair(replicas) {
 				g.busy.Add(replicas...)
+				g.inflightJobs++
 				g.pos = pos
 				return hash
 			}
@@ -323,27 +322,17 @@ func (g *generator) pickReplicas() uint64 {
 }
 
 func (g *generator) canScheduleRepair(hosts []string) bool {
-	// Always make some progress
+	// Always make some progress.
 	if g.busy.IsEmpty() {
 		return true
 	}
-	// Repair intensity might limit active hosts.
+	// Repair parallel might limit inflight jobs.
 	// Check if adding these hosts to busy pool will not reach the limit.
-	if len(hosts)+g.busy.Size() <= g.activeHostLimit() {
-		// If those hosts aren't busy at the moment
-		if !g.busy.HasAny(hosts...) {
-			return true
-		}
+	if g.inflightJobs >= g.parallelLimit() {
+		return false
 	}
-	return false
-}
-
-func (g *generator) activeHostLimit() int {
-	activeHostsLimit := g.hostCount
-	if g.intensity > 0 && g.intensity < 1 {
-		activeHostsLimit = int(g.intensity * float64(g.hostCount))
-	}
-	return activeHostsLimit
+	// Schedule only if hosts aren't busy at the moment.
+	return !g.busy.HasAny(hosts...)
 }
 
 func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
@@ -392,13 +381,32 @@ func (g *generator) deletedTable(keyspace, table string) bool {
 }
 
 func (g *generator) rangesLimit(host string) int {
-	limit := int(g.intensityHandler.Intensity(host))
-	if limit == 0 {
-		limit = 1
+	i := g.intensityHandler.Intensity()
+
+	if i == maxIntensity {
+		return g.hostRangesLimits[host].Max
 	}
-	return limit
+
+	l := int(i * float64(g.hostRangesLimits[host].Default))
+	if l == 0 {
+		l = 1
+	} else if l > g.hostRangesLimits[host].Max {
+		return g.hostRangesLimits[host].Max
+	}
+
+	return l
 }
 
 func (g *generator) pickHost(hash uint64) string {
 	return g.hostPriority.PickHost(g.replicas[hash])
+}
+
+func (g *generator) parallelLimit() int {
+	p := g.intensityHandler.Parallel()
+
+	if p == defaultParallel || p > g.intensityHandler.MaxParallel() {
+		return g.intensityHandler.MaxParallel()
+	}
+
+	return p
 }

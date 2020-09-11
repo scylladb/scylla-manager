@@ -91,6 +91,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		FailFast:            p.FailFast,
 		Continue:            p.Continue,
 		Intensity:           p.Intensity,
+		Parallel:            p.Parallel,
 		SmallTableThreshold: p.SmallTableThreshold,
 	}
 
@@ -245,14 +246,10 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// Dynamic Intensity
-	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity)
-	defer cleanup()
-
 	// Create generator
 	var (
 		manager = newProgressManager(run, s.session)
-		g       = newGenerator(ih, s.config.GracefulShutdownTimeout, manager, target.FailFast, s.logger)
+		g       = newGenerator(s.config.GracefulShutdownTimeout, manager, target.FailFast, s.logger)
 		wc      int
 	)
 	for _, u := range target.Units {
@@ -271,12 +268,22 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	repairHosts := g.Hosts()
+
+	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
+	if err != nil {
+		return errors.Wrap(err, "fetch host range limits")
+	}
+	g.SetHostRangeLimits(hostRangesLimits)
+
+	// Dynamic Intensity
+	ih, cleanup := s.newIntensityHandler(ctx, clusterID, wc, target.Intensity, target.Parallel)
+	defer cleanup()
+
 	// Init Generator
-	if err := g.Init(ctx, wc); err != nil {
+	if err := g.Init(ctx, ih); err != nil {
 		return err
 	}
-
-	repairHosts := g.Hosts()
 
 	// Check if no other repairs are running
 	if active, err := client.ActiveRepairs(ctx, repairHosts.List()); err != nil {
@@ -295,12 +302,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if down := status.DownHosts(); repairHosts.HasAny(down...) {
 		return errors.Errorf("ensure nodes are up, down nodes: %s", strings.Join(down, ","))
 	}
-
-	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
-	if err != nil {
-		return errors.Wrap(err, "fetch host range limits")
-	}
-	ih.SetHostRangeLimits(hostRangesLimits)
 
 	if err := s.optimizeSmallTables(ctx, client, target, g); err != nil {
 		return errors.Wrap(err, "optimize small tables")
@@ -473,25 +474,23 @@ func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
 	return int(float64(totalMemory) * 0.1 / (32 * 1024 * 1024))
 }
 
-func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity float64) (ih *intensityHandler, cleanup func()) {
-	intensityCh := make(chan float64, 1)
-	intensityCh <- intensity
-
+func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, wc int, intensity float64, parallel int) (ih *intensityHandler, cleanup func()) {
 	ih = &intensityHandler{
-		c:      intensityCh,
-		global: atomic.NewFloat64(intensity),
+		logger:      s.logger.Named("control"),
+		intensity:   atomic.NewFloat64(intensity),
+		parallel:    atomic.NewInt64(int64(parallel)),
+		maxParallel: wc,
 	}
 
 	s.mu.Lock()
 	if _, ok := s.intensityHandlers[clusterID]; ok {
-		s.logger.Info(ctx, "Overriding intensity handler", "cluster_id", clusterID, "intensity", intensity)
+		s.logger.Error(ctx, "Overriding intensity handler", "cluster_id", clusterID, "intensity", intensity, "parallel", parallel)
 	}
 	s.intensityHandlers[clusterID] = ih
 	s.mu.Unlock()
 
 	return ih, func() {
 		s.mu.Lock()
-		close(intensityCh)
 		delete(s.intensityHandlers, clusterID)
 		s.mu.Unlock()
 	}
@@ -712,23 +711,25 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	return p, nil
 }
 
-func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func(host string) float64 {
+func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func() (float64, int) {
 	// When repair is running, intensity is dynamic.
-	// Otherwise always return 0.
-	intensityFunc := func(host string) float64 {
-		return 0
+	// Otherwise always return 0, 0.
+	intensityFunc := func() (float64, int) {
+		return 0, 0
 	}
 
 	s.mu.Lock()
 	if ih, ok := s.intensityHandlers[clusterID]; ok {
-		intensityFunc = ih.Intensity
+		intensityFunc = func() (float64, int) {
+			return ih.Intensity(), ih.Parallel()
+		}
 	}
 	s.mu.Unlock()
 
 	return intensityFunc
 }
 
-// SetIntensity changes intensity of ongoing repair.
+// SetIntensity changes intensity of an ongoing repair.
 func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensity float64) error {
 	s.mu.Lock()
 	ih, ok := s.intensityHandlers[clusterID]
@@ -738,50 +739,80 @@ func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensi
 		return errors.Wrap(service.ErrNotFound, "repair task")
 	}
 
-	if err := ih.Set(ctx, intensity); err != nil {
+	if err := ih.SetIntensity(ctx, intensity); err != nil {
 		return errors.Wrap(err, "set intensity")
 	}
 
 	return nil
 }
 
-type intensityHandler struct {
-	c                chan float64
-	global           *atomic.Float64
-	hostRangesLimits hostRangesLimit
-}
+// SetParallel changes parallelism of an ongoing repair.
+func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel int) error {
+	s.mu.Lock()
+	ih, ok := s.intensityHandlers[clusterID]
+	s.mu.Unlock()
 
-func (i *intensityHandler) Set(ctx context.Context, intensity float64) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case i.c <- intensity:
-		i.global.Store(intensity)
-	default:
-		// ch is full or already closed, generator hasn't applied previous change yet or just finished.
-		return errors.New("intensity change was not applied")
+	if !ok {
+		return errors.Wrap(service.ErrNotFound, "repair task")
 	}
+
+	if err := ih.SetParallel(ctx, parallel); err != nil {
+		return errors.Wrap(err, "set parallel")
+	}
+
 	return nil
 }
 
-const (
-	defaultIntensity = 0
-	maxIntensity     = -1
-)
-
-func (i *intensityHandler) Intensity(host string) float64 {
-	v := i.global.Load()
-
-	switch v {
-	case defaultIntensity:
-		return float64(i.hostRangesLimits[host].Default)
-	case maxIntensity:
-		return float64(i.hostRangesLimits[host].Max)
-	default:
-		return v
-	}
+type intensityHandler struct {
+	logger      log.Logger
+	intensity   *atomic.Float64
+	parallel    *atomic.Int64
+	maxParallel int
 }
 
-func (i *intensityHandler) SetHostRangeLimits(hrl hostRangesLimit) {
-	i.hostRangesLimits = hrl
+const (
+	maxIntensity    = 0
+	defaultParallel = 0
+)
+
+// Sets repair intensity value.
+func (i *intensityHandler) SetIntensity(ctx context.Context, intensity float64) error {
+	if intensity < maxIntensity {
+		return service.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
+	}
+	i.logger.Info(ctx, "Setting repair intensity", "value", intensity, "previous", i.intensity.Load())
+	i.intensity.Store(intensity)
+
+	return nil
+}
+
+// Sets repair parallel value.
+func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error {
+	if parallel < defaultParallel {
+		return service.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
+	}
+
+	i.logger.Info(ctx, "Setting repair parallel", "value", parallel, "previous", i.parallel.Load())
+	i.parallel.Store(int64(parallel))
+
+	if parallel > i.maxParallel {
+		i.logger.Info(ctx, "Requested parallel value will be capped to maximum possible", "requested", parallel, "maximum", i.maxParallel)
+	}
+
+	return nil
+}
+
+// Intensity returns stored value for intensity.
+func (i *intensityHandler) Intensity() float64 {
+	return i.intensity.Load()
+}
+
+// Parallel returns stored value for parallel.
+func (i *intensityHandler) Parallel() int {
+	return int(i.parallel.Load())
+}
+
+// MaxParallel returns maximum value of the parallel setting.
+func (i *intensityHandler) MaxParallel() int {
+	return i.maxParallel
 }

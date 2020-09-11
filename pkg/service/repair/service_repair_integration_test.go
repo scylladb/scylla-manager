@@ -373,6 +373,7 @@ func allUnits() repair.Target {
 		DC:        []string{"dc1", "dc2"},
 		Continue:  true,
 		Intensity: 0.1,
+		Parallel:  1,
 	}
 }
 
@@ -387,6 +388,7 @@ func singleUnit() repair.Target {
 		DC:        []string{"dc1", "dc2"},
 		Continue:  true,
 		Intensity: 0.1,
+		Parallel:  1,
 	}
 }
 
@@ -399,6 +401,7 @@ func multipleUnits() repair.Target {
 		DC:        []string{"dc1", "dc2"},
 		Continue:  true,
 		Intensity: 0.1,
+		Parallel:  1,
 	}
 }
 
@@ -946,7 +949,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 				},
 			},
 			DC:                  []string{"dc1", "dc2"},
-			Intensity:           -1,
+			Intensity:           0,
+			Parallel:            1,
 			SmallTableThreshold: repairAllSmallTableThreshold,
 		}
 
@@ -991,7 +995,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 				},
 			},
 			DC:                  []string{"dc1", "dc2"},
-			Intensity:           -1,
+			Intensity:           0,
+			Parallel:            1,
 			SmallTableThreshold: repairAllSmallTableThreshold,
 		}
 
@@ -1097,6 +1102,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			},
 			DC:                  []string{"dc1", "dc2"},
 			Intensity:           1,
+			Parallel:            1,
 			SmallTableThreshold: 1 * 1024 * 1024 * 1024,
 		}
 

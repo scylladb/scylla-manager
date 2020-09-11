@@ -32,6 +32,12 @@ type RepairProgress struct {
 	// hosts
 	Hosts []*RepairProgressHostsItems0 `json:"hosts"`
 
+	// intensity
+	Intensity float64 `json:"intensity,omitempty"`
+
+	// parallel
+	Parallel int64 `json:"parallel,omitempty"`
+
 	// started at
 	// Format: date-time
 	StartedAt *strfmt.DateTime `json:"started_at,omitempty"`
@@ -172,9 +178,6 @@ type RepairProgressHostsItems0 struct {
 
 	// host
 	Host string `json:"host,omitempty"`
-
-	// intensity
-	Intensity float64 `json:"intensity,omitempty"`
 
 	// tables
 	Tables []*TableRepairProgress `json:"tables"`

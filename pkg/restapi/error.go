@@ -38,7 +38,7 @@ func respondError(w http.ResponseWriter, r *http.Request, err error) {
 	case cause == service.ErrNotFound:
 		render.Respond(w, r, &httpError{
 			StatusCode: http.StatusNotFound,
-			Message:    errors.Wrap(err, "resource not found").Error(),
+			Message:    errors.Wrap(err, "get resource").Error(),
 			TraceID:    log.TraceID(r.Context()),
 		})
 	case service.IsErrValidate(cause):
