@@ -266,6 +266,18 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 	})
 }
 
+func countInterceptor(counter *int32, path, method string, next http.RoundTripper) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, path) && (method == "" || req.Method == method) {
+			atomic.AddInt32(counter, 1)
+		}
+		if next != nil {
+			return next.RoundTrip(req)
+		}
+		return nil, nil
+	})
+}
+
 func holdRepairInterceptor() http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodGet {
@@ -988,14 +1000,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("kill repairs on task failure", func(t *testing.T) {
-		killRepairCounter := func(counter *int32) http.RoundTripper {
-			return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-				if req.URL.Path == "/storage_service/force_terminate_repair" {
-					atomic.AddInt32(counter, 1)
-				}
-				return nil, nil
-			})
-		}
+		const killPath = "/storage_service/force_terminate_repair"
+
 		target := multipleUnits()
 		target.SmallTableThreshold = repairAllSmallTableThreshold
 
@@ -1005,7 +1011,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			h := newRepairTestHelper(t, session, defaultConfig())
 			var killRepairCalled int32
-			h.hrt.SetInterceptor(killRepairCounter(&killRepairCalled))
+			h.hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", nil))
 
 			Print("When: run repair")
 			h.runRepair(ctx, target)
@@ -1038,10 +1044,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			Print("When: Scylla returns failures")
 			var killRepairCalled int32
-			h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
-				_, _ = killRepairCounter(&killRepairCalled).RoundTrip(r)
-				return repairInterceptor(scyllaclient.CommandFailed).RoundTrip(r)
-			}))
+			h.hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", repairInterceptor(scyllaclient.CommandFailed)))
 
 			Print("Then: repair finish with error")
 			h.assertError(longWait)
@@ -1051,6 +1054,49 @@ func TestServiceRepairIntegration(t *testing.T) {
 				t.Errorf("not all repairs were killed")
 			}
 		})
+	})
+
+	t.Run("small table optimisation", func(t *testing.T) {
+		const (
+			testKeyspace = "test_repair_small_table"
+			testTable    = "test_table_0"
+
+			repairPath = "/storage_service/repair_async/"
+		)
+
+		Print("Given: small and fully replicated table")
+		ExecStmt(t, clusterSession, "CREATE KEYSPACE "+testKeyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3}")
+		WriteData(t, clusterSession, testKeyspace, 1, testTable)
+		defer dropKeyspace(t, clusterSession, testKeyspace)
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		target := repair.Target{
+			Units: []repair.Unit{
+				{
+					Keyspace: testKeyspace,
+					Tables:   []string{testTable},
+				},
+			},
+			DC:                  []string{"dc1", "dc2"},
+			Intensity:           1,
+			SmallTableThreshold: 1 * 1024 * 1024 * 1024,
+		}
+
+		Print("When: run repair")
+		var repairCalled int32
+		h.hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
+		h.runRepair(ctx, target)
+
+		Print("Then: repair is done")
+		h.assertDone(longWait)
+
+		Print("And: one repair task was issued")
+		if repairCalled != 1 {
+			t.Fatalf("Expected repair in one shot got %d", repairCalled)
+		}
 	})
 }
 

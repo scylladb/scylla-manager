@@ -153,8 +153,6 @@ func (g *generator) Init(ctx context.Context, workerCount int) error {
 		g.count += len(ttrs)
 	}
 
-	g.fillNext(ctx)
-
 	return nil
 }
 
@@ -168,6 +166,8 @@ func (g *generator) Result() chan<- jobResult {
 
 func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start repair")
+
+	g.fillNext(ctx)
 
 	done := ctx.Done()
 	stop := make(chan struct{})
