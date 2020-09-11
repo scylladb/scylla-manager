@@ -1012,6 +1012,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			})
 		}
 		target := multipleUnits()
+		target.SmallTableThreshold = repairAllSmallTableThreshold
 
 		t.Run("when task is cancelled", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
