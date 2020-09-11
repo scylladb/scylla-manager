@@ -553,39 +553,6 @@ func (a *Client) GetVersion(params *GetVersionParams) (*GetVersionOK, error) {
 }
 
 /*
-PostClusterClusterIDRepairsIntensity post cluster cluster ID repairs intensity API
-*/
-func (a *Client) PostClusterClusterIDRepairsIntensity(params *PostClusterClusterIDRepairsIntensityParams) (*PostClusterClusterIDRepairsIntensityOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPostClusterClusterIDRepairsIntensityParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PostClusterClusterIDRepairsIntensity",
-		Method:             "POST",
-		PathPattern:        "/cluster/{cluster_id}/repairs/intensity",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PostClusterClusterIDRepairsIntensityReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*PostClusterClusterIDRepairsIntensityOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*PostClusterClusterIDRepairsIntensityDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
 PostClusterClusterIDTasks post cluster cluster ID tasks API
 */
 func (a *Client) PostClusterClusterIDTasks(params *PostClusterClusterIDTasksParams) (*PostClusterClusterIDTasksCreated, error) {
@@ -681,6 +648,72 @@ func (a *Client) PutClusterClusterID(params *PutClusterClusterIDParams) (*PutClu
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*PutClusterClusterIDDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PutClusterClusterIDRepairsIntensity put cluster cluster ID repairs intensity API
+*/
+func (a *Client) PutClusterClusterIDRepairsIntensity(params *PutClusterClusterIDRepairsIntensityParams) (*PutClusterClusterIDRepairsIntensityOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDRepairsIntensityParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDRepairsIntensity",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/repairs/intensity",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDRepairsIntensityReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PutClusterClusterIDRepairsIntensityOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PutClusterClusterIDRepairsIntensityDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PutClusterClusterIDRepairsParallel put cluster cluster ID repairs parallel API
+*/
+func (a *Client) PutClusterClusterIDRepairsParallel(params *PutClusterClusterIDRepairsParallelParams) (*PutClusterClusterIDRepairsParallelOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDRepairsParallelParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDRepairsParallel",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/repairs/parallel",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDRepairsParallelReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PutClusterClusterIDRepairsParallelOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PutClusterClusterIDRepairsParallelDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

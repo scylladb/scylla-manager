@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
-	"github.com/pkg/errors"
 	"github.com/scylladb/mermaid/pkg/service"
 )
 
@@ -21,12 +20,11 @@ func newRepairHandler(services Services) *chi.Mux {
 		svc: services.Repair,
 	}
 
-	m.Post("/intensity", h.updateIntensity)
+	m.Put("/intensity", h.updateIntensity)
+	m.Put("/parallel", h.updateParallel)
 
 	return m
 }
-
-const maxIntensity = -1
 
 func (h repairHandler) intensity(r *http.Request) (float64, error) {
 	var (
@@ -41,12 +39,23 @@ func (h repairHandler) intensity(r *http.Request) (float64, error) {
 		}
 	}
 
-	// Report error if intensity is missing
-	if intensity < maxIntensity {
-		return 0, service.ErrValidate(errors.New("missing intensity"))
+	return intensity, err
+}
+
+func (h repairHandler) parallel(r *http.Request) (int64, error) {
+	var (
+		parallel int64
+		err      error
+	)
+
+	// Read parallel value from the request
+	if v := r.FormValue("parallel"); v != "" {
+		if parallel, err = strconv.ParseInt(v, 10, 64); err != nil {
+			return parallel, service.ErrValidate(err)
+		}
 	}
 
-	return intensity, err
+	return parallel, err
 }
 
 func (h repairHandler) updateIntensity(w http.ResponseWriter, r *http.Request) {
@@ -55,11 +64,29 @@ func (h repairHandler) updateIntensity(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-
 	if err := h.svc.SetIntensity(
 		r.Context(),
 		mustClusterIDFromCtx(r),
 		intensity,
+	); err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h repairHandler) updateParallel(w http.ResponseWriter, r *http.Request) {
+	parallel, err := h.parallel(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	if err := h.svc.SetParallel(
+		r.Context(),
+		mustClusterIDFromCtx(r),
+		int(parallel),
 	); err != nil {
 		respondError(w, r, err)
 		return

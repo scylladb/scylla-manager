@@ -298,12 +298,14 @@ type progressReplication struct {
 	progress    TableProgress
 }
 
-func aggregateProgress(intensityFunc func(host string) float64, v ProgressVisitor) (Progress, error) {
+func aggregateProgress(intensityFunc func() (float64, int), v ProgressVisitor) (Progress, error) {
 	var (
 		p        Progress
 		perHost  = make(map[string][]TableProgress)
 		perTable = make(map[tableKey]*progressReplication)
 	)
+
+	p.Intensity, p.Parallel = intensityFunc()
 
 	if err := v.ForEach(func(pr *RunProgress) {
 		// Aggregate per host.
@@ -336,10 +338,9 @@ func aggregateProgress(intensityFunc func(host string) float64, v ProgressVisito
 			return v[i].Keyspace+v[i].Table < v[j].Keyspace+v[j].Table //nolint:scopelint
 		})
 		p.Hosts = append(p.Hosts, HostProgress{
-			progress:  sumTableProgress(v),
-			Host:      k,
-			Tables:    v,
-			Intensity: intensityFunc(k),
+			progress: sumTableProgress(v),
+			Host:     k,
+			Tables:   v,
 		})
 	}
 

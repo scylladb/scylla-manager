@@ -7,11 +7,10 @@ package restapi
 import (
 	context "context"
 	json "encoding/json"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	repair "github.com/scylladb/mermaid/pkg/service/repair"
 	uuid "github.com/scylladb/mermaid/pkg/util/uuid"
+	reflect "reflect"
 )
 
 // MockRepairService is a mock of RepairService interface
@@ -77,9 +76,9 @@ func (m *MockRepairService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2
 }
 
 // GetTarget indicates an expected call of GetTarget
-func (mr *MockRepairServiceMockRecorder) GetTarget(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockRepairServiceMockRecorder) GetTarget(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTarget", reflect.TypeOf((*MockRepairService)(nil).GetTarget), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTarget", reflect.TypeOf((*MockRepairService)(nil).GetTarget), arg0, arg1, arg2)
 }
 
 // SetIntensity mocks base method
@@ -94,4 +93,18 @@ func (m *MockRepairService) SetIntensity(arg0 context.Context, arg1 uuid.UUID, a
 func (mr *MockRepairServiceMockRecorder) SetIntensity(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetIntensity", reflect.TypeOf((*MockRepairService)(nil).SetIntensity), arg0, arg1, arg2)
+}
+
+// SetParallel mocks base method
+func (m *MockRepairService) SetParallel(arg0 context.Context, arg1 uuid.UUID, arg2 int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetParallel", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetParallel indicates an expected call of SetParallel
+func (mr *MockRepairServiceMockRecorder) SetParallel(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetParallel", reflect.TypeOf((*MockRepairService)(nil).SetParallel), arg0, arg1, arg2)
 }

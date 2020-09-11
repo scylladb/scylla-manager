@@ -97,7 +97,7 @@ func TestAggregateProgress(t *testing.T) {
 			var golden Progress
 			SaveGoldenJSONFileIfNeeded(t, golden)
 			LoadGoldenJSONFile(t, &golden)
-			if diff := cmp.Diff(res, golden, opts); diff != "" {
+			if diff := cmp.Diff(golden, res, opts); diff != "" {
 				t.Error(name, diff)
 			}
 		})
@@ -115,6 +115,6 @@ func (i *testVisitor) ForEach(visit func(*RunProgress)) error {
 	return nil
 }
 
-func staticIntensity(host string) float64 {
-	return 666
+func staticIntensity() (float64, int) {
+	return 666, 6
 }

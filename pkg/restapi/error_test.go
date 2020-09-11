@@ -20,7 +20,7 @@ func TestRespondError(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		respondError(response, request, errors.Wrap(err, "specific_msg"))
-		expected := `{"message":"resource not found: specific_msg: wrapped: not found","trace_id":""}` + "\n"
+		expected := `{"message":"get resource: specific_msg: wrapped: not found","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}

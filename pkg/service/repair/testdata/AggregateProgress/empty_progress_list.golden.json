@@ -6,5 +6,7 @@
   "started_at": null,
   "completed_at": null,
   "hosts": null,
-  "tables": null
+  "tables": null,
+  "intensity": 666,
+  "parallel": 6
 }
