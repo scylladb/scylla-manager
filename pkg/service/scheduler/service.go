@@ -100,6 +100,9 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 		if err := s.fixRunStatus(ctx, t); err != nil {
 			return errors.Wrap(err, "fix run status")
 		}
+		if err := s.initMetrics(ctx, t); err != nil {
+			return errors.Wrap(err, "init metrics")
+		}
 	}
 
 	for _, t := range tasks {
@@ -126,6 +129,41 @@ func (s *Service) fixRunStatus(ctx context.Context, t *Task) error {
 	r.Status = StatusAborted
 	r.Cause = "service stopped"
 	return s.putRun(r)
+}
+
+func (s *Service) initMetrics(ctx context.Context, t *Task) error {
+	clusterName, err := s.clusterName(ctx, t.ClusterID)
+	if err != nil {
+		return errors.Wrap(err, "get cluster name")
+	}
+
+	// Using Add(0) to not override existing values.
+
+	taskActiveCount.With(prometheus.Labels{
+		"cluster": clusterName,
+		"type":    t.Type.String(),
+		"task":    t.ID.String(),
+	}).Add(0)
+
+	statuses := []Status{StatusNew, StatusRunning, StatusStopped, StatusDone, StatusError, StatusAborted}
+
+	for _, s := range statuses {
+		taskRunTotal.With(prometheus.Labels{
+			"cluster": clusterName,
+			"type":    t.Type.String(),
+			"task":    t.ID.String(),
+			"status":  s.String(),
+		}).Add(0)
+
+		taskLastRunDurationSeconds.With(prometheus.Labels{
+			"cluster": clusterName,
+			"task":    t.ID.String(),
+			"type":    t.Type.String(),
+			"status":  s.String(),
+		}).Observe(0)
+	}
+
+	return nil
 }
 
 // schedule cancels any pending triggers for task and adds new trigger if needed.
@@ -628,6 +666,12 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 
 	s.schedule(ctx, t)
+
+	if create {
+		if err := s.initMetrics(ctx, t); err != nil {
+			return errors.Wrap(err, "init metrics")
+		}
+	}
 
 	return nil
 }
