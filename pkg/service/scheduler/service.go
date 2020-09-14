@@ -19,29 +19,6 @@ import (
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
-var (
-	taskActiveCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "task",
-		Name:      "active_count",
-		Help:      "Total number of active (in-flight) tasks.",
-	}, []string{"cluster", "type", "task"})
-
-	taskRunTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "task",
-		Name:      "run_total",
-		Help:      "Total number of task runs.",
-	}, []string{"cluster", "type", "task", "status"})
-)
-
-func init() {
-	prometheus.MustRegister(
-		taskActiveCount,
-		taskRunTotal,
-	)
-}
-
 // ClusterNameFunc returns name for a given ID.
 type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
 
