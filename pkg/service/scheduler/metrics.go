@@ -9,6 +9,20 @@ import (
 )
 
 var (
+	taskActiveCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "task",
+		Name:      "active_count",
+		Help:      "Total number of active (in-flight) tasks.",
+	}, []string{"cluster", "type", "task"})
+
+	taskRunTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "task",
+		Name:      "run_total",
+		Help:      "Total number of task runs.",
+	}, []string{"cluster", "type", "task", "status"})
+
 	taskLastRunDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "task",
@@ -20,6 +34,8 @@ var (
 
 func init() {
 	prometheus.MustRegister(
+		taskActiveCount,
+		taskRunTotal,
 		taskLastRunDurationSeconds,
 	)
 }
