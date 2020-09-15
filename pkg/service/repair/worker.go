@@ -133,6 +133,7 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 		"table", ttr.Table,
 		"hosts", ttr.Replicas,
 		"ranges", len(ttrs),
+		"master", host,
 		"job_id", id,
 	)
 	if err := w.waitRepairStatus(ctx, id, host, ttr.Keyspace, ttr.Table); err != nil {
