@@ -1,65 +1,43 @@
-.. Scylla Documentation Theme documentation master file, created by
-   sphinx-quickstart on Sat Feb 29 20:44:02 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Scylla Manager Documentation
+============================
+.. toctree::
+   :hidden:
+   
+   architecture
+   Install Scylla Manager <install>
+   Install Scylla Manager Agent <install-agent>
+   add-a-cluster
+   repair
+   backup
+   extract-schema-from-backup
+   restore-a-backup
+   health-check
+   sctool
+   monitoring-manager-integration
+   Troubleshoot Integration with Scylla Manager <https://docs.scylladb.com/troubleshooting/manager_monitoring_integration/>
+   use-a-remote-db
+   configuration-file
+   agent-configuration-file
 
-.. title:: ScyllaDB Docs Theme
+.. panel-box::
+  :title: Scylla Manager
+  :id: "getting-started"
+  :class: my-panel
 
+  .. include:: /../_common/manager-description.rst
 
-..  toctree::
-    :hidden:
-
-    getting-started/index
-    contributing/index
-    examples/index
-
-..  raw:: html
-
-    <div class="full-contents">
-        <div class="main-title">
-            <img class="main-title-logo" src="_static/img/scylla-writer.svg" />
-            <div class="main-title-header">
-                <h1>ScyllaDB Docs Theme</h1>
-                <h3>Sphinx theme and extensions for the ScyllaDB documentation.</h3>
-            </div>
-        </div>
-        <div class="topics-grid">
-
-..  topic-box::
-    :title: Getting started
-    :link: getting-started/
-    :icon: fa fa-power-off
-    :icon_color: rgba(95,113,180,1)
-    :icon_bg: rgba(95,113,180,0.1)
-    :class: my-box
-
-    Contains information on configuring Sphinx projects with this theme and extensions.
-
-
-..  topic-box::
-    :title: Contributing
-    :link: contributing/
-    :icon: fa fa-code
-    :icon_color: rgba(95,113,180,1)
-    :icon_bg: rgba(95,113,180,0.1)
-    :class: my-box
-
-    Contains information on how to set up a developer environment,
-    update the theme and static assets, and publish a Python package.
-
-
-..  topic-box::
-    :title: Examples and Demos
-    :link: examples/
-    :icon: fa fa-clipboard
-    :icon_color: rgba(95,113,180,1)
-    :icon_bg: rgba(95,113,180,0.1)
-    :class: my-box
-
-    Contains examples of all kinds of syntax one can use in ScyllaDB docs.
-    Serves as a showcase, playground and test cases for the theme.
-
-.. raw:: html
-
-        </div>
-    </div>
+  * :doc:`Architecture <architecture>`
+  * :doc:`Install Scylla Manager <install>`
+  * :doc:`Install Scylla Manager Agent <install-agent>`
+  * :doc:`Add a cluster or a node to Scylla Manager <add-a-cluster>`
+  * :doc:`Repair <repair>`
+  * :doc:`Backup <backup>`
+  * :doc:`Extract schema from the backup <extract-schema-from-backup>`
+  * :doc:`Restore a backup <restore-a-backup>`
+  * :doc:`Health Check <health-check>`
+  * :doc:`sctool CLI Reference <sctool>`
+  * :doc:`Integration with Scylla Monitoring Stack <monitoring-manager-integration>`
+  * :doc:`Troubleshooting guide for Scylla Manager and Scylla Monitoring integration </troubleshooting/manager_monitoring_integration/>`
+  * :doc:`Use a remote database for Scylla Manager <use-a-remote-db>`
+  * :doc:`Configuration file <configuration-file>`
+  * :doc:`Scylla Manager Agent Configuration file <agent-configuration-file>`
