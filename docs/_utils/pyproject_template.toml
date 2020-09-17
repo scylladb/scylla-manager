@@ -1,4 +1,3 @@
-[tool.poetry]
 name = "sphinx-docs"
 description = "ScyllaDB Documentation"
 version = "0.1.0"
