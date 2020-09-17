@@ -21,4 +21,4 @@
 
 # Doc builds ignore items
 docs/_build
-/source/.doctrees
+source/.doctrees
