@@ -40,7 +40,7 @@ var (
 		Subsystem: "repair",
 		Name:      "inflight_jobs",
 		Help:      "Number of jobs that are currently being processed",
-	}, []string{"cluster", "task", "host"})
+	}, []string{"cluster", "task"})
 )
 
 func init() {

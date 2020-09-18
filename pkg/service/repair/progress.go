@@ -151,7 +151,6 @@ func (pm *dbProgressManager) OnStartJob(ctx context.Context, job job) error {
 	l := prometheus.Labels{
 		"cluster": pm.run.clusterName,
 		"task":    pm.run.TaskID.String(),
-		"host":    job.Host,
 	}
 	repairInflightJobs.With(l).Add(1)
 
@@ -180,7 +179,6 @@ func (pm *dbProgressManager) Update(ctx context.Context, r jobResult) error {
 	l := prometheus.Labels{
 		"cluster": pm.run.clusterName,
 		"task":    pm.run.TaskID.String(),
-		"host":    r.job.Host,
 	}
 	repairInflightJobs.With(l).Sub(1)
 
