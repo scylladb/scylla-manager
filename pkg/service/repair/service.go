@@ -166,15 +166,15 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			}
 		}
 
-		if len(skippedKeyspaces) > 0 {
-			s.logger.Info(ctx,
-				"Repair of the following keyspaces will be skipped because not all the tokens are present in the specified DCs",
-				"keyspaces", strings.Join(skippedKeyspaces, ", "),
-			)
-		}
-
 		// Add to the filter
 		f.Add(keyspace, tables)
+	}
+
+	if len(skippedKeyspaces) > 0 {
+		s.logger.Info(ctx,
+			"Repair of the following keyspaces will be skipped because not all the tokens are present in the specified DCs",
+			"keyspaces", strings.Join(skippedKeyspaces, ", "),
+		)
 	}
 
 	// Get the filtered units
