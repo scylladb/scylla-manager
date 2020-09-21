@@ -458,7 +458,7 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 			Default: int(shards),
 			Max:     s.maxRepairRangesInParallel(totalMemory),
 		}
-		s.logger.Debug(ctx, "Host ranges in parallel", "host", h, "limit", v)
+		s.logger.Info(ctx, "Host repair intensity limit", "host", h, "limit", v)
 
 		mu.Lock()
 		out[h] = v
