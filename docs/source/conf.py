@@ -94,7 +94,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Scylla Manager'
-copyright = u'2012, ScyllaDB. All rights reserved.'
+copyright = u'2020, ScyllaDB. All rights reserved.'
 author = u'Scylla Project Contributors'
 
 # The version info for the project you're documenting, acts as replacement for
