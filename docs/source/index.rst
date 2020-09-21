@@ -1,6 +1,6 @@
-============================
-Scylla Manager Documentation
-============================
+==============
+Scylla Manager
+==============
 
 .. toctree::
    :hidden:

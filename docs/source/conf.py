@@ -175,10 +175,14 @@ html_style = ''
 #
 html_theme_options = {
     'header_links': [
+    ('Scylla Manager', 'https://scylladb.github.io/scylla-manager/'),
+    ('Scylla Monitor', 'https://scylladb.github.io/scylla-monitoring/master/index.html'),
     ('Scylla Cloud', 'https://docs.scylladb.com/scylla-cloud/'),
     ('Scylla University', 'https://university.scylladb.com/'),
     ('ScyllaDB Home', 'https://www.scylladb.com/')],
-    'github_issues_repository': 'scylladb/sphinx-scylladb-theme'
+    'github_issues_repository': 'scylladb/scylla-doc-issues',
+    'show_sidebar_index':True,
+
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -233,7 +237,7 @@ html_last_updated_fmt = '%d %B %Y'
 #
 html_sidebars = {'**': ['side-nav.html']}
 
-show_sidebar_index=True
+
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #
