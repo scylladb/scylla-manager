@@ -233,6 +233,7 @@ html_last_updated_fmt = '%d %B %Y'
 #
 html_sidebars = {'**': ['side-nav.html']}
 
+show_sidebar_index=True
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #
