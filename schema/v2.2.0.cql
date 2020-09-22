@@ -9,8 +9,8 @@ CREATE TABLE repair_run (
     prev_id uuid,
     dc list<text>,
     start_time timestamp,
-    PRIMARY KEY(cluster_id, task_id, id)
-)  WITH default_time_to_live = 15552000;
+    PRIMARY KEY((cluster_id, task_id), id)
+)  WITH CLUSTERING ORDER BY (id DESC) AND default_time_to_live = 15552000;
 
 DROP TABLE repair_run_progress;
 CREATE TABLE repair_run_progress (
