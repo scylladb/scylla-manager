@@ -252,7 +252,7 @@ func init() {
 
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
+		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3, gcs") //nolint: lll
 	fs.Bool("all-clusters", false,
 		"show backups of all clusters stored in location")
 	fs.StringSliceP("keyspace", "K", nil,
