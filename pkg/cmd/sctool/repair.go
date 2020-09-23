@@ -124,7 +124,7 @@ func init() {
 func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs := cmd.Flags()
 	fs.StringSliceP("keyspace", "K", nil,
-		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from repair")
 	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*', used to specify the DCs to include or exclude from repair")
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
