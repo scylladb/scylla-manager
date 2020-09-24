@@ -13,9 +13,29 @@ import (
 	"github.com/spf13/pflag"
 )
 
+const parallelLongDesc = `
+The --parallel flag specifies the maximum nr. of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
+Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
+The effective parallelism depends on a keyspace replication factor (RF) and the nr. of nodes.
+The formula to calculate it is as follows: nr. nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.`
+
+const intensityLongDesc = `
+The --intensity flag specifies how many token ranges (per shard) to repair in a single Scylla repair job. By default this is 1.
+If you set it to 0 the nr. of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
+Valid values are integers >= 1 and decimals between (0,1). Higher values will result in increased cluster load and slightly faster repairs.
+Values below 1 will result in repairing the nr. of token ranges equal to the specified fraction of shards.
+Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.`
+
 var repairCmd = &cobra.Command{
 	Use:   "repair",
-	Short: "Schedules repair",
+	Short: "Schedules repairs",
+	Long: `Schedules repairs
+
+Repair speed is controlled by two flags --parallel and --intensity.
+The values of those flags can be adjusted while a repair is running using the 'sctool repair control' command.
+` + parallelLongDesc + `
+` + intensityLongDesc,
+
 	RunE: func(cmd *cobra.Command, args []string) error {
 		t := &mermaidclient.Task{
 			Type:       "repair",
@@ -129,26 +149,18 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
-	fs.Float64("intensity", 1,
-		`integer >= 1 or a decimal between (0,1), higher values may result in higher speed and cluster load. 0 value means repair at maximum intensity`)
-	fs.Int64("parallel", 0,
-		`The maximum number of repair jobs to run in parallel, each node can participate in at most one repair at any given time.
-Default is means system will repair at maximum parallelism`)
+	fs.Var(&IntensityFlag{Value: 1}, "intensity", "how many token ranges (per shard) to repair in a single Scylla repair job, see the command description for details")
+	fs.Int64("parallel", 0, "limit of parallel repair jobs, full parallelism by default, see the command description for details")
 	fs.String("small-table-threshold", "1GiB", "enable small table optimization for tables of size lower than given threshold. Supported units [B, MiB, GiB, TiB]")
 	return fs
 }
 
 var repairControlCmd = &cobra.Command{
 	Use:   "control",
-	Short: "Changes settings of running repairs to control speed and load",
-	Long: `This command controls speed of a running repair for a provided cluster.
-
-Higher intensity value results in higher repair speed and may increase cluster load.
-Intensity must be a decimal number between (0,1) or integer when >= 1.
-
-Higher parallel may result in higher repair speed and may increase cluster load.
-By default repair will use the maximum possible parallelism.
-`,
+	Short: "Changes repairs parameters on the flight",
+	Long: `Changes repairs parameters on the flight
+` + parallelLongDesc + `
+` + intensityLongDesc,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if !cmd.Flag("intensity").Changed && !cmd.Flag("parallel").Changed {
@@ -183,12 +195,8 @@ func init() {
 	cmd := repairControlCmd
 	withScyllaDocs(cmd, "/sctool/#repair-control")
 	fs := cmd.Flags()
-	fs.Var(&IntensityFlag{Value: 1}, "intensity",
-		`integer >= 1 or a decimal between (0,1), higher values may result in higher speed and cluster load. 0 value means repair at maximum intensity.
-If not set no changes will be applied`)
-	fs.Int64("parallel", 0,
-		`The maximum number of repair jobs to run in parallel, each node can participate in at most one repair at any given time.
-Default is means system will repair at maximum parallelism. If not set no changes will be applied`)
+	fs.Var(&IntensityFlag{Value: 1}, "intensity", "how many token ranges (per shard) to repair in a single Scylla repair job, see the command description for details")
+	fs.Int64("parallel", 0, "limit of parallel repair jobs, full parallelism by default, see the command description for details")
 	register(cmd, repairCmd)
 }
 
@@ -229,7 +237,13 @@ func (fl *IntensityFlag) Type() string {
 var repairUpdateCmd = &cobra.Command{
 	Use:   "update <type/task-id>",
 	Short: "Modifies a repair task",
-	Args:  cobra.ExactArgs(1),
+	Long: `Modifies a repair task
+
+Repair speed is controlled by two flags --parallel and --intensity.
+The values of those flags can be adjusted while a repair is running using the 'sctool repair control' command.
+` + parallelLongDesc + `
+` + intensityLongDesc,
+	Args: cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
