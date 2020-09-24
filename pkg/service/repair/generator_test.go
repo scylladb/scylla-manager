@@ -256,10 +256,11 @@ func TestGenerator(t *testing.T) {
 			}...)
 		}
 
-		t.Run("ranges are distributed within host limit", func(t *testing.T) {
+		t.Run("with intensity=0 limit is max host ranges", func(t *testing.T) {
 			target := Target{
-				DC:       []string{"dc1", "dc2"},
-				Parallel: 1,
+				DC:        []string{"dc1", "dc2"},
+				Intensity: 0,
+				Parallel:  1,
 			}
 			ctx := context.Background()
 			g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
@@ -275,16 +276,42 @@ func TestGenerator(t *testing.T) {
 
 			// Check that ranges follow host limit
 			for _, j := range jobs {
-				if len(j.Ranges) > rangeLimits[j.Host].Max {
-					t.Errorf("%s host received more ranges than can handle", j.Host)
+				if v := rangeLimits[j.Host].Max; len(j.Ranges) > v {
+					t.Errorf("%s host received %d expected to more than %d", j.Host, len(j.Ranges), v)
 				}
 			}
 		})
 
-		t.Run("ranges are distributed within intensity limit", func(t *testing.T) {
+		t.Run("with intensity=1 limit is default host ranges", func(t *testing.T) {
 			target := Target{
 				DC:        []string{"dc1", "dc2"},
-				Intensity: 2,
+				Intensity: 1,
+				Parallel:  1,
+			}
+			ctx := context.Background()
+			g := makeGenerator(ctx, target, units, hostDC, ranges, hostPriority, rangeLimits, smallTables)
+
+			go g.Run(ctx)
+
+			w := fakeWorker{
+				In:     g.Next(),
+				Out:    g.Result(),
+				Logger: log.NewDevelopment(),
+			}
+			jobs := w.drainJobs(ctx)
+
+			// Check that ranges follow host limit
+			for _, j := range jobs {
+				if v := rangeLimits[j.Host].Default; len(j.Ranges) > v {
+					t.Errorf("%s host received %d expected to more than %d", j.Host, len(j.Ranges), v)
+				}
+			}
+		})
+
+		t.Run("with intensity=1000 limit is over max host ranges", func(t *testing.T) {
+			target := Target{
+				DC:        []string{"dc1", "dc2"},
+				Intensity: 1000,
 				Parallel:  1,
 			}
 
@@ -301,8 +328,8 @@ func TestGenerator(t *testing.T) {
 
 			// Check that ranges follow host limit
 			for _, j := range jobs {
-				if len(j.Ranges) > rangeLimits[j.Host].Max {
-					t.Errorf("%s host received more ranges than intensity", j.Host)
+				if v := rangeLimits[j.Host].Max; len(j.Ranges) < v {
+					t.Errorf("%s host received %d expected to more than %d", j.Host, len(j.Ranges), v)
 				}
 			}
 		})
