@@ -27,6 +27,7 @@ func TestCmdlineRender(t *testing.T) {
 			"dc":                    []interface{}{"dc2"},
 			"fail_fast":             true,
 			"intensity":             1,
+			"parallel":              2,
 			"small_table_threshold": 1073741824,
 		},
 	}
@@ -57,17 +58,17 @@ func TestCmdlineRender(t *testing.T) {
 		{
 			"render all",
 			NewCmdRenderer(repairTask, RenderAll),
-			"sctool repair --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --small-table-threshold 1.00GiB",
+			"sctool repair --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB",
 		},
 		{
 			"render args",
 			NewCmdRenderer(repairTask, RenderArgs),
-			"--cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --small-table-threshold 1.00GiB",
+			"--cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB",
 		},
 		{
 			"render repair task type args",
 			NewCmdRenderer(repairTask, RenderTypeArgs),
-			"-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --small-table-threshold 1.00GiB",
+			"-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB",
 		},
 		{
 			"render backup task type args",
