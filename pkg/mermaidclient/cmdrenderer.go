@@ -150,6 +150,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 			rc.writeProp("--dc", "dc", quoted)
 			rc.writeProp("--fail-fast", "fail_fast")
 			rc.writeProp("--intensity", "intensity")
+			rc.writeProp("--parallel", "parallel")
 			rc.writeProp("--small-table-threshold", "small_table_threshold", byteCount)
 		}
 	}
