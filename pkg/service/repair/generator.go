@@ -387,14 +387,11 @@ func (g *generator) rangesLimit(host string) int {
 		return g.hostRangesLimits[host].Max
 	}
 
-	l := int(i * float64(g.hostRangesLimits[host].Default))
-	if l == 0 {
-		l = 1
-	} else if l > g.hostRangesLimits[host].Max {
-		return g.hostRangesLimits[host].Max
+	v := int(i * float64(g.hostRangesLimits[host].Default))
+	if v == 0 {
+		v = 1
 	}
-
-	return l
+	return v
 }
 
 func (g *generator) pickHost(hash uint64) string {
