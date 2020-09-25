@@ -23,7 +23,7 @@ Installation workflow
 #. `Install Scylla Manager`_
 #. `Run the scyllamgr_setup script`_
 #. `Enable Bash Script Completion`_ 
-#. `Start Scylla Manager Service`_ and verify Scylla Manager is Running and that sctool is running
+#. `Start Scylla Manager Service`_ and verify Scylla Manager is Running using ``sctool`` the Scylla Manager CLI
 
 
 Install Scylla Manager
