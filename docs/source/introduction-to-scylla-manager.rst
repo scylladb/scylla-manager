@@ -1,13 +1,11 @@
-============
+==============================
+Introduction to Scylla Manager
+==============================
+
+.. include:: /_common/manager-description.rst
+
 Architecture
 ============
-
-Scylla Manager is a product for database operations automation.
-It can manage multiple Scylla clusters and run cluster-wide tasks in a controlled and predictable way.
-Scylla Manager discovers cluster topology and is aware of nodes belonging to different datacenters.
-
-Deployment
-==========
 
 Scylla Manager consists of three components:
 

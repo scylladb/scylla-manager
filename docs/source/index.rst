@@ -6,7 +6,7 @@ Scylla Manager
    :hidden:
    :maxdepth: 2
 
-   Introduction to Scylla Manager <architecture>
+   Introduction to Scylla Manager <introduction-to-scylla-manager>
    Install Scylla Manager <install>
    Install Scylla Manager Agent <install-agent>
    Add a Cluster <add-a-cluster>
@@ -27,7 +27,7 @@ For older versions of Scylla Manager, see `here <https://docs.scylladb.com/opera
 
 Choose a topic to get started:
 
-* :doc:`Architecture <architecture>`
+* :doc:`Introduction to Scylla Manager <introduction-to-scylla-manager>`
 * :doc:`Install Scylla Manager <install>`
 * :doc:`Install Scylla Manager Agent <install-agent>`
 * :doc:`Add a cluster or a node to Scylla Manager <add-a-cluster>`
