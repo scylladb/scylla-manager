@@ -40,8 +40,8 @@ sctool uses the following environment variables:
 
 The environment variables may be saved in  your ``~/.bashrc`` file so that the variables are set after login.
 
-Managing clusters
------------------
+Cluster registration
+--------------------
 
 The cluster commands allow you to add, delete, list, and update clusters.
 A Scylla cluster must be added (`cluster add`_) before management tasks can be initiated.
