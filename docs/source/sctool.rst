@@ -273,6 +273,7 @@ In addition to the `Global flags`_, backup takes the following parameters:
 =====
 
 ``--dc <list of glob patterns>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A comma-separated list of datacenter glob patterns, e.g. 'dc1,!otherdc*' used to specify the DCs to include or exclude from backup, separated by a comma.
 This can also include glob patterns.
@@ -282,12 +283,14 @@ This can also include glob patterns.
 =====
 
 ``--dry-run``
+^^^^^^^^^^^^^
 
 Validates and prints backup information without actually scheduling a backup.
 
 =====
 
 ``-i, --interval <time-unit>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Scheduled Intervals for backups to repeat every X time, where X can be:
 
@@ -303,6 +306,7 @@ For example: ``-i 3d2h10m``
 =====
 
 ``-K, --keyspace <list of glob patterns to find keyspaces>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A list of glob patterns separated by a comma used to include or exclude keyspaces from the backup.
 The patterns match keyspaces and tables, when you write the pattern,
@@ -313,6 +317,7 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 =====
 
 ``-L, --location <list of backup locations>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Specifies where to place the backup in the format ``[dc:]<provider>:<name>`` For example: ``s3:my-bucket``.
 More than one location can be stated in a comma-separated list.
@@ -323,6 +328,7 @@ The only supported storage ``provider`` at the moment are ``s3`` and ``gcs``.
 =====
 
 ``--rate-limit <list of rate limits>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Limits the upload rate (as expressed in  megabytes (MB) per second) which a snapshot file can be uploaded from a Scylla node to its backup destination.
 For example, an S3 bucket.
@@ -334,6 +340,7 @@ The <dc>: part is optional and is only needed when different datacenters require
 =====
 
 ``--retention <number of backups to store>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The number of backups to store.
 Once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.
@@ -343,12 +350,14 @@ Once this number is reached, the next backup which comes in from this destinatio
 =====
 
 ``--show-tables``
+^^^^^^^^^^^^^^^^^
 
 Prints table names together with keyspace. Used in combination with ``--dry-run``.
 
 =====
 
 ``--snapshot-parallel <list of parallelism limits>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A comma-separated list of snapshot parallelism limits in the format ``[<dc>:]<limit>``.
 More than one location can be stated in a comma-separated list.
@@ -358,6 +367,7 @@ If the ``dc`` part is not set, the limit is global and the runs are parallel in 
 =====
 
 ``-s, --start-date <date>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Specifies the task start date expressed in the RFC3339 format or ``now[+duration]``, e.g. ``now+3d2h10m``, valid units are:
 
@@ -372,6 +382,7 @@ Specifies the task start date expressed in the RFC3339 format or ``now[+duration
 =====
 
 ``--upload-parallel <list of parallelism limits>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A comma-separated list of upload parallelism limits in the format ``[<dc>:]<limit>``.
 More than one location can be stated in a comma-separated list.
@@ -448,12 +459,14 @@ In addition to the `Global flags`_, backup list takes the following parameters:
 =====
 
 ``--all-clusters``
+^^^^^^^^^^^^^^^^^^
 
 Shows backups for all clusters. Useful for listing clusters that are no longer available locally but are backed up in the past to remote location.
 
 =====
 
 ``-K, --keyspace <list of glob patterns to find keyspaces>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A list of glob patterns separated by a comma.
 The patterns match keyspaces and tables, when you write the pattern,
@@ -464,6 +477,7 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 =====
 
 ``-L, --location <list of backup locations>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Specifies where to place the backup in the format ``[<dc>:]<provider>:<name>``.
 More than one location can be stated in a comma-separated list.
@@ -474,6 +488,7 @@ The only supported storage ``provider`` are ``s3`` and ``gcs``.
 =====
 
 ``--max-date <date>``
+^^^^^^^^^^^^^^^^^^^^^
 
 Specifies maximal snapshot date expressed in RFC3339 form or ``now[+duration]``.
 For example: ``now+3d2h10m`` Valid units are:
@@ -487,6 +502,7 @@ For example: ``now+3d2h10m`` Valid units are:
 =====
 
 ``--min-date <date>``
+^^^^^^^^^^^^^^^^^^^^^
 
 Specifies minimal snapshot date expressed in RFC3339 form or ``now[+duration]``.
 For example: ``now+3d2h10m`` Valid units are:
@@ -500,6 +516,7 @@ For example: ``now+3d2h10m`` Valid units are:
 =====
 
 ``--show-tables``
+^^^^^^^^^^^^^^^^^
 
 Prints table names together with keyspace.
 
@@ -548,12 +565,14 @@ In addition to the `Global flags`_, backup files add takes the following paramet
 =====
 
 ``--all-clusters``
+^^^^^^^^^^^^^^^^^^
 
 Shows backups for all clusters
 
 =====
 
 ``-d, --delimiter <delimiter-character>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Dictates which character will be used as a whitespace between remote file path and information about keyspace and table.
 
@@ -562,6 +581,7 @@ Dictates which character will be used as a whitespace between remote file path a
 =====
 
 ``-K, --keyspace <list of glob patterns to find keyspaces>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A list of glob patterns separated by a comma.
 The patterns match keyspaces and tables, when you write the pattern,
@@ -572,6 +592,7 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 =====
 
 ``-L, --location <list of backup locations>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Specifies where to place the backup in the format ``[<dc>:]<provider>:<name>``.
 More than one location can be stated in a comma-separated list.
@@ -582,6 +603,7 @@ The only supported storage ``provider`` are ``s3`` and ``gcs``.
 =====
 
 ``-T, --snapshot-tag <tag>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Snapshot tag as read from the backup listing
 
@@ -647,6 +669,7 @@ In addition to the `Global flags`_, backup delete takes the following parameters
 =====
 
 ``-L, --location <list of backup locations>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Specifies where to look for the backup in the format ``[<dc>:]<provider>:<name>``.
 More than one location can be stated in a comma-separated list.
@@ -657,6 +680,7 @@ The only supported storage ``provider`` are ``s3`` and ``gcs``.
 =====
 
 ``-T, --snapshot-tag <tag>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Snapshot tag as read from the backup listing.
 
@@ -720,6 +744,7 @@ In addition to `Global flags`_, repair takes the following parameters:
 =====
 
 ``--dc <list of glob patterns>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 List of data centers to be repaired, separated by a comma.
 This can also include glob patterns.
@@ -748,6 +773,7 @@ Given the following data centers: *us-east-1*, *us-east-2*, *us-west-1*, *us-wes
 =====
 
 ``--dry-run``
+^^^^^^^^^^^^^
 
 Validates and displays repair information without actually scheduling the repair.
 This allows you to display what will happen should the repair run with the parameters you set.
@@ -807,6 +833,7 @@ The following command will run a repair on all keyspaces **except** for test_key
 =====
 
 ``--fail-fast``
+^^^^^^^^^^^^^^^
 
 Stops the repair process on the first error.
 
@@ -815,6 +842,7 @@ Stops the repair process on the first error.
 =====
 
 ``--intensity <float>``
+^^^^^^^^^^^^^^^^^^^^^^^
 
 How many token ranges (per shard) to repair in a single Scylla repair job. By default this is 1.
 If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
@@ -827,6 +855,7 @@ Changing the intensity impacts repair granularity if you need to resume it, the 
 =====
 
 ``--parallel <integer>``
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
 Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
@@ -838,6 +867,7 @@ The formula to calculate is is as follows: nr. nodes / RF, ex. for 6 node cluste
 =====
 
 ``-K, --keyspace <list of glob patterns>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A list of glob patterns separated by a comma.
 The patterns match keyspaces and tables, when you write the pattern,
@@ -1107,6 +1137,7 @@ In addition to the `Global Flags`_, task history takes the following parameters:
 =====
 
 ``--limit <number of results>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Limits the number of returned results.
 
@@ -1162,6 +1193,7 @@ In addition to the `Global Flags`_, task list takes the following parameters:
 =====
 
 ``--all``
+^^^^^^^^^
 
 Lists all tasks, including those which have been disabled.
 Disabled tasks are prefixed with ``*``.
@@ -1170,6 +1202,7 @@ For example ``*repair/afe9a610-e4c7-4d05-860e-5a0ddf14d7aa``.
 =====
 
 ``--sort <sort-key>``
+^^^^^^^^^^^^^^^^^^^^^
 
 Returns a list of tasks sorted according to the last run status and sort key which you provide.
 Accepted sort key values are:
@@ -1186,6 +1219,7 @@ Accepted sort key values are:
 =====
 
 ``--status <status>``
+^^^^^^^^^^^^^^^^^^^^^
 
 Filters tasks according to their last run status.
 Accepted values are NEW, STARTING, RUNNING, STOPPING, STOPPED, DONE, ERROR, ABORTED.
@@ -1193,6 +1227,7 @@ Accepted values are NEW, STARTING, RUNNING, STOPPING, STOPPED, DONE, ERROR, ABOR
 =====
 
 ``-t, --type <task type>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Display only tasks of a given type.
 
@@ -1242,6 +1277,7 @@ In addition to the `Global flags`_, repair progress takes the following paramete
 =====
 
 ``--details``
+^^^^^^^^^^^^^
 
 More detailed progress data, depending on task type.
 
@@ -1443,6 +1479,7 @@ In addition to the `Global Flags`_, task start takes the following parameters:
 =====
 
 ``--continue``
+^^^^^^^^^^^^^^
 
 Try to resume the last run.
 
@@ -1531,6 +1568,7 @@ In addition to `Global flags`_, task stop takes the following parameters:
 =====
 
 ``-e, --enabled``
+^^^^^^^^^^^^^^^^^
 
 Setting enabled to false disables the task.
 Disabled tasks are not executed and hidden from task list.
@@ -1541,12 +1579,14 @@ To show disabled tasks invoke ``sctool task list --all`` (see `task list`_).
 =====
 
 ``-n, --name <alias>``
+^^^^^^^^^^^^^^^^^^^^^^
 
 Adds a name to a task.
 
 =====
 
 ``--tags <list of tags>``
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Allows you to tag the task with a list of text.
 

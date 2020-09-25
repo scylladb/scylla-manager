@@ -1,4 +1,5 @@
 ``--interval <time between task runs>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Amount of time after which a successfully completed task would be run again.
 Supported time units include:
@@ -15,6 +16,7 @@ Supported time units include:
 =====
 
 ``-s, --start-date <now+duration|RFC3339>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The date can be expressed relatively to now or as a RFC3339 formatted string.
 To run the task in 2 hours use ``now+2h``, supported units are:
@@ -32,6 +34,7 @@ If you want the repair to start immediately, use the value ``now`` or skip this 
 =====
 
 ``-r, --num-retries <times to rerun a failed task>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Number of times a task reruns following a failure. The task reruns 10 minutes following a failure.
 If the task fails after the retry times have been used, it will not retry again until its next run which was scheduled according to the ``--interval`` parameter.
