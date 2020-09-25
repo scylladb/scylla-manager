@@ -219,21 +219,21 @@ In this example, the cluster named ``cluster`` has been renamed to ``prod-cluste
 Backup cluster
 --------------
 
-The backup commands allow you to: create a backup (ad-hoc or scheduled), list the contents of a backup, and list the backups of a cluster.
+The backup commands allow you to: create and update a backup (ad-hoc or scheduled), list the contents of a backup, and list the backups of a cluster.
 You cannot initiate a backup without a cluster. Make sure you add a cluster (`cluster add`_) before initiating a backup.
 
 .. code-block:: none
 
-   sctool backup <command> [global flags] [parameters]
+   sctool backup <subcommand> [global flags] [parameters]
 
 
-**Subcommands**
+**Commands**
 
 .. list-table::
    :widths: 30 70
    :header-rows: 1
 
-   * - Subcommand
+   * - Command
      - Usage
    * - `backup`_
      - Schedule a backup (ad-hoc or scheduled).
@@ -413,125 +413,7 @@ The backup update command allows you to modify properties of an already existing
 backup update parameters
 ........................
 
-In addition to the `Global flags`_, backup update takes the following parameters:
-
-=====
-
-``--dc <list of glob patterns>``
-
-A comma-separated list of datacenter glob patterns, e.g. 'dc1,!otherdc*' used to specify the DCs to include or exclude from backup, separated by a comma.
-This can also include glob patterns.
-
-.. include:: _common/glob.rst
-
-=====
-
-``--dry-run``
-
-Validates and prints backup information without actually modifying a backup task.
-
-=====
-
-``-i, --interval <time-unit>``
-
-Scheduled Intervals for backups to repeat every X time, where X can be:
-
-* ``d`` - days
-* ``h`` - hours
-* ``m`` - minutes
-* ``s`` - seconds
-
-For example: ``-i 3d2h10m``
-
-**Default: 0** - this means the task does not recur.
-
-=====
-
-``-K, --keyspace <list of glob patterns to find keyspaces>``
-
-A list of glob patterns separated by a comma used to include or exclude keyspaces from the backup.
-The patterns match keyspaces and tables, when you write the pattern,
-separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
-
-.. include:: _common/glob.rst
-
-=====
-
-``-L, --location <list of backup locations>``
-
-Specifies where to place the backup in the format ``[dc:]<provider>:<name>`` For example: ``s3:my-bucket``.
-More than one location can be stated in a comma-separated list.
-The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations.
-``name`` must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
-The only supported storage ``provider`` at the moment are ``s3`` and ``gcs``.
-
-=====
-
-``-r, --num-retries <times to rerun a failed task>``
-
-The number of times a scheduled task will retry to run before failing.
-
-**Default: 3**
-
-=====
-
-``--rate-limit <list of rate limits>``
-
-Limits the upload rate (as expressed in megabytes (MB) per second) which a snapshot file can be uploaded from a Scylla node to its backup destination.
-For example, an S3 bucket.
-You can set limits for more than one DC using a comma-separated list expressed in the format ``[<dc>:]<limit>``.
-The <dc>: part is optional and is only needed when different datacenters require different upload limits.
-
-**Default: 100**
-
-=====
-
-``--retention <number of backups to store>``
-
-The number of backups to store.
-Once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.
-
-**Default: 3**
-
-=====
-
-``--show-tables``
-
-Prints table names together with keyspace. Used in combination with ``--dry-run``.
-
-=====
-
-``--snapshot-parallel <list of parallelism limits>``
-
-A comma-separated list of snapshot parallelism limits in the format ``[<dc>:]<limit>``.
-More than one location can be stated in a comma-separated list.
-The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
-If the ``dc`` part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes. In the example in ``dc1`` there are 2 parallel node and 5 parallel nodes in other DCs.
-
-=====
-
-``-s, --start-date <date>``
-
-Specifies the task start date expressed in the RFC3339 format or ``now[+duration]``, e.g. ``now+3d2h10m``, valid units are:
-
-* ``d`` - days
-* ``h`` - hours
-* ``m`` - minutes
-* ``s`` - seconds
-* ``now`` - happens immediately
-
-**Default: now**
-
-=====
-
-``--upload-parallel <list of parallelism limits>``
-
-A comma-separated list of upload parallelism limits in the format ``[<dc>:]<limit>``.
-More than one location can be stated in a comma-separated list.
-The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
-If the ``dc`` part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes. In the example in ``dc1`` there are 2 parallel node and 5 parallel nodes in other DCs.
-
-=====
+In addition to `Global flags`_, backup update takes the same parameters as `backup parameters`_
 
 Example: backup update
 ......................
@@ -792,18 +674,37 @@ The command does not output anything unless an error happens.
 Repair cluster
 --------------
 
+The repair commands allow you to: create and update a repair (ad-hoc or scheduled), and change selected parameters while a repair is running.
+
+.. code-block:: none
+
+   sctool repair <subcommand> [global flags] [parameters]
+
+**Commands**
+
+.. list-table::
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Command
+     - Usage
+   * - `repair`_
+     - Schedule a repair (ad-hoc or scheduled).
+   * - `repair control`_
+     - Change parameters while a repair is running.
+   * - `repair update`_
+     - Modify properties of the existing repair task.
+
 repair
 ======
 
-The repair commands allow you to schedule repairs for a specified cluster.
+The repair command allows you to schedule or run ad-hoc cluster repair.
 
 .. code-block:: none
 
    sctool repair --cluster <id|name> [--dc <list of glob patterns>] [--dry-run]
    [--fail-fast] [--interval <time between task runs>]
-   [--intensity <float>]
-   [--parallel <integer>]
-   [--keyspace <list of glob patterns>]
+   [--intensity <float>] [--keyspace <list of glob patterns>] [--parallel <integer>]
    [--start-date <now+duration|RFC3339>]
    [global flags]
 
@@ -915,12 +816,11 @@ Stops the repair process on the first error.
 
 ``--intensity <float>``
 
-Repair speed, higher values result in higher speed and may increase cluster load.
-Values in a range (0-1) result in lower speed and load.
-
-When intensity is below 1, repair is executed only on the specified fraction of shards at the same time.
-Please note that this only works with versions that are not `row-level-repair enabled </upgrade/upgrade-manager/upgrade-guide-from-2.x.a-to-2.y.b/upgrade-row-level-repair/>`_.
-Either an integer >= 1 or a decimal between (0,1). Higher values may result in higher repair speed and cluster load. 0 value means repair at maximum intensity.
+How many token ranges (per shard) to repair in a single Scylla repair job. By default this is 1.
+If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
+Valid values are integers >= 1 and decimals between (0,1). Higher values will result in increased cluster load and slightly faster repairs.
+Values below 1 will result in repairing the number of token ranges equal to the specified fraction of shards.
+Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
 
 **Default:** 1
 
@@ -928,9 +828,10 @@ Either an integer >= 1 or a decimal between (0,1). Higher values may result in h
 
 ``--parallel <integer>``
 
-
-The maximum number of repair jobs to run in parallel, each node can participate in at most one repair at any given time.
-Default value of 0 means system will be repaired at maximum parallelism.
+The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
+Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
+The effective parallelism depends on a keyspace replication factor (RF) and the nr. of nodes.
+The formula to calculate is is as follows: nr. nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.
 
 **Default:** 0
 
@@ -1036,21 +937,18 @@ The repair is scheduled to run on December 4, 2018 at 8:00 AM and will run after
 repair update
 =============
 
-The repair update command allows you to schedule repairs for a specified cluster.
+The repair update command allows you to modify properties of an already existing repair task.
 
 .. code-block:: none
 
    sctool repair update <task_type/task_id> --cluster <id|name> [--dc <list of glob patterns>] [--dry-run]
    [--fail-fast] [--interval <time between task runs>]
-   [--intensity <float>]
-   [--parallel <integer>]
-   [--keyspace <list of glob patterns>]
+   [--intensity <float>] [--keyspace <list of glob patterns>] [--parallel <integer>]
    [--start-date <now+duration|RFC3339>]
    [global flags]
 
 repair update parameters
 ........................
-
 
 In addition to `Global flags`_, repair update takes the same parameters as `repair parameters`_
 
