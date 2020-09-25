@@ -22,6 +22,10 @@ The advantages of using Scylla Manager for backup operations are:
 * Data throttling - control how fast you upload or Pause/resume the backup
 * Lower disruption to workflow of the Scylla Manager Agent due to cgroups and/or CPU pinning 
 * No cross-region traffic - configurable upload destination per datacenter
+* Visibility - everything is managed from one place, progress can be read using CLI (sctool task progress), REST API or Prometheus metrics, you can dig into details and get to know progress of individual tables and nodes
+* Pause and resume - backup upload can be paused and resumed later, it will continue where it left off
+* Retries - retries in case of errors
+
 
 The backup process
 ==================
@@ -156,8 +160,9 @@ where:
 * ``-s`` - the time you want the backup to begin
 * ``-i`` - the time interval you want to use in between consecutive backups
 
-If you want to run the backup only once, see `Create an ad-hoc backup`_.
-In case when you want the backup to start immediately, but  you want it to schedule it to repeat at a determined interval, leave out the start flag (``-s``) and set the interval flag (``-i``) to the time you want the backup to reoccur.
+The command returns the task ID. You will need this ID for additional actions.
+If you want to run the backup only once, leave out the interval argument (``-i``).
+In case when you want the backup to start immediately, but you want it to schedule it to repeat at a determined interval, leave out the start flag (``-s``) and set the interval flag (``-i``) to the time you want the backup to reoccur.
 
 Schedule a daily backup
 .......................
