@@ -44,7 +44,7 @@ Backup clusters
 ---------------
 
 The backup commands allow you to: create a backup (ad-hoc or scheduled), list the contents of a backup, and list the backups of a cluster.
-A Scylla cluster must be added (`cluster add`_) before management tasks can be initiated.
+You cannot initiate a backup without a cluster. Make sure you add a cluster (`cluster add`_) before initiating a backup.
 
 .. code-block:: none
 
@@ -68,7 +68,7 @@ A Scylla cluster must be added (`cluster add`_) before management tasks can be i
    * - `backup list`_
      - List backups of a given cluster.
    * - `backup delete`_
-     - Deletes one of available snapshots.
+     - Deletes one of the available snapshots.
 
 backup
 ======
@@ -138,7 +138,7 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 
 ``-L, --location <list of backup locations>``
 
-Specifies where to place the backup in the format ``[dc:]<provider>:<name>`` ex. ``s3:my-bucket``.
+Specifies where to place the backup in the format ``[dc:]<provider>:<name>`` For example: ``s3:my-bucket``.
 More than one location can be stated in a comma-separated list.
 The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations.
 ``name`` must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
@@ -176,8 +176,8 @@ Prints table names together with keyspace. Used in combination with ``--dry-run`
 
 A comma-separated list of snapshot parallelism limits in the format ``[<dc>:]<limit>``.
 More than one location can be stated in a comma-separated list.
-The <dc>: part is optional and allows for specifying different limits in selected datacenters.
-If The <dc>: part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes (2 in dc1 (as shown in the example) and ``n`` nodes in all the other datacenters.
+The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
+If the ``dc`` part is not set, the limit is global and the runs are parallel in ``n`` nodes. If for example, you were to set 'dc1:2,5', then ``dc1`` would have two parallel nodes and there would be five parallel nodes in the other DCs.
 
 =====
 
@@ -199,8 +199,8 @@ Specifies the task start date expressed in the RFC3339 format or ``now[+duration
 
 A comma-separated list of upload parallelism limits in the format ``[<dc>:]<limit>``.
 More than one location can be stated in a comma-separated list.
-The <dc>: part is optional and allows for specifying different limits in selected datacenters.
-If The <dc>: part is not set the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes (2 in dc1 (as shown in the example) and ``n`` nodes in all the other datacenters.
+The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
+If the ``dc`` part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes. In the example in ``dc1`` there are 2 parallel nodes in dc1 and 5 parallel nodes in the other DCs.
 
 =====
 
@@ -208,7 +208,7 @@ Example: backup
 ................
 
 This example backs up the entire cluster named prod-cluster.
-The backup begins on December 9, 2019 at 16:05 UTC and will repeat at this time every 24 hours.
+The backup begins on December 9, 2019 at 15:16:05 UTC and will repeat at this time every 24 hours.
 The backup is stored in s3 in a directory named ``my-backups``.
 Additional examples are available in `Backup Scylla Clusters <../backup/>`_
 
@@ -283,7 +283,7 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 
 ``-L, --location <list of backup locations>``
 
-Specifies where to place the backup in the format ``[dc:]<provider>:<name>`` ex. ``s3:my-bucket``.
+Specifies where to place the backup in the format ``[dc:]<provider>:<name>`` For example: ``s3:my-bucket``.
 More than one location can be stated in a comma-separated list.
 The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations.
 ``name`` must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
@@ -329,8 +329,8 @@ Prints table names together with keyspace. Used in combination with ``--dry-run`
 
 A comma-separated list of snapshot parallelism limits in the format ``[<dc>:]<limit>``.
 More than one location can be stated in a comma-separated list.
-The <dc>: part is optional and allows for specifying different limits in selected datacenters.
-If The <dc>: part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes (2 in dc1 (as shown in the example) and ``n`` nodes in all the other datacenters.
+The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
+If the ``dc`` part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes. In the example in ``dc1`` there are 2 parallel node and 5 parallel nodes in other DCs.
 
 =====
 
@@ -352,8 +352,8 @@ Specifies the task start date expressed in the RFC3339 format or ``now[+duration
 
 A comma-separated list of upload parallelism limits in the format ``[<dc>:]<limit>``.
 More than one location can be stated in a comma-separated list.
-The <dc>: part is optional and allows for specifying different limits in selected datacenters.
-If The <dc>: part is not set the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes (2 in dc1 (as shown in the example) and ``n`` nodes in all the other datacenters.
+The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
+If the ``dc`` part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes. In the example in ``dc1`` there are 2 parallel node and 5 parallel nodes in other DCs.
 
 =====
 
@@ -372,7 +372,7 @@ The backup storage is updated to ``prod-backups``.
 backup list
 ===========
 
-This commands allow you to list backups of given cluster.
+This commands allow you to list backups of a given cluster.
 
 
 **Syntax:**
@@ -557,16 +557,16 @@ From this information we know the following:
 * Provider - s3
 * Bucket name - backups
 * Cluster ID - 7d8f190f-c98d-4a06-8bb5-ae96633ee69a
-* DC - DC2
+* DC - dc2
 * Node - f3c6386b-6d54-4546-a2e8-627fff62d3af
 * Keyspace - system_sec
 * Table name  - roles
 * Table UUID - 5bc52802de2535edaeab188eecebb090
 * File name -  mc-2-big-TOC.txt
-* Delimiter - whitespace character (ie '  ')
+* Delimiter - whitespace character **'  '**
 * Keyspace / table name - system_sec/table
 
-See `Restore <restore>`_ on information how to use these files to restore a backup.
+See `Restore <../restore-a-backup/>`_ on information how to use these files to restore a backup.
 
 backup delete
 =============
@@ -704,7 +704,8 @@ If you deleted the cluster by mistake, you will need to add it again.
 
    sctool cluster delete --cluster <id|name> [global flags]
 
-.. note:: If you are removing the cluster from Scylla Manager and you are using Scylla Monitoring, remove the target from Prometheus Target list </operating-scylla/monitoring/monitoring_stack/#procedure>`_ in the prometheus/scylla_manager_servers.yml file.
+.. note:: If you are removing the cluster from Scylla Manager and you are using Scylla Monitoring,
+   remove the target from the `Prometheus Target list <http://scylladb.github.io/scylla-monitoring/master/monitoring_stack.html#configure-scylla-nodes-from-files>`_ in the prometheus/scylla_manager_servers.yml file.
 
 
 cluster delete parameters
@@ -783,11 +784,11 @@ In addition to the `Global flags`_, cluster update takes all the `cluster add pa
 Example: cluster update
 .......................
 
-In this example, the cluster named ``cluster`` has been renamed to ``prod-cluster``.
+In this example, the cluster named ``test-cluster`` has been renamed to ``prod-cluster``.
 
 .. code-block:: none
 
-   sctool cluster update --prod-cluster cluster --name prod-cluster
+   sctool cluster update --cluster test-cluster --name prod-cluster
 
 Scheduling repairs
 ------------------
@@ -802,233 +803,10 @@ The repair commands allow you to schedule repairs for a specified cluster.
    sctool repair --cluster <id|name> [--dc <list of glob patterns>] [--dry-run]
    [--fail-fast] [--interval <time between task runs>]
    [--intensity <float>]
+   [--parallel <integer>]
    [--keyspace <list of glob patterns>]
    [--start-date <now+duration|RFC3339>]
    [global flags]
-
-repair parameters
-.................
-
-In addition to `Global flags`_, repair takes the following parameters:
-
-=====
-
-.. include:: _common/param-cluster.rst
-
-=====
-
-``--dc <list of glob patterns>``
-
-List of data centers to be repaired, separated by a comma.
-This can also include glob patterns.
-
-.. include:: _common/glob.rst
-
-**Example**
-
-Given the following data centers: *us-east-1*, *us-east-2*, *us-west-1*, *us-west-2*.
-
-.. list-table::
-   :widths: 50 50
-   :header-rows: 1
-
-   * - Parameter
-     - Selects
-   * - ``--dc us-east-1,us-west-2``
-     - *us-east-1*, *us-west-2*
-   * - ``--dc 'us-east-*'``
-     - *us-east-1*, *us-east-2*
-   * - ``--dc '*','!us-east-'``
-     - *us-west-1*, *us-west-2*
-
-**Default:** everything - all data centers
-
-=====
-
-``--dry-run``
-
-Validates and displays repair information without actually scheduling the repair.
-This allows you to display what will happen should the repair run with the parameters you set.
-
-**Example**
-
-Given the following keyspaces:
-
-* system_auth
-* system_distributed
-* system_traces
-* test_keyspace_dc1_rf2, test_keyspace_dc1_rf3, and test_keyspace_dc2_rf2
-* keyspace_dc2_rf3
-* test_keyspace_rf2 and test_keyspace_rf3
-
-The following command will run a repair on all keyspaces **except** for test_keyspace_dc1_rf2 in dry-run mode.
-
-
-.. code-block:: none
-
-   sctool repair --dry-run -K '*,!test_keyspace_dc1_rf2'
-   NOTICE: dry run mode, repair is not scheduled
-
-   Data Centers:
-     - dc1
-     - dc2
-   Keyspace: system_auth
-     (all tables)
-   Keyspace: system_distributed
-     (all tables)
-   Keyspace: system_traces
-     (all tables)
-   Keyspace: test_keyspace_dc1_rf3
-     (all tables)
-   Keyspace: test_keyspace_dc2_rf2
-     (all tables)
-   Keyspace: test_keyspace_dc2_rf3
-     (all tables)
-   Keyspace: test_keyspace_rf2
-     (all tables)
-   Keyspace: test_keyspace_rf3
-     (all tables)
-
-**Example with error**
-
-.. code-block:: none
-
-   sctool repair -K 'system*.bla' --dry-run -c bla
-   NOTICE: dry run mode, repair is not scheduled
-
-   Error: API error (status 400)
-   {
-     "message": "no matching units found for filters, ks=[system*.*bla*]",
-     "trace_id": "b_mSOUoOSyqSnDtk9EANyg"
-   }
-
-=====
-
-``--fail-fast``
-
-Stops the repair process on the first error.
-
-**Default:** False
-
-=====
-
-``--intensity <float>``
-
-Repair speed, higher values result in higher speed and may increase cluster load, values between (0, 1) specifies percentage of active workers.
-
-**Default:** 0
-
-=====
-
-``-K, --keyspace <list of glob patterns>``
-
-A list of glob patterns separated by a comma.
-The patterns match keyspaces and tables, when you write the pattern,
-separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
-
-.. include:: _common/glob.rst
-
-**Example**
-
-Given the following tables:
-
-* *shopping_cart.cart*
-* *orders.orders_by_date_2018_11_01*
-* *orders.orders_by_date_2018_11_15*
-* *orders.orders_by_date_2018_11_29*
-* *orders.orders_by_date_2018_12_06*
-
-.. list-table::
-   :widths: 50 50
-   :header-rows: 1
-
-   * - Parameter
-     - Selects
-   * - ``-K '*'``
-     - *everything - all tables in all keyspaces*
-   * - ``-K shopping_cart``
-     - *shopping_cart.cart*
-   * - ``-K '*,!orders'``
-     - *shopping_cart.cart*
-   * - ``-K orders.'orders.2018_11_'``
-     - *orders.orders_by_date_2018_11_01*
-       *orders.orders_by_date_2018_11_15*
-       *orders.orders_by_date_2018_11_29*
-   * - ``-K 'orders.*2018_1?_2?'``
-     - *orders.orders_by_date_2018_11_29*
-   * - ``-K 'orders.*2018_11?[19]'``
-     - *orders.orders_by_date_2018_11_01*
-       *orders.orders_by_date_2018_11_29*
-
-**Default:** everything - all tables in all keyspaces
-
-=====
-
-.. include:: _common/task-params.rst
-
-=====
-
-Example: Schedule a repair
-..........................
-
-Repairs can be scheduled to run on selected keyspaces/tables, nodes, or datacenters.
-Scheduled repairs run every *n* days depending on the frequency you set.
-A scheduled repair runs at the time you set it to run at.
-If no time is given, the repair runs immediately.
-Repairs can run once, or can run at a set schedule based on a time interval.
-
-Repair cluster weekly
-^^^^^^^^^^^^^^^^^^^^^
-
-In this example, you create a repair task for a cluster named *prod-cluster*.
-The task begins on May 2, 2019 at 3:04 PM.
-It repeats every week at this time.
-As there are no datacenters or keyspaces listed, all datacenters and all data in the specified cluster are repaired.
-
-.. code-block:: none
-
-   sctool repair -c prod-cluster -s 2019-05-02T15:04:05-07:00 --interval 7d
-
-The system replies with a repair task ID.
-You can use this ID to change the start time, stop the repair, or cancel the repair.
-
-.. code-block:: none
-
-   repair/3208ff15-6e8f-48b2-875c-d3c73f545410
-
-Repair datacenters in a region weekly
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This example repairs all datacenters starting with the name *dc-asia-*, such as *dc-asia-1*.
-The repair begins on September 15, 2018 at 7:00 PM (JST, for example) and runs every week.
-
-.. code-block:: none
-
-   sctool repair -c prod-cluster --dc 'asia-*' -s 2018-09-15T19:00:05-07:00 --interval 7d
-
-Repair selected keyspaces/tables weekly
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Using glob patterns gives you additional flexibility in selecting both keyspaces and tables.
-This example repairs all tables in the *orders* keyspace starting with *2018_11_* prefix.
-The repair is scheduled to run on December 4, 2018 at 8:00 AM and will run after that point every week.
-
-.. code-block:: none
-
-   sctool repair -c prod-cluster -K 'orders.2018_12_' -s 2018-12-04T08:00:05-07:00 --interval 7d
-
-repair update
-=============
-
-The repair commands allow you to schedule repairs for a specified cluster.
-
-.. code-block:: none
-
-   sctool repair update <task_type/task_id> --cluster <id|name> [--dc <list of glob patterns>] [--dry-run]
-   [--fail-fast] [--interval <time between task runs>]
-   [--intensity <float>]
-   [--keyspace <list of glob patterns>]
-   [--start-date <now+duration|RFC3339>]
 
 repair parameters
 .................
@@ -1143,6 +921,17 @@ Values in a range (0-1) result in lower speed and load.
 
 When intensity is below 1, repair is executed only on the specified fraction of shards at the same time.
 Please note that this only works with versions that are not `row-level-repair enabled </upgrade/upgrade-manager/upgrade-guide-from-2.x.a-to-2.y.b/upgrade-row-level-repair/>`_.
+Either an integer >= 1 or a decimal between (0,1). Higher values may result in higher repair speed and cluster load. 0 value means repair at maximum intensity.
+
+**Default:** 1
+
+=====
+
+``--parallel <integer>``
+
+
+The maximum number of repair jobs to run in parallel, each node can participate in at most one repair at any given time.
+Default value of 0 means system will be repaired at maximum parallelism.
 
 **Default:** 0
 
@@ -1227,7 +1016,7 @@ You can use this ID to change the start time, stop the repair, or cancel the rep
 Repair datacenters in a region weekly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This example repairs all datacenters starting with the name *dc-asia-*, such as *dc-asia-1*.
+This example repairs all datacenters starting with the name ``dc-asia-``, such as ``dc-asia-1``.
 The repair begins on September 15, 2018 at 7:00 PM (JST, for example) and runs every week.
 
 .. code-block:: none
@@ -1238,12 +1027,33 @@ Repair selected keyspaces/tables weekly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using glob patterns gives you additional flexibility in selecting both keyspaces and tables.
-This example repairs all tables in the *orders* keyspace starting with *2018_11_* prefix.
+This example repairs all tables in the *orders* keyspace starting with *2018_12_* prefix.
 The repair is scheduled to run on December 4, 2018 at 8:00 AM and will run after that point every week.
 
 .. code-block:: none
 
    sctool repair -c prod-cluster -K 'orders.2018_12_' -s 2018-12-04T08:00:05-07:00 --interval 7d
+
+repair update
+=============
+
+The repair update command allows you to schedule repairs for a specified cluster.
+
+.. code-block:: none
+
+   sctool repair update <task_type/task_id> --cluster <id|name> [--dc <list of glob patterns>] [--dry-run]
+   [--fail-fast] [--interval <time between task runs>]
+   [--intensity <float>]
+   [--parallel <integer>]
+   [--keyspace <list of glob patterns>]
+   [--start-date <now+duration|RFC3339>]
+   [global flags]
+
+repair update parameters
+........................
+
+
+In addition to `Global flags`_, repair update takes the same parameters as `repair parameters`_
 
 Monitoring clusters
 -------------------
@@ -1270,7 +1080,7 @@ Available statuses are:
 * UP - Situation normal
 * DOWN - Failed to connect to host
 * HTTP XXX - HTTP failure and its status code
-* UNAUTHORISED - Wrong ``api-key`` specified for cluster or in `Scylla Manager Agent configuration file <agent-configuration-file/#authentication-token>`_
+* UNAUTHORISED - Wrong ``api-key`` specified for cluster or in `Scylla Manager Agent configuration file <../agent-configuration-file/#authentication-token>`_
 * TIMEOUT - Timeout
 
 The status information is also available as a metric in Scylla Monitoring Manager dashboard.
@@ -1826,7 +1636,7 @@ In addition to `Global flags`_, task stop takes the following parameters:
 ``-e, --enabled``
 
 Setting enabled to false disables the task.
-Disabled task is not executed and hidden from task list.
+Disabled tasks are not executed and hidden from task list.
 To show disabled tasks invoke ``sctool task list --all`` (see `task list`_).
 
 **Default** true
@@ -1878,7 +1688,7 @@ version
 
 .. code-block:: none
 
-   sctool version [flags] [global flags]
+   sctool version [global flags]
 
 version parameters
 ..................
@@ -1893,4 +1703,3 @@ Example: version
    sctool version
    Client version: 2.1-0.20200401.ce91f2ad
    Server version: 2.1-0.20200401.ce91f2ad
-

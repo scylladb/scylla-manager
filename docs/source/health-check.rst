@@ -30,6 +30,8 @@ We can see three healthcheck related tasks:
 
 .. include:: _common/health-check-tasks.rst
 
+.. _scylla-health-check:
+
 Scylla Health Check
 -------------------
 
@@ -99,6 +101,9 @@ You may specify CQL ``username`` and ``password`` flags when adding cluster to S
 It's also possible to add or change that using `sctool cluster update command <../sctool/#cluster-update>`_.
 Once Scylla Manager has CQL credential to the cluster, when performing a health check, it would try to connect to each node and execute ``SELECT now() FROM system.local`` query.
 
+
+.. _scylla-alternator-health-check:
+
 Scylla Alternator Health Check
 ------------------------------
 
@@ -107,6 +112,8 @@ Scylla Alternator Health Check
 If Alternator is enabled it will check the Scylla Alternator API connectivity for all nodes in parallel. In Scylla 4.0 it uses simplified ping checking if the socket is open and if it’s responding. In Scylla 4.1+ it queries the system table.
 
 Please check `configuration <../configuration-file/#health-check-settings>`_ to adjust timeouts for your cluster.
+
+.. _scylla-api:
 
 Scylla REST API Health Check
 ----------------------------

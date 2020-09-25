@@ -123,14 +123,18 @@ Progress of the repair task can be monitored by using `sctool task progress <../
 Repair faster or slower
 .......................
 
-When scheduling repair you may specify ``--intensity`` flag, the intensity meaning is:
+When scheduling repair tasks, you may specify the following flags to influence repair speed and load on the cluster.
 
-* Intensity must be either an integer >= 1, float between (0-1), or the word "max".
-* For values >= 1 intensity specifies the number of segments repaired by Scylla in a single repair command. Higher values result in higher speed and may increase cluster load.
-* For values where ``0 < intensity < 1`` value determines percentage of hosts actively participating in the repair by repairing one segment in one repair command.
-* For "max" intensity is calculated based on available resources of the cluster.
+*``--intensity``
+* ``--parallel``
+When using these flags, note the following:
 
-Please note that this only applies to clusters where row-level repair is available. When supporting legacy repair Scylla Manager will split segments into shards so total amount of request will be greater but the same base algorithm for intensity will be respected.
+* ``--intensity``  must be either an integer >= 1, or a decimal between (0-1).
+* ``--intensity`` value will be translated into the number of segments repaired by Scylla in a single repair command. Higher values result in higher speed and may increase cluster load.
+* ``--parallel`` is an integer number that sets limit of repair commands that can run in parallel.
+* Parallel will be capped at maximum value calculated at runtime from the number of disjoint groups of replica.
+
+Please note that this only applies to clusters where row-level repair is available. When supporting legacy repair Scylla Manager will split segments into shards so total amount of requests will be greater but the same base algorithm for ``--intensity``  and ``--parallel`` will be respected.
 
 **Example**
 
@@ -158,6 +162,15 @@ To start a scheduled repair immediately, run the following command inserting the
 .. code-block:: none
 
    sctool task start repair/143d160f-e53c-4890-a9e7-149561376cfd -c prod-cluster
+
+Control a Repair speed at runtime
+---------------------------------
+
+To change execution properties of the running repair, use the command ``sctool repair control``.
+
+.. code-block:: none
+
+   sctool repair control  -c prod-cluster --intensity 0.5 --parallel 3
 
 
 Pause a Repair
