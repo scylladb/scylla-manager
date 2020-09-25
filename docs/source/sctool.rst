@@ -216,8 +216,8 @@ In this example, the cluster named ``cluster`` has been renamed to ``prod-cluste
 
    sctool cluster update --prod-cluster cluster --name prod-cluster
 
-Backup clusters
----------------
+Backup cluster
+--------------
 
 The backup commands allow you to: create a backup (ad-hoc or scheduled), list the contents of a backup, and list the backups of a cluster.
 You cannot initiate a backup without a cluster. Make sure you add a cluster (`cluster add`_) before initiating a backup.
@@ -789,8 +789,8 @@ Example: backup delete
 
 The command does not output anything unless an error happens.
 
-Scheduling repairs
-------------------
+Repair cluster
+--------------
 
 repair
 ======
