@@ -16,15 +16,15 @@ Benefits of using Scylla Manager backups
 Scylla Manager automates the backup process and allows you to configure how and when backup occurs.
 The advantages of using Scylla Manager for backup operations are:
 
-* Data selection - backup a single table or an entire cluster, the choice is up to you
-* Data deduplication - prevents multiple uploads of the same SSTable
-* Data retention - purge old data automatically when all goes right, or failover when something goes wrong
-* Data throttling - control how fast you upload or Pause/resume the backup
-* Lower disruption to workflow of the Scylla Manager Agent due to cgroups and/or CPU pinning 
-* No cross-region traffic - configurable upload destination per datacenter
-* Visibility - everything is managed from one place, progress can be read using CLI (sctool task progress), REST API or Prometheus metrics, you can dig into details and get to know progress of individual tables and nodes
-* Pause and resume - backup upload can be paused and resumed later, it will continue where it left off
-* Retries - retries in case of errors
+#. Data selection - backup a single table or an entire cluster, the choice is up to you
+#. Data deduplication - prevents multiple uploads of the same SSTable
+#. Data retention - purge old data automatically when all goes right, or failover when something goes wrong
+#. Data throttling - control how fast you upload or Pause/resume the backup
+#. No cross-region traffic - configurable upload destination per datacenter
+#. Pause and resume - backup upload can be paused and resumed later, it will continue where it left off
+#. Retries - retries in case of errors
+#. Lower disruption to workflow of the Scylla Manager Agent due to cgroups and/or CPU pinning
+#. Visibility - everything is managed from one place, progress can be read using CLI, REST API or Prometheus metrics, you can dig into details and get to know progress of individual tables and nodes
 
 
 The backup process
@@ -235,7 +235,7 @@ You can specify more than one keyspace/table or use glob pattern to match multip
    sctool backup -c prod-cluster -i 30d -K 'auth_service.*,!auth_service.lru_cache' --dc 'dc1' -L 's3:dc1-backups'
 
 Create an ad-hoc backup
------------------------
+=======================
 
 An ad-hoc backup runs immediately and does not repeat.
 This procedure shows the most frequently used backup commands.
@@ -251,7 +251,7 @@ replacing the ``-c`` cluster flag with your cluster's cluster name or ID and rep
    sctool backup -c prod-cluster -L 's3:my-backups'
 
 Perform a dry run of a backup
------------------------------
+=============================
 
 We recommend to use ``--dry-run`` parameter prior scheduling a backup.
 It's a useful way to verify whether all necessary prerequisites are fulfilled.
@@ -306,7 +306,7 @@ If the dry run completes successfully, a summary of the backup is displayed. For
    Retention: Last 3 backups
 
 Monitor progress of the backup task
------------------------------------
+===================================
 
 Progress of the backup task can be monitored by using `sctool task progress <../sctool/#task-progress>`_ command and providing UUID of the backup task.
 
