@@ -463,7 +463,8 @@ Parallel:	{{ .Parallel }}
   - {{ . }}
 {{- end }}
 {{ end -}}
-{{ else }}Progress:	-
+{{ else }}
+Progress:	-
 {{ end }}
 `
 
