@@ -157,8 +157,8 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 
 var repairControlCmd = &cobra.Command{
 	Use:   "control",
-	Short: "Changes repairs parameters on the flight",
-	Long: `Changes repairs parameters on the flight
+	Short: "Changes repair parameters on the flight",
+	Long: `Changes repair parameters on the flight
 ` + parallelLongDesc + `
 ` + intensityLongDesc,
 	RunE: func(cmd *cobra.Command, args []string) error {
