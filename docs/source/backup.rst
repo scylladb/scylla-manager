@@ -16,15 +16,15 @@ Benefits of using Scylla Manager backups
 Scylla Manager automates the backup process and allows you to configure how and when backup occurs.
 The advantages of using Scylla Manager for backup operations are:
 
-#. Data selection - backup a single table or an entire cluster, the choice is up to you
-#. Data deduplication - prevents multiple uploads of the same SSTable
-#. Data retention - purge old data automatically when all goes right, or failover when something goes wrong
-#. Data throttling - control how fast you upload or Pause/resume the backup
-#. No cross-region traffic - configurable upload destination per datacenter
-#. Pause and resume - backup upload can be paused and resumed later, it will continue where it left off
-#. Retries - retries in case of errors
-#. Lower disruption to workflow of the Scylla Manager Agent due to cgroups and/or CPU pinning
-#. Visibility - everything is managed from one place, progress can be read using CLI, REST API or Prometheus metrics, you can dig into details and get to know progress of individual tables and nodes
+* Data selection - backup a single table or an entire cluster, the choice is up to you
+* Data deduplication - prevents multiple uploads of the same SSTable
+* Data retention - purge old data automatically when all goes right, or failover when something goes wrong
+* Data throttling - control how fast you upload or Pause/resume the backup
+* No cross-region traffic - configurable upload destination per datacenter
+* Pause and resume - backup upload can be paused and resumed later, it will continue where it left off
+* Retries - retries in case of errors
+* Lower disruption to workflow of the Scylla Manager Agent due to cgroups and/or CPU pinning
+* Visibility - everything is managed from one place, progress can be read using CLI, REST API or Prometheus metrics, you can dig into details and get to know progress of individual tables and nodes
 
 
 The backup process
