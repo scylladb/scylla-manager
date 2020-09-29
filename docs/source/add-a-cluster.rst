@@ -112,9 +112,9 @@ To connect your cluster to Scylla Monitoring it is **required** to use the same 
 
 **Procedure**
 
-Follow the procedure :monitor_lst:`Scylla Monitoring <monitoring_stack/#procedure>` as directed, remembering to update the Scylla Node IPs and  Cluster name_  as well as the Scylla Manager IP in the relevant Prometheus configuration files. 
+Follow the procedure `Scylla Monitoring <http://scylladb.github.io/scylla-monitoring/master/monitoring_stack.html#install-scylla-monitoring>` as directed, remembering to update the Scylla Node IPs and  Cluster name_  as well as the Scylla Manager IP in the relevant Prometheus configuration files.
 
-If you have any issues connecting to Scylla Monitoring Stack consult the `Troubleshooting Guide </troubleshooting/manager_monitoring_integration/>`_.
+If you have any issues connecting to Scylla Monitoring Stack consult the `Troubleshooting Guide <https://docs.scylladb.com/troubleshooting/manager_monitoring_integration/>`_.
 
 Add a Node to a Managed Cluster
 ===============================
@@ -124,7 +124,7 @@ Although Scylla Manager is aware of all topology changes made within every clust
 **Before You Begin**
 
 * Confirm you have a managed cluster running under Scylla Manager. If you do not have a managed cluster, see `Add a cluster`_.
-* Confirm the `node </operating-scylla/procedures/cluster-management/add_node_to_cluster/#procedure>`_ or `Datacenter </operating-scylla/procedures/cluster-management/add_dc_to_existing_dc/#procedure>`_ is added to the Scylla Cluster.
+* Confirm the `node <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/add_node_to_cluster/#procedure>`_ or `Datacenter </operating-scylla/procedures/cluster-management/add_dc_to_existing_dc/#procedure>`_ is added to the Scylla Cluster.
 
 **Procedure**
 
@@ -153,7 +153,7 @@ Remove a Node/Datacenter from Scylla Manager
 
 There is no need to perform any action in Scylla Manager after removing a node or datacenter from a Scylla cluster. 
 
-.. note:: If you are removing the cluster from Scylla Manager and you are using Scylla Monitoring, refer to :monitor_lst:`Prometheus Target List </monitoring_stack/#procedure>` for more information. 
+.. note:: If you are removing the cluster from Scylla Manager and you are using Scylla Monitoring, refer to `targets example <http://scylladb.github.io/scylla-monitoring/master/monitoring_stack.html#configure-scylla-nodes-from-files>`_ for more information.
 
 See Also
 ========

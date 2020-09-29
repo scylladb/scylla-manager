@@ -26,7 +26,7 @@ Specifies the `auththentication token <../install-agent/#generate-an-authenticat
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Optional CQL username, for security reasons this user should NOT have access to your data.
-If you specify the CQL username and password, the CQL health check you see in `status`_ would try to login and execute a query against system keyspace.
+If you specify the CQL username and password, the CQL health check you see in :ref:`status` would try to login and execute a query against system keyspace.
 Otherwise CQL health check is based on sending `CQL OPTIONS frame <https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec#L302>`_ and does not start a CQL session.
 
 =====

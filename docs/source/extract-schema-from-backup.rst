@@ -6,7 +6,7 @@ Extract schema from the backup
 
 The first step to restore a Scylla Manager backup is to restore the CQL schema from a text file.
 Scylla Manager from version 2.1 and up creates a backup up of matching schema along with the snapshot.
-If you created the backup with Scylla Manager version 2.0 or you didn't provide credentials for a schema backup in Scylla Manager version |man_version|, follow the instructions in `how to restore your schema from system table <../../2.0/extract-schema-from-system-table/>`_.
+If you created the backup with Scylla Manager version 2.0 or you didn't provide credentials for a schema backup in your current Scylla Manager version, follow the instructions in `how to restore your schema from system table <https://docs.scylladb.com/operating-scylla/manager/2.0/extract-schema-from-system-table/>`_.
 
 If not, follow these steps to restore the schema from the Scylla Manager backup that has the schema stored along with the snapshot:
 

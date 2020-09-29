@@ -33,7 +33,7 @@ The backup process
 The backup procedure consists of multiple steps executed sequentially.
 It runs parallel on all nodes unless you limit it with the ``--snapshot-parallel`` or ``--upload-parallel`` `flag <../sctool/#backup-parameters>`_.
 
-#. **Snapshot** - Take a :term:`snapshot <Snapshot>` of data on each node (according to backup configuration settings).
+#. **Snapshot** - Take a snapshot of data on each node (according to backup configuration settings).
 #. **Schema** - (Optional) Upload the schema CQL to the backup storage destination, this requires that you added the cluster with ``--username`` and ``--password`` flags. See `Add Cluster <../add-a-cluster/#create-a-managed-cluster>`_ for reference.
 #. **Upload** - Upload the snapshot to the backup storage destination.
 #. **Manifest** - Upload the manifest file containing metadata about the backup.

@@ -67,6 +67,8 @@ A Scylla cluster must be added (`cluster add`_) before management tasks can be i
    * - `cluster update`_
      - Modify a cluster.
 
+.. _cluster-add:
+
 cluster add
 ===========
 
@@ -151,6 +153,8 @@ Example: cluster delete
 .. code-block:: none
 
    sctool cluster delete -c prod-cluster
+
+.. _cluster-list:
 
 cluster list
 ============
@@ -1025,6 +1029,7 @@ In addition to `Global flags`_, repair update takes the same parameters as `repa
 
 Monitoring clusters
 -------------------
+.. _status:
 
 status
 ======
@@ -1206,6 +1211,7 @@ Example: task history
    │ e5343b52-610c-11e9-9aa8-42010af000a9 │ 15 Apr 19 15:32:42 UTC │ 15 Apr 19 15:32:43 UTC │ 1s       │ DONE                                           │
    │ dc435562-610c-11e9-9aa7-42010af000a9 │ 17 Apr 19 12:32:27 UTC │ 17 Apr 19 12:32:28 UTC │ 1s       │ DONE                                           │
    ╰──────────────────────────────────────┴────────────────────────┴────────────────────────┴──────────┴────────────────────────────────────────────────╯
+.. _task-list:
 
 task list
 =========
