@@ -12,8 +12,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/mermaid/pkg/dht"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
-
-	"golang.org/x/sync/errgroup"
+	"github.com/scylladb/mermaid/pkg/util/parallel"
 )
 
 var errTableDeleted = errors.New("table deleted during repair")
@@ -97,7 +96,7 @@ func (w *worker) runJob(ctx context.Context, job job) error {
 		err = w.runRepair(ctx, job.Ranges, job.Host)
 		msg = "Run row-level repair"
 	} else {
-		err = w.runLegacyRepair(ctx, job.Ranges, job.Host)
+		err = w.runLegacyRepair(ctx, job.Ranges, job.Host, job.ShardsPercent)
 		msg = "Run legacy repair"
 	}
 	if err != nil {
@@ -128,7 +127,8 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 
 		return errors.Wrapf(err, "host %s: schedule repair", host)
 	}
-	w.logger.Info(ctx, "Repair",
+
+	logger := w.logger.With(
 		"keyspace", ttr.Keyspace,
 		"table", ttr.Table,
 		"hosts", ttr.Replicas,
@@ -136,30 +136,48 @@ func (w *worker) runRepair(ctx context.Context, ttrs []*tableTokenRange, host st
 		"master", host,
 		"job_id", id,
 	)
+
+	logger.Info(ctx, "Repairing")
 	if err := w.waitRepairStatus(ctx, id, host, ttr.Keyspace, ttr.Table); err != nil {
 		return errors.Wrapf(err, "host %s: keyspace %s table %s command %d", host, ttr.Keyspace, ttr.Table, id)
 	}
-
+	logger.Debug(ctx, "Repair done")
 	return nil
 }
 
-func (w *worker) runLegacyRepair(ctx context.Context, ranges []*tableTokenRange, host string) error {
-	shardRanges := splitToShards(ranges, w.hostPartitioner[host])
+func (w *worker) runLegacyRepair(ctx context.Context, ranges []*tableTokenRange, host string, shardsPercent float64) error {
+	p := w.hostPartitioner[host]
 
-	if err := validateShards(ranges, shardRanges, w.hostPartitioner[host]); err != nil {
+	// Calculate max parallel shard repairs
+	limit := int(p.ShardCount())
+	if shardsPercent != 0 {
+		l := float64(limit) * shardsPercent
+		if l < 1 {
+			l = 1
+		}
+		limit = int(l)
+
+		w.logger.Debug(ctx, "Limiting parallel shard repairs", "total", p.ShardCount(), "limit", limit)
+	}
+
+	// Split ranges to shards
+	shardRanges := splitToShards(ranges, p)
+	if err := validateShards(ranges, shardRanges, p); err != nil {
 		return err
 	}
 
-	g, gCtx := errgroup.WithContext(ctx)
-	for _, shard := range shardRanges {
-		g.Go(func(shard []*tableTokenRange) func() error {
-			return func() error {
-				return w.runRepair(gCtx, shard, host)
-			}
-		}(shard))
-	}
+	return parallel.Run(len(shardRanges), limit, func(i int) error {
+		if ctx.Err() != nil {
+			return nil
+		}
 
-	return g.Wait()
+		v := shardRanges[i]
+		if len(v) == 0 {
+			return nil
+		}
+
+		return w.runRepair(log.WithFields(ctx, "subranges_of_shard", i), v, host)
+	})
 }
 
 func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace, table string) error {
