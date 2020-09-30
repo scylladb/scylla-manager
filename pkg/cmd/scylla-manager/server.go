@@ -109,7 +109,7 @@ func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 
 	s.repairSvc, err = repair.NewService(
 		s.session,
-		repair.DefaultConfig(),
+		s.config.Repair,
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.logger.Named("repair"),
