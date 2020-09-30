@@ -210,9 +210,11 @@ You can make repair run slower by changing the level of parallelism or intensity
 By default Scylla Manager runs repairs with full parallelism.
 Try setting ``--parallel 1``, that would cap the number of Scylla repair jobs in the cluster to 1, and give air to some nodes.
 This would have the same result as running Scylla Manager 2.1 or earlier in terms of parallelism.
-You can also change the number of token ranges repaired in a single Scylla repair job.
-Try setting ``--intensity 0.5``, that would repair the number of token ranges equal to half of the number of the shards of the repair master node for each job.
-This may not, however, free the shards from repairing since every token range is owned by many shards.
+For Scylla clusters that **do not support row-level repair**, you can change the number of shards that are being repaired in parallel.
+Try setting ``--intensity 0.5``, that would run repair on half of the shards in parallel.
+
+.. note::
+   For Scylla clusters that are row-level repair enabled, setting intensity below 1 has the same effect as setting intensity 1.
 
 Slowdown a running repair
 .........................
@@ -227,7 +229,8 @@ Run the following command to limit the number of parallel Scylla repair jobs in 
 
    sctool repair control -c prod-cluster --parallel 1
 
-Run the following command to repair the number of token ranges equal to half of the number of the shards of the repair master node in each Scylla repair job.
+For clusters **not supporting row-level repair**.
+Run the following command to repair half of the shards on repair master node in parallel.
 
 .. code-block:: none
 
@@ -244,7 +247,8 @@ Run the following command to limit the number of parallel Scylla repair jobs in 
 
    sctool repair update -c prod-cluster repair/143d160f-e53c-4890-a9e7-149561376cfd --parallel 1
 
-Run the following command to repair the number of token ranges equal to half of the number of the shards of the repair master node in each Scylla repair job.
+For clusters **not supporting row-level repair**.
+Run the following command to repair half of the shards on repair master node in parallel.
 
 .. code-block:: none
 
