@@ -249,7 +249,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Create generator
 	var (
 		manager = newProgressManager(run, s.session)
-		g       = newGenerator(s.config.GracefulShutdownTimeout, manager, target.FailFast, s.logger)
+		g       = newGenerator(s.config.GracefulStopTimeout, manager, target.FailFast, s.logger)
 		wc      int
 	)
 	for _, u := range target.Units {

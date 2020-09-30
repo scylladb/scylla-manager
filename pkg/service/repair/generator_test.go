@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	gracefulShutdownTimeout = 5 * time.Second
+	gracefulStopTimeout = 5 * time.Second
 )
 
 type fakeWorker struct {
@@ -144,7 +144,7 @@ func TestGenerator(t *testing.T) {
 			Parallel:  1,
 		}
 		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-		g := newGenerator(gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
+		g := newGenerator(gracefulStopTimeout, newNopProgressManager(), false, log.NewDevelopment())
 
 		var allRanges []*tableTokenRange
 		for _, u := range units {
@@ -206,7 +206,7 @@ func TestGenerator(t *testing.T) {
 			Intensity: 0.001,
 		}
 		b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-		g := newGenerator(gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
+		g := newGenerator(gracefulStopTimeout, newNopProgressManager(), false, log.NewDevelopment())
 
 		var allRanges []*tableTokenRange
 		for _, u := range units {
@@ -651,7 +651,7 @@ func makeGenerator(ctx context.Context, target Target, units []Unit,
 	hostDC map[string]string, ranges []scyllaclient.TokenRange, hostPriority hostPriority, rangeLimits hostRangesLimit,
 	smallTables []keyspaceTableName) *generator {
 	b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
-	g := newGenerator(gracefulShutdownTimeout, newNopProgressManager(), false, log.NewDevelopment())
+	g := newGenerator(gracefulStopTimeout, newNopProgressManager(), false, log.NewDevelopment())
 	for _, u := range units {
 		g.Add(b.Build(u))
 	}

@@ -39,8 +39,8 @@ type jobResult struct {
 }
 
 type generator struct {
-	gracefulShutdownTimeout time.Duration
-	logger                  log.Logger
+	gracefulStopTimeout time.Duration
+	logger              log.Logger
 
 	replicas         map[uint64][]string
 	ranges           map[uint64][]*tableTokenRange
@@ -68,12 +68,12 @@ type generator struct {
 	failed  int
 }
 
-func newGenerator(gracefulShutdownTimeout time.Duration, manager progressManager, failFast bool, logger log.Logger) *generator {
+func newGenerator(gracefulStopTimeout time.Duration, manager progressManager, failFast bool, logger log.Logger) *generator {
 	g := &generator{
-		gracefulShutdownTimeout: gracefulShutdownTimeout,
-		progress:                manager,
-		failFast:                failFast,
-		logger:                  logger,
+		gracefulStopTimeout: gracefulStopTimeout,
+		progress:            manager,
+		failFast:            failFast,
+		logger:              logger,
 
 		replicas:      make(map[uint64][]string),
 		ranges:        make(map[uint64][]*tableTokenRange),
@@ -177,12 +177,12 @@ loop:
 		case <-stop:
 			break loop
 		case <-done:
-			g.logger.Info(ctx, "Graceful repair shutdown", "timeout", g.gracefulShutdownTimeout)
+			g.logger.Info(ctx, "Graceful repair shutdown", "timeout", g.gracefulStopTimeout)
 			// Stop workers by closing next channel
 			g.closeNext()
 
 			done = nil
-			time.AfterFunc(g.gracefulShutdownTimeout, func() {
+			time.AfterFunc(g.gracefulStopTimeout, func() {
 				close(stop)
 			})
 			err = ctx.Err()
