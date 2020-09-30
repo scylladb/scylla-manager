@@ -46,4 +46,4 @@ backup:
 repair:
   poll_interval: 500ms
   age_max: 12h
-  graceful_shutdown_timeout: 60s
+  graceful_stop_timeout: 60s

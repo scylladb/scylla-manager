@@ -180,7 +180,7 @@ Repair settings let you specify repair parameters.
    #
    # Specifies how long repair will wait until all ongoing repair requests finish
    # when repair task is stopped. After this time, task will be interrupted.
-   #  graceful_shutdown_timeout: 30s
+   #  graceful_stop_timeout: 30s
    #
    # Force usage of certain type of repair algorithm. Allowed values are row_level, legacy, and auto.
    # row_level means that Scylla Manager will use row level repair optimised algorithm.

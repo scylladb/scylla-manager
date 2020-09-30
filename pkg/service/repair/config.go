@@ -26,7 +26,7 @@ const (
 type Config struct {
 	PollInterval                    time.Duration `yaml:"poll_interval"`
 	AgeMax                          time.Duration `yaml:"age_max"`
-	GracefulShutdownTimeout         time.Duration `yaml:"graceful_shutdown_timeout"`
+	GracefulStopTimeout             time.Duration `yaml:"graceful_stop_timeout"`
 	ForceRepairType                 string        `yaml:"force_repair_type"`
 	Murmur3PartitionerIgnoreMSBBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
@@ -35,7 +35,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		PollInterval:                    50 * time.Millisecond,
-		GracefulShutdownTimeout:         30 * time.Second,
+		GracefulStopTimeout:             30 * time.Second,
 		ForceRepairType:                 TypeAuto,
 		Murmur3PartitionerIgnoreMSBBits: 12,
 	}
@@ -54,8 +54,8 @@ func (c *Config) Validate() error {
 	if c.AgeMax < 0 {
 		err = multierr.Append(err, errors.New("invalid age_max, must be >= 0"))
 	}
-	if c.GracefulShutdownTimeout <= 0 {
-		err = multierr.Append(err, errors.New("invalid graceful_shutdown_timeout, must be > 0"))
+	if c.GracefulStopTimeout <= 0 {
+		err = multierr.Append(err, errors.New("invalid graceful_stop_timeout, must be > 0"))
 	}
 	switch c.ForceRepairType {
 	case TypeAuto, TypeRowLevel, TypeLegacy:
