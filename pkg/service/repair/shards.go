@@ -8,7 +8,13 @@ import (
 	"github.com/scylladb/mermaid/pkg/dht"
 )
 
-func splitToShards(ttrs []*tableTokenRange, p *dht.Murmur3Partitioner) [][]*tableTokenRange {
+func splitToShardsAndValidate(ttrs []*tableTokenRange, p *dht.Murmur3Partitioner) ([][]*tableTokenRange, error) {
+	ttrs = fixRanges(ttrs)
+	shards := splitTokenRangesToShards(ttrs, p)
+	return shards, validateTokenRangesSplitToShard(ttrs, shards, p)
+}
+
+func splitTokenRangesToShards(ttrs []*tableTokenRange, p *dht.Murmur3Partitioner) [][]*tableTokenRange {
 	res := make([][]*tableTokenRange, p.ShardCount())
 
 	for _, ttr := range ttrs {
@@ -20,25 +26,16 @@ func splitToShards(ttrs []*tableTokenRange, p *dht.Murmur3Partitioner) [][]*tabl
 			prev := p.PrevShard(shard)
 			token := p.TokenForPrevShard(end, shard)
 
+			x := new(tableTokenRange)
+			*x = *ttr
 			if token > start {
-				res[shard] = append(res[shard], &tableTokenRange{
-					Keyspace:   ttr.Keyspace,
-					Table:      ttr.Table,
-					Pos:        ttr.Pos,
-					Replicas:   ttr.Replicas,
-					StartToken: token,
-					EndToken:   end,
-				})
+				x.StartToken = token
+				x.EndToken = end
 			} else {
-				res[shard] = append(res[shard], &tableTokenRange{
-					Keyspace:   ttr.Keyspace,
-					Table:      ttr.Table,
-					Pos:        ttr.Pos,
-					Replicas:   ttr.Replicas,
-					StartToken: start,
-					EndToken:   end,
-				})
+				x.StartToken = start
+				x.EndToken = end
 			}
+			res[shard] = append(res[shard], x)
 
 			end = token
 			shard = prev
@@ -48,8 +45,7 @@ func splitToShards(ttrs []*tableTokenRange, p *dht.Murmur3Partitioner) [][]*tabl
 	return res
 }
 
-// validateShards checks that the shard split of segments is sound.
-func validateShards(ttrs []*tableTokenRange, shards [][]*tableTokenRange, p *dht.Murmur3Partitioner) error {
+func validateTokenRangesSplitToShard(ttrs []*tableTokenRange, shards [][]*tableTokenRange, p *dht.Murmur3Partitioner) error {
 	startTokens := i64set.New()
 	endTokens := i64set.New()
 

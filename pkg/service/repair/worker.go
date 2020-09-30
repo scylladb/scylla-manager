@@ -161,9 +161,9 @@ func (w *worker) runLegacyRepair(ctx context.Context, ranges []*tableTokenRange,
 	}
 
 	// Split ranges to shards
-	shardRanges := splitToShards(ranges, p)
-	if err := validateShards(ranges, shardRanges, p); err != nil {
-		return err
+	shardRanges, err := splitToShardsAndValidate(ranges, p)
+	if err != nil {
+		return errors.Wrap(err, "split to shards")
 	}
 
 	return parallel.Run(len(shardRanges), limit, func(i int) error {
