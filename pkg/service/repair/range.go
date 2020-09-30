@@ -45,6 +45,36 @@ func replicaHash(replicas []string) uint64 {
 	return hash.Sum64()
 }
 
+// fixRanges ensures that start token < end token at all times.
+func fixRanges(ranges []*tableTokenRange) []*tableTokenRange {
+	var needsSplitting = 0
+	for _, tr := range ranges {
+		if tr.StartToken > tr.EndToken {
+			needsSplitting++
+		}
+	}
+	if needsSplitting == 0 {
+		return ranges
+	}
+
+	v := make([]*tableTokenRange, 0, len(ranges)+needsSplitting)
+	for _, tr := range ranges {
+		if tr.StartToken > tr.EndToken {
+			x := new(tableTokenRange)
+			y := new(tableTokenRange)
+
+			*x, *y = *tr, *tr
+			x.StartToken = dht.Murmur3MinToken
+			y.EndToken = dht.Murmur3MaxToken
+
+			v = append(v, x, y)
+		} else {
+			v = append(v, tr)
+		}
+	}
+	return v
+}
+
 // dumpRanges writes slice of tableTokenRange as a comma-separated list of pairs.
 func dumpRanges(ranges []*tableTokenRange) string {
 	var buf bytes.Buffer

@@ -27,9 +27,7 @@ func TestSplitSegmentsToShards(t *testing.T) {
 				EndToken:   9143747749498840635,
 			},
 		}
-		v := splitToShards(ttrs, p)
-
-		if err := validateShards(ttrs, v, p); err != nil {
+		if _, err := splitToShardsAndValidate(ttrs, p); err != nil {
 			t.Fatal(err)
 		}
 	}
