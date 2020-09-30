@@ -549,6 +549,7 @@ func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *s
 	// return nil partitioner which will  signal that task should continue
 	// as row-level repair.
 	if p != scyllaclient.Murmur3Partitioner || s.config.ForceRepairType == TypeRowLevel {
+		s.logger.Info(ctx, "Forcing repair type", "type", s.config.ForceRepairType)
 		for _, h := range hosts {
 			out[h] = nil
 		}
@@ -556,6 +557,7 @@ func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *s
 	}
 
 	if s.config.ForceRepairType == TypeLegacy {
+		s.logger.Info(ctx, "Forcing repair type", "type", s.config.ForceRepairType)
 		for _, h := range hosts {
 			p, err := s.partitioner(ctx, h, client)
 			if err != nil {

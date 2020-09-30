@@ -29,8 +29,9 @@ func (hp hostPriority) PickHost(replicas []string) string {
 }
 
 type job struct {
-	Host   string
-	Ranges []*tableTokenRange
+	Host          string
+	Ranges        []*tableTokenRange
+	ShardsPercent float64
 }
 
 type jobResult struct {
@@ -262,13 +263,14 @@ func (g *generator) fillNext(ctx context.Context) {
 		}
 
 		var (
-			host        = g.pickHost(hash)
-			rangesLimit = g.rangesLimit(host)
-			ranges      = g.pickRanges(hash, rangesLimit)
+			host                       = g.pickHost(hash)
+			rangesLimit, shardsPercent = g.rangesLimit(host)
+			ranges                     = g.pickRanges(hash, rangesLimit)
 
 			j = job{
-				Host:   host,
-				Ranges: ranges,
+				Host:          host,
+				Ranges:        ranges,
+				ShardsPercent: shardsPercent,
 			}
 		)
 
@@ -380,18 +382,17 @@ func (g *generator) deletedTable(keyspace, table string) bool {
 	return g.deletedTables.Has(keyspace + "." + table)
 }
 
-func (g *generator) rangesLimit(host string) int {
+func (g *generator) rangesLimit(host string) (ranges int, shardsPercent float64) {
 	i := g.intensityHandler.Intensity()
 
-	if i == maxIntensity {
-		return g.hostRangesLimits[host].Max
+	switch {
+	case i == maxIntensity:
+		return g.hostRangesLimits[host].Max, 0
+	case i < 1:
+		return g.hostRangesLimits[host].Default, i
+	default:
+		return int(i) * g.hostRangesLimits[host].Default, 0
 	}
-
-	v := int(i * float64(g.hostRangesLimits[host].Default))
-	if v == 0 {
-		v = 1
-	}
-	return v
 }
 
 func (g *generator) pickHost(hash uint64) string {
