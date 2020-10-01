@@ -4,8 +4,8 @@ on:
   push:
     branches:
     - master
-    tags:       
-    - '**'
+    - 'branch-**'
+
 jobs:
   release:
     name: Release docs
