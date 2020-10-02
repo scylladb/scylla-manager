@@ -37,30 +37,6 @@ func (pu *nopProgressManager) CheckRepaired(ttr *tableTokenRange) bool {
 	return false
 }
 
-func newUpsertProgressFunc(updates *[]RunProgress) func(ctx context.Context, p *RunProgress) error {
-	return func(ctx context.Context, p *RunProgress) error {
-		if updates != nil {
-			*updates = append(*updates, *p)
-		}
-		return nil
-	}
-}
-
-func newUpsertStateFunc(updates *[]RunState) func(ctx context.Context, p *RunState) error {
-	return func(ctx context.Context, p *RunState) error {
-		if updates != nil {
-			*updates = append(*updates, *p)
-		}
-		return nil
-	}
-}
-
-func newGetStateFunc(states []*RunState) func(ctx context.Context, run *Run) ([]*RunState, error) {
-	return func(ctx context.Context, run *Run) ([]*RunState, error) {
-		return states, nil
-	}
-}
-
 // Sorting transformer to compare RunProgress slices that can change order.
 var progTrans = cmp.Transformer("Sort", func(in []RunProgress) []RunProgress {
 	out := append([]RunProgress(nil), in...) // Copy input to avoid mutating it
