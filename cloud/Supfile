@@ -45,7 +45,7 @@ commands:
     run: sudo systemctl enable ${SERVICE}
 
   service status:
-    run: sudo systemctl status ${SERVICE}
+    run: sudo systemctl status ${SERVICE} -l
 
   logs:
     run: sudo journalctl --no-pager -f -l -u ${SERVICE} | cut -d ' ' -f 6-
