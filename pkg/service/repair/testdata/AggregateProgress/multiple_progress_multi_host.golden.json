@@ -5,6 +5,7 @@
   "error": 0,
   "started_at": "2019-01-01T00:00:00Z",
   "completed_at": "2019-01-01T00:02:00Z",
+  "duration_ms": 240000,
   "intensity": 666,
   "parallel": 6,
   "hosts": [
@@ -15,6 +16,7 @@
       "error": 0,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:02:00Z",
+      "duration_ms": 120000,
       "host": "h1",
       "tables": [{
         "percent_complete": 100,
@@ -23,6 +25,7 @@
         "error": 0,
         "started_at": "2019-01-01T00:00:00Z",
         "completed_at": "2019-01-01T00:01:00Z",
+        "duration_ms": 60000,
         "keyspace": "k1",
         "table": "t1"
       }, {
@@ -32,6 +35,7 @@
         "error": 0,
         "started_at": "2019-01-01T00:01:00Z",
         "completed_at": "2019-01-01T00:02:00Z",
+        "duration_ms": 60000,
         "keyspace": "k2",
         "table": "t1"
       }]
@@ -43,6 +47,7 @@
       "error": 0,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:02:00Z",
+      "duration_ms": 179000,
       "host": "h2",
       "tables": [
         {
@@ -50,8 +55,9 @@
           "token_ranges": 5,
           "success": 5,
           "error": 0,
-          "started_at": "2019-01-01T00:01:00Z",
+          "started_at": "2019-01-01T00:01:01Z",
           "completed_at": "2019-01-01T00:02:00Z",
+          "duration_ms": 59000,
           "keyspace": "k2",
           "table": "t1"
         },
@@ -62,6 +68,7 @@
         "error": 0,
         "started_at": "2019-01-01T00:00:00Z",
         "completed_at": "2019-01-01T00:02:00Z",
+        "duration_ms": 120000,
         "keyspace": "k3",
         "table": "t1"
       }]
@@ -75,6 +82,7 @@
       "error": 0,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:01:00Z",
+      "duration_ms": 60000,
       "keyspace": "k1",
       "table": "t1"
     }, {
@@ -84,6 +92,7 @@
       "error": 0,
       "started_at": "2019-01-01T00:01:00Z",
       "completed_at": "2019-01-01T00:02:00Z",
+      "duration_ms": 60000,
       "keyspace": "k2",
       "table": "t1"
     }, {
@@ -93,6 +102,7 @@
       "error": 0,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:02:00Z",
+      "duration_ms": 120000,
       "keyspace": "k3",
       "table": "t1"
     }

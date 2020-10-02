@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/mermaid/pkg/schema/table"
@@ -27,18 +28,21 @@ func TestProgressManagerIntegration(t *testing.T) {
 	}
 
 	opts := cmp.Options{
+		cmp.AllowUnexported(JobExecution{}),
 		UUIDComparer(),
-		NearTimeComparer(10 * time.Millisecond),
+		NearTimeComparer(5 * time.Millisecond),
+		intervalComparer(),
 	}
 
-	t.Run("start", func(t *testing.T) {
+	t.Run("progress update sequence (Init,OnJobStart,OnScyllaJobStart,OnScyllaJobEnd,OnJobResult)", func(t *testing.T) {
 		var (
 			session = CreateSession(t)
 		)
 
 		ctx := context.Background()
-		pu := newProgressManager(run, session)
-		if err := pu.Init(ctx, []*tableTokenRange{
+		pm := newProgressManager(run, session, log.NewDevelopment())
+		Print("When: run progress is initialized with incomplete values")
+		if err := pm.Init(ctx, []*tableTokenRange{
 			{
 				Keyspace:   "k1",
 				Table:      "t1",
@@ -46,102 +50,141 @@ func TestProgressManagerIntegration(t *testing.T) {
 				EndToken:   10,
 				Replicas:   []string{"h1", "h2"},
 			},
+			{
+				Keyspace:   "k1",
+				Table:      "t1",
+				StartToken: 11,
+				EndToken:   20,
+				Replicas:   []string{"h1", "h2"},
+			},
 		}); err != nil {
 			t.Fatal(err)
 		}
-		Print("When: initialized progress manager received OnStartJob")
-		if err := pu.OnStartJob(ctx, job{
+
+		Print("Then: progress rows are initialized with zero values")
+		goldenProgress := []RunProgress{
+			{
+				ClusterID:   run.ClusterID,
+				TaskID:      run.TaskID,
+				RunID:       run.ID,
+				Host:        "h1",
+				Keyspace:    "k1",
+				Table:       "t1",
+				TokenRanges: 2,
+				Success:     0,
+				Error:       0,
+			},
+			{
+				ClusterID:   run.ClusterID,
+				TaskID:      run.TaskID,
+				RunID:       run.ID,
+				Host:        "h2",
+				Keyspace:    "k1",
+				Table:       "t1",
+				TokenRanges: 2,
+				Success:     0,
+				Error:       0,
+			},
+		}
+		updatedProgress := getProgress(run, session)
+		if diff := cmp.Diff(goldenProgress, updatedProgress, opts); diff != "" {
+			t.Fatal(diff)
+		}
+
+		Print("When: OnJobStart called on progress manager")
+		jobID := JobIDTuple{
+			Master: "h1",
+			ID:     1,
+		}
+		j := job{
 			Host: "h1",
 			Ranges: []*tableTokenRange{
 				{
 					Keyspace:   "k1",
 					Table:      "t1",
+					Pos:        1,
 					StartToken: 0,
 					EndToken:   10,
 					Replicas:   []string{"h1", "h2"},
 				},
-			}}); err != nil {
+			},
+		}
+		start := timeutc.Now()
+		if err := pm.OnScyllaJobStart(ctx, j, jobID.ID); err != nil {
 			t.Fatal(err)
 		}
-		now := timeutc.Now()
-
-		Print("Then: progress is updated with startedAt timestamps")
-		startProgress := []RunProgress{
+		Print("Then: job execution is updated with interval start")
+		goldenJobs := []JobExecution{
 			{
-				ClusterID:   run.ClusterID,
-				TaskID:      run.TaskID,
-				RunID:       run.ID,
-				Host:        "h1",
-				Keyspace:    "k1",
-				Table:       "t1",
-				TokenRanges: 1,
-				Success:     0,
-				Error:       0,
-				StartedAt:   &now,
-				CompletedAt: nil,
+				interval:  interval{start, nil},
+				ClusterID: run.ClusterID,
+				TaskID:    run.TaskID,
+				RunID:     run.ID,
+				Keyspace:  "k1",
+				Table:     "t1",
+				Host:      "h1",
+				JobID:     jobID,
 			}, {
-				ClusterID:   run.ClusterID,
-				TaskID:      run.TaskID,
-				RunID:       run.ID,
-				Host:        "h2",
-				Keyspace:    "k1",
-				Table:       "t1",
-				TokenRanges: 1,
-				Success:     0,
-				Error:       0,
-				StartedAt:   &now,
-				CompletedAt: nil,
+				interval:  interval{start, nil},
+				ClusterID: run.ClusterID,
+				TaskID:    run.TaskID,
+				RunID:     run.ID,
+				Keyspace:  "k1",
+				Table:     "t1",
+				Host:      "h2",
+				JobID:     jobID,
 			},
 		}
 
-		updates := getProgress(run, session)
-		if diff := cmp.Diff(startProgress, updates, opts); diff != "" {
+		updatedJobs := getJobExecutions(run, session)
+		if diff := cmp.Diff(goldenJobs, updatedJobs, opts); diff != "" {
 			t.Fatal(diff)
 		}
-	})
 
-	t.Run("update", func(t *testing.T) {
-		var (
-			session = CreateSession(t)
-		)
-
-		ctx := context.Background()
-		pu := newProgressManager(run, session)
-		Print("When: run progress is initialized with incomplete values")
-		if err := pu.Init(ctx, []*tableTokenRange{
-			{
-				Keyspace:   "k1",
-				Table:      "t1",
-				StartToken: 0,
-				EndToken:   10,
-				Replicas:   []string{"h1", "h2"},
-			},
-		}); err != nil {
+		Print("When: OnJobEnd is called on progress manager")
+		end := timeutc.Now()
+		if err := pm.OnScyllaJobEnd(ctx, j, jobID.ID); err != nil {
 			t.Fatal(err)
 		}
-		Print("When: update is called upon progress manager")
-		if err := pu.Update(ctx, jobResult{
-			job: job{
-				Host: "h1",
-				Ranges: []*tableTokenRange{
-					{
-						Keyspace:   "k1",
-						Table:      "t1",
-						Pos:        1,
-						StartToken: 0,
-						EndToken:   10,
-						Replicas:   []string{"h1", "h2"},
-					},
-				},
+
+		Print("Then: job execution is updated with interval end")
+		goldenJobs = []JobExecution{
+			{
+				interval:  interval{start, &end},
+				ClusterID: run.ClusterID,
+				TaskID:    run.TaskID,
+				RunID:     run.ID,
+				Keyspace:  "k1",
+				Table:     "t1",
+				Host:      "h1",
+				JobID:     jobID,
+			}, {
+				interval:  interval{start, &end},
+				ClusterID: run.ClusterID,
+				TaskID:    run.TaskID,
+				RunID:     run.ID,
+				Keyspace:  "k1",
+				Table:     "t1",
+				Host:      "h2",
+				JobID:     jobID,
 			},
+		}
+
+		updatedJobs = getJobExecutions(run, session)
+		if diff := cmp.Diff(goldenJobs, updatedJobs, opts); diff != "" {
+			t.Fatal(diff)
+		}
+
+		Print("When: OnJobResult is called on progress manager")
+		if err := pm.OnJobResult(ctx, jobResult{
+			job: j,
 			Err: nil,
 		}); err != nil {
 			t.Fatal(err)
 		}
-		now := timeutc.Now()
 
-		Print("And: update progress is received with completed values")
-		updateProgress := []RunProgress{
+		Print("Then: progress is updated with success")
+		goldenProgress = []RunProgress{
 			{
 				ClusterID:   run.ClusterID,
 				TaskID:      run.TaskID,
@@ -149,11 +192,9 @@ func TestProgressManagerIntegration(t *testing.T) {
 				Host:        "h1",
 				Keyspace:    "k1",
 				Table:       "t1",
-				TokenRanges: 1,
+				TokenRanges: 2,
 				Success:     1,
 				Error:       0,
-				StartedAt:   nil,
-				CompletedAt: &now,
 			},
 			{
 				ClusterID:   run.ClusterID,
@@ -162,15 +203,18 @@ func TestProgressManagerIntegration(t *testing.T) {
 				Host:        "h2",
 				Keyspace:    "k1",
 				Table:       "t1",
-				TokenRanges: 1,
+				TokenRanges: 2,
 				Success:     1,
 				Error:       0,
-				StartedAt:   nil,
-				CompletedAt: &now,
 			},
 		}
+		updatedProgress = getProgress(run, session)
+		if diff := cmp.Diff(goldenProgress, updatedProgress, opts); diff != "" {
+			t.Fatal(diff)
+		}
+
 		Print("And: state is saved for completed range")
-		stateProgress := []*RunState{
+		goldenState := []*RunState{
 			{
 				ClusterID:  run.ClusterID,
 				TaskID:     run.TaskID,
@@ -181,16 +225,11 @@ func TestProgressManagerIntegration(t *testing.T) {
 				ErrorPos:   nil,
 			},
 		}
-		updates := getProgress(run, session)
-		states, err := pu.getState(run)
+		states, err := pm.getState(run)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		if diff := cmp.Diff(updateProgress, updates, opts); diff != "" {
-			t.Fatal(diff)
-		}
-		if diff := cmp.Diff(stateProgress, states, UUIDComparer()); diff != "" {
+		if diff := cmp.Diff(goldenState, states, UUIDComparer()); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -205,17 +244,17 @@ func TestProgressManagerIntegration(t *testing.T) {
 		ctx := context.Background()
 		run := *run
 		run.PrevID = uuid.NewTime()
-		pm := newProgressManager(&run, session)
+		pm := newProgressManager(&run, session, log.NewDevelopment())
 
 		Print("When: there is present state of success at position 1")
-		if err := pm.upsertState(ctx, &RunState{
+		if err := table.RepairRunState.InsertQuery(session).BindStruct(&RunState{
 			ClusterID:  run.ClusterID,
 			TaskID:     run.TaskID,
 			RunID:      run.PrevID,
 			Keyspace:   "k1",
 			Table:      "t1",
 			SuccessPos: []int{5},
-		}); err != nil {
+		}).ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 
@@ -245,8 +284,6 @@ func TestProgressManagerIntegration(t *testing.T) {
 				TokenRanges: 1,
 				Success:     1,
 				Error:       0,
-				StartedAt:   nil,
-				CompletedAt: nil,
 			},
 			{
 				ClusterID:   run.ClusterID,
@@ -258,8 +295,6 @@ func TestProgressManagerIntegration(t *testing.T) {
 				TokenRanges: 1,
 				Success:     1,
 				Error:       0,
-				StartedAt:   nil,
-				CompletedAt: nil,
 			},
 		}
 		resume := getProgress(&run, session)
@@ -282,4 +317,34 @@ func getProgress(run *Run, session gocqlx.Session) []RunProgress {
 	}
 
 	return rp
+}
+
+func getJobExecutions(run *Run, session gocqlx.Session) []JobExecution {
+	var jobs = make([]JobExecution, 0)
+
+	if err := table.RepairJobExecution.SelectQuery(session).BindMap(qb.M{
+		"cluster_id": run.ClusterID,
+		"task_id":    run.TaskID,
+		"run_id":     run.ID,
+	}).SelectRelease(&jobs); err != nil {
+		panic(err)
+	}
+
+	return jobs
+}
+
+func intervalComparer() cmp.Option {
+	return cmp.Comparer(func(a, b interval) bool {
+		endEqual := false
+		if a.End == nil || b.End == nil {
+			if a.End == b.End {
+				endEqual = true
+			} else {
+				return false
+			}
+		} else if a.End.Truncate(time.Millisecond).Equal((*b.End).Truncate(time.Millisecond)) {
+			endEqual = true
+		}
+		return a.Start.Truncate(time.Millisecond).Equal(b.Start.Truncate(time.Millisecond)) && endEqual
+	})
 }

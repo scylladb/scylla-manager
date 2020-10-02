@@ -5,6 +5,7 @@
   "error": 0,
   "started_at": null,
   "completed_at": null,
+  "duration_ms": 0,
   "hosts": null,
   "tables": null,
   "intensity": 666,

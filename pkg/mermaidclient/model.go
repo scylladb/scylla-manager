@@ -511,41 +511,21 @@ func (rp RepairProgress) addRepairTableProgress(d *table.Table) {
 		if t.TokenRanges > 0 {
 			p = FormatRepairProgress(t.TokenRanges, t.Success, t.Error)
 		}
-		startedAt := strfmt.DateTime{}
-		completedAt := strfmt.DateTime{}
-		if t.StartedAt != nil {
-			startedAt = *t.StartedAt
-			if t.CompletedAt != nil {
-				completedAt = *t.CompletedAt
-			} else {
-				completedAt = rp.Run.EndTime
-			}
-		}
 
-		d.AddRow(t.Keyspace, t.Table, p, FormatDuration(startedAt, completedAt))
+		d.AddRow(t.Keyspace, t.Table, p, FormatMsDuration(t.DurationMs))
 	}
 }
 
 func (rp RepairProgress) addRepairTableDetailedProgress(d *table.Table, t *models.TableRepairProgress) {
-	startedAt := strfmt.DateTime{}
-	completedAt := strfmt.DateTime{}
-	if t.StartedAt != nil {
-		startedAt = *t.StartedAt
-		if t.CompletedAt != nil {
-			completedAt = *t.CompletedAt
-		} else {
-			completedAt = rp.Run.EndTime
-		}
-	}
 	d.AddRow(t.Keyspace,
 		t.Table,
 		FormatRepairProgress(t.TokenRanges, t.Success, t.Error),
 		t.TokenRanges,
 		t.Success,
 		t.Error,
-		FormatTime(startedAt),
-		FormatTime(completedAt),
-		FormatDuration(startedAt, completedAt),
+		FormatTimePointer(t.StartedAt),
+		FormatTimePointer(t.CompletedAt),
+		FormatMsDuration(t.DurationMs),
 	)
 }
 

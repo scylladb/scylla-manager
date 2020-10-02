@@ -39,7 +39,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "repair",
 		Name:      "inflight_jobs",
-		Help:      "Number of jobs that are currently being processed",
+		Help:      "Number of Scylla jobs that are currently being processed",
 	}, []string{"cluster", "task"})
 )
 

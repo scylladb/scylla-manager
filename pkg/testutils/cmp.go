@@ -36,6 +36,9 @@ func NearTimeComparer(d time.Duration) cmp.Option {
 		if a != nil && b == nil {
 			return false
 		}
-		return b.Sub(*a) < d
+		if a.Before(*b) {
+			return b.Sub(*a) < d
+		}
+		return a.Sub(*b) < d
 	})
 }

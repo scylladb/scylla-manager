@@ -154,6 +154,9 @@
           "format": "date-time",
           "x-nullable": true
         },
+        "duration_ms":{
+          "type": "integer"
+        },
         "dcs": {
           "type": "array",
           "items": {
@@ -214,6 +217,9 @@
           "type": "string",
           "format": "date-time",
           "x-nullable": true
+        },
+        "duration_ms":{
+          "type": "integer"
         },
         "keyspace": {
           "type": "string"

@@ -267,7 +267,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Create generator
 	var (
-		manager = newProgressManager(run, s.session)
+		manager = newProgressManager(run, s.session, s.logger)
 		g       = newGenerator(s.config.GracefulStopTimeout, manager, target.FailFast, s.logger)
 		wc      int
 	)
