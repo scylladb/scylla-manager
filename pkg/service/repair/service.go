@@ -456,7 +456,7 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 
 		v := rangesLimit{
 			Default: int(shards),
-			Max:     s.maxRepairRangesInParallel(totalMemory),
+			Max:     s.maxRepairRangesInParallel(shards, totalMemory),
 		}
 		s.logger.Info(ctx, "Host repair intensity limit", "host", h, "limit", v)
 
@@ -470,8 +470,14 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 	return out, err
 }
 
-func (s *Service) maxRepairRangesInParallel(totalMemory int64) int {
-	return int(float64(totalMemory) * 0.1 / (32 * 1024 * 1024))
+func (s *Service) maxRepairRangesInParallel(shards uint, totalMemory int64) int {
+	const MiB = 1024 * 1024
+	memoryPerShard := totalMemory / int64(shards)
+	max := int(0.1 * float64(memoryPerShard) / (32 * MiB))
+	if max == 0 {
+		max = 1
+	}
+	return max
 }
 
 func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, wc int, intensity float64, parallel int) (ih *intensityHandler, cleanup func()) {
