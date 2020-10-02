@@ -26,6 +26,9 @@ type RepairProgress struct {
 	// dcs
 	Dcs []string `json:"dcs"`
 
+	// duration ms
+	DurationMs int64 `json:"duration_ms,omitempty"`
+
 	// error
 	Error int64 `json:"error,omitempty"`
 

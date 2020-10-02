@@ -21,6 +21,9 @@ type TableRepairProgress struct {
 	// Format: date-time
 	CompletedAt *strfmt.DateTime `json:"completed_at,omitempty"`
 
+	// duration ms
+	DurationMs int64 `json:"duration_ms,omitempty"`
+
 	// error
 	Error int64 `json:"error,omitempty"`
 

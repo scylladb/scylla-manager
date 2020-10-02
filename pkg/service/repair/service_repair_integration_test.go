@@ -1054,8 +1054,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 				},
 			},
 			DC:                  []string{"dc1", "dc2"},
-			Intensity:           0,
-			Parallel:            1,
+			Intensity:           1,
 			SmallTableThreshold: repairAllSmallTableThreshold,
 		}
 
@@ -1075,7 +1074,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.hrt.SetInterceptor(nil)
 
 		Print("Then: repair is done")
-		h.assertDone(shortWait)
+		h.assertDone(longWait)
 	})
 
 	t.Run("kill repairs on task failure", func(t *testing.T) {

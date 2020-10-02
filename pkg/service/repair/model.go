@@ -3,11 +3,17 @@
 package repair
 
 import (
+	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/iset"
 	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/mermaid/pkg/util/timeutc"
 	"github.com/scylladb/mermaid/pkg/util/uuid"
 )
 
@@ -61,6 +67,152 @@ type Run struct {
 	clusterName string
 }
 
+type interval struct {
+	Start time.Time
+	End   *time.Time
+}
+
+type intervalSlice []interval
+
+func (in intervalSlice) Len() int      { return len(in) }
+func (in intervalSlice) Swap(i, j int) { in[i], in[j] = in[j], in[i] }
+func (in intervalSlice) Less(i, j int) bool {
+	return in[i].Start.Before(in[j].Start)
+}
+
+func (in intervalSlice) MinStart() *time.Time {
+	if len(in) == 0 {
+		return nil
+	}
+	return &in[0].Start
+}
+
+func (in intervalSlice) MaxEnd() *time.Time {
+	if len(in) == 0 {
+		return nil
+	}
+	var end time.Time
+	for i := range in {
+		if in[i].End == nil {
+			return nil
+		}
+		if in[i].End.After(end) {
+			end = *in[i].End
+		}
+	}
+
+	return &end
+}
+
+// Duration calculates total duration for all intervals while ignoring
+// overlapped intervals and gaps between them.
+// If maxEnd is provided it will be used as ending time for incomplete
+// intervals.
+// If maxEnd is not provided timeutc.Now will be used.
+// intervalSlice must be sorted by Start ASC.
+func (in intervalSlice) Duration(maxEnd *time.Time) time.Duration {
+	if len(in) == 0 {
+		return 0
+	}
+
+	var (
+		total time.Duration
+	)
+
+	if maxEnd == nil {
+		n := timeutc.Now()
+		maxEnd = &n
+	}
+
+	// Loop through intervals sorted by start time while selecting a pivot
+	// which will consume all the overlapping intervals.
+	// Pivot interval is enlarged if next encountered interval is longer, or
+	// it is included in total duration if the next encountered interval is
+	// starting later than the pivot interval ends which signals gap in
+	// execution.
+	var (
+		pivot = in[0]
+	)
+	for i := 1; i <= len(in); i++ {
+		if pivot.End == nil {
+			pivot.End = maxEnd
+		}
+		if maxEnd.Equal(*pivot.End) || i == len(in) {
+			total += pivot.End.Sub(pivot.Start)
+			break
+		}
+		cur := in[i]
+		if cur.End == nil {
+			cur.End = maxEnd
+		}
+		if pivot.End.Before(cur.Start) {
+			total += pivot.End.Sub(pivot.Start)
+			pivot = cur
+			continue
+		}
+		if pivot.End.Before(*cur.End) {
+			pivot.End = cur.End
+		}
+	}
+
+	return total
+}
+
+// JobIDTuple combines node and id of the job that was executed on that node.
+type JobIDTuple struct {
+	Master string
+	ID     int32
+}
+
+// MarshalCQL implements gocql.Marshaler.
+func (id JobIDTuple) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
+	switch info.Type() {
+	case gocql.TypeVarchar, gocql.TypeText:
+	default:
+		return nil, errors.Errorf("unsupported type %q", info.Type())
+	}
+
+	return []byte(fmt.Sprintf("%s,%d", id.Master, id.ID)), nil
+}
+
+// UnmarshalCQL implements gocql.Unmarshaler.
+func (id *JobIDTuple) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+	switch info.Type() {
+	case gocql.TypeVarchar, gocql.TypeText:
+	default:
+		return errors.Errorf("unsupported type %q", info.Type())
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	vals := strings.Split(string(data), ",")
+	if len(vals) != 2 {
+		return errors.Errorf("invalid job_id format: %q", data)
+	}
+	i, err := strconv.Atoi(vals[1])
+	if err != nil {
+		return err
+	}
+
+	*id = JobIDTuple{Master: vals[0], ID: int32(i)}
+	return nil
+}
+
+// JobExecution tracks job execution info like start and end time.
+type JobExecution struct {
+	interval
+
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
+	Keyspace  string `db:"keyspace_name"`
+	Table     string `db:"table_name"`
+	Host      string
+	JobID     JobIDTuple
+}
+
 // RunProgress specifies repair progress of a run for a table.
 type RunProgress struct {
 	ClusterID uuid.UUID
@@ -73,8 +225,6 @@ type RunProgress struct {
 	TokenRanges int64
 	Success     int64
 	Error       int64
-	StartedAt   *time.Time
-	CompletedAt *time.Time
 }
 
 // RunState represents state of the repair.
@@ -119,6 +269,7 @@ type progress struct {
 	Error       int64      `json:"error"`
 	StartedAt   *time.Time `json:"started_at"`
 	CompletedAt *time.Time `json:"completed_at"`
+	Duration    int64      `json:"duration_ms"`
 }
 
 // ProgressPercentage returns repair progress percentage based on token ranges.

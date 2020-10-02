@@ -209,6 +209,15 @@ func FormatTime(t strfmt.DateTime) string {
 	return time.Time(t).Local().Format(rfc822WithSec)
 }
 
+// FormatTimePointer see FormatTime
+func FormatTimePointer(t *strfmt.DateTime) string {
+	var tf strfmt.DateTime
+	if t != nil {
+		tf = *t
+	}
+	return FormatTime(tf)
+}
+
 // FormatDuration creates and formats the duration between
 // the supplied DateTime values.
 // If t1 is zero it will default to current time.
@@ -224,6 +233,12 @@ func FormatDuration(t0, t1 strfmt.DateTime) string {
 	}
 
 	return fmt.Sprint(d.Truncate(time.Second))
+}
+
+// FormatMsDuration returns string representation of duration as number of
+// milliseconds.
+func FormatMsDuration(d int64) string {
+	return fmt.Sprint((time.Duration(d) * time.Millisecond).Truncate(time.Second))
 }
 
 func isZero(t strfmt.DateTime) bool {

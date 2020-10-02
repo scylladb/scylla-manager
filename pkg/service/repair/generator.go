@@ -213,10 +213,6 @@ func (g *generator) processResult(ctx context.Context, r jobResult) {
 		r.Err = nil
 	}
 
-	if err := g.progress.Update(ctx, r); err != nil {
-		g.logger.Error(ctx, "Failed to update progress", "error", err)
-	}
-
 	if r.Err != nil {
 		g.failed += len(r.Ranges)
 		g.logger.Info(ctx, "Repair failed", "error", r.Err)
@@ -282,7 +278,11 @@ func (g *generator) fillNext(ctx context.Context) {
 				"hosts", ranges[0].Replicas,
 				"ranges", len(ranges),
 			)
-			g.processResult(ctx, jobResult{job: j})
+			r := jobResult{job: j}
+			g.processResult(ctx, r)
+			if err := g.progress.OnJobResult(ctx, r); err != nil {
+				g.logger.Error(ctx, "Updating deleted table progress", "host", j.Host, "error", err)
+			}
 			continue
 		}
 
