@@ -22,7 +22,7 @@ Confirm all ports required for Scylla Manager and Scylla Manager Agent are open.
 * 9142 SSL CQL
 * 10001 Scylla Agent REST API
 
-: _add-cluster:
+.. _add-cluster:
 
 Add a Cluster
 =============
