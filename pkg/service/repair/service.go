@@ -345,8 +345,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
-	workerCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
 
 	// Start updating progress metrics.
 	stop := s.watchProgressMetrics(ctx, run.ClusterID, run.TaskID, run.ID)
@@ -361,6 +361,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		})
 	}
 	eg.Go(func() error {
+		defer workerCancel()
 		return g.Run(ctx)
 	})
 
@@ -699,20 +700,26 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // GetProgress returns run progress for all shards on all the hosts. If nothing
 // was found mermaid.ErrNotFound is returned.
 func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
-	s.logger.Debug(ctx, "GetProgress",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-		"run_id", runID,
-	)
+	var p Progress
+	defer func() {
+		s.logger.Debug(ctx, "GetProgress",
+			"cluster_id", clusterID,
+			"task_id", taskID,
+			"run_id", runID,
+			"tokens", p.TokenRanges,
+			"success", p.Success,
+			"error", p.Error,
+		)
+	}()
 
 	run, err := s.GetRun(ctx, clusterID, taskID, runID)
 	if err != nil {
-		return Progress{}, err
+		return p, err
 	}
 
-	p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
+	p, err = aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
 	if err != nil {
-		return Progress{}, err
+		return p, err
 	}
 	p.DC = run.DC
 

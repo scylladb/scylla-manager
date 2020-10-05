@@ -75,9 +75,13 @@ func (w *worker) Run(ctx context.Context) error {
 				return nil
 			}
 
-			w.out <- jobResult{
+			select {
+			case w.out <- jobResult{
 				job: job,
 				Err: w.runJob(ctx, job),
+			}:
+			case <-ctx.Done():
+				return ctx.Err()
 			}
 		}
 	}
