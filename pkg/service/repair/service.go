@@ -361,7 +361,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		})
 	}
 	eg.Go(func() error {
-		defer workerCancel()
+		defer func() {
+			if ctx.Err() != nil {
+				workerCancel()
+			}
+		}()
 		return g.Run(ctx)
 	})
 
