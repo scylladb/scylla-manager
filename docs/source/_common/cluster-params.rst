@@ -18,7 +18,7 @@ This alias name can be used with all commands that accept ``-c, --cluster`` para
 ``--auth-token <token>``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Specifies the `auththentication token <../install-agent/#generate-an-authentication-token>`_ you identified in ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
+Specifies the `authentication token <../install-agent/#generate-an-authentication-token>`_ you identified in ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
 
 =====
 
