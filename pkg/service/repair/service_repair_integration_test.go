@@ -262,6 +262,18 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 	})
 }
 
+func assertReplicasRepairInterceptor(t *testing.T, host string) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodPost {
+			hosts := req.URL.Query().Get("hosts")
+			if !strings.Contains(hosts, host) {
+				t.Errorf("Replicas %s missing %s", hosts, host)
+			}
+		}
+		return nil, nil
+	})
+}
+
 func countInterceptor(counter *int32, path, method string, next http.RoundTripper) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, path) && (method == "" || req.Method == method) {
@@ -562,6 +574,25 @@ func TestServiceRepairIntegration(t *testing.T) {
 				t.Error(h.Host)
 			}
 		}
+	})
+
+	t.Run("repair host", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		units := singleUnit()
+		units.Host = node13
+		h.hrt.SetInterceptor(assertReplicasRepairInterceptor(t, node13))
+
+		Print("When: run repair")
+		h.runRepair(ctx, units)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: repair is done")
+		h.assertDone(2 * longWait)
 	})
 
 	t.Run("repair dc local keyspace mismatch", func(t *testing.T) {

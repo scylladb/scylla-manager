@@ -88,6 +88,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy basic properties
 	t := Target{
+		Host:                p.Host,
 		FailFast:            p.FailFast,
 		Continue:            p.Continue,
 		Intensity:           p.Intensity,
@@ -109,6 +110,13 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Filter DCs
 	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
 		return t, err
+	}
+
+	// Ensure Host belongs to DCs
+	if t.Host != "" {
+		if !s.hostBelongsToDCs(t.Host, t.DC, dcMap) {
+			return t, service.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
+		}
 	}
 
 	// Filter keyspaces
@@ -184,6 +192,17 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	return t, nil
+}
+
+func (s *Service) hostBelongsToDCs(host string, dcs []string, dcMap map[string][]string) bool {
+	for _, dc := range dcs {
+		for _, h := range dcMap[dc] {
+			if host == h {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (s *Service) singleNodeCluster(dcMap map[string][]string) bool {
