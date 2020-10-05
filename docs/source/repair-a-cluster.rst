@@ -82,18 +82,18 @@ For Example, you have the following DCs in your cluster: dc1, dc2, dc3
 Repair one specific DC
 ......................
 
-In this example you repair the only dc1 every 2 days.
+In this example you repair the only dc1 every 5 days.
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster --dc 'dc1' -L 's3:dc1-repairs' -i 2d
+   sctool repair -c prod-cluster -i 5d --dc 'dc1'
 
 Repair all DCs except for those specified
 .........................................
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster -i 30d --dc '*,!dc2' -L 's3:my-repairs'
+   sctool repair -c prod-cluster -i 5d --dc '*,!dc2'
 
 Repair a specific keyspace or table
 ...................................
@@ -103,7 +103,16 @@ You can specify more than one keyspace/table or use glob pattern to match multip
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster -i 30d -K 'auth_service.*,!auth_service.lru_cache' --dc 'dc1' -L 's3:dc1-repairs'
+   sctool repair -c prod-cluster -K 'auth_service.*,!auth_service.lru_cache' --dc 'dc1'
+
+Repair a specific node
+......................
+
+In this example you repair only token ranges replicated by the node with IP ``34.203.122.52``.
+
+.. code-block:: none
+
+   sctool repair -c prod-cluster --host 34.203.122.52
 
 Create an ad-hoc repair
 =======================

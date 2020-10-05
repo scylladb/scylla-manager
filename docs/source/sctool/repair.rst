@@ -32,7 +32,7 @@ The repair command allows you to schedule or run ad-hoc cluster repair.
 .. code-block:: none
 
    sctool repair --cluster <id|name> [--dc <list of glob patterns>] [--dry-run]
-   [--fail-fast] [--interval <time between task runs>]
+   [--fail-fast] [--interval <time between task runs>] [--host <node IP>]
    [--intensity <float>] [--keyspace <list of glob patterns>] [--parallel <integer>]
    [--start-date <now+duration|RFC3339>]
    [global flags]
@@ -143,6 +143,15 @@ The following command will run a repair on all keyspaces **except** for test_key
 Stops the repair process on the first error.
 
 **Default:** False
+
+=====
+
+``--host <node IP>``
+^^^^^^^^^^^^^^^^^^^^
+
+Address of a node to repair, you can use either an IPv4 or IPv6 address.
+Specifying the host flag limits repair to token ranges replicated by a given node.
+It can be used in conjunction with dc flag, in such a case the node must belong to the specified datacenters.
 
 =====
 
@@ -263,8 +272,8 @@ The repair begins on September 15, 2018 at 7:00 PM (JST, for example) and runs e
 
    sctool repair -c prod-cluster --dc 'asia-*' -s 2018-09-15T19:00:05-07:00 --interval 7d
 
-Repair selected keyspaces/tables weekly
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Repair a specific keyspace or table weekly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using glob patterns gives you additional flexibility in selecting both keyspaces and tables.
 This example repairs all tables in the *orders* keyspace starting with *2018_12_* prefix.
@@ -273,6 +282,20 @@ The repair is scheduled to run on December 4, 2018 at 8:00 AM and will run after
 .. code-block:: none
 
    sctool repair -c prod-cluster -K 'orders.2018_12_' -s 2018-12-04T08:00:05-07:00 --interval 7d
+
+Repair a specific node
+^^^^^^^^^^^^^^^^^^^^^^
+
+You can limit scope of repair to token ranges replicated by a specific node by specifying ``--host`` flag.
+This is equivalent to running ``nodetool repair -full`` on that node.
+If you want to recreate a node in a multi DC cluster, you can repair with local datacenter only.
+To do that you must specify the ``--dc`` flag pointing to the datacenter where the node belongs.
+
+This example, repairs node with IP ``34.203.122.52`` that belongs to datacenter named ``eu-west`` within that datacenter.
+
+.. code-block:: none
+
+   sctool repair -c prod-cluster --host 34.203.122.52 --dc eu-west
 
 repair control
 ==============

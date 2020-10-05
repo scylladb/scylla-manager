@@ -64,17 +64,17 @@ func TestTableTokenRangeBuilder(t *testing.T) {
 		{
 			StartToken: 1,
 			EndToken:   2,
-			Replicas:   []string{"b", "a", "c", "d", "f", "e"},
+			Replicas:   []string{"b", "a", "f", "e"},
 		},
 		{
 			StartToken: 3,
 			EndToken:   4,
-			Replicas:   []string{"f", "c", "a", "b", "d", "e"},
+			Replicas:   []string{"f", "c", "a", "d"},
 		},
 		{
 			StartToken: 5,
 			EndToken:   6,
-			Replicas:   []string{"c", "a", "b", "f", "d", "e"},
+			Replicas:   []string{"c", "b", "d", "e"},
 		},
 	}
 
@@ -91,15 +91,32 @@ func TestTableTokenRangeBuilder(t *testing.T) {
 			Golden: []*tableTokenRange{
 				{
 					Keyspace: "kn", Table: "tn", Pos: 0, StartToken: 1, EndToken: 2,
-					Replicas: []string{"b", "a", "c", "d", "f", "e"},
+					Replicas: []string{"b", "a", "f", "e"},
 				},
 				{
 					Keyspace: "kn", Table: "tn", Pos: 1, StartToken: 3, EndToken: 4,
-					Replicas: []string{"f", "c", "a", "b", "d", "e"},
+					Replicas: []string{"f", "c", "a", "d"},
 				},
 				{
 					Keyspace: "kn", Table: "tn", Pos: 2, StartToken: 5, EndToken: 6,
-					Replicas: []string{"c", "a", "b", "f", "d", "e"},
+					Replicas: []string{"c", "b", "d", "e"},
+				},
+			},
+		},
+		{
+			Name: "Host=a",
+			Target: Target{
+				DC:   []string{"dc1", "dc2"},
+				Host: "a",
+			},
+			Golden: []*tableTokenRange{
+				{
+					Keyspace: "kn", Table: "tn", Pos: 0, StartToken: 1, EndToken: 2,
+					Replicas: []string{"b", "a", "f", "e"},
+				},
+				{
+					Keyspace: "kn", Table: "tn", Pos: 1, StartToken: 3, EndToken: 4,
+					Replicas: []string{"f", "c", "a", "d"},
 				},
 			},
 		},
@@ -111,15 +128,15 @@ func TestTableTokenRangeBuilder(t *testing.T) {
 			Golden: []*tableTokenRange{
 				{
 					Keyspace: "kn", Table: "tn", Pos: 0, StartToken: 1, EndToken: 2,
-					Replicas: []string{"b", "a", "c"},
+					Replicas: []string{"b", "a"},
 				},
 				{
 					Keyspace: "kn", Table: "tn", Pos: 1, StartToken: 3, EndToken: 4,
-					Replicas: []string{"c", "a", "b"},
+					Replicas: []string{"c", "a"},
 				},
 				{
 					Keyspace: "kn", Table: "tn", Pos: 2, StartToken: 5, EndToken: 6,
-					Replicas: []string{"c", "a", "b"},
+					Replicas: []string{"c", "b"},
 				},
 			},
 		},

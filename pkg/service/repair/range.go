@@ -117,9 +117,22 @@ func newTableTokenRangeBuilder(target Target, hostDC map[string]string) *tableTo
 
 func (b *tableTokenRangeBuilder) Add(ranges []scyllaclient.TokenRange) *tableTokenRangeBuilder {
 	for _, tr := range ranges {
-		b.add(tr)
+		if b.shouldAdd(tr) {
+			b.add(tr)
+		}
 	}
 	return b
+}
+
+func (b *tableTokenRangeBuilder) shouldAdd(tr scyllaclient.TokenRange) bool {
+	if b.target.Host == "" {
+		return true
+	}
+	return b.isReplica(b.target.Host, tr.Replicas)
+}
+
+func (b *tableTokenRangeBuilder) isReplica(host string, replicas []string) bool {
+	return strset.New(replicas...).Has(host)
 }
 
 func (b *tableTokenRangeBuilder) add(tr scyllaclient.TokenRange) {

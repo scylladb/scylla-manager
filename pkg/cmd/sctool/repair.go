@@ -69,9 +69,12 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 
 	t.Properties = props
 
-	dryRun, err := cmd.Flags().GetBool("dry-run")
-	if err != nil {
-		return err
+	if f := cmd.Flag("host"); f.Changed {
+		host, err := cmd.Flags().GetString("host")
+		if err != nil {
+			return err
+		}
+		props["host"] = host
 	}
 
 	if f := cmd.Flag("intensity"); f.Changed {
@@ -102,6 +105,11 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 		}
 
 		props["small_table_threshold"] = threshold
+	}
+
+	dryRun, err := cmd.Flags().GetBool("dry-run")
+	if err != nil {
+		return err
 	}
 
 	if dryRun {
@@ -149,12 +157,13 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.StringSliceP("keyspace", "K", nil,
 		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from repair")
 	fs.StringSlice("dc", nil, "a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*', used to specify the DCs to include or exclude from repair")
-	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
+	fs.Bool("fail-fast", false, "stop repair on first error")
+	fs.String("host", "", "host to repair, by default all hosts are repaired")
 	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
 	fs.Var(&IntensityFlag{Value: 1}, "intensity", "how many token ranges (per shard) to repair in a single Scylla repair job, see the command description for details")
-	fs.Int64("parallel", 0, "limit of parallel repair jobs, full parallelism by default, see the command description for details")
 	fs.String("small-table-threshold", "1GiB", "enable small table optimization for tables of size lower than given threshold. Supported units [B, MiB, GiB, TiB]")
+	fs.Int64("parallel", 0, "limit of parallel repair jobs, full parallelism by default, see the command description for details")
 	return fs
 }
 

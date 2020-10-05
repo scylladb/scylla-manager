@@ -18,6 +18,7 @@ type Unit = ksfilter.Unit
 type Target struct {
 	Units               []Unit   `json:"units"`
 	DC                  []string `json:"dc"`
+	Host                string   `json:"host,omitempty"`
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
 	Intensity           float64  `json:"intensity"`
@@ -29,6 +30,7 @@ type Target struct {
 type taskProperties struct {
 	Keyspace            []string `json:"keyspace"`
 	DC                  []string `json:"dc"`
+	Host                string   `json:"host"`
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
 	Intensity           float64  `json:"intensity"`
