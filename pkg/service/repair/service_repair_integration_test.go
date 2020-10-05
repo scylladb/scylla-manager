@@ -640,11 +640,39 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		u := multipleUnits()
+		u.SmallTableThreshold = repairAllSmallTableThreshold
 		Print("When: run repair")
-		h.runRepair(ctx, singleUnit())
+		h.runRepair(ctx, u)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
+		h.assertProgress(node11, 5, longWait)
+
+		Print("When: repair is stopped")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+	})
+
+	t.Run("repair stop when workers are busy", func(t *testing.T) {
+		c := defaultConfig()
+		c.GracefulStopTimeout = time.Second
+		h := newRepairTestHelper(t, session, c)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		u := multipleUnits()
+		u.SmallTableThreshold = repairAllSmallTableThreshold
+		Print("When: run repair")
+		h.runRepair(ctx, u)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+		h.assertProgress(node11, 5, longWait)
+		h.hrt.SetInterceptor(holdRepairInterceptor())
 
 		Print("When: repair is stopped")
 		cancel()
