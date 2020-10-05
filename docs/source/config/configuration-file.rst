@@ -1,5 +1,5 @@
 ==================
-Configuration file
+Configuration File
 ==================
 
 .. contents::

@@ -15,12 +15,14 @@ The repair commands allow you to: create and update a repair (ad-hoc or schedule
 
    * - Command
      - Usage
-   * - `repair`_
+   * - :ref:`sctool-repair`
      - Schedule a repair (ad-hoc or scheduled).
    * - `repair control`_
      - Change parameters while a repair is running.
    * - `repair update`_
      - Modify properties of the existing repair task.
+
+.. _sctool-repair:
 
 repair
 ======

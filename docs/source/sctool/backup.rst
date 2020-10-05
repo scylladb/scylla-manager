@@ -17,7 +17,7 @@ You cannot initiate a backup without a cluster. Make sure you add a cluster (:re
 
    * - Command
      - Usage
-   * - `backup`_
+   * - :ref:`sctool-backup`
      - Schedule a backup (ad-hoc or scheduled).
    * - `backup update`_
      - Modify properties of the existing backup task.
@@ -27,6 +27,8 @@ You cannot initiate a backup without a cluster. Make sure you add a cluster (:re
      - List backups of a given cluster.
    * - `backup delete`_
      - Deletes one of the available snapshots.
+
+.. _sctool-backup:
 
 backup
 ======

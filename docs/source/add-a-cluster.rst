@@ -1,6 +1,6 @@
-=========================================
-Add a cluster or a node to Scylla Manager
-=========================================
+=============
+Add a Cluster
+=============
 
 .. contents::
    :depth: 2
@@ -22,6 +22,7 @@ Confirm all ports required for Scylla Manager and Scylla Manager Agent are open.
 * 9142 SSL CQL
 * 10001 Scylla Agent REST API
 
+: _add-cluster:
 
 Add a Cluster
 =============
@@ -108,7 +109,7 @@ Connect Managed Cluster to Scylla Monitoring
 
 Connecting your cluster to Scylla Monitoring allows you to see metrics about your cluster and Scylla Manager all within Scylla Monitoring. 
 
-To connect your cluster to Scylla Monitoring it is **required** to use the same cluster name_ as you used when you created the cluster. See `Add a Cluster`_.
+To connect your cluster to Scylla Monitoring it is **required** to use the same cluster name_ as you used when you created the cluster. See :ref:`add-cluster`.
 
 **Procedure**
 
@@ -123,7 +124,7 @@ Although Scylla Manager is aware of all topology changes made within every clust
 
 **Before You Begin**
 
-* Confirm you have a managed cluster running under Scylla Manager. If you do not have a managed cluster, see `Add a cluster`_.
+* Confirm you have a managed cluster running under Scylla Manager. If you do not have a managed cluster, see :ref:`add-cluster`.
 * Confirm the `node <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/add_node_to_cluster/#procedure>`_ or `Datacenter </operating-scylla/procedures/cluster-management/add_dc_to_existing_dc/#procedure>`_ is added to the Scylla Cluster.
 
 **Procedure**

@@ -1,6 +1,6 @@
-======
-Repair
-======
+================
+Repair a Cluster
+================
 
 Repair is important to make sure that data across the nodes is consistent.
 This is the last resort of defence with an eventually consistent database.
