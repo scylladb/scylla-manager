@@ -82,7 +82,7 @@ For Example, you have the following DCs in your cluster: dc1, dc2, dc3
 Repair one specific DC
 ......................
 
-In this example you repair the only dc1 every 5 days.
+In this example, only dc1 is repaired. The repair repeats every 5 days.
 
 .. code-block:: none
 
@@ -108,7 +108,7 @@ You can specify more than one keyspace/table or use glob pattern to match multip
 Repair a specific node
 ......................
 
-In this example you repair only token ranges replicated by the node with IP ``34.203.122.52``.
+In this example, you repair only token ranges replicated by the node with IP ``34.203.122.52``.
 
 .. code-block:: none
 
