@@ -409,18 +409,24 @@ func (rp RepairProgress) Render(w io.Writer) error {
 			if rp.hideHost(h.Host) {
 				continue
 			}
+
 			fmt.Fprintf(w, "\nHost: %s\n", h.Host)
 			d := table.New()
 			d.AddRow("Keyspace", "Table", "Progress", "Token Ranges", "Success", "Error", "Started at", "Completed at", "Duration")
 			d.AddSeparator()
 			ks := ""
 			for _, t := range h.Tables {
+				if rp.hideKeyspace(t.Keyspace) {
+					continue
+				}
+
 				if ks == "" {
 					ks = t.Keyspace
 				} else if ks != t.Keyspace {
 					ks = t.Keyspace
 					d.AddSeparator()
 				}
+
 				rp.addRepairTableDetailedProgress(d, t)
 			}
 			d.SetColumnAlignment(termtables.AlignRight, 2, 3, 4, 5, 6, 7, 8)
@@ -520,9 +526,6 @@ func (rp RepairProgress) addRepairTableProgress(d *table.Table) {
 }
 
 func (rp RepairProgress) addRepairTableDetailedProgress(d *table.Table, t *models.TableRepairProgress) {
-	if rp.hideKeyspace(t.Keyspace) {
-		return
-	}
 	startedAt := strfmt.DateTime{}
 	completedAt := strfmt.DateTime{}
 	if t.StartedAt != nil {
