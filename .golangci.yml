@@ -14,6 +14,8 @@ linters-settings:
     check-blank: true
   gocognit:
     min-complexity: 50
+  gocyclo:
+    min-complexity: 50
   gocritic:
     enabled-tags:
       - diagnostic
