@@ -44,18 +44,18 @@ Prepare nodes for backup
 
 #. Create a storage location for the backup.
    Currently, Scylla Manager supports `Amazon S3 buckets <https://aws.amazon.com/s3/>`_ and `Google Cloud Storage buckets <https://cloud.google.com/storage>`_ .
-   You can use an bucket that you already created.
+   You can use a bucket that you already created.
    We recommend using an bucket in the same region where your nodes are to minimize cross region data transfer costs.
    In multi-dc deployments you should create a bucket per datacenter, each located in the datacenter's region.
 #. Choose how you want to configure access to the bucket.
    You can use an IAM role (recommended) or you can add your credentials to the agent configuration file.
-   The later method is less secure as you will be propagating each node with this security information and in cases where you need to change the key, you will have replace it on each node.
+   The later method is less secure as you will be propagating each node with this security information and in cases where you need to change the key, you will have to replace it on each node.
 
 Amazon S3
 ---------
 
 #. Create an `IAM role <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html>`_ for the S3 bucket which adheres to your company security policy.
-#. `Attach the IAM role <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#attach-iam-role>`_ to **each EC2 instace (node)** in the cluster.
+#. `Attach the IAM role <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#attach-iam-role>`_ to **each EC2 instance (node)** in the cluster.
 
 Sample IAM policy for *scylla-manager-backup* bucket:
 
@@ -97,7 +97,7 @@ Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
 
 #. Uncomment the ``s3:`` line, for parameters note the two spaces in front, it's a yaml file.
 #. Uncomment and set ``access_key_id`` and ``secret_access_key``, refer to `AWS Credentials Configuration <../agent-configuration-file/#aws-credentials-configuration>`_ for details.
-#. If NOT running in AWS EC2 instance uncomment and set ``region`` to region where you created the S3 bucket.
+#. If the S3 bucket is **not** running in the **same region** as the AWS EC2 instance uncomment and set the *region* to the S3 bucket's region.
 
 Google Cloud Storage
 --------------------
@@ -162,7 +162,7 @@ where:
 
 The command returns the task ID. You will need this ID for additional actions.
 If you want to run the backup only once, leave out the interval argument (``-i``).
-In case when you want the backup to start immediately, but you want it to schedule it to repeat at a determined interval, leave out the start flag (``-s``) and set the interval flag (``-i``) to the time you want the backup to reoccur.
+In case you want the backup to start immediately, but you want it to schedule it to repeat at a determined interval, leave out the start flag (``-s``) and set the interval flag (``-i``) to the time you want the backup to reoccur.
 
 Schedule a daily backup
 .......................
@@ -174,12 +174,12 @@ This command will schedule a backup at 9th Dec 2019 at 15:15:06 UTC time zone, b
    sctool backup -c prod-cluster -L 's3:my-backups' -s '2019-12-09T15:16:05Z' -i 24h
    backup/3208ff15-6e8f-48b2-875c-d3c73f545410
 
-Command returns the task ID (backup/3208ff15-6e8f-48b2-875c-d3c73f545410, in this case).
+The above command returns the task ID (backup/3208ff15-6e8f-48b2-875c-d3c73f545410, in this case).
 This ID can be used to query the status of the backup task, to defer the task to another time, or to cancel the task See `Managing Tasks <../sctool/#managing-tasks>`_.
 
 Schedule a daily, weekly, and monthly backup
 ............................................
-This command series will schedule a backup on 9th Dec 2019 at 15:15:06 UTC time zone, and will repeat the backup every day (keeping the last 7 days), every week (keeping the previous week) and every month (keeping the previous month).
+This command series will schedule a backup on 9th Dec 2019 at 15:15:06 UTC time zone, and will repeat the backup every day (keeping the last 7 days), every week (keeping the previous week), and every month (keeping the previous month).
 All the data will be stored in S3 under the ``my-backups`` bucket.
 
 .. code-block:: none
@@ -188,7 +188,7 @@ All the data will be stored in S3 under the ``my-backups`` bucket.
 
    sctool backup -c prod-cluster -L 's3:my-backups' --retention 2 -s '2019-12-09T15:16:05Z' -i 7d
 
-   sctool backup -c prod-cluster -L 's3:my-backups' --retention 1 -s '2019-12-09T15:16:05Z' -i 30d
+   sctool backup -c prod-cluster -L 's3:my-backups' --retention 2 -s '2019-12-09T15:16:05Z' -i 30d
 
 Schedule a backup for a specific DC, keyspace, or table
 --------------------------------------------------------
@@ -227,7 +227,7 @@ If your buckets are created in the same regions as your data centers, you may sa
 Backup a specific keyspace or table
 ...................................
 
-In order to schedule backup of particular keyspace or table, you have to provide ``-K`` parameter.
+In order to schedule backup of a particular keyspace or table, you have to provide ``-K`` parameter.
 You can specify more than one keyspace/table or use glob pattern to match multiple keyspaces/tables or exclude them.
 
 .. code-block:: none
@@ -253,7 +253,7 @@ replacing the ``-c`` cluster flag with your cluster's cluster name or ID and rep
 Perform a dry run of a backup
 =============================
 
-We recommend to use ``--dry-run`` parameter prior scheduling a backup.
+We recommend to use ``--dry-run`` parameter prior to scheduling a backup.
 It's a useful way to verify whether all necessary prerequisites are fulfilled.
 Add the parameter to the end of your backup command, so if it works, you can erase it and schedule the backup with no need to make any other changes.
 
