@@ -5,6 +5,8 @@ on:
     branches:
     - master
     - 'branch-**'
+    paths:
+      - 'docs/**'
 
 jobs:
   release:
@@ -29,4 +31,4 @@ jobs:
       run : ./docs/_utils/deploy.sh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        LATEST_VERSION: master
+        LATEST_VERSION: 2.2
