@@ -46,12 +46,12 @@ Create a Managed Cluster
    Where:
 
    * ``--host`` is hostname or IP of one of the cluster nodes. You can use an IPv6 or an IPv4 address.
-   * ``--name`` is an alias you can give to your cluster. Using an alias means you do not need to use the ID of the cluster in all other operations.  
-   * ``--auth-token`` is the authentication `token <../install-agent/#generate-an-authentication-token>`_ you identified in ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
+   * ``--name`` is an alias you can give to your cluster. Using an alias means you do not need to use the ID of the cluster in all other operations. This name must be used when connecting the managed cluster to Scylla Monitor, but does not have to be the same name you used in scylla.yaml.
+   * ``--auth-token`` is the authentication `token <../scylla-manager-agent-installation/#generate-an-authentication-token>`_ you identified in ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
    * ``--without-repair`` - when cluster is added, Manager schedules repair to repeat every 7 days. To create a cluster without a scheduled repair, use this flag.
    * ``--username`` and ``--password`` - optionally you can provide CQL credentials to the cluster.
      For security reasons the user should NOT have access to your data.
-     This enables `CQL query based health check <../health-check/#cql-query-health-check>`_ compared to `credentials agnostic health check <../health-check/#credentials-agnostic-health-check>`_ if you do not specify the credentials.
+     This enables `CQL query based health check <../cluster-health-check/#cql-query-health-check>`_ compared to `credentials agnostic health check <../cluster-health-check/#credentials-agnostic-health-check>`_ if you do not specify the credentials.
      This also enables CQL schema backup, which isn't performed if credentials aren't provided.
 
    Example (IPv4):
@@ -81,7 +81,7 @@ Create a Managed Cluster
    You will use this ID in all commands where the cluster ID is required.
    Each cluster is automatically registered with a repair task which runs once a week.
    This can be canceled using ``--without-repair``.
-   To use a different repair schedule, see `Schedule a Repair <../repair/#schedule-a-repair>`_.
+   To use a different repair schedule, see `Schedule a Repair <../repair-a-cluster/#schedule-a-repair>`_.
 
 #. Verify that the cluster you added has a registered repair task by running the ``sctool task list -c <cluster-name>`` command, adding the name_  of the cluster you created in step 1 (with the ``--name`` flag).
 
@@ -100,38 +100,28 @@ Create a Managed Cluster
    You will see 4 tasks which are created by adding the cluster:
 
    .. include:: _common/health-check-tasks.rst
-   * Repair - an automated repair task, starting at midnight tonight, repeating every seven days at midnight. See `Run a Repair <../repair/>`_
 
-   .. note:: If you want to change the schedule for the repair, see `Reschedule a repair <../repair/#reschedule-a-repair>`_.
+   * Repair - an automated repair task, starting at midnight tonight, repeating every seven days at midnight. See `Run a Repair <../repair-a-cluster/>`_
 
-Connect Managed Cluster to Scylla Monitoring
-============================================
-
-Connecting your cluster to Scylla Monitoring allows you to see metrics about your cluster and Scylla Manager all within Scylla Monitoring. 
-
-To connect your cluster to Scylla Monitoring it is **required** to use the same cluster name_ as you used when you created the cluster. See :ref:`add-cluster`.
-
-**Procedure**
-
-Follow the procedure `Scylla Monitoring <http://scylladb.github.io/scylla-monitoring/master/monitoring_stack.html#install-scylla-monitoring>` as directed, remembering to update the Scylla Node IPs and  Cluster name_  as well as the Scylla Manager IP in the relevant Prometheus configuration files.
-
-If you have any issues connecting to Scylla Monitoring Stack consult the `Troubleshooting Guide <https://docs.scylladb.com/troubleshooting/manager_monitoring_integration/>`_.
+   .. note:: If you want to change the schedule for the repair, see `Reschedule a repair <../repair-a cluster/#reschedule-a-repair>`_.
 
 Add a Node to a Managed Cluster
 ===============================
 
-Although Scylla Manager is aware of all topology changes made within every cluster it manages, it cannot properly manage nodes/datacenters without establishing connections with every node/datacenter in the cluster including the Scylla Manager Agent which is on each managed node. 
+Although Scylla Manager is aware of all topology changes made within every cluster it manages, it cannot properly manage a cluster without establishing connections with every node in the cluster using the Scylla Manager Agent which is on each managed node.
 
 **Before You Begin**
 
 * Confirm you have a managed cluster running under Scylla Manager. If you do not have a managed cluster, see :ref:`add-cluster`.
-* Confirm the `node <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/add_node_to_cluster/#procedure>`_ or `Datacenter </operating-scylla/procedures/cluster-management/add_dc_to_existing_dc/#procedure>`_ is added to the Scylla Cluster.
+* Confirm the node or Datacenter was added to the Scylla Cluster using `nodetool status <https://docs.scylladb.com/operating-scylla/nodetool-commands/status/>`_ .
+  If not, add the `node <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/add_node_to_cluster/#procedure>`_
+  or `Datacenter <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/add_dc_to_existing_dc/#procedure>`_ before continuing.
 
 **Procedure**
 
 #. `Add Scylla Manager Agent <../install-agent>`_ to the new node. Use the **same** authentication token as you did for the other nodes in this cluster. Do not generate a new token. 
 
-#. Confirm the node / datacenter was added by checking its `status <../sctool/#status>`_. From the node running Scylla Manager server run the ``sctool status`` command, using the name of the managed cluster.
+#. Confirm the node / datacenter was added by checking its `sctool status <../sctool/status>`_. From the node running Scylla Manager server run the ``sctool status`` command, using the name of the managed cluster.
  
    .. code-block:: none
    
@@ -156,10 +146,24 @@ There is no need to perform any action in Scylla Manager after removing a node o
 
 .. note:: If you are removing the cluster from Scylla Manager and you are using Scylla Monitoring, refer to `targets example <http://scylladb.github.io/scylla-monitoring/master/monitoring_stack.html#configure-scylla-nodes-from-files>`_ for more information.
 
+Connect Managed Cluster to Scylla Monitoring
+============================================
+
+Connecting your cluster to Scylla Monitoring allows you to see metrics about your cluster and Scylla Manager all within Scylla Monitoring.
+
+To connect your Managed cluster to Scylla Monitoring it is **required** to use the same Scylla Manager cluster name_ as you used when you created the managed cluster. See :ref:`add-cluster`.
+
+**Procedure**
+
+Follow the `Scylla Monitoring <http://scylladb.github.io/scylla-monitoring/master/monitoring_stack.html#install-scylla-monitoring>` procedure as directed, remembering to update the Scylla Node IPs and  Cluster name_  as well as the Scylla Manager IP in the relevant Prometheus configuration files.
+
+If you have any issues connecting to Scylla Monitoring Stack consult the `Troubleshooting Guide <https://docs.scylladb.com/troubleshooting/manager_monitoring_integration/>`_.
+
+
 See Also
 ========
 
 * `sctool Reference <../sctool>`_
-* `Remove a node from a Scylla Cluster </operating-scylla/procedures/cluster-management/remove_node>`_ 
-* `Scylla Monitoring </operating-scylla/monitoring>`_
+* `Remove a node from a Scylla Cluster <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/remove_node>`_
+* `Scylla Monitoring <Scylla Monitoring <http://scylladb.github.io/scylla-monitoring>`_
 
