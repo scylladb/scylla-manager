@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/mermaid/pkg"
 	"github.com/scylladb/mermaid/pkg/cmd/scylla-manager/config"
 	"github.com/scylladb/mermaid/pkg/mermaidclient"
 	"github.com/spf13/cobra"
@@ -26,7 +27,10 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "sctool",
-	Short: "Scylla Manager " + docsVersion,
+	Short: "Scylla Manager " + pkg.Version(),
+	Long: "Scylla Manager " + pkg.Version() + `
+
+Documentation is available online at ` + docsBaseURL,
 
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if cmd.IsAdditionalHelpTopicCommand() || cmd.Hidden {

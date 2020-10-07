@@ -43,6 +43,5 @@ var statusCmd = &cobra.Command{
 
 func init() {
 	cmd := statusCmd
-	withScyllaDocs(cmd, "/sctool/#status")
 	register(cmd, rootCmd)
 }

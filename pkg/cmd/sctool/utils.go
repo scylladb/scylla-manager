@@ -25,7 +25,11 @@ func register(cmd, parent *cobra.Command) {
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
 
+	// Set parent
 	parent.AddCommand(cmd)
+
+	// Add docs link
+	addScyllaDocsURLToLong(cmd)
 }
 
 func requireFlags(cmd *cobra.Command, flags ...string) {

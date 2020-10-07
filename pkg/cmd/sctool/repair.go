@@ -32,9 +32,7 @@ For Scylla clusters that are row-level repair enabled, setting intensity below 1
 var repairCmd = &cobra.Command{
 	Use:   "repair",
 	Short: "Schedules repairs",
-	Long: `Schedules repairs
-
-Repair speed is controlled by two flags --parallel and --intensity.
+	Long: `Repair speed is controlled by two flags --parallel and --intensity.
 The values of those flags can be adjusted while a repair is running using the 'sctool repair control' command.
 ` + parallelLongDesc + `
 ` + intensityLongDesc,
@@ -146,10 +144,8 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 
 func init() {
 	cmd := repairCmd
-	withScyllaDocs(cmd, "/sctool/#repair")
-	register(cmd, rootCmd)
-
 	taskInitCommonFlags(repairFlags(cmd))
+	register(cmd, rootCmd)
 }
 
 func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
@@ -205,7 +201,6 @@ var repairControlCmd = &cobra.Command{
 
 func init() {
 	cmd := repairControlCmd
-	withScyllaDocs(cmd, "/sctool/#repair-control")
 	fs := cmd.Flags()
 	fs.Var(&IntensityFlag{Value: 1}, "intensity", "how many token ranges (per shard) to repair in a single Scylla repair job, see the command description for details")
 	fs.Int64("parallel", 0, "limit of parallel repair jobs, full parallelism by default, see the command description for details")
@@ -278,9 +273,8 @@ The values of those flags can be adjusted while a repair is running using the 's
 
 func init() {
 	cmd := repairUpdateCmd
-	withScyllaDocs(cmd, "/sctool/#repair-update")
-	register(cmd, repairCmd)
 	fs := repairFlags(cmd)
 	fs.StringP("enabled", "e", "true", "enabled")
 	taskInitCommonFlags(fs)
+	register(cmd, repairCmd)
 }
