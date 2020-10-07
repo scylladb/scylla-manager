@@ -3,23 +3,53 @@
 package main
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
 )
 
-const docsVersion = "2.2"
+func addScyllaDocsURLToLong(cmd *cobra.Command) {
+	decorate := func(text string) string {
+		cdu := commandDocsURL(cmd)
+		if cdu == "" {
+			return text
+		}
 
-func docsURL(urlPath string) string {
-	return "https://docs.scylladb.com/operating-scylla/manager/" + docsVersion + urlPath
+		return text + "\n\nCommand docs: " + cdu
+	}
+
+	if cmd.Long == "" {
+		cmd.Long = decorate(cmd.Short)
+	} else {
+		cmd.Long = decorate(cmd.Long)
+	}
 }
 
-func withScyllaDocs(cmd *cobra.Command, docs ...string) {
-	sb := make([]string, len(docs)+1)
-	sb[0] = "Scylla Docs:"
-	for i := 0; i < len(docs); i++ {
-		sb[1+i] = "  " + docsURL(docs[i])
+func commandDocsURL(cmd *cobra.Command) string {
+	var (
+		command    string
+		subcommand string
+	)
+	if cmd.Parent() == cmd.Root() {
+		command = cmd.Name()
+	} else {
+		subcommand = cmd.Name()
+
+		parent := cmd.Parent()
+		if parent.Parent() != cmd.Root() {
+			return ""
+		}
+		command = parent.Name()
 	}
-	tpl := cmd.UsageTemplate() + "\n" + strings.Join(sb, "\n") + "\n"
-	cmd.SetUsageTemplate(tpl)
+
+	link := command
+	if subcommand != "" {
+		link += "#" + command + "-" + subcommand
+	}
+
+	return docsURL(link)
+}
+
+const docsBaseURL = "https://scylladb.github.io/mermaid/2.2"
+
+func docsURL(link string) string {
+	return docsBaseURL + "/sctool/" + link
 }

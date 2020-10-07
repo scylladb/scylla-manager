@@ -175,10 +175,9 @@ func commonFlagsUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 
 func init() {
 	cmd := backupCmd
-	withScyllaDocs(cmd, "/sctool/#backup")
-	register(cmd, rootCmd)
 	taskInitCommonFlags(backupFlags(cmd))
 	requireFlags(cmd, "location")
+	register(cmd, rootCmd)
 }
 
 var backupListCmd = &cobra.Command{
@@ -247,9 +246,6 @@ var backupListCmd = &cobra.Command{
 
 func init() {
 	cmd := backupListCmd
-	withScyllaDocs(cmd, "/sctool/#backup-list")
-	register(cmd, backupCmd)
-
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
 		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3, gcs") //nolint: lll
@@ -262,6 +258,7 @@ func init() {
 	fs.String("max-date", "",
 		"specifies maximal snapshot date expressed in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
 	fs.Bool("show-tables", false, "print all table names for a keyspace")
+	register(cmd, backupCmd)
 }
 
 var backupFilesCmd = &cobra.Command{
@@ -353,9 +350,6 @@ var backupFilesCmd = &cobra.Command{
 
 func init() {
 	cmd := backupFilesCmd
-	withScyllaDocs(cmd, "/sctool/#backup-files")
-	register(cmd, backupCmd)
-
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
 		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
@@ -367,8 +361,8 @@ func init() {
 
 	fs.StringP("delimiter", "d", "\t", "use `delimiter` instead of TAB for field delimiter")
 	fs.Bool("with-version", false, "render table names with version UUID")
-
 	requireFlags(cmd, "snapshot-tag")
+	register(cmd, backupCmd)
 }
 
 var backupDeleteCmd = &cobra.Command{
@@ -401,15 +395,12 @@ var backupDeleteCmd = &cobra.Command{
 
 func init() {
 	cmd := backupDeleteCmd
-	withScyllaDocs(cmd, "/sctool/#backup-delete-snapshot")
-	register(cmd, backupCmd)
-
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
 		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3") //nolint: lll
 	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
-
 	requireFlags(cmd, "snapshot-tag")
+	register(cmd, backupCmd)
 }
 
 var backupUpdateCmd = &cobra.Command{
@@ -438,11 +429,10 @@ var backupUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := backupUpdateCmd
-	withScyllaDocs(cmd, "/sctool/#backup-update")
-	register(cmd, backupCmd)
 	fs := backupFlags(cmd)
 	fs.StringP("enabled", "e", "true", "enabled")
 	taskInitCommonFlags(fs)
+	register(cmd, backupCmd)
 }
 
 func backupFlags(cmd *cobra.Command) *pflag.FlagSet {

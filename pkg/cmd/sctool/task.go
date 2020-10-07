@@ -173,14 +173,12 @@ func sortTasksByStatus(tasks mermaidclient.ExtendedTaskSlice) {
 
 func init() {
 	cmd := taskListCmd
-	withScyllaDocs(cmd, "/sctool/#task-list")
-	register(cmd, taskCmd)
-
 	fs := cmd.Flags()
 	fs.BoolP("all", "a", false, "list disabled tasks as well")
 	fs.StringP("status", "s", "", "filter tasks according to last run status")
 	fs.StringP("type", "t", "", "task type")
 	fs.String("sort", "", fmt.Sprintf("returned results will be sorted by given key, valid values: %s", allTaskSortKeys))
+	register(cmd, taskCmd)
 }
 
 var taskStartCmd = &cobra.Command{
@@ -208,11 +206,9 @@ var taskStartCmd = &cobra.Command{
 
 func init() {
 	cmd := taskStartCmd
-	withScyllaDocs(cmd, "/sctool/#task-start")
-	register(cmd, taskCmd)
-
 	fs := cmd.Flags()
 	fs.Bool("no-continue", false, "do not resume last run")
+	register(cmd, taskCmd)
 }
 
 var taskStopCmd = &cobra.Command{
@@ -240,11 +236,9 @@ var taskStopCmd = &cobra.Command{
 
 func init() {
 	cmd := taskStopCmd
-	withScyllaDocs(cmd, "/sctool/#task-stop")
-	register(cmd, taskCmd)
-
 	fs := cmd.Flags()
 	fs.Bool("disable", false, "do not run in future")
+	register(cmd, taskCmd)
 }
 
 var taskHistoryCmd = &cobra.Command{
@@ -274,10 +268,8 @@ var taskHistoryCmd = &cobra.Command{
 
 func init() {
 	cmd := taskHistoryCmd
-	withScyllaDocs(cmd, "/sctool/#task-history")
-	register(cmd, taskCmd)
-
 	cmd.Flags().Int64("limit", 10, "limit the number of returned results")
+	register(cmd, taskCmd)
 }
 
 var taskUpdateCmd = &cobra.Command{
@@ -344,12 +336,10 @@ var taskUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := taskUpdateCmd
-	withScyllaDocs(cmd, "/sctool/#task-update")
-	register(cmd, taskCmd)
-
 	fs := cmd.Flags()
 	fs.StringP("enabled", "e", "true", "enabled")
 	taskInitCommonFlags(fs)
+	register(cmd, taskCmd)
 }
 
 var taskDeleteCmd = &cobra.Command{
@@ -372,7 +362,6 @@ var taskDeleteCmd = &cobra.Command{
 
 func init() {
 	cmd := taskDeleteCmd
-	withScyllaDocs(cmd, "/sctool/#task-delete")
 	register(cmd, taskCmd)
 }
 
@@ -487,12 +476,10 @@ func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task
 
 func init() {
 	cmd := taskProgressCmd
-	withScyllaDocs(cmd, "/sctool/#task-progress")
-	register(cmd, taskCmd)
-
 	fs := cmd.Flags()
 	fs.Bool("details", false, "show detailed progress")
 	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
 	fs.StringSlice("host", nil, "a comma-separated list of host glob patterns, e.g. '1.1.1.*,!1.2.*.4")
 	fs.String("run", "", "show progress of a particular run, see sctool task history")
+	register(cmd, taskCmd)
 }

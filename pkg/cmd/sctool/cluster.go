@@ -158,13 +158,11 @@ var clusterAddCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterAddCmd
-	withScyllaDocs(cmd, "/add-a-cluster/", "/sctool/#cluster-add")
-	register(cmd, clusterCmd)
-
 	clusterInitCommonFlags(cmd)
 	cmd.Flags().StringVarP(&cfgClusterID, "id", "i", "", "explicitly specify cluster ID, when not provided random UUID will be generated")
 	cmd.Flags().Bool("without-repair", false, "skip automatic repair scheduling")
 	requireFlags(cmd, "host")
+	register(cmd, clusterCmd)
 }
 
 var clusterUpdateCmd = &cobra.Command{
@@ -257,13 +255,10 @@ var clusterUpdateCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterUpdateCmd
-
-	withScyllaDocs(cmd, "/sctool/#cluster-update")
-	register(cmd, clusterCmd)
-
 	clusterInitCommonFlags(cmd)
 	cmd.Flags().Bool("delete-cql-credentials", false, "delete CQL username and password if added, features that require CQL may not work")
 	cmd.Flags().Bool("delete-ssl-user-cert", false, "delete SSL user certificate if added")
+	register(cmd, clusterCmd)
 }
 
 var clusterDeleteCmd = &cobra.Command{
@@ -281,7 +276,6 @@ var clusterDeleteCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterDeleteCmd
-	withScyllaDocs(cmd, "/sctool/#cluster-delete")
 	register(cmd, clusterCmd)
 }
 
@@ -300,6 +294,5 @@ var clusterListCmd = &cobra.Command{
 
 func init() {
 	cmd := clusterListCmd
-	withScyllaDocs(cmd, "/sctool/#cluster-list")
 	register(cmd, clusterCmd)
 }
