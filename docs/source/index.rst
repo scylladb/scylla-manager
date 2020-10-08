@@ -15,6 +15,7 @@ Scylla Manager
    sctool/index
    config/index
    cluster-health-check
+   scylla-monitoring-integration
 
 
 .. include:: /_common/manager-description.rst
