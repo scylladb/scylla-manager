@@ -99,4 +99,4 @@ Next steps
 ..
    TODO add link to backup configuration
 
-Continue with `Add a Cluster <../add-a-cluster>`_.
+* `Add a Cluster <../add-a-cluster>`_.

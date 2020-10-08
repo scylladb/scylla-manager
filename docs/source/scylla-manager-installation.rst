@@ -181,4 +181,4 @@ Scylla Manager integrates with ``systemd`` and can be started and stopped using 
 Next steps
 ==========
 
-Before you add a cluster to Scylla Manager continue with `Setup Scylla Manager Agent <../install-agent>`_
+* `Scylla Manager Agent Installation <../scylla-manager-agent-installation>`_

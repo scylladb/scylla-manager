@@ -24,9 +24,9 @@ Each node has two connections with the Scylla Manager Server:
 
 .. image:: images/architecture.jpg
 
-Additional Resources
-====================
+Continue reading
+================
 
-* `Install Scylla Manager <../install>`_
-* `Install Scylla Manager Agent <../install-agent>`_
-* `sctool Reference <../sctool>`_
+* `How to install <../scylla-manager-installation>`_
+* `How to backup a cluster <../backup>`_
+* `How to repair a cluster <../repair-a-cluster>`_
