@@ -19,3 +19,8 @@ python3 -m pipx ensurepath
 which poetry || pipx install poetry
 poetry --version || { echo "Failed to find or install poetry. Try installing it manually: https://python-poetry.org/docs/#installation" && exit 1; }
 poetry install
+
+# link config files
+
+ln -f ../dist/etc/scylla-manager/scylla-manager.yaml source/config
+ln -f ../dist/etc/scylla-manager-agent/scylla-manager-agent.yaml source/config

@@ -1,12 +1,12 @@
-========================
-Configure Scylla Manager
-========================
+===================
+Configuration Files
+===================
 
 .. toctree::
    :hidden:
    :maxdepth: 2
 
-   Scylla Manager Configuration <configuration-file>
-   Scylla Manager Agent Configuration <agent-configuration-file>
+   scylla-manager-config
+   scylla-manager-agent-config
 
 This page is where you will find information on Scylla Manager and Scylla Manager Agent configuration files.
