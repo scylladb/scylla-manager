@@ -75,7 +75,7 @@ Logging settings specify log output and level.
 Database settings
 =================
 
-Database settings allow for `using a remote cluster <../use-a-remote-db>`_ to store Scylla Manager data.
+Database settings allow for `using a remote cluster <../../scylla-manager-installation/#remote-cluster>`_ to store Scylla Manager data.
 
 .. code-block:: yaml
 

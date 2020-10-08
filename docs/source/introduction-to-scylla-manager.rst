@@ -29,5 +29,4 @@ Additional Resources
 
 * `Install Scylla Manager <../install>`_
 * `Install Scylla Manager Agent <../install-agent>`_
-* `Use a remote database for Scylla Manager <../use-a-remote-db>`_
 * `sctool Reference <../sctool>`_

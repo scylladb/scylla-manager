@@ -16,10 +16,7 @@ Agent serves as a reverse proxy to Scylla REST API, and provides additional feat
 Install package
 ===============
 
-Download and install Scylla Manager Agent from the Scylla Manager Download Page according to the desired version:
-
-* Scylla Enterprise - Login to the `Customer Portal <https://www.scylladb.com/customer-portal/>`_
-* `Scylla Manager for Open Source <https://www.scylladb.com/download/open-source/scylla-manager/>`_
+Download and install Scylla Manager Agent from the `Scylla Download Center <https://www.scylladb.com/download/#manager>`_.
 
 Run the scyllamgr_agent_setup script
 ====================================

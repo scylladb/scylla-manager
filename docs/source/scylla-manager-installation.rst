@@ -19,9 +19,96 @@ While a minimal server can run on a system with 2 cores and 1GB RAM, the followi
 Install package
 ===============
 
-#. On the same node as you are installing Scylla Manager, download and install Scylla as a local database from the `Scylla Enterprise <https://www.scylladb.com/download/#enterprise>`_ or `Scylla Open Source <https://www.scylladb.com/download/>`_ download page. There is no need to run the Scylla setup as it is taken care of later by the ``scyllamgr_setup`` script.
-#. Download and install Scylla Manager from the `Scylla Download Center <https://www.scylladb.com/download/#manager>`_.
-#. Follow the entire installation procedure.
+Best practice is to install Scylla Manager Server on a dedicated machine not a Scylla production node.
+Download and install the Scylla Manager Server and Client packages from the `Scylla Download Center <https://www.scylladb.com/download/#manager>`_.
+
+Configure storage
+=================
+
+Scylla Manager uses Scylla to store its data.
+You can either use a local one-node Scylla cluster (recommended) or connect Scylla Manager to a remote cluster.
+
+Local node
+----------
+
+On the same node as you are installing Scylla Manager, download and install Scylla Server package.
+You can either use `Scylla Enterprise <https://www.scylladb.com/download/#enterprise>`_ or `Scylla Open Source <https://www.scylladb.com/download/#open-source>`_.
+There is no need to run the Scylla setup, it is taken care of later, by the ``scyllamgr_setup`` script.
+When it's installed you can jump to `Run the scyllamgr_setup script`_ section.
+
+Remote cluster
+--------------
+
+Scylla Manager configuration file ``/etc/scylla-manager/scylla-manager.yaml`` contains a database configuration section.
+
+.. code-block:: yaml
+
+   # Scylla Manager database, used to store management data.
+   database:
+     hosts:
+       - 127.0.0.1
+   # Enable or disable client/server encryption.
+   #  ssl: false
+   #
+   # Database credentials.
+   #  user: user
+   #  password: password
+   #
+   # Local datacenter name, specify if using a remote, multi-dc cluster.
+   #  local_dc:
+   #
+   # Database connection timeout.
+   #  timeout: 600ms
+   #
+   # Keyspace for management data, for create statement see /etc/scylla-manager/create_keyspace.cql.tpl.
+   #  keyspace: scylla_manager
+   #  replication_factor: 1
+
+Using an editor open the file and change relevant parameters.
+
+**Procedure**
+
+#. Edit the ``hosts`` parameter, change the IP address to the IP address or addressees of the remote cluster.
+
+#. If authentication is needed, uncomment and edit the ``user`` and ``password`` parameters.
+
+
+#. If it's a single DC cluster, uncomment and edit the ``replication_factor`` parameter to match the required replication factor.
+   This would use SimpleStrategy to create a Scylla Manager keyspace, refer to `Scylla Architecture - Fault Tolerance </architecture/architecture-fault-tolerance>`_ for more information on replication.
+
+#. If it's a multi DC cluster, create a keyspace named ``scylla_manager`` yourself.
+   You can use a different keyspace name, just remember to adjust the ``keyspace`` parameter value.
+   Set ``local_dc`` parameter to DC the closest to Scylla Manager Server.
+
+#. If client/server encryption is enabled, uncomment and set the ``ssl`` parameter to ``true``.
+   Additional SSL configuration options can be set in the ``ssl`` configuration section.
+
+.. code-block:: yaml
+
+   # Optional custom client/server encryption options.
+   #ssl:
+   # CA certificate used to validate server cert. If not set will use he host's root CA set.
+   #  cert_file:
+   #
+   # Verify the hostname and server cert.
+   #  validate: true
+   #
+   # Client certificate and key in PEM format. It has to be provided when
+   # client_encryption_options.require_client_auth=true is set on server.
+   #  user_cert_file:
+   #  user_key_file
+
+Sample configuration of Scylla Manager working with a remote cluster with authentication and replication factor 3 could look like this.
+
+.. code-block:: yaml
+
+   database:
+     hosts:
+       - 198.100.51.11
+       - 198.100.51.12
+     user: user
+     password: password
+     replication_factor: 3
 
 Run the scyllamgr_setup script
 ==============================
