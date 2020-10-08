@@ -96,6 +96,7 @@ Start Scylla Manager Agent service
 Next steps
 ==========
 
-.. warning:: TODO add link to backup configuration
+..
+   TODO add link to backup configuration
 
 Continue with `Add a Cluster <../add-a-cluster>`_.
