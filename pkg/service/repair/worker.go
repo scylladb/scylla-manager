@@ -4,7 +4,6 @@ package repair
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -13,12 +12,11 @@ import (
 	"github.com/scylladb/mermaid/pkg/dht"
 	"github.com/scylladb/mermaid/pkg/scyllaclient"
 	"github.com/scylladb/mermaid/pkg/util/parallel"
-	"go.uber.org/multierr"
 )
 
 var errTableDeleted = errors.New("table deleted during repair")
 
-func workerCount(ranges []scyllaclient.TokenRange) int {
+func maxParallelRepairs(ranges []scyllaclient.TokenRange) int {
 	var replicas = make(map[uint64][]string)
 	for _, tr := range ranges {
 		replicas[replicaHash(tr.Replicas)] = tr.Replicas
@@ -41,25 +39,24 @@ type worker struct {
 	in              <-chan job
 	out             chan<- jobResult
 	client          *scyllaclient.Client
-	logger          log.Logger
 	progress        progressManager
 	pollInterval    time.Duration
 	hostPartitioner map[string]*dht.Murmur3Partitioner
+	logger          log.Logger
 }
 
 func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclient.Client,
-	logger log.Logger, manager progressManager, pollInterval time.Duration,
-	hostPartitioner map[string]*dht.Murmur3Partitioner) worker {
-	return worker{
-		run:          run,
-		in:           in,
-		out:          out,
-		client:       client,
-		logger:       logger,
-		progress:     manager,
-		pollInterval: pollInterval,
-
+	manager progressManager, hostPartitioner map[string]*dht.Murmur3Partitioner,
+	pollInterval time.Duration, logger log.Logger) *worker {
+	return &worker{
+		run:             run,
+		in:              in,
+		out:             out,
+		client:          client,
+		progress:        manager,
+		pollInterval:    pollInterval,
 		hostPartitioner: hostPartitioner,
+		logger:          logger,
 	}
 }
 
@@ -81,7 +78,7 @@ func (w *worker) Run(ctx context.Context) error {
 
 			r := jobResult{
 				job: job,
-				Err: w.runJob(ctx, job),
+				Err: w.handleJob(ctx, job),
 			}
 
 			if err := w.progress.OnJobResult(ctx, r); err != nil {
@@ -97,57 +94,53 @@ func (w *worker) Run(ctx context.Context) error {
 	}
 }
 
-func (w *worker) runJob(ctx context.Context, job job) error {
-	var (
-		err error
-		msg string
-	)
+func (w *worker) handleJob(ctx context.Context, job job) error {
+	var err error
 	if w.hostPartitioner[job.Host] == nil {
-		err = w.runRepair(ctx, job)
-		msg = "Run row-level repair"
+		err = w.rowLevelRepair(ctx, job)
 	} else {
-		err = w.runLegacyRepair(ctx, job)
-		msg = "Run legacy repair"
+		err = w.legacyRepair(ctx, job)
 	}
-	if err != nil {
-		w.logger.Error(ctx, msg, "error", err)
-	}
-
 	return err
 }
 
-func (w *worker) runRepair(ctx context.Context, job job) (err error) {
+func (w *worker) runRepair(ctx context.Context, job job) error {
 	if len(job.Ranges) == 0 {
-		return fmt.Errorf("host %s: nothing to repair", job.Host)
+		return errors.Errorf("host %s: nothing to repair", job.Host)
 	}
 
 	var (
-		ttr   = job.Ranges[0]
-		jobID int32
+		host = job.Host
+		ttrs = job.Ranges
+		ttr  = job.Ranges[0]
 	)
 
 	cfg := scyllaclient.RepairConfig{
 		Keyspace: ttr.Keyspace,
 		Tables:   []string{ttr.Table},
 		Hosts:    ttr.Replicas,
-		Ranges:   dumpRanges(job.Ranges),
+		Ranges:   dumpRanges(ttrs),
 	}
 
-	jobID, err = w.client.Repair(ctx, job.Host, cfg)
+	jobID, err := w.client.Repair(ctx, host, cfg)
 	if err != nil {
 		if w.tableDeleted(ctx, err, ttr.Keyspace, ttr.Table) {
 			return errTableDeleted
 		}
 
-		return errors.Wrapf(err, "host %s: schedule repair", job.Host)
+		return errors.Wrapf(err, "host %s: schedule repair", host)
 	}
 
 	if err := w.progress.OnScyllaJobStart(ctx, job, jobID); err != nil {
-		return errors.Wrapf(err, "host %s: starting scylla job", job.Host)
+		w.logger.Error(ctx, "Failed to register OnScyllaJobStart event",
+			"host", host, "job_id", jobID, "error", err,
+		)
 	}
 	defer func() {
-		if e := w.progress.OnScyllaJobEnd(ctx, job, jobID); e != nil {
-			err = multierr.Combine(err, errors.Wrapf(e, "host %s: ending scylla job", job.Host))
+		if err := w.progress.OnScyllaJobEnd(ctx, job, jobID); err != nil {
+			w.logger.Error(ctx, "Failed to register OnScyllaJobEnd event",
+				"host", host, "job_id", jobID, "error", err,
+			)
 		}
 	}()
 
@@ -155,26 +148,35 @@ func (w *worker) runRepair(ctx context.Context, job job) (err error) {
 		"keyspace", ttr.Keyspace,
 		"table", ttr.Table,
 		"hosts", ttr.Replicas,
-		"ranges", len(job.Ranges),
-		"master", job.Host,
+		"ranges", len(ttrs),
+		"master", host,
 		"job_id", jobID,
 	)
 
 	logger.Info(ctx, "Repairing")
-	if err := w.waitRepairStatus(ctx, jobID, job.Host, ttr.Keyspace, ttr.Table); err != nil {
-		return errors.Wrapf(err, "host %s: keyspace %s table %s command %d", job.Host, ttr.Keyspace, ttr.Table, jobID)
+	if err := w.waitRepairStatus(ctx, jobID, host, ttr.Keyspace, ttr.Table); err != nil {
+		return errors.Wrapf(err, "host %s: keyspace %s table %s command %d", host, ttr.Keyspace, ttr.Table, jobID)
 	}
 	logger.Debug(ctx, "Repair done")
+
 	return nil
 }
 
-func (w *worker) runLegacyRepair(ctx context.Context, j job) error {
-	p := w.hostPartitioner[j.Host]
+func (w *worker) rowLevelRepair(ctx context.Context, job job) error {
+	err := w.runRepair(ctx, job)
+	if err != nil {
+		w.logger.Error(ctx, "Run row-level repair", "error", err)
+	}
+	return err
+}
+
+func (w *worker) legacyRepair(ctx context.Context, job job) error {
+	p := w.hostPartitioner[job.Host]
 
 	// Calculate max parallel shard repairs
 	limit := int(p.ShardCount())
-	if j.ShardsPercent != 0 {
-		l := float64(limit) * j.ShardsPercent
+	if job.Allowance.ShardsPercent != 0 {
+		l := float64(limit) * job.Allowance.ShardsPercent
 		if l < 1 {
 			l = 1
 		}
@@ -184,31 +186,31 @@ func (w *worker) runLegacyRepair(ctx context.Context, j job) error {
 	}
 
 	// Split ranges to shards
-	shardRanges, err := splitToShardsAndValidate(j.Ranges, p)
+	shardRanges, err := splitToShardsAndValidate(job.Ranges, p)
 	if err != nil {
 		return errors.Wrap(err, "split to shards")
 	}
 
-	return parallel.Run(len(shardRanges), limit, func(i int) error {
+	err = parallel.Run(len(shardRanges), limit, func(i int) error {
 		if ctx.Err() != nil {
 			return nil
 		}
 
-		v := shardRanges[i]
-		if len(v) == 0 {
+		if len(shardRanges[i]) == 0 {
 			return nil
 		}
 
-		return w.runRepair(log.WithFields(ctx, "subranges_of_shard", i), job{
-			Host:          j.Host,
-			Ranges:        v,
-			ShardsPercent: j.ShardsPercent,
-		})
+		shardJob := job
+		shardJob.Ranges = shardRanges[i]
+		return w.runRepair(log.WithFields(ctx, "subranges_of_shard", i), shardJob)
 	})
+	if err != nil {
+		w.logger.Error(ctx, "Run legacy repair", "error", err)
+	}
+	return err
 }
 
 func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace, table string) error {
-	// TODO change to long polling
 	t := time.NewTicker(w.pollInterval)
 	defer t.Stop()
 

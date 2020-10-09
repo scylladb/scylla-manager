@@ -40,7 +40,14 @@ var (
 		Subsystem: "repair",
 		Name:      "inflight_jobs",
 		Help:      "Number of Scylla jobs that are currently being processed",
-	}, []string{"cluster", "task"})
+	}, []string{"cluster", "task", "host"})
+
+	repairInflightTokenRanges = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "repair",
+		Name:      "inflight_token_ranges",
+		Help:      "Number of token ranges that are currently being repaired",
+	}, []string{"cluster", "task", "host"})
 )
 
 func init() {
@@ -50,6 +57,7 @@ func init() {
 		repairSegmentsError,
 		repairProgress,
 		repairInflightJobs,
+		repairInflightTokenRanges,
 	)
 }
 

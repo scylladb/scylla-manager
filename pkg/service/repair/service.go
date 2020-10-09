@@ -5,6 +5,7 @@ package repair
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -268,9 +269,12 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Create generator
 	var (
 		manager = newProgressManager(run, s.session, s.logger)
-		g       = newGenerator(s.config.GracefulStopTimeout, manager, target.FailFast, s.logger)
-		wc      int
+		gen     = newGenerator(s.config.GracefulStopTimeout, manager, s.logger)
 	)
+
+	// Feed generator with token ranges and calculate max possible number of
+	// parallel repair threads in all keyspaces.
+	var maxParallel int
 	for _, u := range target.Units {
 		// Get ring
 		ring, err := client.DescribeRing(ctx, u.Keyspace)
@@ -279,30 +283,24 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 
 		// Transform ring to tableTokenRanges and init generator
-		g.Add(newTableTokenRangeBuilder(target, ring.HostDC).Add(ring.Tokens).Build(u))
+		gen.Add(ctx, newTableTokenRangeBuilder(target, ring.HostDC).Add(ring.Tokens).Build(u))
 
 		// Estimate worker count
-		if c := workerCount(ring.Tokens); c > wc {
-			wc = c
+		if v := maxParallelRepairs(ring.Tokens); v > maxParallel {
+			maxParallel = v
 		}
 	}
 
-	repairHosts := g.Hosts()
-
-	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
-	if err != nil {
-		return errors.Wrap(err, "fetch host range limits")
+	// Check if there is anything to repair if not there is something wrong
+	if gen.Size() == 0 {
+		return errors.New("no replicas to repair")
 	}
-	g.SetHostRangeLimits(hostRangesLimits)
 
 	// Dynamic Intensity
-	ih, cleanup := s.newIntensityHandler(ctx, clusterID, wc, target.Intensity, target.Parallel)
+	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity, target.Parallel, maxParallel)
 	defer cleanup()
 
-	// Init Generator
-	if err := g.Init(ctx, ih); err != nil {
-		return err
-	}
+	repairHosts := gen.Hosts()
 
 	// Check if no other repairs are running
 	if active, err := client.ActiveRepairs(ctx, repairHosts.List()); err != nil {
@@ -322,12 +320,18 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Errorf("ensure nodes are up, down nodes: %s", strings.Join(down, ","))
 	}
 
-	if err := s.optimizeSmallTables(ctx, client, target, g); err != nil {
+	if err := s.optimizeSmallTables(ctx, client, target, gen); err != nil {
 		return errors.Wrap(err, "optimize small tables")
 	}
 
-	hp := make(hostPriority)
-	// In a multi-dc repair look for a local datacenter
+	// Get max_repair_ranges_in_parallel value for hosts
+	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
+	if err != nil {
+		return errors.Wrap(err, "fetch host range limits")
+	}
+
+	// In a multi-dc repair look for a local datacenter and assign host priorities
+	hostPriority := make(hostPriority)
 	if len(target.DC) > 1 {
 		dcMap, err := client.Datacenters(ctx)
 		if err != nil {
@@ -348,19 +352,46 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		for p, dc := range closest {
 			for _, h := range dcMap[dc] {
 				if repairHosts.Has(h) {
-					hp[h] = p
+					hostPriority[h] = p
 				}
 			}
 		}
 	}
-	g.SetHostPriority(hp)
 
+	// Create host partitioner for legacy repair
 	hostPartitioner, err := s.hostPartitioner(ctx, repairHosts.List(), client)
 	if err != nil {
 		return errors.Wrap(err, "initialize host partitioner")
 	}
-	// Create worker
-	w := newWorker(run, g.Next(), g.Result(), client, s.logger, manager, s.config.PollInterval, hostPartitioner)
+
+	// Enable generator row-level repair optimisation if all hosts support
+	// row-level repair.
+	var enableRowLevelRepairOpt = true
+	for _, p := range hostPartitioner {
+		if p != nil {
+			enableRowLevelRepairOpt = false
+			break
+		}
+	}
+	var ctl controller
+	if enableRowLevelRepairOpt {
+		ctl = newRowLevelRepairController(ih, hostRangesLimits)
+		s.logger.Info(ctx, "Using row-level repair controller", "workers", ctl.MaxWorkerCount())
+	} else {
+		ctl = newDefaultController(ih, hostRangesLimits)
+		s.logger.Info(ctx, "Using default repair controller", "workers", ctl.MaxWorkerCount())
+	}
+
+	// Get options
+	var opts []generatorOption
+	if target.FailFast {
+		opts = append(opts, failFast)
+	}
+
+	// Init Generator
+	if err := gen.Init(ctx, ctl, hostPriority, opts...); err != nil {
+		return err
+	}
 
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
@@ -372,10 +403,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Run Workers and Generator
 	var eg errgroup.Group
-	for i := 0; i < wc; i++ {
+	for i := 0; i < ctl.MaxWorkerCount(); i++ {
 		i := i
 		eg.Go(func() error {
-			err := w.Run(log.WithFields(workerCtx, "worker", i))
+			w := newWorker(run, gen.Next(), gen.Result(), client, manager,
+				hostPartitioner, s.config.PollInterval, s.logger.Named(fmt.Sprintf("worker %d", i)))
+
+			err := w.Run(workerCtx)
 			if errors.Is(err, context.Canceled) {
 				err = nil
 			}
@@ -383,7 +417,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		})
 	}
 	eg.Go(func() error {
-		err := g.Run(ctx)
+		err := gen.Run(ctx)
 		workerCancel()
 		return err
 	})
@@ -504,12 +538,12 @@ func (s *Service) maxRepairRangesInParallel(shards uint, totalMemory int64) int 
 	return max
 }
 
-func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, wc int, intensity float64, parallel int) (ih *intensityHandler, cleanup func()) {
+func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity float64, parallel, maxParallel int) (ih *intensityHandler, cleanup func()) {
 	ih = &intensityHandler{
 		logger:      s.logger.Named("control"),
 		intensity:   atomic.NewFloat64(intensity),
 		parallel:    atomic.NewInt64(int64(parallel)),
-		maxParallel: wc,
+		maxParallel: maxParallel,
 	}
 
 	s.mu.Lock()

@@ -225,11 +225,15 @@ func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobI
 
 	pm.logger.Debug(ctx, "OnScyllaJobStart", "host", job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "job_id", jobID, "start", start, "ranges", len(job.Ranges))
 
-	l := prometheus.Labels{
-		"cluster": pm.run.clusterName,
-		"task":    pm.run.TaskID.String(),
+	for _, h := range ttr.Replicas {
+		l := prometheus.Labels{
+			"cluster": pm.run.clusterName,
+			"task":    pm.run.TaskID.String(),
+			"host":    h,
+		}
+		repairInflightJobs.With(l).Add(1)
+		repairInflightTokenRanges.With(l).Add(float64(len(job.Ranges)))
 	}
-	repairInflightJobs.With(l).Add(1)
 
 	q := table.RepairJobExecution.InsertQuery(pm.session)
 	defer q.Release()
@@ -250,11 +254,15 @@ func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID 
 
 	pm.logger.Debug(ctx, "OnScyllaJobEnd", "host", job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "job_id", jobID, "end", end, "ranges", len(job.Ranges))
 
-	l := prometheus.Labels{
-		"cluster": pm.run.clusterName,
-		"task":    pm.run.TaskID.String(),
+	for _, h := range ttr.Replicas {
+		l := prometheus.Labels{
+			"cluster": pm.run.clusterName,
+			"task":    pm.run.TaskID.String(),
+			"host":    h,
+		}
+		repairInflightJobs.With(l).Sub(1)
+		repairInflightTokenRanges.With(l).Sub(float64(len(job.Ranges)))
 	}
-	repairInflightJobs.With(l).Sub(1)
 
 	q := table.RepairJobExecution.UpdateQuery(pm.session, "end")
 	defer q.Release()
