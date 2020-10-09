@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func TestWorkerCount(t *testing.T) {
+func TestMaxParallelRepairs(t *testing.T) {
 	table := []struct {
 		Name      string
 		InputFile string
@@ -59,9 +59,8 @@ func TestWorkerCount(t *testing.T) {
 				ranges = append(ranges, scyllaclient.TokenRange{Replicas: content[i].Endpoints})
 			}
 
-			v := workerCount(ranges)
-			if v != test.Count {
-				t.Errorf("workerCount()=%d expected %d", v, test.Count)
+			if v := maxParallelRepairs(ranges); v != test.Count {
+				t.Errorf("maxParallelRepairs()=%d expected %d", v, test.Count)
 			}
 		})
 	}
@@ -88,7 +87,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner)
+		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, pollInterval, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -142,7 +141,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(false, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner)
+		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, pollInterval, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -196,7 +195,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, hostPartitioner)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, pollInterval, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -250,7 +249,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
 
-		w := newWorker(run, in, out, c, logger, newNopProgressManager(), pollInterval, emptyHostPartitioner)
+		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, pollInterval, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
