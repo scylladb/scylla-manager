@@ -1,3 +1,5 @@
+.. _repair-commands:
+
 Repair
 ------
 
@@ -17,9 +19,9 @@ The repair commands allow you to: create and update a repair (ad-hoc or schedule
      - Usage
    * - :ref:`sctool-repair`
      - Schedule a repair (ad-hoc or scheduled).
-   * - `repair control`_
+   * - :ref:`repair-control`
      - Change parameters while a repair is running.
-   * - `repair update`_
+   * - :ref:`repair-update`
      - Modify properties of the existing repair task.
 
 .. _sctool-repair:
@@ -36,6 +38,8 @@ The repair command allows you to schedule or run ad-hoc cluster repair.
    [--intensity <float>] [--keyspace <list of glob patterns>] [--parallel <integer>]
    [--start-date <now+duration|RFC3339>]
    [global flags]
+
+.. _repair-parameters:
 
 repair parameters
 .................
@@ -297,6 +301,9 @@ This example, repairs node with IP ``34.203.122.52`` that belongs to datacenter 
 
    sctool repair -c prod-cluster --host 34.203.122.52 --dc eu-west
 
+
+.. _repair-control:
+
 repair control
 ==============
 
@@ -309,9 +316,11 @@ The repair control command allows you to change repair parameters while a repair
 repair control parameters
 .........................
 
-In addition to :ref:`global-flags`, repair takes the following `repair parameters`_.
+In addition to :ref:`global-flags`, repair takes the following repair control parameters:
 
 =====
+
+.. _intensity-float:
 
 ``--intensity <float>``
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -326,6 +335,8 @@ Changing the intensity impacts repair granularity if you need to resume it, the 
 
 =====
 
+.. _parallel-integer:
+
 ``--parallel <integer>``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -337,6 +348,9 @@ The formula to calculate is is as follows: nr. nodes / RF, ex. for 6 node cluste
 **Default:** 0
 
 =====
+
+.. _repair-update:
+.. _reschedule-a-repair:
 
 repair update
 =============

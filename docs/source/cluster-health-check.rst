@@ -4,7 +4,7 @@ Cluster Health Check
 
 Scylla Manager automatically adds three health check tasks when the cluster is added to the Scylla Manager and to existing clusters
 during the upgrade procedure. You can see the tasks created by the healthcheck when you run
-the `sctool task list <../sctool/#task-list>`_ command.
+the :ref:`sctool task list <task-list>` command.
 
 For example:
 
@@ -36,8 +36,9 @@ Scylla Health Check
 -------------------
 
 The Scylla health check task ensures that CQL native port is accessible on all the nodes. For each node, in parallel,
-Scylla Manager opens a connection to a CQL port and asks for server options. If there is no response or the response takes longer than `configured value <../configuration-file/#health-check-settings>`_, the node is considered to be DOWN otherwise the node is considered to be UP.
-The results are available using the `sctool status <../sctool/#status>` command.
+Scylla Manager opens a connection to a CQL port and asks for server options.
+If there is no response or the response takes longer than configured value (as recorded in the Scylla Manager :ref:`configuration-file` the node is considered to be DOWN otherwise the node is considered to be UP.
+The results are available using the :ref:`sctool status <status>` command.
 
 For example:
 
@@ -61,7 +62,7 @@ returns:
    ╰────┴────────────┴───────────┴───────────┴───────────────┴──────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯
 
 Scylla Manager reads CQL IP address and port from the node configuration, and can automatically detect TLS/SSL connection.
-There are two types of CQL health check `Credentials agnostic health check`_ and `CQL query health check`_.
+There are two types of CQL health check :ref:`credentials-agnostic-health-check` and :ref:`cql-query-health-check`.
 
 Node information
 ----------------
@@ -84,21 +85,25 @@ Scylla Monitoring
 If you have enabled the Scylla Monitoring stack, Scylla Manager dashboard includes the same cluster status report.
 In addition, the Prometheus Alert Manager has an alert to report when a Scylla node health check fails.
 
+.. _credentials-agnostic-health-check:
+
 Credentials agnostic health check
 ---------------------------------
 
 Scylla Manager does not require database credentials to work.
 CQL health check is based on sending `CQL OPTIONS frame <https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec#L302>`_ and does not start a CQL session.
 This is simple and effective but does not test CQL all the way down.
-For that you may consider upgrading to `CQL query health check`_.
+For that you may consider upgrading to :ref: <cql-query-health-check>`.
+
+.. _cql-query-health-check:
 
 CQL query health check
 ----------------------
 
 .. versionadded:: 2.2 Scylla Manager
 
-You may specify CQL ``username`` and ``password`` flags when adding cluster to Scylla Manager using `sctool cluster add command <../sctool/#cluster-add>`_.
-It's also possible to add or change that using `sctool cluster update command <../sctool/#cluster-update>`_.
+You may specify CQL ``username`` and ``password`` flags when adding cluster to Scylla Manager using :ref:`sctool cluster add command <cluster-add>`.
+It's also possible to add or change that using :ref:`sctool cluster update command <cluster-update>`.
 Once Scylla Manager has CQL credential to the cluster, when performing a health check, it would try to connect to each node and execute ``SELECT now() FROM system.local`` query.
 
 
@@ -111,7 +116,7 @@ Scylla Alternator Health Check
 
 If Alternator is enabled it will check the Scylla Alternator API connectivity for all nodes in parallel. In Scylla 4.0 it uses simplified ping checking if the socket is open and if it’s responding. In Scylla 4.1+ it queries the system table.
 
-Please check `configuration <../configuration-file/#health-check-settings>`_ to adjust timeouts for your cluster.
+Please check the Scylla Manager :ref:`configuration-file` to adjust timeouts for your cluster.
 
 .. _scylla-api:
 
@@ -120,4 +125,4 @@ Scylla REST API Health Check
 
 Checks Scylla REST API connectivity by performing single HTTP request-response cycle between Scylla Manager Server and all Scylla nodes in parallel.
 
-Please check `configuration <../configuration-file/#health-check-settings>`_ to adjust timeouts for your cluster.
+Please check the Scylla Manager :ref:`configuration-file` to adjust timeouts for your cluster.

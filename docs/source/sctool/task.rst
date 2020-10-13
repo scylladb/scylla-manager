@@ -1,3 +1,5 @@
+.. _task-commands:
+
 Task
 ----
 
@@ -123,6 +125,7 @@ Example: task history
    │ e5343b52-610c-11e9-9aa8-42010af000a9 │ 15 Apr 19 15:32:42 UTC │ 15 Apr 19 15:32:43 UTC │ 1s       │ DONE                                           │
    │ dc435562-610c-11e9-9aa7-42010af000a9 │ 17 Apr 19 12:32:27 UTC │ 17 Apr 19 12:32:28 UTC │ 1s       │ DONE                                           │
    ╰──────────────────────────────────────┴────────────────────────┴────────────────────────┴──────────┴────────────────────────────────────────────────╯
+
 .. _task-list:
 
 task list
@@ -209,6 +212,8 @@ Example: task list
 
 Setting the ``--all`` flag will also list disabled tasks which are not shown in the regular view.
 Disabled tasks are prefixed with a ``*``.
+
+.. _task-progress:
 
 task progress
 =============

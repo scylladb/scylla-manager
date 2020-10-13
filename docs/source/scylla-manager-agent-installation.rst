@@ -39,10 +39,12 @@ It can be run in non-interactive mode by using flags.
 
 Run the ``scyllamgr_agent_setup`` script to configure the service.
 
-Configure auth token
-====================
+.. _configure-auth-token:
 
-Auth token is used to authenticate requests to the Agent.
+Configure an authentication token
+=================================
+
+Authentication tokens are used to authenticate requests to the Agent.
 Unauthenticated requests are rejected.
 **Use the same token on all the nodes in a cluster**. Use different tokens in different clusters.
 
@@ -99,4 +101,4 @@ Next steps
 ..
    TODO add link to backup configuration
 
-* `Add a Cluster <../add-a-cluster>`_.
+* :doc:`Add a Cluster <add-a-cluster>`.

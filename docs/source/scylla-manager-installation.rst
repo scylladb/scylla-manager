@@ -1,3 +1,5 @@
+.. _install-manager:
+
 ===========================
 Scylla Manager Installation
 ===========================
@@ -74,7 +76,7 @@ Using an editor open the file and change relevant parameters.
 
 
 #. If it's a single DC cluster, uncomment and edit the ``replication_factor`` parameter to match the required replication factor.
-   This would use SimpleStrategy to create a Scylla Manager keyspace, refer to `Scylla Architecture - Fault Tolerance </architecture/architecture-fault-tolerance>`_ for more information on replication.
+   This would use SimpleStrategy to create a Scylla Manager keyspace, refer to `Scylla Architecture - Fault Tolerance <https://docs.scylladb.com/architecture/architecture-fault-tolerance/>`_ for more information on replication.
 
 #. If it's a multi DC cluster, create a keyspace named ``scylla_manager`` yourself.
    You can use a different keyspace name, just remember to adjust the ``keyspace`` parameter value.
@@ -181,4 +183,4 @@ Scylla Manager integrates with ``systemd`` and can be started and stopped using 
 Next steps
 ==========
 
-* `Scylla Manager Agent Installation <../scylla-manager-agent-installation>`_
+* :doc:`Scylla Manager Agent Installation <scylla-manager-agent-installation>`

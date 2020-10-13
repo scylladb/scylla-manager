@@ -10,7 +10,7 @@ status
 
 The status command is an extended version of ``nodetool status``.
 It can show status for all the managed clusters.
-The first column shows node status in `nodetool format </operating-scylla/nodetool-commands/status/#nodetool-status>`_.
+The first column shows node status in `nodetool status <https://docs.scylladb.com/operating-scylla/nodetool-commands/status>`_ format.
 The CQL column shows the CQL status, SSL indicator if SSL is enabled on a node, and time the check took.
 
 Available statuses are:
@@ -27,7 +27,7 @@ Available statuses are:
 * UP - Situation normal
 * DOWN - Failed to connect to host
 * HTTP XXX - HTTP failure and its status code
-* UNAUTHORISED - Wrong ``api-key`` specified for cluster or in `Scylla Manager Agent configuration file <../agent-configuration-file/#authentication-token>`_
+* UNAUTHORISED - Missing or Incorrect :ref:`Authentication Token <configure-auth-token>` was used
 * TIMEOUT - Timeout
 
 The status information is also available as a metric in Scylla Monitoring Manager dashboard.

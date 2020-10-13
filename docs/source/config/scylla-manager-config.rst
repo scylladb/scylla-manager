@@ -1,3 +1,5 @@
+.. _configuration-file:
+
 =====================
 Scylla Manager Config
 =====================

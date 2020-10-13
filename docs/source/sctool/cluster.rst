@@ -36,7 +36,7 @@ This command adds the specified cluster to the manager.
 Once a Scylla cluster is added, a weekly repair task is also added.
 
 Before continuing make sure the cluster that you want to add is prepared for it,
-see `Add a cluster to Scylla Manager <../add-a-cluster>`_ for instructions.
+see :ref:`Add a cluster to Scylla Manager <add-cluster>` for instructions.
 
 **Syntax:**
 
@@ -59,7 +59,7 @@ Example: cluster add
 ....................
 
 This example is only the command that you use to add the cluster to Scylla Manager, not the entire procedure for adding a cluster.
-The procedure is detailed in `Add a cluster to Scylla Manager <../add-a-cluster>`_.
+The procedure is detailed in :ref:`Add a cluster to Scylla Manager <add-cluster>`.
 
 .. code-block:: none
 
@@ -143,6 +143,8 @@ Example: cluster list
    ├──────────────────────────────────────┼──────────────┤
    │ db7faf98-7cc4-4a08-b707-2bc59d65551e │ prod-cluster │
    ╰──────────────────────────────────────┴──────────────╯
+
+.. _cluster-update:
 
 cluster update
 ==============

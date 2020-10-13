@@ -1,3 +1,5 @@
+.. _sctool-reference-index:
+
 ======================
 sctool Reference Guide
 ======================

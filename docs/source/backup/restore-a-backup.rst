@@ -32,15 +32,15 @@ No matter which backup scenario you are using the procedures in this workflow ap
 Make sure Scylla cluster is up
 ------------------------------
 
-Make sure that your Scylla cluster is up and that there are no issues with networking, disk space, or memory.
-If you need help you can check official documentation on `operational procedures for cluster management </operating-scylla/procedures/cluster-management/>`_.
+Make sure that your Scylla cluster is up (:ref:`Nodetool Status <nodetool-status>`) and that there are no issues with networking, disk space, or memory.
+If you need help you can check official documentation on `operational procedures for cluster management <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/>`_.
 
 Install Scylla Manager
 ----------------------
 
-You need a working Scylla Manager setup to list backups. If you don't have it installed please follow official instructions on `how to install Scylla Manager <../install/>`_ first.
+You need a working Scylla Manager setup to list backups. If you don't have it installed please follow official instructions on :ref:`Scylla Manager Installation <install-manager>` first.
 
-Nodes must have access to the locations of the backups as per instructions in the official documentation for `installing Scylla Manager Agent <../install-agent/#prepare-nodes-for-backup>`_.
+Nodes must have access to the locations of the backups.
 
 Register the cluster with the Scylla Manager
 --------------------------------------------
@@ -126,10 +126,10 @@ To extract schema files for each keyspace from the backup please refer to the of
       system_auth.cql  system_distributed.cql  system_schema.cql  system_traces.cql  user_data.cql
 
 
-  * If you do *not* have the schema file available, you can `extract the schema from system table <../../2.0/extract-schema-from-system-table/>`_.
+   If you do *not* have the schema file available, you can `extract the schema from system table <https://docs.scylladb.com/operating-scylla/manager/2.0/extract-schema-from-system-table/>`_.
 
-Full schema restore procedure can be found at `steps 1 to 5 </operating-scylla/procedures/backup-restore/restore/#procedure>`_.
-For convenience here is the list of steps for our example (WARNING: these can be destructive operations):
+   Full schema restore procedure can be found at `steps 1 to 5 <https://docs.scylladb.com/operating-scylla/procedures/backup-restore/restore/#procedure>`_.
+   For convenience here is the list of steps for our example (WARNING: these can be destructive operations):
 
 #. Run the ``nodetool drain`` command to ensure the data is flushed to the SSTables.
 
@@ -151,7 +151,7 @@ For convenience here is the list of steps for our example (WARNING: these can be
 
       sudo rm -f  /var/lib/scylla/data/user_data/data_0-6e856600017f11e790f4000000000000/*
 
-If cluster is added with CQL credentials (see `Add Cluster <../add-a-cluster/#create-a-managed-cluster>`_ for reference) Scylla Manager would backup schema in CQL format.
+If cluster is added with CQL credentials (see :ref:`Add a Cluster <add-cluster>` for reference) Scylla Manager would backup schema in CQL format.
 To obtain CQL schema from particular backup, use ``sctool backup files`` command, for example:
 
 .. code-block:: none
@@ -302,7 +302,7 @@ This makes sure that the data is consistent on all nodes and between each node.
 To a new cluster
 ----------------
 
-In order to restore backup to cluster which has a different topology, you have to use an external tool called `sstableloader </operating-scylla/procedures/cassandra_to_scylla_migration_process/>`_.
+In order to restore backup to cluster which has a different topology, you have to use an external tool called `sstableloader <https://docs.scylladb.com/operating-scylla/procedures/cassandra_to_scylla_migration_process/>`_.
 This procedure is much slower than restoring to the same topology cluster.
 
 **Procedure**

@@ -1,3 +1,5 @@
+.. _backup:
+
 ======
 Backup
 ======
@@ -31,10 +33,10 @@ The backup process
 ==================
 
 The backup procedure consists of multiple steps executed sequentially.
-It runs parallel on all nodes unless you limit it with the ``--snapshot-parallel`` or ``--upload-parallel`` `flag <../sctool/#backup-parameters>`_.
+It runs parallel on all nodes unless you limit it with the ``--snapshot-parallel`` or ``--upload-parallel`` :ref:`flag <backup-parameters>`.
 
 #. **Snapshot** - Take a snapshot of data on each node (according to backup configuration settings).
-#. **Schema** - (Optional) Upload the schema CQL to the backup storage destination, this requires that you added the cluster with ``--username`` and ``--password`` flags. See `Add Cluster <../add-a-cluster/#create-a-managed-cluster>`_ for reference.
+#. **Schema** - (Optional) Upload the schema CQL to the backup storage destination, this requires that you added the cluster with ``--username`` and ``--password`` flags. See :ref:`Add a Cluster <add-cluster>` for reference.
 #. **Upload** - Upload the snapshot to the backup storage destination.
 #. **Manifest** - Upload the manifest file containing metadata about the backup.
 #. **Purge** - If the retention threshold has been reached, remove the oldest backup from the storage location.
@@ -135,7 +137,7 @@ Schedule a backup
 The most recommended way to run a backup is across an entire cluster.
 Backups can be scheduled to run on single or multiple datacenters, keyspaces or tables.
 The backup procedure can be customized allowing you to plan your backups according to your IT policy.
-All parameters can be found in the `sctool reference <../sctool/#backup>`_.
+All parameters can be found in the :ref:`sctool reference <backup-parameters>`.
 If you want to check if all of your nodes can connect to the backup storage location see `Perform a Dry Run of a Backup`_.
 Following examples will use Amazon S3 as a storage provider.
 
@@ -175,7 +177,7 @@ This command will schedule a backup at 9th Dec 2019 at 15:15:06 UTC time zone, b
    backup/3208ff15-6e8f-48b2-875c-d3c73f545410
 
 The above command returns the task ID (backup/3208ff15-6e8f-48b2-875c-d3c73f545410, in this case).
-This ID can be used to query the status of the backup task, to defer the task to another time, or to cancel the task See `Managing Tasks <../sctool/#managing-tasks>`_.
+This ID can be used to query the status of the backup task, to defer the task to another time, or to cancel the task See :ref:`Managing Tasks <task-commands>`.
 
 Schedule a daily, weekly, and monthly backup
 ............................................
@@ -239,7 +241,7 @@ Create an ad-hoc backup
 
 An ad-hoc backup runs immediately and does not repeat.
 This procedure shows the most frequently used backup commands.
-Additional parameters can be used. Refer to `backup parameters <../sctool/#backup-parameters>`_.
+Additional parameters can be used. Refer to the :ref:`sctool reference <backup-parameters>`.
 
 **Procedure**
 
@@ -308,7 +310,7 @@ If the dry run completes successfully, a summary of the backup is displayed. For
 Monitor progress of the backup task
 ===================================
 
-Progress of the backup task can be monitored by using `sctool task progress <../sctool/#task-progress>`_ command and providing UUID of the backup task.
+Progress of the backup task can be monitored by using :ref:`sctool task progress <task-progress>` command and providing UUID of the backup task.
 
 .. code-block:: none
 
@@ -352,11 +354,6 @@ To list the files use:
    s3://manager-test-release22/backup/sst/cluster/9d0ee0ee-5cf5-4633-a1ea-5441b0983e6e/dc/AWS_EU_CENTRAL_1/node/455228ab-2d7b-470f-8a1d-69c9d7bac0e2/keyspace/system_auth/table/role_attributes/6b8c7359a84333f2a1d85dc6a187436f/la-2-big-Filter.db 	 system_auth/role_attributes
    [...]
 
-Additional resources
---------------------
-
-`Scylla Snapshots </kb/snapshots/>`_
-
 Delete backup snapshot
 =========================
 
@@ -371,3 +368,8 @@ This operation is aware of the Manager deduplication policy, and will not delete
    sctool backup delete -c prod-cluster -L s3:backups --snapshot-tag sm_20200805091422UTC
 
 Once a snapshot is deleted, it won't show up in backup listing anymore.
+
+Additional resources
+--------------------
+
+* `Scylla Snapshots <http://docs.scylladb.com/kb/snapshots/>`_

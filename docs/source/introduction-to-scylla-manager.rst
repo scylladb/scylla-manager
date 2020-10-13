@@ -20,13 +20,13 @@ The diagram below presents a view on Scylla Manager with a remote backend datast
 Each node has two connections with the Scylla Manager Server:
 
 * REST API connection - used for Scylla Manager and Scylla Manager Agent activities
-* CQL connection - used for the Scylla `Health Check <../health-check>`_
+* CQL connection - used for the Scylla :ref:`Health Check <scylla-health-check>`
 
 .. image:: images/architecture.jpg
 
 Continue reading
 ================
 
-* `How to install <../scylla-manager-installation>`_
-* `How to backup a cluster <../backup>`_
-* `How to repair a cluster <../repair-a-cluster>`_
+* :doc:`How to install <scylla-manager-installation>`
+* :doc:`How to backup a cluster <backup/backup>`
+* :doc:`How to repair a cluster <repair-a-cluster>`

@@ -13,7 +13,7 @@ Prerequisites
 =============
 
 * All the nodes have Scylla Manager Agent running.
-* All the nodes have the same `auth token configured <../scylla-manager-agent-installation/#configure-auth-token>`_.
+* All the nodes have the **same** :ref:`authentication token <configure-auth-token>` configured.
 * Traffic on the following ports is unblocked to the nodes from the Scylla Manager Server:
 
   * ``10001`` - Scylla Manager Agent REST API (HTTPS)
@@ -59,7 +59,7 @@ Add a Cluster
    * ``--name`` is an alias you can give to your cluster.
      Using an alias means you do not need to use the ID of the cluster in all other operations.
      This name must be used when connecting the managed cluster to Scylla Monitor, but does not have to be the same name you used in scylla.yaml.
-   * ``--auth-token`` is the `auth token <../scylla-manager-agent-installation/#configure-auth-token>`_ you generated.
+   * ``--auth-token`` is the :ref:`authentication token <configure-auth-token>` you generated.
 
    Each cluster has a unique ID (UUID), you will see it printed to stdout in ``sctool cluster add`` output when the cluster is added.
    You will use this ID in all commands where the cluster ID is required.
@@ -68,10 +68,10 @@ Add a Cluster
 
    Each cluster is automatically registered with a repair task which runs once a week.
    This can be canceled using ``--without-repair``.
-   To use a different repair schedule, see `Schedule a Repair <../repair-a-cluster/#schedule-a-repair>`_.
+   To use a different repair schedule, see :ref:`Schedule a Repair <schedule-a-repair>`.
 
    Optionally you can provide CQL credentials to the cluster with ``--username`` and ``--password`` flags.
-   This enables `CQL query based health check <../cluster-health-check/#cql-query-health-check>`_ compared to `credentials agnostic health check <../cluster-health-check/#credentials-agnostic-health-check>`_ if you do not specify the credentials.
+   This enables :ref:`CQL query based health check <cql-query-health-check>` compared to :ref:`credentials agnostic health check <credentials-agnostic-health-check>` if you do not specify the credentials.
    This also enables CQL schema backup in text format, which isn't performed if credentials aren't provided.
    For security reasons the CQL user should NOT have access to read your data.
 
@@ -96,7 +96,7 @@ Add a Cluster
 
    * Repair - an automated repair task, starting at midnight tonight, repeating every seven days at midnight.
 
-   .. note:: If you want to change the schedule for the repair, see `Reschedule a repair <../repair-a cluster/#reschedule-a-repair>`_.
+   .. note:: If you want to change the schedule for the repair, use the :ref:`repair update sctool command <reschedule-a-repair>`.
 
 #. Verify Scylla Manager can communicate with all the Agents, and the the cluster status is OK by running the ``sctool status`` command.
 
@@ -116,4 +116,4 @@ Add a Cluster
 See Also
 ========
 
-* `sctool Reference <../sctool>`_
+* `sctool Reference </sctool/>`_

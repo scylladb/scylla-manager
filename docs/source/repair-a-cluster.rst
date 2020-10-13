@@ -26,6 +26,8 @@ The advantages of using Scylla Manager for repair operations are:
 * Schema changes - Scylla Manager handles adding and removing tables and keyspaces during repair
 * Visibility - everything is managed from one place, progress can be read using CLI, REST API or Prometheus metrics, you can dig into details and get to know progress of individual tables and nodes
 
+.. _schedule-a-repair:
+
 Schedule a repair
 =================
 
@@ -41,7 +43,7 @@ Create a scheduled repair
 While the most recommended way to run a repair is across an entire cluster, repairs can be scheduled to run on a single/multiple datacenters, keyspaces, or tables.
 The selection mechanism, based on the glob patterns, gives you a lot of flexibility.
 Scheduled repairs run every X days depending on the frequency you set. 
-Additional parameters are described in the `sctool Reference <../sctool/#repair-parameters>`_.
+Additional parameters are described in the :ref:`sctool Repair Reference <repair-commands>`.
 
 Use the example below to run the sctool repair command.
 
@@ -51,7 +53,7 @@ Use the example below to run the sctool repair command.
 
 where:
 
-* ``-c`` - the `name <../sctool/#cluster-add>`_ you used when you created the cluster
+* ``-c`` - the :ref:`name <cluster-add>` you used when you created the cluster
 * ``-s`` - the time you want the repair to begin
 * ``-i`` - the time interval you want to use in between consecutive repairs
 
@@ -70,7 +72,7 @@ This command will schedule a repair in 4 hours, repair will be repeated every we
    repair/41014974-f7a7-4d67-b75c-44f59cdc5105
 
 Command returns the task ID (repair/41014974-f7a7-4d67-b75c-44f59cdc5105, in this case).
-This ID can be used to query the status of the repair task, to defer the task to another time, or to cancel the task See `Managing Tasks <../sctool/#managing-tasks>`_.
+This ID can be used to query the status of the repair task, to defer the task to another time, or to cancel the task See :ref:`Managing Tasks <task-commands>`.
 
 Schedule a repair for a specific DC, keyspace, or table
 --------------------------------------------------------
@@ -119,7 +121,7 @@ Create an ad-hoc repair
 
 An ad-hoc repair runs immediately and does not repeat.
 This procedure shows the most frequently used repair commands.
-Additional parameters can be used. Refer to `repair parameters <../sctool/#repair-parameters>`_.
+Additional parameters can be used. Refer to :ref:`repair parameters <repair-parameters>`.
 
 **Procedure**
 
@@ -161,7 +163,7 @@ Nevertheless you can still schedule the repair, the glob patterns are evaluated 
 Monitor progress of the repair task
 ===================================
 
-Progress of the repair task can be monitored by using `sctool task progress <../sctool/#task-progress>`_ command and providing UUID of the repair task.
+Progress of the repair task can be monitored by using the :ref:`sctool task progress <task-progress>` command and providing UUID of the repair task.
 
 .. code-block:: none
 
@@ -173,11 +175,11 @@ Change the repair speed
 Repair speed is controlled by two parameters: ``--intensity`` and ``--parallel``.
 Those parameters can be set when you:
 
-* Schedule a repair with `sctool repair <../sctool/#repair>`_
-* Update a repair with `sctool repair update <../sctool/#repair-update>`_
-* Run a repair with `sctool repair control <../sctool/#repair-control>`_
+* Schedule a repair with :ref:`sctool repair <sctool-repair>`
+* Update a repair with :ref:`sctool repair update <reschedule-a-repair>`
+* Run a repair with :ref:`sctool repair control <repair-control>`
 
-Please read the detailed information on the flags in the sctool reference: `intensity <../sctool/#intensity-float>`_, `parallel <../sctool/#parallel-integer>`_.
+Please read the detailed information on the flags in the sctool reference: :ref:`intensity <intensity-float>`, :ref:`parallel <parallel-integer>`.
 
 Repair faster
 -------------
@@ -193,7 +195,7 @@ Speedup a running repair
 
 If a repair is running on a cluster you can specify intensity and parallelism level that should be applied while it is running.
 Stopping the task and running again would reset the values.
-Current values for intensity and parallel can be checked in `sctool task progress <../sctool/#task-progress>`_.
+Current values for intensity and parallel can be checked in :ref:`sctool task progress <task-progress>`.
 
 Run the following command to adjust the number of token ranges per Scylla repair job to the maximum supported (in parallel) by a repair master node.
 
@@ -204,7 +206,7 @@ Run the following command to adjust the number of token ranges per Scylla repair
 Speedup the future runs of a repair
 ...................................
 
-If you wish to change intensity and parallelism level of a repair task use `sctool repair update <../sctool/#repair-update>`_.
+If you wish to change intensity and parallelism level of a repair task use :ref:`sctool repair update <repair-update>`.
 
 Run the following command to adjust the number of token ranges per Scylla repair job to the maximum supported (in parallel) by a repair master node.
 
@@ -230,7 +232,7 @@ Slowdown a running repair
 
 If a repair is running on a cluster you can specify intensity and parallelism level that should be applied while it is running.
 Stopping the task and running again would reset the values.
-Current values for intensity and parallel can be checked in `sctool task progress <../sctool/#task-progress>`_.
+Current values for intensity and parallel can be checked in :ref:`sctool task progress <task-progress>`.
 
 Run the following command to limit the number of parallel Scylla repair jobs in the cluster to 1.
 
@@ -248,7 +250,7 @@ Run the following command to repair half of the shards on repair master node in 
 Slowdown the future runs of a repair
 ....................................
 
-If you wish to change intensity and parallelism level of a repair task use `sctool repair update <../sctool/#repair-update>`_.
+If you wish to change intensity and parallelism level of a repair task use :ref:`sctool repair update <repair-update>`.
 
 Run the following command to limit the number of parallel Scylla repair jobs in the cluster to 1.
 

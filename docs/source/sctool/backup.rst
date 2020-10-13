@@ -48,6 +48,8 @@ The backup command allows you to schedule or run ad-hoc cluster backup.
     [--snapshot-parallel <list of parallelism limits>] [--start-date <date>]
     [--upload-parallel <list of parallelism limits>] [global flags]
 
+.. _backup-parameters:
+
 backup parameters
 .................
 
