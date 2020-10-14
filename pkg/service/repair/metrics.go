@@ -63,7 +63,7 @@ func updateMetrics(run *Run, prog Progress) {
 				"task":     taskID,
 				"keyspace": k,
 				"host":     h.Host,
-			}).Set(float64(v))
+			}).Set(float64(v.percent))
 		}
 	}
 
@@ -74,7 +74,7 @@ func updateMetrics(run *Run, prog Progress) {
 			"task":     taskID,
 			"keyspace": k,
 			"host":     "",
-		}).Set(float64(v))
+		}).Set(float64(v.percent))
 	}
 
 	// Aggregated total progress
@@ -86,10 +86,22 @@ func updateMetrics(run *Run, prog Progress) {
 	}).Set(float64(prog.PercentComplete()))
 }
 
-func keyspaceProgress(tables []TableProgress) map[string]int {
-	keyspaceProgress := make(map[string]int)
+type ksProgress map[string]struct {
+	count   int
+	percent int
+}
+
+func keyspaceProgress(tables []TableProgress) ksProgress {
+	kp := make(ksProgress)
 	for _, t := range tables {
-		keyspaceProgress[t.Keyspace] = (keyspaceProgress[t.Keyspace] + t.PercentComplete()) / 2
+		v := kp[t.Keyspace]
+		v.count++
+		v.percent += t.PercentComplete()
+		kp[t.Keyspace] = v
 	}
-	return keyspaceProgress
+	for k, v := range kp {
+		v.percent /= v.count
+		kp[k] = v
+	}
+	return kp
 }

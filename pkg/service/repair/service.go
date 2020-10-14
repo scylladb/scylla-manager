@@ -645,6 +645,16 @@ func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, r
 			)
 			return
 		}
+		run.clusterName, err = s.clusterName(ctx, run.ClusterID)
+		if err != nil {
+			s.logger.Error(ctx, "Failed to get cluster name",
+				"cluster_id", clusterID,
+				"task_id", taskID,
+				"run_id", runID,
+				"error", err,
+			)
+			return
+		}
 
 		p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
 		if err != nil {

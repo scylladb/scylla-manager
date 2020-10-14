@@ -45,13 +45,16 @@ func (mw *MetricsWatcher) WrapHandler(handler http.Handler) http.HandlerFunc {
 		t := time.NewTimer(callbackTimeout)
 		defer t.Stop()
 
-		if err := parallel.Run(len(callbacks), 0, func(i int) error {
-			(*callbacks[i])()
-			done <- struct{}{}
-			return nil
-		}); err != nil {
-			mw.logger.Error(r.Context(), "Failed to execute callbacks", "error", err)
-		}
+		go func() {
+			if err := parallel.Run(len(callbacks), 0, func(i int) error {
+				(*callbacks[i])()
+				done <- struct{}{}
+				return nil
+			}); err != nil {
+				mw.logger.Error(r.Context(), "Failed to execute callbacks", "error", err)
+			}
+		}()
+
 	loop:
 		for range callbacks {
 			select {
@@ -65,9 +68,10 @@ func (mw *MetricsWatcher) WrapHandler(handler http.Handler) http.HandlerFunc {
 	}
 }
 
-// RegisterCallback registers callback to be executed when metrics are
-// requested.
+// RegisterCallback registers and calls callback to be executed when metrics
+// are requested.
 // It returns function that should be called to stop watching for requests.
+// When stop function is called callback will be executed.
 func (mw *MetricsWatcher) RegisterCallback(callback func()) (unregister func()) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
@@ -80,6 +84,7 @@ func (mw *MetricsWatcher) RegisterCallback(callback func()) (unregister func()) 
 		for i := range mw.callbacks {
 			if mw.callbacks[i] == &callback {
 				mw.callbacks = append(mw.callbacks[:i], mw.callbacks[i+1:]...)
+				callback()
 				return
 			}
 		}
