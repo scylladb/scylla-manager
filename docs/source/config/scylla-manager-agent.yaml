@@ -1,0 +1,150 @@
+# Scylla Manager Agent config YAML
+
+# Specify authentication token, the auth_token needs to be the same for all the
+# nodes in a cluster. Use scyllamgr_auth_token_gen to generate the auth_token
+# value.
+#auth_token:
+
+# Bind REST API to the specified TCP address using HTTPS protocol. By default
+# Scylla Manager Agent uses Scylla listen/broadcast address that is read from
+# the Scylla API (see scylla section).
+#https: 0.0.0.0:10001
+
+# TLS certificate and key files to use with HTTPS. To regenerate the files use
+# scyllamgr_ssl_cert_gen script shipped with the Scylla Manager Agent.
+#tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
+#tls_key_file: /var/lib/scylla-manager/scylla_manager.key
+
+# Bind prometheus API to the specified TCP address using HTTP protocol.
+# By default it binds to all network interfaces but you can restrict it
+# by specifying it like this 127:0.0.1:5090 or any other combination
+# of ip and port.
+#prometheus: ':5090'
+
+# Debug server that allows to run pporf profiling on demand on a live system.
+#debug: 127.0.0.1:5112
+
+# CPU to run Scylla Manager Agent on. By default the agent would read Scylla
+# configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by
+# Scylla. If that's not possible user can specify a core to run agent on.
+#cpu: 0
+
+# Logging configuration.
+#logger:
+# Available log levels are error, info and debug.
+#  level: info
+
+# Copy api_address and api_port values from /etc/scylla/scylla.yaml. All the
+# needed Scylla configuration options are read from the API.
+#scylla:
+#  api_address: 0.0.0.0
+#  api_port: 10000
+
+# Backup S3 client configuration.
+#
+# Note that when running in AWS Scylla Manger Agent can read hosts IAM role.
+# It's recommended to define access rules based on IAM roles.
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+#
+# To test bucket accessibility use `scylla-manager-agent check-location` command.
+# Example:
+# scylla-manager-agent check-location --location s3:scylla-manager-backup
+#
+# Sample IAM policy for "scylla-manager-backup" bucket:
+#
+# {
+#      "Version": "2012-10-17",
+#      "Statement": [
+#          {
+#              "Effect": "Allow",
+#              "Action": [
+#                  "s3:GetBucketLocation",
+#                  "s3:ListBucket",
+#                  "s3:ListBucketMultipartUploads"
+#              ],
+#              "Resource": [
+#                  "arn:aws:s3:::scylla-manager-backup"
+#              ]
+#          },
+#          {
+#              "Effect": "Allow",
+#              "Action": [
+#                  "s3:PutObject",
+#                  "s3:GetObject",
+#                  "s3:DeleteObject",
+#                  "s3:AbortMultipartUpload",
+#                  "s3:ListMultipartUploadParts"
+#              ],
+#              "Resource": [
+#                  "arn:aws:s3:::scylla-manager-backup/*"
+#              ]
+#          }
+#      ]
+#  }
+#
+#s3:
+# S3 credentials, it's recommended to use IAM roles if possible, otherwise set
+# your AWS Access Key ID and AWS Secret Access Key (password) here.
+#  access_key_id:
+#  secret_access_key:
+#
+# Provider of the S3 service. By default this is AWS. There are multiple S3
+# API compatible providers that can be used instead. Due to minor differences
+# between them we require that exact provider is specified here for full
+# compatibility. Supported and tested options are: AWS and Minio.
+# The available providers are: Alibaba, AWS, Ceph, DigitalOcean, IBMCOS, Minio, 
+# Wasabi, Dreamhost, Netease.
+#  provider: AWS
+#
+# Region to connect to, if running in AWS EC2 instance region is set
+# to the local region by default.
+#  region:
+#
+# Endpoint for S3 API, only relevant when using S3 compatible API.
+#  endpoint:
+#
+# The server-side encryption algorithm used when storing this object in S3.
+# If using KMS ID you must provide the ARN of Key.
+#  server_side_encryption:
+#  sse_kms_key_id:
+#
+# Number of files uploaded concurrently, by default it's 2.
+#  upload_concurrency: 2
+#
+# Maximum size (in bytes) of body of single request to S3 when uploading
+# big files. Big files are cut into chunks, this value allows to specify
+# how much data single request to S3 can carry.
+# Bigger value allows to reduce number of requests needed to upload files,
+# increasing it may help with 5xx responses returned by S3.
+# Default value is 50M and string representation of the value can be provided,
+# for e.g. 1M, 1G, off.
+#  chunk_size: 50M
+#
+# AWS S3 Transfer acceleration
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
+#  use_accelerate_endpoint: false
+
+# Backup GCS client configuration.
+#
+# Note that when running in GCP Scylla Manger Agent can use instance
+# Service Account. It's recommended to define access rules based on IAM roles
+# attached to Service Account.
+# https://cloud.google.com/docs/authentication/production
+#
+# To test bucket accessibility use `scylla-manager-agent check-location` command.
+# Example:
+# scylla-manager-agent check-location --location gcs:scylla-manager-backup
+#
+#gcs:
+# GCS credentials, it's recommended to use Service Account authentication
+# if possible, otherwise set path to credentials here.
+#  service_account_file:
+#
+# Maximum size (in bytes) of body of single request to GCS when uploading files.
+# Files are cut into chunks, this value allows to specify how much data
+# single request to GCS can carry. Bigger value allows to reduce number of
+# requests needed to upload files, increasing it may help with rate limiting
+# responses from GCS.
+# Default value is 50M and string representation of the value can be provided,
+# for e.g. 1M, 1G, off.
+#  chunk_size: 50M

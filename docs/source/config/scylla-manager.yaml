@@ -1,0 +1,120 @@
+# Scylla Manager config YAML
+
+# Bind REST API to the specified TCP address using HTTP protocol.
+http: 127.0.0.1:5080
+
+# Bind REST API to the specified TCP address using HTTPS protocol.
+#https: 127.0.0.1:5443
+
+# TLS certificate and key files to use with HTTPS. To regenerate the files use
+# scyllamgr_ssl_cert_gen script shipped with the Scylla Manager.
+#tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt
+#tls_key_file: /var/lib/scylla-manager/scylla_manager.key
+#
+# CA to validate client certificates, if set client must present a certificate
+# signed by the CA.
+#tls_ca_file:
+
+# Bind prometheus API to the specified TCP address using HTTP protocol.
+# By default it binds to all network interfaces but you can restrict it
+# by specifying it like this 127:0.0.1:5090 or any other combination
+# of ip and port.
+#prometheus: ':5090'
+
+# Debug server that allows to run pporf profiling on demand on a live system.
+#debug: 127.0.0.1:5112
+
+# Logging configuration.
+#logger:
+# Available log levels are error, info and debug.
+#  level: info
+
+# Scylla Manager database, used to store management data.
+#database:
+#  hosts:
+#    - 127.0.0.1
+#
+# Enable or disable client/server encryption.
+#  ssl: false
+#
+# Database credentials.
+#  user: user
+#  password: password
+#
+# Local datacenter name, specify if using a remote, multi-dc cluster.
+#  local_dc:
+#
+# Keyspace for management data.
+#  keyspace: scylla_manager
+#  replication_factor: 1
+#
+# Database connection timeout.
+#  timeout: 600ms
+#
+# Should we use a token aware driver, this would make manager access appropriate
+# host and shard to execute a request eliminating request routing.
+#  token_aware: true
+
+# Optional custom client/server encryption options.
+#ssl:
+# CA certificate used to validate server cert. If not set will use he host's root CA set.
+#  cert_file:
+#
+# Verify the hostname and server cert.
+#  validate: true
+#
+# Client certificate and key in PEM format. It has to be provided when
+# client_encryption_options.require_client_auth=true is set on server.
+#  user_cert_file:
+#  user_key_file
+
+# Healthcheck service configuration.
+#healthcheck:
+# Timeout for CQL status checks.
+#  timeout: 250ms
+#  ssl_timeout: 750ms
+#
+# Dynamic timeout calculates timeout based on past measurements.
+# It takes recent RTTs, calculates mean (m), standard deviation (stddev),
+# and returns timeout of next probe equal to m + stddev_multiplier * max(stddev, 1ms).
+#
+# Higher stddev_multiplier is recommended on stable network environments,
+# because standard deviation may be close to 0.
+#  dynamic_timeout:
+#    enabled: true
+#    probes: 200
+#    max_timeout: 30s
+#    stddev_multiplier: 5
+#
+# Backup service configuration.
+#backup:
+# Minimal amount of free disk space required to take a snapshot.
+#  disk_space_free_min_percent: 10
+#
+# Maximal time for backup run to be considered fresh and can be continued from
+# the same snapshot. If exceeded, new run with new snapshot will be created.
+# Zero means no limit.
+#  age_max: 12h
+
+# Repair service configuration.
+#repair:
+# Frequency Scylla Manager poll Scylla node for repair command status.
+#  poll_interval: 50ms
+#
+# Maximal time a paused repair is considered fresh and can be continued,
+# if exceeded repair will start from the beginning. Zero means no limit.
+#  age_max: 0
+#
+# Specifies how long repair will wait until all ongoing repair requests finish
+# when repair task is stopped. After this time, task will be interrupted.
+#  graceful_stop_timeout: 30s
+#
+# Force usage of certain type of repair algorithm. Allowed values are row_level, legacy, and auto.
+# row_level means that Scylla Manager will use row level repair optimised algorithm.
+# legacy means that Scylla Manager will be splitting ranges to shards when making repair requests.
+# Default value is auto which means that repair type will be auto detected based on Scylla versions in the managed cluster.
+#  force_repair_type: auto
+#
+# Distribution of data among cores (shards) within a node.
+# Copy value from Scylla configuration file.
+#  murmur3_partitioner_ignore_msb_bits: 12
