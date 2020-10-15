@@ -125,10 +125,15 @@ func (b *tableTokenRangeBuilder) Add(ranges []scyllaclient.TokenRange) *tableTok
 }
 
 func (b *tableTokenRangeBuilder) shouldAdd(tr scyllaclient.TokenRange) bool {
-	if b.target.Host == "" {
-		return true
+	if b.target.Host != "" && !b.isReplica(b.target.Host, tr.Replicas) {
+		return false
 	}
-	return b.isReplica(b.target.Host, tr.Replicas)
+
+	if len(b.filteredReplicas(tr.Replicas)) == 0 {
+		return false
+	}
+
+	return true
 }
 
 func (b *tableTokenRangeBuilder) isReplica(host string, replicas []string) bool {
