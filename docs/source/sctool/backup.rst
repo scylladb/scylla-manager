@@ -221,7 +221,7 @@ The backup storage is updated to ``prod-backups``.
 
 .. code-block:: none
 
-   sctool backup backup/3208ff15-6e8f-48b2-875c-d3c73f545410 -c prod-cluster -i 12h -L 's3:prod-backups'
+   sctool backup update backup/3208ff15-6e8f-48b2-875c-d3c73f545410 -c prod-cluster -i 12h -L 's3:prod-backups'
    backup/3208ff15-6e8f-48b2-875c-d3c73f545410
 
 backup list

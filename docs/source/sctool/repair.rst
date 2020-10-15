@@ -369,3 +369,12 @@ repair update parameters
 ........................
 
 In addition to :ref:`global-flags`, repair update takes the same parameters as `repair parameters`_
+
+repair update example
+.....................
+
+This example updates the repair task 143d160f-e53c-4890-a9e7-149561376cfd adding an intensity parameter to speed up the repair.
+
+.. code-block:: none
+
+   sctool repair update -c prod-cluster repair/143d160f-e53c-4890-a9e7-149561376cfd --intensity 0
