@@ -333,6 +333,8 @@ Changing the intensity impacts repair granularity if you need to resume it, the 
 
 **Default:** 1
 
+For examples, see :ref:`Change Repair Speed <change-speed>`.
+
 =====
 
 .. _parallel-integer:
@@ -346,6 +348,8 @@ The effective parallelism depends on a keyspace replication factor (RF) and the 
 The formula to calculate is is as follows: nr. nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.
 
 **Default:** 0
+
+For examples, see :ref:`Change Repair Speed <change-speed>`.
 
 =====
 
