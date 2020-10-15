@@ -65,13 +65,16 @@ func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclie
 func (w *worker) Run(ctx context.Context) error {
 	w.logger.Info(ctx, "Start")
 
+	defer func() {
+		w.logger.Info(ctx, "Done")
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case job, ok := <-w.in:
 			if !ok {
-				w.logger.Info(ctx, "Done")
 				return nil
 			}
 
