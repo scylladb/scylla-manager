@@ -32,7 +32,7 @@ No matter which backup scenario you are using the procedures in this workflow ap
 Make sure Scylla cluster is up
 ==============================
 
-Make sure that your Scylla cluster is up (:ref:`Nodetool Status <nodetool-status>`) and that there are no issues with networking, disk space, or memory.
+Make sure that your Scylla cluster is up (`Nodetool Status <https://docs.scylladb.com/operating-scylla/nodetool-commands/status/>`_) and that there are no issues with networking, disk space, or memory.
 If you need help you can check official documentation on `operational procedures for cluster management <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/>`_.
 
 Install Scylla Manager
@@ -103,33 +103,21 @@ Identify relevant snapshot
    The data source for the listing is the cluster backup locations.
    Listing may take some time depending on how big the cluster is and how many backups there are.
 
-Restore the schema
-==================
+Prepare to restore the schema
+=============================
 
-Scylla Manager 2.2 can store schema with your backup.
-To extract schema files for each keyspace from the backup please refer to the official documentation for `extracting schema from the backup <../../2.2/extract-schema-from-backup>`_. For convenience here is the continuation of our example with the list of steps for restoring schema:
+Scylla Manager 2.2 can store the schema with your backup.
 
-#. Download schema from the backup store to the current dir, it's in the first line of the ``backup_files.out`` output:
+**Prerequisites**
 
-   .. code-block:: none
+* You need to have the schema file you want to restore.
+  For a schema backed up with Scylla Manager 2.2  see :ref:`Get the Schema <get-schema>`.
+  For a schema backed up with a prior version of Scylla Manager, you can `extract the schema from system table <https://docs.scylladb.com/operating-scylla/manager/2.0/extract-schema-from-system-table/>`_.
 
-      sctool backup files --cluster my-cluster -L s3:backup-bucket -T sm_20200513104924UTC --with-version | head -n 1 | xargs -n2 aws s3 cp
-      download: s3://backup-bucket/backup/schema/cluster/7313fda0-6ebd-4513-8af0-67ac8e30077b/task_001ce624-9ac2-4076-a502-ec99d01effe4_tag_sm_20200513104924UTC_schema.tar.gz to ./task_001ce624-9ac2-4076-a502-ec99d01effe4_tag_sm_20200513104924UTC_schema.tar.gz
+** Procedure**
 
-#. Extract schema files by decompressing archive:
-
-   .. code-block:: none
-
-      mkdir ./schema
-      tar -xf task_001ce624-9ac2-4076-a502-ec99d01effe4_tag_sm_20200513104924UTC_schema.tar.gz -C ./schema
-      ls ./schema
-      system_auth.cql  system_distributed.cql  system_schema.cql  system_traces.cql  user_data.cql
-
-
-   If you do *not* have the schema file available, you can `extract the schema from system table <https://docs.scylladb.com/operating-scylla/manager/2.0/extract-schema-from-system-table/>`_.
-
-   Full schema restore procedure can be found at `steps 1 to 5 <https://docs.scylladb.com/operating-scylla/procedures/backup-restore/restore/#procedure>`_.
-   For convenience here is the list of steps for our example (WARNING: these can be destructive operations):
+   .. note:: Full schema restore procedure can be found at `steps 1 to 5 <https://docs.scylladb.com/operating-scylla/procedures/backup-restore/restore/#procedure>`_.
+      For convenience here is the list of steps for our example (WARNING: these can be destructive operations):
 
 #. Run the ``nodetool drain`` command to ensure the data is flushed to the SSTables.
 
@@ -174,7 +162,11 @@ To extract schema files for each keyspace from the backup please refer to the of
        -rw------- 0/0           11557 2020-05-08 14:38 system_schema.cql
        -rw------- 0/0            4483 2020-05-08 14:38 system_traces.cql
 
-   To restore the schema you need to execute the files with cqlsh command.
+
+Restore the schema
+------------------
+
+To restore the schema you need to execute the files with cqlsh command.
 
 **Procedure**
 

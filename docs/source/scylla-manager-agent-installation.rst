@@ -103,4 +103,4 @@ Next steps
 ..
    TODO add link to backup configuration
 
-* :doc:`Add a Cluster <add-a-cluster>`.
+* :ref:`Add a Cluster <add-cluster>`.

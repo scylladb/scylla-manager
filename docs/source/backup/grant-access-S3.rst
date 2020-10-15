@@ -48,7 +48,7 @@ Sample IAM policy for *scylla-manager-backup* bucket:
 Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
 
 #. Uncomment the ``s3:`` line, for parameters note the two spaces in front, it's a yaml file.
-#. Uncomment and set ``access_key_id`` and ``secret_access_key``, refer to :ref:`Scylla Agent Configuration <agent-configuration>` for details.
+#. Uncomment and set ``access_key_id`` and ``secret_access_key``, refer to :ref:`Scylla Agent Configuration <configure-auth-token>` for details.
 #. If the S3 bucket is **not** running in the **same region** as the AWS EC2 instance uncomment and set the *region* to the S3 bucket's region.
 
 #. Validate that the manager has access to the backup location.

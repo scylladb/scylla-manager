@@ -1,6 +1,8 @@
-==============================
-Extract schema from the backup
-==============================
+.. _get-schema:
+
+==============
+Get the Schema
+==============
 
 .. versionadded:: 2.1 Scylla Manager
 

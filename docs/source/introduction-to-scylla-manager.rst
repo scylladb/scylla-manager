@@ -28,5 +28,5 @@ Continue reading
 ================
 
 * :doc:`How to install <scylla-manager-installation>`
-* :doc:`How to backup a cluster <backup/backup>`
+* :doc:`How to backup a cluster <backup/index>`
 * :doc:`How to repair a cluster <repair-a-cluster>`

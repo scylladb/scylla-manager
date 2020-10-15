@@ -22,8 +22,10 @@ Alternatively you can configure service account credentials manually. Use `this 
 
 **Procedure**
 #. Open the Scylla Manager Agent Configuration File for editing. It is located in ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``.
+
    As this is a Yaml file, remember to indent two spaces for each line you uncomment.
-   Refer to :ref:`Scylla Agent Configuration <agent-configuration>` for details.
+   Refer to :ref:`Scylla Agent Configuration <configure-auth-token>` for details.
+
 #. Uncomment the ``gcs:`` line.
 #. Uncomment and set ``service_account_file`` with the path to the service account credentials file.
 #. For each service account used by the nodes, add `Storage Object Admin role <https://cloud.google.com/storage/docs/access-control/iam-roles>`_ in the bucket permissions settings.
