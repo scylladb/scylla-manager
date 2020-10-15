@@ -17,7 +17,7 @@ There are two restore scenarios:
 #. `Upload data to Scylla`_
 
 Prepare for restore
-===================
+-------------------
 
 No matter which backup scenario you are using the procedures in this workflow apply.
 
@@ -30,20 +30,20 @@ No matter which backup scenario you are using the procedures in this workflow ap
 #. `Restore the schema`_
 
 Make sure Scylla cluster is up
-------------------------------
+==============================
 
 Make sure that your Scylla cluster is up (:ref:`Nodetool Status <nodetool-status>`) and that there are no issues with networking, disk space, or memory.
 If you need help you can check official documentation on `operational procedures for cluster management <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/>`_.
 
 Install Scylla Manager
-----------------------
+======================
 
 You need a working Scylla Manager setup to list backups. If you don't have it installed please follow official instructions on :ref:`Scylla Manager Installation <install-manager>` first.
 
 Nodes must have access to the locations of the backups.
 
 Register the cluster with the Scylla Manager
---------------------------------------------
+============================================
 
 This section only applies to situations where the registered cluster that was originally used for the backup is missing from the Scylla Manager.
 In that case, a new cluster must be registered before you can get access to the backups created with the old one.
@@ -67,7 +67,7 @@ If the uuid of the old cluster is lost there is a workaround with ``--all-cluste
 In that case just register the cluster and proceed to the next step.
 
 Identify relevant snapshot
---------------------------
+==========================
 
 **Procedure**
 
@@ -104,7 +104,7 @@ Identify relevant snapshot
    Listing may take some time depending on how big the cluster is and how many backups there are.
 
 Restore the schema
-------------------
+==================
 
 Scylla Manager 2.2 can store schema with your backup.
 To extract schema files for each keyspace from the backup please refer to the official documentation for `extracting schema from the backup <../../2.2/extract-schema-from-backup>`_. For convenience here is the continuation of our example with the list of steps for restoring schema:
@@ -151,30 +151,30 @@ To extract schema files for each keyspace from the backup please refer to the of
 
       sudo rm -f  /var/lib/scylla/data/user_data/data_0-6e856600017f11e790f4000000000000/*
 
-If cluster is added with CQL credentials (see :ref:`Add a Cluster <add-cluster>` for reference) Scylla Manager would backup schema in CQL format.
-To obtain CQL schema from particular backup, use ``sctool backup files`` command, for example:
+   If cluster is added with CQL credentials (see :ref:`Add a Cluster <add-cluster>` for reference) Scylla Manager would backup schema in CQL format.
+   To obtain CQL schema from particular backup, use ``sctool backup files`` command, for example:
 
-.. code-block:: none
+   .. code-block:: none
 
-   sctool backup files -c my-cluster -L s3:backups -T sm_20191210145143UTC
+      sctool backup files -c my-cluster -L s3:backups -T sm_20191210145143UTC
 
-The first output line is a path to schemas archive, for example:
+   The first output line is a path to schemas archive, for example:
 
-.. code-block:: none
+   .. code-block:: none
 
-   s3://backups/backup/schema/cluster/ed63b474-2c05-4f4f-b084-94541dd86e7a/task_287791d9-c257-4850-aef5-7537d6e69d90_tag_sm_20200506115612UTC_schema.tar.gz      ./
+      s3://backups/backup/schema/cluster/ed63b474-2c05-4f4f-b084-94541dd86e7a/task_287791d9-c257-4850-aef5-7537d6e69d90_tag_sm_20200506115612UTC_schema.tar.gz      ./
 
-This archive contains a single CQL file for each keyspace in the backup.
+   This archive contains a single CQL file for each keyspace in the backup.
 
-.. code-block:: none
+   .. code-block:: none
 
-    tar -ztvf task_287791d9-c257-4850-aef5-7537d6e69d90_tag_sm_20200506115612UTC_schema.tar.gz
-    -rw------- 0/0            2366 2020-05-08 14:38 system_auth.cql
-    -rw------- 0/0             931 2020-05-08 14:38 system_distributed.cql
-    -rw------- 0/0           11557 2020-05-08 14:38 system_schema.cql
-    -rw------- 0/0            4483 2020-05-08 14:38 system_traces.cql
+       tar -ztvf task_287791d9-c257-4850-aef5-7537d6e69d90_tag_sm_20200506115612UTC_schema.tar.gz
+       -rw------- 0/0            2366 2020-05-08 14:38 system_auth.cql
+       -rw------- 0/0             931 2020-05-08 14:38 system_distributed.cql
+       -rw------- 0/0           11557 2020-05-08 14:38 system_schema.cql
+       -rw------- 0/0            4483 2020-05-08 14:38 system_traces.cql
 
-To restore the schema you need to execute the files with cqlsh command.
+   To restore the schema you need to execute the files with cqlsh command.
 
 **Procedure**
 
@@ -198,7 +198,7 @@ To restore the schema you need to execute the files with cqlsh command.
       cqlsh -f my_keyspace.cql
 
 Upload data to Scylla
-=====================
+---------------------
 
 You can either upload the data:
 
@@ -207,7 +207,7 @@ You can either upload the data:
 
 
 To the same cluster
--------------------
+===================
 
 List the backup files
 .....................
@@ -300,7 +300,7 @@ After performing the above on all nodes, repair the cluster with Scylla Manager 
 This makes sure that the data is consistent on all nodes and between each node.
 
 To a new cluster
-----------------
+================
 
 In order to restore backup to cluster which has a different topology, you have to use an external tool called `sstableloader <https://docs.scylladb.com/operating-scylla/procedures/cassandra_to_scylla_migration_process/>`_.
 This procedure is much slower than restoring to the same topology cluster.
