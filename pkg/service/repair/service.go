@@ -365,7 +365,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
 	workerCtx, workerCancel := context.WithCancel(context.Background())
-	defer workerCancel()
 
 	// Start updating progress metrics.
 	stop := s.watchProgressMetrics(ctx, run.ClusterID, run.TaskID, run.ID)
@@ -374,18 +373,19 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Run Workers and Generator
 	var eg errgroup.Group
 	for i := 0; i < wc; i++ {
-		wctx := log.WithFields(workerCtx, "worker", i)
+		i := i
 		eg.Go(func() error {
-			return w.Run(wctx)
+			err := w.Run(log.WithFields(workerCtx, "worker", i))
+			if errors.Is(err, context.Canceled) {
+				err = nil
+			}
+			return err
 		})
 	}
 	eg.Go(func() error {
-		defer func() {
-			if ctx.Err() != nil {
-				workerCancel()
-			}
-		}()
-		return g.Run(ctx)
+		err := g.Run(ctx)
+		workerCancel()
+		return err
 	})
 
 	if err := eg.Wait(); err != nil {
