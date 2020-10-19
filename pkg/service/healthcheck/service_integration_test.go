@@ -135,7 +135,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 	t.Run("resolve address via Agent NodeInfo endpoint", func(t *testing.T) {
 		cid := uuid.MustRandom()
 
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.11"}] = nodeInfoTTL{
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.11"}] = nodeInfo{
 			NodeInfo: &scyllaclient.NodeInfo{
 				BroadcastRPCAddress: "127.0.0.1",
 				NativeTransportPort: DefaultCQLPort,
@@ -143,7 +143,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			},
 			Expires: timeutc.Now().Add(time.Hour),
 		}
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.12"}] = nodeInfoTTL{
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.12"}] = nodeInfo{
 			NodeInfo: &scyllaclient.NodeInfo{
 				BroadcastRPCAddress: "192.168.100.12",
 				NativeTransportPort: "1",
@@ -151,7 +151,7 @@ func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
 			},
 			Expires: timeutc.Now().Add(time.Hour),
 		}
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.13"}] = nodeInfoTTL{
+		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.13"}] = nodeInfo{
 			NodeInfo: &scyllaclient.NodeInfo{
 				BroadcastRPCAddress: "400.400.400.400",
 				NativeTransportPort: DefaultCQLPort,
