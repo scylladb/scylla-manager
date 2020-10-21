@@ -10,7 +10,7 @@ Scylla Manager
    scylla-manager-installation
    scylla-manager-agent-installation
    manage-nodes/index
-   repair-a-cluster
+   repair/index
    backup/index
    sctool/index
    config/index
