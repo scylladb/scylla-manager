@@ -1,7 +1,7 @@
 gocql
 =====
 
-[![Build Status](https://travis-ci.org/scylladb/gocql.svg?branch=master)](https://travis-ci.org/scylladb/gocql)
+![Build](https://github.com/scylladb/gocql/workflows/Build/badge.svg)
 [![GoDoc](https://godoc.org/github.com/scylladb/gocql?status.svg)](https://godoc.org/github.com/scylladb/gocql)
 
 This is a fork of [gocql](https://github.com/gocql/gocql) package that we created at Scylla.
@@ -88,8 +88,8 @@ The following matrix shows the versions of Go and Cassandra that are tested with
 
 Go/Cassandra | 2.1.x | 2.2.x | 3.x.x
 -------------| -------| ------| ---------
-1.12 | yes | yes | yes
-1.13 | yes | yes | yes
+1.14 | yes | yes | yes
+1.15 | yes | yes | yes
 
 Gocql has been tested in production against many different versions of Cassandra. Due to limits in our CI setup we only test against the latest 3 major releases, which coincide with the official support from the Apache project.
 
