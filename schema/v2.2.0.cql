@@ -53,7 +53,3 @@ CREATE TABLE repair_run_state (
     error_pos set<bigint>,
     PRIMARY KEY ((cluster_id, task_id, run_id), keyspace_name, table_name)
 ) WITH default_time_to_live = 15552000;
-
--- Scheduler
-
-ALTER TABLE scylla_manager.scheduler_task WITH default_time_to_live = 0;
