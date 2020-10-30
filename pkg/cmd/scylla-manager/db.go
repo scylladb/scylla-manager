@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/migrate"
 	schemamigrate "github.com/scylladb/mermaid/pkg/schema/migrate"
+	"github.com/scylladb/mermaid/pkg/schema/table"
 )
 
 func keyspaceExists(config *serverConfig) (bool, error) {
@@ -79,9 +80,43 @@ func migrateSchema(config *serverConfig, logger log.Logger) error {
 	}
 	defer session.Close()
 
+	// Run migrations
+	ctx := context.Background()
 	schemamigrate.Logger = logger
 	migrate.Callback = schemamigrate.Callback
-	return migrate.Migrate(context.Background(), session, config.Database.MigrateDir)
+	if err := migrate.Migrate(ctx, session, config.Database.MigrateDir); err != nil {
+		return err
+	}
+
+	// Run post migration actions
+	if err := fixSchedulerTaskTTL(session, logger, c.Keyspace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func fixSchedulerTaskTTL(session *gocql.Session, logger log.Logger, keyspace string) error {
+	ctx := context.Background()
+
+	var ttl int
+	if err := session.Query("SELECT default_time_to_live FROM system_schema.tables WHERE keyspace_name=? AND table_name=?", nil).
+		Bind(keyspace, "scheduler_task").Scan(&ttl); err != nil {
+		logger.Info(ctx, "Failed to get scheduler_task table properties")
+	}
+	if ttl == 0 {
+		return nil
+	}
+
+	logger.Info(ctx, "Post migration", "action", "fix TTL in scheduler_task table")
+	if err := session.Query("ALTER TABLE scheduler_task WITH default_time_to_live = 0").Exec(); err != nil {
+		return err
+	}
+	if err := rewriteRows(session, table.SchedTask); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func gocqlClusterConfigForDBInit(config *serverConfig) *gocql.ClusterConfig {
