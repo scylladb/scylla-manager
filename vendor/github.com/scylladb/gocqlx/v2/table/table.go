@@ -130,6 +130,11 @@ func (t *Table) SelectBuilder(columns ...string) *qb.SelectBuilder {
 	return qb.Select(t.metadata.Name).Columns(columns...).Where(t.partKeyCmp...)
 }
 
+// SelectAll returns select * statement.
+func (t *Table) SelectAll() (stmt string, names []string) {
+	return qb.Select(t.metadata.Name).ToCql()
+}
+
 // Insert returns insert all columns statement.
 func (t *Table) Insert() (stmt string, names []string) {
 	return t.insert.stmt, t.insert.names
@@ -143,6 +148,11 @@ func (t *Table) InsertQuery(session gocqlx.Session) *gocqlx.Queryx {
 // InsertQueryContext returns query wrapped with context which inserts all columns.
 func (t *Table) InsertQueryContext(ctx context.Context, session gocqlx.Session) *gocqlx.Queryx {
 	return t.InsertQuery(session).WithContext(ctx)
+}
+
+// InsertBuilder returns a builder initialised with all columns.
+func (t *Table) InsertBuilder() *qb.InsertBuilder {
+	return qb.Insert(t.metadata.Name).Columns(t.metadata.Columns...)
 }
 
 // Update returns update by primary key statement.
