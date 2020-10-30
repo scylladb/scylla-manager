@@ -27,7 +27,7 @@ import (
 // scenario is to have one global session object to interact with the
 // whole Cassandra cluster.
 //
-// This type extends the Node interface by adding a convinient query builder
+// This type extends the Node interface by adding a convenient query builder
 // and automatically sets a default consistency level on all operations
 // that do not have a consistency level set.
 type Session struct {
@@ -128,6 +128,14 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 		cancel:          cancel,
 	}
 
+	// Close created resources on error otherwise they'll leak
+	var err error
+	defer func() {
+		if err != nil {
+			s.Close()
+		}
+	}()
+
 	s.schemaDescriber = newSchemaDescriber(s)
 
 	s.nodeEvents = newEventDebouncer("NodeEvents", s.handleNodeEvent)
@@ -163,8 +171,7 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 	}
 	s.connCfg = connCfg
 
-	if err := s.init(); err != nil {
-		s.Close()
+	if err = s.init(); err != nil {
 		if err == ErrNoConnectionsStarted {
 			//This error used to be generated inside NewSession & returned directly
 			//Forward it on up to be backwards compatible
@@ -227,17 +234,25 @@ func (s *Session) init() error {
 	}
 
 	hosts = hosts[:0]
+
+	var wg sync.WaitGroup
 	for _, host := range hostMap {
-		host = s.ring.addOrUpdate(host)
+		host := s.ring.addOrUpdate(host)
 		if s.cfg.filterHost(host) {
 			continue
 		}
 
 		host.setState(NodeUp)
-		s.pool.addHost(host)
-
 		hosts = append(hosts, host)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.pool.addHost(host)
+		}()
 	}
+
+	wg.Wait()
 
 	type bulkAddHosts interface {
 		AddHosts([]*HostInfo)
@@ -373,6 +388,7 @@ func (s *Session) Query(stmt string, values ...interface{}) *Query {
 	qry.stmt = stmt
 	qry.values = values
 	qry.defaultsFromSession()
+	qry.lwt = false
 	return qry
 }
 
@@ -395,6 +411,7 @@ func (s *Session) Bind(stmt string, b func(q *QueryInfo) ([]interface{}, error))
 	qry.stmt = stmt
 	qry.binding = b
 	qry.defaultsFromSession()
+	qry.lwt = false
 	return qry
 }
 
@@ -559,6 +576,7 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 		routingKeyInfo := &routingKeyInfo{
 			indexes: info.request.pkeyColumns,
 			types:   types,
+			lwt:     info.request.lwt,
 		}
 
 		inflight.value = routingKeyInfo
@@ -593,6 +611,7 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 	routingKeyInfo := &routingKeyInfo{
 		indexes: make([]int, size),
 		types:   make([]TypeInfo, size),
+		lwt:     info.request.lwt,
 	}
 
 	for keyIndex, keyColumn := range partitionKey {
@@ -655,7 +674,7 @@ func (s *Session) ExecuteBatch(batch *Batch) error {
 }
 
 // ExecuteBatchCAS executes a batch operation and returns true if successful and
-// an iterator (to scan aditional rows if more than one conditional statement)
+// an iterator (to scan additional rows if more than one conditional statement)
 // was sent.
 // Further scans on the interator must also remember to include
 // the applied boolean as the first argument to *Iter.Scan
@@ -809,7 +828,7 @@ type Query struct {
 	rt                    RetryPolicy
 	spec                  SpeculativeExecutionPolicy
 	binding               func(q *QueryInfo) ([]interface{}, error)
-	serialCons            SerialConsistency
+	serialCons            Consistency
 	defaultTimestamp      bool
 	defaultTimestampValue int64
 	disableSkipMetadata   bool
@@ -826,6 +845,11 @@ type Query struct {
 	// used by control conn queries to prevent triggering a write to systems
 	// tables in AWS MCS see
 	skipPrepare bool
+
+	// "lwt" denotes the query being an LWT operation
+	// In effect if the query is of the form "INSERT/UPDATE/DELETE ... IF ..."
+	// For more details see https://docs.scylladb.com/using-scylla/lwt/
+	lwt bool
 }
 
 func (q *Query) defaultsFromSession() {
@@ -944,7 +968,7 @@ func (q *Query) DefaultTimestamp(enable bool) *Query {
 // WithTimestamp will enable the with default timestamp flag on the query
 // like DefaultTimestamp does. But also allows to define value for timestamp.
 // It works the same way as USING TIMESTAMP in the query itself, but
-// should not break prepared query optimization
+// should not break prepared query optimization.
 //
 // Only available on protocol >= 3
 func (q *Query) WithTimestamp(timestamp int64) *Query {
@@ -1043,7 +1067,9 @@ func (q *Query) GetRoutingKey() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	if routingKeyInfo != nil {
+		q.lwt = routingKeyInfo.lwt
+	}
 	return createRoutingKey(routingKeyInfo, q.values)
 }
 
@@ -1098,6 +1124,10 @@ func (q *Query) IsIdempotent() bool {
 	return q.idempotent
 }
 
+func (q *Query) IsLWT() bool {
+	return q.lwt
+}
+
 // Idempotent marks the query as being idempotent or not depending on
 // the value.
 func (q *Query) Idempotent(value bool) *Query {
@@ -1119,6 +1149,9 @@ func (q *Query) Bind(v ...interface{}) *Query {
 // SERIAL. This option will be ignored for anything else that a
 // conditional update/insert.
 func (q *Query) SerialConsistency(cons SerialConsistency) *Query {
+	if !cons.IsSerial() {
+		panic("Serial consistency can only be SERIAL or LOCAL_SERIAL got " + cons.String())
+	}
 	q.serialCons = cons
 	return q
 }
@@ -1135,7 +1168,7 @@ func (q *Query) PageState(state []byte) *Query {
 // NoSkipMetadata will override the internal result metadata cache so that the driver does not
 // send skip_metadata for queries, this means that the result will always contain
 // the metadata to parse the rows and will not reuse the metadata from the prepared
-// staement. This should only be used to work around cassandra bugs, such as when using
+// statement. This should only be used to work around cassandra bugs, such as when using
 // CAS operations which do not end in Cas.
 //
 // See https://issues.apache.org/jira/browse/CASSANDRA-11099
@@ -1423,7 +1456,7 @@ func (iter *Iter) Scan(dest ...interface{}) bool {
 	}
 
 	if iter.next != nil && iter.pos >= iter.next.pos {
-		go iter.next.fetch()
+		iter.next.fetchAsync()
 	}
 
 	// currently only support scanning into an expand tuple, such that its the same
@@ -1518,10 +1551,17 @@ func (iter *Iter) NumRows() int {
 }
 
 type nextIter struct {
-	qry  *Query
-	pos  int
-	once sync.Once
-	next *Iter
+	qry   *Query
+	pos   int
+	oncea sync.Once
+	once  sync.Once
+	next  *Iter
+}
+
+func (n *nextIter) fetchAsync() {
+	n.oncea.Do(func() {
+		go n.fetch()
+	})
 }
 
 func (n *nextIter) fetch() *Iter {
@@ -1542,13 +1582,20 @@ type Batch struct {
 	spec                  SpeculativeExecutionPolicy
 	observer              BatchObserver
 	session               *Session
-	serialCons            SerialConsistency
+	serialCons            Consistency
 	defaultTimestamp      bool
 	defaultTimestampValue int64
 	context               context.Context
 	cancelBatch           func()
 	keyspace              string
 	metrics               *queryMetrics
+
+	// "lwt" denotes the query being an LWT operation
+	// In effect if the query is of the form "INSERT/UPDATE/DELETE ... IF ..."
+	// For more details see https://docs.scylladb.com/using-scylla/lwt/
+	// It is sufficient that one batch entry is a conditional query for the
+	// whole batch to be considered for LWT optimization.
+	lwt bool
 }
 
 // NewBatch creates a new batch operation without defaults from the cluster
@@ -1639,6 +1686,10 @@ func (b *Batch) IsIdempotent() bool {
 	return true
 }
 
+func (b *Batch) IsLWT() bool {
+	return b.lwt
+}
+
 func (b *Batch) speculativeExecutionPolicy() SpeculativeExecutionPolicy {
 	return b.spec
 }
@@ -1704,6 +1755,9 @@ func (b *Batch) Size() int {
 //
 // Only available for protocol 3 and above
 func (b *Batch) SerialConsistency(cons SerialConsistency) *Batch {
+	if !cons.IsSerial() {
+		panic("Serial consistency can only be SERIAL or LOCAL_SERIAL got " + cons.String())
+	}
 	b.serialCons = cons
 	return b
 }
@@ -1722,7 +1776,7 @@ func (b *Batch) DefaultTimestamp(enable bool) *Batch {
 // WithTimestamp will enable the with default timestamp flag on the query
 // like DefaultTimestamp does. But also allows to define value for timestamp.
 // It works the same way as USING TIMESTAMP in the query itself, but
-// should not break prepared query optimization
+// should not break prepared query optimization.
 //
 // Only available on protocol >= 3
 func (b *Batch) WithTimestamp(timestamp int64) *Batch {
@@ -1733,7 +1787,7 @@ func (b *Batch) WithTimestamp(timestamp int64) *Batch {
 
 func (b *Batch) attempt(keyspace string, end, start time.Time, iter *Iter, host *HostInfo) {
 	latency := end.Sub(start)
-	_, metricsForHost := b.metrics.attempt(1, latency, host, b.observer != nil)
+	attempt, metricsForHost := b.metrics.attempt(1, latency, host, b.observer != nil)
 
 	if b.observer == nil {
 		return
@@ -1753,6 +1807,7 @@ func (b *Batch) attempt(keyspace string, end, start time.Time, iter *Iter, host 
 		Host:    host,
 		Metrics: metricsForHost,
 		Err:     iter.err,
+		Attempt: attempt,
 	})
 }
 
@@ -1774,6 +1829,9 @@ func (b *Batch) GetRoutingKey() ([]byte, error) {
 	routingKeyInfo, err := b.session.routingKeyInfo(b.Context(), entry.Stmt)
 	if err != nil {
 		return nil, err
+	}
+	if routingKeyInfo != nil {
+		b.lwt = routingKeyInfo.lwt
 	}
 
 	return createRoutingKey(routingKeyInfo, entry.Args)
@@ -1851,6 +1909,7 @@ type routingKeyInfoLRU struct {
 type routingKeyInfo struct {
 	indexes []int
 	types   []TypeInfo
+	lwt     bool
 }
 
 func (r *routingKeyInfo) String() string {
@@ -1999,6 +2058,11 @@ type ObservedBatch struct {
 
 	// The metrics per this host
 	Metrics *hostMetrics
+
+	// Attempt is the index of attempt at executing this query.
+	// An attempt might be either retry or fetching next page of a query.
+	// The first attempt is number zero and any retries have non-zero attempt number.
+	Attempt int
 }
 
 // BatchObserver is the interface implemented by batch observers / stat collectors.
