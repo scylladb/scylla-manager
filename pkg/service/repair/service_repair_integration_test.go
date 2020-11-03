@@ -42,7 +42,7 @@ type repairTestHelper struct {
 	taskID    uuid.UUID
 	runID     uuid.UUID
 
-	mu     sync.Mutex
+	mu     sync.RWMutex
 	done   bool
 	result error
 
@@ -103,7 +103,7 @@ const (
 	// useful for waiting for repair to significantly advance or finish.
 	longWait = 20 * time.Second
 
-	_interval = 100 * time.Millisecond
+	_interval = 500 * time.Millisecond
 
 	node11 = "192.168.100.11"
 	node12 = "192.168.100.12"
@@ -132,8 +132,8 @@ func (h *repairTestHelper) assertDone(wait time.Duration) {
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		h.mu.Lock()
-		defer h.mu.Unlock()
+		h.mu.RLock()
+		defer h.mu.RUnlock()
 		return h.done && h.result == nil
 	}, _interval, wait)
 }
@@ -157,8 +157,8 @@ func (h *repairTestHelper) assertError(wait time.Duration) {
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		h.mu.Lock()
-		defer h.mu.Unlock()
+		h.mu.RLock()
+		defer h.mu.RUnlock()
 		return h.done && h.result != nil
 	}, _interval, wait)
 }
@@ -167,8 +167,8 @@ func (h *repairTestHelper) assertErrorContains(cause string, wait time.Duration)
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
-		h.mu.Lock()
-		defer h.mu.Unlock()
+		h.mu.RLock()
+		defer h.mu.RUnlock()
 		return h.done && h.result != nil && strings.Contains(h.result.Error(), cause)
 	}, _interval, wait)
 }
