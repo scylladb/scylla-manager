@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func newConsulHandler(cs ClusterService) *chi.Mux {
@@ -28,7 +27,10 @@ func newConsulHandler(cs ClusterService) *chi.Mux {
 	m.Get("/agent/self", h.getAgent)
 	m.Route("/catalog", func(r chi.Router) {
 		r.Get("/services", h.listServices)
-		r.Get("/service/scylla", h.getNodes)
+		r.Get("/service/scylla", h.getCatalogNodes)
+	})
+	m.Route("/health", func(r chi.Router) {
+		r.Get("/service/scylla", h.getHealthNodes)
 	})
 
 	return m
@@ -57,21 +59,18 @@ func (h *consulHandler) listServices(w http.ResponseWriter, r *http.Request) {
 // Constructed from:
 // https://www.consul.io/api/catalog.html#sample-response-3
 type consulNode struct {
-	ID              uuid.UUID
+	ID              string
 	Node            string
 	Address         string
 	Datacenter      string
-	TaggedAddresses struct {
-		Lan string `json:"lan"`
-		Wan string `json:"wan"`
-	}
-	NodeMeta       map[string]interface{}
-	ServiceKind    string
-	ServiceID      string
-	ServiceName    string
-	ServiceTags    []string
-	ServiceAddress string
-	ServiceWeights struct {
+	TaggedAddresses map[string]string
+	NodeMeta        map[string]string
+	ServiceKind     string
+	ServiceID       string
+	ServiceName     string
+	ServiceTags     []string
+	ServiceAddress  string
+	ServiceWeights  struct {
 		Passing int
 		Warning int
 	}
@@ -81,17 +80,49 @@ type consulNode struct {
 	ServiceProxyDestination  string
 	ServiceProxy             map[string]interface{}
 	ServiceConnect           map[string]interface{}
-	CreateIndex              int
-	ModifyIndex              int
+	CreateIndex              uint64
+	ModifyIndex              uint64
 }
 
-func (h *consulHandler) getNodes(w http.ResponseWriter, r *http.Request) {
+// https://www.consul.io/api-docs/health#sample-response-2
+type consulHealthNode struct {
+	ID              string
+	Node            string
+	Address         string
+	Datacenter      string
+	TaggedAddresses map[string]string
+	Meta            map[string]string
+	CreateIndex     uint64
+	ModifyIndex     uint64
+}
+
+// https://www.consul.io/api-docs/health#sample-response-2
+type consulService struct {
+	ID              string
+	Service         string
+	Tags            []string
+	Address         string
+	TaggedAddresses map[string]string
+	Meta            map[string]string
+	Port            int
+	Weights         map[string]int
+	Namespace       string
+}
+
+// https://www.consul.io/api-docs/health#sample-response-2
+type consulHealthServiceItem struct {
+	Node    consulHealthNode
+	Service consulService
+	Checks  []interface{}
+}
+
+func (h *consulHandler) getCatalogNodes(w http.ResponseWriter, r *http.Request) {
 	clusters, err := h.svc.ListClusters(r.Context(), &cluster.Filter{})
 	if err != nil {
 		respondError(w, r, errors.Wrap(err, "list clusters"))
 		return
 	}
-	result := []consulNode{}
+	var result []consulNode
 	for _, c := range clusters {
 		nodes, err := h.svc.ListNodes(r.Context(), c.ID)
 		if err != nil {
@@ -112,6 +143,52 @@ func (h *consulHandler) getNodes(w http.ResponseWriter, r *http.Request) {
 					"shard_num":    strconv.Itoa(int(n.ShardNum)),
 					"dc":           n.Datacenter,
 					"cluster_name": c.String(),
+				},
+			}
+			result = append(result, cn)
+		}
+	}
+	h.index++
+	w.Header().Add("X-Consul-Index", strconv.Itoa(h.index))
+
+	render.Respond(w, r, result)
+}
+
+func (h *consulHandler) getHealthNodes(w http.ResponseWriter, r *http.Request) {
+	clusters, err := h.svc.ListClusters(r.Context(), &cluster.Filter{})
+	if err != nil {
+		respondError(w, r, errors.Wrap(err, "list clusters"))
+		return
+	}
+	var result []consulHealthServiceItem
+	for _, c := range clusters {
+		nodes, err := h.svc.ListNodes(r.Context(), c.ID)
+		if err != nil {
+			respondError(w, r, errors.Wrapf(err, "list nodes for cluster %q", c.ID))
+			return
+		}
+		for _, n := range nodes {
+			cn := consulHealthServiceItem{
+				Node: consulHealthNode{
+					Node:       n.Address,
+					Address:    n.Address,
+					Datacenter: n.Datacenter,
+					Meta: map[string]string{
+						"shard_num":    strconv.Itoa(int(n.ShardNum)),
+						"dc":           n.Datacenter,
+						"cluster_name": c.String(),
+					},
+				},
+				Service: consulService{
+					Address: n.Address,
+					ID:      "scylla",
+					Service: "scylla",
+					Port:    9180,
+					Tags:    []string{c.String()},
+					Meta: map[string]string{
+						"dc":           n.Datacenter,
+						"cluster_name": c.String(),
+					},
 				},
 			}
 			result = append(result, cn)
