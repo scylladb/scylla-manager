@@ -340,9 +340,9 @@ func (g *generator) canScheduleRepair(hosts []string) bool {
 func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	ranges := g.ranges[hash]
 
-	// Speedup repair of system and small tables by repairing all ranges together.
+	// Speedup repair of small tables by repairing all ranges together.
 	keyspace, table := keyspaceTableForRanges(ranges)
-	if strings.HasPrefix(keyspace, "system") || g.smallTable(keyspace, table) {
+	if strings.HasPrefix(keyspace, "system") || g.smallTable(keyspace, table) || g.deletedTable(keyspace, table) {
 		limit = len(ranges)
 	}
 
