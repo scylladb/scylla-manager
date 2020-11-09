@@ -106,18 +106,18 @@ if [ -z "$TARGET" ]; then
     fi
 fi
 
-if [ -z "$MERMAID_VERSION" ]; then
-    echo "Please specify a version using the MERMAID_VERSION env variable"
+if [ -z "$SCYLLA_MANAGER_VERSION" ]; then
+    echo "Please specify a version using the SCYLLA_MANAGER_VERSION env variable"
     exit 1
 fi
-if [ -z "$MERMAID_RELEASE" ]; then
-    echo "Please specify a release using the MERMAID_RELEASE env variable"
+if [ -z "$SCYLLA_MANAGER_RELEASE" ]; then
+    echo "Please specify a release using the SCYLLA_MANAGER_RELEASE env variable"
     exit 1
 fi
-if [ "$MERMAID_BRANCH" = "" ]; then
+if [ "$SCYLLA_MANAGER_BRANCH" = "" ]; then
     BRANCH=$(git rev-parse --abbrev-ref HEAD)
 else
-    BRANCH=$MERMAID_BRANCH
+    BRANCH=$SCYLLA_MANAGER_BRANCH
 fi
 
 cp -a dist/debian/debian debian
@@ -133,11 +133,11 @@ fi
 # dch generates debian/changelog on-the-fly, with specified package version.
 export DEBFULLNAME="Takuya ASADA"
 export DEBEMAIL="syuu@scylladb.com"
-dch --create --package scylla-manager-server -v $MERMAID_VERSION-$MERMAID_RELEASE-$REVISION -D $TARGET "New release"
+dch --create --package scylla-manager-server -v $SCYLLA_MANAGER_VERSION-$SCYLLA_MANAGER_RELEASE-$REVISION -D $TARGET "New release"
 
 sudo rm -fv /var/cache/pbuilder/scylla-manager-$TARGET.tgz
 sudo DIST=$TARGET /usr/sbin/pbuilder clean --configfile ./dist/debian/pbuilderrc
 sudo DIST=$TARGET /usr/sbin/pbuilder create --configfile ./dist/debian/pbuilderrc --aptcache /tmp/
 sudo DIST=$TARGET /usr/sbin/pbuilder update --configfile ./dist/debian/pbuilderrc
-sudo DIST=$TARGET GO_VERSION="$GO_VERSION" CURL="/usr/bin/curl" VERSION="$MERMAID_VERSION" RELEASE="$MERMAID_RELEASE"\
+sudo DIST=$TARGET GO_VERSION="$GO_VERSION" CURL="/usr/bin/curl" VERSION="$SCYLLA_MANAGER_VERSION" RELEASE="$SCYLLA_MANAGER_RELEASE"\
  pdebuild  --configfile ./dist/debian/pbuilderrc --buildresult dist/release/deb

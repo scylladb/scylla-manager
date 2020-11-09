@@ -45,7 +45,7 @@ release/deb: release/scylla-manager-$(VERSION_NAME).tar.gz
 	@mkdir -p release/deb
 
 	@cd $(GIT_ROOT); cp dist/release/scylla-manager-$(VERSION_NAME).tar.gz ../scylla-manager-server_$(VERSION_NAME).orig.tar.gz
-	@cd $(GIT_ROOT); GO_VERSION=$(GO_VERSION) MERMAID_VERSION=$(VERSION) MERMAID_RELEASE=$(RELEASE) ./dist/debian/build_deb.sh --target $(DEB_TARGET)
+	@cd $(GIT_ROOT); GO_VERSION=$(GO_VERSION) SCYLLA_MANAGER_VERSION=$(VERSION) SCYLLA_MANAGER_RELEASE=$(RELEASE) ./dist/debian/build_deb.sh --target $(DEB_TARGET)
 	@cd $(GIT_ROOT); rm -rf debian
 
 .PHONY: inspect/rpm
