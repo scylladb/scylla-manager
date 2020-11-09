@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/rclone"
-	"github.com/scylladb/mermaid/pkg/rclone/operations"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
+	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )

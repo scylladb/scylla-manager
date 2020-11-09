@@ -7,8 +7,8 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/mermaidclient"
-	"github.com/scylladb/mermaid/pkg/util/clipper"
+	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/util/clipper"
 	"github.com/spf13/cobra"
 )
 
@@ -93,7 +93,7 @@ var clusterAddCmd = &cobra.Command{
 			}
 		}
 
-		c := &mermaidclient.Cluster{
+		c := &managerclient.Cluster{
 			ID:        cfgClusterID,
 			Name:      cfgClusterName,
 			Host:      cfgClusterHost,

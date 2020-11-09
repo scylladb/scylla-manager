@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/restapi"
-	"github.com/scylladb/mermaid/pkg/util/prom"
+	"github.com/scylladb/scylla-manager/pkg/restapi"
+	"github.com/scylladb/scylla-manager/pkg/util/prom"
 )
 
 func TestMetrics(t *testing.T) {

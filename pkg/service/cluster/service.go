@@ -14,11 +14,11 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/mermaid/pkg/schema/table"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/service"
-	"github.com/scylladb/mermaid/pkg/service/secrets"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/service/secrets"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
 
@@ -175,7 +175,7 @@ func (s *Service) ListClusters(ctx context.Context, f *Filter) ([]*Cluster, erro
 }
 
 // GetCluster returns cluster based on ID or name. If nothing was found
-// mermaid.ErrNotFound is returned.
+// scylla-manager.ErrNotFound is returned.
 func (s *Service) GetCluster(ctx context.Context, idOrName string) (*Cluster, error) {
 	if id, err := uuid.Parse(idOrName); err == nil {
 		return s.GetClusterByID(ctx, id)
@@ -185,7 +185,7 @@ func (s *Service) GetCluster(ctx context.Context, idOrName string) (*Cluster, er
 }
 
 // GetClusterByID returns cluster based on ID. If nothing was found
-// mermaid.ErrNotFound is returned.
+// scylla-manager.ErrNotFound is returned.
 func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, error) {
 	s.logger.Debug(ctx, "GetClusterByID", "id", id)
 
@@ -207,7 +207,7 @@ func (s *Service) GetClusterByID(ctx context.Context, id uuid.UUID) (*Cluster, e
 }
 
 // GetClusterByName returns cluster based on name. If nothing was found
-// mermaid.ErrNotFound is returned.
+// scylla-manager.ErrNotFound is returned.
 func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, error) {
 	s.logger.Debug(ctx, "GetClusterByName", "name", name)
 
@@ -227,7 +227,7 @@ func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, 
 }
 
 // GetClusterName returns cluster name for a given ID. If nothing was found
-// mermaid.ErrNotFound is returned.
+// scylla-manager.ErrNotFound is returned.
 func (s *Service) GetClusterName(ctx context.Context, id uuid.UUID) (string, error) {
 	s.logger.Debug(ctx, "GetClusterName", "id", id)
 

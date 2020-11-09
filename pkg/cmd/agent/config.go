@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/rclone"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/cfgutil"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/util/cfgutil"
 	"go.uber.org/multierr"
 	"go.uber.org/zap/zapcore"
 )

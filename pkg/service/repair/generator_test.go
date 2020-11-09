@@ -12,8 +12,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/u64set"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"go.uber.org/atomic"
 )
 

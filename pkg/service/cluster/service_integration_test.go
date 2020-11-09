@@ -14,18 +14,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/service"
-	"github.com/scylladb/mermaid/pkg/service/cluster"
-	"github.com/scylladb/mermaid/pkg/service/secrets"
-	"github.com/scylladb/mermaid/pkg/service/secrets/dbsecrets"
-	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/pkg/service/secrets"
+	"github.com/scylladb/scylla-manager/pkg/service/secrets/dbsecrets"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
 	session := CreateSession(t)
 
-	dir, err := ioutil.TempDir("", "mermaid.cluster.TestServiceStorageIntegration")
+	dir, err := ioutil.TempDir("", "scylla-manager.cluster.TestServiceStorageIntegration")
 	if err != nil {
 		t.Fatal(err)
 	}

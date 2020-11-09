@@ -5,7 +5,7 @@ package repair
 import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/i64set"
-	"github.com/scylladb/mermaid/pkg/dht"
+	"github.com/scylladb/scylla-manager/pkg/dht"
 )
 
 func splitToShardsAndValidate(ttrs []*tableTokenRange, p *dht.Murmur3Partitioner) ([][]*tableTokenRange, error) {

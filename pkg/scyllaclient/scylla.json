@@ -5,7 +5,7 @@
     "title": "Swagger API",
     "contact": {}
   },
-  "host": "mermaid.magic.host",
+  "host": "scylla-manager.magic.host",
   "basePath": "/",
   "schemes": [
     "http"

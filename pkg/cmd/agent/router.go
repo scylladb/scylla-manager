@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/auth"
-	"github.com/scylladb/mermaid/pkg/util/httphandler"
-	"github.com/scylladb/mermaid/pkg/util/httplog"
+	"github.com/scylladb/scylla-manager/pkg/auth"
+	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
+	"github.com/scylladb/scylla-manager/pkg/util/httplog"
 )
 
 var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)

@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-//go:generate mockgen -destination mock_clusterservice_test.go -mock_names ClusterService=MockClusterService -package restapi github.com/scylladb/mermaid/pkg/restapi ClusterService
+//go:generate mockgen -destination mock_clusterservice_test.go -mock_names ClusterService=MockClusterService -package restapi github.com/scylladb/scylla-manager/pkg/restapi ClusterService
 
 package restapi_test
 
@@ -14,10 +14,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/restapi"
-	"github.com/scylladb/mermaid/pkg/service/cluster"
-	"github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/restapi"
+	"github.com/scylladb/scylla-manager/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestClusterList(t *testing.T) {

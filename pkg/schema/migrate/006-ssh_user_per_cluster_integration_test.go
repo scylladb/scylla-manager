@@ -15,8 +15,8 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
-	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestCopySSHInfoToClusterAfter006Integration(t *testing.T) {
@@ -25,7 +25,7 @@ func TestCopySSHInfoToClusterAfter006Integration(t *testing.T) {
 	session := CreateSessionWithoutMigration(t)
 
 	Print("Given: config files")
-	dir, err := ioutil.TempDir("", "mermaid.schema.cql.TestCopySSHInfoToClusterAfter006Integration")
+	dir, err := ioutil.TempDir("", "scylla-manager.schema.cql.TestCopySSHInfoToClusterAfter006Integration")
 	if err != nil {
 		t.Fatal(err)
 	}

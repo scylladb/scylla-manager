@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/service/cluster"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func newConsulHandler(cs ClusterService) *chi.Mux {

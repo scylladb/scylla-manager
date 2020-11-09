@@ -16,10 +16,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/scyllaclienttest"
-	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestRemoteManifestParsePath(t *testing.T) {

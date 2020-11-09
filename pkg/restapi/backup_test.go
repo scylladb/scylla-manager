@@ -11,13 +11,13 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/restapi"
-	"github.com/scylladb/mermaid/pkg/service/backup"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/restapi"
+	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-//go:generate mockgen -destination mock_backupservice_test.go -mock_names BackupService=MockBackupService -package restapi github.com/scylladb/mermaid/pkg/restapi BackupService
+//go:generate mockgen -destination mock_backupservice_test.go -mock_names BackupService=MockBackupService -package restapi github.com/scylladb/scylla-manager/pkg/restapi BackupService
 
 func listBackupsRequest(clusterID uuid.UUID) *http.Request {
 	return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/cluster/%s/backups", clusterID.String()), nil)

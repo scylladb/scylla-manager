@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/mermaidclient"
-	"github.com/scylladb/mermaid/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -38,10 +38,10 @@ The values of those flags can be adjusted while a repair is running using the 's
 ` + intensityLongDesc,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		t := &mermaidclient.Task{
+		t := &managerclient.Task{
 			Type:       "repair",
 			Enabled:    true,
-			Schedule:   new(mermaidclient.Schedule),
+			Schedule:   new(managerclient.Schedule),
 			Properties: make(map[string]interface{}),
 		}
 
@@ -49,7 +49,7 @@ The values of those flags can be adjusted while a repair is running using the 's
 	},
 }
 
-func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
+func repairTaskUpdate(t *managerclient.Task, cmd *cobra.Command) error {
 	if err := commonFlagsUpdate(t, cmd); err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 			return err
 		}
 
-		threshold, err := mermaidclient.ParseByteCount(smallTableThreshold)
+		threshold, err := managerclient.ParseByteCount(smallTableThreshold)
 		if err != nil {
 			return err
 		}
@@ -137,7 +137,7 @@ func repairTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 		return err
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), mermaidclient.TaskJoin(t.Type, t.ID))
+	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(t.Type, t.ID))
 
 	return nil
 }
@@ -253,7 +253,7 @@ The values of those flags can be adjusted while a repair is running using the 's
 	Args: cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}

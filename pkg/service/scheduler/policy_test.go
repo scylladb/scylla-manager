@@ -8,11 +8,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-//go:generate mockgen -destination mock_policy_test.go -mock_names Policy=mockPolicy -package scheduler github.com/scylladb/mermaid/pkg/service/scheduler Policy
-//go:generate mockgen -destination mock_runner_test.go -mock_names Runner=mockRunner -package scheduler github.com/scylladb/mermaid/pkg/service/scheduler Runner
+//go:generate mockgen -destination mock_policy_test.go -mock_names Policy=mockPolicy -package scheduler github.com/scylladb/scylla-manager/pkg/service/scheduler Policy
+//go:generate mockgen -destination mock_runner_test.go -mock_names Runner=mockRunner -package scheduler github.com/scylladb/scylla-manager/pkg/service/scheduler Runner
 
 func TestPolicyRunner(t *testing.T) {
 	t.Run("policy error", func(t *testing.T) {

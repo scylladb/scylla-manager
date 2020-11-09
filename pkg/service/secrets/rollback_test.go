@@ -5,8 +5,8 @@ package secrets
 import (
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/service"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 type testSecret []byte

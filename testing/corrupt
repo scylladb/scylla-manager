@@ -67,7 +67,7 @@ fi
 # Common functions
 
 node_ip() {
-    docker inspect -f '{{with index .NetworkSettings.Networks "mermaid_public"}}{{.IPAddress}}{{end}}' mermaid_$1_1
+    docker inspect -f '{{with index .NetworkSettings.Networks "scylla-manager_public"}}{{.IPAddress}}{{end}}' scylla-manager_$1_1
 }
 
 # Pause services
@@ -80,7 +80,7 @@ sleep 2
 
 # Write to NODE
 
-echo -n "Cassandra-stress mermaid_${NODE}_1 ... "
+echo -n "Cassandra-stress scylla-manager_${NODE}_1 ... "
 cassandra-stress write no-warmup cl=ONE n=100000 -schema "keyspace=${KEYSPACE}" \
 -mode cql3 native user cassandra password cassandra \
 -pop seq=1..100000 -node `node_ip $NODE` &> /dev/null

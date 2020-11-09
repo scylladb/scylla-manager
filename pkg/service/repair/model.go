@@ -12,9 +12,9 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/iset"
-	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // Unit represents keyspace and its tables.

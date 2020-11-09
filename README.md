@@ -101,7 +101,7 @@ There are two HTTP APIs that are specified with Swagger format, the API of the S
 Client implementations are separated into packages:
 
 - `scyllaclient` which contains client for the Scylla API along with Swagger specification file `scylla-api.json` and,
-- `mermaidclient` which contains client for the `scylla-manager` API along with Swagger specification file `mermaid-api.json`.
+- `managerclient` which contains client for the `scylla-manager` API along with Swagger specification file `scylla-manager-api.json`.
 
 Both clients are generated automatically by shell scripts.
 To refresh generated packages from Swagger specification run:
@@ -110,7 +110,7 @@ To refresh generated packages from Swagger specification run:
 make generate
 
 # Or for generating specific client package ex.
-go generate ./mermaidclient
+go generate ./managerclient
 go generate ./scyllaclient
 ```
 

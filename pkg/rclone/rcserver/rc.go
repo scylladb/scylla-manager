@@ -22,9 +22,9 @@ import (
 	"github.com/rclone/rclone/fs/rc/jobs"
 	"github.com/rclone/rclone/fs/sync"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/pkg/rclone/operations"
-	"github.com/scylladb/mermaid/pkg/rclone/rcserver/internal"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
+	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver/internal"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
 

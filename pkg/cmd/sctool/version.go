@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/scylladb/mermaid/pkg"
+	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/spf13/cobra"
 )
 

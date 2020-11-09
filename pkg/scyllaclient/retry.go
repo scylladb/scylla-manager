@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/pkg/util/retry"
 )
 
 type retryableTransport struct {

@@ -16,12 +16,12 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/auth"
-	agentClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client"
-	agentOperations "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/client/operations"
-	scyllaClient "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client"
-	scyllaOperations "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client/operations"
-	"github.com/scylladb/mermaid/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/pkg/auth"
+	agentClient "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/client"
+	agentOperations "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/client/operations"
+	scyllaClient "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/client"
+	scyllaOperations "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/client/operations"
+	"github.com/scylladb/scylla-manager/pkg/util/httpx"
 )
 
 var setOpenAPIGlobalsOnce sync.Once

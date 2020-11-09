@@ -4,7 +4,7 @@ package secrets
 
 import (
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/service"
 )
 
 type keyValueHolder struct {

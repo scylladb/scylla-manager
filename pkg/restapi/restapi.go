@@ -10,17 +10,17 @@ import (
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/httphandler"
-	"github.com/scylladb/mermaid/pkg/util/httplog"
-	"github.com/scylladb/mermaid/pkg/util/prom"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
+	"github.com/scylladb/scylla-manager/pkg/util/httplog"
+	"github.com/scylladb/scylla-manager/pkg/util/prom"
 )
 
 func init() {
 	render.Respond = responder
 }
 
-// New returns an http.Handler implementing mermaid v1 REST API.
+// New returns an http.Handler implementing scylla-manager v1 REST API.
 func New(services Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 

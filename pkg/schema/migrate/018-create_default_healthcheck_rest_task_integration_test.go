@@ -11,7 +11,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
-	. "github.com/scylladb/mermaid/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
 func TestCreateDefaultHealthCheckRestTaskForClusterAfter018Integration(t *testing.T) {

@@ -14,7 +14,7 @@ case "$1" in
         ;;
 esac
 
-for name in `docker ps -f name=mermaid_dc --format {{.Names}}`; do
+for name in `docker ps -f name=scylla-manager_dc --format {{.Names}}`; do
     if [[ ${SILENT} == 1 ]]; then
         docker exec ${name} $@ > /dev/null
     else

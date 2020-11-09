@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/scylladb/mermaid/pkg/mermaidclient"
+	"github.com/scylladb/scylla-manager/pkg/managerclient"
 )
 
 var ctx = context.Background()
@@ -28,12 +28,12 @@ func main() {
 
 func printError(w io.Writer, err error) {
 	v, ok := err.(interface {
-		GetPayload() *mermaidclient.ErrorResponse
+		GetPayload() *managerclient.ErrorResponse
 	})
 	if ok {
 		p := v.GetPayload()
 
-		fmt.Fprintf(w, "Error: %s\n", mermaidclient.FormatError(p.Message))
+		fmt.Fprintf(w, "Error: %s\n", managerclient.FormatError(p.Message))
 		fmt.Fprintf(w, "Trace ID: %s (grep in scylla-manager logs)\n", p.TraceID)
 	} else {
 		fmt.Fprintf(w, "Error: %s\n", err)

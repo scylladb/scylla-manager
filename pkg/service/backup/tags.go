@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
 func newSnapshotTag() string {

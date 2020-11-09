@@ -11,7 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client/config"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/client/config"
 )
 
 // Default scylla2 HTTP client.
@@ -20,7 +20,7 @@ var Default = NewHTTPClient(nil)
 const (
 	// DefaultHost is the default Host
 	// found in Meta (info) section of spec file
-	DefaultHost string = "mermaid.magic.host"
+	DefaultHost string = "scylla-manager.magic.host"
 	// DefaultBasePath is the default BasePath
 	// found in Meta (info) section of spec file
 	DefaultBasePath string = "/v2"

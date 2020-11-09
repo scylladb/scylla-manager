@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-//go:generate mockgen -destination mock_schedservice_test.go -mock_names SchedService=MockSchedService -package restapi github.com/scylladb/mermaid/pkg/restapi SchedService
+//go:generate mockgen -destination mock_schedservice_test.go -mock_names SchedService=MockSchedService -package restapi github.com/scylladb/scylla-manager/pkg/restapi SchedService
 
 package restapi_test
 
@@ -15,10 +15,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/restapi"
-	"github.com/scylladb/mermaid/pkg/service/scheduler"
-	"github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/restapi"
+	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func givenTask(clusterID uuid.UUID, taskType scheduler.TaskType) *scheduler.Task {

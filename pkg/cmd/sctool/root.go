@@ -8,9 +8,9 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg"
-	"github.com/scylladb/mermaid/pkg/cmd/scylla-manager/config"
-	"github.com/scylladb/mermaid/pkg/mermaidclient"
+	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/pkg/cmd/scylla-manager/config"
+	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ var (
 	cfgAPIKeyFile  string
 	cfgCluster     string
 
-	client mermaidclient.Client
+	client managerclient.Client
 )
 
 var rootCmd = &cobra.Command{
@@ -38,7 +38,7 @@ Documentation is available online at ` + docsBaseURL,
 		}
 
 		// Init client
-		tlsConfig := mermaidclient.DefaultTLSConfig()
+		tlsConfig := managerclient.DefaultTLSConfig()
 
 		// Load TLS certificate if provided
 		if cfgAPICertFile != "" && cfgAPIKeyFile == "" {
@@ -55,7 +55,7 @@ Documentation is available online at ` + docsBaseURL,
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
 
-		c, err := mermaidclient.NewClient(cfgAPIURL, &http.Transport{TLSClientConfig: tlsConfig})
+		c, err := managerclient.NewClient(cfgAPIURL, &http.Transport{TLSClientConfig: tlsConfig})
 		if err != nil {
 			return err
 		}

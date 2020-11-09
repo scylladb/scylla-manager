@@ -14,10 +14,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/mermaid/pkg/rclone/rcserver"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/models"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
 )
 
 func TestRcloneSplitRemotePath(t *testing.T) {
@@ -412,7 +412,7 @@ func TestRcloneDiskUsage(t *testing.T) {
 func TestRcloneMoveFile(t *testing.T) {
 	t.Parallel()
 
-	dir, err := ioutil.TempDir("", "mermaid.scyllaclient.TestRcloneMoveFile")
+	dir, err := ioutil.TempDir("", "scylla-manager.scyllaclient.TestRcloneMoveFile")
 	if err != nil {
 		t.Fatal(err)
 	}

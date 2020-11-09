@@ -1,4 +1,4 @@
-module github.com/scylladb/mermaid
+module github.com/scylladb/scylla-manager
 
 go 1.13
 

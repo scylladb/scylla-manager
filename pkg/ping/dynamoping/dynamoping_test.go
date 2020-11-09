@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/mermaid/pkg/ping"
+	"github.com/scylladb/scylla-manager/pkg/ping"
 )
 
 func TestPingTimeout(t *testing.T) {

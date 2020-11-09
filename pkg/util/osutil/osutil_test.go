@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestLinuxDistro(t *testing.T) {

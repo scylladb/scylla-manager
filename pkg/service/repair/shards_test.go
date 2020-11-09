@@ -5,7 +5,7 @@ package repair
 import (
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/dht"
+	"github.com/scylladb/scylla-manager/pkg/dht"
 )
 
 func TestSplitSegmentsToShards(t *testing.T) {

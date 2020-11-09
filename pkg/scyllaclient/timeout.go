@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/pkg/util/httpx"
 )
 
 var (

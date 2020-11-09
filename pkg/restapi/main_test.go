@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/pkg/service/cluster"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func givenCluster() *cluster.Cluster {

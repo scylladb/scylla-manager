@@ -6,9 +6,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/mermaid/pkg/schema/table"
-	"github.com/scylladb/mermaid/pkg/service/secrets"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/pkg/service/secrets"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // Store manages secrets in a database.

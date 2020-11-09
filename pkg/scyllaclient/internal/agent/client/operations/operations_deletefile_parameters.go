@@ -17,7 +17,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	models "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
+	models "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/models"
 )
 
 // NewOperationsDeletefileParams creates a new OperationsDeletefileParams object

@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/scyllaclienttest"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 type mockProvider struct {

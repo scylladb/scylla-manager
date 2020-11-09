@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg"
+	"github.com/scylladb/scylla-manager/pkg"
 )
 
 func TestVersion(t *testing.T) {

@@ -28,7 +28,7 @@ jobs:
         run: |
           echo "::set-env name=GOPATH::$(go env GOPATH)"
           echo "::add-path::$(go env GOPATH)/bin"
-          echo "$(go env -w GOCACHE=/home/runner/work/mermaid/mermaid/.cache/go-build/)"
+          echo "$(go env -w GOCACHE=/home/runner/work/scylla-manager/scylla-manager/.cache/go-build/)"
           echo "::set-env name=GOCACHE::$(go env GOCACHE)"
           echo "::set-env name=GOCACHEPATTERN::.cache/go-build/**"
 

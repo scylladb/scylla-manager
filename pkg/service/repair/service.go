@@ -14,15 +14,15 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/mermaid/pkg/dht"
-	"github.com/scylladb/mermaid/pkg/schema/table"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/service"
-	"github.com/scylladb/mermaid/pkg/util/inexlist/dcfilter"
-	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/mermaid/pkg/util/parallel"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/dht"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/util/inexlist/dcfilter"
+	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 )
@@ -747,7 +747,7 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	return nil, service.ErrNotFound
 }
 
-// GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
+// GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun",
@@ -765,7 +765,7 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 }
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing
-// was found mermaid.ErrNotFound is returned.
+// was found scylla-manager.ErrNotFound is returned.
 func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
 	var p Progress
 	defer func() {

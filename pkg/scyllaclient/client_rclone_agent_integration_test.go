@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
 func TestRcloneS3ListDirAgentIntegration(t *testing.T) {

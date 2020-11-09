@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/pkg/mermaidclient"
-	"github.com/scylladb/mermaid/pkg/service/scheduler"
-	"github.com/scylladb/mermaid/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.uber.org/atomic"
@@ -23,10 +23,10 @@ var backupCmd = &cobra.Command{
 	Use:   "backup",
 	Short: "Schedules backups",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		t := &mermaidclient.Task{
+		t := &managerclient.Task{
 			Type:       "backup",
 			Enabled:    true,
-			Schedule:   new(mermaidclient.Schedule),
+			Schedule:   new(managerclient.Schedule),
 			Properties: make(map[string]interface{}),
 		}
 
@@ -34,7 +34,7 @@ var backupCmd = &cobra.Command{
 	},
 }
 
-func backupTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
+func backupTaskUpdate(t *managerclient.Task, cmd *cobra.Command) error {
 	if err := commonFlagsUpdate(t, cmd); err != nil {
 		return err
 	}
@@ -110,12 +110,12 @@ func backupTaskUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 		return err
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), mermaidclient.TaskJoin(t.Type, t.ID))
+	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(t.Type, t.ID))
 
 	return nil
 }
 
-func commonFlagsUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
+func commonFlagsUpdate(t *managerclient.Task, cmd *cobra.Command) error {
 	props := t.Properties.(map[string]interface{})
 
 	if f := cmd.Flag("enabled"); f != nil && f.Changed {
@@ -128,7 +128,7 @@ func commonFlagsUpdate(t *mermaidclient.Task, cmd *cobra.Command) error {
 
 	if f := cmd.Flag("start-date"); f.Changed || time.Time(t.Schedule.StartDate).IsZero() {
 		f := cmd.Flag("start-date")
-		startDate, err := mermaidclient.ParseStartDate(f.Value.String())
+		startDate, err := managerclient.ParseStartDate(f.Value.String())
 		if err != nil {
 			return err
 		}
@@ -207,13 +207,13 @@ var backupListCmd = &cobra.Command{
 			return err
 		}
 		if f := cmd.Flag("min-date"); f.Changed {
-			minDate, err = mermaidclient.ParseDate(f.Value.String())
+			minDate, err = managerclient.ParseDate(f.Value.String())
 			if err != nil {
 				return err
 			}
 		}
 		if f := cmd.Flag("max-date"); f.Changed {
-			maxDate, err = mermaidclient.ParseDate(f.Value.String())
+			maxDate, err = managerclient.ParseDate(f.Value.String())
 			if err != nil {
 				return err
 			}
@@ -409,7 +409,7 @@ var backupUpdateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}

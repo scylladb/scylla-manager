@@ -13,10 +13,10 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/mermaid/pkg/schema/table"
-	"github.com/scylladb/mermaid/pkg/service"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // ClusterNameFunc returns name for a given ID.
@@ -527,7 +527,7 @@ func (s *Service) cancelLocked(ctx context.Context, taskID uuid.UUID) {
 }
 
 // GetTask returns a task based on ID or name. If nothing was found
-// mermaid.ErrNotFound is returned.
+// scylla-manager.ErrNotFound is returned.
 func (s *Service) GetTask(ctx context.Context, clusterID uuid.UUID, tp TaskType, idOrName string) (*Task, error) {
 	if id, err := uuid.Parse(idOrName); err == nil {
 		return s.GetTaskByID(ctx, clusterID, tp, id)
@@ -537,7 +537,7 @@ func (s *Service) GetTask(ctx context.Context, clusterID uuid.UUID, tp TaskType,
 }
 
 // GetTaskByID returns a task based on ID and type. If nothing was found
-// mermaid.ErrNotFound is returned.
+// scylla-manager.ErrNotFound is returned.
 func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskType, id uuid.UUID) (*Task, error) {
 	s.logger.Debug(ctx, "GetTaskByID", "cluster_id", clusterID, "id", id)
 
@@ -561,7 +561,7 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 }
 
 // GetTaskByName returns a task based on type and name. If nothing was found
-// mermaid.ErrNotFound is returned.
+// scylla-manager.ErrNotFound is returned.
 func (s *Service) GetTaskByName(ctx context.Context, clusterID uuid.UUID, tp TaskType, name string) (*Task, error) {
 	s.logger.Debug(ctx, "GetTaskByName", "cluster_id", clusterID, "name", name)
 
@@ -730,7 +730,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskTyp
 	return tasks, err
 }
 
-// GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
+// GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun", "task", t, "run_id", runID)

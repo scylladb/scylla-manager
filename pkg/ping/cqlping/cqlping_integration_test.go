@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
 func TestPingIntegration(t *testing.T) {

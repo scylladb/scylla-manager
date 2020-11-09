@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/rclone/rclone/fs"
-	"github.com/scylladb/mermaid/pkg"
+	"github.com/scylladb/scylla-manager/pkg"
 )
 
 // InitFsConfig enables in-memory config and sets default config values

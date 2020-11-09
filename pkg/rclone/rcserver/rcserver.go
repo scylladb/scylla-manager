@@ -26,9 +26,9 @@ import (
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
-	"github.com/scylladb/mermaid/pkg/rclone"
-	"github.com/scylladb/mermaid/pkg/rclone/operations"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
+	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
 var initOnce sync.Once

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/rclone/rcserver"
-	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestProviderMarshalUnmarshalText(t *testing.T) {

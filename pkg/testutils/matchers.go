@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/pkg/service/scheduler"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // TaskMatcher gomock.Matcher interface implementation for scheduler.Task.

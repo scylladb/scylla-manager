@@ -14,8 +14,8 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"golang.org/x/sys/unix"
 )
 

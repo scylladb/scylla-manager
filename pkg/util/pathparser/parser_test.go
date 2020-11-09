@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestPartParser(t *testing.T) {

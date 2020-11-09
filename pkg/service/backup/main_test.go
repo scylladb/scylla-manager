@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/rclone"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"go.uber.org/zap/zapcore"
 )
 

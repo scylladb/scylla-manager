@@ -4,7 +4,7 @@ package main
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/scylladb/mermaid/pkg"
+	"github.com/scylladb/scylla-manager/pkg"
 )
 
 var (

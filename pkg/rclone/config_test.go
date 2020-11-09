@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/rclone/rclone/fs/rc"
-	"github.com/scylladb/mermaid/pkg/rclone"
-	_ "github.com/scylladb/mermaid/pkg/rclone/rcserver"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
+	_ "github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
 )
 
 func TestInMemoryConfNotExposed(t *testing.T) {

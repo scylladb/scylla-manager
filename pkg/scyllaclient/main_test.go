@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/rclone"
-	. "github.com/scylladb/mermaid/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"go.uber.org/zap/zapcore"
 )
 
