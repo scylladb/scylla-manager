@@ -14,7 +14,7 @@ endif
 PKG := ./pkg/...
 
 ifndef GOBIN
-export GOBIN := $(GOPATH)/bin
+export GOBIN := ./bin
 endif
 GO111MODULE := on
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)

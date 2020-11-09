@@ -20,5 +20,6 @@
 .history
 
 # Doc builds ignore items
+bin
 docs/_build
 source/.doctrees
