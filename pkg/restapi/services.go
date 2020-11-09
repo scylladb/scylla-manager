@@ -6,12 +6,12 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/scylladb/mermaid/pkg/service/backup"
-	"github.com/scylladb/mermaid/pkg/service/cluster"
-	"github.com/scylladb/mermaid/pkg/service/healthcheck"
-	"github.com/scylladb/mermaid/pkg/service/repair"
-	"github.com/scylladb/mermaid/pkg/service/scheduler"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
+	"github.com/scylladb/scylla-manager/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // Services contains REST API services.

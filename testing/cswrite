@@ -5,7 +5,7 @@
 
 set -eu -o pipefail
 
-NODE=$(docker inspect -f '{{with index .NetworkSettings.Networks "mermaid_public"}}{{.IPAddress}}{{end}}' mermaid_dc1_node_1_1)
+NODE=$(docker inspect -f '{{with index .NetworkSettings.Networks "scylla-manager_public"}}{{.IPAddress}}{{end}}' scylla-manager_dc1_node_1_1)
 KEYSPACE="test_keyspace_rf3"
 
 print_usage() {

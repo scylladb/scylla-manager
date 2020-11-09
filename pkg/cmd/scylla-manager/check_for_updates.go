@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/callhome"
+	"github.com/scylladb/scylla-manager/pkg/callhome"
 	"github.com/spf13/cobra"
 )
 

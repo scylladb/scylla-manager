@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
 type syncClock struct {

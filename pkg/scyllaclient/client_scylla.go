@@ -15,9 +15,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/client/operations"
-	"github.com/scylladb/mermaid/pkg/util/parallel"
-	"github.com/scylladb/mermaid/pkg/util/prom"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/client/operations"
+	"github.com/scylladb/scylla-manager/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/pkg/util/prom"
 	"go.uber.org/multierr"
 )
 

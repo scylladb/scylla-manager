@@ -15,14 +15,14 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/mermaid/pkg/schema/table"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/service"
-	"github.com/scylladb/mermaid/pkg/util/inexlist/dcfilter"
-	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/mermaid/pkg/util/parallel"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/util/inexlist/dcfilter"
+	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
 
@@ -851,7 +851,7 @@ func (s *Service) resumeUploadProgress(prevRunID uuid.UUID) func(context.Context
 	}
 }
 
-// GetRun returns a run based on ID. If nothing was found mermaid.ErrNotFound
+// GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
 // is returned.
 func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
 	s.logger.Debug(ctx, "GetRun",
@@ -872,7 +872,7 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 // GetProgress aggregates progress for the run of the task and breaks it down
 // by keyspace and table.json
-// If nothing was found mermaid.ErrNotFound is returned.
+// If nothing was found scylla-manager.ErrNotFound is returned.
 func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
 	s.logger.Debug(ctx, "GetProgress",
 		"cluster_id", clusterID,

@@ -11,11 +11,11 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/mermaidclient"
-	"github.com/scylladb/mermaid/pkg/service/scheduler"
-	"github.com/scylladb/mermaid/pkg/util/duration"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -62,21 +62,21 @@ var taskListCmd = &cobra.Command{
 			return err
 		}
 
-		var clusters []*mermaidclient.Cluster
+		var clusters []*managerclient.Cluster
 		if cfgCluster == "" {
 			clusters, err = client.ListClusters(ctx)
 			if err != nil {
 				return err
 			}
 		} else {
-			clusters = []*mermaidclient.Cluster{{ID: cfgCluster}}
+			clusters = []*managerclient.Cluster{{ID: cfgCluster}}
 		}
 
 		w := cmd.OutOrStdout()
 		for _, c := range clusters {
 			// display cluster id if it's not specified.
 			if cfgCluster == "" {
-				mermaidclient.FormatClusterName(w, c)
+				managerclient.FormatClusterName(w, c)
 			}
 			tasks, err := client.ListTasks(ctx, c.ID, taskType, all, status)
 			if err != nil {
@@ -105,7 +105,7 @@ const (
 
 var allTaskSortKeys = []taskListSortKey{taskListSortStartTime, taskListSortNextActivation, taskListSortEndTime, taskListSortStatus}
 
-var tasksSortFunctions = map[taskListSortKey]func(tasks mermaidclient.ExtendedTaskSlice){
+var tasksSortFunctions = map[taskListSortKey]func(tasks managerclient.ExtendedTaskSlice){
 	taskListSortStartTime:      sortTasksByStartTime,
 	taskListSortEndTime:        sortTasksByEndTime,
 	taskListSortNextActivation: sortTasksByNextActivation,
@@ -125,7 +125,7 @@ func validateSortKey(sortKey string) error {
 	return errors.Errorf("%s sort key not supported", sortKey)
 }
 
-func sortTasks(tasks mermaidclient.ExtendedTasks, key taskListSortKey) {
+func sortTasks(tasks managerclient.ExtendedTasks, key taskListSortKey) {
 	if key == "" {
 		return
 	}
@@ -138,19 +138,19 @@ func timeLessFunc(lhvDate, rhvDate strfmt.DateTime) bool {
 	return lhv.Before(rhv)
 }
 
-func sortTasksByNextActivation(tasks mermaidclient.ExtendedTaskSlice) {
+func sortTasksByNextActivation(tasks managerclient.ExtendedTaskSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return timeLessFunc(tasks[i].NextActivation, tasks[j].NextActivation)
 	})
 }
 
-func sortTasksByStartTime(tasks mermaidclient.ExtendedTaskSlice) {
+func sortTasksByStartTime(tasks managerclient.ExtendedTaskSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return timeLessFunc(tasks[i].StartTime, tasks[j].StartTime)
 	})
 }
 
-func sortTasksByEndTime(tasks mermaidclient.ExtendedTaskSlice) {
+func sortTasksByEndTime(tasks managerclient.ExtendedTaskSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return timeLessFunc(tasks[i].EndTime, tasks[j].EndTime)
 	})
@@ -165,7 +165,7 @@ var taskStatusSortOrder = map[string]int{
 	"ABORTED": 6,
 }
 
-func sortTasksByStatus(tasks mermaidclient.ExtendedTaskSlice) {
+func sortTasksByStatus(tasks managerclient.ExtendedTaskSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return taskStatusSortOrder[tasks[i].Status] < taskStatusSortOrder[tasks[j].Status]
 	})
@@ -187,7 +187,7 @@ var taskStartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}
@@ -217,7 +217,7 @@ var taskStopCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}
@@ -247,7 +247,7 @@ var taskHistoryCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}
@@ -278,7 +278,7 @@ var taskUpdateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}
@@ -297,7 +297,7 @@ var taskUpdateCmd = &cobra.Command{
 			changed = true
 		}
 		if f := cmd.Flag("start-date"); f.Changed {
-			startDate, err := mermaidclient.ParseStartDate(f.Value.String())
+			startDate, err := managerclient.ParseStartDate(f.Value.String())
 			if err != nil {
 				return err
 			}
@@ -348,7 +348,7 @@ var taskDeleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}
@@ -373,7 +373,7 @@ var taskProgressCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		w := cmd.OutOrStdout()
 
-		taskType, taskID, err := mermaidclient.TaskSplit(args[0])
+		taskType, taskID, err := managerclient.TaskSplit(args[0])
 		if err != nil {
 			return err
 		}
@@ -409,7 +409,7 @@ var taskProgressCmd = &cobra.Command{
 	},
 }
 
-func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task, runID string) error {
+func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task, runID string) error {
 	rp, err := client.RepairProgress(ctx, cfgCluster, t.ID, runID)
 	if err != nil {
 		return err
@@ -441,7 +441,7 @@ func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task
 	return render(w, rp)
 }
 
-func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *mermaidclient.Task, runID string) error {
+func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task, runID string) error {
 	rp, err := client.BackupProgress(ctx, cfgCluster, t.ID, runID)
 	if err != nil {
 		return err

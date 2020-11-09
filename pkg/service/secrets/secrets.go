@@ -5,7 +5,7 @@ package secrets
 import (
 	"errors"
 
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 var (

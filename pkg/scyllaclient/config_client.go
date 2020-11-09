@@ -13,9 +13,9 @@ import (
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	scyllaV2Client "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/client/config"
-	"github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/models"
+	scyllaV2Client "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/client"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/client/config"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/models"
 )
 
 // ConfigClient provides means to interact with Scylla config API on a given

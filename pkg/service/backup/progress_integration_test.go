@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/schema/table"
-	. "github.com/scylladb/mermaid/pkg/testutils"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 func TestRunProgressIteratorIntegration(t *testing.T) {

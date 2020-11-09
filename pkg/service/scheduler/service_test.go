@@ -5,7 +5,7 @@ package scheduler
 import (
 	"time"
 
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // SetRetryTaskWait allows for setting retryTaskWait in an integration test.

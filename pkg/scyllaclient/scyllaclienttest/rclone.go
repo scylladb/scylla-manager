@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scylladb/mermaid/pkg/rclone/rcserver"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
 func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (client *scyllaclient.Client, closeServer func()) {

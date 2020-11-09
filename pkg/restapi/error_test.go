@@ -9,7 +9,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/service"
 )
 
 func TestRespondError(t *testing.T) {

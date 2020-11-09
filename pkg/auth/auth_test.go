@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/mermaid/pkg/util/httpx"
-	"github.com/scylladb/mermaid/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
 func TestParseBearerAuth(t *testing.T) {

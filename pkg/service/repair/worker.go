@@ -9,9 +9,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/pkg/dht"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/pkg/dht"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 )
 
 var errTableDeleted = errors.New("table deleted during repair")

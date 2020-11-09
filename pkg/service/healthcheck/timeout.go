@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // TimeoutProviderFunc is a function which returns probe timeout for given DC

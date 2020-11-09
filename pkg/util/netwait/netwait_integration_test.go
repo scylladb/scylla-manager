@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	. "github.com/scylladb/mermaid/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
 func TestWaiterTimeoutIntegration(t *testing.T) {

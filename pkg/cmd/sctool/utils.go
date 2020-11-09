@@ -7,12 +7,12 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/scylladb/mermaid/pkg/mermaidclient"
-	"github.com/scylladb/mermaid/pkg/util/fsutil"
+	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/util/fsutil"
 	"github.com/spf13/cobra"
 )
 
-func render(w io.Writer, d mermaidclient.TableRenderer) error {
+func render(w io.Writer, d managerclient.TableRenderer) error {
 	return d.Render(w)
 }
 

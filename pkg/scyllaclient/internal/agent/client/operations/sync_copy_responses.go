@@ -16,7 +16,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	models "github.com/scylladb/mermaid/pkg/scyllaclient/internal/agent/models"
+	models "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/models"
 )
 
 // SyncCopyReader is a Reader for the SyncCopy structure.

@@ -14,7 +14,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	models "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla/models"
+	models "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/models"
 )
 
 // StorageServicePendingRangeByKeyspaceGetReader is a Reader for the StorageServicePendingRangeByKeyspaceGet structure.

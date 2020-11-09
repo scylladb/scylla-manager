@@ -11,10 +11,10 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg"
-	"github.com/scylladb/mermaid/pkg/util/osutil"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
-	scyllaversion "github.com/scylladb/mermaid/pkg/util/version"
+	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/pkg/util/osutil"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	scyllaversion "github.com/scylladb/scylla-manager/pkg/util/version"
 )
 
 const (

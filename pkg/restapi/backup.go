@@ -10,8 +10,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/service/backup"
-	"github.com/scylladb/mermaid/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 )
 
 type backupHandler struct {

@@ -1,10 +1,10 @@
-%global import_path     github.com/scylladb/mermaid/pkg
+%global import_path     github.com/scylladb/scylla-manager/pkg
 %global user            scylla-manager
 %global debug_package   %{nil}
 
 Name:           scylla-manager
-Version:        %{mermaid_version}
-Release:        %{mermaid_release}
+Version:        %{scylla-manager_version}
+Release:        %{scylla-manager_release}
 Summary:        Scylla Manager meta package
 Group:          Applications/Databases
 

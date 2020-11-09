@@ -15,7 +15,7 @@
       "url": "https://github.com/scylladb/scylla/blob/master/LICENSE.AGPL"
     }
   },
-  "host": "mermaid.magic.host",
+  "host": "scylla-manager.magic.host",
   "basePath": "/v2",
   "schemes": [
     "http"

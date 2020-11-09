@@ -2,7 +2,7 @@ run:
   deadline: 5m
   tests: false
   skip-dirs:
-    - mermaidclient/internal
+    - managerclient/internal
     - scyllaclient/internal
   skip-files:
     - mock_.*\.go$

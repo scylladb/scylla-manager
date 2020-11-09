@@ -12,11 +12,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
-	"github.com/scylladb/mermaid/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/mermaid/pkg/util/parallel"
-	"github.com/scylladb/mermaid/pkg/util/pathparser"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/pkg/util/pathparser"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // manifestV1Helper provides logic for backup operations like listing, deleting.

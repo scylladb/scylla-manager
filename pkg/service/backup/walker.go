@@ -6,7 +6,7 @@ import (
 	"context"
 	"path"
 
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
 var (

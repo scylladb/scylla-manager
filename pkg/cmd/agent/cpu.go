@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/util/cpuset"
+	"github.com/scylladb/scylla-manager/pkg/util/cpuset"
 	"github.com/spf13/cobra"
 )
 

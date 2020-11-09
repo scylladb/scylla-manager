@@ -14,7 +14,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	models "github.com/scylladb/mermaid/pkg/scyllaclient/internal/scylla_v2/models"
+	models "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/models"
 )
 
 // FindConfigMurmur3PartitionerIgnoreMsbBitsReader is a Reader for the FindConfigMurmur3PartitionerIgnoreMsbBits structure.

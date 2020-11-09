@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/rclone/rclone/fs/rc"
-	"github.com/scylladb/mermaid/pkg/rclone"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
 )
 
 func newTestServer() Server {

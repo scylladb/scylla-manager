@@ -36,7 +36,7 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 .check-copyright:
 	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
-		[[ $$f =~ /mermaidclient/internal/ ]] || \
+		[[ $$f =~ /managerclient/internal/ ]] || \
 		[[ $$f =~ /rclone/rcserver/internal/ ]] || \
 		[[ $$f =~ /mock_.*_test[.]go ]] || \
 		[[ `head -n 1 $$f` =~ '// Copyright (C) ' ]] || \
@@ -47,7 +47,7 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 .check-comments:
 	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ _string\.go ]] || \
-		[[ $$f =~ /mermaidclient/internal/ ]] || \
+		[[ $$f =~ /managerclient/internal/ ]] || \
 		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		! e=`grep -Pzo '\n\n\s+//\s*[a-z].*' $$f` || \
 		(echo $$f $$e; false); \

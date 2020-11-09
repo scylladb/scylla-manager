@@ -3,7 +3,7 @@
 package healthcheck
 
 import (
-	"github.com/scylladb/mermaid/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
 const (

@@ -5,7 +5,7 @@
     "title": "Scylla Manager Agent API",
     "contact": {}
   },
-  "host": "mermaid.magic.host",
+  "host": "scylla-manager.magic.host",
   "basePath": "/agent",
   "schemes": [
     "http"

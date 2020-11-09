@@ -5,7 +5,7 @@ package scheduler
 import (
 	"sync"
 
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 type triggerState int

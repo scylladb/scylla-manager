@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // Distro is string representation of the linux distribution.

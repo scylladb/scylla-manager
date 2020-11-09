@@ -2,7 +2,7 @@
 
 package backup
 
-import "github.com/scylladb/mermaid/pkg/util/uuid"
+import "github.com/scylladb/scylla-manager/pkg/util/uuid"
 
 func pruneDC(dc string, filter ListFilter) bool {
 	if dc != "" && filter.DC != "" {

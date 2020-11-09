@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
-	"github.com/scylladb/mermaid/pkg"
+	"github.com/scylladb/scylla-manager/pkg"
 )
 
 type version struct {

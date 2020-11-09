@@ -7,10 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/service/backup"
-	"github.com/scylladb/mermaid/pkg/service/healthcheck"
-	"github.com/scylladb/mermaid/pkg/service/repair"
-	"github.com/scylladb/mermaid/pkg/util/cfgutil"
+	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
+	"github.com/scylladb/scylla-manager/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/pkg/util/cfgutil"
 	"go.uber.org/zap/zapcore"
 )
 

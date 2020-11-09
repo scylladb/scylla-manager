@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-IMPORT_PATH := github.com/scylladb/mermaid/pkg
+IMPORT_PATH := github.com/scylladb/scylla-manager/pkg
 
 export CGO_ENABLED := 0
 export GOROOT      := $(PWD)/../go

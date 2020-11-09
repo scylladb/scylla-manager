@@ -8,7 +8,7 @@ import (
 
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
-	"github.com/scylladb/mermaid/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/pkg/util/httpx"
 )
 
 var errPoolServerError = errors.New("server error")
@@ -41,7 +41,7 @@ func hostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 		r.URL.Host = hp
 
 		// RoundTrip shall not modify requests, here we modify it to fix error
-		// messages see https://github.com/scylladb/mermaid/pkg/issues/266.
+		// messages see https://github.com/scylladb/scylla-manager/pkg/issues/266.
 		// This is legit because we own the whole process. The modified request
 		// is not being sent.
 		req.Host = h

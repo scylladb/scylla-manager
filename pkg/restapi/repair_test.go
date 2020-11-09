@@ -11,12 +11,12 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/mermaid/pkg/restapi"
-	"github.com/scylladb/mermaid/pkg/service"
-	"github.com/scylladb/mermaid/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/pkg/restapi"
+	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-//go:generate mockgen -destination mock_repairservice_test.go -mock_names RepairService=MockRepairService -package restapi github.com/scylladb/mermaid/pkg/restapi RepairService
+//go:generate mockgen -destination mock_repairservice_test.go -mock_names RepairService=MockRepairService -package restapi github.com/scylladb/scylla-manager/pkg/restapi RepairService
 
 func updateIntensityRequest(clusterID uuid.UUID, intensity float64) *http.Request {
 	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/cluster/%s/repairs/intensity", clusterID.String()), nil)

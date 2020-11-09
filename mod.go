@@ -2,7 +2,7 @@
 
 // +build modules
 
-package mermaid
+package scylla-manager
 
 // This file exists only to trick modules into getting extra packages,
 // typically tools that are part of other packages that are otherwise wiped by

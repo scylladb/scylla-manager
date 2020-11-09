@@ -10,7 +10,7 @@ GO_VERSION = $(shell cat ../.go-version)
 
 .PHONY: clean
 clean: ## Remove release and all the temporary files
-	@rm -Rf /tmp/mermaid_rpm.*
+	@rm -Rf /tmp/scylla-manager_rpm.*
 	@rm -Rf release
 
 release/scylla-manager-$(VERSION_NAME).tar.gz:
@@ -21,15 +21,15 @@ release/scylla-manager-$(VERSION_NAME).tar.gz:
 	-o $(PWD)/release/scylla-manager-$(VERSION_NAME).tar.gz HEAD
 
 release/rpm: $(GO_BUNDLE) release/scylla-manager-$(VERSION_NAME).tar.gz ## Create RPM package
-	$(eval RPMBUILD := $(shell mktemp -t -d mermaid_rpm.XXXX))
+	$(eval RPMBUILD := $(shell mktemp -t -d scylla-manager_rpm.XXXX))
 	@echo "==> Building RPM in $(RPMBUILD)..."
 	@mkdir -p $(RPMBUILD)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 	@cp release/scylla-manager-$(VERSION_NAME).tar.gz $(RPMBUILD)/SOURCES
 
 	@GO_VERSION=$(GO_VERSION) rpmbuild -bb --target x86_64 \
 	--define '_binary_payload w2.xzdio' \
-	--define "mermaid_version $(VERSION)" \
-	--define "mermaid_release $(RELEASE)" \
+	--define "scylla-manager_version $(VERSION)" \
+	--define "scylla-manager_release $(RELEASE)" \
 	--define "_topdir $(RPMBUILD)"  \
 	--define "__os_install_post %{nil}" \
 	redhat/scylla-manager.spec > /dev/null

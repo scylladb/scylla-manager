@@ -13,7 +13,7 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-reflectx"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/mermaid/pkg/rclone/backend/localdir"
+	"github.com/scylladb/scylla-manager/pkg/rclone/backend/localdir"
 	"go.uber.org/multierr"
 )
 
