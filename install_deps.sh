@@ -33,7 +33,7 @@ esac
 echo "==> Installing cqlsh from pip"
 python2.7 -m pip install cqlsh
 
-export GOBIN=${GOBIN:-${GOPATH}/bin}
+export GOBIN=${GOBIN:-./bin}
 mkdir -p ${GOBIN}
 
 echo "==> Installing Go packages at ${GOBIN}"
