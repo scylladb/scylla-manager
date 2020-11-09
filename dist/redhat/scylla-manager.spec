@@ -3,8 +3,8 @@
 %global debug_package   %{nil}
 
 Name:           scylla-manager
-Version:        %{scylla-manager_version}
-Release:        %{scylla-manager_release}
+Version:        %{scylla_manager_version}
+Release:        %{scylla_manager_release}
 Summary:        Scylla Manager meta package
 Group:          Applications/Databases
 

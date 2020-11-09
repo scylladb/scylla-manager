@@ -14,7 +14,7 @@ if [[ ! -f "${SSH_IDENTITY_FILE}" ]]; then
     ssh-keygen -t rsa -b 2048 -N "" -f "${SSH_IDENTITY_FILE}" > /dev/null && chmod 0400 "${SSH_IDENTITY_FILE}"
 fi
 
-for name in `docker ps -f name=scylla-manager_dc --format {{.Names}}`; do
-    host=`docker inspect -f '{{with index .NetworkSettings.Networks "scylla-manager_public"}}{{.IPAddress}}{{end}}' ${name}`
+for name in `docker ps -f name=scylla_manager_dc --format {{.Names}}`; do
+    host=`docker inspect -f '{{with index .NetworkSettings.Networks "scylla_manager_public"}}{{.IPAddress}}{{end}}' ${name}`
     sshpass -p "${SSH_PASS}" ssh-copy-id -i "${SSH_IDENTITY_FILE}" -f ${SSH_OPTS} "${SSH_USER}@${host}" &> /dev/null
 done
