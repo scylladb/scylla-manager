@@ -1,6 +1,6 @@
-====================
-Cluster Health Check
-====================
+============
+Health Check
+============
 
 Scylla Manager automatically adds three health check tasks when the cluster is added to the Scylla Manager and to existing clusters
 during the upgrade procedure. You can see the tasks created by the healthcheck when you run
@@ -102,8 +102,8 @@ CQL query health check
 
 .. versionadded:: 2.2 Scylla Manager
 
-You may specify CQL ``username`` and ``password`` flags when adding cluster to Scylla Manager using :ref:`sctool cluster add command <cluster-add>`.
-It's also possible to add or change that using :ref:`sctool cluster update command <cluster-update>`.
+You may specify CQL ``username`` and ``password`` flags when adding cluster to Scylla Manager using :ref:`sctool cluster add <cluster-add>` command.
+It's also possible to add or change that using :ref:`sctool cluster update <cluster-update>` command.
 Once Scylla Manager has CQL credential to the cluster, when performing a health check, it would try to connect to each node and execute ``SELECT now() FROM system.local`` query.
 
 

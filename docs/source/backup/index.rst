@@ -1,48 +1,62 @@
-================
-Backup a Cluster
-================
+======
+Backup
+======
 
 .. toctree::
    :hidden:
    :maxdepth: 2
 
-   prepare-nodes
-   grant-access-S3
-   grant-access-gcs
-   backup-examples
-   get-schema
-   restore-a-backup
+   setup-aws-s3
+   setup-s3-compatible-storage
+   setup-gcs
+   examples
 
-Using :ref:`sctool <sctool-backup>`, you can backup and restore your managed Scylla clusters under Scylla Manager.
-Backups are scheduled in the same manner as repairs, you can start, stop, and track backup operations on demand.
-Scylla Manager can backup to Amazon S3, S3 compatible API storage providers such as Ceph or MinIO and Google Cloud Storage.
+.. contents::
+   :depth: 2
+   :local:
 
-Benefits of using Scylla Manager backups
-========================================
+Using :ref:`sctool backup <sctool-backup>` command, you can schedule a backup of a managed cluster.
+Backups and repairs are scheduled in the same manner, you can start, stop, resume, and track task progress on demand.
+The following backup storage engines are supported:
 
-Scylla Manager automates the backup process and allows you to configure how and when backup occurs.
-The advantages of using Scylla Manager for backup operations are:
+* Amazon S3,
+* S3 compatible API storage providers such as Ceph or MinIO,
+* Google Cloud Storage.
 
-* Data selection - backup a single table or an entire cluster, the choice is up to you
-* Data deduplication - prevents multiple uploads of the same SSTable
-* Data retention - purge old data automatically when all goes right, or failover when something goes wrong
-* Data throttling - control how fast you upload or Pause/resume the backup
-* No cross-region traffic - configurable upload destination per datacenter
-* Pause and resume - backup upload can be paused and resumed later, it will continue where it left off
-* Retries - retries in case of errors
-* Lower disruption to workflow of the Scylla Manager Agent due to cgroups and/or CPU pinning
-* Visibility - everything is managed from one place, progress can be read using CLI, REST API or Prometheus metrics, you can dig into details and get to know progress of individual tables and nodes
+Features
+========
 
+* Glob patterns to select keyspaces or tables to backup
+* Deduplication of SSTables
+* Retention of old data
+* Throttling of upload speed
+* Configurable upload destination per datacenter
+* Pause and resume
 
-The backup process
-==================
+Process
+=======
 
 The backup procedure consists of multiple steps executed sequentially.
-It runs parallel on all nodes unless you limit it with the ``--snapshot-parallel`` or ``--upload-parallel`` :ref:`flag <backup-parameters>`.
 
 #. **Snapshot** - Take a snapshot of data on each node (according to backup configuration settings).
-#. **Schema** - (Optional) Upload the schema CQL to the backup storage destination, this requires that you added the cluster with ``--username`` and ``--password`` flags.
-   See :ref:`Add a Cluster <add-cluster>` for reference.
+#. (Optional) **Schema** - Upload the schema in CQL text format to the backup storage destination,
+   this requires that you added the cluster with CQL username and password.
+   If you didn't you can :ref:`update the cluster using sctool <cluster-update>` at any point in time.
 #. **Upload** - Upload the snapshot to the backup storage destination.
 #. **Manifest** - Upload the manifest file containing metadata about the backup.
 #. **Purge** - If the retention threshold has been reached, remove the oldest backup from the storage location.
+
+.. _backup-location:
+
+Backup location
+===============
+
+You need to create a backup location for example an S3 bucket.
+We recommend creating it in the same region as Scylla nodes to minimize cross region data transfer costs.
+In multi-dc deployments you should create a bucket per datacenter, each located in the datacenter's region.
+
+Details may differ depending on the storage engine, please consult:
+
+* :doc:`Setup AWS S3 <setup-aws-s3>`
+* :doc:`Setup S3 compatible storage <setup-s3-compatible-storage>`
+* :doc:`Setup Google Cloud Storage <setup-gcs>`

@@ -2,27 +2,16 @@
 Add a Cluster
 =============
 
-If you have installed Scylla Manager, and Scylla Manager Agent in all the nodes in a cluster.
-You can now add the cluster to Scylla Manager.
+**Prerequisites**
 
-.. contents::
-   :depth: 2
-   :local:
-
-Prerequisites
-=============
-
-* All the nodes have Scylla Manager Agent running.
-* All the nodes have the **same** :ref:`authentication token <configure-auth-token>` configured.
-* Traffic on the following ports is unblocked to the nodes from the Scylla Manager Server:
+* Scylla Manager Agent is up and running on all Scylla nodes.
+* All the Agents have the same :ref:`authentication token <configure-auth-token>` configured.
+* Traffic on the following ports is unblocked from the Scylla Manager Server to all the Scylla nodes.
 
   * ``10001`` - Scylla Manager Agent REST API (HTTPS)
   * CQL port (typically ``9042``) - required for CQL health check status reports
 
 .. _add-cluster:
-
-Add a Cluster
-=============
 
 **Procedure**
 
@@ -92,11 +81,11 @@ Add a Cluster
 
    You will see 4 tasks which are created by adding the cluster:
 
-   .. include:: ../_common/health-check-tasks.rst
+   .. include:: _common/health-check-tasks.rst
 
    * Repair - an automated repair task, starting at midnight tonight, repeating every seven days at midnight.
 
-   .. note:: If you want to change the schedule for the repair, use the :ref:`repair update sctool command <reschedule-a-repair>`.
+   .. note:: If you want to change the schedule for the repair, use the :ref:`repair update sctool <reschedule-a-repair>` command.
 
 #. Verify Scylla Manager can communicate with all the Agents, and the the cluster status is OK by running the ``sctool status`` command.
 
@@ -112,8 +101,3 @@ Add a Cluster
       │ UN │ UP (17ms)  │ UP (5ms)  │ UP (7ms)  │ 10.0.196.204  │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ bde4581a-b25e-49fc-8cd9-1651d7683f80 │
       │ UN │ UP (10ms)  │ UP (4ms)  │ UP (5ms)  │ 10.0.66.115   │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ 918a52aa-cc42-43a4-a499-f7b1ccb53b18 │
       ╰────┴────────────┴───────────┴───────────┴───────────────┴────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯
-
-See Also
-========
-
-* `sctool Reference </sctool/>`_

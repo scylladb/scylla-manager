@@ -1,6 +1,6 @@
-=============================
-Scylla Monitoring Integration
-=============================
+=================
+Scylla Monitoring
+=================
 
 Scylla Manager as Service Discovery for Scylla Monitoring
 =========================================================

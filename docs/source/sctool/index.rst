@@ -1,8 +1,8 @@
 .. _sctool-reference-index:
 
-======================
-sctool Reference Guide
-======================
+==========
+CLI sctool
+==========
 
 .. toctree::
    :hidden:
@@ -26,13 +26,4 @@ The server communicates with managed Scylla clusters and performs cluster-wide o
 
    sctool command [flags] [global flags]
 
-Select a topic to begin:
-
-* :doc:`sctool global flags and variables <global-flags-and-variables>`
-* :doc:`Cluster registration <cluster>`
-* :doc:`Backup a cluster <backup>`
-* :doc:`Repair a cluster <repair>`
-* :doc:`Monitor a cluster <status>`
-* :doc:`Manage tasks <task>`
-* :doc:`Show Scylla Manager version <version>`
-
+Consult the left pane menu for commands.

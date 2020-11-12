@@ -172,7 +172,7 @@ It can be used in conjunction with dc flag, in such a case the node must belong 
 ``--intensity <float>``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-How many token ranges (per shard) to repair in a single Scylla repair job. By default this is 1.
+How many token ranges per shard to repair in a single Scylla node at the same time. By default this is 1.
 If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
 Valid values are 0 and integers >= 1.
 Higher values will result in increased cluster load and slightly faster repairs.
@@ -339,15 +339,13 @@ In addition to :ref:`global-flags`, repair takes the following repair control pa
 ``--intensity <float>``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-How many token ranges (per shard) to repair in a single Scylla repair job. By default this is 1.
+How many token ranges per shard can be repaired in a Scylla node at every given time. By default this is 1.
 If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
 Valid values are integers >= 1 and decimals between (0,1). Higher values will result in increased cluster load and slightly faster repairs.
 Values below 1 will result in repairing the number of token ranges equal to the specified fraction of shards.
 Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
 
 **Default:** 1
-
-For examples, see :ref:`Change Repair Speed <change-speed>`.
 
 =====
 
@@ -362,8 +360,6 @@ The effective parallelism depends on a keyspace replication factor (RF) and the 
 The formula to calculate is is as follows: nr. nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.
 
 **Default:** 0
-
-For examples, see :ref:`Change Repair Speed <change-speed>`.
 
 =====
 

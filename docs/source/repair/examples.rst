@@ -25,7 +25,7 @@ Create a scheduled repair
 While the most recommended way to run a repair is across an entire cluster, repairs can be scheduled to run on a single/multiple datacenters, keyspaces, or tables.
 The selection mechanism, based on the glob patterns, gives you a lot of flexibility.
 Scheduled repairs run every X days depending on the frequency you set.
-Additional parameters are described in the :ref:`sctool Repair Reference <repair-commands>`.
+Additional parameters are described in the :ref:`sctool repair <repair-commands>` command reference.
 
 Use the example below to run the sctool repair command.
 

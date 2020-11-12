@@ -1,14 +1,15 @@
+===============
+Troubleshooting
+===============
+
+.. contents::
+   :depth: 2
+   :local:
+
 Add a Node to a Managed Cluster
 ===============================
 
 Although Scylla Manager is aware of all topology changes made within every cluster it manages, it cannot properly manage a cluster without establishing connections with every node in the cluster using the Scylla Manager Agent which is on each managed node.
-
-**Before You Begin**
-
-* Confirm you have a managed cluster running under Scylla Manager. If you do not have a managed cluster, add one with :ref:`this procedure <add-cluster>`.
-* Confirm the node or Datacenter was added to the Scylla Cluster using `nodetool status <https://docs.scylladb.com/operating-scylla/nodetool-commands/status/>`_ .
-  If not, add the `node <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/add_node_to_cluster/#procedure>`_
-  or `Datacenter <https://docs.scylladb.com/operating-scylla/procedures/cluster-management/add_dc_to_existing_dc/#procedure>`_ before continuing.
 
 **Procedure**
 
@@ -29,5 +30,7 @@ Although Scylla Manager is aware of all topology changes made within every clust
       │ UN │ UP (10ms)  │ UP (4ms)  │ UP (5ms)  │ 10.0.66.115   │ 237h2m1s │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ 918a52aa-cc42-43a4-a499-f7b1ccb53b18 │
       ╰────┴────────────┴───────────┴───────────┴───────────────┴──────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯
 
+Remove a Node from a Managed Cluster
+====================================
 
-#. If you are using the Scylla Monitoring Stack, continue to :doc:`Connect Managed Cluster to Scylla Monitoring <connect-cluster-to-monitor>` for more information.
+There is no need to perform any action in Scylla Manager after removing a node or datacenter from a Scylla cluster.

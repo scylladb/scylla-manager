@@ -1,8 +1,8 @@
 .. _install-agent:
 
-=================================
-Scylla Manager Agent Installation
-=================================
+============================
+Install Scylla Manager Agent
+============================
 
 Scylla Manager Agent is a daemon, that needs to be **installed and started on each Scylla node**.
 Scylla Manager Server communicates with nodes in the managed Scylla clusters via the Agents.
@@ -100,7 +100,5 @@ Start Scylla Manager Agent service
 Next steps
 ==========
 
-..
-   TODO add link to backup configuration
-
-* :ref:`Add a Cluster <add-cluster>`.
+* :ref:`Configure backup location <backup-location>`
+* :doc:`Add a Cluster <add-a-cluster>`

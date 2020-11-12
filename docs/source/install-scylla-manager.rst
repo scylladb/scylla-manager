@@ -1,8 +1,8 @@
 .. _install-manager:
 
-===========================
-Scylla Manager Installation
-===========================
+======================
+Install Scylla Manager
+======================
 
 .. contents::
    :depth: 2
@@ -183,4 +183,4 @@ Scylla Manager integrates with ``systemd`` and can be started and stopped using 
 Next steps
 ==========
 
-* :doc:`Scylla Manager Agent Installation <scylla-manager-agent-installation>`
+* :doc:`Install Scylla Manager Agent <install-scylla-manager-agent>`
