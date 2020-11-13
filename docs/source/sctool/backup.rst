@@ -58,6 +58,8 @@ In addition to the :ref:`global-flags`, backup takes the following parameters:
 
 =====
 
+.. _backup-param-dc:
+
 ``--dc <list of glob patterns>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -68,12 +70,16 @@ This can also include glob patterns.
 
 =====
 
+.. _backup-param-dry-run:
+
 ``--dry-run``
 ^^^^^^^^^^^^^
 
 Validates and prints backup information without actually scheduling a backup.
 
 =====
+
+.. _backup-param-i:
 
 ``-i, --interval <time-unit>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -85,11 +91,15 @@ Scheduled Intervals for backups to repeat every X time, where X can be:
 * ``m`` - minutes
 * ``s`` - seconds
 
-For example: ``-i 3d2h10m``
+For example: .. _backup-param-i:
+
+``-i 3d2h10m``
 
 **Default: 0** - this means the task does not recur.
 
 =====
+
+.. _backup-param-K:
 
 ``-K, --keyspace <list of glob patterns to find keyspaces>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -102,6 +112,8 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 
 =====
 
+.. _backup-param-L:
+
 ``-L, --location <list of backup locations>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -112,6 +124,8 @@ The <dc>: part is optional and is only needed when different datacenters are bei
 The only supported storage ``provider`` at the moment are ``s3`` and ``gcs``.
 
 =====
+
+.. _backup-param-rate-limit:
 
 ``--rate-limit <list of rate limits>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,6 +139,8 @@ The <dc>: part is optional and is only needed when different datacenters require
 
 =====
 
+.. _backup-param-retention:
+
 ``--retention <number of backups to store>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -135,12 +151,18 @@ Once this number is reached, the next backup which comes in from this destinatio
 
 =====
 
+.. _backup-param-show-tables:
+
 ``--show-tables``
 ^^^^^^^^^^^^^^^^^
 
-Prints table names together with keyspace. Used in combination with ``--dry-run``.
+Prints table names together with keyspace. Used in combination with .. _backup-param-dry-run:
+
+``--dry-run``.
 
 =====
+
+.. _backup-param-snapshot-parallel:
 
 ``--snapshot-parallel <list of parallelism limits>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -151,6 +173,8 @@ The ``dc`` part is optional and allows for specifying different limits in select
 If the ``dc`` part is not set, the limit is global and the runs are parallel in ``n`` nodes. If for example, you were to set 'dc1:2,5', then ``dc1`` would have two parallel nodes and there would be five parallel nodes in the other DCs.
 
 =====
+
+.. _backup-param-s:
 
 ``-s, --start-date <date>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -166,6 +190,8 @@ Specifies the task start date expressed in the RFC3339 format or ``now[+duration
 **Default: now**
 
 =====
+
+.. _backup-param-upload-parallel:
 
 ``--upload-parallel <list of parallelism limits>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -244,12 +270,16 @@ In addition to the :ref:`global-flags`, backup list takes the following paramete
 
 =====
 
+.. _backup-list-param-all-clusters:
+
 ``--all-clusters``
 ^^^^^^^^^^^^^^^^^^
 
 Shows backups for all clusters. Useful for listing clusters that are no longer available locally but are backed up in the past to remote location.
 
 =====
+
+.. _backup-list-param-K:
 
 ``-K, --keyspace <list of glob patterns to find keyspaces>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -262,6 +292,8 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 
 =====
 
+.. _backup-list-param-L:
+
 ``-L, --location <list of backup locations>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -272,6 +304,8 @@ The <dc>: part is optional and is only needed when different datacenters are bei
 The only supported storage ``provider`` are ``s3`` and ``gcs``.
 
 =====
+
+.. _backup-list-param-max-date:
 
 ``--max-date <date>``
 ^^^^^^^^^^^^^^^^^^^^^
@@ -287,6 +321,8 @@ For example: ``now+3d2h10m`` Valid units are:
 
 =====
 
+.. _backup-list-param-min-date:
+
 ``--min-date <date>``
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -300,6 +336,8 @@ For example: ``now+3d2h10m`` Valid units are:
 * ``now`` - happens immediately
 
 =====
+
+.. _backup-list-param-show-tables:
 
 ``--show-tables``
 ^^^^^^^^^^^^^^^^^
@@ -350,12 +388,16 @@ In addition to the :ref:`global-flags`, backup files add takes the following par
 
 =====
 
+.. _backup-files-param-all-clusters:
+
 ``--all-clusters``
 ^^^^^^^^^^^^^^^^^^
 
 Shows backups for all clusters
 
 =====
+
+.. _backup-files-param-d:
 
 ``-d, --delimiter <delimiter-character>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -365,6 +407,8 @@ Dictates which character will be used as a whitespace between remote file path a
 **Default: '\t'**
 
 =====
+
+.. _backup-files-param-K:
 
 ``-K, --keyspace <list of glob patterns to find keyspaces>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -377,6 +421,8 @@ separate the keyspace name from the table name with a dot (*KEYSPACE.TABLE*).
 
 =====
 
+.. _backup-files-param-L:
+
 ``-L, --location <list of backup locations>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -387,6 +433,8 @@ The <dc>: part is optional and is only needed when different datacenters are bei
 The only supported storage ``provider`` are ``s3`` and ``gcs``.
 
 =====
+
+.. _backup-files-param-T:
 
 ``-T, --snapshot-tag <tag>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -454,6 +502,8 @@ In addition to the :ref:`global-flags`, backup delete takes the following parame
 
 =====
 
+.. _backup-delete-param-L:
+
 ``-L, --location <list of backup locations>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -464,6 +514,8 @@ The <dc>: part is optional and is only needed when different datacenters are bei
 The only supported storage ``provider`` are ``s3`` and ``gcs``.
 
 =====
+
+.. _backup-delete-param-T:
 
 ``-T, --snapshot-tag <tag>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

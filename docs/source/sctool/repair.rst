@@ -52,6 +52,8 @@ In addition to :ref:`global-flags`, repair takes the following parameters:
 
 =====
 
+.. _repair-param-dc:
+
 ``--dc <list of glob patterns>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -80,6 +82,8 @@ Given the following data centers: *us-east-1*, *us-east-2*, *us-west-1*, *us-wes
 **Default:** everything - all data centers
 
 =====
+
+.. _repair-param-dry-run:
 
 ``--dry-run``
 ^^^^^^^^^^^^^
@@ -141,6 +145,8 @@ The following command will run a repair on all keyspaces **except** for test_key
 
 =====
 
+.. _repair-param-fail-fast:
+
 ``--fail-fast``
 ^^^^^^^^^^^^^^^
 
@@ -150,6 +156,8 @@ Stops the repair process on the first error.
 
 =====
 
+.. _repair-param-host:
+
 ``--host <node IP>``
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -158,6 +166,8 @@ Specifying the host flag limits repair to token ranges replicated by a given nod
 It can be used in conjunction with dc flag, in such a case the node must belong to the specified datacenters.
 
 =====
+
+.. _repair-param-intensity:
 
 ``--intensity <float>``
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -177,6 +187,8 @@ Changing the intensity impacts repair granularity if you need to resume it, the 
 
 =====
 
+.. _repair-param-parallel:
+
 ``--parallel <integer>``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -188,6 +200,8 @@ The formula to calculate is is as follows: number of nodes / RF, ex. for 6 node 
 **Default:** 0
 
 =====
+
+.. _repair-param-K:
 
 ``-K, --keyspace <list of glob patterns>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -320,7 +334,7 @@ In addition to :ref:`global-flags`, repair takes the following repair control pa
 
 =====
 
-.. _intensity-float:
+.. _repair-control-param-intensity:
 
 ``--intensity <float>``
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -337,7 +351,7 @@ For examples, see :ref:`Change Repair Speed <change-speed>`.
 
 =====
 
-.. _parallel-integer:
+.. _repair-control-param-parallel:
 
 ``--parallel <integer>``
 ^^^^^^^^^^^^^^^^^^^^^^^^

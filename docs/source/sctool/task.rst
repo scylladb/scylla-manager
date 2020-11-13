@@ -96,6 +96,8 @@ In addition to the :ref:`global-flags`, task history takes the following paramet
 
 =====
 
+.. _task-history-param-limit:
+
 ``--limit <number of results>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -154,6 +156,8 @@ In addition to the :ref:`global-flags`, task list takes the following parameters
 
 =====
 
+.. _task-list-param-all:
+
 ``--all``
 ^^^^^^^^^
 
@@ -162,6 +166,8 @@ Disabled tasks are prefixed with ``*``.
 For example ``*repair/afe9a610-e4c7-4d05-860e-5a0ddf14d7aa``.
 
 =====
+
+.. _task-list-param-sort:
 
 ``--sort <sort-key>``
 ^^^^^^^^^^^^^^^^^^^^^
@@ -180,6 +186,8 @@ Accepted sort key values are:
 
 =====
 
+.. _task-list-param-status:
+
 ``--status <status>``
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -187,6 +195,8 @@ Filters tasks according to their last run status.
 Accepted values are NEW, STARTING, RUNNING, STOPPING, STOPPED, DONE, ERROR, ABORTED.
 
 =====
+
+.. _task-list-param-t:
 
 ``-t, --type <task type>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -239,6 +249,8 @@ In addition to the :ref:`global-flags`, repair progress takes the following para
 .. include:: ../_common/param-cluster.rst
 
 =====
+
+.. _task-progress-param-details:
 
 ``--details``
 ^^^^^^^^^^^^^
@@ -442,6 +454,8 @@ In addition to the :ref:`global-flags`, task start takes the following parameter
 
 =====
 
+.. _task-start-param-continue:
+
 ``--continue``
 ^^^^^^^^^^^^^^
 
@@ -533,6 +547,8 @@ In addition to :ref:`global-flags`, task stop takes the following parameters:
 
 =====
 
+.. _task-update-param-e:
+
 ``-e, --enabled``
 ^^^^^^^^^^^^^^^^^
 
@@ -544,12 +560,16 @@ To show disabled tasks invoke ``sctool task list --all`` (see `task list`_).
 
 =====
 
+.. _task-update-param-n:
+
 ``-n, --name <alias>``
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Adds a name to a task.
 
 =====
+
+.. _task-update-param-tags:
 
 ``--tags <list of tags>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^
