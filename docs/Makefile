@@ -23,6 +23,7 @@ pristine: clean
 .PHONY: setup
 setup:
 	./_utils/setup.sh
+	./_utils/copy_files.sh
 
 .PHONY: clean
 clean:
@@ -51,13 +52,13 @@ epub: 	setup
 	@echo "Build finished. The epub file is in $(BUILDDIR)/epub."
 
 .PHONY: epub3
-epub3:	setup
+epub3: setup
 	$(SPHINXBUILD) -b epub3 $(ALLSPHINXOPTS) $(BUILDDIR)/epub3
 	@echo
 	@echo "Build finished. The epub3 file is in $(BUILDDIR)/epub3."
 
 .PHONY: dummy
-dummy: 	setup
+dummy: setup
 	$(SPHINXBUILD) -b dummy $(ALLSPHINXOPTS) $(BUILDDIR)/dummy
 	@echo
 	@echo "Build finished. Dummy builder generates no files."
@@ -71,6 +72,9 @@ GIT_BRANCH = $(shell git branch --show-current)
 .PHONY: multiversion
 multiversion: setup
 	@mkdir -p $(HOME)/.cache/pypoetry/virtualenvs
-	$(POETRY) run sphinx-multiversion -D smv_branch_whitelist=$(GIT_BRANCH) -D smv_outputdir_format=$(GIT_BRANCH:branch-%=%) $(SOURCEDIR) $(BUILDDIR)/dirhtml
+	$(POETRY) run sphinx-multiversion \
+	--pre-build ./_utils/copy_files.sh \
+	-D smv_branch_whitelist=$(GIT_BRANCH) -D smv_outputdir_format=$(GIT_BRANCH:branch-%=%) \
+	$(SOURCEDIR) $(BUILDDIR)/dirhtml
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
