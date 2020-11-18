@@ -1,7 +1,5 @@
 all: help
 
-SHELL := /bin/bash
-
 # Prevent invoking make with a package specific test without a constraining a
 # package.
 ifneq "$(filter pkg-%,$(MAKECMDGOALS))" ""
@@ -13,9 +11,7 @@ endif
 # Default package
 PKG := ./pkg/...
 
-ifndef GOBIN
-export GOBIN := ./bin
-endif
+GOBIN ?= $(shell pwd)/bin
 GO111MODULE := on
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
 

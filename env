@@ -1,0 +1,2 @@
+export LOCAL_BIN=$PWD/bin
+export PATH="$LOCAL_BIN:$PATH"
