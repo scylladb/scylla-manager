@@ -100,7 +100,7 @@ html_theme_options = {
     ('Scylla Cloud', 'https://docs.scylladb.com/scylla-cloud/'),
     ('Scylla University', 'https://university.scylladb.com/'),
     ('ScyllaDB Home', 'https://www.scylladb.com/')],
-    'github_issues_repository': 'scylladb/scylla-doc-issues',
+    'github_issues_repository': 'scylladb/scylla-manager-issues',
     'show_sidebar_index':True,
 }
 
