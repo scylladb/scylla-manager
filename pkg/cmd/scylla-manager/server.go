@@ -175,13 +175,14 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 }
 
 func (s *server) makeServers(mw *prom.MetricsWatcher) error {
-	h := restapi.New(restapi.Services{
+	services := restapi.Services{
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
 		Repair:      s.repairSvc,
 		Backup:      s.backupSvc,
 		Scheduler:   s.schedSvc,
-	}, s.logger.Named("http"))
+	}
+	h := restapi.New(services, s.config.SwaggerUIPath, s.logger.Named("http"))
 
 	if s.config.HTTP != "" {
 		s.httpServer = &http.Server{

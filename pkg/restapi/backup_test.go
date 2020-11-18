@@ -56,7 +56,7 @@ func TestBackupList(t *testing.T) {
 		Backup:  bm,
 	}
 
-	h := restapi.New(services, log.Logger{})
+	h := restapi.New(services, "", log.Logger{})
 
 	var (
 		cluster = givenCluster()
@@ -108,7 +108,7 @@ func TestBackupListFiles(t *testing.T) {
 		Backup:  bm,
 	}
 
-	h := restapi.New(services, log.Logger{})
+	h := restapi.New(services, "", log.Logger{})
 
 	var (
 		cluster = givenCluster()
