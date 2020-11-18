@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+#
+# Copyright (C) 2017 ScyllaDB
+#
 
-set -u -o pipefail
+set -eu -o pipefail
 
 FEDORA_PKGS="jq make moreutils sshpass rpm-build"
 UBUNTU_PKGS="jq make moreutils sshpass"
@@ -13,8 +16,11 @@ license-detector    https://github.com/src-d/go-license-detector/releases/downlo
 mockgen             github.com/golang/mock/mockgen \
 stress              golang.org/x/tools/cmd/stress"
 
+source ./env
+mkdir -p ${LOCAL_BIN}
+
 echo "==> Installing system packages"
-DISTRO=` cat /etc/os-release | grep '^ID=' | cut -d= -f2`
+DISTRO=$(cat /etc/os-release | grep '^ID=' | cut -d= -f2)
 case ${DISTRO} in
     "fedora")
         sudo dnf install ${FEDORA_PKGS}
@@ -33,30 +39,28 @@ esac
 echo "==> Installing cqlsh from pip"
 python2.7 -m pip install cqlsh
 
-export GOBIN=${GOBIN:-./bin}
-mkdir -p ${GOBIN}
 
-echo "==> Installing Go packages at ${GOBIN}"
+echo "==> Installing Go packages at ${LOCAL_BIN}"
 
 function download() {
     case $2 in
         *.tar.gz)
             ;&
         *.tgz)
-            curl -sSq -L $2 | tar zxf - --strip 1 -C ${GOBIN} --wildcards "*/$1"
+            curl -sSq -L $2 | tar zxf - --strip 1 -C ${LOCAL_BIN} --wildcards "*/$1"
             ;;
         *.gz)
-            curl -sSq -L $2 | gzip -d - > "${GOBIN}/$1"
+            curl -sSq -L $2 | gzip -d - > "${LOCAL_BIN}/$1"
             ;;
         *)
-            curl -sSq -L $2 -o "${GOBIN}/$1"
+            curl -sSq -L $2 -o "${LOCAL_BIN}/$1"
             ;;
     esac
-    chmod u+x "${GOBIN}/$1"
+    chmod u+x "${LOCAL_BIN}/$1"
 }
 
 function install_from_vendor() {
-    GO111MODULE=on go install -mod=vendor $1
+    GO111MODULE=on go install -mod=vendor ${1}
 }
 
 function install() {
