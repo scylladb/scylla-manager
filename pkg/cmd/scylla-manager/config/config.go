@@ -54,27 +54,29 @@ type sslConfig struct {
 
 // ServerConfig contains configuration structure for scylla manager.
 type ServerConfig struct {
-	HTTP        string             `yaml:"http"`
-	HTTPS       string             `yaml:"https"`
-	TLSCertFile string             `yaml:"tls_cert_file"`
-	TLSKeyFile  string             `yaml:"tls_key_file"`
-	TLSCAFile   string             `yaml:"tls_ca_file"`
-	Prometheus  string             `yaml:"prometheus"`
-	Debug       string             `json:"debug"`
-	Logger      logConfig          `yaml:"logger"`
-	Database    dbConfig           `yaml:"database"`
-	SSL         sslConfig          `yaml:"ssl"`
-	Healthcheck healthcheck.Config `yaml:"healthcheck"`
-	Backup      backup.Config      `yaml:"backup"`
-	Repair      repair.Config      `yaml:"repair"`
+	HTTP          string             `yaml:"http"`
+	HTTPS         string             `yaml:"https"`
+	TLSCertFile   string             `yaml:"tls_cert_file"`
+	TLSKeyFile    string             `yaml:"tls_key_file"`
+	TLSCAFile     string             `yaml:"tls_ca_file"`
+	Prometheus    string             `yaml:"prometheus"`
+	Debug         string             `yaml:"debug"`
+	SwaggerUIPath string             `yaml:"swagger_ui_path"`
+	Logger        logConfig          `yaml:"logger"`
+	Database      dbConfig           `yaml:"database"`
+	SSL           sslConfig          `yaml:"ssl"`
+	Healthcheck   healthcheck.Config `yaml:"healthcheck"`
+	Backup        backup.Config      `yaml:"backup"`
+	Repair        repair.Config      `yaml:"repair"`
 }
 
 func defaultConfig() *ServerConfig {
 	config := &ServerConfig{
-		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
-		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
-		Prometheus:  ":5090",
-		Debug:       "127.0.0.1:5112",
+		TLSCertFile:   "/var/lib/scylla-manager/scylla_manager.crt",
+		TLSKeyFile:    "/var/lib/scylla-manager/scylla_manager.key",
+		Prometheus:    ":5090",
+		Debug:         "127.0.0.1:5112",
+		SwaggerUIPath: "/var/lib/scylla-manager/swagger-ui",
 		Logger: logConfig{
 			Mode:        log.StderrMode,
 			Level:       zapcore.InfoLevel,

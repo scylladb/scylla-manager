@@ -63,6 +63,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/%{name}-agent/
 mkdir -p %{buildroot}%{_unitdir}/
 mkdir -p %{buildroot}%{_prefix}/lib/%{name}/
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}/
+mkdir -p %{buildroot}%{_sharedstatedir}/%{name}/swagger-ui/
 mkdir -p %{buildroot}%{_docdir}/%{name}-server/
 mkdir -p %{buildroot}%{_docdir}/%{name}-client/
 mkdir -p %{buildroot}%{_docdir}/%{name}-agent/
@@ -75,10 +76,13 @@ install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/%{name}/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
 install -m644 schema/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
+install -m644 swagger-ui/dist/* %{buildroot}%{_sharedstatedir}/%{name}/swagger-ui/
+
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_agent_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_auth_token_gen %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
+
 install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-server/LICENSE
 install -m644 license/LICENSE.3RD_PARTY.%{name}-server %{buildroot}%{_docdir}/%{name}-server/LICENSE.3RD_PARTY
 install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-client/LICENSE
