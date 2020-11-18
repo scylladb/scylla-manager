@@ -25,7 +25,7 @@ Scylla Manager
 Slack channel
 =============
 
-If you have any troubles or questions regarding Scylla Manager contact us on `Scylla Manager Slack channel <https://scylladb-users.slack.com/archives/C01ERVBPWLU>`_
+If you have any troubles or questions regarding Scylla Manager contact us on `Scylla Manager Slack channel <https://scylladb-users.slack.com/archives/C01ERVBPWLU>`_.
 
 Introduction
 ============
