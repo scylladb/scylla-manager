@@ -30,24 +30,6 @@ func (o *DeleteClusterClusterIDBackupsReader) ReadResponse(response runtime.Clie
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewDeleteClusterClusterIDBackupsBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewDeleteClusterClusterIDBackupsNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewDeleteClusterClusterIDBackupsInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewDeleteClusterClusterIDBackupsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -81,105 +63,6 @@ func (o *DeleteClusterClusterIDBackupsOK) readResponse(response runtime.ClientRe
 	return nil
 }
 
-// NewDeleteClusterClusterIDBackupsBadRequest creates a DeleteClusterClusterIDBackupsBadRequest with default headers values
-func NewDeleteClusterClusterIDBackupsBadRequest() *DeleteClusterClusterIDBackupsBadRequest {
-	return &DeleteClusterClusterIDBackupsBadRequest{}
-}
-
-/*DeleteClusterClusterIDBackupsBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type DeleteClusterClusterIDBackupsBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *DeleteClusterClusterIDBackupsBadRequest) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/backups][%d] deleteClusterClusterIdBackupsBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *DeleteClusterClusterIDBackupsBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *DeleteClusterClusterIDBackupsBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewDeleteClusterClusterIDBackupsNotFound creates a DeleteClusterClusterIDBackupsNotFound with default headers values
-func NewDeleteClusterClusterIDBackupsNotFound() *DeleteClusterClusterIDBackupsNotFound {
-	return &DeleteClusterClusterIDBackupsNotFound{}
-}
-
-/*DeleteClusterClusterIDBackupsNotFound handles this case with default header values.
-
-Not found
-*/
-type DeleteClusterClusterIDBackupsNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *DeleteClusterClusterIDBackupsNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/backups][%d] deleteClusterClusterIdBackupsNotFound  %+v", 404, o.Payload)
-}
-
-func (o *DeleteClusterClusterIDBackupsNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *DeleteClusterClusterIDBackupsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewDeleteClusterClusterIDBackupsInternalServerError creates a DeleteClusterClusterIDBackupsInternalServerError with default headers values
-func NewDeleteClusterClusterIDBackupsInternalServerError() *DeleteClusterClusterIDBackupsInternalServerError {
-	return &DeleteClusterClusterIDBackupsInternalServerError{}
-}
-
-/*DeleteClusterClusterIDBackupsInternalServerError handles this case with default header values.
-
-Server error
-*/
-type DeleteClusterClusterIDBackupsInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *DeleteClusterClusterIDBackupsInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/backups][%d] deleteClusterClusterIdBackupsInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *DeleteClusterClusterIDBackupsInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *DeleteClusterClusterIDBackupsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewDeleteClusterClusterIDBackupsDefault creates a DeleteClusterClusterIDBackupsDefault with default headers values
 func NewDeleteClusterClusterIDBackupsDefault(code int) *DeleteClusterClusterIDBackupsDefault {
 	return &DeleteClusterClusterIDBackupsDefault{
@@ -189,7 +72,7 @@ func NewDeleteClusterClusterIDBackupsDefault(code int) *DeleteClusterClusterIDBa
 
 /*DeleteClusterClusterIDBackupsDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type DeleteClusterClusterIDBackupsDefault struct {
 	_statusCode int

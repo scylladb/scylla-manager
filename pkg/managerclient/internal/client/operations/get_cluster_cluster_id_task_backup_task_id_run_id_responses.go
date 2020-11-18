@@ -30,24 +30,6 @@ func (o *GetClusterClusterIDTaskBackupTaskIDRunIDReader) ReadResponse(response r
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetClusterClusterIDTaskBackupTaskIDRunIDBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetClusterClusterIDTaskBackupTaskIDRunIDNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetClusterClusterIDTaskBackupTaskIDRunIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -93,105 +75,6 @@ func (o *GetClusterClusterIDTaskBackupTaskIDRunIDOK) readResponse(response runti
 	return nil
 }
 
-// NewGetClusterClusterIDTaskBackupTaskIDRunIDBadRequest creates a GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest with default headers values
-func NewGetClusterClusterIDTaskBackupTaskIDRunIDBadRequest() *GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest {
-	return &GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest{}
-}
-
-/*GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/backup/{task_id}/{run_id}][%d] getClusterClusterIdTaskBackupTaskIdRunIdBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDTaskBackupTaskIDRunIDNotFound creates a GetClusterClusterIDTaskBackupTaskIDRunIDNotFound with default headers values
-func NewGetClusterClusterIDTaskBackupTaskIDRunIDNotFound() *GetClusterClusterIDTaskBackupTaskIDRunIDNotFound {
-	return &GetClusterClusterIDTaskBackupTaskIDRunIDNotFound{}
-}
-
-/*GetClusterClusterIDTaskBackupTaskIDRunIDNotFound handles this case with default header values.
-
-Not found
-*/
-type GetClusterClusterIDTaskBackupTaskIDRunIDNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDNotFound) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/backup/{task_id}/{run_id}][%d] getClusterClusterIdTaskBackupTaskIdRunIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError creates a GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError with default headers values
-func NewGetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError() *GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError {
-	return &GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError{}
-}
-
-/*GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/backup/{task_id}/{run_id}][%d] getClusterClusterIdTaskBackupTaskIdRunIdInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTaskBackupTaskIDRunIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetClusterClusterIDTaskBackupTaskIDRunIDDefault creates a GetClusterClusterIDTaskBackupTaskIDRunIDDefault with default headers values
 func NewGetClusterClusterIDTaskBackupTaskIDRunIDDefault(code int) *GetClusterClusterIDTaskBackupTaskIDRunIDDefault {
 	return &GetClusterClusterIDTaskBackupTaskIDRunIDDefault{
@@ -201,7 +84,7 @@ func NewGetClusterClusterIDTaskBackupTaskIDRunIDDefault(code int) *GetClusterClu
 
 /*GetClusterClusterIDTaskBackupTaskIDRunIDDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetClusterClusterIDTaskBackupTaskIDRunIDDefault struct {
 	_statusCode int

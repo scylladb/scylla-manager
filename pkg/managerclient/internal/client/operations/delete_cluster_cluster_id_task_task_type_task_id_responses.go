@@ -30,24 +30,6 @@ func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDReader) ReadResponse(response r
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewDeleteClusterClusterIDTaskTaskTypeTaskIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -81,105 +63,6 @@ func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDOK) readResponse(response runti
 	return nil
 }
 
-// NewDeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest creates a DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest with default headers values
-func NewDeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest() *DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest {
-	return &DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest{}
-}
-
-/*DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] deleteClusterClusterIdTaskTaskTypeTaskIdBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewDeleteClusterClusterIDTaskTaskTypeTaskIDNotFound creates a DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound with default headers values
-func NewDeleteClusterClusterIDTaskTaskTypeTaskIDNotFound() *DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound {
-	return &DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound{}
-}
-
-/*DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound handles this case with default header values.
-
-Not found
-*/
-type DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] deleteClusterClusterIdTaskTaskTypeTaskIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewDeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError creates a DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError with default headers values
-func NewDeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError() *DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError {
-	return &DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError{}
-}
-
-/*DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError handles this case with default header values.
-
-Server error
-*/
-type DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /cluster/{cluster_id}/task/{task_type}/{task_id}][%d] deleteClusterClusterIdTaskTaskTypeTaskIdInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *DeleteClusterClusterIDTaskTaskTypeTaskIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewDeleteClusterClusterIDTaskTaskTypeTaskIDDefault creates a DeleteClusterClusterIDTaskTaskTypeTaskIDDefault with default headers values
 func NewDeleteClusterClusterIDTaskTaskTypeTaskIDDefault(code int) *DeleteClusterClusterIDTaskTaskTypeTaskIDDefault {
 	return &DeleteClusterClusterIDTaskTaskTypeTaskIDDefault{
@@ -189,7 +72,7 @@ func NewDeleteClusterClusterIDTaskTaskTypeTaskIDDefault(code int) *DeleteCluster
 
 /*DeleteClusterClusterIDTaskTaskTypeTaskIDDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type DeleteClusterClusterIDTaskTaskTypeTaskIDDefault struct {
 	_statusCode int

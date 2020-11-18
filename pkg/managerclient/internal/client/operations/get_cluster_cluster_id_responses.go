@@ -30,24 +30,6 @@ func (o *GetClusterClusterIDReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetClusterClusterIDBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetClusterClusterIDNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetClusterClusterIDInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetClusterClusterIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -93,105 +75,6 @@ func (o *GetClusterClusterIDOK) readResponse(response runtime.ClientResponse, co
 	return nil
 }
 
-// NewGetClusterClusterIDBadRequest creates a GetClusterClusterIDBadRequest with default headers values
-func NewGetClusterClusterIDBadRequest() *GetClusterClusterIDBadRequest {
-	return &GetClusterClusterIDBadRequest{}
-}
-
-/*GetClusterClusterIDBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetClusterClusterIDBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDBadRequest) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}][%d] getClusterClusterIdBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetClusterClusterIDBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDNotFound creates a GetClusterClusterIDNotFound with default headers values
-func NewGetClusterClusterIDNotFound() *GetClusterClusterIDNotFound {
-	return &GetClusterClusterIDNotFound{}
-}
-
-/*GetClusterClusterIDNotFound handles this case with default header values.
-
-Not found
-*/
-type GetClusterClusterIDNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDNotFound) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}][%d] getClusterClusterIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClusterClusterIDNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDInternalServerError creates a GetClusterClusterIDInternalServerError with default headers values
-func NewGetClusterClusterIDInternalServerError() *GetClusterClusterIDInternalServerError {
-	return &GetClusterClusterIDInternalServerError{}
-}
-
-/*GetClusterClusterIDInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetClusterClusterIDInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}][%d] getClusterClusterIdInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetClusterClusterIDInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetClusterClusterIDDefault creates a GetClusterClusterIDDefault with default headers values
 func NewGetClusterClusterIDDefault(code int) *GetClusterClusterIDDefault {
 	return &GetClusterClusterIDDefault{
@@ -201,7 +84,7 @@ func NewGetClusterClusterIDDefault(code int) *GetClusterClusterIDDefault {
 
 /*GetClusterClusterIDDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetClusterClusterIDDefault struct {
 	_statusCode int

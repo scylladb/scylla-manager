@@ -30,24 +30,6 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopReader) ReadResponse(response 
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewPutClusterClusterIDTaskTaskTypeTaskIDStopDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -81,105 +63,6 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopOK) readResponse(response runt
 	return nil
 }
 
-// NewPutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest creates a PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest with default headers values
-func NewPutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest() *PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest {
-	return &PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest{}
-}
-
-/*PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/stop][%d] putClusterClusterIdTaskTaskTypeTaskIdStopBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPutClusterClusterIDTaskTaskTypeTaskIDStopNotFound creates a PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound with default headers values
-func NewPutClusterClusterIDTaskTaskTypeTaskIDStopNotFound() *PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound {
-	return &PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound{}
-}
-
-/*PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound handles this case with default header values.
-
-Not found
-*/
-type PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/stop][%d] putClusterClusterIdTaskTaskTypeTaskIdStopNotFound  %+v", 404, o.Payload)
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError creates a PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError with default headers values
-func NewPutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError() *PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError {
-	return &PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError{}
-}
-
-/*PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError handles this case with default header values.
-
-Server error
-*/
-type PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/task/{task_type}/{task_id}/stop][%d] putClusterClusterIdTaskTaskTypeTaskIdStopInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDTaskTaskTypeTaskIDStopInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewPutClusterClusterIDTaskTaskTypeTaskIDStopDefault creates a PutClusterClusterIDTaskTaskTypeTaskIDStopDefault with default headers values
 func NewPutClusterClusterIDTaskTaskTypeTaskIDStopDefault(code int) *PutClusterClusterIDTaskTaskTypeTaskIDStopDefault {
 	return &PutClusterClusterIDTaskTaskTypeTaskIDStopDefault{
@@ -189,7 +72,7 @@ func NewPutClusterClusterIDTaskTaskTypeTaskIDStopDefault(code int) *PutClusterCl
 
 /*PutClusterClusterIDTaskTaskTypeTaskIDStopDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type PutClusterClusterIDTaskTaskTypeTaskIDStopDefault struct {
 	_statusCode int

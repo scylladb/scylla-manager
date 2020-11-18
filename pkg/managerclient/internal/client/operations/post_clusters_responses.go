@@ -30,24 +30,6 @@ func (o *PostClustersReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPostClustersBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewPostClustersNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewPostClustersInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewPostClustersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -85,105 +67,6 @@ func (o *PostClustersCreated) readResponse(response runtime.ClientResponse, cons
 	return nil
 }
 
-// NewPostClustersBadRequest creates a PostClustersBadRequest with default headers values
-func NewPostClustersBadRequest() *PostClustersBadRequest {
-	return &PostClustersBadRequest{}
-}
-
-/*PostClustersBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type PostClustersBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PostClustersBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] postClustersBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *PostClustersBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PostClustersBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPostClustersNotFound creates a PostClustersNotFound with default headers values
-func NewPostClustersNotFound() *PostClustersNotFound {
-	return &PostClustersNotFound{}
-}
-
-/*PostClustersNotFound handles this case with default header values.
-
-Not found
-*/
-type PostClustersNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PostClustersNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] postClustersNotFound  %+v", 404, o.Payload)
-}
-
-func (o *PostClustersNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PostClustersNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPostClustersInternalServerError creates a PostClustersInternalServerError with default headers values
-func NewPostClustersInternalServerError() *PostClustersInternalServerError {
-	return &PostClustersInternalServerError{}
-}
-
-/*PostClustersInternalServerError handles this case with default header values.
-
-Server error
-*/
-type PostClustersInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PostClustersInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] postClustersInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *PostClustersInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PostClustersInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewPostClustersDefault creates a PostClustersDefault with default headers values
 func NewPostClustersDefault(code int) *PostClustersDefault {
 	return &PostClustersDefault{
@@ -193,7 +76,7 @@ func NewPostClustersDefault(code int) *PostClustersDefault {
 
 /*PostClustersDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type PostClustersDefault struct {
 	_statusCode int

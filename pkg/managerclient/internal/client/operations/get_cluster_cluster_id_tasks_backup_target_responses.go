@@ -30,24 +30,6 @@ func (o *GetClusterClusterIDTasksBackupTargetReader) ReadResponse(response runti
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetClusterClusterIDTasksBackupTargetBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetClusterClusterIDTasksBackupTargetNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetClusterClusterIDTasksBackupTargetInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetClusterClusterIDTasksBackupTargetDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -93,105 +75,6 @@ func (o *GetClusterClusterIDTasksBackupTargetOK) readResponse(response runtime.C
 	return nil
 }
 
-// NewGetClusterClusterIDTasksBackupTargetBadRequest creates a GetClusterClusterIDTasksBackupTargetBadRequest with default headers values
-func NewGetClusterClusterIDTasksBackupTargetBadRequest() *GetClusterClusterIDTasksBackupTargetBadRequest {
-	return &GetClusterClusterIDTasksBackupTargetBadRequest{}
-}
-
-/*GetClusterClusterIDTasksBackupTargetBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetClusterClusterIDTasksBackupTargetBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetBadRequest) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks/backup/target][%d] getClusterClusterIdTasksBackupTargetBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDTasksBackupTargetNotFound creates a GetClusterClusterIDTasksBackupTargetNotFound with default headers values
-func NewGetClusterClusterIDTasksBackupTargetNotFound() *GetClusterClusterIDTasksBackupTargetNotFound {
-	return &GetClusterClusterIDTasksBackupTargetNotFound{}
-}
-
-/*GetClusterClusterIDTasksBackupTargetNotFound handles this case with default header values.
-
-Not found
-*/
-type GetClusterClusterIDTasksBackupTargetNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetNotFound) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks/backup/target][%d] getClusterClusterIdTasksBackupTargetNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDTasksBackupTargetInternalServerError creates a GetClusterClusterIDTasksBackupTargetInternalServerError with default headers values
-func NewGetClusterClusterIDTasksBackupTargetInternalServerError() *GetClusterClusterIDTasksBackupTargetInternalServerError {
-	return &GetClusterClusterIDTasksBackupTargetInternalServerError{}
-}
-
-/*GetClusterClusterIDTasksBackupTargetInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetClusterClusterIDTasksBackupTargetInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks/backup/target][%d] getClusterClusterIdTasksBackupTargetInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTasksBackupTargetInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetClusterClusterIDTasksBackupTargetDefault creates a GetClusterClusterIDTasksBackupTargetDefault with default headers values
 func NewGetClusterClusterIDTasksBackupTargetDefault(code int) *GetClusterClusterIDTasksBackupTargetDefault {
 	return &GetClusterClusterIDTasksBackupTargetDefault{
@@ -201,7 +84,7 @@ func NewGetClusterClusterIDTasksBackupTargetDefault(code int) *GetClusterCluster
 
 /*GetClusterClusterIDTasksBackupTargetDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetClusterClusterIDTasksBackupTargetDefault struct {
 	_statusCode int
