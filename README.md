@@ -24,7 +24,7 @@ This would download required go version and install it at `GOROOT`.
 ## Installing other packages needed for development
 
 1. Install Docker and `docker-compose`
-1. Run installation script `./install_deps.sh`
+1. Run installation script `./install-dependencies.sh`
 
 ## Configuring imports formatting in GoLand
 
