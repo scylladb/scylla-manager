@@ -54,12 +54,12 @@ jobs:
         id: cache-go-deps
         with:
          path: ~/go/bin/
-         key: ${{ runner.os }}-${{ hashFiles('**/install_deps.sh') }}
+         key: ${{ runner.os }}-${{ hashFiles('**/install-dependencies.sh') }}
 
       - name: Install Go dependencies
         if: steps.cache-go-deps.outputs.cache-hit != 'true'
         run: |
-          ./install_deps.sh
+          ./install-dependencies.sh
 
       - name: Unit Tests
         run: |
